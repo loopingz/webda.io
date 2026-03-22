@@ -153,6 +153,10 @@ abstract class Service<
   E extends AsyncEventUnknown = {}
 > extends AbstractService<T, E> {
   /**
+   * Service parameters
+   */
+  static Parameters = ServiceParameters;
+  /**
    * Set the Webda events here
    */
   [WEBDA_EVENTS]: E;

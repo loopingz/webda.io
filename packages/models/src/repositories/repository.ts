@@ -1,5 +1,5 @@
 import type { ArrayElement } from "@webda/tsc-esm";
-import type { PrimaryKey, PrimaryKeyType, WEBDA_EVENTS, ModelClass, PrimaryKeyAttributes } from "../storable";
+import type { PrimaryKey, PrimaryKeyType, SettablePrimaryKey, WEBDA_EVENTS, ModelClass, PrimaryKeyAttributes } from "../storable";
 import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types";
 import type { ModelRefWithCreate } from "../relations";
 
@@ -61,7 +61,7 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
    * Refers to the object in the store
    * @param pk primary key
    */
-  ref(pk: PrimaryKeyType<InstanceType<T>>): ModelRefWithCreate<InstanceType<T>>;
+  ref(pk: SettablePrimaryKey<InstanceType<T>>): ModelRefWithCreate<InstanceType<T>>;
 
   /**
    * Get data from the store

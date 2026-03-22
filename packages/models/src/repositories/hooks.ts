@@ -1,6 +1,6 @@
 import { Model } from "../model";
 import type { ModelRefWithCreate } from "../relations";
-import { PrimaryKeyType, WEBDA_PRIMARY_KEY, type Storable, type ModelClass } from "../storable";
+import { PrimaryKeyType, SettablePrimaryKey, WEBDA_PRIMARY_KEY, type Storable, type ModelClass } from "../storable";
 import { Helpers } from "../types";
 import type { Repository } from "./repository";
 
@@ -97,9 +97,9 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
      */
     static ref<T extends ModelClass>(
       this: T,
-      key: PrimaryKeyType<InstanceType<T>>
+      key: SettablePrimaryKey<InstanceType<T>>
     ): ModelRefWithCreate<InstanceType<T>> {
-      return useRepository(this)!.ref(key);
+      return useRepository(this)!.ref(key as any);
     }
 
     /**

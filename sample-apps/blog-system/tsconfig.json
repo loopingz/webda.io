@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "es2020",
+    "outDir": "./lib",
+    "rootDir": "./src",
+    "strict": false,
+    "sourceMap": true,
+    "declaration": true,
+    "experimentalDecorators": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "declarationMap": true,
+    "plugins": [
+      {
+        "name": "@webda/ts-plugin"
+      }
+    ]
+  },
+  "include": ["src/**/*", ".webda/module.d.ts"],
+  "exclude": ["**/node_modules", "**/*.spec.ts"]
+}

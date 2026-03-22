@@ -44,7 +44,7 @@ export class BinaryNotFoundError extends WebdaError.CodeError {
   }
 }
 
-export interface BinaryFileInfo {
+export interface BinaryFileInfo<T extends Object = {}> {
   /**
    * Hash of the binary
    */
@@ -70,19 +70,19 @@ export interface BinaryFileInfo {
   /**
    * Metadatas stored along with the binary
    */
-  metadata?: BinaryMetadata;
+  metadata?: T;
 }
 
 /**
  * Represent files attached to a model
  */
-export type BinaryFiles = BinaryFileInfo[];
+export type BinaryFiles<T extends Object = {}> = BinaryFileInfo<T>[];
 
 /**
  * Represent a file to store
  * @WebdaSchema
  */
-export abstract class BinaryFile<T = any> implements BinaryFileInfo {
+export abstract class BinaryFile<T = any> implements BinaryFileInfo<T> {
   /**
    * Current name
    */
@@ -116,7 +116,7 @@ export abstract class BinaryFile<T = any> implements BinaryFileInfo {
    */
   metadata?: T;
 
-  constructor(info: BinaryFileInfo) {
+  constructor(info: BinaryFileInfo<T>) {
     this.set(info);
   }
 
@@ -124,12 +124,12 @@ export abstract class BinaryFile<T = any> implements BinaryFileInfo {
    * Set the information
    * @param info
    */
-  set(info: BinaryFileInfo) {
+  set(info: BinaryFileInfo<T>) {
     this.name = info.name;
     this.challenge = info.challenge;
     this.hash = info.hash;
     this.mimetype = info.mimetype || "application/octet-stream";
-    this.metadata = info.metadata || {};
+    this.metadata = info.metadata || ({} as T);
     this.size = info.size;
   }
 
@@ -137,7 +137,7 @@ export abstract class BinaryFile<T = any> implements BinaryFileInfo {
    * Retrieve a plain BinaryFileInfo object
    * @returns
    */
-  toBinaryFileInfo(): BinaryFileInfo {
+  toBinaryFileInfo(): BinaryFileInfo<T> {
     return {
       hash: this.hash,
       size: this.size,
@@ -250,7 +250,7 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
     service: BinaryService;
   } = {} as any;
 
-  constructor(service: BinaryService, obj: BinaryFileInfo) {
+  constructor(service: BinaryService, obj: BinaryFileInfo<T>) {
     super(obj);
     this.set(obj);
     this[WEBDA_STORAGE].service = service;
@@ -287,6 +287,7 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
 /**
  * One Binary instance
  * @readOnly
+ * @dtoIn skip
  */
 export class Binary<T = any> extends BinaryMap<T> {
   [WEBDA_STORAGE]: {
@@ -314,7 +315,7 @@ export class Binary<T = any> extends BinaryMap<T> {
    * Ensure empty is set correctly
    * @param info
    */
-  set(info: BinaryFileInfo): void {
+  set(info: BinaryFileInfo<T>): void {
     super.set(info);
     this[WEBDA_STORAGE].empty = false;
   }
@@ -343,7 +344,7 @@ export class Binary<T = any> extends BinaryMap<T> {
    * Return undefined if no hash
    * @returns
    */
-  toJSON(): BinaryFileInfo | undefined {
+  toJSON(): BinaryFileInfo<T> | undefined {
     if (!this.hash) {
       return undefined;
     }
@@ -357,10 +358,10 @@ export class Binary<T = any> extends BinaryMap<T> {
 export class BinariesItem<T = any> extends BinaryMap<T> {
   [WEBDA_STORAGE]: {
     service: BinaryService;
-    parent: BinariesImpl;
+    parent: BinariesImpl<T>;
   } = {} as any;
 
-  constructor(parent: BinariesImpl, info: BinaryFileInfo) {
+  constructor(parent: BinariesImpl<T>, info: BinaryFileInfo<T>) {
     super(parent[WEBDA_STORAGE].service, info);
     this[WEBDA_STORAGE].parent = parent;
   }
@@ -384,7 +385,7 @@ export class BinariesItem<T = any> extends BinaryMap<T> {
 }
 /**
  * Define a collection of Binary
- * @readOnly
+ * @dtoIn skip
  */
 export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
   protected [WEBDA_STORAGE]: {
@@ -392,6 +393,8 @@ export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
     attribute: string;
     service: BinaryService;
   } = {} as any;
+
+  static fromDto(data: never): void {}
 
   assign(model: Model, attribute: string): this {
     this[WEBDA_STORAGE].model = model;

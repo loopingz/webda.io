@@ -1,0 +1,20 @@
+{
+  "$schema": ".webda/config.schema.json",
+  "parameters": {
+    "locales": ["en-US"],
+    "website": "http://localhost:18080"
+  },
+  "services": {
+    "Mailer": {
+      "type": ""
+    }
+  },
+  "models": {
+    "User": {},
+    "Post": {},
+    "Comment": {},
+    "Tag": {},
+    "PostTag": {},
+    "UserFollow": {}
+  }
+}

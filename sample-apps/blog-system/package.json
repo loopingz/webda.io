@@ -1,0 +1,39 @@
+{
+  "name": "@webda/sample-blog-system",
+  "version": "3.999.0",
+  "description": "Complete blog system demonstrating all @webda/models features in a real-world application",
+  "keywords": [
+    "webda",
+    "models",
+    "blog",
+    "complete-example"
+  ],
+  "author": "Webda Team",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "build": "webdac build",
+    "dev": "npm run build && tsx src/index.ts",
+    "demo": "webda run TestBean test"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "@webda/core": "^4.0.0-beta.1",
+    "@webda/models": "^4.0.0-beta.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.0.0",
+    "@webda/compiler": "^4.0.0-beta.2",
+    "tsx": "^4.17.0",
+    "typescript": "^5.0.0",
+    "vitest": "^3.2.4"
+  },
+  "type": "module",
+  "license": "LGPL-3.0-only"
+}

@@ -1,7 +1,7 @@
 import type { FilterAttributes, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
 import { WEBDA_DIRTY } from "@webda/utils";
 import type { ModelRefWithCreate, ModelRelated } from "./relations";
-import type { JSONed } from "./types";
+import type { JSONed, Settable } from "./types";
 
 /**
  * Define the model primary key
@@ -87,7 +87,7 @@ export type ConcreteStorable<T = any, K extends keyof T = any> = Storable<T, K> 
 export interface ModelClass<S extends Storable = Storable> {
   new (arg: any): S;
   prototype: S;
-  ref<T extends ModelClass>(this: T, key: PrimaryKeyType<InstanceType<T>>): ModelRefWithCreate<InstanceType<T>>;
+  ref<T extends ModelClass>(this: T, key: SettablePrimaryKey<InstanceType<T>>): ModelRefWithCreate<InstanceType<T>>;
   iterate<T extends ModelClass>(this: T, query: string): AsyncGenerator<InstanceType<T>, any, any>;
   create<T extends ModelClass>(this: T, data: ConstructorParameters<T>[0], save?: boolean): Promise<InstanceType<T>>;
   query<T extends ModelClass>(
@@ -165,6 +165,17 @@ export type PK<K, T extends keyof K> = IsUnion<T> extends true ? Pick<K, T> : K[
 export type PrimaryKeyType<T extends Storable<any, any>> = PK<T, T[typeof WEBDA_PRIMARY_KEY][number]> & {
   toString(): string;
 };
+
+/**
+ * A widened version of PrimaryKeyType that accepts setter-compatible values.
+ *
+ * For composite keys (objects), applies Settable to widen properties that have
+ * a `set()` method (e.g. ModelLink accepts string).
+ * For single keys (string/number), returns the type as-is.
+ */
+export type SettablePrimaryKey<T extends Storable<any, any>> = PrimaryKeyType<T> extends object
+  ? Settable<PrimaryKeyType<T>> | PrimaryKeyType<T>
+  : PrimaryKeyType<T>;
 /**
  * Get the primary key of the object
  *

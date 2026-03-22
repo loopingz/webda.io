@@ -1,5 +1,7 @@
 {
   "$schema": ".webda/config.schema.json",
+  // This is the configuration file for the blog system application.
+  // It defines the application parameters, services, and data models.
   "parameters": {
     "locales": ["en-US"],
     "website": "http://localhost:18080"
@@ -9,6 +11,7 @@
       "type": "Webda/Mailer"
     }
   },
+  // Plop
   "models": {
     "User": {},
     "Post": {},

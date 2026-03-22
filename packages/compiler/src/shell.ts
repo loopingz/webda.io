@@ -2,11 +2,75 @@
 import yargs from "yargs";
 import { WebdaProject } from "./definition";
 import { Compiler } from "./compiler";
+import { generateConfigurationSchemas, ConfigSchemaApplication } from "./configuration";
 import { useWorkerOutput, Fork, InteractiveConsoleLogger } from "@webda/workout";
-import { resolve } from "path";
+import { FileUtils } from "@webda/utils";
+import { resolve, join } from "path";
 import { runWithCurrentDirectory } from "@webda/utils";
+import { existsSync, readdirSync, lstatSync, realpathSync } from "node:fs";
 import { bold, italic, yellow } from "yoctocolors";
 import { WebdaMorpher } from "./morpher/morpher";
+
+/**
+ * Scan a single node_modules directory for webda.module.json files
+ */
+function scanNodeModules(dir: string, mod: any, seen: Set<string>) {
+  if (!existsSync(dir)) return;
+  const scan = (current: string, depth: number = 0) => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      if (entry.name.startsWith(".")) continue;
+      const full = join(current, entry.name);
+      if (entry.name.startsWith("@") && depth === 0) {
+        scan(full, depth + 1);
+        continue;
+      }
+      let target = full;
+      if (entry.isSymbolicLink()) {
+        try {
+          target = realpathSync(full);
+          if (!lstatSync(target).isDirectory()) continue;
+        } catch {
+          continue;
+        }
+      } else if (!entry.isDirectory()) {
+        continue;
+      }
+      if (seen.has(target)) continue;
+      seen.add(target);
+      const modFile = join(target, "webda.module.json");
+      if (!existsSync(modFile)) continue;
+      try {
+        const depMod = FileUtils.load(modFile, "json");
+        // Merge moddas, deployers, and schemas (beans are only from the app itself)
+        for (const section of ["moddas", "deployers", "schemas"] as const) {
+          if (depMod[section]) {
+            mod[section] = { ...mod[section], ...depMod[section] };
+          }
+        }
+      } catch {
+        // Skip invalid modules
+      }
+    }
+  };
+  scan(dir);
+}
+
+/**
+ * Scan node_modules for webda.module.json files and merge their
+ * moddas, deployers, and schemas into the local module.
+ * Walks up the directory tree to find hoisted packages (yarn workspaces).
+ */
+function mergeDependencyModules(projectPath: string, mod: any) {
+  const seen = new Set<string>();
+  let current = resolve(projectPath);
+  const root = resolve("/");
+  while (current !== root) {
+    scanNodeModules(join(current, "node_modules"), mod, seen);
+    const parent = resolve(join(current, ".."));
+    if (parent === current) break;
+    current = parent;
+  }
+}
 
 interface Arguments {
   appPath: string;
@@ -105,6 +169,28 @@ Fork(
           await new Promise(() => {});
         } else {
           compiler.compile(true);
+          // Generate configuration schemas if the project is an application
+          if (project.isApplication()) {
+            try {
+              const modulePath = project.getAppPath("webda.module.json");
+              const mod = FileUtils.load(modulePath, "json");
+              mergeDependencyModules(project.getAppPath(), mod);
+              const configPath = FileUtils.getConfigurationFile(project.getAppPath("webda.config"));
+              const config = FileUtils.load(configPath);
+              const namespace = project.namespace || "Webda";
+              const app: ConfigSchemaApplication = {
+                getModdas: () => mod.moddas || {},
+                getSchema: (type: string) => mod.schemas?.[type],
+                getDeployers: () => mod.deployers || {},
+                getConfiguration: () => config,
+                getModules: () => mod,
+                completeNamespace: (name: string) => (name.includes("/") ? name : `${namespace}/${name}`)
+              };
+              generateConfigurationSchemas(app, undefined, undefined, undefined, configPath);
+            } catch (err) {
+              useWorkerOutput().log("WARN", "Cannot generate configuration schemas", err.message);
+            }
+          }
         }
       });
     }

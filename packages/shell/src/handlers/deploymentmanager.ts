@@ -61,7 +61,7 @@ export class DeploymentManager {
     const output = application.getWorkerOutput();
     await application.load();
     const deployment: Deployment = {
-      $schema: "../.webda-deployment-schema.json",
+      $schema: "../.webda/deployment.schema.json",
       units: [],
       resources: {},
       services: {},

@@ -163,10 +163,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   /**
    * @inheritdoc
    */
-  async incrementAttribute<
-    K extends PropertyPaths<InstanceType<T>>,
-    L extends NumericPropertyPaths<InstanceType<T>>
-  >(
+  async incrementAttribute<K extends PropertyPaths<InstanceType<T>>, L extends NumericPropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
     info: L | { property: L; value?: number },
     _conditionField?: K | null,
@@ -210,10 +207,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
       ? (object & ArrayElement<InstanceType<T>[K]>)[L]
       : ArrayElement<InstanceType<T>[K]>
   ): Promise<void>;
-  abstract removeAttribute<
-    L extends PropertyPaths<InstanceType<T>>,
-    K extends PropertyPaths<InstanceType<T>>
-  >(
+  abstract removeAttribute<L extends PropertyPaths<InstanceType<T>>, K extends PropertyPaths<InstanceType<T>>>(
     uuid: PrimaryKeyType<InstanceType<T>>,
     attribute: K,
     conditionField?: L | null,
@@ -281,7 +275,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
    * @param event - The event name to emit
    * @param data - The event payload
    */
-  protected async emit<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
+  async emit<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
     event: K,
     data: InstanceType<T>[typeof WEBDA_EVENTS][K]
   ): Promise<void> {

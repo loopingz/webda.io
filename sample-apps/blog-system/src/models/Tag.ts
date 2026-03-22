@@ -39,5 +39,3 @@ export class Tag extends Model {
   // Relations
   posts!: OneToMany<Post, Tag, "tags">; // Posts associated with this tag
 }
-
-Tag.registerSerializer();

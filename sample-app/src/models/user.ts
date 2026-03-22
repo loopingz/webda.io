@@ -4,11 +4,16 @@ import { Company } from "./company";
 import Contact from "./contact";
 
 /**
- *
+ * User model
  */
-//@Expose()
 export class User extends WebdaUser {
-  _company: ModelParent<Company>;
+  /**
+   * Company the user belongs to
+   */
+  company: ModelParent<Company>;
+  /**
+   * User's display name
+   */
   name: string;
   profilePicture: Binary<{ width: number; height: number }>;
   images: Binaries;

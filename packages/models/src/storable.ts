@@ -173,9 +173,8 @@ export type PrimaryKeyType<T extends Storable<any, any>> = PK<T, T[typeof WEBDA_
  * a `set()` method (e.g. ModelLink accepts string).
  * For single keys (string/number), returns the type as-is.
  */
-export type SettablePrimaryKey<T extends Storable<any, any>> = PrimaryKeyType<T> extends object
-  ? Settable<PrimaryKeyType<T>> | PrimaryKeyType<T>
-  : PrimaryKeyType<T>;
+export type SettablePrimaryKey<T extends Storable<any, any>> =
+  PrimaryKeyType<T> extends object ? Settable<PrimaryKeyType<T>> | PrimaryKeyType<T> : PrimaryKeyType<T>;
 /**
  * Get the primary key of the object
  *

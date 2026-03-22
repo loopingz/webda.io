@@ -1,16 +1,18 @@
-import { Bean, Service } from "@webda/core";
+import { Bean, Service, ServiceName, useService } from "@webda/core";
 import { User } from "../models/User";
 import { Post } from "../models/Post";
 import { Comment } from "../models/Comment";
 import { Tag } from "../models/Tag";
-import { PostTag } from "../models/PostTag";
 import { UserFollow } from "../models/UserFollow";
 import { track } from "@webda/utils";
-import { BelongTo } from "@webda/models";
 import { setupRepositories } from "../repositories/setup";
 
+export class TestBeanParameters extends Service.Parameters {
+  service: ServiceName;
+}
+
 @Bean
-class TestBean extends Service {
+export class TestBean<T extends TestBeanParameters = TestBeanParameters> extends Service<T> {
   /**
    * Scenario 1: Creating Users and Building a Network
    */
@@ -215,7 +217,6 @@ class TestBean extends Service {
    */
   async createCommentsAndNestedRelations() {
     console.log("\n=== Scenario 3: Comments and Nested Relations ===\n");
-
     const alice = await User.ref("user-alice").get();
     const bob = await User.ref("user-bob").get();
     const charlie = await User.ref("user-charlie").get();

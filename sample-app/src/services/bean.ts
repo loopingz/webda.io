@@ -17,8 +17,11 @@ export class SampleAppBadBean {
 export class SampleAppGoodBean extends BeanService {
   @Operation()
   operation(projectId: string) {}
+
   @Operation()
   async operation2(): Promise<number> {
     return 123;
   }
+
+  test() {}
 }

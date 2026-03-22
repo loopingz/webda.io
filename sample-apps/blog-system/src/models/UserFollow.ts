@@ -1,4 +1,4 @@
-import { Model, WEBDA_PRIMARY_KEY, BelongTo, ModelClass } from "@webda/models";
+import { Model, WEBDA_PRIMARY_KEY, BelongTo } from "@webda/models";
 import type { User } from "./User";
 
 /**
@@ -16,7 +16,6 @@ export class UserFollow extends Model {
    */
   [WEBDA_PRIMARY_KEY] = ["follower", "following"] as const;
 
-
   /**
    * When the follow relationship was created
    */
@@ -25,14 +24,4 @@ export class UserFollow extends Model {
   // Relations
   follower!: BelongTo<User>; // The user doing the following
   following!: BelongTo<User>; // The user being followed
-
-  static getDeserializers<T extends ModelClass>(
-    this: T
-  ): Partial<Record<keyof InstanceType<T>, (value: any) => any>> | undefined {
-    return {
-      createdAt: Model.DefaultDeserializer.Date
-    } as any;
-  }
 }
-
-UserFollow.registerSerializer();

@@ -1822,7 +1822,7 @@ export class SchemaGenerator {
     }
     result.$ref = `#/definitions/${this.getDefinitionKey(typeName)}`;
     result.definitions = { ...this.currentDefinitions };
-    result.definitions[typeName] = defSchema;
+    result.definitions[typeName] ??= defSchema;
     if (!this.currentOptions.asRef) {
       this.inlineTopLevelRef(result);
     }

@@ -11,19 +11,9 @@ import type { Tag } from "./Tag";
 export class PostTag extends Model {
   /**
    * Composite primary key
-   * TypeScript will infer getPrimaryKey() returns Pick<PostTag, "postUuid" | "tagUuid">
+   * TypeScript will infer getPrimaryKey() returns Pick<PostTag, "post" | "tag">
    */
-  [WEBDA_PRIMARY_KEY] = ["postUuid", "tagUuid"] as const;
-
-  /**
-   * Reference to post
-   */
-  postUuid!: string;
-
-  /**
-   * Reference to tag
-   */
-  tagUuid!: string;
+  [WEBDA_PRIMARY_KEY] = ["post", "tag"] as const;
 
   /**
    * When this relationship was created
@@ -33,14 +23,4 @@ export class PostTag extends Model {
   // Relations to actual objects
   post!: BelongTo<Post>;
   tag!: RelateTo<Tag>;
-
-  static getDeserializers<T extends ModelClass>(
-    this: T
-  ): Partial<Record<keyof InstanceType<T>, (value: any) => any>> | undefined {
-    return {
-      createdAt: Model.DefaultDeserializer.Date
-    } as any;
-  }
 }
-
-PostTag.registerSerializer();

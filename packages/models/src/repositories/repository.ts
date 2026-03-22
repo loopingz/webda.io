@@ -1,5 +1,12 @@
 import type { ArrayElement } from "@webda/tsc-esm";
-import type { PrimaryKey, PrimaryKeyType, SettablePrimaryKey, WEBDA_EVENTS, ModelClass, PrimaryKeyAttributes } from "../storable";
+import type {
+  PrimaryKey,
+  PrimaryKeyType,
+  SettablePrimaryKey,
+  WEBDA_EVENTS,
+  ModelClass,
+  PrimaryKeyAttributes
+} from "../storable";
 import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types";
 import type { ModelRefWithCreate } from "../relations";
 
@@ -130,6 +137,10 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
     event: K,
     listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void
   ): void;
+  emit<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
+    event: K,
+    payload: InstanceType<T>[typeof WEBDA_EVENTS][K]
+  ): Promise<void>;
 
   [WEBDA_TEST]?: {
     clear(): Promise<void>;

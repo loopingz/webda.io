@@ -1093,7 +1093,6 @@
           },
           "required": [
             "name",
-            "permissions",
             "uuid"
           ],
           "type": "object",
@@ -1194,7 +1193,6 @@
           },
           "required": [
             "name",
-            "permissions",
             "uuid"
           ],
           "type": "object",
@@ -1590,47 +1588,7 @@
           "WebdaModel": "Contact\nNot sure what this jsdoc does\n\nAnother comment",
           "additionalProperties": false,
           "definitions": {
-            "BinaryFile<any>": {
-              "WebdaSchema": true,
-              "additionalProperties": false,
-              "description": "Represent a file to store",
-              "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
-                "hash": {
-                  "description": "Will be computed by the service\n\nhash of the content",
-                  "type": "string"
-                },
-                "metadata": {
-                  "description": "Metadatas stored along with the binary"
-                },
-                "mimetype": {
-                  "description": "Mimetype of the binary",
-                  "type": "string"
-                },
-                "name": {
-                  "description": "Current name",
-                  "type": "string"
-                },
-                "originalname": {
-                  "description": "Original name",
-                  "type": "string"
-                },
-                "size": {
-                  "description": "Size of the binary",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "mimetype",
-                "name",
-                "size"
-              ],
-              "type": "object"
-            },
-            "BinaryFileInfo": {
+            "BinaryFileInfo<any>": {
               "additionalProperties": false,
               "description": "One Binary instance",
               "properties": {
@@ -1665,18 +1623,6 @@
                 "size"
               ],
               "type": "object"
-            },
-            "NamedParameters<typeof AnonymousFunction>": {
-              "additionalProperties": false,
-              "properties": {
-                "file": {
-                  "$ref": "#/definitions/BinaryFile%3Cany%3E"
-                }
-              },
-              "required": [
-                "file"
-              ],
-              "type": "object"
             }
           },
           "properties": {
@@ -1686,7 +1632,7 @@
               "type": "number"
             },
             "avatar": {
-              "$ref": "#/definitions/BinaryFileInfo",
+              "$ref": "#/definitions/BinaryFileInfo%3Cany%3E",
               "description": "Contact avatar"
             },
             "firstName": {
@@ -1707,28 +1653,17 @@
               "type": "string"
             },
             "photos": {
-              "additionalProperties": false,
-              "description": "Contact photos",
-              "properties": {
-                "length": {
-                  "description": "Gets the length of the array. This is a number one higher than the highest element defined in an array.",
-                  "type": "number"
+              "allOf": [
+                {
+                  "additionalProperties": false,
+                  "type": "object"
                 },
-                "upload": {
-                  "$ref": "#/definitions/NamedParameters%3Ctypeof%20AnonymousFunction%3E"
+                {
+                  "additionalProperties": false,
+                  "type": "object"
                 }
-              },
-              "required": [
-                "length",
-                "upload"
               ],
-              "type": "object"
-            },
-            "readonly": {
-              "SchemaOptional": true,
-              "description": "To indicate a property that will be set by server,\nsimilar to",
-              "readOnly": true,
-              "type": "number"
+              "description": "Contact photos"
             },
             "type": {
               "description": "Contact type",
@@ -1749,10 +1684,8 @@
             "avatar",
             "firstName",
             "lastName",
-            "optional",
             "owner",
             "photos",
-            "readonly",
             "type",
             "uuid"
           ],
@@ -1765,47 +1698,7 @@
           "WebdaModel": "Contact\nNot sure what this jsdoc does\n\nAnother comment",
           "additionalProperties": false,
           "definitions": {
-            "BinaryFile<any>": {
-              "WebdaSchema": true,
-              "additionalProperties": false,
-              "description": "Represent a file to store",
-              "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
-                "hash": {
-                  "description": "Will be computed by the service\n\nhash of the content",
-                  "type": "string"
-                },
-                "metadata": {
-                  "description": "Metadatas stored along with the binary"
-                },
-                "mimetype": {
-                  "description": "Mimetype of the binary",
-                  "type": "string"
-                },
-                "name": {
-                  "description": "Current name",
-                  "type": "string"
-                },
-                "originalname": {
-                  "description": "Original name",
-                  "type": "string"
-                },
-                "size": {
-                  "description": "Size of the binary",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "mimetype",
-                "name",
-                "size"
-              ],
-              "type": "object"
-            },
-            "BinaryFileInfo": {
+            "BinaryFileInfo<any>": {
               "additionalProperties": false,
               "description": "One Binary instance",
               "properties": {
@@ -1840,18 +1733,6 @@
                 "size"
               ],
               "type": "object"
-            },
-            "NamedParameters<typeof AnonymousFunction>": {
-              "additionalProperties": false,
-              "properties": {
-                "file": {
-                  "$ref": "#/definitions/BinaryFile%3Cany%3E"
-                }
-              },
-              "required": [
-                "file"
-              ],
-              "type": "object"
             }
           },
           "properties": {
@@ -1861,7 +1742,7 @@
               "type": "number"
             },
             "avatar": {
-              "$ref": "#/definitions/BinaryFileInfo",
+              "$ref": "#/definitions/BinaryFileInfo%3Cany%3E",
               "description": "Contact avatar"
             },
             "firstName": {
@@ -1882,22 +1763,26 @@
               "type": "string"
             },
             "photos": {
-              "additionalProperties": false,
-              "description": "Contact photos",
-              "properties": {
-                "length": {
-                  "description": "Gets the length of the array. This is a number one higher than the highest element defined in an array.",
-                  "type": "number"
+              "allOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "length": {
+                      "description": "Gets the length of the array. This is a number one higher than the highest element defined in an array.",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "length"
+                  ],
+                  "type": "object"
                 },
-                "upload": {
-                  "$ref": "#/definitions/NamedParameters%3Ctypeof%20AnonymousFunction%3E"
+                {
+                  "additionalProperties": false,
+                  "type": "object"
                 }
-              },
-              "required": [
-                "length",
-                "upload"
               ],
-              "type": "object"
+              "description": "Contact photos"
             },
             "readonly": {
               "SchemaOptional": true,
@@ -1924,10 +1809,8 @@
             "avatar",
             "firstName",
             "lastName",
-            "optional",
             "owner",
             "photos",
-            "readonly",
             "type",
             "uuid"
           ],
@@ -1938,47 +1821,7 @@
           "$ref": "#/definitions/Contact",
           "$schema": "http://json-schema.org/draft-07/schema#",
           "definitions": {
-            "BinaryFile<any>": {
-              "WebdaSchema": true,
-              "additionalProperties": false,
-              "description": "Represent a file to store",
-              "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
-                "hash": {
-                  "description": "Will be computed by the service\n\nhash of the content",
-                  "type": "string"
-                },
-                "metadata": {
-                  "description": "Metadatas stored along with the binary"
-                },
-                "mimetype": {
-                  "description": "Mimetype of the binary",
-                  "type": "string"
-                },
-                "name": {
-                  "description": "Current name",
-                  "type": "string"
-                },
-                "originalname": {
-                  "description": "Original name",
-                  "type": "string"
-                },
-                "size": {
-                  "description": "Size of the binary",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "mimetype",
-                "name",
-                "size"
-              ],
-              "type": "object"
-            },
-            "BinaryFileInfo": {
+            "BinaryFileInfo<any>": {
               "additionalProperties": false,
               "description": "One Binary instance",
               "properties": {
@@ -2011,18 +1854,6 @@
                 "mimetype",
                 "name",
                 "size"
-              ],
-              "type": "object"
-            },
-            "NamedParameters<typeof AnonymousFunction>": {
-              "additionalProperties": false,
-              "properties": {
-                "file": {
-                  "$ref": "#/definitions/BinaryFile%3Cany%3E"
-                }
-              },
-              "required": [
-                "file"
               ],
               "type": "object"
             }
@@ -3597,47 +3428,7 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
           "definitions": {
-            "BinaryFile<any>": {
-              "WebdaSchema": true,
-              "additionalProperties": false,
-              "description": "Represent a file to store",
-              "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
-                "hash": {
-                  "description": "Will be computed by the service\n\nhash of the content",
-                  "type": "string"
-                },
-                "metadata": {
-                  "description": "Metadatas stored along with the binary"
-                },
-                "mimetype": {
-                  "description": "Mimetype of the binary",
-                  "type": "string"
-                },
-                "name": {
-                  "description": "Current name",
-                  "type": "string"
-                },
-                "originalname": {
-                  "description": "Original name",
-                  "type": "string"
-                },
-                "size": {
-                  "description": "Size of the binary",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "mimetype",
-                "name",
-                "size"
-              ],
-              "type": "object"
-            },
-            "BinaryFileInfo": {
+            "BinaryFileInfo<{ width: number; height: number; }>": {
               "additionalProperties": false,
               "description": "One Binary instance",
               "properties": {
@@ -3650,6 +3441,7 @@
                   "type": "string"
                 },
                 "metadata": {
+                  "$ref": "#/definitions/profilePicture%24metadata",
                   "description": "Metadatas stored along with the binary"
                 },
                 "mimetype": {
@@ -3673,15 +3465,19 @@
               ],
               "type": "object"
             },
-            "NamedParameters<typeof AnonymousFunction>": {
+            "profilePicture$metadata": {
               "additionalProperties": false,
               "properties": {
-                "file": {
-                  "$ref": "#/definitions/BinaryFile%3Cany%3E"
+                "height": {
+                  "type": "number"
+                },
+                "width": {
+                  "type": "number"
                 }
               },
               "required": [
-                "file"
+                "height",
+                "width"
               ],
               "type": "object"
             }
@@ -3715,22 +3511,17 @@
               "type": "string"
             },
             "images": {
-              "additionalProperties": false,
-              "description": "Define a collection of Binary with a Readonly and the upload method",
-              "properties": {
-                "length": {
-                  "description": "Gets the length of the array. This is a number one higher than the highest element defined in an array.",
-                  "type": "number"
+              "allOf": [
+                {
+                  "additionalProperties": false,
+                  "type": "object"
                 },
-                "upload": {
-                  "$ref": "#/definitions/NamedParameters%3Ctypeof%20AnonymousFunction%3E"
+                {
+                  "additionalProperties": false,
+                  "type": "object"
                 }
-              },
-              "required": [
-                "length",
-                "upload"
               ],
-              "type": "object"
+              "description": "Define a collection of Binary with a Readonly and the upload method"
             },
             "locale": {
               "description": "Contains the locale of the user if known",
@@ -3740,7 +3531,7 @@
               "type": "string"
             },
             "profilePicture": {
-              "$ref": "#/definitions/BinaryFileInfo"
+              "$ref": "#/definitions/BinaryFileInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -3763,47 +3554,7 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
           "definitions": {
-            "BinaryFile<any>": {
-              "WebdaSchema": true,
-              "additionalProperties": false,
-              "description": "Represent a file to store",
-              "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
-                "hash": {
-                  "description": "Will be computed by the service\n\nhash of the content",
-                  "type": "string"
-                },
-                "metadata": {
-                  "description": "Metadatas stored along with the binary"
-                },
-                "mimetype": {
-                  "description": "Mimetype of the binary",
-                  "type": "string"
-                },
-                "name": {
-                  "description": "Current name",
-                  "type": "string"
-                },
-                "originalname": {
-                  "description": "Original name",
-                  "type": "string"
-                },
-                "size": {
-                  "description": "Size of the binary",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "mimetype",
-                "name",
-                "size"
-              ],
-              "type": "object"
-            },
-            "BinaryFileInfo": {
+            "BinaryFileInfo<{ width: number; height: number; }>": {
               "additionalProperties": false,
               "description": "One Binary instance",
               "properties": {
@@ -3816,6 +3567,7 @@
                   "type": "string"
                 },
                 "metadata": {
+                  "$ref": "#/definitions/profilePicture%24metadata",
                   "description": "Metadatas stored along with the binary"
                 },
                 "mimetype": {
@@ -3839,15 +3591,19 @@
               ],
               "type": "object"
             },
-            "NamedParameters<typeof AnonymousFunction>": {
+            "profilePicture$metadata": {
               "additionalProperties": false,
               "properties": {
-                "file": {
-                  "$ref": "#/definitions/BinaryFile%3Cany%3E"
+                "height": {
+                  "type": "number"
+                },
+                "width": {
+                  "type": "number"
                 }
               },
               "required": [
-                "file"
+                "height",
+                "width"
               ],
               "type": "object"
             }
@@ -3881,22 +3637,26 @@
               "type": "string"
             },
             "images": {
-              "additionalProperties": false,
-              "description": "Define a collection of Binary with a Readonly and the upload method",
-              "properties": {
-                "length": {
-                  "description": "Gets the length of the array. This is a number one higher than the highest element defined in an array.",
-                  "type": "number"
+              "allOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "length": {
+                      "description": "Gets the length of the array. This is a number one higher than the highest element defined in an array.",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "length"
+                  ],
+                  "type": "object"
                 },
-                "upload": {
-                  "$ref": "#/definitions/NamedParameters%3Ctypeof%20AnonymousFunction%3E"
+                {
+                  "additionalProperties": false,
+                  "type": "object"
                 }
-              },
-              "required": [
-                "length",
-                "upload"
               ],
-              "type": "object"
+              "description": "Define a collection of Binary with a Readonly and the upload method"
             },
             "locale": {
               "description": "Contains the locale of the user if known",
@@ -3906,7 +3666,7 @@
               "type": "string"
             },
             "profilePicture": {
-              "$ref": "#/definitions/BinaryFileInfo"
+              "$ref": "#/definitions/BinaryFileInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -3929,47 +3689,7 @@
           "$ref": "#/definitions/User",
           "$schema": "http://json-schema.org/draft-07/schema#",
           "definitions": {
-            "BinaryFile<any>": {
-              "WebdaSchema": true,
-              "additionalProperties": false,
-              "description": "Represent a file to store",
-              "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
-                "hash": {
-                  "description": "Will be computed by the service\n\nhash of the content",
-                  "type": "string"
-                },
-                "metadata": {
-                  "description": "Metadatas stored along with the binary"
-                },
-                "mimetype": {
-                  "description": "Mimetype of the binary",
-                  "type": "string"
-                },
-                "name": {
-                  "description": "Current name",
-                  "type": "string"
-                },
-                "originalname": {
-                  "description": "Original name",
-                  "type": "string"
-                },
-                "size": {
-                  "description": "Size of the binary",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "mimetype",
-                "name",
-                "size"
-              ],
-              "type": "object"
-            },
-            "BinaryFileInfo": {
+            "BinaryFileInfo<T>": {
               "additionalProperties": false,
               "description": "One Binary instance",
               "properties": {
@@ -4002,18 +3722,6 @@
                 "mimetype",
                 "name",
                 "size"
-              ],
-              "type": "object"
-            },
-            "NamedParameters<typeof AnonymousFunction>": {
-              "additionalProperties": false,
-              "properties": {
-                "file": {
-                  "$ref": "#/definitions/BinaryFile%3Cany%3E"
-                }
-              },
-              "required": [
-                "file"
               ],
               "type": "object"
             }
@@ -4273,75 +3981,13 @@
             "Writable": {
               "additionalProperties": false,
               "properties": {
-                "closed": {
-                  "default": false,
-                  "description": "Is `true` after `'close'` has been emitted.",
-                  "since": "v18.0.0",
-                  "type": "boolean"
-                },
                 "destroyed": {
                   "default": false,
                   "description": "Is `true` after `writable.destroy()` has been called.",
                   "since": "v8.0.0",
                   "type": "boolean"
-                },
-                "errored": {
-                  "$ref": "#/definitions/Error",
-                  "description": "Returns error if the stream has been destroyed with an error.",
-                  "since": "v18.0.0"
-                },
-                "writable": {
-                  "default": false,
-                  "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-                  "since": "v11.4.0",
-                  "type": "boolean"
-                },
-                "writableCorked": {
-                  "description": "Number of times `writable.uncork()` needs to be\ncalled in order to fully uncork the stream.",
-                  "since": "v13.2.0, v12.16.0",
-                  "type": "number"
-                },
-                "writableEnded": {
-                  "default": false,
-                  "description": "Is `true` after `writable.end()` has been called. This property\ndoes not indicate whether the data has been flushed, for this use `writable.writableFinished` instead.",
-                  "since": "v12.9.0",
-                  "type": "boolean"
-                },
-                "writableFinished": {
-                  "default": false,
-                  "description": "Is set to `true` immediately before the `'finish'` event is emitted.",
-                  "since": "v12.6.0",
-                  "type": "boolean"
-                },
-                "writableHighWaterMark": {
-                  "description": "Return the value of `highWaterMark` passed when creating this `Writable`.",
-                  "since": "v9.3.0",
-                  "type": "number"
-                },
-                "writableLength": {
-                  "description": "This property contains the number of bytes (or objects) in the queue\nready to be written. The value provides introspection data regarding\nthe status of the `highWaterMark`.",
-                  "since": "v9.4.0",
-                  "type": "number"
-                },
-                "writableNeedDrain": {
-                  "default": false,
-                  "description": "Is `true` if the stream's buffer has been full and stream will emit `'drain'`.",
-                  "since": "v15.2.0, v14.17.0",
-                  "type": "boolean"
-                },
-                "writableObjectMode": {
-                  "default": false,
-                  "description": "Getter for the property `objectMode` of a given `Writable` stream.",
-                  "since": "v12.3.0",
-                  "type": "boolean"
                 }
               },
-              "required": [
-                "errored",
-                "writableCorked",
-                "writableHighWaterMark",
-                "writableLength"
-              ],
               "since": "v0.9.4",
               "type": "object"
             }
@@ -4406,75 +4052,13 @@
             "Writable": {
               "additionalProperties": false,
               "properties": {
-                "closed": {
-                  "default": false,
-                  "description": "Is `true` after `'close'` has been emitted.",
-                  "since": "v18.0.0",
-                  "type": "boolean"
-                },
                 "destroyed": {
                   "default": false,
                   "description": "Is `true` after `writable.destroy()` has been called.",
                   "since": "v8.0.0",
                   "type": "boolean"
-                },
-                "errored": {
-                  "$ref": "#/definitions/Error",
-                  "description": "Returns error if the stream has been destroyed with an error.",
-                  "since": "v18.0.0"
-                },
-                "writable": {
-                  "default": false,
-                  "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-                  "since": "v11.4.0",
-                  "type": "boolean"
-                },
-                "writableCorked": {
-                  "description": "Number of times `writable.uncork()` needs to be\ncalled in order to fully uncork the stream.",
-                  "since": "v13.2.0, v12.16.0",
-                  "type": "number"
-                },
-                "writableEnded": {
-                  "default": false,
-                  "description": "Is `true` after `writable.end()` has been called. This property\ndoes not indicate whether the data has been flushed, for this use `writable.writableFinished` instead.",
-                  "since": "v12.9.0",
-                  "type": "boolean"
-                },
-                "writableFinished": {
-                  "default": false,
-                  "description": "Is set to `true` immediately before the `'finish'` event is emitted.",
-                  "since": "v12.6.0",
-                  "type": "boolean"
-                },
-                "writableHighWaterMark": {
-                  "description": "Return the value of `highWaterMark` passed when creating this `Writable`.",
-                  "since": "v9.3.0",
-                  "type": "number"
-                },
-                "writableLength": {
-                  "description": "This property contains the number of bytes (or objects) in the queue\nready to be written. The value provides introspection data regarding\nthe status of the `highWaterMark`.",
-                  "since": "v9.4.0",
-                  "type": "number"
-                },
-                "writableNeedDrain": {
-                  "default": false,
-                  "description": "Is `true` if the stream's buffer has been full and stream will emit `'drain'`.",
-                  "since": "v15.2.0, v14.17.0",
-                  "type": "boolean"
-                },
-                "writableObjectMode": {
-                  "default": false,
-                  "description": "Getter for the property `objectMode` of a given `Writable` stream.",
-                  "since": "v12.3.0",
-                  "type": "boolean"
                 }
               },
-              "required": [
-                "errored",
-                "writableCorked",
-                "writableHighWaterMark",
-                "writableLength"
-              ],
               "since": "v0.9.4",
               "type": "object"
             }
@@ -4519,75 +4103,13 @@
             "Writable": {
               "additionalProperties": false,
               "properties": {
-                "closed": {
-                  "default": false,
-                  "description": "Is `true` after `'close'` has been emitted.",
-                  "since": "v18.0.0",
-                  "type": "boolean"
-                },
                 "destroyed": {
                   "default": false,
                   "description": "Is `true` after `writable.destroy()` has been called.",
                   "since": "v8.0.0",
                   "type": "boolean"
-                },
-                "errored": {
-                  "$ref": "#/definitions/Error",
-                  "description": "Returns error if the stream has been destroyed with an error.",
-                  "since": "v18.0.0"
-                },
-                "writable": {
-                  "default": false,
-                  "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-                  "since": "v11.4.0",
-                  "type": "boolean"
-                },
-                "writableCorked": {
-                  "description": "Number of times `writable.uncork()` needs to be\ncalled in order to fully uncork the stream.",
-                  "since": "v13.2.0, v12.16.0",
-                  "type": "number"
-                },
-                "writableEnded": {
-                  "default": false,
-                  "description": "Is `true` after `writable.end()` has been called. This property\ndoes not indicate whether the data has been flushed, for this use `writable.writableFinished` instead.",
-                  "since": "v12.9.0",
-                  "type": "boolean"
-                },
-                "writableFinished": {
-                  "default": false,
-                  "description": "Is set to `true` immediately before the `'finish'` event is emitted.",
-                  "since": "v12.6.0",
-                  "type": "boolean"
-                },
-                "writableHighWaterMark": {
-                  "description": "Return the value of `highWaterMark` passed when creating this `Writable`.",
-                  "since": "v9.3.0",
-                  "type": "number"
-                },
-                "writableLength": {
-                  "description": "This property contains the number of bytes (or objects) in the queue\nready to be written. The value provides introspection data regarding\nthe status of the `highWaterMark`.",
-                  "since": "v9.4.0",
-                  "type": "number"
-                },
-                "writableNeedDrain": {
-                  "default": false,
-                  "description": "Is `true` if the stream's buffer has been full and stream will emit `'drain'`.",
-                  "since": "v15.2.0, v14.17.0",
-                  "type": "boolean"
-                },
-                "writableObjectMode": {
-                  "default": false,
-                  "description": "Getter for the property `objectMode` of a given `Writable` stream.",
-                  "since": "v12.3.0",
-                  "type": "boolean"
                 }
               },
-              "required": [
-                "errored",
-                "writableCorked",
-                "writableHighWaterMark",
-                "writableLength"
-              ],
               "since": "v0.9.4",
               "type": "object"
             }

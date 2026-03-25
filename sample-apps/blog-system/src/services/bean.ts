@@ -1,4 +1,4 @@
-import { Bean, Service, ServiceName, useService } from "@webda/core";
+import { Bean, Operation, Service, ServiceName, useService } from "@webda/core";
 import { User } from "../models/User";
 import { Post } from "../models/Post";
 import { Comment } from "../models/Comment";
@@ -378,9 +378,14 @@ export class TestBean<T extends TestBeanParameters = TestBeanParameters> extends
     }
   }
 
+  @Operation
+  async testOperation(counter: number): Promise<string> {
+    return "";
+  }
   /**
    * Scenario 6: Demonstrating Type Safety
    */
+  @Operation
   async demonstrateTypeSafety() {
     console.log("\n=== Scenario 6: Type Safety ===\n");
 

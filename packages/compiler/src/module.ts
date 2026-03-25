@@ -802,16 +802,31 @@ export class ModuleGenerator {
   }
 
   /**
+   * Get the decorator name from a decorator node
+   * Handles both @Decorator and @Decorator() forms
+   */
+  getDecoratorName(annotation: ts.Decorator): string | undefined {
+    const expr = annotation.expression;
+    // @Operation() form: CallExpression with Identifier
+    if (ts.isCallExpression(expr) && ts.isIdentifier(expr.expression)) {
+      return expr.expression.getText();
+    }
+    // @Operation form: direct Identifier
+    if (ts.isIdentifier(expr)) {
+      return expr.getText();
+    }
+    return undefined;
+  }
+
+  /**
    * Check if a decorator is an @Action or @Operation decorator
    */
   hasOperationDecorator(method: ts.MethodDeclaration): boolean {
     const decorators = ts.getDecorators(method);
     if (!decorators) return false;
     return decorators.some(annotation => {
-      return ["Action", "Operation"].includes(
-        // @ts-ignore
-        annotation.expression.expression && annotation.expression.expression.getText()
-      );
+      const name = this.getDecoratorName(annotation);
+      return name === "Action" || name === "Operation";
     });
   }
 
@@ -864,12 +879,7 @@ export class ModuleGenerator {
         .filter(
           prop =>
             prop.valueDeclaration?.kind === ts.SyntaxKind.MethodDeclaration &&
-            ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration) &&
-            ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration).find(annotation => {
-              return ["Operation"].includes(
-                (<any>annotation.expression).expression && (<any>annotation.expression).expression.getText()
-              );
-            })
+            this.hasOperationDecorator(<ts.MethodDeclaration>prop.valueDeclaration)
         )
         .map(prop => prop.valueDeclaration)
         .forEach((method: ts.MethodDeclaration) => {

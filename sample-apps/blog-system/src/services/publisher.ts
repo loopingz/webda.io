@@ -4,6 +4,9 @@ import { PrimaryKeyType } from "@webda/models";
 
 class PublisherParameters extends Service.Parameters {}
 
+/**
+ * @WebdaModda
+ */
 export class Publisher<T extends PublisherParameters = PublisherParameters> extends Service<T> {
   static Parameters = PublisherParameters;
 

@@ -45,12 +45,10 @@ export class ActionsMetadata extends MetadataPlugin {
           actionMeta.global = true;
         }
 
-        // Extract options from decorator arguments
+        // Extract options from decorator arguments (only for @Operation({...}) form)
         const decorator = ts.getDecorators(method)?.find(annotation => {
-          return ["Action", "Operation"].includes(
-            // @ts-ignore
-            annotation.expression.expression && annotation.expression.expression.getText()
-          );
+          const dname = this.moduleGenerator.getDecoratorName(annotation);
+          return dname === "Action" || dname === "Operation";
         });
         if (decorator && ts.isCallExpression(decorator.expression) && decorator.expression.arguments.length > 0) {
           const arg = decorator.expression.arguments[0];

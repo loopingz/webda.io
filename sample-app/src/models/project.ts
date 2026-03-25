@@ -46,7 +46,7 @@ export interface TestDoc2 {
  */
 export class Project extends AbstractProject<TestDoc2> implements Test, TestDoc2 {
   [WEBDA_PRIMARY_KEY] = ["uuid"] as const;
-  _company: ModelParent<Company>;
+  company: ModelParent<Company>;
   name: string;
   type: string;
   uuid: string;

@@ -172,5 +172,60 @@ class CompilerTest {
       $schema: "http://json-schema.org/draft-07/schema#",
       type: "string"
     });
+
+    // Model @Operation detection: should populate Actions metadata
+    const testModel = mod.models["TestCompilerOperations/TestModel"];
+    assert.notStrictEqual(testModel, undefined, "TestModel should exist in models");
+    assert.notStrictEqual(testModel.Actions, undefined, "TestModel should have Actions");
+
+    // Instance operation
+    assert.notStrictEqual(testModel.Actions["doSomething"], undefined, "doSomething action should exist");
+    assert.strictEqual(testModel.Actions["doSomething"].global, undefined, "doSomething should not be global");
+
+    // Static operation should be marked global
+    assert.notStrictEqual(testModel.Actions["globalAction"], undefined, "globalAction should exist");
+    assert.strictEqual(testModel.Actions["globalAction"].global, true, "globalAction should be global");
+    assert.strictEqual(
+      testModel.Actions["globalAction"].description,
+      "A static global operation",
+      "globalAction should have description"
+    );
+
+    // Instance operation without options
+    assert.notStrictEqual(testModel.Actions["instanceAction"], undefined, "instanceAction should exist");
+
+    // Input/output schemas should be generated for model operations
+    assert.notStrictEqual(
+      mod.schemas["TestCompilerOperations/TestModel.doSomething.input"],
+      undefined,
+      "doSomething input schema should exist"
+    );
+    assert.notStrictEqual(
+      mod.schemas["TestCompilerOperations/TestModel.doSomething.output"],
+      undefined,
+      "doSomething output schema should exist"
+    );
+    assert.deepStrictEqual(mod.schemas["TestCompilerOperations/TestModel.doSomething.output"], {
+      $schema: "http://json-schema.org/draft-07/schema#",
+      type: "object",
+      properties: {
+        message: { type: "string" },
+        success: { type: "boolean", default: false }
+      },
+      required: ["message"],
+      additionalProperties: false
+    });
+
+    // Static operation schemas
+    assert.notStrictEqual(
+      mod.schemas["TestCompilerOperations/TestModel.globalAction.input"],
+      undefined,
+      "globalAction input schema should exist"
+    );
+    assert.notStrictEqual(
+      mod.schemas["TestCompilerOperations/TestModel.globalAction.output"],
+      undefined,
+      "globalAction output schema should exist"
+    );
   }
 }

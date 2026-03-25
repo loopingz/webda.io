@@ -13,8 +13,8 @@ export type Permission = "PRODUCT_1" | "PRODUCT_2" | "PRODUCT_3";
 //@Expose()
 export class Company extends CoreModel {
   [WEBDA_PLURAL] = "Companies";
-  _projects: ModelRelated<Project, Company, "_company">;
-  users: ModelRelated<User, Company, "_company">;
+  _projects: ModelRelated<Project, Company, "company">;
+  users: ModelRelated<User, Company, "company">;
   name: string;
   /**
    * This should not be in the schema

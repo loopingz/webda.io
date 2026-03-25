@@ -131,4 +131,40 @@ export class User extends UuidModel {
       context.getSession()["logout"]?.();
     }
   }
+
+  @Operation()
+  async follow(target: User): Promise<true> {
+    // @ts-ignore
+    if (target.getPrimaryKey() === this.getPrimaryKey()) {
+      throw new WebdaError.BadRequest("Cannot follow yourself");
+    }
+    const existing = (await this.following.query(`followingId = '${target.getPrimaryKey()}' LIMIT 1`)).results.pop();
+    if (existing) {
+      throw new WebdaError.BadRequest("Already following this user");
+    }
+
+    // const follow = new UserFollow();
+    // follow.followerId = this.getPrimaryKey();
+    // follow.followingId = target.getPrimaryKey();
+    // await follow.save();
+    this.emit("Follow", {
+      user: this,
+      target
+    });
+    //return follow;
+    return true;
+  }
+
+  @Operation()
+  async unfollow(target: User) {
+    const existing = (await this.following.query(`followingId = '${target.getPrimaryKey()}' LIMIT 1`)).results.pop();
+    if (!existing) {
+      throw new WebdaError.BadRequest("Not following this user");
+    }
+    await existing.delete();
+    this.emit("Unfollow", {
+      user: this,
+      target
+    });
+  }
 }

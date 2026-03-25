@@ -457,8 +457,8 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/AbstractProject%3CT%3E",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
           "definitions": {
             "ResourceAcl": {
               "additionalProperties": false,
@@ -475,6 +475,16 @@
               "type": "object"
             }
           },
+          "description": "This file contains several empty methods to test our auto docs\n\nAbstract class should not be exported as model",
+          "properties": {
+            "acls": {
+              "$ref": "#/definitions/ResourceAcl"
+            }
+          },
+          "required": [
+            "acls"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -501,7 +511,7 @@
       "Import": "lib/models/project:AnotherSubProject",
       "Relations": {
         "parent": {
-          "attribute": "_company",
+          "attribute": "company",
           "model": "WebdaDemo/Company"
         }
       },
@@ -513,7 +523,7 @@
         "WebdaDemo/SubSubProject"
       ],
       "Reflection": {
-        "_company": {
+        "company": {
           "type": "ModelParent",
           "typeParameters": [
             "Company"
@@ -576,17 +586,17 @@
           },
           "description": "Test of TypeParams",
           "properties": {
-            "_company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
-            },
             "acls": {
               "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
               "type": "array"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
             },
             "n": {
               "type": "number"
@@ -609,8 +619,8 @@
             }
           },
           "required": [
-            "_company",
             "acls",
+            "company",
             "n",
             "name",
             "test",
@@ -652,17 +662,17 @@
           },
           "description": "Test of TypeParams",
           "properties": {
-            "_company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
-            },
             "acls": {
               "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
               "type": "array"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
             },
             "n": {
               "type": "number"
@@ -685,8 +695,8 @@
             }
           },
           "required": [
-            "_company",
             "acls",
+            "company",
             "n",
             "name",
             "test",
@@ -698,8 +708,8 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/AnotherSubProject%3CT%2C%20K%3E",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
           "definitions": {
             "ResourceAcl": {
               "additionalProperties": false,
@@ -716,6 +726,47 @@
               "type": "object"
             }
           },
+          "description": "Test of TypeParams",
+          "properties": {
+            "acls": {
+              "$ref": "#/definitions/ResourceAcl"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
+            },
+            "n": {
+              "type": "number"
+            },
+            "name": {
+              "type": "string"
+            },
+            "test": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "test2": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "acls",
+            "company",
+            "n",
+            "name",
+            "test",
+            "test2",
+            "type",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -797,8 +848,24 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/Brand",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Model not exposed on purpose",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -905,8 +972,22 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/Classroom",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -955,7 +1036,7 @@
           "typeParameters": [
             "Project",
             "Company",
-            "\"_company\""
+            "\"company\""
           ]
         },
         "users": {
@@ -963,7 +1044,7 @@
           "typeParameters": [
             "User",
             "Company",
-            "\"_company\""
+            "\"company\""
           ]
         },
         "name": {
@@ -1199,8 +1280,9 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/Company",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaPlural": "Companies",
+          "additionalProperties": false,
           "definitions": {
             "mapAny": {
               "additionalProperties": false,
@@ -1224,6 +1306,49 @@
               "type": "object"
             }
           },
+          "properties": {
+            "mapAny": {
+              "$ref": "#/definitions/mapAny"
+            },
+            "mapBoolean": {
+              "$ref": "#/definitions/mapBoolean"
+            },
+            "mapNumber": {
+              "$ref": "#/definitions/mapNumber"
+            },
+            "mapObject": {
+              "$ref": "#/definitions/mapObject"
+            },
+            "mapString": {
+              "$ref": "#/definitions/mapString",
+              "description": "Test of maps for GraphQL"
+            },
+            "name": {
+              "type": "string"
+            },
+            "permissions": {
+              "SchemaOptional": true,
+              "items": {
+                "enum": [
+                  "PRODUCT_1",
+                  "PRODUCT_2",
+                  "PRODUCT_3"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -1349,8 +1474,34 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/Computer",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "_loanTo": {
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "string"
+            },
+            "_user": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "_loanTo",
+            "_user",
+            "name",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -1491,8 +1642,37 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/ComputerScreen",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "classroom": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
+            },
+            "modelId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "serialNumber": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "classroom",
+            "modelId",
+            "name",
+            "serialNumber",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -1591,6 +1771,7 @@
             "BinaryFileInfo<any>": {
               "additionalProperties": false,
               "description": "One Binary instance",
+              "dtoIn": "skip",
               "properties": {
                 "challenge": {
                   "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
@@ -1701,6 +1882,7 @@
             "BinaryFileInfo<any>": {
               "additionalProperties": false,
               "description": "One Binary instance",
+              "dtoIn": "skip",
               "properties": {
                 "challenge": {
                   "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
@@ -1818,12 +2000,15 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/Contact",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "SchemaAdditionalProperties": "Allow mine",
+          "WebdaModel": "Contact\nNot sure what this jsdoc does\n\nAnother comment",
+          "additionalProperties": false,
           "definitions": {
             "BinaryFileInfo<any>": {
               "additionalProperties": false,
               "description": "One Binary instance",
+              "dtoIn": "skip",
               "properties": {
                 "challenge": {
                   "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
@@ -1858,6 +2043,86 @@
               "type": "object"
             }
           },
+          "properties": {
+            "age": {
+              "description": "Contact age",
+              "minimum": 0,
+              "type": "number"
+            },
+            "avatar": {
+              "$ref": "#/definitions/BinaryFileInfo%3Cany%3E",
+              "description": "Contact avatar"
+            },
+            "firstName": {
+              "description": "Contact firstname",
+              "type": "string"
+            },
+            "lastName": {
+              "description": "Contact lastname",
+              "type": "string"
+            },
+            "optional": {
+              "SchemaOptional": true,
+              "description": "Useful to auto complete on the creation side without\nforcing UI to push the attribute",
+              "type": "string"
+            },
+            "owner": {
+              "description": "Contact owner",
+              "type": "string"
+            },
+            "photos": {
+              "allOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "length": {
+                      "description": "Gets the length of the array. This is a number one higher than the highest element defined in an array.",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "length"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "type": "object"
+                }
+              ],
+              "description": "Contact photos"
+            },
+            "readonly": {
+              "SchemaOptional": true,
+              "description": "To indicate a property that will be set by server,\nsimilar to",
+              "readOnly": true,
+              "type": "number"
+            },
+            "type": {
+              "description": "Contact type",
+              "enum": [
+                "PERSONAL",
+                "PROFESSIONAL"
+              ],
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "age",
+            "avatar",
+            "firstName",
+            "lastName",
+            "owner",
+            "photos",
+            "type",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -2058,8 +2323,38 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/Course",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "classroom": {
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "students": {
+              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "items": {},
+              "type": "array"
+            },
+            "teacher": {
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
+          },
+          "required": [
+            "classroom",
+            "name",
+            "students",
+            "teacher",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -2178,8 +2473,29 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/Hardware",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "classroom": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "classroom",
+            "name",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -2208,7 +2524,7 @@
       "Import": "lib/models/project:Project",
       "Relations": {
         "parent": {
-          "attribute": "_company",
+          "attribute": "company",
           "model": "WebdaDemo/Company"
         }
       },
@@ -2220,7 +2536,7 @@
         "WebdaDemo/AnotherSubProject"
       ],
       "Reflection": {
-        "_company": {
+        "company": {
           "type": "ModelParent",
           "typeParameters": [
             "Company"
@@ -2283,17 +2599,17 @@
             }
           },
           "properties": {
-            "_company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
-            },
             "acls": {
               "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
               "type": "array"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
             },
             "n": {
               "type": "number"
@@ -2316,8 +2632,8 @@
             }
           },
           "required": [
-            "_company",
             "acls",
+            "company",
             "n",
             "name",
             "test",
@@ -2359,17 +2675,17 @@
             }
           },
           "properties": {
-            "_company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
-            },
             "acls": {
               "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
               "type": "array"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
             },
             "n": {
               "type": "number"
@@ -2392,8 +2708,8 @@
             }
           },
           "required": [
-            "_company",
             "acls",
+            "company",
             "n",
             "name",
             "test",
@@ -2405,8 +2721,9 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/Project",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
           "definitions": {
             "ResourceAcl": {
               "additionalProperties": false,
@@ -2423,6 +2740,46 @@
               "type": "object"
             }
           },
+          "properties": {
+            "acls": {
+              "$ref": "#/definitions/ResourceAcl"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
+            },
+            "n": {
+              "type": "number"
+            },
+            "name": {
+              "type": "string"
+            },
+            "test": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "test2": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "acls",
+            "company",
+            "n",
+            "name",
+            "test",
+            "test2",
+            "type",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -2681,8 +3038,54 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/Student",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "constraints": {
+              "type": "null"
+            },
+            "email": {
+              "type": "string"
+            },
+            "firstName": {
+              "type": "string"
+            },
+            "friends": {
+              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "items": {},
+              "type": "array"
+            },
+            "lastName": {
+              "type": "string"
+            },
+            "order": {
+              "type": "number"
+            },
+            "teachers": {
+              "description": "Link to a collection of objects\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety.\n\nThis allows to do a n:m or 1:n relation between two models\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects",
+              "items": {
+                "description": "A reference to a model",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "constraints",
+            "email",
+            "firstName",
+            "friends",
+            "lastName",
+            "order",
+            "teachers",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -2711,7 +3114,7 @@
       "Import": "lib/models/project:SubProject",
       "Relations": {
         "parent": {
-          "attribute": "_company",
+          "attribute": "company",
           "model": "WebdaDemo/Company"
         }
       },
@@ -2721,7 +3124,7 @@
       ],
       "Subclasses": [],
       "Reflection": {
-        "_company": {
+        "company": {
           "type": "ModelParent",
           "typeParameters": [
             "Company"
@@ -2783,17 +3186,17 @@
             }
           },
           "properties": {
-            "_company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
-            },
             "acls": {
               "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
               "type": "array"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
             },
             "n": {
               "type": "number"
@@ -2816,8 +3219,8 @@
             }
           },
           "required": [
-            "_company",
             "acls",
+            "company",
             "n",
             "name",
             "test",
@@ -2858,17 +3261,17 @@
             }
           },
           "properties": {
-            "_company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
-            },
             "acls": {
               "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
               "type": "array"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
             },
             "n": {
               "type": "number"
@@ -2891,8 +3294,8 @@
             }
           },
           "required": [
-            "_company",
             "acls",
+            "company",
             "n",
             "name",
             "test",
@@ -2904,8 +3307,8 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/SubProject",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
           "definitions": {
             "ResourceAcl": {
               "additionalProperties": false,
@@ -2922,6 +3325,46 @@
               "type": "object"
             }
           },
+          "properties": {
+            "acls": {
+              "$ref": "#/definitions/ResourceAcl"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
+            },
+            "n": {
+              "type": "number"
+            },
+            "name": {
+              "type": "string"
+            },
+            "test": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "test2": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "acls",
+            "company",
+            "n",
+            "name",
+            "test",
+            "test2",
+            "type",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -2950,7 +3393,7 @@
       "Import": "lib/models/project:SubSubProject",
       "Relations": {
         "parent": {
-          "attribute": "_company",
+          "attribute": "company",
           "model": "WebdaDemo/Company"
         }
       },
@@ -2964,7 +3407,7 @@
         "attribute1": {
           "type": "string"
         },
-        "_company": {
+        "company": {
           "type": "ModelParent",
           "typeParameters": [
             "Company"
@@ -3026,11 +3469,6 @@
             }
           },
           "properties": {
-            "_company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
-            },
             "acls": {
               "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
               "items": {
@@ -3039,6 +3477,11 @@
               "type": "array"
             },
             "attribute1": {
+              "type": "string"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
               "type": "string"
             },
             "n": {
@@ -3062,9 +3505,9 @@
             }
           },
           "required": [
-            "_company",
             "acls",
             "attribute1",
+            "company",
             "n",
             "name",
             "test",
@@ -3105,11 +3548,6 @@
             }
           },
           "properties": {
-            "_company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
-            },
             "acls": {
               "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
               "items": {
@@ -3118,6 +3556,11 @@
               "type": "array"
             },
             "attribute1": {
+              "type": "string"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
               "type": "string"
             },
             "n": {
@@ -3141,9 +3584,9 @@
             }
           },
           "required": [
-            "_company",
             "acls",
             "attribute1",
+            "company",
             "n",
             "name",
             "test",
@@ -3155,8 +3598,8 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/SubSubProject",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
           "definitions": {
             "ResourceAcl": {
               "additionalProperties": false,
@@ -3173,6 +3616,50 @@
               "type": "object"
             }
           },
+          "properties": {
+            "acls": {
+              "$ref": "#/definitions/ResourceAcl"
+            },
+            "attribute1": {
+              "type": "string"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
+            },
+            "n": {
+              "type": "number"
+            },
+            "name": {
+              "type": "string"
+            },
+            "test": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "test2": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "acls",
+            "attribute1",
+            "company",
+            "n",
+            "name",
+            "test",
+            "test2",
+            "type",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -3308,8 +3795,32 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/Teacher",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "anyArray": {
+              "description": "Test that graphql can handle any[]",
+              "items": {},
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "senior": {
+              "default": false,
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
+          },
+          "required": [
+            "anyArray",
+            "name",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -3338,7 +3849,7 @@
       "Import": "lib/models/user:User",
       "Relations": {
         "parent": {
-          "attribute": "_company",
+          "attribute": "company",
           "model": "WebdaDemo/Company"
         },
         "binaries": [
@@ -3367,7 +3878,7 @@
       "Ancestors": [],
       "Subclasses": [],
       "Reflection": {
-        "_company": {
+        "company": {
           "type": "ModelParent",
           "typeParameters": [
             "Company"
@@ -3431,6 +3942,7 @@
             "BinaryFileInfo<{ width: number; height: number; }>": {
               "additionalProperties": false,
               "description": "One Binary instance",
+              "dtoIn": "skip",
               "properties": {
                 "challenge": {
                   "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
@@ -3482,6 +3994,7 @@
               "type": "object"
             }
           },
+          "description": "User model",
           "properties": {
             "__password": {
               "description": "Password of the user if defined",
@@ -3491,14 +4004,14 @@
               "description": "Define the user avatar if exists",
               "type": "string"
             },
-            "_company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
-            },
             "_lastPasswordRecovery": {
               "description": "Last time the password was recovered",
               "type": "number"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Company the user belongs to",
+              "type": "string"
             },
             "displayName": {
               "Frontend": true,
@@ -3528,6 +4041,7 @@
               "type": "string"
             },
             "name": {
+              "description": "User's display name",
               "type": "string"
             },
             "profilePicture": {
@@ -3540,7 +4054,7 @@
             }
           },
           "required": [
-            "_company",
+            "company",
             "displayName",
             "images",
             "name",
@@ -3557,6 +4071,7 @@
             "BinaryFileInfo<{ width: number; height: number; }>": {
               "additionalProperties": false,
               "description": "One Binary instance",
+              "dtoIn": "skip",
               "properties": {
                 "challenge": {
                   "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
@@ -3608,6 +4123,7 @@
               "type": "object"
             }
           },
+          "description": "User model",
           "properties": {
             "__password": {
               "description": "Password of the user if defined",
@@ -3617,14 +4133,14 @@
               "description": "Define the user avatar if exists",
               "type": "string"
             },
-            "_company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
-            },
             "_lastPasswordRecovery": {
               "description": "Last time the password was recovered",
               "type": "number"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Company the user belongs to",
+              "type": "string"
             },
             "displayName": {
               "Frontend": true,
@@ -3663,6 +4179,7 @@
               "type": "string"
             },
             "name": {
+              "description": "User's display name",
               "type": "string"
             },
             "profilePicture": {
@@ -3675,7 +4192,7 @@
             }
           },
           "required": [
-            "_company",
+            "company",
             "displayName",
             "images",
             "name",
@@ -3686,12 +4203,13 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/User",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
           "definitions": {
             "BinaryFileInfo<T>": {
               "additionalProperties": false,
               "description": "One Binary instance",
+              "dtoIn": "skip",
               "properties": {
                 "challenge": {
                   "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
@@ -3726,6 +4244,83 @@
               "type": "object"
             }
           },
+          "description": "User model",
+          "properties": {
+            "__password": {
+              "description": "Password of the user if defined",
+              "type": "string"
+            },
+            "_avatar": {
+              "description": "Define the user avatar if exists",
+              "type": "string"
+            },
+            "_lastPasswordRecovery": {
+              "description": "Last time the password was recovered",
+              "type": "number"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Company the user belongs to",
+              "type": "string"
+            },
+            "displayName": {
+              "Frontend": true,
+              "description": "Display name for this user",
+              "optional": true,
+              "type": "string"
+            },
+            "email": {
+              "description": "Contain main user email if exists",
+              "type": "string"
+            },
+            "images": {
+              "allOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "length": {
+                      "description": "Gets the length of the array. This is a number one higher than the highest element defined in an array.",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "length"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "type": "object"
+                }
+              ],
+              "description": "Define a collection of Binary with a Readonly and the upload method"
+            },
+            "locale": {
+              "description": "Contains the locale of the user if known",
+              "type": "string"
+            },
+            "name": {
+              "description": "User's display name",
+              "type": "string"
+            },
+            "profilePicture": {
+              "$ref": "#/definitions/BinaryFileInfo%3CT%3E"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "company",
+            "displayName",
+            "images",
+            "name",
+            "profilePicture",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -3884,7 +4479,7 @@
       "type": "object",
       "properties": {
         "project": {
-          "$ref": "#/definitions/Partial%3CProject%3E",
+          "additionalProperties": false,
           "definitions": {
             "ResourceAcl": {
               "additionalProperties": false,
@@ -3900,7 +4495,38 @@
               ],
               "type": "object"
             }
-          }
+          },
+          "description": "Make all properties in T optional",
+          "properties": {
+            "acls": {
+              "$ref": "#/definitions/ResourceAcl"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
+            },
+            "n": {
+              "type": "number"
+            },
+            "name": {
+              "type": "string"
+            },
+            "test": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "test2": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "type": "object"
         }
       }
     },
@@ -3912,7 +4538,8 @@
       "type": "object",
       "properties": {
         "project": {
-          "$ref": "#/definitions/Project",
+          "WebdaModel": true,
+          "additionalProperties": false,
           "definitions": {
             "ResourceAcl": {
               "additionalProperties": false,
@@ -3928,7 +4555,47 @@
               ],
               "type": "object"
             }
-          }
+          },
+          "properties": {
+            "acls": {
+              "$ref": "#/definitions/ResourceAcl"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
+            },
+            "n": {
+              "type": "number"
+            },
+            "name": {
+              "type": "string"
+            },
+            "test": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "test2": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "acls",
+            "company",
+            "n",
+            "name",
+            "test",
+            "test2",
+            "type",
+            "uuid"
+          ],
+          "type": "object"
         }
       }
     },
@@ -3952,7 +4619,7 @@
       "type": "object",
       "properties": {
         "context": {
-          "$ref": "#/definitions/OperationContext%3C%7B%20test%3A%20string%3B%20id%3A%20string%3B%20%7D%2C%20any%2C%20any%2C%20any%2C%20any%3E",
+          "additionalProperties": false,
           "definitions": {
             "Error": {
               "additionalProperties": false,
@@ -3991,7 +4658,39 @@
               "since": "v0.9.4",
               "type": "object"
             }
-          }
+          },
+          "description": "OperationContext is used when call to an operation",
+          "param": [
+            "T type of input for this context",
+            "U type of output for this context",
+            "P type of parameters for this context"
+          ],
+          "properties": {
+            "_promises": {
+              "description": "Contain all registered promises to this context",
+              "items": {
+                "$ref": "#/definitions/Promise%3Cany%3E"
+              },
+              "type": "array"
+            },
+            "_stream": {
+              "$ref": "#/definitions/Writable",
+              "description": "Output stream"
+            },
+            "action": {},
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "parameters": {}
+          },
+          "required": [
+            "_promises",
+            "_stream",
+            "action",
+            "caches",
+            "parameters"
+          ],
+          "type": "object"
         }
       }
     },
@@ -4023,7 +4722,7 @@
       "type": "object",
       "properties": {
         "ctx": {
-          "$ref": "#/definitions/OperationContext%3CMyInterface%2C%20any%2C%20any%2C%20any%2C%20any%3E",
+          "additionalProperties": false,
           "definitions": {
             "Error": {
               "additionalProperties": false,
@@ -4062,7 +4761,39 @@
               "since": "v0.9.4",
               "type": "object"
             }
-          }
+          },
+          "description": "OperationContext is used when call to an operation",
+          "param": [
+            "T type of input for this context",
+            "U type of output for this context",
+            "P type of parameters for this context"
+          ],
+          "properties": {
+            "_promises": {
+              "description": "Contain all registered promises to this context",
+              "items": {
+                "$ref": "#/definitions/Promise%3Cany%3E"
+              },
+              "type": "array"
+            },
+            "_stream": {
+              "$ref": "#/definitions/Writable",
+              "description": "Output stream"
+            },
+            "action": {},
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "parameters": {}
+          },
+          "required": [
+            "_promises",
+            "_stream",
+            "action",
+            "caches",
+            "parameters"
+          ],
+          "type": "object"
         }
       }
     },
@@ -4074,7 +4805,7 @@
       "type": "object",
       "properties": {
         "ctx": {
-          "$ref": "#/definitions/OperationContext%3C%7B%20test%3A%20string%3B%20%7D%2C%20%7B%20result%3A%20string%3B%20%7D%2C%20any%2C%20any%2C%20any%3E",
+          "additionalProperties": false,
           "definitions": {
             "Error": {
               "additionalProperties": false,
@@ -4113,7 +4844,39 @@
               "since": "v0.9.4",
               "type": "object"
             }
-          }
+          },
+          "description": "OperationContext is used when call to an operation",
+          "param": [
+            "T type of input for this context",
+            "U type of output for this context",
+            "P type of parameters for this context"
+          ],
+          "properties": {
+            "_promises": {
+              "description": "Contain all registered promises to this context",
+              "items": {
+                "$ref": "#/definitions/Promise%3Cany%3E"
+              },
+              "type": "array"
+            },
+            "_stream": {
+              "$ref": "#/definitions/Writable",
+              "description": "Output stream"
+            },
+            "action": {},
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "parameters": {}
+          },
+          "required": [
+            "_promises",
+            "_stream",
+            "action",
+            "caches",
+            "parameters"
+          ],
+          "type": "object"
         }
       }
     },

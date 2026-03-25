@@ -802,31 +802,53 @@ export class ModuleGenerator {
   }
 
   /**
-   * Explore models
+   * Check if a decorator is an @Action or @Operation decorator
+   */
+  hasOperationDecorator(method: ts.MethodDeclaration): boolean {
+    const decorators = ts.getDecorators(method);
+    if (!decorators) return false;
+    return decorators.some(annotation => {
+      return ["Action", "Operation"].includes(
+        // @ts-ignore
+        annotation.expression.expression && annotation.expression.expression.getText()
+      );
+    });
+  }
+
+  /**
+   * Explore models for @Action and @Operation decorated methods
+   * Handles both instance and static methods
    * @param models
    * @param schemas
    */
   exploreModelsAction(models: WebdaSearchResults, schemas: WebdaSchemaResults) {
     Object.values(models).forEach(model => {
+      // Instance methods (via type system)
       model.type
         .getProperties()
         .filter(
           prop =>
             prop.valueDeclaration?.kind === ts.SyntaxKind.MethodDeclaration &&
-            ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration) &&
-            ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration).find(annotation => {
-              return ["Action"].includes(
-                // @ts-ignore
-                annotation.expression.expression &&
-                  // @ts-ignore
-                  annotation.expression.expression.getText()
-              );
-            })
+            this.hasOperationDecorator(<ts.MethodDeclaration>prop.valueDeclaration)
         )
         .map(prop => prop.valueDeclaration)
         .forEach((method: ts.MethodDeclaration) => {
           this.checkMethodForContext(model.name, method, schemas);
         });
+
+      // Static methods (not on instance type, scan class declaration directly)
+      if (ts.isClassDeclaration(model.node as ts.Node)) {
+        (<ts.ClassDeclaration>model.node).members
+          .filter(
+            (member): member is ts.MethodDeclaration =>
+              ts.isMethodDeclaration(member) &&
+              member.modifiers?.some(m => m.kind === ts.SyntaxKind.StaticKeyword) &&
+              this.hasOperationDecorator(member)
+          )
+          .forEach((method: ts.MethodDeclaration) => {
+            this.checkMethodForContext(model.name, method, schemas);
+          });
+      }
     });
   }
 

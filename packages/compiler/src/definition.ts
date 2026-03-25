@@ -178,9 +178,14 @@ export interface ModelMetadata {
    */
   Actions: {
     [action: string]: {
-      method: string;
-      path: string;
+      method?: string;
+      path?: string;
       description?: string;
+      summary?: string;
+      /**
+       * If true, the action is global (static method) rather than per-instance
+       */
+      global?: boolean;
     };
   };
 }

@@ -1,4 +1,4 @@
-"use strict";
+
 
 /**
  * Defines the widened setter type for a coercible property type.

@@ -1,4 +1,4 @@
-"use strict";
+
 
 import type ts from "typescript";
 import { DEFAULT_COERCIONS, CoercionRegistry } from "./coercions";

@@ -318,4 +318,28 @@ class ModelTest {
     const model = new SubClassModel({ name: "Test", age: 1, collection: [], test: 1 } as any);
     assert.strictEqual(model.toProxy(), model);
   }
+
+  @test
+  async emitDelegatesToRepository() {
+    const repo = new MemoryRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
+    registerRepository(SubClassModel, repo);
+    const model = await SubClassModel.ref("emit-test").create({
+      name: "EmitTest",
+      collection: [],
+      createdAt: "",
+      age: 1
+    } as any);
+
+    // Listen for an event on the repository
+    let received: any;
+    repo.on("Created", (payload: any) => {
+      received = payload;
+    });
+
+    // Call the protected emit via bracket notation
+    const payload = { object_id: "emit-test", object: model };
+    await (model as any).emit("Created", payload);
+
+    assert.deepStrictEqual(received, payload);
+  }
 }

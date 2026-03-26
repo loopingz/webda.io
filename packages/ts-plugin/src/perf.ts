@@ -1,4 +1,4 @@
-"use strict";
+
 
 /**
  * Lightweight performance tracker for ts-plugin operations.

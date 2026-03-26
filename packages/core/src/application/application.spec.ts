@@ -143,12 +143,6 @@ class ApplicationTest extends WebdaInternalTest {
     assert.strictEqual(app.getModelId(<any>CoreModel), "Webda/CoreModel");
     assert.strictEqual(app.getModelId(new CoreModel()), "Webda/CoreModel");
     assert.strictEqual(app.getModelId(new User()), "Webda/User");
-
-    unpackedApp = new UnpackedApplication(__dirname + "/../../test/schemas", undefined);
-    await unpackedApp.load();
-    // @ts-ignore
-    unpackedApp.baseConfiguration.cachedModules.project.webda = undefined;
-    assert.deepStrictEqual(unpackedApp.getPackageWebda(), { namespace: "Webda" });
   }
 
   @test

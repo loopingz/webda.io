@@ -193,7 +193,10 @@ export class Application {
    * @returns
    */
   getSchema(type: string): JSONSchema7 {
-    return this.baseConfiguration.cachedModules.schemas[type];
+    return (
+      this.baseConfiguration.cachedModules.schemas[type] ||
+      this.baseConfiguration.cachedModules.models?.[type]?.Schemas?.Input
+    );
   }
 
   /**

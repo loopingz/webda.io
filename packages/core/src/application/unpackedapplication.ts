@@ -352,7 +352,11 @@ export class UnpackedApplication extends Application {
     }
 
     // Ensure we are not adding many times the same modules
-    const moduleInfo = Array.from(new Set(files.map(n => fs.realpathSync(n)))).filter(f => this.filterModule(f));
+    // App's own module always included, filterModule only applies to dependencies
+    const currentModuleReal = fs.existsSync(currentModule) ? fs.realpathSync(currentModule) : undefined;
+    const moduleInfo = Array.from(new Set(files.map(n => fs.realpathSync(n)))).filter(
+      f => f === currentModuleReal || this.filterModule(f)
+    );
     this.log("TRACE", "Found modules", moduleInfo, "for", appPath);
     return moduleInfo;
   }

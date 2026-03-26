@@ -47,6 +47,7 @@ class UnpackedApplicationTest extends WebdaApplicationTest {
       "/packages/postgres/webda.module.json",
       "/sample-app/webda.module.json",
       "/sample-apps/basic-models/webda.module.json",
+      "/sample-apps/blog-system/webda.module.json",
       "/sample-apps/contacts/webda.module.json",
       "/sample-apps/cves/webda.module.json"
     ].sort();

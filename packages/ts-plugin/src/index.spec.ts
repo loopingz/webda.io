@@ -1,4 +1,4 @@
-"use strict";
+
 
 import { describe, it, expect } from "vitest";
 import * as ts from "typescript";

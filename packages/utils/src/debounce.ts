@@ -1,4 +1,4 @@
-"use strict";
+
 
 /**
  * Options for debounce behavior

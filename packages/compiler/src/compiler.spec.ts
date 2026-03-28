@@ -4,6 +4,7 @@ import * as assert from "assert";
 import * as path from "path";
 import { Compiler } from "./index";
 import { WebdaModule, WebdaProject } from "./definition";
+import { generateOperations } from "./operations";
 import { FileLogger, MemoryLogger, useWorkerOutput, WorkerOutput } from "@webda/workout";
 const { __dirname } = getCommonJS(import.meta.url);
 
@@ -226,6 +227,68 @@ class CompilerTest {
       mod.schemas["TestCompilerOperations/TestModel.globalAction.output"],
       undefined,
       "globalAction output schema should exist"
+    );
+
+    // Test generateOperations with the compiled module
+    const operations = generateOperations(mod);
+
+    // Model custom actions should be present
+    assert.notStrictEqual(operations.operations["TestModel.DoSomething"], undefined, "DoSomething operation");
+    assert.strictEqual(
+      operations.operations["TestModel.DoSomething"].input,
+      "TestCompilerOperations/TestModel.doSomething.input"
+    );
+    assert.strictEqual(
+      operations.operations["TestModel.DoSomething"].output,
+      "TestCompilerOperations/TestModel.doSomething.output"
+    );
+    assert.strictEqual(
+      operations.operations["TestModel.DoSomething"].parameters,
+      "uuidRequest",
+      "Instance action should require uuid"
+    );
+
+    // Static/global action should not require uuid
+    assert.notStrictEqual(operations.operations["TestModel.GlobalAction"], undefined, "GlobalAction operation");
+    assert.strictEqual(
+      operations.operations["TestModel.GlobalAction"].parameters,
+      undefined,
+      "Global action should not require uuid"
+    );
+
+    // Instance action
+    assert.notStrictEqual(operations.operations["TestModel.InstanceAction"], undefined, "InstanceAction operation");
+
+    // Bean operations should be detected from schemas
+    assert.notStrictEqual(
+      operations.operations["TestBean.AsyncWithObject"],
+      undefined,
+      "Bean async operation should exist"
+    );
+    assert.strictEqual(operations.operations["TestBean.AsyncWithObject"].input, "TestBean.asyncWithObject.input");
+    assert.strictEqual(operations.operations["TestBean.AsyncWithObject"].output, "TestBean.asyncWithObject.output");
+
+    assert.notStrictEqual(
+      operations.operations["TestBean.SyncWithObject"],
+      undefined,
+      "Bean sync operation should exist"
+    );
+    assert.notStrictEqual(
+      operations.operations["TestBean.SyncPrimitive"],
+      undefined,
+      "Bean primitive operation should exist"
+    );
+
+    // Referenced schemas should be included
+    assert.notStrictEqual(
+      operations.schemas["TestCompilerOperations/TestModel.doSomething.input"],
+      undefined,
+      "Operation input schema should be in export"
+    );
+    assert.notStrictEqual(
+      operations.schemas["TestBean.asyncWithObject.output"],
+      undefined,
+      "Bean output schema should be in export"
     );
   }
 }

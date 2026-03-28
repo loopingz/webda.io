@@ -18,7 +18,7 @@
   "scripts": {
     "build": "webdac build",
     "dev": "npm run build && tsx src/index.ts",
-    "demo": "webda run TestBean test"
+    "demo": "webda"
   },
   "engines": {
     "node": ">=22.0.0"

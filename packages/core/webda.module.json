@@ -1550,8 +1550,39 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/AbstractOwnerModel%3CT%3E",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Abstract class to define an object with an owner\n\nThe owner is the user that created the object\nThe owner can be changed by the owner",
+          "properties": {
+            "_user": {
+              "allOf": [
+                {
+                  "additionalProperties": false,
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "type": "object"
+                }
+              ],
+              "description": "Default owner of the object"
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "_user",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -1722,8 +1753,8 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/AuditEntry",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
           "definitions": {
             "context": {
               "additionalProperties": {},
@@ -1738,6 +1769,45 @@
               "type": "object"
             }
           },
+          "properties": {
+            "actor": {
+              "type": "string"
+            },
+            "context": {
+              "$ref": "#/definitions/context"
+            },
+            "description": {
+              "type": "string"
+            },
+            "operation": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "SUCCESS",
+                "ERROR"
+              ],
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "number"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "actor",
+            "context",
+            "description",
+            "operation",
+            "status",
+            "timestamp",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -1806,8 +1876,19 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/CoreModel",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -2077,8 +2158,10 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/Ident",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "class": true,
           "definitions": {
             "IdentTokens": {
               "additionalProperties": false,
@@ -2095,13 +2178,84 @@
                 "refresh"
               ],
               "type": "object"
-            },
-            "ModelLink<User>": {
-              "additionalProperties": false,
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
-              "type": "object"
             }
           },
+          "description": "First basic model for Ident",
+          "properties": {
+            "__profile": {
+              "description": "Provider profile"
+            },
+            "__tokens": {
+              "$ref": "#/definitions/IdentTokens",
+              "description": "Tokens for this ident"
+            },
+            "_failedLogin": {
+              "description": "If the ident is validated",
+              "type": "number"
+            },
+            "_lastUsed": {
+              "description": "Last time the ident was used",
+              "format": "date-time",
+              "type": "string"
+            },
+            "_lastValidationEmail": {
+              "description": "If EmailIdent",
+              "type": "number"
+            },
+            "_type": {
+              "description": "Type of the ident",
+              "type": "string"
+            },
+            "_user": {
+              "allOf": [
+                {
+                  "additionalProperties": false,
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "type": "object"
+                }
+              ],
+              "description": "Default owner of the object"
+            },
+            "_validation": {
+              "description": "When the ident was validated",
+              "format": "date-time",
+              "type": "string"
+            },
+            "email": {
+              "description": "Email for this ident if it exist",
+              "type": "string"
+            },
+            "provider": {
+              "description": "Provider id",
+              "type": "string"
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uid": {
+              "description": "Uid on the provider",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__profile",
+            "__tokens",
+            "_type",
+            "_user",
+            "uid",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -2212,8 +2366,39 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/OwnerModel",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "properties": {
+            "_user": {
+              "allOf": [
+                {
+                  "additionalProperties": false,
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "type": "object"
+                }
+              ],
+              "description": "Default owner of the object"
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "_user",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -2284,8 +2469,20 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/RegistryEntry",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Specific type for registry",
+          "properties": {
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -2330,8 +2527,9 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/RoleModel",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -2416,8 +2614,25 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/SessionModel",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "session": {},
+            "ttl": {
+              "type": "number"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "session",
+            "ttl",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -2618,8 +2833,61 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/SimpleUser",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no\nmodels",
+          "properties": {
+            "__password": {
+              "description": "Password of the user if defined",
+              "type": "string"
+            },
+            "_avatar": {
+              "description": "Define the user avatar if exists",
+              "type": "string"
+            },
+            "_groups": {
+              "description": "Groups for a user",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "_lastPasswordRecovery": {
+              "description": "Last time the password was recovered",
+              "type": "number"
+            },
+            "_roles": {
+              "description": "Roles of the user",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "displayName": {
+              "Frontend": true,
+              "description": "Display name for this user",
+              "optional": true,
+              "type": "string"
+            },
+            "email": {
+              "description": "Contain main user email if exists",
+              "type": "string"
+            },
+            "locale": {
+              "description": "Contains the locale of the user if known",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "displayName",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },
@@ -2770,8 +3038,49 @@
           "$webda": "toDto$auto"
         },
         "Stored": {
-          "$ref": "#/definitions/User",
           "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "class": true,
+          "description": "First basic model for User",
+          "properties": {
+            "__password": {
+              "description": "Password of the user if defined",
+              "type": "string"
+            },
+            "_avatar": {
+              "description": "Define the user avatar if exists",
+              "type": "string"
+            },
+            "_lastPasswordRecovery": {
+              "description": "Last time the password was recovered",
+              "type": "number"
+            },
+            "displayName": {
+              "Frontend": true,
+              "description": "Display name for this user",
+              "optional": true,
+              "type": "string"
+            },
+            "email": {
+              "description": "Contain main user email if exists",
+              "type": "string"
+            },
+            "locale": {
+              "description": "Contains the locale of the user if known",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "displayName",
+            "uuid"
+          ],
+          "type": "object",
           "$webda": "toJSON$return"
         }
       },

@@ -1,0 +1,54 @@
+{
+  "name": "@webda/sample-contacts",
+  "version": "3.999.0",
+  "description": "Simple app used for deployment test",
+  "keywords": [
+    "aws",
+    "lamda",
+    "api gateway"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "build": "webdac build",
+    "pretest": "npm run build",
+    "test": "echo 'No test sample available yet'",
+    "format": "prettier --check src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "format:fix": "prettier --write src/**/*",
+    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
+    "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "@webda/aws": "4.0.0-beta.2",
+    "@webda/core": "4.0.0-beta.2",
+    "deepmerge": "^4.3.1",
+    "merge": "^2.1.1",
+    "yaml": "^2.8.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "webda": {
+    "namespace": "WebdaDemo"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "@webda/compiler": "workspace:^",
+    "jscodeshift": "^17.3.0",
+    "skott": "^0.35.8",
+    "tsx": "^4.21.0",
+    "vitest": "^4.1.2"
+  },
+  "type": "module",
+  "license": "LGPL-3.0-only"
+}

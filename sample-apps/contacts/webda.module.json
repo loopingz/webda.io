@@ -1,0 +1,274 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {
+    "WebdaDemo/ExporterService": {
+      "Import": "lib/services/export:ExporterService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "googleToken": {
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "googleToken",
+          "type"
+        ],
+        "type": "object",
+        "title": "ExporterService"
+      },
+      "Configuration": "lib/services/export:ExporterParameters"
+    }
+  },
+  "deployers": {},
+  "moddas": {},
+  "models": {
+    "WebdaDemo/Contact": {
+      "Plural": "Contacts",
+      "Import": "lib/models/Contact:Contact",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "dateOfBirth": {
+          "type": "Date"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "fromDto$param"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Contact Model",
+          "properties": {
+            "dateOfBirth": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "displayName": {
+              "type": "string"
+            },
+            "email": {
+              "format": "email",
+              "type": "string"
+            },
+            "firstName": {
+              "type": "string"
+            },
+            "lastName": {
+              "type": "string"
+            },
+            "phone": {
+              "format": "phone",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "dateOfBirth",
+            "displayName",
+            "email",
+            "firstName",
+            "lastName",
+            "phone",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Contact Model",
+          "properties": {
+            "dateOfBirth": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "displayName": {
+              "type": "string"
+            },
+            "email": {
+              "format": "email",
+              "type": "string"
+            },
+            "firstName": {
+              "type": "string"
+            },
+            "lastName": {
+              "type": "string"
+            },
+            "phone": {
+              "format": "phone",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "dateOfBirth",
+            "displayName",
+            "email",
+            "firstName",
+            "lastName",
+            "phone",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$auto"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "WebdaDemo/Contact"
+    }
+  },
+  "schemas": {
+    "WebdaDemo/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "BinaryFile<T>": {
+          "WebdaSchema": true,
+          "additionalProperties": false,
+          "description": "Represent a file to store",
+          "properties": {
+            "0": {},
+            "challenge": {
+              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+              "type": "string"
+            },
+            "hash": {
+              "description": "Will be computed by the service\n\nhash of the content",
+              "type": "string"
+            },
+            "metadata": {
+              "description": "Metadatas stored along with the binary"
+            },
+            "mimetype": {
+              "description": "Mimetype of the binary",
+              "type": "string"
+            },
+            "name": {
+              "description": "Current name",
+              "type": "string"
+            },
+            "originalname": {
+              "description": "Original name",
+              "type": "string"
+            },
+            "size": {
+              "description": "Size of the binary",
+              "type": "number"
+            }
+          },
+          "required": [
+            "0",
+            "mimetype",
+            "name",
+            "size"
+          ],
+          "type": "object"
+        }
+      },
+      "title": "BinaryFile"
+    },
+    "ExporterService.exportContacts.input": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "enum": [
+            "google",
+            "csv"
+          ],
+          "type": "string"
+        },
+        "subset": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "allOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "length": {
+                        "description": "Returns the length of a String object.",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "length"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  }
+                ],
+                "description": "Get the primary key type of the object\n\nThe main difference with the PrimaryKey<T> type is that if the primary key is a not union type, it will\nbe returned as a single type, otherwise it will be returned as a Pick type\n\nThe PrimaryKey<T> will always return a Pick type"
+              }
+            ]
+          },
+          "type": "array"
+        }
+      }
+    },
+    "ExporterService.exportContacts.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "number"
+    }
+  }
+}

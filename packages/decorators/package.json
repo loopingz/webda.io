@@ -25,11 +25,10 @@
     "test:debug": "vitest debug",
     "test:coverage": "vitest run --coverage"
   },
-  "dependencies": {},
   "devDependencies": {
-    "@types/node": "22.0.0",
-    "typescript": "^5.8.3",
-    "vitest": "^3.2.4"
+    "@types/node": "25.5.0",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
   },
   "files": [
     "lib"

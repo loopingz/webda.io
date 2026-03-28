@@ -29,24 +29,24 @@
     "test:coverage": "vitest --coverage"
   },
   "dependencies": {
-    "@types/json-schema": "^7.0.8",
-    "@webda/schema": "^0.5.0",
-    "@webda/utils": "^4.0.0-beta.1",
-    "@webda/workout": "^4.0.0-beta.1",
-    "accept-language": "^3.0.18",
-    "diff": "^7.0.0",
-    "ts-morph": "^24.0.0",
-    "@webda/ts-plugin": "^4.0.0-beta.1",
-    "yargs": "^17.7.2"
+    "@types/json-schema": "^7.0.15",
+    "@webda/schema": "workspace:^",
+    "@webda/ts-plugin": "workspace:^",
+    "@webda/utils": "workspace:^",
+    "@webda/workout": "4.0.0-beta.2",
+    "accept-language": "^3.0.20",
+    "diff": "^8.0.4",
+    "ts-morph": "^27.0.2",
+    "yargs": "^18.0.0"
   },
   "devDependencies": {
-    "@types/node": "22.0.0",
-    "@webda/tsc-esm": "^4.0.0-beta.1",
-    "eslint": "^9.12.0",
-    "eslint-plugin-import": "^2.31.0",
-    "prettier": "^3.3.3",
-    "skott": "^0.35.3",
-    "vitest": "^2.1.2"
+    "@types/node": "25.5.0",
+    "@webda/tsc-esm": "4.0.0-beta.2",
+    "eslint": "^10.1.0",
+    "eslint-plugin-import": "^2.32.0",
+    "prettier": "^3.8.1",
+    "skott": "^0.35.8",
+    "vitest": "^4.1.2"
   },
   "files": [
     "lib"

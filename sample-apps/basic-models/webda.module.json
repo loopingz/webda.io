@@ -1,0 +1,418 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {},
+  "models": {
+    "Webda/Event": {
+      "Plural": "Events",
+      "Import": "lib/index:Event",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "eventId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "startDate": {
+          "type": "Date"
+        },
+        "endDate": {
+          "type": "Date"
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Example 4: Model with Date Deserialization\n\nShows how to properly handle Date fields with automatic deserialization.",
+          "properties": {
+            "endDate": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "eventId": {
+              "type": "string"
+            },
+            "startDate": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "endDate",
+            "eventId",
+            "startDate",
+            "title"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Example 4: Model with Date Deserialization\n\nShows how to properly handle Date fields with automatic deserialization.",
+          "properties": {
+            "endDate": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "eventId": {
+              "type": "string"
+            },
+            "startDate": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "endDate",
+            "eventId",
+            "startDate",
+            "title"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [],
+      "Identifier": "Webda/Event"
+    },
+    "Webda/OrderItem": {
+      "Plural": "OrderItems",
+      "Import": "lib/index:OrderItem",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "orderId": {
+          "type": "string"
+        },
+        "itemId": {
+          "type": "string"
+        },
+        "productName": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "number"
+        },
+        "price": {
+          "type": "number"
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Example 2: Composite Primary Key\n\nFor composite keys, getPrimaryKey() returns Pick<this, ...keys> & { toString(): string }\nThis gives you type-safe access to all key fields plus string serialization.",
+          "properties": {
+            "itemId": {
+              "type": "string"
+            },
+            "orderId": {
+              "type": "string"
+            },
+            "price": {
+              "type": "number"
+            },
+            "productName": {
+              "type": "string"
+            },
+            "quantity": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "itemId",
+            "orderId",
+            "price",
+            "productName",
+            "quantity"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Example 2: Composite Primary Key\n\nFor composite keys, getPrimaryKey() returns Pick<this, ...keys> & { toString(): string }\nThis gives you type-safe access to all key fields plus string serialization.",
+          "properties": {
+            "itemId": {
+              "type": "string"
+            },
+            "orderId": {
+              "type": "string"
+            },
+            "price": {
+              "type": "number"
+            },
+            "productName": {
+              "type": "string"
+            },
+            "quantity": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "itemId",
+            "orderId",
+            "price",
+            "productName",
+            "quantity"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [],
+      "Identifier": "Webda/OrderItem"
+    },
+    "Webda/TimeSeriesDataPoint": {
+      "Plural": "TimeSeriesDataPoints",
+      "Import": "lib/index:TimeSeriesDataPoint",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "sensorId": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "metricType": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Example 3: Multi-field Composite Key\n\nYou can have as many key fields as needed.",
+          "properties": {
+            "metricType": {
+              "type": "string"
+            },
+            "sensorId": {
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "number"
+            },
+            "value": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "metricType",
+            "sensorId",
+            "timestamp",
+            "value"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Example 3: Multi-field Composite Key\n\nYou can have as many key fields as needed.",
+          "properties": {
+            "metricType": {
+              "type": "string"
+            },
+            "sensorId": {
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "number"
+            },
+            "value": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "metricType",
+            "sensorId",
+            "timestamp",
+            "value"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [],
+      "Identifier": "Webda/TimeSeriesDataPoint"
+    },
+    "Webda/User": {
+      "Plural": "Users",
+      "Import": "lib/index:User",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "Date"
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Example 1: Single Primary Key\n\nWhen you define a single key, getPrimaryKey() returns the raw value type.\nThis is the most common use case.",
+          "properties": {
+            "createdAt": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "email",
+            "name",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Example 1: Single Primary Key\n\nWhen you define a single key, getPrimaryKey() returns the raw value type.\nThis is the most common use case.",
+          "properties": {
+            "createdAt": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "email",
+            "name",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [],
+      "Identifier": "Webda/User"
+    }
+  },
+  "schemas": {}
+}

@@ -1,0 +1,9 @@
+{
+  "services": {
+    "Authentication": {
+      "email": {
+        "text": "Test"
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "parameters": {
+    "locales": ["en-US"],
+    "website": "http://localhost:18080"
+  },
+  "services": {},
+  "models": {
+    "User": {},
+    "Product": {}
+  }
+}

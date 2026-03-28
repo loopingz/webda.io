@@ -21,22 +21,22 @@
     "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts"
   },
   "dependencies": {
-    "yoctocolors": "^2.1.1",
-    "sprintf-js": "^1.1.2"
+    "sprintf-js": "^1.1.3",
+    "yoctocolors": "^2.1.2"
   },
   "devDependencies": {
-    "@types/json-schema": "^7.0.8",
-    "@types/node": "22.0.0",
-    "@types/sprintf-js": "^1.1.2",
-    "@webda/tsc-esm": "^4.0.0-beta.1",
-    "@webda/test": "^4.0.0-beta.0",
-    "c8": "^10.1.2",
-    "mocha": "^10.0.0",
+    "@types/json-schema": "^7.0.15",
+    "@types/node": "25.5.0",
+    "@types/sprintf-js": "^1.1.4",
+    "@webda/test": "workspace:^",
+    "@webda/tsc-esm": "4.0.0-beta.2",
+    "c8": "^11.0.0",
+    "mocha": "^11.7.5",
     "mock-stdin": "^1.0.0",
-    "prettier": "^3.0.0",
-    "sinon": "^19.0.2",
-    "skott": "^0.35.3",
-    "source-map-support": "^0.5.19"
+    "prettier": "^3.8.1",
+    "sinon": "^21.0.3",
+    "skott": "^0.35.8",
+    "source-map-support": "^0.5.21"
   },
   "files": [
     "lib"
@@ -71,6 +71,6 @@
   },
   "license": "LGPL-3.0-only",
   "optionalDependencies": {
-    "@inquirer/prompts": "^7.0.0"
+    "@inquirer/prompts": "^8.3.2"
   }
 }

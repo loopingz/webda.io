@@ -23,8 +23,8 @@
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {
-    "@webda/core": "^4.0.0-beta.1",
-    "amqplib": "^0.10.0"
+    "@webda/core": "4.0.0-beta.2",
+    "amqplib": "^0.10.9"
   },
   "files": [
     "lib",
@@ -51,14 +51,14 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.3",
-    "@types/amqplib": "^0.10.0",
-    "@types/node": "22.0.0",
-    "@webda/shell": "^4.0.0-beta.1",
-    "sinon": "^19.0.2",
-    "tsx": "^4.17.0",
-    "skott": "^0.35.3",
-    "jscodeshift": "^17.0.0",
-    "@webda/compiler": "^4.0.0-beta.2"
+    "@types/amqplib": "^0.10.8",
+    "@types/node": "25.5.0",
+    "@webda/compiler": "workspace:^",
+    "@webda/shell": "4.0.0-beta.2",
+    "jscodeshift": "^17.3.0",
+    "sinon": "^21.0.3",
+    "skott": "^0.35.8",
+    "tsx": "^4.21.0"
   },
   "nx": {
     "implicitDependencies": [

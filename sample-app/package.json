@@ -29,11 +29,11 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "@webda/aws": "^4.0.0-beta.1",
-    "@webda/core": "^4.0.0-beta.1",
-    "deepmerge": "^4.2.2",
+    "@webda/aws": "4.0.0-beta.2",
+    "@webda/core": "4.0.0-beta.2",
+    "deepmerge": "^4.3.1",
     "merge": "^2.1.1",
-    "yaml": "^2.0.0"
+    "yaml": "^2.8.3"
   },
   "publishConfig": {
     "access": "public"
@@ -43,11 +43,11 @@
     "namespace": "WebdaDemo"
   },
   "devDependencies": {
-    "@types/node": "22.0.0",
-    "tsx": "^4.17.0",
-    "skott": "^0.35.3",
-    "jscodeshift": "^17.0.0",
-    "@webda/compiler": "^4.0.0-beta.2"
+    "@types/node": "25.5.0",
+    "@webda/compiler": "workspace:^",
+    "jscodeshift": "^17.3.0",
+    "skott": "^0.35.8",
+    "tsx": "^4.21.0"
   },
   "type": "module",
   "license": "LGPL-3.0-only"

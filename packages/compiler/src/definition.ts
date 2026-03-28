@@ -159,6 +159,10 @@ export interface ModelMetadata {
    */
   PrimaryKey: string[];
   /**
+   * Separator for the primary key to serialize it
+   */
+  PrimaryKeySeparator?: string;
+  /**
    * Return all events for the model
    */
   Events: string[];

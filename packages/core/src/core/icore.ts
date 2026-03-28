@@ -1,5 +1,5 @@
 import { QueryValidator } from "@webda/ql";
-import { AbstractService } from "../internal/iapplication.js";
+import { AbstractService } from "../services/iservice.js";
 import { Model, ModelClass } from "@webda/models";
 import { Service } from "../services/service.js";
 import { Store } from "../stores/store.js";

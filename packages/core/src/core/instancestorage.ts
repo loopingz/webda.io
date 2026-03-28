@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "async_hooks";
-import { Configuration } from "../internal/iapplication.js";
+import { Configuration } from "../application/iconfiguration.js";
 import { OperationDefinitionInfo, ICore } from "./icore.js";
 import { ContextProvider } from "../contexts/icontext.js";
 import { IRouter } from "../rest/irest.js";

@@ -6,7 +6,7 @@ import { CustomConstructor } from "@webda/tsc-esm";
 import { Service } from "../services/service.js";
 import type CryptoService from "../services/cryptoservice.js";
 import type { Store } from "../stores/store.js";
-import type { Reflection } from "../internal/iapplication.js";
+import type { ModelMetadata } from "@webda/compiler";
 import { useModel } from "../application/hooks.js";
 import type { Core } from "./core.js";
 import { SessionManager } from "../session/manager.js";
@@ -71,7 +71,7 @@ export function useDynamicService<T = Service>(name: string): T {
  * @param object
  * @returns
  */
-export function useModelMetadata(name: string | Model | ModelClass): Reflection {
+export function useModelMetadata(name: string | Model | ModelClass): ModelMetadata {
   if (name["Metadata"]) {
     return name["Metadata"];
   }

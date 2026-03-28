@@ -98,7 +98,7 @@ class ApplicationTest extends WebdaInternalTest {
     );
     assert.throws(() => new Application(__dirname + "/../../test/schemas"), /File not found .*/);
     await assert.rejects(() => new Application(__dirname + "/../../test/badapp").load(), /Cannot parse JSON of: .*/);
-    let unpackedApp = new UnpackedApplication(__dirname + "/../../test/badapp", undefined);
+    const unpackedApp = new UnpackedApplication(__dirname + "/../../test/badapp", undefined);
     unpackedApp.loadProjectInformation();
     // Read cached modules
     let app = new Application(__dirname + "/../../test/cachedapp", undefined);

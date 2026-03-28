@@ -775,7 +775,7 @@ class Serializer {
   @test
   async testSparseArray() {
     // Basic sparse array: hole at index 1
-    // eslint-disable-next-line no-sparse-arrays
+     
     const sparse = [1, , 3] as any[];
     assert.strictEqual(0 in sparse, true);
     assert.strictEqual(1 in sparse, false); // hole

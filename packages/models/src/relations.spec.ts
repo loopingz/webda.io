@@ -71,7 +71,7 @@ class RelationsTest {
     await repo.create(model);
     const model2 = track(await repo.create(new TestSimpleModel({ name: "Test2", age: 20, uuid: "test2" })));
 
-    let links = new ModelLinksArray<TestSimpleModel, { status: "OK" | "NOK" }>(repo, [], model2);
+    const links = new ModelLinksArray<TestSimpleModel, { status: "OK" | "NOK" }>(repo, [], model2);
     links.add({
       uuid: "test",
       status: "OK"
@@ -109,7 +109,7 @@ class RelationsTest {
     model.setPrimaryKey("test");
     await repo.create(model);
     const model2 = track(await repo.create(new TestSimpleModel({ name: "Test2", age: 20, uuid: "test2" })));
-    let links = new ModelLinksSimpleArray<TestSimpleModel>(TestSimpleModel);
+    const links = new ModelLinksSimpleArray<TestSimpleModel>(TestSimpleModel);
     links.add(model);
     assert.ok(model2.dirty.getProperties().length === 0);
     links.remove("test");

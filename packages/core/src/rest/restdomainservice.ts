@@ -1,5 +1,5 @@
 import { QueryValidator } from "@webda/ql";
-import type { ModelAction } from "../internal/iapplication.js";
+import type { ModelAction } from "../models/types.js";
 import { DomainServiceParameters, ModelsOperationsService } from "../services/domainservice.js";
 import { OpenAPIWebdaDefinition } from "./irest.js";
 import * as WebdaError from "../errors/errors.js";

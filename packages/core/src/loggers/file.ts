@@ -2,7 +2,7 @@ import { FileLogger } from "@webda/workout";
 import { FileLoggerServiceParameters } from "./params.js";
 import { LoggerService } from "./logger.js";
 import { useWorkerOutput } from "./ilogger.js";
-import { ServicePartialParameters } from "../internal/iapplication.js";
+import { ServicePartialParameters } from "../services/iservice.js";
 
 /**
  * Save logs into a file

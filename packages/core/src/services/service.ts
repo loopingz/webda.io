@@ -14,7 +14,7 @@ import { AbstractService } from "../core/icore.js";
 import { useLogger } from "../loggers/hooks.js";
 import { WEBDA_EVENTS } from "@webda/models";
 import { State } from "@webda/utils";
-import { ServiceState, ServiceStates } from "../internal/iapplication.js";
+import { ServiceState, ServiceStates } from "./iservice.js";
 import { DecoratorPropertyParameters, getMetadata } from "@webda/decorators";
 
 /**

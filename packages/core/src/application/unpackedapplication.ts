@@ -9,7 +9,7 @@ import {
   type ProjectInformation,
   SectionEnum,
   type UnpackedConfiguration
-} from "../internal/iapplication.js";
+} from "./iconfiguration.js";
 import { FileUtils } from "@webda/utils";
 import { getMachineId } from "../core/hooks.js";
 import { join, resolve, relative, dirname } from "path";

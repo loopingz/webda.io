@@ -3,16 +3,15 @@ import type {
   CachedModule,
   Configuration,
   GitInformation,
-  Modda,
-  ModelDefinition,
   PackageDescriptor,
   ProjectInformation,
-  Reflection,
   Section,
   UnpackedConfiguration,
   WebdaModule,
   WebdaPackageDescriptor
-} from "../internal/iapplication.js";
+} from "./iconfiguration.js";
+import type { Modda } from "../services/iservice.js";
+import type { ModelDefinition } from "../models/types.js";
 import { setLogContext } from "../loggers/hooks.js";
 import { CancelablePromise, FileUtils, State } from "@webda/utils";
 import { existsSync, lstatSync, Mode, readFileSync } from "node:fs";
@@ -421,15 +420,18 @@ export class Application {
   addModel(
     name: string,
     model: any,
-    metadata: Reflection = {
+    metadata: ModelMetadata = {
       Identifier: name,
       Ancestors: [],
       Subclasses: [],
       Relations: {},
       PrimaryKey: ["id"],
       Events: [],
-      Schema: {},
-      Actions: {}
+      Schemas: {},
+      Actions: {},
+      Import: "",
+      Plural: name + "s",
+      Reflection: {}
     }
   ): this {
     name = this.completeNamespace(name);

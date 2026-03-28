@@ -1,7 +1,7 @@
 import { WorkerLogLevel } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
 import { Application } from "../application/application.js";
-import { Configuration } from "../internal/iapplication.js";
+import { Configuration } from "../application/iconfiguration.js";
 import { BinaryService } from "../services/binary.js";
 import { Model, ModelClass } from "@webda/models";
 import * as WebdaError from "../errors/errors.js";
@@ -13,7 +13,7 @@ import { ICore, AbstractService, OperationDefinitionInfo } from "./icore.js";
 import { emitCoreEvent } from "../events/events.js";
 import { useInstanceStorage } from "./instancestorage.js";
 import { useApplication, useModel, useModelId } from "../application/hooks.js";
-import { Modda } from "../internal/iapplication.js";
+import { Modda } from "../services/iservice.js";
 import { InstanceCache } from "../cache/cache.js";
 import { CustomConstructor } from "@webda/tsc-esm";
 import { AsyncLocalStorage } from "node:async_hooks";

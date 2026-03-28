@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { InstanceCache, ProcessCache, SessionCache, ContextCache } from "./cache.js";
 import { runWithInstanceStorage } from "../core/instancestorage.js";
 import { runWithContext } from "../contexts/execution.js";
-import { ModelDefinition } from "../internal/iapplication.js";
+import { ModelDefinition } from "../models/types.js";
 import { Ident } from "../models/ident.js";
 import { User } from "../models/user.js";
 import * as util from "util";

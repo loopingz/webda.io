@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { stub } from "sinon";
 import { TestApplication, WebdaInternalSimpleTest } from "../test/index.js";
 import { ConfigurationProvider, ConfigurationService, ConfigurationServiceParameters } from "./configuration.js";
-import { UnpackedConfiguration } from "../internal/iapplication.js";
+import { UnpackedConfiguration } from "../application/iconfiguration.js";
 import { useService } from "../core/hooks.js";
 import { Service } from "../services/service.js";
 import { ServiceParameters } from "../services/serviceparameters.js";

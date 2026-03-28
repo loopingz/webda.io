@@ -1,5 +1,5 @@
 import { useModel } from "../application/hooks.js";
-import { UnpackedConfiguration } from "../internal/iapplication.js";
+import { UnpackedConfiguration } from "../application/iconfiguration.js";
 import { UuidModel } from "@webda/models";
 import { FileUtils } from "@webda/utils";
 import { TestApplication } from "./objects.js";

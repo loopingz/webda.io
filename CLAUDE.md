@@ -20,7 +20,7 @@ This document provides comprehensive guidance for Claude when working with the W
 ## Project Structure
 
 ```
-webda.io/                      # Monorepo root (Lerna + Nx + Yarn workspaces)
+webda.io/                      # Monorepo root (pnpm workspaces)
 ├── packages/                  # Framework packages (31+ packages)
 │   ├── core/                 # Core framework (Application, Services, Models, Stores)
 │   ├── shell/                # CLI tools (webda command)
@@ -208,30 +208,30 @@ webda serve                         # Production-like server
 webda -d deploymentName serve       # With specific deployment
 
 # Code generation
-yarn new-module                     # Create new package in monorepo
-yarn new-service                    # Generate service boilerplate
-yarn new-model                      # Generate domain model
+pnpm new-module                     # Create new package in monorepo
+pnpm new-service                    # Generate service boilerplate
+pnpm new-model                      # Generate domain model
 
 # Building
-nx run-many --target=build          # Build all packages (root)
-yarn build                          # Build current package
+pnpm -r run build                   # Build all packages (root)
+pnpm run build                      # Build current package
 webdac build                        # Compile TypeScript + generate webda.module.json
 webdac build --watch                # Watch mode
 
 # Testing
-nx run-many --target=test           # Run all tests (root)
-yarn test                           # Test current package (Vitest)
-yarn test -t "TestName"             # Run specific test
+pnpm -r run test                    # Run all tests (root)
+pnpm test                           # Test current package (Vitest)
+pnpm test -t "TestName"             # Run specific test
 npx vitest run <absolute_path>      # Run single test file
-yarn test:watch                     # Watch mode
-yarn test:debug                     # Debug mode
-yarn test:seq                       # Sequential (no parallelism)
+pnpm test:watch                     # Watch mode
+pnpm test:debug                     # Debug mode
+pnpm test:seq                       # Sequential (no parallelism)
 
 # Linting & Formatting
-yarn lint                           # Check all packages
-yarn lint:fix                       # Fix all packages
-yarn format                         # Check formatting (Prettier)
-yarn format:fix                     # Fix formatting
+pnpm run lint                       # Check all packages
+pnpm run lint:fix                   # Fix all packages
+pnpm run format                     # Check formatting (Prettier)
+pnpm run format:fix                 # Fix formatting
 
 # Configuration
 webda config                        # Open configuration UI
@@ -706,11 +706,9 @@ throw new WebdaError.BadRequestError("Invalid request");
 
 ## Monorepo Management
 
-### Lerna + Nx + Yarn Workspaces
+### pnpm Workspaces
 
-- **Lerna**: Version management and publishing (`lerna.json`)
-- **Nx**: Build orchestration and caching (`nx.json`)
-- **Yarn Workspaces**: Dependency hoisting (`package.json` workspaces)
+- **pnpm Workspaces**: Package management, build orchestration, and publishing (`pnpm-workspace.yaml`)
 
 ### Package Dependencies
 
@@ -727,7 +725,7 @@ Packages depend on each other:
 
 ### Build Order
 
-Nx automatically resolves build order based on dependencies:
+pnpm resolves build order based on the workspace dependency graph:
 
 ```
 @webda/utils → @webda/workout → @webda/core → @webda/models → ...
@@ -737,30 +735,30 @@ Nx automatically resolves build order based on dependencies:
 
 ### Pull Request Requirements
 
-1. **Build successfully**: `yarn build`
-2. **Pass all tests**: `yarn test`
+1. **Build successfully**: `pnpm run build`
+2. **Pass all tests**: `pnpm test`
 3. **Follow conventional commits**: `feat:`, `fix:`, `docs:`, etc.
-4. **Lint clean**: `yarn lint`
-5. **Format clean**: `yarn format`
+4. **Lint clean**: `pnpm run lint`
+5. **Format clean**: `pnpm run format`
 6. **Approved by maintainer**
 
 ### Local Testing with Other Projects
 
 ```bash
 # In webda.io root
-lerna link
+pnpm link --global
 
 # In your project
-yarn link @webda/core
-yarn link @webda/shell
+pnpm link --global @webda/core
+pnpm link --global @webda/shell
 # ... link other packages as needed
 ```
 
 ### Release Process
 
 ```bash
-yarn new-version  # Bumps versions, creates tags
-yarn lerna:publish  # Publishes to npm
+pnpm run new-version  # Bumps versions, creates tags
+pnpm -r publish       # Publishes to npm
 ```
 
 ## Integration Patterns

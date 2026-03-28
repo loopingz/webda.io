@@ -40,14 +40,14 @@ webda serve                    # Production-like serving
 webda -d deploymentName serve  # With specific deployment config
 
 # Code generation
-yarn new-module     # Create new package in monorepo
-yarn new-service    # Generate service boilerplate
-yarn new-model      # Generate domain model
+pnpm new-module     # Create new package in monorepo
+pnpm new-service    # Generate service boilerplate
+pnpm new-model      # Generate domain model
 
 # Building and testing
-nx run-many --target=build     # Build all packages
-nx run-many --target=test      # Run all tests
-yarn build:ci                  # CI-specific build
+pnpm -r run build              # Build all packages
+pnpm -r run test               # Run all tests
+pnpm run build:ci              # CI-specific build
 
 # Deployment management
 webda config                   # Open configuration UI
@@ -83,10 +83,9 @@ webda new-deployment          # Create deployment configuration
 
 ## Build System & Architecture
 
-### Monorepo with Nx + Lerna
-- **Nx**: Handles build dependencies and caching (`nx.json`)
-- **Lerna**: Manages package versioning and publishing
-- **Target Dependencies**: `build` → `test` → `build:module`
+### Monorepo with pnpm Workspaces
+- **pnpm**: Handles workspaces, build orchestration, and publishing (`pnpm-workspace.yaml`)
+- **Build ordering**: `pnpm -r` runs in topological order based on workspace dependency graph
 
 ### Custom Compiler (`@webda/compiler`)
 ```bash
@@ -118,8 +117,8 @@ class MyTest extends WebdaTest {
 
 Run tests with:
 ```bash
-yarn test               # All tests
-yarn test -t "MyTest"   # Specific test
+pnpm test               # All tests
+pnpm test -t "MyTest"   # Specific test
 ```
 
 ## Service Development Patterns

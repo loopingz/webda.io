@@ -20,18 +20,18 @@ To be merged a pull request must:
 
 ## Use your development version in other projects
 
-You can use your development version with the `yarn link` option
+You can use your development version with the `pnpm link` option
 
 In the root of webda.io repository type
 
 ```
-lerna link
+pnpm link --global
 ```
 
 Then in your target project just type
 
 ```
-yarn link @webda/core
+pnpm link --global @webda/core
 ```
 
 you can link any of the development package here
@@ -49,5 +49,5 @@ you have to add a parameter in your deployment resources:
 To release a new version of the packages
 
 ```
-yarn new-version
+pnpm run new-version
 ```

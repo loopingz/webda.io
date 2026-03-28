@@ -2,9 +2,9 @@
 
 ## Commands
 
-- **Build**: `yarn build` (Package) or `nx run-many --target=build` (Root).
-- **Test**: `yarn test` (All).
-- **Lint/Format**: `yarn lint` / `yarn format`.
+- **Build**: `pnpm run build` (Package) or `pnpm -r run build` (Root).
+- **Test**: `pnpm test` (All).
+- **Lint/Format**: `pnpm run lint` / `pnpm run format`.
 
 ## Code Style & Conventions
 

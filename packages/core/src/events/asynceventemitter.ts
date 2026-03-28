@@ -213,3 +213,8 @@ export class EventEmitterUtils {
     return Promise.all(promises);
   }
 }
+
+export type ModelEmitter<T extends AsyncEventUnknown> = Pick<
+  AsyncEventEmitter<T>,
+  "on" | "emit" | "removeAllListeners" | "once" | "off"
+>;

@@ -29,7 +29,7 @@ jobs:
         run: pnpm run docs
 
       - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@4.1.4
+        uses: JamesIves/github-pages-deploy-action@c15a2b0ec4f14477a295a7eda11b8f1dbdeceead # 4.8.0
         with:
           branch: gh-pages
           folder: docs/dist

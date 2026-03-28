@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ["20", "22"]
+        node: ["22", "24", "current"]
     name: Build with NodeJS v${{ matrix.node }}
     env:
       FORCE_COLOR: 1
@@ -59,16 +59,16 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - uses: fsouza/fake-gcs-action@v0.4.1
+      - uses: fsouza/fake-gcs-action@f8e805c9cef6056421b73390d078b2fb467b989c # v0.4.2
         with:
-          version: "1.49.2"
+          version: "1.54.0"
           backend: memory
           location: "US-WEST2"
           public-host: "storage.gcs.127.0.0.1.nip.io:4443"
           external-url: "http://storage.gcs.127.0.0.1.nip.io:4443"
           scheme: http
 
-      - uses: "google-github-actions/setup-gcloud@v2"
+      - uses: "google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db" # v3.0.1
         with:
           install_components: "cloud-firestore-emulator,pubsub-emulator"
 
@@ -85,14 +85,14 @@ jobs:
           gcloud --quiet alpha emulators firestore start --host-port=127.0.0.1:8289 &
 
       - name: Runs Elasticsearch
-        uses: elastic/elastic-github-actions/elasticsearch@master
+        uses: elastic/elastic-github-actions/elasticsearch@98431b45a60cbb6ace481778827bc8e11f12fd65
         with:
           stack-version: 8.15.0
           security-enabled: false
           wait: 0
 
       - name: Setup postgresql
-        uses: Softwarepark/postgresql-action@v2
+        uses: Softwarepark/postgresql-action@92b6750bf30f39d64489c77d38a1675dfb4a8bc0 # v2
         with:
           postgresql version: "15" # See https://hub.docker.com/_/postgres for available versions
           postgresql password: webda.io

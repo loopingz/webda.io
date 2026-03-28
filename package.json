@@ -46,7 +46,12 @@
   "pnpm": {
     "overrides": {
       "whatwg-url": "^14.0.0"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "esbuild",
+      "protobufjs"
+    ]
   },
   "webda": {
     "randomLink": "./test.json",

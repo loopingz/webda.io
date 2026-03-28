@@ -688,8 +688,10 @@ export class Application {
       this.models[m].registerSerializer();
       this.models[m].Metadata = Object.freeze({
         ...info[m],
-        Ancestors: info[m].Ancestors.map(s => this.models[s]),
-        Subclasses: info[m].Subclasses.map(s => this.models[s])
+        // Runtime: resolve strings to model classes for backward compat
+        // ModelMetadata types these as string[] but core resolves them to classes
+        Ancestors: info[m].Ancestors.map(s => this.models[s]) as any,
+        Subclasses: info[m].Subclasses.map(s => this.models[s]) as any
       });
     }
   }

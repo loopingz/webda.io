@@ -53,6 +53,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
@@ -99,13 +101,13 @@ jobs:
           postgresql init scripts: packages/postgres/test/sql
 
       - name: Install dependencies
-        run: yarn install
+        run: pnpm install
 
       - name: Build
-        run: yarn run build:ci # Build is required as we use sample-app for some tests
+        run: pnpm run build:ci # Build is required as we use sample-app for some tests
 
       - name: Run tests
-        run: yarn run test --exclude @webda/shell
+        run: pnpm -r --filter=!@webda/shell run test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
           GCS_API_ENDPOINT: http://storage.gcs.127.0.0.1.nip.io:4443
@@ -114,24 +116,24 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/webda.io/webda.io/packages/gcp/webda-test.json
 
       - name: Run shell tests
-        run: yarn run nx run @webda/shell:test
+        run: pnpm --filter @webda/shell run test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 
       - name: Check for circular dependencies
-        run: yarn run nx deps:graph
+        run: pnpm run deps:graph
 
       - name: Lint
-        run: yarn run lint
+        run: pnpm run lint
 
       - name: Check with mocha
-        run: yarn run test:mocha
+        run: pnpm run test:mocha
 
       - name: Check with jest
-        run: yarn run test:jest
+        run: pnpm run test:jest
 
       - name: Check with bun
-        run: yarn run test:bun
+        run: pnpm run test:bun
 
       - name: CodeCov
         uses: codecov/codecov-action@v2

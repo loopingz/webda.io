@@ -1,14 +1,15 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "module": "esnext",
+    "module": "preserve",
     "outDir": "./lib",
+    "rootDir": "./src",
     "strict": true,
     "declaration": true,
     "sourceMap": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "skipLibCheck": true,
     "declarationMap": true,
     "useDefineForClassFields": false,
@@ -17,8 +18,16 @@
       {
         "name": "@webda/ts-plugin"
       }
+    ],
+    "types": [
+      "node"
     ]
   },
-  "include": ["src/**/*"],
-  "exclude": ["**/node_modules", "src/**/*.spec.ts"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "src/**/*.spec.ts"
+  ]
 }

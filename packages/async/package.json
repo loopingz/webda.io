@@ -27,9 +27,9 @@
     "package.json"
   ],
   "dependencies": {
-    "@webda/core": "4.0.0-beta.2",
-    "@webda/ql": "4.0.0-beta.2",
-    "@webda/workout": "4.0.0-beta.2",
+    "@webda/core": "workspace:*",
+    "@webda/ql": "workspace:*",
+    "@webda/workout": "workspace:*",
     "axios": "^1.14.0",
     "json-schema": "^0.4.0",
     "node-cron": "^4.2.1"
@@ -38,7 +38,7 @@
     "@testdeck/mocha": "^0.3.3",
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:^",
-    "@webda/tsc-esm": "4.0.0-beta.2",
+    "@webda/tsc-esm": "workspace:*",
     "jscodeshift": "^17.3.0",
     "mocha": "^11.7.5",
     "sinon": "^21.0.3",

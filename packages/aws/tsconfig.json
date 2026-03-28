@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "module": "es2020",
+    "module": "preserve",
     "outDir": "./lib",
+    "rootDir": "./src",
     "strict": false,
     "strictPropertyInitialization": false,
     "declaration": true,
@@ -10,8 +11,11 @@
     "esModuleInterop": true,
     "experimentalDecorators": false,
     "skipLibCheck": true,
-    "moduleResolution": "node",
-    "declarationMap": true
+    "moduleResolution": "bundler",
+    "declarationMap": true,
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "src/**/*"

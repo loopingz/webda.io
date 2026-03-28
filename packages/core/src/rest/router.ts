@@ -541,7 +541,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         components: {
           schemas: {
             Object: {
-              type: "object"
+              type: "object" as const
             }
           }
         },
@@ -549,7 +549,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         tags: []
       },
       useApplication().getCurrentConfiguration().openapi || {}
-    );
+    ) as OpenAPIV3.Document;
     const app = useApplication();
     const models = app.getModels();
     const schemas = app.getSchemas();

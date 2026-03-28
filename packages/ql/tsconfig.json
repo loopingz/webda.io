@@ -1,27 +1,43 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "lib": ["es2019", "DOM"],
-    "module": "es2020",
+    "lib": [
+      "es2019",
+      "DOM"
+    ],
+    "module": "preserve",
     "outDir": "./lib",
+    "rootDir": "./src",
     "strict": false,
     "declaration": true,
     "sourceMap": true,
     "experimentalDecorators": false,
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "skipLibCheck": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src/**/*"],
-  "exclude": ["**/node_modules", "lib/**/*"],
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "lib/**/*"
+  ],
   "ts-node": {
     "transpileOnly": true,
     "preferTsExts": true,
     "compilerOptions": {
       "experimentalDecorators": false
     },
-    "include": ["src/**/*.spec.ts"],
-    "exclude": ["src/models/**/*"]
+    "include": [
+      "src/**/*.spec.ts"
+    ],
+    "exclude": [
+      "src/models/**/*"
+    ]
   }
 }

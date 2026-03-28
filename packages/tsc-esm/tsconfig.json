@@ -1,17 +1,29 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "lib": ["es2022", "DOM", "ESNext.Decorators"],
-    "module": "es2020",
+    "lib": [
+      "es2022",
+      "DOM",
+      "ESNext.Decorators"
+    ],
+    "module": "preserve",
     "outDir": "./lib",
+    "rootDir": "./src",
     "strict": false,
     "declaration": true,
     "sourceMap": true,
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "skipLibCheck": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src/**/*"],
-  "exclude": ["**/node_modules"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "**/node_modules"
+  ]
 }

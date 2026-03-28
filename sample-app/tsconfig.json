@@ -3,6 +3,7 @@
     "target": "es2020",
     "module": "es2020",
     "outDir": "./lib",
+    "rootDir": "./src",
     "strict": false,
     "sourceMap": true,
     "declaration": true,
@@ -10,7 +11,10 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
-    "declarationMap": true
+    "declarationMap": true,
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "src/**/*",

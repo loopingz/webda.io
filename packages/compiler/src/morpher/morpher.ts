@@ -4,7 +4,7 @@ import { updateImports } from "./imports";
 import { deserializer } from "./deserialize";
 import { transformAccessors } from "./accessors";
 import { useLog, useWorkerOutput } from "@webda/workout";
-import { Diff } from "diff";
+import { diffLines } from "diff";
 import { EventEmitter } from "stream";
 
 // Replace all imports
@@ -72,7 +72,7 @@ export class WebdaMorpher {
             "INFO",
             sourceFile.getFilePath(),
             "\n",
-            Diff.diffLines(origin, update, {
+            diffLines(origin, update, {
               ignoreWhitespace: true,
               ignoreNewlineAtEof: true,
               newlineIsToken: false

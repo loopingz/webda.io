@@ -1,21 +1,27 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "module": "es2022",
+    "module": "preserve",
     "outDir": "./lib",
+    "rootDir": "./src",
     "strict": false,
     "declaration": true,
     "sourceMap": true,
     "isolatedModules": true,
     "experimentalDecorators": false,
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "skipLibCheck": true,
     "declarationMap": true,
     "paths": {
-      "@webda/ts-plugin/transform": ["../ts-plugin/lib/transform"]
+      "@webda/ts-plugin/transform": [
+        "../ts-plugin/lib/transform"
+      ]
     },
-    "useDefineForClassFields": true
+    "useDefineForClassFields": true,
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "src/**/*"

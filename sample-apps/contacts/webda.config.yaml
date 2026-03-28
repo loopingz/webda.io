@@ -1,0 +1,11 @@
+services:
+  Authentication:
+    type: AuthenticationService
+    parameters:
+      userModel: ContactUser
+      password:
+        field: passwordHash
+        verifier: BcryptVerifier
+      email:
+        from: test@webda.io
+        subject: Welcome to Webda

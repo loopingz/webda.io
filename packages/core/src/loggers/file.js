@@ -1,0 +1,32 @@
+import { FileLogger } from "@webda/workout";
+import { FileLoggerServiceParameters } from "./params.js";
+import { LoggerService } from "./logger.js";
+import { useWorkerOutput } from "./ilogger.js";
+/**
+ * Save logs into a file
+ *
+ * Can define rotation etc
+ *
+ * @see `@webda/workout FileLogger`
+ * @WebdaModda FileLogger
+ */
+export class FileLoggerService extends LoggerService {
+    /**
+     *
+     * @returns
+     */
+    resolve() {
+        if (this.parameters.file === undefined) {
+            throw new Error("You must specify a file to log into");
+        }
+        this.workoutLogger = new FileLogger(useWorkerOutput(), this.parameters.logLevel, this.parameters.file, this.parameters.sizeLimit, this.parameters.format);
+        return super.resolve();
+    }
+    /**
+     * @inheritdoc
+     */
+    loadParameters(params) {
+        return new FileLoggerServiceParameters().load(params);
+    }
+}
+//# sourceMappingURL=file.js.map

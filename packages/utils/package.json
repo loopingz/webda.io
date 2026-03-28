@@ -30,12 +30,12 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@webda/workout": "4.0.0-beta.2",
+    "@webda/workout": "workspace:*",
     "yaml": "^2.8.3"
   },
   "devDependencies": {
     "@types/node": "25.5.0",
-    "@webda/tsc-esm": "4.0.0-beta.2",
+    "@webda/tsc-esm": "workspace:*",
     "vitest": "^4.1.2"
   },
   "files": [

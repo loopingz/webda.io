@@ -23,7 +23,7 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "@webda/core": "4.0.0-beta.2",
+    "@webda/core": "workspace:*",
     "@webda/models": "workspace:^"
   },
   "devDependencies": {

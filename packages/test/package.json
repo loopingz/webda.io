@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@webda/decorators": "workspace:^",
-    "@webda/workout": "4.0.0-beta.2"
+    "@webda/workout": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "25.5.0",

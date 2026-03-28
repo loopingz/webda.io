@@ -1,4 +1,4 @@
-import { type CookieSerializeOptions, serialize as cookieSerialize } from "cookie";
+import { type SerializeOptions as CookieSerializeOptions, serialize as cookieSerialize } from "cookie";
 import type { JWTOptions } from "../services/icryptoservice.js";
 import type { HttpContext } from "../contexts/httpcontext.js";
 import { isWebContext, IWebContext } from "../contexts/icontext.js";

@@ -3,6 +3,7 @@
     "target": "ES2022",
     "module": "nodenext",
     "outDir": "./lib",
+    "rootDir": "./src",
     "strict": true,
     "declaration": true,
     "sourceMap": true,
@@ -11,8 +12,16 @@
     "moduleResolution": "nodenext",
     "skipLibCheck": true,
     "declarationMap": true,
-    "useDefineForClassFields": true
+    "useDefineForClassFields": true,
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src/**/*"],
-  "exclude": ["**/node_modules", "src/**/*.spec.ts"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "src/**/*.spec.ts"
+  ]
 }

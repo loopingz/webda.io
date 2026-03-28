@@ -5,16 +5,20 @@
       "es2019",
       "DOM"
     ],
-    "module": "es2020",
+    "module": "preserve",
     "outDir": "./lib",
+    "rootDir": "./src",
     "strict": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "experimentalDecorators": false,
     "esModuleInterop": true,
-    "moduleResolution": "node",
-    "skipLibCheck": true
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "src/**/*"

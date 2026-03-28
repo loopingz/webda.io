@@ -33,7 +33,7 @@
     "@webda/schema": "workspace:^",
     "@webda/ts-plugin": "workspace:^",
     "@webda/utils": "workspace:^",
-    "@webda/workout": "4.0.0-beta.2",
+    "@webda/workout": "workspace:*",
     "accept-language": "^3.0.20",
     "diff": "^8.0.4",
     "ts-morph": "^27.0.2",
@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "@types/node": "25.5.0",
-    "@webda/tsc-esm": "4.0.0-beta.2",
+    "@webda/tsc-esm": "workspace:*",
     "eslint": "^10.1.0",
     "eslint-plugin-import": "^2.32.0",
     "prettier": "^3.8.1",

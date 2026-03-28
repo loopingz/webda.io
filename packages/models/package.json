@@ -38,8 +38,8 @@
     "@types/mocha": "^10.0.10"
   },
   "peerDependencies": {
-    "@webda/ql": "^4.0.0-beta.2",
-    "@webda/utils": "^4.0.0-beta.1"
+    "@webda/ql": "workspace:*",
+    "@webda/utils": "workspace:*"
   },
   "publishConfig": {
     "access": "public"

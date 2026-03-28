@@ -27,9 +27,9 @@
     "package.json"
   ],
   "dependencies": {
-    "@webda/core": "4.0.0-beta.2",
-    "@webda/ql": "4.0.0-beta.2",
-    "@webda/runtime": "4.0.0-beta.2",
+    "@webda/core": "workspace:*",
+    "@webda/ql": "workspace:*",
+    "@webda/runtime": "workspace:*",
     "graphql": "^16.13.2",
     "graphql-http": "^1.22.4",
     "graphql-ws": "^6.0.8",
@@ -40,7 +40,7 @@
     "@testdeck/mocha": "^0.3.3",
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:^",
-    "@webda/shell": "4.0.0-beta.2",
+    "@webda/shell": "workspace:*",
     "c8": "^11.0.0",
     "glob": "^13.0.6",
     "js-beautify": "^1.15.4",

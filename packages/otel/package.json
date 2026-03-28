@@ -39,14 +39,14 @@
     "@opentelemetry/sdk-metrics": "^2.6.1",
     "@opentelemetry/sdk-node": "^0.214.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
-    "@webda/core": "4.0.0-beta.2",
-    "@webda/workout": "4.0.0-beta.2"
+    "@webda/core": "workspace:*",
+    "@webda/workout": "workspace:*"
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.3",
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:^",
-    "@webda/shell": "4.0.0-beta.2",
+    "@webda/shell": "workspace:*",
     "c8": "^11.0.0",
     "glob": "^13.0.6",
     "js-beautify": "^1.15.4",

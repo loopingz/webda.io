@@ -35,7 +35,7 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
-    "@webda/core": "4.0.0-beta.2",
+    "@webda/core": "workspace:*",
     "google-auth-library": "^10.6.2"
   },
   "c8": {
@@ -57,7 +57,7 @@
     "@testdeck/mocha": "^0.3.3",
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:^",
-    "@webda/shell": "4.0.0-beta.2",
+    "@webda/shell": "workspace:*",
     "jscodeshift": "^17.3.0",
     "node-fetch": "^3.3.2",
     "sinon": "^21.0.3",

@@ -4,7 +4,7 @@ import * as fs from "fs";
 import * as WebdaError from "../errors/errors.js";
 import { WebdaApplicationTest } from "../test/index.js";
 import { ResourceService, ResourceServiceParameters } from "./resource.js";
-import { UnpackedConfiguration } from "../internal/iapplication.js";
+import { UnpackedConfiguration } from "../application/iconfiguration.js";
 import { getCommonJS } from "@webda/utils";
 
 const { __dirname } = getCommonJS(import.meta.url);

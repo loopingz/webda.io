@@ -4,7 +4,7 @@ import axios from "axios";
 import { Histogram } from "prom-client";
 import { WebdaApplicationTest } from "../test/application.js";
 import { HttpContext } from "../contexts/httpcontext.js";
-import { UnpackedConfiguration } from "../internal/iapplication.js";
+import { UnpackedConfiguration } from "../application/iconfiguration.js";
 import { WebdaInternalTest } from "../test/internal.js";
 import { emitCoreEvent } from "../events/events.js";
 

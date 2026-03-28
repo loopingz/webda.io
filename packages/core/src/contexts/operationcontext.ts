@@ -7,7 +7,7 @@ import sanitize from "sanitize-html";
 import { JSONUtils } from "@webda/utils";
 import { useLog } from "../loggers/hooks.js";
 import { runAsSystem } from "./execution.js";
-import { IUser } from "../internal/iapplication.js";
+import { IUser } from "../models/types.js";
 import { useModelRepository } from "../core/hooks.js";
 
 /**

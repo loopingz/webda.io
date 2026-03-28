@@ -6,16 +6,16 @@
 [x] Rewrite contexts
 [ ] Rewrite core
 [x] Rewrite errors
-[ ] Rewrite events
-[ ] Rewrite internal -- remove
+[x] Rewrite events
+[x] Rewrite internal -- remove
 [x] Rewrite loggers
-[ ] Rewrite metrics
+[x] Rewrite metrics
 [x] Rewrite models
 [ ] Rewrite queues
 [ ] Rewrite rest
-[ ] Rewrite schemas
+[x] Rewrite schemas
 [ ] Rewrite services
-[ ] Rewrite session
+[x] Rewrite session
 [ ] Rewrite stores
 [x] Rewrite test
 [x] Rewrite utils

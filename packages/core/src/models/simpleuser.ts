@@ -1,5 +1,5 @@
 import type { Ident } from "./ident.js";
-import { Helpers, ModelRelated, SelfJSONed, Settable } from "@webda/models";
+import { Helpers, ModelRelated, Settable } from "@webda/models";
 import { User } from "./user.js";
 
 /**

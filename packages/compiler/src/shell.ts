@@ -3,11 +3,12 @@ import yargs from "yargs";
 import { WebdaProject } from "./definition";
 import { Compiler } from "./compiler";
 import { generateConfigurationSchemas, ConfigSchemaApplication } from "./configuration";
+import { generateOperations } from "./operations";
 import { useWorkerOutput, Fork, InteractiveConsoleLogger } from "@webda/workout";
 import { FileUtils } from "@webda/utils";
 import { resolve, join } from "path";
 import { runWithCurrentDirectory } from "@webda/utils";
-import { existsSync, readdirSync, lstatSync, realpathSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, lstatSync, realpathSync, writeFileSync } from "node:fs";
 import { bold, italic, yellow } from "yoctocolors";
 import { WebdaMorpher } from "./morpher/morpher";
 
@@ -171,10 +172,12 @@ Fork(
           compiler.compile(true);
           // Generate configuration schemas if the project is an application
           if (project.isApplication()) {
+            const modulePath = project.getAppPath("webda.module.json");
+            const mod = FileUtils.load(modulePath, "json");
+            mergeDependencyModules(project.getAppPath(), mod);
+
+            // Generate configuration schemas
             try {
-              const modulePath = project.getAppPath("webda.module.json");
-              const mod = FileUtils.load(modulePath, "json");
-              mergeDependencyModules(project.getAppPath(), mod);
               const configPath = FileUtils.getConfigurationFile(project.getAppPath("webda.config"));
               const config = FileUtils.load(configPath);
               const namespace = project.namespace || "Webda";
@@ -189,6 +192,19 @@ Fork(
               generateConfigurationSchemas(app, undefined, undefined, undefined, configPath);
             } catch (err) {
               useWorkerOutput().log("WARN", "Cannot generate configuration schemas", err.message);
+            }
+
+            // Generate operations.json
+            try {
+              const operations = generateOperations(mod);
+              const webdaDir = project.getAppPath(".webda");
+              if (!existsSync(webdaDir)) {
+                mkdirSync(webdaDir, { recursive: true });
+              }
+              writeFileSync(join(webdaDir, "operations.json"), JSON.stringify(operations, undefined, 2));
+              useWorkerOutput().log("INFO", "Generated .webda/operations.json");
+            } catch (err) {
+              useWorkerOutput().log("WARN", "Cannot generate operations.json", err.message);
             }
           }
         }

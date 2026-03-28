@@ -157,7 +157,7 @@ function resolveImportSource(
   const from = dirname(currentFile.fileName);
   let rel = relative(from, filePath)
     .replace(/\\/g, "/")
-    .replace(/\.ts$/, ".js");
+    .replace(/\.d\.ts$|\.ts$/, ".js");
   if (!rel.startsWith(".")) rel = "./" + rel;
   return rel;
 }
@@ -1098,7 +1098,7 @@ function findStorageImportSource(
             const from = dirname(currentFile.fileName);
             let rel = relative(from, sf.fileName)
               .replace(/\\/g, "/")
-              .replace(/\.ts$/, ".js");
+              .replace(/\.d\.ts$|\.ts$/, ".js");
             if (!rel.startsWith(".")) rel = "./" + rel;
             return rel;
           }

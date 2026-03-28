@@ -12,7 +12,7 @@
   "typings": "lib/index.d.ts",
   "repository": "git://github.com/loopingz/webda.io.git",
   "bin": {
-    "webda": "./lib/bin/webda.js"
+    "webdashell": "./lib/bin/webda.js"
   },
   "files": [
     "lib",

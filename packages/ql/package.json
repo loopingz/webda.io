@@ -11,7 +11,7 @@
   "typings": "lib/query.d.ts",
   "scripts": {
     "build": "tsc-esm",
-    "grammar": "antlr4ts -visitor src/WebdaQLLexer.g4 src/WebdaQLParser.g4 && yarn run lint:fix",
+    "grammar": "antlr4ts -visitor src/WebdaQLLexer.g4 src/WebdaQLParser.g4 && pnpm run lint:fix",
     "pretest": "npm run build",
     "lint": "eslint",
     "lint:fix": "eslint --fix",

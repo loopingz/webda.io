@@ -44,7 +44,7 @@ export class BinaryNotFoundError extends WebdaError.CodeError {
   }
 }
 
-export interface BinaryFileInfo<T extends Object = {}> {
+export interface BinaryFileInfo<T extends object = {}> {
   /**
    * Hash of the binary
    */
@@ -76,13 +76,13 @@ export interface BinaryFileInfo<T extends Object = {}> {
 /**
  * Represent files attached to a model
  */
-export type BinaryFiles<T extends Object = {}> = BinaryFileInfo<T>[];
+export type BinaryFiles<T extends object = {}> = BinaryFileInfo<T>[];
 
 /**
  * Represent a file to store
  * @WebdaSchema
  */
-export abstract class BinaryFile<T = any> implements BinaryFileInfo<T> {
+export abstract class BinaryFile<T extends object = {}> implements BinaryFileInfo<T> {
   /**
    * Current name
    */
@@ -242,7 +242,7 @@ export type BinaryMetadata = any;
  *
  * @class BinaryMap
  */
-export class BinaryMap<T = any> extends BinaryFile<T> {
+export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
   /**
    * Link to the binary store
    */
@@ -289,7 +289,7 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
  * @readOnly
  * @dtoIn skip
  */
-export class Binary<T = any> extends BinaryMap<T> {
+export class Binary<T extends object = {}> extends BinaryMap<T> {
   [WEBDA_STORAGE]: {
     model: Model;
     attribute: string;
@@ -326,7 +326,7 @@ export class Binary<T = any> extends BinaryMap<T> {
    * @param ctx
    * @returns
    */
-  async upload(file: BinaryFile): Promise<void> {
+  async upload(file: BinaryFile<T>): Promise<void> {
     await this[WEBDA_STORAGE].service.store(this[WEBDA_STORAGE].model, this[WEBDA_STORAGE].attribute, file);
     this.set(file);
   }
@@ -355,7 +355,7 @@ export class Binary<T = any> extends BinaryMap<T> {
 /**
  * Define a Binary map stored in a Binaries collection
  */
-export class BinariesItem<T = any> extends BinaryMap<T> {
+export class BinariesItem<T extends object = {}> extends BinaryMap<T> {
   [WEBDA_STORAGE]: {
     service: BinaryService;
     parent: BinariesImpl<T>;
@@ -371,7 +371,7 @@ export class BinariesItem<T = any> extends BinaryMap<T> {
    * @param ctx
    * @returns
    */
-  async upload(file: BinaryFile): Promise<void> {
+  async upload(file: BinaryFile<T>): Promise<void> {
     await this[WEBDA_STORAGE].parent.upload(file, this);
     this.set(file);
   }
@@ -387,7 +387,7 @@ export class BinariesItem<T = any> extends BinaryMap<T> {
  * Define a collection of Binary
  * @dtoIn skip
  */
-export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
+export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> {
   protected [WEBDA_STORAGE]: {
     model: Model;
     attribute: string;
@@ -427,7 +427,7 @@ export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
    * Upload a file to this model
    * @param file
    */
-  async upload(file: BinaryFile, replace?: BinariesItem) {
+  async upload(file: BinaryFile<T>, replace?: BinariesItem<T>): Promise<void> {
     await this[WEBDA_STORAGE].service.store(this[WEBDA_STORAGE].model, this[WEBDA_STORAGE].attribute, file);
     // Should call the store first
     super.push(new BinariesItem(this, file));
@@ -440,7 +440,7 @@ export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
    * Delete an item
    * @param item
    */
-  async delete(item: BinariesItem) {
+  async delete(item: BinariesItem<T>) {
     let itemIndex = this.indexOf(item);
     if (itemIndex === -1) {
       throw new Error("Item not found");
@@ -457,7 +457,9 @@ export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
 /**
  * Define a collection of Binary with a Readonly and the upload method
  */
-export type Binaries<T = any> = Readonly<Array<BinariesItem<T>>> & { upload: (file: BinaryFile) => Promise<void> };
+export type Binaries<T extends object = {}> = Readonly<Array<BinariesItem<T>>> & {
+  upload: (file: BinaryFile<T>) => Promise<void>;
+};
 
 export class BinaryParameters extends ServiceParameters {
   /**

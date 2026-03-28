@@ -8,7 +8,7 @@ import { Counter } from "../metrics/metrics.js";
 import type { User } from "../models/user.js";
 import type { Ident } from "../models/ident.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
-import { ServicePartialParameters } from "../internal/iapplication.js";
+import { ServicePartialParameters } from "./iservice.js";
 
 /**
  * Interface for an email template that can render subject, html and text

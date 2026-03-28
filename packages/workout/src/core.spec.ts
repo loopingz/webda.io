@@ -41,7 +41,7 @@ class WorkerOutputTest {
     // When @webda/test update this might change
     assert.ok(ctx.file.endsWith("lib/core.js"));
     // Careful, line number might change
-    assert.strictEqual(ctx.line, 239);
+    assert.strictEqual(ctx.line, 296);
     assert.strictEqual(ctx.function, "testExecutor");
     this.output.addLogProducerLine = false;
   }

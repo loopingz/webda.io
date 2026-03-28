@@ -27,7 +27,7 @@ jobs:
 
     services:
       localstack:
-        image: localstack/localstack:latest
+        image: localstack/localstack:3.6.0 # Cannot use latest until we get an OSS license
         ports:
           - 4566:4566
         env:

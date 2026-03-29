@@ -991,7 +991,9 @@
           "$webda": "toJSON$return"
         }
       },
-      "Actions": {},
+      "Actions": {
+        "test": {}
+      },
       "Events": [
         "Create",
         "PartialUpdate",
@@ -1768,7 +1770,7 @@
           "WebdaModel": "Contact\nNot sure what this jsdoc does\n\nAnother comment",
           "additionalProperties": false,
           "definitions": {
-            "BinaryFileInfo<any>": {
+            "BinaryFileInfo<{}>": {
               "additionalProperties": false,
               "description": "One Binary instance",
               "dtoIn": "skip",
@@ -1782,6 +1784,7 @@
                   "type": "string"
                 },
                 "metadata": {
+                  "$ref": "#/definitions/avatar%24metadata",
                   "description": "Metadatas stored along with the binary"
                 },
                 "mimetype": {
@@ -1804,6 +1807,10 @@
                 "size"
               ],
               "type": "object"
+            },
+            "avatar$metadata": {
+              "additionalProperties": false,
+              "type": "object"
             }
           },
           "properties": {
@@ -1813,7 +1820,7 @@
               "type": "number"
             },
             "avatar": {
-              "$ref": "#/definitions/BinaryFileInfo%3Cany%3E",
+              "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E",
               "description": "Contact avatar"
             },
             "firstName": {
@@ -1879,7 +1886,7 @@
           "WebdaModel": "Contact\nNot sure what this jsdoc does\n\nAnother comment",
           "additionalProperties": false,
           "definitions": {
-            "BinaryFileInfo<any>": {
+            "BinaryFileInfo<{}>": {
               "additionalProperties": false,
               "description": "One Binary instance",
               "dtoIn": "skip",
@@ -1893,6 +1900,7 @@
                   "type": "string"
                 },
                 "metadata": {
+                  "$ref": "#/definitions/avatar%24metadata",
                   "description": "Metadatas stored along with the binary"
                 },
                 "mimetype": {
@@ -1915,6 +1923,10 @@
                 "size"
               ],
               "type": "object"
+            },
+            "avatar$metadata": {
+              "additionalProperties": false,
+              "type": "object"
             }
           },
           "properties": {
@@ -1924,7 +1936,7 @@
               "type": "number"
             },
             "avatar": {
-              "$ref": "#/definitions/BinaryFileInfo%3Cany%3E",
+              "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E",
               "description": "Contact avatar"
             },
             "firstName": {
@@ -2005,7 +2017,7 @@
           "WebdaModel": "Contact\nNot sure what this jsdoc does\n\nAnother comment",
           "additionalProperties": false,
           "definitions": {
-            "BinaryFileInfo<any>": {
+            "BinaryFileInfo<{}>": {
               "additionalProperties": false,
               "description": "One Binary instance",
               "dtoIn": "skip",
@@ -2019,6 +2031,7 @@
                   "type": "string"
                 },
                 "metadata": {
+                  "$ref": "#/definitions/avatar%24metadata",
                   "description": "Metadatas stored along with the binary"
                 },
                 "mimetype": {
@@ -2041,6 +2054,10 @@
                 "size"
               ],
               "type": "object"
+            },
+            "avatar$metadata": {
+              "additionalProperties": false,
+              "type": "object"
             }
           },
           "properties": {
@@ -2050,7 +2067,7 @@
               "type": "number"
             },
             "avatar": {
-              "$ref": "#/definitions/BinaryFileInfo%3Cany%3E",
+              "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E",
               "description": "Contact avatar"
             },
             "firstName": {
@@ -2499,7 +2516,11 @@
           "$webda": "toJSON$return"
         }
       },
-      "Actions": {},
+      "Actions": {
+        "globalAction": {
+          "global": true
+        }
+      },
       "Events": [
         "Create",
         "PartialUpdate",
@@ -3663,7 +3684,12 @@
           "$webda": "toJSON$return"
         }
       },
-      "Actions": {},
+      "Actions": {
+        "action": {},
+        "action2": {},
+        "action3": {},
+        "action4": {}
+      },
       "Events": [
         "Create",
         "PartialUpdate",
@@ -4653,6 +4679,12 @@
                   "description": "Is `true` after `writable.destroy()` has been called.",
                   "since": "v8.0.0",
                   "type": "boolean"
+                },
+                "writable": {
+                  "default": false,
+                  "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
+                  "since": "v11.4.0",
+                  "type": "boolean"
                 }
               },
               "since": "v0.9.4",
@@ -4695,6 +4727,95 @@
       }
     },
     "WebdaDemo/Classroom.test.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "WebdaDemo/Hardware.globalAction.input": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "additionalProperties": false,
+          "definitions": {
+            "Error": {
+              "additionalProperties": false,
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "stack": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "message",
+                "name"
+              ],
+              "type": "object"
+            },
+            "Promise<any>": {
+              "additionalProperties": false,
+              "description": "Represents the completion of an asynchronous operation",
+              "type": "object"
+            },
+            "Writable": {
+              "additionalProperties": false,
+              "properties": {
+                "destroyed": {
+                  "default": false,
+                  "description": "Is `true` after `writable.destroy()` has been called.",
+                  "since": "v8.0.0",
+                  "type": "boolean"
+                },
+                "writable": {
+                  "default": false,
+                  "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
+                  "since": "v11.4.0",
+                  "type": "boolean"
+                }
+              },
+              "since": "v0.9.4",
+              "type": "object"
+            }
+          },
+          "description": "OperationContext is used when call to an operation",
+          "param": [
+            "T type of input for this context",
+            "U type of output for this context",
+            "P type of parameters for this context"
+          ],
+          "properties": {
+            "_promises": {
+              "description": "Contain all registered promises to this context",
+              "items": {
+                "$ref": "#/definitions/Promise%3Cany%3E"
+              },
+              "type": "array"
+            },
+            "_stream": {
+              "$ref": "#/definitions/Writable",
+              "description": "Output stream"
+            },
+            "action": {},
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "parameters": {}
+          },
+          "required": [
+            "_promises",
+            "_stream",
+            "action",
+            "caches",
+            "parameters"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "WebdaDemo/Hardware.globalAction.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "not": {}
     },
@@ -4755,6 +4876,12 @@
                   "default": false,
                   "description": "Is `true` after `writable.destroy()` has been called.",
                   "since": "v8.0.0",
+                  "type": "boolean"
+                },
+                "writable": {
+                  "default": false,
+                  "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
+                  "since": "v11.4.0",
                   "type": "boolean"
                 }
               },
@@ -4838,6 +4965,12 @@
                   "default": false,
                   "description": "Is `true` after `writable.destroy()` has been called.",
                   "since": "v8.0.0",
+                  "type": "boolean"
+                },
+                "writable": {
+                  "default": false,
+                  "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
+                  "since": "v11.4.0",
                   "type": "boolean"
                 }
               },

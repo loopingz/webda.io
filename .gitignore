@@ -49,3 +49,4 @@ docs/build
 package-lock.json
 *.old
 .vite-custom
+docs/superpowers

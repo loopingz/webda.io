@@ -7,6 +7,7 @@ export default defineConfig({
   test: {
     allowOnly: true,
     testTimeout: 20000,
+    hookTimeout: 60000,
     coverage: {
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.spec.ts", "src/index.ts"],

@@ -104,7 +104,7 @@ jobs:
         run: pnpm install
 
       - name: Build
-        run: pnpm run build:ci # Build is required as we use sample-app for some tests
+        run: pnpm run build # Build is required as we use sample-app for some tests
 
       - name: Run tests
         run: pnpm -r --filter=!@webda/shell run test

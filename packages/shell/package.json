@@ -56,7 +56,7 @@
     "semver": "^7.7.4",
     "semver-intersect": "^1.5.0",
     "ts-json-schema-generator": "^2.9.0",
-    "typescript": "^6.0.2",
+    "typescript": "^5.9.3",
     "unzipper": "^0.12.3",
     "yaml": "^2.8.3",
     "yargs": "^18.0.0",

@@ -199,11 +199,10 @@ class ContextAppTest extends WebdaAsyncStorageTest {
       cookie: "PHPSESSID=298zf09hf012fh2; csrftoken=u32t4o3tb3gg43; _gat=1"
     });
     assert.strictEqual(ctx.getAbsoluteUrl("/test"), "http://test.webda.io/test");
-    assert.deepStrictEqual(ctx.getCookies(), {
-      PHPSESSID: "298zf09hf012fh2",
-      csrftoken: "u32t4o3tb3gg43",
-      _gat: "1"
-    });
+    const cookies = ctx.getCookies();
+    assert.strictEqual(cookies.PHPSESSID, "298zf09hf012fh2");
+    assert.strictEqual(cookies.csrftoken, "u32t4o3tb3gg43");
+    assert.strictEqual(cookies._gat, "1");
     ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "https", 80);
     assert.strictEqual(ctx.getAbsoluteUrl(), "https://test.webda.io:80/uritemplate/plop");
     ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 443);

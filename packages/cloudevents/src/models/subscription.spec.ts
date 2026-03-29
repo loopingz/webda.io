@@ -48,5 +48,5 @@ test("Subscription", async () => {
   expect(called).toBe(false);
   server.close();
   subscription.protocol = "UNKNOWN" as any;
-  expect(() => subscription.createEmitter()).toThrowError();
+  expect(() => subscription.createEmitter()).toThrow();
 });

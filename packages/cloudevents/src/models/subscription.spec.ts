@@ -1,4 +1,4 @@
-import { expect, test } from "@jest/globals";
+import { expect, test } from "vitest";
 import { CloudEvent } from "cloudevents";
 import { Server } from "http";
 import { SubscriptionMixIn } from "./subscription";

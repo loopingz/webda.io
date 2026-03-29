@@ -9,6 +9,8 @@ export default defineConfig({
     testTimeout: 20000,
     hookTimeout: 60000,
     coverage: {
+      enabled: true,
+      provider: "v8",
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.spec.ts", "src/index.ts"],
       reporter: ["lcov", "html", "text"]

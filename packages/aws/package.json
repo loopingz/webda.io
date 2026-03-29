@@ -9,7 +9,7 @@
     "pretest": "webdac",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "test": "c8 mocha",
+    "test": "vitest run",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
     "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
@@ -64,19 +64,6 @@
     "mime-types": "^3.0.2",
     "yaml": "^2.8.3"
   },
-  "c8": {
-    "report-dir": "./reports",
-    "reporter": [
-      "html",
-      "lcov",
-      "json",
-      "text"
-    ],
-    "exclude": [
-      "**/*.spec.ts",
-      "test/**/*"
-    ]
-  },
   "publishConfig": {
     "access": "public"
   },
@@ -85,6 +72,7 @@
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:^",
     "@webda/shell": "workspace:*",
+    "@webda/test": "workspace:*",
     "aws-sdk-client-mock": "^4.1.0",
     "jscodeshift": "^17.3.0",
     "node-fetch": "^3.3.2",

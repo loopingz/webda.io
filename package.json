@@ -20,6 +20,8 @@
     "prettier-plugin-organize-imports": "^4.3.0",
     "sinon": "^21.0.3",
     "typescript": "^6.0.2",
+    "vitest": "^4.1.2",
+    "@vitest/coverage-v8": "^4.1.2",
     "typescript-eslint": "^8.57.2"
   },
   "author": "loopingz",
@@ -31,7 +33,7 @@
   "repository": "git://github.com/loopingz/webda.io.git",
   "scripts": {
     "build": "pnpm -r run build",
-    "test": "pnpm -r --filter=!@webda/sample-app --filter=!@webda/core run test",
+    "test": "pnpm -r run test",
     "new-version": "pnpm run build && pnpm -r exec pnpm version --no-git-tag-version",
     "new-module": "pnpm webda init webda:module",
     "lint": "pnpm -r run lint",

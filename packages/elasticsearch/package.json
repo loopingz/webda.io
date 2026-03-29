@@ -9,7 +9,7 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "pretest": "npm run build",
-    "test": "c8 mocha",
+    "test": "vitest run",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
     "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
@@ -39,18 +39,6 @@
     "@webda/core": "workspace:*",
     "dateformat": "^5.0.3",
     "yaml": "^2.8.3"
-  },
-  "c8": {
-    "reporter": [
-      "html",
-      "lcov",
-      "json",
-      "text"
-    ],
-    "report-dir": "./reports",
-    "exclude": [
-      "**/*.spec.ts"
-    ]
   },
   "publishConfig": {
     "access": "public"

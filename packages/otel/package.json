@@ -7,8 +7,7 @@
   "scripts": {
     "build": "webda build",
     "pretest": "npm run build",
-    "test": "c8 mocha",
-    "test:debug": "mocha src/**/*.spec.ts",
+    "test": "vitest run",
     "new-model": "webda init webda:model",
     "new-service": "webda init webda:service",
     "format": "prettier --check src/**/*",
@@ -54,19 +53,6 @@
     "skott": "^0.35.8",
     "source-map-support": "^0.5.21",
     "vite": "^6.0.0"
-  },
-  "c8": {
-    "report-dir": "./reports",
-    "reporter": [
-      "html",
-      "lcov",
-      "json",
-      "text"
-    ],
-    "exclude": [
-      "**/*.spec.ts",
-      "test/**/*"
-    ]
   },
   "publishConfig": {
     "access": "public"

@@ -1,0 +1,10 @@
+{
+  "services": {
+    "Authentication": {
+      "email": {
+        "text": "Plop1",
+        "text2": "Plop6"
+      }
+    }
+  }
+}

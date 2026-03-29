@@ -9,7 +9,7 @@
     "pretest": "npm run build",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "test": "c8 mocha",
+    "test": "vitest run",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
     "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
@@ -37,18 +37,6 @@
   "dependencies": {
     "@webda/core": "workspace:*",
     "google-auth-library": "^10.6.2"
-  },
-  "c8": {
-    "report-dir": "./reports",
-    "reporter": [
-      "html",
-      "lcov",
-      "json",
-      "text"
-    ],
-    "exclude": [
-      "**/*.spec.ts"
-    ]
   },
   "publishConfig": {
     "access": "public"

@@ -55,7 +55,7 @@
     "@types/node": "25.5.0",
     "@vitest/coverage-v8": "^4.1.2",
     "@webda/test": "workspace:^",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.2"
   },
   "type": "module",
   "engines": {

@@ -618,15 +618,13 @@ export function createAccessorTransformer(
           const hasConflict = elements.some(el => !el.isTypeOnly && injectedNames.has(safeGetText(el.name, sourceFile)));
           if (!hasConflict) return stmt;
 
-          // Remove conflicting specifiers and type-only-in-practice specifiers.
-          // TypeScript's import elision won't run on updated nodes, so we must drop specifiers
-          // that would otherwise be elided. We keep only original type-only specifiers (harmless)
-          // and non-conflicting names that are NOT tracked as needing runtime injection.
-          // In practice, remaining non-type-only specifiers are type aliases (e.g. ManyToOne)
-          // that TypeScript would normally elide — dropping them is safe.
+          // Remove conflicting specifiers (names we'll re-inject with correct source).
+          // Keep non-conflicting specifiers — they may be runtime values (e.g. base classes).
+          // Only drop specifiers that are explicitly type-only.
           const remaining = elements.filter(el => {
             if (injectedNames.has(safeGetText(el.name, sourceFile))) return false;
-            return false; // Drop all remaining — they're types that would be elided
+            if (el.isTypeOnly) return false;
+            return true;
           });
 
           if (remaining.length === 0 && !stmt.importClause.name) {

@@ -45,7 +45,7 @@
     "skott": "^0.35.8",
     "source-map-support": "^0.5.21",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.2"
   },
   "c8": {
     "report-dir": "./reports",

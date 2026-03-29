@@ -31,7 +31,6 @@
   "repository": "git://github.com/loopingz/webda.io.git",
   "scripts": {
     "build": "pnpm -r run build",
-    "build:ci": "pnpm --filter @webda/sample-app run build",
     "test": "pnpm -r --filter=!@webda/sample-app run test",
     "new-version": "pnpm run build && pnpm -r exec pnpm version --no-git-tag-version",
     "new-module": "pnpm webda init webda:module",

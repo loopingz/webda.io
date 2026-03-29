@@ -29,6 +29,7 @@
     "test:coverage": "vitest --coverage"
   },
   "dependencies": {
+    "@phenomnomnominal/tsquery": "^6.1.4",
     "@types/json-schema": "^7.0.15",
     "@webda/schema": "workspace:^",
     "@webda/ts-plugin": "workspace:^",
@@ -37,7 +38,8 @@
     "accept-language": "^3.0.20",
     "diff": "^8.0.4",
     "ts-morph": "^27.0.2",
-    "yargs": "^18.0.0"
+    "yargs": "^18.0.0",
+    "yoctocolors": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "25.5.0",
@@ -46,7 +48,8 @@
     "eslint-plugin-import": "^2.32.0",
     "prettier": "^3.8.1",
     "skott": "^0.35.8",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.2",
+    "vite": "^6.0.0"
   },
   "files": [
     "lib"

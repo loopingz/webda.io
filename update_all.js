@@ -29,7 +29,12 @@ function saveFile(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, undefined, 2));
 }
 
-let workspaces = loadFile("./package.json").workspaces;
+let workspaces = fs
+  .readFileSync("./pnpm-workspace.yaml", "utf8")
+  .split("\n")
+  .filter(l => /^\s*-\s/.test(l))
+  .map(l => l.replace(/^\s*-\s*/, "").replace(/^["']|["']$/g, "").trim())
+  .filter(l => l && !l.startsWith("#"));
 
 let filename = process.argv[2]; //"tsconfig.json";
 let query = process.argv[3]; //"$.compilerOptions.target";

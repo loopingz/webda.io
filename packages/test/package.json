@@ -35,7 +35,9 @@
   },
   "devDependencies": {
     "@types/node": "25.5.0",
-    "jscodeshift": "^17.3.0"
+    "jscodeshift": "^17.3.0",
+    "vitest": "^4.1.2",
+    "vite": "^6.0.0"
   },
   "peerDependenciesMeta": {
     "mocha": {

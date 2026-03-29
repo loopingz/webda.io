@@ -37,7 +37,6 @@
     "ws": "^8.20.0"
   },
   "devDependencies": {
-    "@testdeck/mocha": "^0.3.3",
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:^",
     "@webda/shell": "workspace:*",
@@ -45,10 +44,10 @@
     "glob": "^13.0.6",
     "js-beautify": "^1.15.4",
     "jscodeshift": "^17.3.0",
-    "mocha": "^11.7.5",
     "prettier": "^3.8.1",
     "skott": "^0.35.8",
-    "source-map-support": "^0.5.21"
+    "source-map-support": "^0.5.21",
+    "vite": "^6.0.0"
   },
   "c8": {
     "extends": "@istanbuljs/nyc-config-typescript",

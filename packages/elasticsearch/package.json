@@ -56,14 +56,14 @@
     "access": "public"
   },
   "devDependencies": {
-    "@testdeck/mocha": "^0.3.3",
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:^",
     "@webda/shell": "workspace:*",
     "jscodeshift": "^17.3.0",
     "sinon": "^21.0.3",
     "skott": "^0.35.8",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "vite": "^6.0.0"
   },
   "type": "module",
   "engines": {

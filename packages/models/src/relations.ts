@@ -7,7 +7,6 @@ import {
   PrimaryKeyEquals,
   AttributesArgument,
   PrimaryKeyAttributes,
-  UpdatableAttributes,
   WEBDA_PRIMARY_KEY,
   ModelClass
 } from "./storable";

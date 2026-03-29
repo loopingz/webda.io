@@ -10,8 +10,8 @@
   "main": "lib/cache.js",
   "typings": "lib/cache.d.ts",
   "scripts": {
-    "build": "tsc-esm",
-    "build:watch": "tsc-esm --watch",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
     "pretest": "npm run build",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
@@ -30,7 +30,9 @@
     "@webda/decorators": "workspace:^",
     "jscodeshift": "^17.3.0",
     "skott": "^0.35.8",
-    "vitest": "^4.1.2"
+    "typescript": "6.0.2",
+    "vitest": "^4.1.2",
+    "vite": "^6.0.0"
   },
   "files": [
     "lib"

@@ -26,19 +26,19 @@
     "antlr4ts": "0.5.0-alpha.4"
   },
   "devDependencies": {
-    "@testdeck/mocha": "^0.3.3",
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:^",
+    "@webda/test": "workspace:^",
     "@webda/tsc-esm": "workspace:*",
     "antlr4ts-cli": "0.5.0-alpha.4",
     "c8": "^11.0.0",
     "jscodeshift": "^17.3.0",
-    "mocha": "^11.7.5",
     "prettier": "^3.8.1",
     "sinon": "^21.0.3",
     "skott": "^0.35.8",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vite": "^6.0.0"
   },
   "files": [
     "lib"

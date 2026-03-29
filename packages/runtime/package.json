@@ -58,21 +58,20 @@
     "yaml": "^2.8.3"
   },
   "devDependencies": {
-    "@testdeck/mocha": "^0.3.3",
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:^",
     "@webda/shell": "workspace:*",
     "c8": "^11.0.0",
     "fs-extra": "^11.3.4",
     "jscodeshift": "^17.3.0",
-    "mocha": "^11.7.5",
     "prettier": "^3.8.1",
     "sinon": "^21.0.3",
     "skott": "^0.35.8",
     "source-map-support": "^0.5.21",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
-    "ws": "^8.20.0"
+    "ws": "^8.20.0",
+    "vite": "^6.0.0"
   },
   "files": [
     "lib",

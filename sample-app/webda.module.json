@@ -70,25 +70,7 @@
       "Configuration": "node_modules/@webda/core/lib/services/serviceparameters:ServiceParameters"
     }
   },
-  "deployers": {
-    "WebdaDemo/CustomDeployer": {
-      "Import": "lib/services/deployer:CustomDeployer",
-      "Schema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "additionalProperties": false,
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          }
-        },
-        "type": "object",
-        "title": "CustomDeployer"
-      }
-    }
-  },
+  "deployers": {},
   "moddas": {
     "WebdaDemo/AnotherService": {
       "Import": "lib/services/compiler:AnotherService",
@@ -582,6 +564,12 @@
                 "type"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "description": "Test of TypeParams",
@@ -594,9 +582,7 @@
               "type": "array"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "$ref": "#/definitions/company"
             },
             "n": {
               "type": "number"
@@ -658,6 +644,12 @@
                 "type"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "description": "Test of TypeParams",
@@ -670,9 +662,7 @@
               "type": "array"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "$ref": "#/definitions/company"
             },
             "n": {
               "type": "number"
@@ -724,6 +714,12 @@
                 "length"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "description": "Test of TypeParams",
@@ -732,9 +728,7 @@
               "$ref": "#/definitions/ResourceAcl"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "$ref": "#/definitions/company"
             },
             "n": {
               "type": "number"
@@ -1416,15 +1410,25 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "properties": {
+          "definitions": {
             "_loanTo": {
+              "additionalProperties": false,
               "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
-              "type": "string"
+              "type": "object"
             },
             "_user": {
               "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
               "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "type": "object"
+            }
+          },
+          "properties": {
+            "_loanTo": {
+              "$ref": "#/definitions/_loanTo"
+            },
+            "_user": {
+              "$ref": "#/definitions/_user"
             },
             "name": {
               "type": "string"
@@ -1447,15 +1451,25 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "properties": {
+          "definitions": {
             "_loanTo": {
+              "additionalProperties": false,
               "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
-              "type": "string"
+              "type": "object"
             },
             "_user": {
               "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
               "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "type": "object"
+            }
+          },
+          "properties": {
+            "_loanTo": {
+              "$ref": "#/definitions/_loanTo"
+            },
+            "_user": {
+              "$ref": "#/definitions/_user"
             },
             "name": {
               "type": "string"
@@ -1478,15 +1492,25 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "properties": {
+          "definitions": {
             "_loanTo": {
+              "additionalProperties": false,
               "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
-              "type": "string"
+              "type": "object"
             },
             "_user": {
               "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
               "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "type": "object"
+            }
+          },
+          "properties": {
+            "_loanTo": {
+              "$ref": "#/definitions/_loanTo"
+            },
+            "_user": {
+              "$ref": "#/definitions/_user"
             },
             "name": {
               "type": "string"
@@ -1811,6 +1835,11 @@
             "avatar$metadata": {
               "additionalProperties": false,
               "type": "object"
+            },
+            "owner": {
+              "additionalProperties": false,
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "object"
             }
           },
           "properties": {
@@ -1837,8 +1866,8 @@
               "type": "string"
             },
             "owner": {
-              "description": "Contact owner",
-              "type": "string"
+              "$ref": "#/definitions/owner",
+              "description": "Contact owner"
             },
             "photos": {
               "allOf": [
@@ -1927,6 +1956,11 @@
             "avatar$metadata": {
               "additionalProperties": false,
               "type": "object"
+            },
+            "owner": {
+              "additionalProperties": false,
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "object"
             }
           },
           "properties": {
@@ -1953,8 +1987,8 @@
               "type": "string"
             },
             "owner": {
-              "description": "Contact owner",
-              "type": "string"
+              "$ref": "#/definitions/owner",
+              "description": "Contact owner"
             },
             "photos": {
               "allOf": [
@@ -2058,6 +2092,11 @@
             "avatar$metadata": {
               "additionalProperties": false,
               "type": "object"
+            },
+            "owner": {
+              "additionalProperties": false,
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "object"
             }
           },
           "properties": {
@@ -2084,8 +2123,8 @@
               "type": "string"
             },
             "owner": {
-              "description": "Contact owner",
-              "type": "string"
+              "$ref": "#/definitions/owner",
+              "description": "Contact owner"
             },
             "photos": {
               "allOf": [
@@ -2617,6 +2656,12 @@
                 "type"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "properties": {
@@ -2628,9 +2673,7 @@
               "type": "array"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "$ref": "#/definitions/company"
             },
             "n": {
               "type": "number"
@@ -2693,6 +2736,12 @@
                 "type"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "properties": {
@@ -2704,9 +2753,7 @@
               "type": "array"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "$ref": "#/definitions/company"
             },
             "n": {
               "type": "number"
@@ -2759,6 +2806,12 @@
                 "length"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "properties": {
@@ -2766,9 +2819,7 @@
               "$ref": "#/definitions/ResourceAcl"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "$ref": "#/definitions/company"
             },
             "n": {
               "type": "number"
@@ -3204,6 +3255,12 @@
                 "type"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "properties": {
@@ -3215,9 +3272,7 @@
               "type": "array"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "$ref": "#/definitions/company"
             },
             "n": {
               "type": "number"
@@ -3279,6 +3334,12 @@
                 "type"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "properties": {
@@ -3290,9 +3351,7 @@
               "type": "array"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "$ref": "#/definitions/company"
             },
             "n": {
               "type": "number"
@@ -3344,6 +3403,12 @@
                 "length"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "properties": {
@@ -3351,9 +3416,7 @@
               "$ref": "#/definitions/ResourceAcl"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "$ref": "#/definitions/company"
             },
             "n": {
               "type": "number"
@@ -3487,6 +3550,12 @@
                 "type"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "properties": {
@@ -3501,9 +3570,7 @@
               "type": "string"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "$ref": "#/definitions/company"
             },
             "n": {
               "type": "number"
@@ -3566,6 +3633,12 @@
                 "type"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "properties": {
@@ -3580,9 +3653,7 @@
               "type": "string"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "$ref": "#/definitions/company"
             },
             "n": {
               "type": "number"
@@ -3635,6 +3706,12 @@
                 "length"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "properties": {
@@ -3645,9 +3722,7 @@
               "type": "string"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "$ref": "#/definitions/company"
             },
             "n": {
               "type": "number"
@@ -4003,6 +4078,12 @@
               ],
               "type": "object"
             },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            },
             "profilePicture$metadata": {
               "additionalProperties": false,
               "properties": {
@@ -4035,9 +4116,8 @@
               "type": "number"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Company the user belongs to",
-              "type": "string"
+              "$ref": "#/definitions/company",
+              "description": "Company the user belongs to"
             },
             "displayName": {
               "Frontend": true,
@@ -4132,6 +4212,12 @@
               ],
               "type": "object"
             },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            },
             "profilePicture$metadata": {
               "additionalProperties": false,
               "properties": {
@@ -4164,9 +4250,8 @@
               "type": "number"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Company the user belongs to",
-              "type": "string"
+              "$ref": "#/definitions/company",
+              "description": "Company the user belongs to"
             },
             "displayName": {
               "Frontend": true,
@@ -4268,6 +4353,12 @@
                 "size"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "description": "User model",
@@ -4285,9 +4376,8 @@
               "type": "number"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Company the user belongs to",
-              "type": "string"
+              "$ref": "#/definitions/company",
+              "description": "Company the user belongs to"
             },
             "displayName": {
               "Frontend": true,
@@ -4520,6 +4610,12 @@
                 "length"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "description": "Make all properties in T optional",
@@ -4528,9 +4624,7 @@
               "$ref": "#/definitions/ResourceAcl"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "$ref": "#/definitions/company"
             },
             "n": {
               "type": "number"
@@ -4580,6 +4674,12 @@
                 "length"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
             }
           },
           "properties": {
@@ -4587,9 +4687,7 @@
               "$ref": "#/definitions/ResourceAcl"
             },
             "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "string"
+              "$ref": "#/definitions/company"
             },
             "n": {
               "type": "number"

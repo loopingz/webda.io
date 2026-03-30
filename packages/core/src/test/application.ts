@@ -91,7 +91,6 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     useInstanceStorage().application = app;
     await app.load();
     await this.tweakApp(app);
-
     return new Core(app);
   }
 

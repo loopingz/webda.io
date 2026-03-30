@@ -282,17 +282,30 @@ export class UnpackedApplication extends Application {
    * @returns
    */
   @ProcessCache()
-  static async findModulesFiles<T extends any>(this: T, path: string): Promise<string[]> {
+  static async findModulesFiles<T extends any>(
+    this: T,
+    path: string,
+    visited: Set<string> = new Set()
+  ): Promise<string[]> {
     if (!path.endsWith("node_modules") || !fs.existsSync(path)) {
       return [];
     }
+    // Resolve to real path to detect cycles (pnpm symlinks create loops)
+    const realNodeModules = await fs.promises.realpath(path).catch(() => path);
+    if (visited.has(realNodeModules)) {
+      return [];
+    }
+    visited.add(realNodeModules);
+
     const files = new Set<string>();
     const checkFolder = async (filepath: string) => {
       if (fs.existsSync(join(filepath, "webda.module.json"))) {
         files.add(join(filepath, "webda.module.json"));
       }
       if (fs.existsSync(join(filepath, "node_modules"))) {
-        (await UnpackedApplication.findModulesFiles(join(filepath, "node_modules"))).forEach(f => files.add(f));
+        (await UnpackedApplication.findModulesFiles(join(filepath, "node_modules"), visited)).forEach(f =>
+          files.add(f)
+        );
       }
     };
     const recursiveSearch = async (dirpath: string, depth: number = 0) => {

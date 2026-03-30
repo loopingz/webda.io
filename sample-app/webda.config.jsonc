@@ -15,9 +15,7 @@
     "images": {
       "type": "FileBinary",
       "folder": "./data/images",
-      "map": {
-        "contacts": ["picture"]
-      }
+      "models": { "*": ["*"] },
     },
     "thumbnailsqueue": {
       "type": "MemoryQueue"

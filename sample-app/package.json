@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@webda/core": "workspace:*",
+    "@webda/fs": "workspace:*",
     "@webda/models": "workspace:*",
     "deepmerge": "^4.3.1",
     "merge": "^2.1.1",

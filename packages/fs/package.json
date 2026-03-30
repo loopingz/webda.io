@@ -1,0 +1,46 @@
+{
+  "name": "@webda/fs",
+  "version": "4.0.0-beta.1",
+  "description": "Filesystem-based implementations of Store, Binary, and Queue for Webda",
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "webdac build",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@webda/core": "workspace:*",
+    "@webda/utils": "workspace:*",
+    "@webda/workout": "workspace:*",
+    "@webda/ql": "workspace:*",
+    "mime-types": "^2.1.31"
+  },
+  "devDependencies": {
+    "@webda/test": "workspace:*",
+    "@webda/compiler": "workspace:*",
+    "fs-extra": "^11.0.0",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2",
+    "@vitest/coverage-v8": "^4.1.2"
+  },
+  "files": [
+    "lib",
+    "webda.module.json"
+  ],
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "webda": {
+    "namespace": "Webda"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "license": "LGPL-3.0-only"
+}

@@ -414,6 +414,43 @@ importers:
         specifier: ^4.1.2
         version: 4.1.2(@opentelemetry/api@1.9.1)(@types/node@25.5.0)(vite@6.4.1(@types/node@25.5.0)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
+  packages/fs:
+    dependencies:
+      '@webda/core':
+        specifier: workspace:*
+        version: link:../core
+      '@webda/ql':
+        specifier: workspace:*
+        version: link:../ql
+      '@webda/utils':
+        specifier: workspace:*
+        version: link:../utils
+      '@webda/workout':
+        specifier: workspace:*
+        version: link:../workout
+      mime-types:
+        specifier: ^2.1.31
+        version: 2.1.35
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: ^4.1.2
+        version: 4.1.2(vitest@4.1.2(@opentelemetry/api@1.9.1)(@types/node@25.5.0)(vite@6.4.1(@types/node@25.5.0)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)))
+      '@webda/compiler':
+        specifier: workspace:*
+        version: link:../compiler
+      '@webda/test':
+        specifier: workspace:*
+        version: link:../test
+      fs-extra:
+        specifier: ^11.0.0
+        version: 11.3.4
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@opentelemetry/api@1.9.1)(@types/node@25.5.0)(vite@6.4.1(@types/node@25.5.0)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
+
   packages/models:
     dependencies:
       '@types/mocha':
@@ -712,6 +749,9 @@ importers:
       '@webda/core':
         specifier: workspace:*
         version: link:../packages/core
+      '@webda/fs':
+        specifier: workspace:*
+        version: link:../packages/fs
       '@webda/models':
         specifier: workspace:*
         version: link:../packages/models

@@ -436,6 +436,45 @@ class QueryTest {
     // lowercase boolean values in assignments
     const q5 = WebdaQL.parse("UPDATE SET active = false WHERE id = 1");
     assert.deepStrictEqual(q5.assignments, [{ field: "active", value: false }]);
+
+    // UPPERCASE keywords
+    const q6 = WebdaQL.parse("DELETE WHERE status = 'old'");
+    assert.strictEqual(q6.type, "DELETE");
+    const q7 = WebdaQL.parse("UPDATE SET status = 'active' WHERE name = 'John'");
+    assert.strictEqual(q7.type, "UPDATE");
+    const q8 = WebdaQL.parse("SELECT name, age WHERE status = 'active'");
+    assert.strictEqual(q8.type, "SELECT");
+
+    // lowercase filter keywords
+    const q9 = new WebdaQL.QueryValidator("status = 'active' and age > 18");
+    assert.ok(q9.getExpression().eval({ status: "active", age: 20 }));
+    const q10 = new WebdaQL.QueryValidator("status = 'active' or age > 18");
+    assert.ok(q10.getExpression().eval({ age: 20 }));
+
+    // lowercase like, in, contains
+    const q11 = new WebdaQL.QueryValidator("name like 'Jo%'");
+    assert.ok(q11.getExpression().eval({ name: "John" }));
+    const q12 = new WebdaQL.QueryValidator("status in ['active', 'pending']");
+    assert.ok(q12.getExpression().eval({ status: "active" }));
+    const q13 = new WebdaQL.QueryValidator("tags contains 'vip'");
+    assert.ok(q13.getExpression().eval({ tags: ["vip", "premium"] }));
+
+    // lowercase order by, limit, offset
+    const q14 = WebdaQL.parse("SELECT name WHERE status = 'active' order by name asc limit 5 offset 'tok'");
+    assert.strictEqual(q14.type, "SELECT");
+    assert.strictEqual(q14.limit, 5);
+    assert.strictEqual(q14.continuationToken, "tok");
+    assert.deepStrictEqual(q14.orderBy, [{ field: "name", direction: "ASC" }]);
+
+    // lowercase desc
+    const q15 = WebdaQL.parse("SELECT name WHERE status = 'active' order by name desc");
+    assert.deepStrictEqual(q15.orderBy, [{ field: "name", direction: "DESC" }]);
+
+    // lowercase true/false in filters
+    const q16 = new WebdaQL.QueryValidator("active = true");
+    assert.ok(q16.getExpression().eval({ active: true }));
+    const q17 = new WebdaQL.QueryValidator("active = false");
+    assert.ok(q17.getExpression().eval({ active: false }));
   }
 
   @test

@@ -127,7 +127,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
   visitOrderFieldExpression(ctx: OrderFieldExpressionContext): OrderBy {
     return {
       field: ctx.getChild(0).text,
-      direction: ctx.childCount > 1 ? <any>ctx.getChild(1).text : "ASC"
+      direction: ctx.childCount > 1 ? <"ASC" | "DESC">ctx.getChild(1).text.toUpperCase() : "ASC"
     };
   }
 
@@ -368,7 +368,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * Read the boolean literal
    */
   visitBooleanLiteral(ctx: BooleanLiteralContext): boolean {
-    return "TRUE" === ctx.text;
+    return "TRUE" === ctx.text.toUpperCase();
   }
 
   /**
@@ -1131,58 +1131,6 @@ function formatValue(v: value): string {
   return String(v);
 }
 
-/**
- * Keywords that should be uppercased before passing to the case-sensitive ANTLR lexer.
- * Sorted longest-first so that "ORDER BY" matches before "OR".
- */
-const KEYWORDS = [
-  "ORDER BY", "DELETE", "UPDATE", "SELECT", "WHERE", "LIMIT", "OFFSET",
-  "CONTAINS", "FALSE", "LIKE", "TRUE", "AND", "ASC", "DESC", "SET", "IN", "OR"
-];
-
-/**
- * Uppercase all known WebdaQL keywords in a query string, while preserving
- * the original case of identifiers and string literals.
- */
-function uppercaseKeywords(query: string): string {
-  let result = "";
-  let inSingle = false;
-  let inDouble = false;
-  for (let i = 0; i < query.length; i++) {
-    const ch = query[i];
-    if (ch === "'" && !inDouble) {
-      inSingle = !inSingle;
-      result += ch;
-      continue;
-    }
-    if (ch === '"' && !inSingle) {
-      inDouble = !inDouble;
-      result += ch;
-      continue;
-    }
-    if (inSingle || inDouble) {
-      result += ch;
-      continue;
-    }
-    let matched = false;
-    for (const kw of KEYWORDS) {
-      if (
-        query.substring(i, i + kw.length).toUpperCase() === kw &&
-        (i === 0 || /[\s(]/.test(query[i - 1])) &&
-        (i + kw.length === query.length || /[\s(]/.test(query[i + kw.length]))
-      ) {
-        result += kw;
-        i += kw.length - 1;
-        matched = true;
-        break;
-      }
-    }
-    if (!matched) {
-      result += ch;
-    }
-  }
-  return result;
-}
 
 /**
  * Validate that all fields and assignment targets in a query are within the allowed set.
@@ -1228,8 +1176,7 @@ export function validateQueryFields(query: Query, allowedFields: string[]): void
  * @returns parsed Query object
  */
 export function parse(query: string, allowedFields?: string[]): Query {
-  const normalized = uppercaseKeywords(query);
-  const result = new QueryValidator(normalized).getQuery();
+  const result = new QueryValidator(query).getQuery();
   if (allowedFields) {
     validateQueryFields(result, allowedFields);
   }

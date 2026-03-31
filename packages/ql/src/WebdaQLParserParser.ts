@@ -93,9 +93,8 @@ export class WebdaQLParserParser extends Parser {
 
 	private static readonly _LITERAL_NAMES: Array<string | undefined> = [
 		undefined, undefined, "'('", "')'", "','", "'''", "'\"'", "'['", "']'", 
-		"'DELETE'", "'UPDATE'", "'SELECT'", "'SET'", "'WHERE'", "'AND'", "'OR'", 
-		"'='", "'!='", "'>'", "'>='", "'<'", "'<='", "'LIKE'", "'IN'", "'CONTAINS'", 
-		"'TRUE'", "'FALSE'", "'LIMIT'", "'OFFSET'", "'ORDER BY'", "'ASC'", "'DESC'",
+		undefined, undefined, undefined, undefined, undefined, undefined, undefined, 
+		"'='", "'!='", "'>'", "'>='", "'<'", "'<='",
 	];
 	private static readonly _SYMBOLIC_NAMES: Array<string | undefined> = [
 		undefined, "SPACE", "LR_BRACKET", "RR_BRACKET", "COMMA", "SINGLE_QUOTE_SYMB", 

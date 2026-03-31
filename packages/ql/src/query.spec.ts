@@ -317,43 +317,38 @@ class QueryTest {
 
   @test
   selectFields() {
-    // Implicit SELECT via field list (no SELECT keyword needed)
-    const q1 = WebdaQL.parse("name, age WHERE status = 'active'");
+    // SELECT with WHERE condition
+    const q1 = WebdaQL.parse("SELECT name, age WHERE status = 'active'");
     assert.strictEqual(q1.type, "SELECT");
     assert.deepStrictEqual(q1.fields, ["name", "age"]);
     assert.ok(q1.filter.eval({ status: "active" }));
 
-    // Implicit SELECT with nested fields
-    const q2 = WebdaQL.parse("name, profile.email WHERE status = 'active'");
+    // SELECT with nested fields
+    const q2 = WebdaQL.parse("SELECT name, profile.email WHERE status = 'active'");
     assert.strictEqual(q2.type, "SELECT");
     assert.deepStrictEqual(q2.fields, ["name", "profile.email"]);
 
-    // Implicit SELECT with ORDER BY, LIMIT, OFFSET
-    const q3 = WebdaQL.parse("name, age WHERE status = 'active' ORDER BY name ASC LIMIT 10 OFFSET 'token'");
+    // SELECT with ORDER BY, LIMIT, OFFSET
+    const q3 = WebdaQL.parse("SELECT name, age WHERE status = 'active' ORDER BY name ASC LIMIT 10 OFFSET 'token'");
     assert.strictEqual(q3.type, "SELECT");
     assert.deepStrictEqual(q3.fields, ["name", "age"]);
     assert.strictEqual(q3.limit, 10);
     assert.strictEqual(q3.continuationToken, "token");
     assert.deepStrictEqual(q3.orderBy, [{ field: "name", direction: "ASC" }]);
 
-    // Implicit SELECT without WHERE (all items, specific fields)
-    const q4 = WebdaQL.parse("name, age");
+    // SELECT without WHERE (all items, specific fields)
+    const q4 = WebdaQL.parse("SELECT name, age");
     assert.strictEqual(q4.type, "SELECT");
     assert.deepStrictEqual(q4.fields, ["name", "age"]);
     assert.ok(q4.filter instanceof WebdaQL.AndExpression);
     assert.strictEqual((q4.filter as WebdaQL.AndExpression).children.length, 0);
-
-    // Explicit SELECT keyword still works
-    const q4b = WebdaQL.parse("SELECT name, age WHERE status = 'active'");
-    assert.strictEqual(q4b.type, "SELECT");
-    assert.deepStrictEqual(q4b.fields, ["name", "age"]);
 
     // Regular query (no field list) should have type undefined
     const q5 = WebdaQL.parse("status = 'active'");
     assert.strictEqual(q5.type, undefined);
     assert.strictEqual(q5.fields, undefined);
 
-    // Single field with WHERE — not a SELECT (no comma = could be a filter identifier)
+    // Filter query should not be treated as SELECT
     const q6 = WebdaQL.parse("status = 'active' AND age > 18");
     assert.strictEqual(q6.type, undefined);
 
@@ -366,13 +361,13 @@ class QueryTest {
     const allowed = ["name", "age", "status", "profile.email"];
 
     // Valid SELECT fields pass
-    const q1 = WebdaQL.parse("name, age WHERE status = 'active'", allowed);
+    const q1 = WebdaQL.parse("SELECT name, age WHERE status = 'active'", allowed);
     assert.strictEqual(q1.type, "SELECT");
     assert.deepStrictEqual(q1.fields, ["name", "age"]);
 
     // Unknown SELECT field throws
     assert.throws(
-      () => WebdaQL.parse("name, unknown WHERE status = 'active'", allowed),
+      () => WebdaQL.parse("SELECT name, unknown WHERE status = 'active'", allowed),
       /Unknown field "unknown"/
     );
 
@@ -387,7 +382,7 @@ class QueryTest {
     );
 
     // Dot-notation fields work
-    const q3 = WebdaQL.parse("name, profile.email WHERE status = 'active'", allowed);
+    const q3 = WebdaQL.parse("SELECT name, profile.email WHERE status = 'active'", allowed);
     assert.deepStrictEqual(q3.fields, ["name", "profile.email"]);
 
     // DELETE and plain queries are not affected by allowedFields
@@ -398,7 +393,7 @@ class QueryTest {
     assert.strictEqual(q5.type, undefined);
 
     // validateQueryFields can be called standalone
-    const parsed = WebdaQL.parse("name, age WHERE status = 'active'");
+    const parsed = WebdaQL.parse("SELECT name, age WHERE status = 'active'");
     WebdaQL.validateQueryFields(parsed, allowed); // should not throw
     assert.throws(
       () => WebdaQL.validateQueryFields(parsed, ["status"]),
@@ -433,8 +428,8 @@ class QueryTest {
     assert.strictEqual(q3.type, "SELECT");
     assert.deepStrictEqual(q3.fields, ["name", "age"]);
 
-    // lowercase delete with limit (LIMIT is ANTLR-level, stays uppercase)
-    const q4 = WebdaQL.parse("delete where status = 'old' LIMIT 100");
+    // lowercase delete with limit
+    const q4 = WebdaQL.parse("delete where status = 'old' limit 100");
     assert.strictEqual(q4.type, "DELETE");
     assert.strictEqual(q4.limit, 100);
 
@@ -449,23 +444,23 @@ class QueryTest {
     const userFields = ["name", "email", "age", "status", "profile.bio", "profile.avatar"];
 
     // SELECT: valid fields pass
-    const q1 = WebdaQL.parse("name, email WHERE status = 'active'", userFields);
+    const q1 = WebdaQL.parse("SELECT name, email WHERE status = 'active'", userFields);
     assert.strictEqual(q1.type, "SELECT");
     assert.deepStrictEqual(q1.fields, ["name", "email"]);
 
     // SELECT: unknown field rejects
     assert.throws(
-      () => WebdaQL.parse("name, password WHERE status = 'active'", userFields),
+      () => WebdaQL.parse("SELECT name, password WHERE status = 'active'", userFields),
       /Unknown field "password"/
     );
 
     // SELECT: nested dot-notation field passes
-    const q2 = WebdaQL.parse("name, profile.bio WHERE age > 18", userFields);
+    const q2 = WebdaQL.parse("SELECT name, profile.bio WHERE age > 18", userFields);
     assert.deepStrictEqual(q2.fields, ["name", "profile.bio"]);
 
     // SELECT: unknown nested field rejects
     assert.throws(
-      () => WebdaQL.parse("name, profile.ssn WHERE age > 18", userFields),
+      () => WebdaQL.parse("SELECT name, profile.ssn WHERE age > 18", userFields),
       /Unknown field "profile.ssn"/
     );
 
@@ -499,7 +494,7 @@ class QueryTest {
     assert.strictEqual(q5.type, undefined);
 
     // Standalone validateQueryFields works the same way
-    const parsed = WebdaQL.parse("name, age WHERE status = 'active'");
+    const parsed = WebdaQL.parse("SELECT name, age WHERE status = 'active'");
     WebdaQL.validateQueryFields(parsed, userFields); // passes
     assert.throws(
       () => WebdaQL.validateQueryFields(parsed, ["name"]), // age not allowed
@@ -508,7 +503,7 @@ class QueryTest {
 
     // Empty allowedFields rejects everything
     assert.throws(
-      () => WebdaQL.parse("name, email WHERE status = 'active'", []),
+      () => WebdaQL.parse("SELECT name, email WHERE status = 'active'", []),
       /Unknown field "name"/
     );
   }

@@ -894,6 +894,8 @@
           "type": "object",
           "properties": {
             "encode": {
+              "type": "object",
+              "properties": {},
               "description": "Specifies a function that will be used to encode a [cookie-value](https://datatracker.ietf.org/doc/html/rfc6265#section-4.1.1). Since value of a cookie has a limited character set (and must be a simple string), this function can be used to encode a value into a string suited for a cookie's value, and should mirror `decode` when parsing.",
               "default": "encodeURIComponent"
             },
@@ -904,8 +906,7 @@
               "default": "86400 * 7"
             },
             "expires": {
-              "type": "string",
-              "description": "Specifies the `Date` object to be the value for the [`Expires` `Set-Cookie` attribute](https://tools.ietf.org/html/rfc6265#section-5.2.1). When no expiration is set clients consider this a \"non-persistent cookie\" and delete it the current session is over.\n\nThe [cookie storage model specification](https://tools.ietf.org/html/rfc6265#section-5.3) states that if both `expires` and `maxAge` are set, then `maxAge` takes precedence, but it is possible not all clients by obey this, so if both are set, they should point to the same date and time."
+              "type": "string"
             },
             "path": {
               "type": "string",
@@ -922,17 +923,23 @@
               "description": "If not set will be true if https request and false otherwise If defined it will be set to the value"
             },
             "partitioned": {
-              "type": "boolean",
-              "description": "Enables the [`Partitioned` `Set-Cookie` attribute](https://tools.ietf.org/html/draft-cutler-httpbis-partitioned-cookies/). When enabled, clients will only send the cookie back when the current domain _and_ top-level domain matches.\n\nThis is an attribute that has not yet been fully standardized, and may change in the future. This also means clients may ignore this attribute until they understand it. More information about can be found in [the proposal](https://github.com/privacycg/CHIPS)."
+              "type": "boolean"
             },
             "priority": {
-              "type": "string",
-              "enum": [
-                "low",
-                "medium",
-                "high"
-              ],
-              "description": "Specifies the value for the [`Priority` `Set-Cookie` attribute](https://tools.ietf.org/html/draft-west-cookie-priority-00#section-4.1).\n\n- `'low'` will set the `Priority` attribute to `Low`.\n- `'medium'` will set the `Priority` attribute to `Medium`, the default priority when not set.\n- `'high'` will set the `Priority` attribute to `High`.\n\nMore information about priority levels can be found in [the specification](https://tools.ietf.org/html/draft-west-cookie-priority-00#section-4.1)."
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {}
+                },
+                {
+                  "type": "object",
+                  "properties": {}
+                },
+                {
+                  "type": "object",
+                  "properties": {}
+                }
+              ]
             },
             "sameSite": {
               "type": "string",

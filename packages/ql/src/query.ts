@@ -16,6 +16,7 @@ import {
   OrderFieldExpressionContext,
   SetExpressionContext,
   StringLiteralContext,
+  FilterQueryContext,
   SubExpressionContext,
   WebdaQLParserParser,
   WebdaqlContext
@@ -140,7 +141,18 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * Returns an empty AND expression (always true) when no filter is present.
    */
   visitWebdaql(ctx: WebdaqlContext): Query {
-    if (ctx.childCount === 1) {
+    // The webdaql rule now dispatches to (statement | filterQuery) EOF
+    // QueryValidator only passes filter remainders, so delegate to the child
+    const child = ctx.getChild(0);
+    if (child instanceof FilterQueryContext) {
+      return this.visitFilterQuery(child);
+    }
+    // For statement contexts, visitChildren will handle it
+    return this.visit(child);
+  }
+
+  visitFilterQuery(ctx: FilterQueryContext): Query {
+    if (ctx.childCount === 0) {
       // An empty AND return true
       return {
         filter: new AndExpression([])
@@ -148,7 +160,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
     }
 
     // To parse offset and limit and order by
-    for (let i = 1; i < ctx.childCount - 1; i++) {
+    for (let i = 1; i < ctx.childCount; i++) {
       this.visit(ctx.getChild(i));
     }
     // If the first element is a sub expression, it means we have a filter

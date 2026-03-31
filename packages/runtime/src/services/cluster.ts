@@ -427,7 +427,7 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   /**
    * @override
    */
-  protected async stop() {
+  async stop() {
     await this.sendMessage({
       type: "cluster",
       event: "ClusterService.MemberRemoved",

@@ -645,7 +645,7 @@ export class Compiler {
         !this.tsProgram.isSourceFileDefaultLibrary(sourceFile) &&
         //this.tsProgram.getRootFileNames().includes(sourceFile.fileName) &&
         !sourceFile.fileName.endsWith(".spec.ts") &&
-        !sourceFile.fileName.endsWith(".d.ts")
+        !sourceFile.fileName.endsWith(".spec.d.ts")
       ) {
         this.sourceFile = sourceFile;
         ts.forEachChild(sourceFile, (node: ts.Node) => {

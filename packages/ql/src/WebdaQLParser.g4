@@ -2,8 +2,38 @@ grammar WebdaQLParser;
 
 import WebdaQLLexer;
 
-// Entrypoint
-webdaql: expression? orderExpression? limitExpression? offsetExpression? EOF;
+// Entrypoint — a statement or a plain filter query
+webdaql: (statement | filterQuery) EOF;
+
+// Statement types
+statement
+    : deleteStatement
+    | updateStatement
+    | selectStatement
+    ;
+
+// DELETE [WHERE <condition>] [LIMIT n]
+deleteStatement: DELETE (WHERE expression)? limitExpression?;
+
+// UPDATE SET <assignments> [WHERE <condition>] [LIMIT n]
+updateStatement: UPDATE SET assignmentList (WHERE expression)? limitExpression?;
+
+// SELECT <fields> [WHERE <condition>] [ORDER BY ...] [LIMIT ...] [OFFSET ...]
+selectStatement: SELECT fieldList (WHERE expression)? orderExpression? limitExpression? offsetExpression?;
+
+// Implicit SELECT (comma-separated field list without SELECT keyword)
+// is handled at the parser/runtime level since it requires disambiguation
+// from plain filter expressions
+
+// Plain filter query (original grammar entry point)
+filterQuery: expression? orderExpression? limitExpression? offsetExpression?;
+
+// Assignment list for UPDATE SET
+assignmentList: assignment (COMMA assignment)*;
+assignment: identifier EQUAL values;
+
+// Field list for SELECT
+fieldList: identifier (COMMA identifier)*;
 
 limitExpression: LIMIT integerLiteral;
 offsetExpression: OFFSET stringLiteral;

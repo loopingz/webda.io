@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "es2020",
+    "moduleResolution": "node",
+    "outDir": "./lib",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"]
+}

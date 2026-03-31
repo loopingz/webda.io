@@ -1,9 +1,28 @@
 lexer grammar WebdaQLLexer;
 
-// NOTE:
-// This grammar is case-sensitive, although CESQL keywords are case-insensitive.
-// In order to implement case-insensitivity, check out
-// https://github.com/antlr/antlr4/blob/master/doc/case-insensitive-lexing.md#custom-character-streams-approach
+// Case-insensitive keyword fragments
+
+fragment A: [aA];
+fragment B: [bB];
+fragment C: [cC];
+fragment D: [dD];
+fragment E: [eE];
+fragment F: [fF];
+fragment G: [gG];
+fragment H: [hH];
+fragment I: [iI];
+fragment K: [kK];
+fragment L: [lL];
+fragment M: [mM];
+fragment N: [nN];
+fragment O: [oO];
+fragment P: [pP];
+fragment R: [rR];
+fragment S: [sS];
+fragment T: [tT];
+fragment U: [uU];
+fragment W: [wW];
+fragment Y: [yY];
 
 // Skip tab, carriage return and newlines
 
@@ -31,11 +50,19 @@ fragment QUOTE_SYMB
     : SINGLE_QUOTE_SYMB | DOUBLE_QUOTE_SYMB
     ;
 
+// Statement keywords
+
+DELETE: D E L E T E;
+UPDATE: U P D A T E;
+SELECT: S E L E C T;
+SET: S E T;
+WHERE: W H E R E;
+
 // Operators
 // - Logic
 
-AND: 'AND';
-OR: 'OR';
+AND: A N D;
+OR: O R;
 
 // - Comparison
 
@@ -48,23 +75,23 @@ LESS_OR_EQUAL:                '<=';
 
 // Like, exists, in
 
-LIKE: 'LIKE';
-IN: 'IN';
-CONTAINS: 'CONTAINS';
+LIKE: L I K E;
+IN: I N;
+CONTAINS: C O N T A I N S;
 
 // Booleans
 
-TRUE: 'TRUE';
-FALSE: 'FALSE';
+TRUE: T R U E;
+FALSE: F A L S E;
 
 // Limit
-LIMIT: 'LIMIT';
-OFFSET: 'OFFSET';
+LIMIT: L I M I T;
+OFFSET: O F F S E T;
 
 // Order by
-ORDER_BY: 'ORDER BY';
-ASC: 'ASC';
-DESC: 'DESC';
+ORDER_BY: O R D E R ' ' B Y;
+ASC: A S C;
+DESC: D E S C;
 
 // Literals
 

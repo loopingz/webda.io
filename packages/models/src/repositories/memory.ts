@@ -15,6 +15,9 @@ export type Query = {
   limit: number;
   orderBy?: { field: string; direction: "ASC" | "DESC" }[];
   continuationToken?: string;
+  type?: "DELETE" | "UPDATE" | "SELECT";
+  fields?: string[];
+  assignments?: { field: string; value: any }[];
   filter: {
     eval: (item: any) => boolean;
   };
@@ -22,7 +25,7 @@ export type Query = {
 
 /** Lazily-loaded WebdaQL module for query parsing */
 let WebdaQL: any & {
-  parse: (query: string) => Query;
+  parse: (query: string, allowedFields?: string[]) => Query;
 } = null;
 
 /** Result of a simulated find operation, including whether filtering was applied. */
@@ -155,8 +158,12 @@ export class MemoryRepository<
    */
   async query(query: string | Query): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
     if (typeof query === "string") {
-      WebdaQL ??= await import("@webda/ql");
-      query = WebdaQL.parse(query);
+      try {
+        WebdaQL ??= await import("@webda/ql");
+        query = WebdaQL.parse(query, this.getAllowedFields());
+      } catch (error) {
+        throw new Error(`Failed to parse query: ${error} - @webda/ql peer dependencies may be missing`);
+      }
     }
     return MemoryRepository.simulateFind(query as Query, [...this.storage.keys()], this);
   }
@@ -240,11 +247,14 @@ export class MemoryRepository<
    */
   async *iterate(query: string): AsyncGenerator<InstanceType<T>, any, any> {
     let q: Query;
-    WebdaQL ??= await import("@webda/ql");
-    /* c8 ignore next */
-    q = WebdaQL.parse(query); // Ensure it is valid
-    if (!q.limit) {
-      q.limit = 100; // Default pagination size
+    try {
+      WebdaQL ??= await import("@webda/ql");
+      q = WebdaQL.parse(query, this.getAllowedFields()); // Ensure it is valid
+      if (!q.limit) {
+        q.limit = 100; // Default pagination size
+      }
+    } catch (error) {
+      throw new Error(`Failed to parse query: ${error} - @webda/ql peer dependencies may be missing`);
     }
     do {
       const res = await this.query(q);

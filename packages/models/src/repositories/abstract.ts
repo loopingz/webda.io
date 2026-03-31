@@ -28,6 +28,18 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     protected pks: string[],
     protected separator: string = "_"
   ) {}
+
+  /**
+   * Get the list of allowed field names for this model from its JSON Schema metadata.
+   * Returns undefined if no schema is available (validation will be skipped).
+   */
+  getAllowedFields(): string[] | undefined {
+    const schema = (this.model as any).Metadata?.Schema;
+    if (!schema?.properties) {
+      return undefined;
+    }
+    return Object.keys(schema.properties);
+  }
   /**
    * @inheritdoc
    */

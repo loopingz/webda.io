@@ -3,9 +3,14 @@ import { AbstractParseTreeVisitor, ParseTree, TerminalNode } from "antlr4ts/tree
 import { WebdaQLLexer } from "./WebdaQLLexer";
 import {
   AndLogicExpressionContext,
+  AssignmentContext,
+  AssignmentListContext,
   BinaryComparisonExpressionContext,
   BooleanLiteralContext,
   ContainsExpressionContext,
+  DeleteStatementContext,
+  FieldListContext,
+  FilterQueryContext,
   InExpressionContext,
   IntegerLiteralContext,
   LikeExpressionContext,
@@ -14,9 +19,11 @@ import {
   OrLogicExpressionContext,
   OrderExpressionContext,
   OrderFieldExpressionContext,
+  SelectStatementContext,
   SetExpressionContext,
   StringLiteralContext,
   SubExpressionContext,
+  UpdateStatementContext,
   WebdaQLParserParser,
   WebdaqlContext
 } from "./WebdaQLParserParser";
@@ -120,7 +127,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
   visitOrderFieldExpression(ctx: OrderFieldExpressionContext): OrderBy {
     return {
       field: ctx.getChild(0).text,
-      direction: ctx.childCount > 1 ? <any>ctx.getChild(1).text : "ASC"
+      direction: ctx.childCount > 1 ? <"ASC" | "DESC">ctx.getChild(1).text.toUpperCase() : "ASC"
     };
   }
 
@@ -140,15 +147,19 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * Returns an empty AND expression (always true) when no filter is present.
    */
   visitWebdaql(ctx: WebdaqlContext): Query {
-    if (ctx.childCount === 1) {
-      // An empty AND return true
+    // The webdaql rule dispatches to (statement | filterQuery) EOF
+    return this.visit(ctx.getChild(0));
+  }
+
+  visitFilterQuery(ctx: FilterQueryContext): Query {
+    if (ctx.childCount === 0) {
       return {
         filter: new AndExpression([])
       };
     }
 
     // To parse offset and limit and order by
-    for (let i = 1; i < ctx.childCount - 1; i++) {
+    for (let i = 1; i < ctx.childCount; i++) {
       this.visit(ctx.getChild(i));
     }
     // If the first element is a sub expression, it means we have a filter
@@ -160,13 +171,94 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
         orderBy: this.orderBy
       };
     }
-    // Go down one level - if expression empty it means no expression were provided
     return {
       filter: <Expression>(<unknown>this.visit(ctx.getChild(0))) || new AndExpression([]),
       limit: this.limit,
       continuationToken: this.offset,
       orderBy: this.orderBy
     };
+  }
+
+  /**
+   * Build a Query with filter/limit/order from a statement context that has optional WHERE, LIMIT, ORDER BY, OFFSET
+   */
+  private buildQueryFromStatement(ctx: DeleteStatementContext | UpdateStatementContext | SelectStatementContext): Query {
+    const expr = ctx.expression();
+    const filter = expr ? <Expression>(<unknown>this.visit(expr)) : new AndExpression([]);
+    const limitCtx = ctx.limitExpression();
+    if (limitCtx) this.visitLimitExpression(limitCtx);
+    if (ctx instanceof SelectStatementContext) {
+      const orderCtx = ctx.orderExpression();
+      if (orderCtx) this.visitOrderExpression(orderCtx);
+      const offsetCtx = ctx.offsetExpression();
+      if (offsetCtx) this.visitOffsetExpression(offsetCtx);
+    }
+    return {
+      filter,
+      limit: this.limit,
+      continuationToken: this.offset,
+      orderBy: this.orderBy
+    };
+  }
+
+  visitDeleteStatement(ctx: DeleteStatementContext): Query {
+    const base = this.buildQueryFromStatement(ctx);
+    const result: Query = {
+      ...base,
+      type: "DELETE",
+      toString: () => {
+        const condition = base.filter.toString();
+        return condition ? `DELETE WHERE ${condition}` : "DELETE";
+      }
+    };
+    return result;
+  }
+
+  visitUpdateStatement(ctx: UpdateStatementContext): Query {
+    const assignments = this.visitAssignmentList(ctx.assignmentList());
+    const base = this.buildQueryFromStatement(ctx);
+    const result: Query = {
+      ...base,
+      type: "UPDATE",
+      assignments,
+      toString: () => {
+        const setPart = assignments.map(a => `${a.field} = ${formatValue(a.value)}`).join(", ");
+        const condition = base.filter.toString();
+        return condition ? `UPDATE SET ${setPart} WHERE ${condition}` : `UPDATE SET ${setPart}`;
+      }
+    };
+    return result;
+  }
+
+  visitSelectStatement(ctx: SelectStatementContext): Query {
+    const fields = this.visitFieldList(ctx.fieldList());
+    const base = this.buildQueryFromStatement(ctx);
+    const result: Query = {
+      ...base,
+      type: "SELECT",
+      fields,
+      toString: () => {
+        const fieldsPart = fields.join(", ");
+        const condition = base.filter.toString();
+        return condition ? `SELECT ${fieldsPart} WHERE ${condition}` : `SELECT ${fieldsPart}`;
+      }
+    };
+    return result;
+  }
+
+  visitAssignmentList(ctx: AssignmentListContext): { field: string; value: value }[] {
+    return ctx.assignment().map(a => this.visitAssignment(a));
+  }
+
+  visitAssignment(ctx: AssignmentContext): { field: string; value: value } {
+    return {
+      field: ctx.identifier().text,
+      value: <value>(<unknown>this.visit(ctx.values()))
+    };
+  }
+
+  visitFieldList(ctx: FieldListContext): string[] {
+    return ctx.identifier().map(id => id.text);
   }
 
   /**
@@ -276,7 +368,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * Read the boolean literal
    */
   visitBooleanLiteral(ctx: BooleanLiteralContext): boolean {
-    return "TRUE" === ctx.text;
+    return "TRUE" === ctx.text.toUpperCase();
   }
 
   /**
@@ -307,6 +399,18 @@ export interface Query {
    * Order by clause
    */
   orderBy?: OrderBy[];
+  /**
+   * Statement type (DELETE, UPDATE, SELECT) or undefined for plain filter queries
+   */
+  type?: "DELETE" | "UPDATE" | "SELECT";
+  /**
+   * Projected field names for SELECT queries
+   */
+  fields?: string[];
+  /**
+   * Assignment list for UPDATE SET queries
+   */
+  assignments?: { field: string; value: value }[];
   /**
    * Get the string representation of the query
    */
@@ -1019,10 +1123,62 @@ export function unsanitize(query: string): string {
 }
 
 /**
- * Parse a query string into a Query object
- * @param query
- * @returns
+ * Serialize a value to its WebdaQL string representation
  */
-export function parse(query: string): Query {
-  return new QueryValidator(query).getQuery();
+function formatValue(v: value): string {
+  if (typeof v === "string") return `"${v}"`;
+  if (typeof v === "boolean") return v ? "TRUE" : "FALSE";
+  return String(v);
+}
+
+
+/**
+ * Validate that all fields and assignment targets in a query are within the allowed set.
+ * Checks SELECT fields, UPDATE SET assignment fields, and filter attribute references.
+ *
+ * @param query - parsed query to validate
+ * @param allowedFields - set of allowed field names (supports dot-notation)
+ * @throws {SyntaxError} if any field is not in the allowed set
+ */
+export function validateQueryFields(query: Query, allowedFields: string[]): void {
+  const allowed = new Set(allowedFields);
+  if (query.fields) {
+    for (const field of query.fields) {
+      if (!allowed.has(field)) {
+        throw new SyntaxError(`Unknown field "${field}". Allowed fields: ${allowedFields.join(", ")}`);
+      }
+    }
+  }
+  if (query.assignments) {
+    for (const assignment of query.assignments) {
+      if (!allowed.has(assignment.field)) {
+        throw new SyntaxError(
+          `Unknown assignment field "${assignment.field}". Allowed fields: ${allowedFields.join(", ")}`
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Parse a query string into a Query object
+ *
+ * Supports plain filter queries, and statement prefixes:
+ * - `DELETE [WHERE <condition>] [LIMIT n]`
+ * - `UPDATE SET <assignments> [WHERE <condition>] [LIMIT n]`
+ * - `SELECT <fields> [WHERE <condition>] [ORDER BY ...] [LIMIT ...] [OFFSET ...]`
+ *
+ * Keywords are case-insensitive.
+ *
+ * @param query - the query string to parse
+ * @param allowedFields - optional list of allowed field names; if provided, SELECT fields
+ *   and UPDATE SET targets are validated against this list and a SyntaxError is thrown for unknowns
+ * @returns parsed Query object
+ */
+export function parse(query: string, allowedFields?: string[]): Query {
+  const result = new QueryValidator(query).getQuery();
+  if (allowedFields) {
+    validateQueryFields(result, allowedFields);
+  }
+  return result;
 }

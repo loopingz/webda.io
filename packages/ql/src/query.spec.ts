@@ -258,4 +258,292 @@ class QueryTest {
       ).eval({ attr1: "plop" })
     );
   }
+
+  @test
+  deleteQuery() {
+    // Basic DELETE with WHERE condition
+    const q1 = WebdaQL.parse("DELETE WHERE status = 'inactive'");
+    assert.strictEqual(q1.type, "DELETE");
+    assert.ok(q1.filter.eval({ status: "inactive" }));
+    assert.ok(!q1.filter.eval({ status: "active" }));
+
+    // DELETE with complex condition
+    const q2 = WebdaQL.parse("DELETE WHERE age < 18 AND status = 'pending'");
+    assert.strictEqual(q2.type, "DELETE");
+    assert.ok(q2.filter.eval({ age: 10, status: "pending" }));
+    assert.ok(!q2.filter.eval({ age: 20, status: "pending" }));
+
+    // DELETE with LIMIT (delete at most N items)
+    const q3 = WebdaQL.parse("DELETE WHERE status = 'old' LIMIT 100");
+    assert.strictEqual(q3.type, "DELETE");
+    assert.strictEqual(q3.limit, 100);
+
+    // toString round-trip
+    assert.ok(q1.toString().includes("DELETE"));
+    assert.ok(q1.toString().includes("status"));
+  }
+
+  @test
+  updateQuery() {
+    // Basic UPDATE with SET and WHERE
+    const q1 = WebdaQL.parse("UPDATE SET status = 'active' WHERE name = 'John'");
+    assert.strictEqual(q1.type, "UPDATE");
+    assert.ok(q1.filter.eval({ name: "John" }));
+    assert.ok(!q1.filter.eval({ name: "Jane" }));
+    assert.deepStrictEqual(q1.assignments, [{ field: "status", value: "active" }]);
+
+    // UPDATE with multiple SET assignments
+    const q2 = WebdaQL.parse("UPDATE SET status = 'active', age = 30 WHERE name = 'John'");
+    assert.strictEqual(q2.type, "UPDATE");
+    assert.deepStrictEqual(q2.assignments, [
+      { field: "status", value: "active" },
+      { field: "age", value: 30 }
+    ]);
+
+    // UPDATE with nested attribute
+    const q3 = WebdaQL.parse("UPDATE SET profile.verified = TRUE WHERE id = 1");
+    assert.strictEqual(q3.type, "UPDATE");
+    assert.deepStrictEqual(q3.assignments, [{ field: "profile.verified", value: true }]);
+
+    // UPDATE with LIMIT
+    const q4 = WebdaQL.parse("UPDATE SET status = 'archived' WHERE active = FALSE LIMIT 50");
+    assert.strictEqual(q4.type, "UPDATE");
+    assert.strictEqual(q4.limit, 50);
+
+    // toString round-trip
+    assert.ok(q1.toString().includes("UPDATE"));
+    assert.ok(q1.toString().includes("SET"));
+  }
+
+  @test
+  selectFields() {
+    // SELECT with WHERE condition
+    const q1 = WebdaQL.parse("SELECT name, age WHERE status = 'active'");
+    assert.strictEqual(q1.type, "SELECT");
+    assert.deepStrictEqual(q1.fields, ["name", "age"]);
+    assert.ok(q1.filter.eval({ status: "active" }));
+
+    // SELECT with nested fields
+    const q2 = WebdaQL.parse("SELECT name, profile.email WHERE status = 'active'");
+    assert.strictEqual(q2.type, "SELECT");
+    assert.deepStrictEqual(q2.fields, ["name", "profile.email"]);
+
+    // SELECT with ORDER BY, LIMIT, OFFSET
+    const q3 = WebdaQL.parse("SELECT name, age WHERE status = 'active' ORDER BY name ASC LIMIT 10 OFFSET 'token'");
+    assert.strictEqual(q3.type, "SELECT");
+    assert.deepStrictEqual(q3.fields, ["name", "age"]);
+    assert.strictEqual(q3.limit, 10);
+    assert.strictEqual(q3.continuationToken, "token");
+    assert.deepStrictEqual(q3.orderBy, [{ field: "name", direction: "ASC" }]);
+
+    // SELECT without WHERE (all items, specific fields)
+    const q4 = WebdaQL.parse("SELECT name, age");
+    assert.strictEqual(q4.type, "SELECT");
+    assert.deepStrictEqual(q4.fields, ["name", "age"]);
+    assert.ok(q4.filter instanceof WebdaQL.AndExpression);
+    assert.strictEqual((q4.filter as WebdaQL.AndExpression).children.length, 0);
+
+    // Regular query (no field list) should have type undefined
+    const q5 = WebdaQL.parse("status = 'active'");
+    assert.strictEqual(q5.type, undefined);
+    assert.strictEqual(q5.fields, undefined);
+
+    // Filter query should not be treated as SELECT
+    const q6 = WebdaQL.parse("status = 'active' AND age > 18");
+    assert.strictEqual(q6.type, undefined);
+
+    // toString round-trip
+    assert.ok(q3.toString().includes("name"));
+  }
+
+  @test
+  allowedFields() {
+    const allowed = ["name", "age", "status", "profile.email"];
+
+    // Valid SELECT fields pass
+    const q1 = WebdaQL.parse("SELECT name, age WHERE status = 'active'", allowed);
+    assert.strictEqual(q1.type, "SELECT");
+    assert.deepStrictEqual(q1.fields, ["name", "age"]);
+
+    // Unknown SELECT field throws
+    assert.throws(
+      () => WebdaQL.parse("SELECT name, unknown WHERE status = 'active'", allowed),
+      /Unknown field "unknown"/
+    );
+
+    // Valid UPDATE assignment fields pass
+    const q2 = WebdaQL.parse("UPDATE SET status = 'active' WHERE name = 'John'", allowed);
+    assert.strictEqual(q2.type, "UPDATE");
+
+    // Unknown UPDATE assignment field throws
+    assert.throws(
+      () => WebdaQL.parse("UPDATE SET invalid = 'active' WHERE name = 'John'", allowed),
+      /Unknown assignment field "invalid"/
+    );
+
+    // Dot-notation fields work
+    const q3 = WebdaQL.parse("SELECT name, profile.email WHERE status = 'active'", allowed);
+    assert.deepStrictEqual(q3.fields, ["name", "profile.email"]);
+
+    // DELETE and plain queries are not affected by allowedFields
+    const q4 = WebdaQL.parse("DELETE WHERE status = 'old'", allowed);
+    assert.strictEqual(q4.type, "DELETE");
+
+    const q5 = WebdaQL.parse("status = 'active'", allowed);
+    assert.strictEqual(q5.type, undefined);
+
+    // validateQueryFields can be called standalone
+    const parsed = WebdaQL.parse("SELECT name, age WHERE status = 'active'");
+    WebdaQL.validateQueryFields(parsed, allowed); // should not throw
+    assert.throws(
+      () => WebdaQL.validateQueryFields(parsed, ["status"]),
+      /Unknown field "name"/
+    );
+  }
+
+  @test
+  caseInsensitiveKeywords() {
+    // lowercase delete
+    const q1 = WebdaQL.parse("delete where status = 'inactive'");
+    assert.strictEqual(q1.type, "DELETE");
+    assert.ok(q1.filter.eval({ status: "inactive" }));
+
+    // mixed case delete
+    const q1b = WebdaQL.parse("Delete Where status = 'old'");
+    assert.strictEqual(q1b.type, "DELETE");
+
+    // lowercase update
+    const q2 = WebdaQL.parse("update set status = 'active' where name = 'John'");
+    assert.strictEqual(q2.type, "UPDATE");
+    assert.deepStrictEqual(q2.assignments, [{ field: "status", value: "active" }]);
+    assert.ok(q2.filter.eval({ name: "John" }));
+
+    // mixed case update
+    const q2b = WebdaQL.parse("Update Set profile.verified = true Where id = 1");
+    assert.strictEqual(q2b.type, "UPDATE");
+    assert.deepStrictEqual(q2b.assignments, [{ field: "profile.verified", value: true }]);
+
+    // lowercase select
+    const q3 = WebdaQL.parse("select name, age where status = 'active'");
+    assert.strictEqual(q3.type, "SELECT");
+    assert.deepStrictEqual(q3.fields, ["name", "age"]);
+
+    // lowercase delete with limit
+    const q4 = WebdaQL.parse("delete where status = 'old' limit 100");
+    assert.strictEqual(q4.type, "DELETE");
+    assert.strictEqual(q4.limit, 100);
+
+    // lowercase boolean values in assignments
+    const q5 = WebdaQL.parse("UPDATE SET active = false WHERE id = 1");
+    assert.deepStrictEqual(q5.assignments, [{ field: "active", value: false }]);
+
+    // UPPERCASE keywords
+    const q6 = WebdaQL.parse("DELETE WHERE status = 'old'");
+    assert.strictEqual(q6.type, "DELETE");
+    const q7 = WebdaQL.parse("UPDATE SET status = 'active' WHERE name = 'John'");
+    assert.strictEqual(q7.type, "UPDATE");
+    const q8 = WebdaQL.parse("SELECT name, age WHERE status = 'active'");
+    assert.strictEqual(q8.type, "SELECT");
+
+    // lowercase filter keywords
+    const q9 = new WebdaQL.QueryValidator("status = 'active' and age > 18");
+    assert.ok(q9.getExpression().eval({ status: "active", age: 20 }));
+    const q10 = new WebdaQL.QueryValidator("status = 'active' or age > 18");
+    assert.ok(q10.getExpression().eval({ age: 20 }));
+
+    // lowercase like, in, contains
+    const q11 = new WebdaQL.QueryValidator("name like 'Jo%'");
+    assert.ok(q11.getExpression().eval({ name: "John" }));
+    const q12 = new WebdaQL.QueryValidator("status in ['active', 'pending']");
+    assert.ok(q12.getExpression().eval({ status: "active" }));
+    const q13 = new WebdaQL.QueryValidator("tags contains 'vip'");
+    assert.ok(q13.getExpression().eval({ tags: ["vip", "premium"] }));
+
+    // lowercase order by, limit, offset
+    const q14 = WebdaQL.parse("SELECT name WHERE status = 'active' order by name asc limit 5 offset 'tok'");
+    assert.strictEqual(q14.type, "SELECT");
+    assert.strictEqual(q14.limit, 5);
+    assert.strictEqual(q14.continuationToken, "tok");
+    assert.deepStrictEqual(q14.orderBy, [{ field: "name", direction: "ASC" }]);
+
+    // lowercase desc
+    const q15 = WebdaQL.parse("SELECT name WHERE status = 'active' order by name desc");
+    assert.deepStrictEqual(q15.orderBy, [{ field: "name", direction: "DESC" }]);
+
+    // lowercase true/false in filters
+    const q16 = new WebdaQL.QueryValidator("active = true");
+    assert.ok(q16.getExpression().eval({ active: true }));
+    const q17 = new WebdaQL.QueryValidator("active = false");
+    assert.ok(q17.getExpression().eval({ active: false }));
+  }
+
+  @test
+  modelFieldValidation() {
+    // Simulate a model's JSON Schema properties (as getAllowedFields() would return)
+    const userFields = ["name", "email", "age", "status", "profile.bio", "profile.avatar"];
+
+    // SELECT: valid fields pass
+    const q1 = WebdaQL.parse("SELECT name, email WHERE status = 'active'", userFields);
+    assert.strictEqual(q1.type, "SELECT");
+    assert.deepStrictEqual(q1.fields, ["name", "email"]);
+
+    // SELECT: unknown field rejects
+    assert.throws(
+      () => WebdaQL.parse("SELECT name, password WHERE status = 'active'", userFields),
+      /Unknown field "password"/
+    );
+
+    // SELECT: nested dot-notation field passes
+    const q2 = WebdaQL.parse("SELECT name, profile.bio WHERE age > 18", userFields);
+    assert.deepStrictEqual(q2.fields, ["name", "profile.bio"]);
+
+    // SELECT: unknown nested field rejects
+    assert.throws(
+      () => WebdaQL.parse("SELECT name, profile.ssn WHERE age > 18", userFields),
+      /Unknown field "profile.ssn"/
+    );
+
+    // UPDATE: valid assignment fields pass
+    const q3 = WebdaQL.parse("UPDATE SET status = 'banned', age = 0 WHERE name = 'spam'", userFields);
+    assert.strictEqual(q3.type, "UPDATE");
+    assert.deepStrictEqual(q3.assignments, [
+      { field: "status", value: "banned" },
+      { field: "age", value: 0 }
+    ]);
+
+    // UPDATE: unknown assignment field rejects
+    assert.throws(
+      () => WebdaQL.parse("UPDATE SET role = 'admin' WHERE name = 'hacker'", userFields),
+      /Unknown assignment field "role"/
+    );
+
+    // UPDATE: nested assignment field validates
+    WebdaQL.parse("UPDATE SET profile.bio = 'hello' WHERE name = 'John'", userFields);
+    assert.throws(
+      () => WebdaQL.parse("UPDATE SET profile.secret = 'x' WHERE name = 'John'", userFields),
+      /Unknown assignment field "profile.secret"/
+    );
+
+    // DELETE: not affected by allowedFields (no field projection)
+    const q4 = WebdaQL.parse("DELETE WHERE status = 'old'", userFields);
+    assert.strictEqual(q4.type, "DELETE");
+
+    // Plain filter: not affected by allowedFields
+    const q5 = WebdaQL.parse("status = 'active'", userFields);
+    assert.strictEqual(q5.type, undefined);
+
+    // Standalone validateQueryFields works the same way
+    const parsed = WebdaQL.parse("SELECT name, age WHERE status = 'active'");
+    WebdaQL.validateQueryFields(parsed, userFields); // passes
+    assert.throws(
+      () => WebdaQL.validateQueryFields(parsed, ["name"]), // age not allowed
+      /Unknown field "age"/
+    );
+
+    // Empty allowedFields rejects everything
+    assert.throws(
+      () => WebdaQL.parse("SELECT name, email WHERE status = 'active'", []),
+      /Unknown field "name"/
+    );
+  }
 }

@@ -31,6 +31,14 @@ fragment QUOTE_SYMB
     : SINGLE_QUOTE_SYMB | DOUBLE_QUOTE_SYMB
     ;
 
+// Statement keywords
+
+DELETE: 'DELETE';
+UPDATE: 'UPDATE';
+SELECT: 'SELECT';
+SET: 'SET';
+WHERE: 'WHERE';
+
 // Operators
 // - Logic
 

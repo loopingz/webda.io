@@ -32,7 +32,7 @@
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "repository": "git://github.com/loopingz/webda.io.git",
   "scripts": {
-    "build": "pnpm --filter @webda/tsc-esm... run build && pnpm -r run build",
+    "build": "pnpm --filter @webda/decorators --filter @webda/tsc-esm --workspace-concurrency=1 run build && pnpm -r run build",
     "test": "pnpm -r run test",
     "new-version": "pnpm run build && pnpm -r exec pnpm version --no-git-tag-version",
     "new-module": "pnpm webda init webda:module",

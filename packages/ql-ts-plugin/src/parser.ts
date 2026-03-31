@@ -40,33 +40,6 @@ function findUnquotedKeyword(str: string, keyword: string): number {
 }
 
 /**
- * Detect implicit SELECT: query has an unquoted comma before any operator
- */
-function isImplicitSelect(query: string): boolean {
-  let inSingle = false;
-  let inDouble = false;
-  for (let i = 0; i < query.length; i++) {
-    const ch = query[i];
-    if (ch === "'" && !inDouble) inSingle = !inSingle;
-    else if (ch === '"' && !inSingle) inDouble = !inDouble;
-    else if (!inSingle && !inDouble) {
-      if (ch === ",") return true;
-      if (ch === "=" || ch === "!" || ch === "<" || ch === ">") return false;
-      for (const kw of ["AND", "OR", "LIKE", "IN", "CONTAINS"]) {
-        if (
-          query.substring(i, i + kw.length).toUpperCase() === kw &&
-          (i === 0 || /\s/.test(query[i - 1])) &&
-          (i + kw.length === query.length || /\s/.test(query[i + kw.length]))
-        ) {
-          return false;
-        }
-      }
-    }
-  }
-  return false;
-}
-
-/**
  * Parse comma-separated field names from a string, stopping at a boundary keyword
  */
 function parseFieldList(str: string): string[] {
@@ -142,11 +115,6 @@ export function extractFields(query: string): ParsedFields {
   if (upper.startsWith("SELECT")) {
     const body = trimmed.substring(6).trimStart();
     return { type: "SELECT", fields: parseFieldList(body) };
-  }
-
-  // Implicit SELECT (field list with commas before operators)
-  if (isImplicitSelect(trimmed)) {
-    return { type: "SELECT", fields: parseFieldList(trimmed) };
   }
 
   // Plain filter query — no fields to validate

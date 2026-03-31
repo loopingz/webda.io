@@ -3,12 +3,6 @@ import { extractFields } from "./parser.js";
 
 describe("extractFields", () => {
   describe("SELECT", () => {
-    it("detects implicit SELECT (field list with comma)", () => {
-      const result = extractFields("name, age WHERE status = 'active'");
-      expect(result.type).toBe("SELECT");
-      expect(result.fields).toEqual(["name", "age"]);
-    });
-
     it("detects explicit SELECT", () => {
       const result = extractFields("SELECT name, age WHERE status = 'active'");
       expect(result.type).toBe("SELECT");
@@ -22,19 +16,19 @@ describe("extractFields", () => {
     });
 
     it("handles nested dot-notation fields", () => {
-      const result = extractFields("name, profile.email WHERE active = TRUE");
+      const result = extractFields("SELECT name, profile.email WHERE active = TRUE");
       expect(result.type).toBe("SELECT");
       expect(result.fields).toEqual(["name", "profile.email"]);
     });
 
     it("handles SELECT without WHERE", () => {
-      const result = extractFields("name, age");
+      const result = extractFields("SELECT name, age");
       expect(result.type).toBe("SELECT");
       expect(result.fields).toEqual(["name", "age"]);
     });
 
     it("handles SELECT with ORDER BY/LIMIT", () => {
-      const result = extractFields("name, age ORDER BY name ASC LIMIT 10");
+      const result = extractFields("SELECT name, age ORDER BY name ASC LIMIT 10");
       expect(result.type).toBe("SELECT");
       expect(result.fields).toEqual(["name", "age"]);
     });
@@ -87,7 +81,7 @@ describe("extractFields", () => {
       expect(result.fields).toBeUndefined();
     });
 
-    it("does not confuse a filter with an implicit SELECT", () => {
+    it("does not treat a filter as SELECT", () => {
       const result = extractFields("name = 'John'");
       expect(result.type).toBeUndefined();
     });
@@ -95,7 +89,7 @@ describe("extractFields", () => {
 
   describe("edge cases", () => {
     it("does not match keywords inside quoted strings", () => {
-      const result = extractFields("name, age WHERE title = 'SELECT committee'");
+      const result = extractFields("SELECT name, age WHERE title = 'SELECT committee'");
       expect(result.type).toBe("SELECT");
       expect(result.fields).toEqual(["name", "age"]);
     });

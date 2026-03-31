@@ -1,23 +1,27 @@
 // Generated from src/WebdaQLParser.g4 by ANTLR 4.9.0-SNAPSHOT
 
 
-import { ATN } from "antlr4ts/atn/ATN.js";
-import { ATNDeserializer } from "antlr4ts/atn/ATNDeserializer.js";
-import { ParserATNSimulator } from "antlr4ts/atn/ParserATNSimulator.js";
-import { FailedPredicateException } from "antlr4ts/FailedPredicateException.js";
-import { NoViableAltException } from "antlr4ts/NoViableAltException.js";
-import { Parser } from "antlr4ts/Parser.js";
-import { ParserRuleContext } from "antlr4ts/ParserRuleContext.js";
-import { RecognitionException } from "antlr4ts/RecognitionException.js";
-import { RuleContext } from "antlr4ts/RuleContext.js";
+import { ATN } from "antlr4ts/atn/ATN";
+import { ATNDeserializer } from "antlr4ts/atn/ATNDeserializer";
+import { FailedPredicateException } from "antlr4ts/FailedPredicateException";
+import { NotNull } from "antlr4ts/Decorators";
+import { NoViableAltException } from "antlr4ts/NoViableAltException";
+import { Override } from "antlr4ts/Decorators";
+import { Parser } from "antlr4ts/Parser";
+import { ParserRuleContext } from "antlr4ts/ParserRuleContext";
+import { ParserATNSimulator } from "antlr4ts/atn/ParserATNSimulator";
+import { ParseTreeListener } from "antlr4ts/tree/ParseTreeListener";
+import { ParseTreeVisitor } from "antlr4ts/tree/ParseTreeVisitor";
+import { RecognitionException } from "antlr4ts/RecognitionException";
+import { RuleContext } from "antlr4ts/RuleContext";
 //import { RuleVersion } from "antlr4ts/RuleVersion";
-import { Token } from "antlr4ts/Token.js";
-import { TokenStream } from "antlr4ts/TokenStream.js";
-import { TerminalNode } from "antlr4ts/tree/TerminalNode.js";
-import { Vocabulary } from "antlr4ts/Vocabulary.js";
-import { VocabularyImpl } from "antlr4ts/VocabularyImpl.js";
+import { TerminalNode } from "antlr4ts/tree/TerminalNode";
+import { Token } from "antlr4ts/Token";
+import { TokenStream } from "antlr4ts/TokenStream";
+import { Vocabulary } from "antlr4ts/Vocabulary";
+import { VocabularyImpl } from "antlr4ts/VocabularyImpl";
 
-import * as Utils from "antlr4ts/misc/Utils.js";
+import * as Utils from "antlr4ts/misc/Utils";
 
 import { WebdaQLParserListener } from "./WebdaQLParserListener";
 import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor";

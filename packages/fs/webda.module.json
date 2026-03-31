@@ -1,0 +1,268 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/FileBinary": {
+      "Import": "lib/filebinary:FileBinary",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "models": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "folder": {
+            "description": "Define the folder to store objects in",
+            "type": "string"
+          },
+          "maxFileSize": {
+            "default": "10 MB",
+            "description": "Define the maximum filesize to accept as direct upload",
+            "type": "number"
+          },
+          "maxSize": {
+            "default": "10Mb",
+            "description": "Maximum size to handle",
+            "type": "number"
+          },
+          "models": {
+            "$ref": "#/definitions/models",
+            "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "description": "URL to use for direct download",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "folder",
+          "models",
+          "type"
+        ],
+        "type": "object",
+        "title": "FileBinary"
+      },
+      "Configuration": "lib/filebinary:FileBinaryParameters"
+    },
+    "Webda/FileQueue": {
+      "Import": "lib/filequeue:FileQueue",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "WaitDelayerDefinition": {
+            "additionalProperties": false,
+            "description": "Configuration object for selecting and parameterizing a `WaitDelayer` from the registry.",
+            "properties": {
+              "interval": {
+                "description": "Base interval in milliseconds passed to the delayer factory.",
+                "type": "number"
+              },
+              "type": {
+                "description": "Key identifying the factory in `WaitDelayerFactories.registry` (e.g. `\"linear\"`, `\"exponential\"`).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "interval",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "expire": {
+            "default": 30,
+            "description": "Number of seconds before dropping message",
+            "type": "number"
+          },
+          "folder": {
+            "description": "Where to store the queue",
+            "type": "string"
+          },
+          "maxConsumers": {
+            "default": 10,
+            "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "workerDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "description": "Delayer between two failed attempts to process messages"
+          },
+          "workerParallelism": {
+            "default": true,
+            "description": "Define if worker should process multi message received in //",
+            "type": "boolean"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "folder",
+          "type"
+        ],
+        "type": "object",
+        "title": "FileQueue"
+      },
+      "Configuration": "lib/filequeue:FileQueueParameters"
+    },
+    "Webda/FileStore": {
+      "Import": "lib/filestore:FileStore",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "modelAliases": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Model Aliases to allow easier rename of Model",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "additionalModels": {
+            "default": [],
+            "description": "Additional models\n\nAllow this store to manage other models",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "beautify": {
+            "description": "Parameter sent to JSON.stringify when storing the json",
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "defaultModel": {
+            "default": true,
+            "description": "When __type model not found, use the model\nIf strict is setup this parameter is not used",
+            "type": "boolean"
+          },
+          "folder": {
+            "description": "Local path where to store all `json` files",
+            "type": "string"
+          },
+          "forceModel": {
+            "default": false,
+            "description": "If set, Store will ignore the __type",
+            "type": "boolean"
+          },
+          "model": {
+            "default": "Webda/CoreModel",
+            "description": "Webda model to use within the Store",
+            "type": "string"
+          },
+          "modelAliases": {
+            "$ref": "#/definitions/modelAliases",
+            "description": "Model Aliases to allow easier rename of Model"
+          },
+          "noCache": {
+            "default": false,
+            "description": "Disable default memory cache",
+            "type": "boolean"
+          },
+          "slowQueryThreshold": {
+            "default": 30000,
+            "description": "Slow query threshold",
+            "type": "number"
+          },
+          "strict": {
+            "default": false,
+            "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no\nmodel extending this one",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "folder",
+          "type"
+        ],
+        "type": "object",
+        "title": "FileStore"
+      },
+      "Configuration": "lib/filestore:FileStoreParameters"
+    }
+  },
+  "models": {},
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "challenge": {
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
+        },
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    }
+  }
+}

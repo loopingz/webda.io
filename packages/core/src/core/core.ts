@@ -439,7 +439,7 @@ export class Core implements ICore {
         serviceConstructor.createConfiguration(this.configuration[service])
       );
     } catch (err) {
-      this.log("ERROR", "Cannot create service", service, err);
+      this.log("ERROR", "Cannot create service", service, err.message || err);
     }
     return this.services[service];
   }

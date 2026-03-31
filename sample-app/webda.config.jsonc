@@ -28,6 +28,10 @@
     },
     "rest": {
       "type": "RESTDomainService"
+    },
+    "CryptoService": {
+      "type": "Webda/CryptoService",
+      "autoCreate": true
     }
   },
   "parameters": {

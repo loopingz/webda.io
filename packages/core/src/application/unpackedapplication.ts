@@ -416,10 +416,11 @@ export class UnpackedApplication extends Application {
           return;
         }
         for (const key in module[SectionEnum[p]]) {
-          module[SectionEnum[p]][key].Import = join(
-            relative(this.getPath(), dirname(moduleFile)),
-            module[SectionEnum[p]][key].Import
-          );
+          const relBase = relative(this.getPath(), dirname(moduleFile));
+          module[SectionEnum[p]][key].Import = join(relBase, module[SectionEnum[p]][key].Import);
+          if (module[SectionEnum[p]][key].Configuration) {
+            module[SectionEnum[p]][key].Configuration = join(relBase, module[SectionEnum[p]][key].Configuration);
+          }
         }
       });
     return module;

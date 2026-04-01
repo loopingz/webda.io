@@ -28,7 +28,7 @@
     "@types/json-schema": "^7.0.15",
     "@types/node": "25.5.0",
     "@types/sprintf-js": "^1.1.4",
-    "@webda/test": "workspace:^",
+    "@webda/test": "workspace:*",
     "@webda/tsc-esm": "workspace:*",
     "c8": "^11.0.0",
     "mock-stdin": "^1.0.0",

@@ -1,4 +1,4 @@
-import { WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
+import { WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core.js";
 
 /**
  * Abstract base class for all loggers
@@ -18,7 +18,11 @@ export abstract class WorkerLogger {
    * @param level - Log level as string or function (defaults to process.env.LOG_LEVEL or "INFO")
    */
   constructor(output: WorkerOutput, level?: WorkerLogLevel | (() => WorkerLogLevel)) {
-    this.level = level ? typeof level === "function" ? level : () => level : () => <any>process.env.LOG_LEVEL || "INFO";
+    this.level = level
+      ? typeof level === "function"
+        ? level
+        : () => level
+      : () => <any>process.env.LOG_LEVEL || "INFO";
     this.listener = msg => {
       this.onMessage(msg);
     };

@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { WorkerOutput } from "../core";
-import { MemoryLogger } from "./memory";
+import { WorkerOutput } from "../core.js";
+import { MemoryLogger } from "./memory.js";
 
 @suite
 class MemoryConsoleTest {

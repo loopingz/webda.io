@@ -707,7 +707,7 @@ importers:
         specifier: ^1.1.4
         version: 1.1.4
       '@webda/test':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../test
       '@webda/tsc-esm':
         specifier: workspace:*

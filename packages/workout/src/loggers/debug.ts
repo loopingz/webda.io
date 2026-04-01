@@ -1,5 +1,5 @@
-import { WorkerMessage, WorkerOutput } from "../core";
-import { FileLogger } from "./file";
+import { WorkerMessage, WorkerOutput } from "../core.js";
+import { FileLogger } from "./file.js";
 
 /**
  * Debug logger that writes all messages (including non-log events) to a file in JSON format

@@ -1,5 +1,5 @@
-import { WorkerLogger } from "./index";
-import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
+import { WorkerLogger } from "./index.js";
+import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core.js";
 
 /**
  * Logger that stores messages in memory for later retrieval

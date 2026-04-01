@@ -1,8 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
-import { LogFilter, WorkerLog, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
-import { WorkerLogger } from "./index";
-import { ConsoleLogger } from "./console";
+import { LogFilter, WorkerLog, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core.js";
+import { WorkerLogger } from "./index.js";
+import { ConsoleLogger } from "./console.js";
 
 /**
  * Logger that writes formatted log messages to a file with automatic rotation

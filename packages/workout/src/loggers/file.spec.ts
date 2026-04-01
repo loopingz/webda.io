@@ -1,9 +1,9 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { readdirSync, unlinkSync, writeFileSync } from "fs";
-import { WorkerMessage, WorkerLog, WorkerOutput } from "../core";
-import { DebugLogger } from "./debug";
-import { FileLogger } from "./file";
+import { WorkerMessage, WorkerLog, WorkerOutput } from "../core.js";
+import { DebugLogger } from "./debug.js";
+import { FileLogger } from "./file.js";
 
 @suite
 class FileConsoleTest {

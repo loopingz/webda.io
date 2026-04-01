@@ -1,5 +1,5 @@
-import { isWorkerLogLevel, LogFilter, WorkerLog, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
-import { ConsoleLogger } from "./console";
+import { isWorkerLogLevel, LogFilter, WorkerLog, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core.js";
+import { ConsoleLogger } from "./console.js";
 import chalk from "yoctocolors";
 const isUnicodeSupported = process.platform !== "win32" || Boolean(process.env.WT_SESSION);
 
@@ -219,7 +219,11 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
    * @param level - Minimum log level to display (default: LOG_LEVEL env var or "INFO")
    * @param format - sprintf format string for log lines
    */
-  constructor(output: WorkerOutput, level: WorkerLogLevel = isWorkerLogLevel(process.env.LOG_LEVEL) ? process.env.LOG_LEVEL : "INFO", format: string = ConsoleLogger.defaultFormat) {
+  constructor(
+    output: WorkerOutput,
+    level: WorkerLogLevel = isWorkerLogLevel(process.env.LOG_LEVEL) ? process.env.LOG_LEVEL : "INFO",
+    format: string = ConsoleLogger.defaultFormat
+  ) {
     super(output, level, format);
     // Set interactive based on TTY status and --no-tty flag
     output.setInteractive(process.stdout.isTTY && !process.argv.includes("--no-tty"));

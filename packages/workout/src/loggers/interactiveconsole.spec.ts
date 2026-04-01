@@ -1,8 +1,8 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { WorkerInput, WorkerInputType, WorkerMessage, WorkerOutput } from "../core";
-import { InteractiveConsoleLogger } from "./interactiveconsole";
+import { WorkerInput, WorkerInputType, WorkerMessage, WorkerOutput } from "../core.js";
+import { InteractiveConsoleLogger } from "./interactiveconsole.js";
 
 @suite
 class InteractiveConsoleLoggerTest {
@@ -136,7 +136,7 @@ class InteractiveConsoleLoggerTest {
   async testInputRequest() {
     // This test requires @inquirer/prompts which is optional
     // We'll test the input flow by stubbing the onInput method
-    const onInputStub = sinon.stub(this.logger, "onInput").callsFake(async function(msg: WorkerMessage) {
+    const onInputStub = sinon.stub(this.logger, "onInput").callsFake(async function (msg: WorkerMessage) {
       // Simulate successful input
       setTimeout(() => {
         this.output.returnInput(msg.input.uuid, "test value");
@@ -225,7 +225,7 @@ class InteractiveConsoleLoggerTest {
     await new Promise(resolve => setTimeout(resolve, 10));
 
     // Manually set the started time to simulate a long-running task
-    this.logger.spinner.started = Date.now() - (3661 * 1000); // 1 hour, 1 minute, 1 second ago
+    this.logger.spinner.started = Date.now() - 3661 * 1000; // 1 hour, 1 minute, 1 second ago
     this.output.stopActivity("success", "Task complete");
     await new Promise(resolve => setTimeout(resolve, 10));
 

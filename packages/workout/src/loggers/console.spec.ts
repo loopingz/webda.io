@@ -1,9 +1,9 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { WorkerLog, WorkerMessage, WorkerOutput } from "../core";
-import { ConsoleLogger } from "./console";
-import { WorkerLogger } from "./index";
+import { WorkerLog, WorkerMessage, WorkerOutput } from "../core.js";
+import { ConsoleLogger } from "./console.js";
+import { WorkerLogger } from "./index.js";
 
 @suite
 class ConsoleLoggerTest {
@@ -42,7 +42,6 @@ class ConsoleLoggerTest {
         }
       }
       assert.ok(foundError, "Expected to find an Error log entry");
-
     } finally {
       log.restore();
     }
@@ -66,10 +65,7 @@ class ConsoleLoggerTest {
     );
     ConsoleLogger.format(new WorkerMessage("title.set", undefined, { title: "plop" }));
     msg.context = { line: 10, function: "plopFunction", file: "plop.ts", column: 5 };
-    assert.strictEqual(
-      ConsoleLogger.format(msg, "[%(ff)s(%(f)s:%(ll)d:%(c)d)]"),
-      "[plopFunction(plop.ts:10:5)]"
-    );
+    assert.strictEqual(ConsoleLogger.format(msg, "[%(ff)s(%(f)s:%(ll)d:%(c)d)]"), "[plopFunction(plop.ts:10:5)]");
   }
 
   @test

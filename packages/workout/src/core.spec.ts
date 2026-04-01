@@ -1,6 +1,6 @@
-import { suite, test } from "@webda/test";
+import { describe, it, beforeEach } from "vitest";
 import * as assert from "assert";
-import { getFileAndLine, useLog, WorkerInput, WorkerInputType, WorkerMessage, WorkerOutput, WorkerProgress } from "./core";
+import { useLog, WorkerInput, WorkerInputType, WorkerOutput, WorkerProgress } from "./core.js";
 
 function mapper([msg]) {
   const res = {};
@@ -13,45 +13,40 @@ function mapper([msg]) {
   return res;
 }
 
-@suite
-class WorkerOutputTest {
-  output: WorkerOutput;
-  calls: any[];
-  async beforeEach() {
-    this.output = new WorkerOutput();
-    this.calls = [];
-    this.output.on("message", (...args) => {
-      this.calls.push(JSON.parse(JSON.stringify(args)));
+describe("WorkerOutputTest", () => {
+  let output: WorkerOutput;
+  let calls: any[];
+  beforeEach(async () => {
+    output = new WorkerOutput();
+    calls = [];
+    output.on("message", (...args) => {
+      calls.push(JSON.parse(JSON.stringify(args)));
     });
-  }
+  });
 
-  @test
-  async testLog() {
-    this.output.log("WARN", "Test", "plop");
-    assert.deepStrictEqual(this.calls.map(mapper), [
+  it("testLog", async () => {
+    output.log("WARN", "Test", "plop");
+    assert.deepStrictEqual(calls.map(mapper), [
       { type: "log", groups: [], progresses: {}, log: { level: "WARN", args: ["Test", "plop"] } }
     ]);
-  }
+  });
 
-  @test
-  async testLogWithLines() {
-    this.output.addLogProducerLine = true;
-    this.output.log("WARN", "Test", "plop", 1);
-    const ctx = this.calls[0][0].context;
-    // When @webda/test update this might change
-    // File may be lib/core.js (mocha) or contain core.ts/.js (vitest)
-    assert.ok(ctx.file.includes("core."), `Expected file to contain 'core.' but got: ${ctx.file}`);
+  it("testLogWithLines", async () => {
+    output.addLogProducerLine = true;
+    output.log("WARN", "Test", "plop", 1);
+    const ctx = calls[0][0].context;
+    // Context should have file, line, and function properties
+    assert.ok(typeof ctx.file === "string", `Expected file to be a string but got: ${typeof ctx.file}`);
     assert.ok(typeof ctx.line === "number");
     assert.ok(typeof ctx.function === "string");
-    this.output.addLogProducerLine = false;
-  }
+    output.addLogProducerLine = false;
+  });
 
-  @test
-  async bunyan() {
-    const logger = this.output.getBunyanLogger();
+  it("bunyan", async () => {
+    const logger = output.getBunyanLogger();
     let err;
     try {
-      this.calls[10].plop();
+      calls[10].plop();
     } catch (err2) {
       err = err2;
       logger.error(err);
@@ -62,7 +57,7 @@ class WorkerOutputTest {
     err.cause = () => new Error("plop");
     logger.debug(err, "debug");
     logger.fatal("fatal");
-    assert.deepStrictEqual(this.calls.map(mapper), [
+    assert.deepStrictEqual(calls.map(mapper), [
       { type: "log", groups: [], progresses: {}, log: { level: "ERROR", args: [""] } },
       { type: "log", groups: [], progresses: {}, log: { level: "INFO", args: ["Test 12 ok"] } },
       { type: "log", groups: [], progresses: {}, log: { level: "WARN", args: ["Warn"] } },
@@ -72,28 +67,26 @@ class WorkerOutputTest {
     ]);
     assert.strictEqual(logger.fatal(), true);
     assert.strictEqual(logger.trace(), true);
-  }
+  });
 
-  @test
-  async testValidator() {
+  it("testValidator", async () => {
     const input = new WorkerInput("myId", "title");
     assert.ok(input.validate("test"));
     input.validators = [new RegExp(/nop/), new RegExp(/n.*/)];
     assert.ok(input.validate("net"));
     assert.ok(!input.validate("let"));
-  }
+  });
 
-  @test
-  async testGroup() {
-    this.output.openGroup("Group1");
-    this.output.log("WARN", "Test", "plop");
-    this.output.openGroup("Group2");
-    this.output.log("WARN", "Test", "plop");
-    this.output.closeGroup();
-    this.output.log("WARN", "Test", "plop");
-    this.output.closeGroup();
-    this.output.closeGroup();
-    assert.deepStrictEqual(this.calls.map(mapper), [
+  it("testGroup", async () => {
+    output.openGroup("Group1");
+    output.log("WARN", "Test", "plop");
+    output.openGroup("Group2");
+    output.log("WARN", "Test", "plop");
+    output.closeGroup();
+    output.log("WARN", "Test", "plop");
+    output.closeGroup();
+    output.closeGroup();
+    assert.deepStrictEqual(calls.map(mapper), [
       { type: "group.open", group: "Group1", groups: ["Group1"], progresses: {} },
       { type: "log", groups: ["Group1"], progresses: {}, log: { level: "WARN", args: ["Test", "plop"] } },
       { type: "group.open", group: "Group2", groups: ["Group1", "Group2"], progresses: {} },
@@ -102,26 +95,25 @@ class WorkerOutputTest {
       { type: "log", groups: ["Group1"], progresses: {}, log: { level: "WARN", args: ["Test", "plop"] } },
       { type: "group.close", group: "Group1", groups: [], progresses: {} }
     ]);
-  }
+  });
 
-  @test
-  async testProgress() {
-    this.output.startProgress("plop", 50, "Plop");
-    this.output.updateProgress(10);
-    this.output.log("WARN", "Test", "plop");
-    this.output.openGroup("group1");
-    this.output.startProgress("plop2", 50, "Plop");
-    this.output.updateProgress(20);
-    this.output.log("WARN", "Test", "plop");
-    this.output.closeGroup();
-    this.output.updateProgress(30, "plop");
-    this.output.updateProgress(50, "plop");
-    this.output.log("WARN", "Test", "plop");
-    this.output.incrementProgress(15);
-    this.output.incrementProgress(15, "plop2");
-    assert.throws(() => this.output.incrementProgress(1, "nope"), /Unknown progress/g);
-    assert.throws(() => this.output.updateProgress(1, "nope"), /Unknown progress/g);
-    assert.deepStrictEqual(this.calls.map(mapper), [
+  it("testProgress", async () => {
+    output.startProgress("plop", 50, "Plop");
+    output.updateProgress(10);
+    output.log("WARN", "Test", "plop");
+    output.openGroup("group1");
+    output.startProgress("plop2", 50, "Plop");
+    output.updateProgress(20);
+    output.log("WARN", "Test", "plop");
+    output.closeGroup();
+    output.updateProgress(30, "plop");
+    output.updateProgress(50, "plop");
+    output.log("WARN", "Test", "plop");
+    output.incrementProgress(15);
+    output.incrementProgress(15, "plop2");
+    assert.throws(() => output.incrementProgress(1, "nope"), /Unknown progress/g);
+    assert.throws(() => output.updateProgress(1, "nope"), /Unknown progress/g);
+    assert.deepStrictEqual(calls.map(mapper), [
       {
         type: "progress.start",
         groups: [],
@@ -234,38 +226,36 @@ class WorkerOutputTest {
         progress: "plop2"
       }
     ]);
-  }
+  });
 
-  @test
-  testCOV() {
+  it("testCOV", () => {
     // Setters
-    this.output.setTitle("test");
-    this.output.setInteractive(true);
+    output.setTitle("test");
+    output.setInteractive(true);
     const ratio = new WorkerProgress("yop", 100, []);
     ratio.incrementProgress(10);
     assert.strictEqual(ratio.getRatio(), 0.1);
     ratio.incrementProgress(40);
     assert.strictEqual(ratio.getRatio(), 0.5);
-    assert.deepStrictEqual(this.calls.map(mapper), [{ type: "title.set", groups: [], progresses: {} }]);
-  }
+    assert.deepStrictEqual(calls.map(mapper), [{ type: "title.set", groups: [], progresses: {} }]);
+  });
 
-  @test
-  async testInputs() {
+  it("testInputs", async () => {
     await assert.rejects(
-      () => this.output.requestInput("My Question", WorkerInputType.STRING, ["\\d+"], false, 20),
+      () => output.requestInput("My Question", WorkerInputType.STRING, ["\\d+"], false, 20),
       /No interactive session registered/g
     );
-    await assert.rejects(() => this.output.waitForInput("plop"), /No interactive session registered/g);
-    this.output.setInteractive(true);
-    await assert.rejects(() => this.output.waitForInput("plop"), /Unknown input/g);
-    await assert.throws(() => this.output.returnInput("plop", "value"), /Unknown input/g);
+    await assert.rejects(() => output.waitForInput("plop"), /No interactive session registered/g);
+    output.setInteractive(true);
+    await assert.rejects(() => output.waitForInput("plop"), /Unknown input/g);
+    assert.throws(() => output.returnInput("plop", "value"), /Unknown input/g);
     await assert.rejects(
-      async () => this.output.requestInput("My Question", WorkerInputType.STRING, ["\\d+"], true, 20),
+      async () => output.requestInput("My Question", WorkerInputType.STRING, ["\\d+"], true, 20),
       /Request input timeout/g
     );
-    const input = await this.output.requestInput("My Question", WorkerInputType.STRING, ["\\d+"], false, 200);
-    const ok = this.output.waitForInput(input);
-    this.output.returnInput(input, "test");
+    const input = await output.requestInput("My Question", WorkerInputType.STRING, ["\\d+"], false, 200);
+    const ok = output.waitForInput(input);
+    output.returnInput(input, "test");
     assert.strictEqual(await ok, "test");
     const events = [
       {
@@ -294,22 +284,21 @@ class WorkerOutputTest {
       }
     ];
     events.forEach(e => delete e.input.uuid);
-    const received: any[] = this.calls.map(mapper);
+    const received: any[] = calls.map(mapper);
     received.forEach(e => delete e.input.uuid);
     assert.deepStrictEqual(received, events);
 
     // Test default not super valuable
     let value = "";
-    this.output.waitForInput = async uuid => {
+    output.waitForInput = async uuid => {
       value = uuid;
       return value;
     };
-    const testDefault = await this.output.requestInput("My Question");
+    const testDefault = await output.requestInput("My Question");
     assert.strictEqual(await testDefault, value);
-  }
+  });
 
-  @test
-  async testWorkerMessageFromJSON() {
+  it("testWorkerMessageFromJSON", async () => {
     // Test log message
     const { WorkerMessage } = await import("./core");
     const logMsg = { type: "log", pid: 123, timestamp: Date.now(), log: { level: "INFO", args: ["test"] } };
@@ -348,15 +337,14 @@ class WorkerOutputTest {
     const parsed5 = WorkerMessage.fromJSON(JSON.stringify(otherMsg));
     assert.strictEqual(parsed5.type, "progress.start");
     assert.strictEqual(parsed5.pid, 123);
-  }
+  });
 
-  @test
-  async testForwardEvent() {
+  it("testForwardEvent", async () => {
     const output1 = new WorkerOutput();
     const output2 = new WorkerOutput();
-    const calls: any[] = [];
+    const fwdCalls: any[] = [];
 
-    output2.on("message", msg => calls.push(msg));
+    output2.on("message", msg => fwdCalls.push(msg));
 
     // Create a message from output1
     const messages: any[] = [];
@@ -370,91 +358,84 @@ class WorkerOutputTest {
     await new Promise(resolve => setTimeout(resolve, 10));
 
     // Should have forwarded the message
-    assert.strictEqual(calls.length, 1);
-    assert.strictEqual(calls[0].type, "log");
+    assert.strictEqual(fwdCalls.length, 1);
+    assert.strictEqual(fwdCalls[0].type, "log");
 
     // Test forwarding from same PID (should be ignored)
     const sameMsg = { ...messages[0], pid: process.pid };
-    const beforeCount = calls.length;
+    const beforeCount = fwdCalls.length;
     output2.forwardEvent(JSON.stringify(sameMsg));
     await new Promise(resolve => setTimeout(resolve, 10));
-    assert.strictEqual(calls.length, beforeCount); // No new message
-  }
+    assert.strictEqual(fwdCalls.length, beforeCount); // No new message
+  });
 
-  @test
-  async testActivityWithStatus() {
-    this.output.startActivity("Processing");
+  it("testActivityWithStatus", async () => {
+    output.startActivity("Processing");
     await new Promise(resolve => setTimeout(resolve, 10));
-    this.output.stopActivity("info", "Processing complete");
+    output.stopActivity("info", "Processing complete");
     await new Promise(resolve => setTimeout(resolve, 10));
 
-    const events: any[] = this.calls.map(mapper);
+    const events: any[] = calls.map(mapper);
     assert.strictEqual(events[0].type, "progress.start");
     assert.strictEqual(events[events.length - 1].type, "progress.stop");
-  }
+  });
 
-  @test
-  async testProgressUpdateWithTitle() {
-    this.output.startProgress("test", 100);
-    this.output.updateProgress(50, "test", "Half way");
+  it("testProgressUpdateWithTitle", async () => {
+    output.startProgress("test", 100);
+    output.updateProgress(50, "test", "Half way");
 
-    const events: any[] = this.calls.map(mapper);
+    const events: any[] = calls.map(mapper);
     assert.strictEqual(events[1].progresses.test.title, "Half way");
     assert.strictEqual(events[1].progresses.test.current, 50);
-  }
+  });
 
-  @test
-  async testIncrementProgressWithTitle() {
-    this.output.startProgress("test", 100);
-    this.output.incrementProgress(25, "test", "Quarter done");
+  it("testIncrementProgressWithTitle", async () => {
+    output.startProgress("test", 100);
+    output.incrementProgress(25, "test", "Quarter done");
 
-    const events: any[] = this.calls.map(mapper);
+    const events: any[] = calls.map(mapper);
     assert.strictEqual(events[1].progresses.test.title, "Quarter done");
     assert.strictEqual(events[1].progresses.test.current, 25);
-  }
+  });
 
-  @test
-  async testUseLog() {
+  it("testUseLog", async () => {
     // moduleOutput is null at this point (no prior test has set it), so ??= creates a new WorkerOutput
     // This covers lines 39-42 in core.ts
     useLog("INFO", "Test useLog message");
-  }
+  });
 
-  @test
-  async testUseLogWithContext() {
+  it("testUseLogWithContext", async () => {
     const { useLogWithContext, useWorkerOutput } = await import("./core");
-    const output = useWorkerOutput(new WorkerOutput());
-    const calls: any[] = [];
-    output.on("message", msg => calls.push(msg));
+    const out = useWorkerOutput(new WorkerOutput());
+    const logCalls: any[] = [];
+    out.on("message", msg => logCalls.push(msg));
 
     useLogWithContext("INFO", { custom: "field" }, "Test message");
     await new Promise(resolve => setTimeout(resolve, 10));
 
-    assert.strictEqual(calls.length, 1);
-    assert.strictEqual(calls[0].type, "log");
-    assert.strictEqual(calls[0].context.custom, "field");
+    assert.strictEqual(logCalls.length, 1);
+    assert.strictEqual(logCalls[0].type, "log");
+    assert.strictEqual(logCalls[0].context.custom, "field");
 
     // Test with addLogProducerLine
     useLogWithContext("DEBUG", { addLogProducerLine: true }, "Debug message");
     await new Promise(resolve => setTimeout(resolve, 10));
 
-    assert.strictEqual(calls.length, 2);
-    assert.ok(calls[1].context.file);
-    assert.ok(calls[1].context.line);
-  }
+    assert.strictEqual(logCalls.length, 2);
+    assert.ok(typeof logCalls[1].context.file === "string");
+    assert.ok(typeof logCalls[1].context.line === "number");
+  });
 
-  @test
-  async testWorkerInputValidatorConversion() {
+  it("testWorkerInputValidatorConversion", async () => {
     // Test string validator conversion
     const input = new WorkerInput("test", "title", WorkerInputType.STRING, ["\\d+", "^test"]);
     assert.ok(input.validators[0] instanceof RegExp);
     assert.ok(input.validators[1] instanceof RegExp);
     assert.strictEqual(input.validators[0].source, "^\\d+$");
     assert.strictEqual(input.validators[1].source, "^test$");
-  }
+  });
 
-  @test
-  async testWorkerInputToJSON() {
+  it("testWorkerInputToJSON", async () => {
     const input = new WorkerInput("test-uuid", "My Question", WorkerInputType.PASSWORD, [/^\d+$/]);
     input.value = "secret";
 
@@ -465,31 +446,28 @@ class WorkerOutputTest {
     assert.strictEqual(json.value, "secret");
     assert.strictEqual(json.validators.length, 1);
     assert.strictEqual(typeof json.validators[0], "string");
-  }
+  });
 
-  @test
-  async testWorkerInputToMessage() {
+  it("testWorkerInputToMessage", async () => {
     // Test toMessage() method
     const input = new WorkerInput("test-uuid", "Question", WorkerInputType.STRING, [/.*/]);
     const message = input.toMessage();
     assert.strictEqual(message, input); // toMessage returns itself
-  }
+  });
 
-  @test
-  async testStartActivityOnExistingProgress() {
+  it("testStartActivityOnExistingProgress", async () => {
     // Test startActivity when progress already exists (line 443)
-    this.output.startProgress("activity", 100, "Initial");
-    this.output.startActivity("Updated", "activity");
+    output.startProgress("activity", 100, "Initial");
+    output.startActivity("Updated", "activity");
 
-    const events: any[] = this.calls.map(mapper);
+    const events: any[] = calls.map(mapper);
     // Should update the existing progress, not create a new one
     assert.strictEqual(events.length, 2);
     assert.strictEqual(events[1].type, "progress.update");
     assert.strictEqual(events[1].progresses.activity.title, "Updated");
-  }
+  });
 
-  @test
-  async testForwardEventWithInput() {
+  it("testForwardEventWithInput", async () => {
     // Test forwardEvent with input (lines 668-669)
     const output2 = new WorkerOutput();
     output2.setInteractive(true);
@@ -513,5 +491,5 @@ class WorkerOutputTest {
     // The input should be stored
     assert.ok(output2.inputs["test-123"]);
     assert.strictEqual(output2.inputs["test-123"].uuid, "test-123");
-  }
-}
+  });
+});

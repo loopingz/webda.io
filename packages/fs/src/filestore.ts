@@ -74,30 +74,19 @@ class FileBackedMap extends Map<string, string> {
     }
   }
 
-  keys(): IterableIterator<string> {
-    if (!fs.existsSync(this.folder)) return [][Symbol.iterator]();
+  keys(): MapIterator<string> {
+    if (!fs.existsSync(this.folder)) return [].values();
     const ext = this.extension;
     const files = fs
       .readdirSync(this.folder)
       .filter(f => f.endsWith(ext))
       .map(f => f.slice(0, f.length - ext.length));
-    return files[Symbol.iterator]();
+    return files.values();
   }
 
-  [Symbol.iterator](): IterableIterator<[string, string]> {
-    const keys = [...this.keys()];
-    let index = 0;
-    const self = this;
-    return {
-      next(): IteratorResult<[string, string]> {
-        if (index >= keys.length) return { value: undefined as any, done: true };
-        const key = keys[index++];
-        return { value: [key, self.get(key)!], done: false };
-      },
-      [Symbol.iterator]() {
-        return this;
-      }
-    };
+  [Symbol.iterator](): MapIterator<[string, string]> {
+    const entries = [...this.keys()].map(key => [key, this.get(key)!] as [string, string]);
+    return entries.values();
   }
 }
 
@@ -207,7 +196,11 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
       index < stored[prop].length &&
       stored[prop][index][itemWriteConditionField] !== itemWriteCondition
     ) {
-      throw new UpdateConditionFailError(stored.uuid || stored._id || "unknown" as any, itemWriteConditionField, itemWriteCondition);
+      throw new UpdateConditionFailError(
+        stored.uuid || stored._id || ("unknown" as any),
+        itemWriteConditionField,
+        itemWriteCondition
+      );
     }
   }
 

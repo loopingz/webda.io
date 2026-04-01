@@ -1,4 +1,4 @@
-import { suite, test } from "@webda/test";
+import { describe, it, beforeEach, afterEach } from "vitest";
 import * as assert from "assert";
 import chalk from "yoctocolors";
 import { stdin } from "mock-stdin";
@@ -10,209 +10,161 @@ import { Terminal } from "./terminal.js";
 // This is needed to trigger stdin within github-actions
 const mockStdin = stdin();
 
-@suite
-class TerminalTest {
-  output: WorkerOutput;
-  terminal: Terminal;
-  stubs: { [key: string]: any } = {};
+describe("TerminalTest", () => {
+  let output: WorkerOutput;
+  let terminal: Terminal;
+  let stubs: { [key: string]: any } = {};
 
-  async beforeEach() {
+  beforeEach(async () => {
     Terminal.refreshSpeed = 10;
-    this.stubs["process.on"] = sinon.stub(process, "on");
-    this.stubs["process.stdout.on"] = sinon.stub(process.stdout, "on");
-    this.stubs["process.stdout.write"] = sinon.stub(process.stdout, "write");
-    this.output = new WorkerOutput();
+    stubs["process.on"] = sinon.stub(process, "on");
+    stubs["process.stdout.on"] = sinon.stub(process.stdout, "on");
+    stubs["process.stdout.write"] = sinon.stub(process.stdout, "write");
+    output = new WorkerOutput();
     // By default will fallback
-    this.terminal = new Terminal(this.output, "INFO", "", true);
-    this.stubs["clearScreen"] = sinon.stub(this.terminal, "clearScreen");
-  }
+    terminal = new Terminal(output, "INFO", "", true);
+    stubs["clearScreen"] = sinon.stub(terminal, "clearScreen");
+  });
 
-  async afterEach() {
-    for (const i in this.stubs) {
+  afterEach(async () => {
+    for (const i in stubs) {
       try {
-        this.stubs[i].restore();
+        stubs[i].restore();
       } catch (e) {}
     }
-  }
+  });
 
-  @test
-  async cov() {
-    new Terminal(this.output);
-    new Terminal(this.output, undefined, undefined, false);
-    this.output.setInteractive(true);
-    this.output.log("INFO", "Test");
+  it("cov", async () => {
+    new Terminal(output);
+    new Terminal(output, undefined, undefined, false);
+    output.setInteractive(true);
+    output.log("INFO", "Test");
 
-    this.terminal.height = 50;
-    this.terminal.width = 100;
+    terminal.height = 50;
+    terminal.width = 100;
 
-    this.terminal.setLogo(["LOOPZ", "LOOPZ", "LOOPZ", "LOOPZ", "LOOPZ"]);
-    this.terminal.close();
-    this.terminal.close();
-    this.output.addListener("message", this.terminal.listener);
-    this.terminal.resize();
-    this.terminal.inputValue = "pl";
-    this.terminal.onData("\x7f");
-    assert.ok(this.terminal.inputValue === "p");
-    this.terminal.onData("\u001B\u005B\u0035\u007e");
-    this.terminal.onData("\u001B\u005B\u0036\u007e");
-    this.terminal.onData("\u001B\u005B\u0042");
-    this.terminal.onData("\u001B\u005B\u0041");
-    const uuidP = this.output.requestInput("My Question", undefined, [new RegExp(/\d+/)], true);
+    terminal.setLogo(["LOOPZ", "LOOPZ", "LOOPZ", "LOOPZ", "LOOPZ"]);
+    terminal.close();
+    terminal.close();
+    output.addListener("message", terminal.listener);
+    terminal.resize();
+    terminal.inputValue = "pl";
+    terminal.onData("\x7f");
+    assert.ok(terminal.inputValue === "p");
+    terminal.onData("\u001B\u005B\u0035\u007e");
+    terminal.onData("\u001B\u005B\u0036\u007e");
+    terminal.onData("\u001B\u005B\u0042");
+    terminal.onData("\u001B\u005B\u0041");
+    const uuidP = output.requestInput("My Question", undefined, [new RegExp(/\d+/)], true);
     await new Promise(resolve => nextTick(resolve));
-    assert.ok(this.terminal.inputs.length > 0, `Should have one input ${JSON.stringify(this.output.listeners)}`);
-    this.terminal.onData("\x0d");
-    this.terminal.onData("\x7f");
-    this.terminal.displayFooter();
-    this.terminal.onData("12");
+    assert.ok(terminal.inputs.length > 0, `Should have one input ${JSON.stringify(output.listeners)}`);
+    terminal.onData("\x0d");
+    terminal.onData("\x7f");
+    terminal.displayFooter();
+    terminal.onData("12");
 
-    this.terminal.onData("\x0d");
+    terminal.onData("\x0d");
     assert.ok((await uuidP) === "12");
-    this.terminal.onData("\x0d");
-    this.output.log("INFO", "Test4");
-    this.terminal.height = 50;
-    this.terminal.width = 100;
-    this.terminal.setLogo([]);
-    this.terminal.displayHistory(10000, false);
+    terminal.onData("\x0d");
+    output.log("INFO", "Test4");
+    terminal.height = 50;
+    terminal.width = 100;
+    terminal.setLogo([]);
+    terminal.displayHistory(10000, false);
 
-    this.terminal.historySize = 10;
+    terminal.historySize = 10;
     for (let i = 0; i < 12; i++) {
-      this.terminal.pushHistory("plop");
+      terminal.pushHistory("plop");
     }
 
-    assert.ok(this.terminal.history.length === 10);
-    this.terminal.setTitle("plop".repeat(200));
-    this.terminal.displayTitle();
+    assert.ok(terminal.history.length === 10);
+    terminal.setTitle("plop".repeat(200));
+    terminal.displayTitle();
 
-    this.terminal.scrollY = 1;
-    this.terminal.scrollUp(10);
-    assert.ok(this.terminal.scrollY === 0);
-    this.terminal.scrollY = -1;
-    this.terminal.scrollDown(10);
-    assert.strictEqual(this.terminal.scrollY, -1);
-    this.terminal.scrollDown(10000);
-    assert.strictEqual(this.terminal.scrollY, -1);
+    terminal.scrollY = 1;
+    terminal.scrollUp(10);
+    assert.ok(terminal.scrollY === 0);
+    terminal.scrollY = -1;
+    terminal.scrollDown(10);
+    assert.strictEqual(terminal.scrollY, -1);
+    terminal.scrollDown(10000);
+    assert.strictEqual(terminal.scrollY, -1);
 
-    this.terminal.width = 30;
-    this.terminal.displayProgress(new WorkerProgress("uu", 100, [], "longtitle".repeat(100)));
-  }
+    terminal.width = 30;
+    terminal.displayProgress(new WorkerProgress("uu", 100, [], "longtitle".repeat(100)));
+  });
 
-  @test
-  async progress() {
-    this.output.startProgress("mine", 100, "test");
-    this.output.incrementProgress(10, "mine");
+  it("progress", async () => {
+    output.startProgress("mine", 100, "test");
+    output.incrementProgress(10, "mine");
     await new Promise(resolve => setTimeout(resolve, 200));
-    this.terminal.resize();
-    this.output.incrementProgress(100, "mine");
-  }
+    terminal.resize();
+    output.incrementProgress(100, "mine");
+  });
 
-  @test
-  async testColorDisplayStripping() {
+  it("testColorDisplayStripping", async () => {
     const str =
-      "[[33m WARN[39m] [33mCannot resolve require /datas/git/lib/handlers/batch_idents.js Not a webda application folder or webda.config.json file: ../webda.config.json[39m";
-    const res = this.terminal.displayString(str, 40);
-    assert.strictEqual(res.endsWith("...[39m"), true);
-  }
+      "\u001b[33m WARN\u001b[39m] \u001b[33mCannot resolve require /datas/git/lib/handlers/batch_idents.js Not a webda application folder or webda.config.json file: ../webda.config.json\u001b[39m";
+    const res = terminal.displayString(str, 40);
+    assert.strictEqual(res.endsWith("...\u001b[39m"), true);
+  });
 
-  @test
-  async testFallback() {
-    this.terminal = new Terminal(this.output, "INFO", "", false);
-  }
+  it("testFallback", async () => {
+    terminal = new Terminal(output, "INFO", "", false);
+  });
 
-  @test
-  async testHistory() {
-    this.output.log("WARN", "coucou");
-    this.output.openGroup("group1");
-    this.output.log("WARN", "coucou2");
-    this.output.log("TRACE", "coucou3");
-    const res = this.terminal.displayHistory(12);
-  }
+  it("testHistory", async () => {
+    output.log("WARN", "coucou");
+    output.openGroup("group1");
+    output.log("WARN", "coucou2");
+    output.log("TRACE", "coucou3");
+    const res = terminal.displayHistory(12);
+  });
 
-  @test
-  testDisplayString() {
-    let test = this.terminal.displayString("Test" + "plop" + " " + "yep", 50);
+  it("testDisplayString", () => {
+    let test = terminal.displayString("Test" + "plop" + " " + "yep", 50);
     assert.strictEqual(test.length, 50);
     const coloredString = "Test" + chalk.yellow("plop") + " " + chalk.blue("yep");
-    test = this.terminal.displayString(coloredString, 50);
+    test = terminal.displayString(coloredString, 50);
     // The length depends on whether colors are enabled:
     // - Without colors: 50 (just padding)
     // - With yoctocolors: 60 (shorter escape codes than old chalk's 70)
     // Test that it's at least 50 (minimum) and matches the actual colored string length
     assert.ok(test.length >= 50);
     assert.strictEqual(test.length, 50 + coloredString.length - 12); // 12 is visible text length
-  }
+  });
 
-  @test
-  async testFooter() {
-    let res = this.terminal.displayFooter();
-    this.output.setTitle("Plop");
-    res = this.terminal.displayFooter();
-    this.output.startProgress("progress1", 100);
-    res = this.terminal.displayFooter();
-    this.output.updateProgress(34);
-    this.output.startProgress("progress2", 100);
-    res = this.terminal.displayFooter();
-  }
+  it("testFooter", async () => {
+    let res = terminal.displayFooter();
+    output.setTitle("Plop");
+    res = terminal.displayFooter();
+    output.startProgress("progress1", 100);
+    res = terminal.displayFooter();
+    output.updateProgress(34);
+    output.startProgress("progress2", 100);
+    res = terminal.displayFooter();
+  });
 
-  async visu() {
-    return new Promise<void>(async resolve => {
-      const output = new WorkerOutput();
-      const terminal = new Terminal(output);
-      let i = 1;
-      output.setTitle("Webda Deployer");
-      output.openGroup("MyGroup");
-      output.startProgress("transfer1", 100);
-      output.startProgress("transfer2", 100);
-      output.startProgress("transfer3", 100);
-      const interval = setInterval(() => {
-        const keys = Object.keys(output.progresses);
-        if (!keys || keys.length === 0) {
-          clearInterval(interval);
-          return;
-        }
-        output.incrementProgress(
-          Math.random() * 15,
-          output.progresses[keys[Math.floor(Math.random() * keys.length)]].uid
-        );
-      }, 300);
-      output.openGroup("Subgroup");
-      output.closeGroup();
-      const interval2 = setInterval(() => {
-        output.log(<any>WorkerLogLevelEnum[Math.floor(Math.random() * 5)], "This is my log " + i++);
-      }, 500);
+  it("title", () => {
+    terminal.setTitle();
+    assert.strictEqual(terminal.title, "");
+    terminal.setTitle("plop");
+    assert.strictEqual(terminal.title, "plop");
+  });
 
-      await output.requestInput("What is?", WorkerInputType.STRING, ["\\d+"], true);
-      setTimeout(() => output.closeGroup(), 5600);
-      setTimeout(() => {
-        clearInterval(interval);
-        clearInterval(interval2);
-        resolve();
-      }, 90000);
-    });
-  }
+  it("logos", () => {
+    terminal.setLogo(undefined);
+    assert.deepStrictEqual(terminal.getLogo(), []);
+    assert.strictEqual(terminal.logoWidth, 0);
+    terminal.setLogo([chalk.yellow("ADB"), "B"]);
+    assert.strictEqual(terminal.logoWidth, 3);
+  });
 
-  @test
-  title() {
-    this.terminal.setTitle();
-    assert.strictEqual(this.terminal.title, "");
-    this.terminal.setTitle("plop");
-    assert.strictEqual(this.terminal.title, "plop");
-  }
-
-  @test
-  logos() {
-    this.terminal.setLogo(undefined);
-    assert.deepStrictEqual(this.terminal.getLogo(), []);
-    assert.strictEqual(this.terminal.logoWidth, 0);
-    this.terminal.setLogo([chalk.yellow("ADB"), "B"]);
-    assert.strictEqual(this.terminal.logoWidth, 3);
-  }
-
-  @test
-  position() {
-    this.terminal.clearScreen();
-    this.terminal.scrollUp(1);
-    this.terminal.scrollDown(1);
-    this.terminal.scrollUp(-1);
-    this.terminal.scrollDown(-1);
-  }
-}
+  it("position", () => {
+    terminal.clearScreen();
+    terminal.scrollUp(1);
+    terminal.scrollDown(1);
+    terminal.scrollUp(-1);
+    terminal.scrollDown(-1);
+  });
+});

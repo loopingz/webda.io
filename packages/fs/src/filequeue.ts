@@ -41,6 +41,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
    */
   computeParameters() {
     super.computeParameters();
+    this.parameters.default?.();
     if (!fs.existsSync(this.parameters.folder)) {
       fs.mkdirSync(this.parameters.folder);
     }

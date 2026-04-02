@@ -81,7 +81,7 @@ export async function Fork(
 ) {
   let child: ChildProcess;
   if (process.send === undefined) {
-    child = fork(process.argv[1], process.argv.slice(2), { env: { FORKED: "true" } });
+    child = fork(process.argv[1], process.argv.slice(2));
   }
   if (process.send !== undefined) {
     const currentOutput = useWorkerOutput();

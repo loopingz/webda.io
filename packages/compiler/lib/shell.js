@@ -1,4 +1,4 @@
-#!/usr/bin/env node --experimental-default-type=module
+#!/usr/bin/env node
 import yargs from "yargs";
 import { WebdaProject } from "./definition.js";
 import { Compiler } from "./compiler.js";

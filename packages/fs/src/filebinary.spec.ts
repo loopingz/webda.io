@@ -6,11 +6,6 @@ import { mkdirSync, writeFileSync } from "fs";
 import pkg from "fs-extra";
 import sinon from "sinon";
 import { Readable } from "stream";
-import { Core } from "../core";
-import * as WebdaError from "../errors/errors";
-import { CoreModel } from "../models/coremodel";
-import { WebdaTest } from "../test";
-import { FileUtils } from "../utils/serializers";
 import {
   BinariesImpl,
   BinariesItem,
@@ -18,10 +13,15 @@ import {
   BinaryFile,
   BinaryFileInfo,
   BinaryService,
-  MemoryBinaryFile
-} from "./binary";
-import { BinaryTest, TestBinaryService } from "./binary.spec";
-import { FileBinary } from "./filebinary";
+  Core,
+  CoreModel,
+  MemoryBinaryFile,
+  WebdaError
+} from "@webda/core";
+import { WebdaApplicationTest } from "@webda/core/lib/test";
+import { FileUtils } from "@webda/utils";
+import { BinaryTest, TestBinaryService } from "@webda/core/lib/services/binary.spec";
+import { FileBinary } from "./filebinary.js";
 const { removeSync } = pkg;
 
 class FaultyBinaryFile extends BinaryFile {
@@ -285,7 +285,7 @@ class FileBinaryTest<T extends FileBinary = FileBinary> extends BinaryTest<T> {
 }
 
 @suite
-class BinaryAbstractTest extends WebdaTest {
+class BinaryAbstractTest extends WebdaApplicationTest {
   @test
   async cov() {
     const service = new TestBinaryService(undefined, "plop", {});

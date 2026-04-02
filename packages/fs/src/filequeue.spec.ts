@@ -1,10 +1,10 @@
-import { suite, test, only } from "../test/core";
+import { suite, test, only } from "@webda/test";
 import * as assert from "assert";
 import * as fs from "fs";
 import { unlinkSync } from "fs";
 import { emptyDirSync } from "fs-extra";
-import { FileQueue } from "./filequeue";
-import { QueueTest } from "./queue.spec";
+import { FileQueue } from "./filequeue.js";
+import { QueueTest } from "@webda/core/lib/queues/queue.spec";
 
 @suite
 class FileQueueTest extends QueueTest {
@@ -56,7 +56,7 @@ class FileQueueTest extends QueueTest {
     await queue.deleteMessage(msg2[0].ReceiptHandle);
 
     // Check if default parameter is correctly set
-    queue = new FileQueue("q", {});
+    queue = await this.addService(FileQueue, { folder: "./test/data/queue" });
     assert.strictEqual(queue.getParameters().expire, 30000);
   }
 

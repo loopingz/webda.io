@@ -3,10 +3,9 @@ import * as assert from "assert";
 import { existsSync } from "fs";
 import pkg from "fs-extra";
 import * as sinon from "sinon";
-import { CoreModel, FileStore, ModelMapLoaderImplementation, Store } from "../index";
-import { User } from "../models/user";
-import { StoreNotFoundError, UpdateConditionFailError } from "./store";
-import { IdentTest, StoreTest, UserTest } from "./store.spec";
+import { CoreModel, Store, StoreNotFoundError, UpdateConditionFailError, User } from "@webda/core";
+import { StoreTest, IdentTest, UserTest } from "@webda/core/lib/stores/store.spec";
+import { FileStore } from "./filestore.js";
 const { removeSync } = pkg;
 
 /**
@@ -25,7 +24,7 @@ class FileStoreTest extends StoreTest<FileStore<any>> {
   }
 
   async getIdentStore(): Promise<FileStore<any>> {
-    const identStore = new FileStore(this.webda, "Idents", {
+    const identStore = new FileStore("Idents", {
       model: "WebdaTest/Ident",
       folder: "./test/data/idents"
     });
@@ -69,7 +68,7 @@ class FileStoreTest extends StoreTest<FileStore<any>> {
       await user.refresh();
       assert.strictEqual(user["plop"], undefined);
       user.idents ??= [];
-      user.idents.push(new ModelMapLoaderImplementation(identStore._model, { uuid: ident.getUuid() }, user));
+      user.idents.push(<any>{ uuid: ident.getUuid() });
       const user2 = await UserTest.create(user, false);
       await IdentTest.ref(user2.getUuid()).delete();
     } finally {

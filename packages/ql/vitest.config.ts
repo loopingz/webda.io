@@ -10,8 +10,8 @@ export default defineConfig({
     coverage: {
       enabled: true,
       provider: "v8",
-      include: ["src/**/*.ts"],
-      exclude: ["src/**/*.spec.ts", "src/index.ts"],
+      include: ["src/*.ts"],
+      exclude: ["src/*.spec.ts", "src/index.ts"],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",

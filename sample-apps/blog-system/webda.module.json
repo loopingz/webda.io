@@ -11,9 +11,7 @@
             "enum": [
               "Registry",
               "CryptoService",
-              "SessionManager",
-              "Mailer",
-              "TestBean"
+              "SessionManager"
             ],
             "type": "string"
           },

@@ -105,6 +105,8 @@ jobs:
 
       - name: Build
         run: pnpm run build # Build is required as we use sample-app for some tests
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Run tests
         run: pnpm -r --filter=!@webda/shell run test

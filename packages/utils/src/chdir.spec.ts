@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import { readdirSync } from "fs";
 import { deepStrictEqual, rejects, ok } from "assert";
 import { runWithCurrentDirectory } from "./chdir";
-import { getCommonJS } from "../lib";
+import { getCommonJS } from "./esm.js";
 
 @suite
 class ChdirTest {

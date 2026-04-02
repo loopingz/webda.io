@@ -24,7 +24,7 @@ import {
   YAMLUtils
 } from "./serializers";
 import { Readable } from "node:stream";
-import { getCommonJS } from "../lib";
+import { getCommonJS } from "./esm.js";
 
 const TEST_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../test/jsonutils/";
 const PACKAGE_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../";

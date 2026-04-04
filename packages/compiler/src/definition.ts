@@ -194,6 +194,21 @@ export interface ModelMetadata {
   };
 }
 
+export type CommandArgDefinition = {
+  type: "string" | "number" | "boolean";
+  default?: any;
+  required?: boolean;
+  alias?: string;
+  description?: string;
+  deprecated?: string;
+};
+
+export type CommandDefinition = {
+  description: string;
+  method: string;
+  args: { [name: string]: CommandArgDefinition };
+};
+
 export type ServiceMetadata = {
   /**
    * File to import
@@ -207,6 +222,15 @@ export type ServiceMetadata = {
    * Configuration for the service
    */
   Configuration?: string;
+  /**
+   * Capabilities provided by this service
+   * Detected from interfaces tagged with @WebdaCapability
+   */
+  capabilities?: string[];
+  /**
+   * CLI commands declared via @Command decorator
+   */
+  commands?: { [name: string]: CommandDefinition };
 };
 
 /**

@@ -100,6 +100,8 @@ jobs:
           postgresql db: webda.io
           postgresql init scripts: packages/postgres/test/sql
 
+      - uses: oven-sh/setup-bun@v2
+
       - name: Install dependencies
         run: pnpm install
 

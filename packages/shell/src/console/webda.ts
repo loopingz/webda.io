@@ -857,6 +857,10 @@ ${Object.keys(operationsExport.operations)
     // Load each files
     for (const i in files) {
       try {
+        this.log(
+          "WARN",
+          `Deprecation: ${files[i]} is deprecated. Migrate commands to @Command decorators on services. See https://docs.webda.io/migration/commands`
+        );
         const info = JSON.parse(fs.readFileSync(files[i]).toString());
         for (const j in info.commands) {
           WebdaConsole.extensions[j] = info.commands[j];

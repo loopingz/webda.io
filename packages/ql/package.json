@@ -18,7 +18,7 @@
     "test": "vitest run",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
-    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts -ig 'src/Webda*.ts'",
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {

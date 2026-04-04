@@ -1,6 +1,6 @@
 import { CloudEvent } from "cloudevents";
 import { FilterImplementation } from "./abstract";
-import { Filter } from ".";
+import { Filter } from "./types";
 
 /**
  * Use of this MUST include exactly one nested property, where the key is the name of the

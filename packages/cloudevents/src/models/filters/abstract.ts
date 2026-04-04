@@ -1,5 +1,5 @@
 import { CloudEvent } from "cloudevents";
-import { Filter } from ".";
+import { Filter } from "./types";
 
 /**
  * Implementation of a defined filter

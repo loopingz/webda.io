@@ -1,4 +1,3 @@
-import { Model } from "../model";
 import type { ModelRefWithCreate } from "../relations";
 import { PrimaryKeyType, SettablePrimaryKey, WEBDA_PRIMARY_KEY, type Storable, type ModelClass } from "../storable";
 import { Helpers } from "../types";
@@ -16,11 +15,8 @@ export function useRepository<T extends ModelClass>(arg: T): Repository<T> {
   let clazz: any = arg;
   while (!Repositories.has(clazz)) {
     clazz = Object.getPrototypeOf(clazz);
-    if (clazz === Model) {
-      if (!Repositories.has(clazz)) {
-        throw new Error(`No repository found for ${arg.prototype.constructor.name}`);
-      }
-      break;
+    if (clazz === null || clazz === Object) {
+      throw new Error(`No repository found for ${arg.prototype.constructor.name}`);
     }
   }
   return Repositories.get(clazz) as Repository<T>;

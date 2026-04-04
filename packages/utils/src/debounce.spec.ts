@@ -170,7 +170,7 @@ export class DebounceTest {
         callCount++;
       },
       100,
-      { maxWait: 150 }
+      { maxWait: 130 }
     );
 
     // Call repeatedly

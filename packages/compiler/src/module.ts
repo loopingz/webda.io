@@ -10,6 +10,7 @@ import { dirname, join, relative } from "path";
 import { ModelMetadata, WebdaModule } from "./definition";
 import { ActionsMetadata } from "./metadata/actions";
 import { CapabilitiesMetadata } from "./metadata/capabilities";
+import { CommandsMetadata } from "./metadata/commands";
 import { EventsMetadata } from "./metadata/events";
 import { PrimaryKeyMetadata } from "./metadata/primarykey";
 import { PluralMetadata } from "./metadata/plural";
@@ -995,6 +996,7 @@ export class ModuleGenerator {
     const plugins = [
       new ActionsMetadata(this),
       new CapabilitiesMetadata(this),
+      new CommandsMetadata(this),
       new EventsMetadata(this),
       new PrimaryKeyMetadata(this),
       new PluralMetadata(this)

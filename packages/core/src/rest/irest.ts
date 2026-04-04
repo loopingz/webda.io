@@ -107,10 +107,26 @@ export interface RouteInfo {
  * RequestFilter allow a service which implement it to control incoming request
  *
  * If one of the filter replies with "true" then the request will go through
+ * @WebdaCapability request-filter
  */
 export interface RequestFilter<T extends IWebContext = IWebContext> {
   /**
    * Return true if the request should be allowed
+   *
+   * @param context to check for
+   */
+  checkRequest(context: T, type: "CORS" | "AUTH"): Promise<boolean>;
+}
+
+/**
+ * CORSFilter allow a service to control CORS requests
+ *
+ * Does not apply in devMode
+ * @WebdaCapability cors-filter
+ */
+export interface CORSFilter<T extends IWebContext = IWebContext> {
+  /**
+   * Return true if the CORS request should be allowed
    *
    * @param context to check for
    */

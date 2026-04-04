@@ -142,4 +142,8 @@ export interface IRouter {
   registerRequestFilter(filter: RequestFilter);
   registerCORSFilter(filter: RequestFilter);
   execute(context: IWebContext): Promise<void>;
+  /**
+   * Auto-discover services with request-filter and cors-filter capabilities
+   */
+  discoverFilters(services: Iterable<{ getCapabilities(): Record<string, any> }>): void;
 }

@@ -625,4 +625,20 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   registerCORSFilter(filter: RequestFilter) {
     this._requestCORSFilters.push(filter);
   }
+
+  /**
+   * Auto-discover services with request-filter and cors-filter capabilities
+   * Called during framework initialization after all services are resolved
+   */
+  discoverFilters(services: Iterable<Service>): void {
+    for (const service of services) {
+      const caps = service.getCapabilities();
+      if ("request-filter" in caps) {
+        this.registerRequestFilter(service as unknown as RequestFilter);
+      }
+      if ("cors-filter" in caps) {
+        this.registerCORSFilter(service as unknown as RequestFilter);
+      }
+    }
+  }
 }

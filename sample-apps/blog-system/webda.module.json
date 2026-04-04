@@ -336,16 +336,6 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "definitions": {
-            "comments[]&2": {
-              "additionalProperties": false,
-              "type": "object"
-            },
-            "tags[]&2": {
-              "additionalProperties": false,
-              "type": "object"
-            }
-          },
           "description": "Post model representing blog posts",
           "properties": {
             "author": {
@@ -363,7 +353,7 @@
                     "type": "object"
                   },
                   {
-                    "$ref": "#/definitions/comments%5B%5D%262"
+                    "type": "object"
                   },
                   {
                     "additionalProperties": false,
@@ -415,7 +405,7 @@
                     "type": "object"
                   },
                   {
-                    "$ref": "#/definitions/tags%5B%5D%262"
+                    "type": "object"
                   },
                   {
                     "additionalProperties": false,
@@ -454,16 +444,6 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "definitions": {
-            "comments[]&2": {
-              "additionalProperties": false,
-              "type": "object"
-            },
-            "tags[]&2": {
-              "additionalProperties": false,
-              "type": "object"
-            }
-          },
           "description": "Post model representing blog posts",
           "properties": {
             "author": {
@@ -481,7 +461,7 @@
                     "type": "object"
                   },
                   {
-                    "$ref": "#/definitions/comments%5B%5D%262"
+                    "type": "object"
                   },
                   {
                     "additionalProperties": false,
@@ -545,7 +525,7 @@
                     "type": "object"
                   },
                   {
-                    "$ref": "#/definitions/tags%5B%5D%262"
+                    "type": "object"
                   },
                   {
                     "additionalProperties": false,
@@ -592,16 +572,6 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "definitions": {
-            "comments[]&2": {
-              "additionalProperties": false,
-              "type": "object"
-            },
-            "tags[]&2": {
-              "additionalProperties": false,
-              "type": "object"
-            }
-          },
           "description": "Post model representing blog posts",
           "properties": {
             "author": {
@@ -619,7 +589,7 @@
                     "type": "object"
                   },
                   {
-                    "$ref": "#/definitions/comments%5B%5D%262"
+                    "type": "object"
                   },
                   {
                     "additionalProperties": false,
@@ -683,7 +653,7 @@
                     "type": "object"
                   },
                   {
-                    "$ref": "#/definitions/tags%5B%5D%262"
+                    "type": "object"
                   },
                   {
                     "additionalProperties": false,

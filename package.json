@@ -34,6 +34,8 @@
   "scripts": {
     "build": "pnpm -r --workspace-concurrency=1 run build",
     "test": "pnpm -r run test",
+    "test:mocha": "pnpm -r run test:mocha",
+    "test:jest": "pnpm -r run test:jest",
     "new-version": "pnpm run build && pnpm -r exec pnpm version --no-git-tag-version",
     "new-module": "pnpm webda init webda:module",
     "lint": "pnpm -r run lint",

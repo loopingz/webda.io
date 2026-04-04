@@ -109,18 +109,13 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Run tests
-        run: pnpm -r --filter=!@webda/shell run test
+        run: pnpm run test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
           GCS_API_ENDPOINT: http://storage.gcs.127.0.0.1.nip.io:4443
           PUBSUB_EMULATOR_HOST: 127.0.0.1:8085
           FIRESTORE_EMULATOR_HOST: 127.0.0.1:8289
           GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/webda.io/webda.io/packages/gcp/webda-test.json
-
-      - name: Run shell tests
-        run: pnpm --filter @webda/shell run test
-        env:
-          NODE_OPTIONS: "--max-old-space-size=6144"
 
       - name: Check for circular dependencies
         run: pnpm run deps:graph

@@ -151,6 +151,7 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
     this: T & { fromJSON?: (data: any) => InstanceType<T>; getStaticProperties?: () => any },
     overwrite: boolean = true
   ): void {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const clazz: T & { fromJSON?: (data: any) => InstanceType<T>; getStaticProperties?: () => any } = this;
     if (!clazz.getStaticProperties) {
       clazz.getStaticProperties = () => ({}) as any;

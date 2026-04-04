@@ -282,47 +282,66 @@ export class UnpackedApplication extends Application {
    * @returns
    */
   @ProcessCache()
-  static async findModulesFiles<T extends any>(this: T, path: string): Promise<string[]> {
+  static async findModulesFiles<T>(this: T, path: string): Promise<string[]> {
     if (!path.endsWith("node_modules") || !fs.existsSync(path)) {
       return [];
     }
-    const files = new Set<string>();
-    const checkFolder = async (filepath: string) => {
-      if (fs.existsSync(join(filepath, "webda.module.json"))) {
-        files.add(join(filepath, "webda.module.json"));
+    // Track visited directories (by realpath) to prevent infinite loops
+    // caused by pnpm's symlink structure where workspace packages
+    // reference each other through nested node_modules
+    const visited = new Set<string>();
+
+    const scanNodeModules = async (nmPath: string): Promise<string[]> => {
+      const realNmPath = await fs.promises.realpath(nmPath).catch(() => nmPath);
+      if (visited.has(realNmPath)) {
+        return [];
       }
-      if (fs.existsSync(join(filepath, "node_modules"))) {
-        (await UnpackedApplication.findModulesFiles(join(filepath, "node_modules"))).forEach(f => files.add(f));
+      visited.add(realNmPath);
+
+      if (!fs.existsSync(nmPath)) {
+        return [];
       }
-    };
-    const recursiveSearch = async (dirpath: string, depth: number = 0) => {
-      await Promise.all(
-        (await fs.promises.readdir(dirpath, { withFileTypes: true })).map(async file => {
-          if (file.name.startsWith(".")) {
-            return;
-          }
-          const filepath = join(dirpath, file.name);
-          if (file.isDirectory() && file.name.startsWith("@") && depth === 0) {
-            // One recursion
-            await recursiveSearch(filepath, depth + 1);
-          } else if (file.isDirectory()) {
-            await checkFolder(filepath);
-          } else if (file.isSymbolicLink()) {
-            // We want to follow symbolic links w/o increasing depth
-            let realPath;
-            try {
-              // realpathSync will throw if the symlink is broken
-              realPath = await fs.promises.realpath(filepath);
-            } catch (err) {
+
+      const files = new Set<string>();
+      const checkFolder = async (filepath: string) => {
+        if (fs.existsSync(join(filepath, "webda.module.json"))) {
+          files.add(join(filepath, "webda.module.json"));
+        }
+        if (fs.existsSync(join(filepath, "node_modules"))) {
+          (await scanNodeModules(join(filepath, "node_modules"))).forEach(f => files.add(f));
+        }
+      };
+      const recursiveSearch = async (dirpath: string, depth: number = 0) => {
+        await Promise.all(
+          (await fs.promises.readdir(dirpath, { withFileTypes: true })).map(async file => {
+            if (file.name.startsWith(".")) {
               return;
             }
-            await checkFolder(realPath);
-          }
-        })
-      );
+            const filepath = join(dirpath, file.name);
+            if (file.isDirectory() && file.name.startsWith("@") && depth === 0) {
+              // One recursion
+              await recursiveSearch(filepath, depth + 1);
+            } else if (file.isDirectory()) {
+              await checkFolder(filepath);
+            } else if (file.isSymbolicLink()) {
+              // We want to follow symbolic links w/o increasing depth
+              let realPath;
+              try {
+                // realpathSync will throw if the symlink is broken
+                realPath = await fs.promises.realpath(filepath);
+              } catch (err) {
+                return;
+              }
+              await checkFolder(realPath);
+            }
+          })
+        );
+      };
+      await recursiveSearch(nmPath, 0);
+      return [...files];
     };
-    await recursiveSearch(path, 0);
-    return [...files];
+
+    return scanNodeModules(path);
   }
 
   /**
@@ -397,10 +416,11 @@ export class UnpackedApplication extends Application {
           return;
         }
         for (const key in module[SectionEnum[p]]) {
-          module[SectionEnum[p]][key].Import = join(
-            relative(this.getPath(), dirname(moduleFile)),
-            module[SectionEnum[p]][key].Import
-          );
+          const relBase = relative(this.getPath(), dirname(moduleFile));
+          module[SectionEnum[p]][key].Import = join(relBase, module[SectionEnum[p]][key].Import);
+          if (module[SectionEnum[p]][key].Configuration) {
+            module[SectionEnum[p]][key].Configuration = join(relBase, module[SectionEnum[p]][key].Configuration);
+          }
         }
       });
     return module;

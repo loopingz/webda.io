@@ -10,8 +10,8 @@
   "main": "lib/cache.js",
   "typings": "lib/cache.d.ts",
   "scripts": {
-    "build": "tsc-esm",
-    "build:watch": "tsc-esm --watch",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
     "pretest": "npm run build",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
@@ -21,17 +21,19 @@
     "test:watch": "vitest",
     "test:debug": "vitest debug",
     "test:coverage": "vitest run --coverage",
-    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts"
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts"
   },
-  "dependencies": {},
   "devDependencies": {
-    "@types/node": "22.0.0",
-    "@vitest/coverage-v8": "^2.1.9",
-    "skott": "^0.35.3",
-    "vitest": "^2.1.9",
-    "jscodeshift": "^17.0.0",
-    "@webda/compiler": "^4.0.0-beta.2",
-    "@webda/decorators": "^4.0.0-beta.1"
+    "@types/node": "25.5.0",
+    "@vitest/coverage-v8": "^4.1.2",
+    "@webda/compiler": "workspace:^",
+    "@webda/decorators": "workspace:^",
+    "@webda/test": "workspace:*",
+    "jscodeshift": "^17.3.0",
+    "skott": "^0.35.8",
+    "typescript": "6.0.2",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
   },
   "files": [
     "lib"

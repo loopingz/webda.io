@@ -25,14 +25,8 @@ import {
   UnaryNumericExpressionContext
 } from "./sql/CESQLParserParser";
 import { CESQLParserVisitor } from "./sql/CESQLParserVisitor";
-import {
-  ExactFilter,
-  ExactFilterImplementation,
-  PrefixFilter,
-  PrefixFilterImplementation,
-  SuffixFilter,
-  SuffixFilterImplementation
-} from "./string";
+import type { ExactFilter, PrefixFilter, SuffixFilter } from "./types";
+import { ExactFilterImplementation, PrefixFilterImplementation, SuffixFilterImplementation } from "./string";
 
 /**
  * Use of this MUST have a string value, representing a CloudEvents SQL Expression.

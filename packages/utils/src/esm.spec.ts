@@ -1,5 +1,5 @@
 import { suite, test } from "@webda/test";
-import { getCommonJS } from "./index";
+import { getCommonJS } from "./esm.js";
 import * as assert from "assert";
 
 @suite

@@ -28,7 +28,7 @@ export class Vulnerability implements Storable<Vulnerability, "id">, Actionable 
   [WEBDA_EVENTS]: VulnerabilityEvents<this>;
   [WEBDA_PRIMARY_KEY]: readonly "id"[] = ["id"] as const;
   [WEBDA_ACTIONS]: {
-    update: {};
+    update: object;
   };
   [WEBDA_PLURAL] = "Vulnerabilities";
   id: string;

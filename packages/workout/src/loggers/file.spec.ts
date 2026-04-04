@@ -1,35 +1,33 @@
-import { suite, test } from "@webda/test";
+import { describe, it, beforeEach } from "vitest";
 import * as assert from "assert";
 import { readdirSync, unlinkSync, writeFileSync } from "fs";
-import { WorkerMessage, WorkerLog, WorkerOutput } from "../core";
-import { DebugLogger } from "./debug";
-import { FileLogger } from "./file";
+import { WorkerMessage, WorkerLog, WorkerOutput } from "../core.js";
+import { DebugLogger } from "./debug.js";
+import { FileLogger } from "./file.js";
 
-@suite
-class FileConsoleTest {
-  output: WorkerOutput;
-  calls: any[];
-  beforeEach() {
-    this.output = new WorkerOutput();
-    this.clean();
-  }
+describe("FileConsoleTest", () => {
+  let output: WorkerOutput;
 
-  clean() {
+  function clean() {
     const files = readdirSync(".").filter(f => f.startsWith("test-file"));
     files.forEach(f => unlinkSync(f));
     return files.length;
   }
 
-  @test
-  async testLogsOnlyAndFilter() {
-    const logger = new FileLogger(this.output, "TRACE", "./test-file.log");
+  beforeEach(() => {
+    output = new WorkerOutput();
+    clean();
+  });
+
+  it("testLogsOnlyAndFilter", async () => {
+    const logger = new FileLogger(output, "TRACE", "./test-file.log");
     writeFileSync("./test-file2.log", "PAD\n".repeat(50));
 
-    const logger2 = new FileLogger(this.output, "DEBUG", "./test-file2.log", 5000, "%(d)s [%(l)s] %(m)s");
+    const logger2 = new FileLogger(output, "DEBUG", "./test-file2.log", 5000, "%(d)s [%(l)s] %(m)s");
     for (let i = 0; i < 200; i++) {
-      this.output.log("DEBUG", `Test ${i}`);
+      output.log("DEBUG", `Test ${i}`);
     }
-    this.output.log("TRACE", `Trace`);
+    output.log("TRACE", `Trace`);
     for (let i = 0; i < 50; i++) {
       if (readdirSync(".").filter(f => f.startsWith("test-file")).length === 3) {
         break;
@@ -48,25 +46,23 @@ class FileConsoleTest {
     logger2.outputStream.close();
 
     // 2 for logger2 and 1 for logger1
-    assert.ok(this.clean() === 3);
-  }
+    assert.ok(clean() === 3);
+  });
 
-  @test
-  async debugLogger() {
-    const logger = new DebugLogger(this.output, "./test-file-debug.log");
+  it("debugLogger", async () => {
+    const logger = new DebugLogger(output, "./test-file-debug.log");
     assert.strictEqual(logger.filter(), true);
     assert.notStrictEqual(
       logger
-        .getLine(new WorkerMessage("log", this.output, {}))
+        .getLine(new WorkerMessage("log", output, {}))
         .match(/log:\d+:\{"progresses":\{\},"groups":\[\],"type":"log","timestamp":\d+}\n/),
       undefined
     );
     await new Promise(resolve => process.nextTick(resolve));
-    this.clean();
-  }
+    clean();
+  });
 
-  @test
-  cov() {
-    assert.throws(() => new FileLogger(this.output, "TRACE", <any>undefined));
-  }
-}
+  it("cov", () => {
+    assert.throws(() => new FileLogger(output, "TRACE", <any>undefined));
+  });
+});

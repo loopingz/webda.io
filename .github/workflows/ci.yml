@@ -20,14 +20,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ["20", "22"]
+        node: ["22", "24", "current"]
     name: Build with NodeJS v${{ matrix.node }}
     env:
       FORCE_COLOR: 1
 
     services:
       localstack:
-        image: localstack/localstack:latest
+        image: localstack/localstack:3.6.0 # Cannot use latest until we get an OSS license
         ports:
           - 4566:4566
         env:
@@ -53,20 +53,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
 
-      - uses: fsouza/fake-gcs-action@v0.4.1
+      - uses: fsouza/fake-gcs-action@f8e805c9cef6056421b73390d078b2fb467b989c # v0.4.2
         with:
-          version: "1.49.2"
+          version: "1.54.0"
           backend: memory
           location: "US-WEST2"
           public-host: "storage.gcs.127.0.0.1.nip.io:4443"
           external-url: "http://storage.gcs.127.0.0.1.nip.io:4443"
           scheme: http
 
-      - uses: "google-github-actions/setup-gcloud@v2"
+      - uses: "google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db" # v3.0.1
         with:
           install_components: "cloud-firestore-emulator,pubsub-emulator"
 
@@ -83,14 +85,14 @@ jobs:
           gcloud --quiet alpha emulators firestore start --host-port=127.0.0.1:8289 &
 
       - name: Runs Elasticsearch
-        uses: elastic/elastic-github-actions/elasticsearch@master
+        uses: elastic/elastic-github-actions/elasticsearch@98431b45a60cbb6ace481778827bc8e11f12fd65
         with:
           stack-version: 8.15.0
           security-enabled: false
           wait: 0
 
       - name: Setup postgresql
-        uses: Softwarepark/postgresql-action@v2
+        uses: Softwarepark/postgresql-action@92b6750bf30f39d64489c77d38a1675dfb4a8bc0 # v2
         with:
           postgresql version: "15" # See https://hub.docker.com/_/postgres for available versions
           postgresql password: webda.io
@@ -98,14 +100,18 @@ jobs:
           postgresql db: webda.io
           postgresql init scripts: packages/postgres/test/sql
 
+      - uses: oven-sh/setup-bun@v2
+
       - name: Install dependencies
-        run: yarn install
+        run: pnpm install
 
       - name: Build
-        run: yarn run build:ci # Build is required as we use sample-app for some tests
+        run: pnpm run build # Build is required as we use sample-app for some tests
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Run tests
-        run: yarn run test --exclude @webda/shell
+        run: pnpm run test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
           GCS_API_ENDPOINT: http://storage.gcs.127.0.0.1.nip.io:4443
@@ -113,25 +119,20 @@ jobs:
           FIRESTORE_EMULATOR_HOST: 127.0.0.1:8289
           GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/webda.io/webda.io/packages/gcp/webda-test.json
 
-      - name: Run shell tests
-        run: yarn run nx run @webda/shell:test
-        env:
-          NODE_OPTIONS: "--max-old-space-size=6144"
-
       - name: Check for circular dependencies
-        run: yarn run nx deps:graph
+        run: pnpm run deps:graph
 
       - name: Lint
-        run: yarn run lint
+        run: pnpm run lint
 
       - name: Check with mocha
-        run: yarn run test:mocha
+        run: pnpm run test:mocha
 
       - name: Check with jest
-        run: yarn run test:jest
+        run: pnpm run test:jest
 
       - name: Check with bun
-        run: yarn run test:bun
+        run: pnpm run test:bun
 
       - name: CodeCov
         uses: codecov/codecov-action@v2

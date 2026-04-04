@@ -1,4 +1,4 @@
-import { expect, test, jest } from "@jest/globals";
+import { expect, test, vi } from "vitest";
 import { CloudEvent } from "cloudevents";
 import { FiltersHelper } from ".";
 import { SqlFilterImplementation, LikeExpression, AttributeExpression, InExpression, ValueExpression } from "./sql";
@@ -419,7 +419,7 @@ test("SQLFilter optimization", async () => {
 test("SQLFilter COV", () => {
   let error;
   try {
-    error = jest.spyOn(console, "error").mockImplementation(() => {});
+    error = vi.spyOn(console, "error").mockImplementation(() => {});
     // SQL should be optimized and compute when it can be
     expect(new SqlFilterImplementation({ sql: '"TEST" = TRUE OR 1 > 3' }).query.toString()).toBe("FALSE");
     expect(new SqlFilterImplementation({ sql: "1 <= 3" }).query.toString()).toBe("TRUE");

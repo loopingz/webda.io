@@ -35,7 +35,7 @@ npx @webda/shell init
 Inside your project, just launch:
 
 ```
-yarn new-module
+pnpm new-module
 ```
 
 #### Create a new service
@@ -43,7 +43,7 @@ yarn new-module
 Inside your package, just launch:
 
 ```
-yarn new-service
+pnpm new-service
 ```
 
 #### Create a new model
@@ -51,7 +51,7 @@ yarn new-service
 Inside your package, just launch:
 
 ```
-yarn new-model
+pnpm new-model
 ```
 
 #### Run it

@@ -3,6 +3,7 @@
     "target": "ES2022",
     "module": "nodenext",
     "outDir": "./lib",
+    "rootDir": "./src",
     "strict": false,
     "declaration": true,
     "sourceMap": true,
@@ -14,13 +15,24 @@
     "declarationMap": true,
     "useDefineForClassFields": true,
     "strictPropertyInitialization": false,
-    "lib": ["ES2022", "ESNext.Decorators"],
+    "lib": [
+      "ES2022",
+      "ESNext.Decorators"
+    ],
     "plugins": [
       {
         "name": "@webda/ts-plugin"
       }
+    ],
+    "types": [
+      "node"
     ]
   },
-  "include": ["src/**/*"],
-  "exclude": ["**/node_modules", "src/**/*.spec.ts"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "src/**/*.spec.ts"
+  ]
 }

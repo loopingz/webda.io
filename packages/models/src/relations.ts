@@ -7,7 +7,6 @@ import {
   PrimaryKeyEquals,
   AttributesArgument,
   PrimaryKeyAttributes,
-  UpdatableAttributes,
   WEBDA_PRIMARY_KEY,
   ModelClass
 } from "./storable";
@@ -471,7 +470,7 @@ export type ModelParent<T extends Storable> = ModelLink<T>;
  */
 export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
   [RelationRole]: "Links" = "Links" as const;
-  [RelationAttributes]: {};
+  [RelationAttributes]: object;
   protected [RelationRepository]: Repository<ModelClass<T>>;
 
   // COMPOSITION: Internal array instead of extending Array
@@ -1038,7 +1037,7 @@ export type OneToOne<T extends Storable> = ModelLink<T>;
  * Alias for a many-to-many relation.
  * If K (custom properties) is provided, uses ModelLinksArray; otherwise ModelLinksSimpleArray.
  */
-export type ManyToMany<T extends Storable, K extends object = {}> = K extends object
+export type ManyToMany<T extends Storable, K extends object = object> = K extends object
   ? ModelLinksArray<T, K>
   : ModelLinksSimpleArray<T>;
 

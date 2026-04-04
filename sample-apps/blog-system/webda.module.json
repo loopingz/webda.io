@@ -1,0 +1,1739 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {
+    "WebdaSample/TestBean": {
+      "Import": "lib/services/bean:TestBean",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "service": {
+            "enum": [
+              "Registry",
+              "CryptoService",
+              "SessionManager",
+              "Mailer",
+              "TestBean"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "service",
+          "type"
+        ],
+        "type": "object",
+        "title": "TestBean"
+      },
+      "Configuration": "lib/services/bean:TestBeanParameters"
+    }
+  },
+  "deployers": {},
+  "moddas": {
+    "WebdaSample/Publisher": {
+      "Import": "lib/services/publisher:Publisher",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "Publisher"
+      }
+    }
+  },
+  "models": {
+    "WebdaSample/Comment": {
+      "Plural": "Comments",
+      "Import": "lib/models/Comment:Comment",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "content": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "Date"
+        },
+        "updatedAt": {
+          "type": "Date"
+        },
+        "isEdited": {
+          "type": "boolean"
+        },
+        "post": {
+          "type": "BelongTo",
+          "typeParameters": [
+            "Post"
+          ]
+        },
+        "author": {
+          "type": "BelongTo",
+          "typeParameters": [
+            "User"
+          ]
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Comment model for post comments",
+          "properties": {
+            "author": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "content": {
+              "description": "Comment content",
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "isEdited": {
+              "default": false,
+              "description": "Whether comment is edited",
+              "type": "boolean"
+            },
+            "post": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "author",
+            "content",
+            "post",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Comment model for post comments",
+          "properties": {
+            "author": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "content": {
+              "description": "Comment content",
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "createdAt": {
+              "description": "Comment creation date",
+              "format": "date-time",
+              "readonly": true,
+              "type": "string"
+            },
+            "isEdited": {
+              "default": false,
+              "description": "Whether comment is edited",
+              "type": "boolean"
+            },
+            "post": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "updatedAt": {
+              "description": "Last update date",
+              "format": "date-time",
+              "readonly": true,
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "author",
+            "content",
+            "createdAt",
+            "post",
+            "updatedAt",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Comment model for post comments",
+          "properties": {
+            "author": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "content": {
+              "description": "Comment content",
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "createdAt": {
+              "description": "Comment creation date",
+              "format": "date-time",
+              "readonly": true,
+              "type": "string"
+            },
+            "isEdited": {
+              "default": false,
+              "description": "Whether comment is edited",
+              "type": "boolean"
+            },
+            "post": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "updatedAt": {
+              "description": "Last update date",
+              "format": "date-time",
+              "readonly": true,
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "author",
+            "content",
+            "createdAt",
+            "post",
+            "updatedAt",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "WebdaSample/Comment"
+    },
+    "WebdaSample/Post": {
+      "Plural": "Posts",
+      "Import": "lib/models/Post:Post",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "title": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "excerpt": {
+          "type": "string"
+        },
+        "featuredImage": {
+          "type": "string"
+        },
+        "status": {
+          "type": "\"draft\" | \"published\" | \"archived\""
+        },
+        "viewCount": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "Date"
+        },
+        "updatedAt": {
+          "type": "Date"
+        },
+        "publishedAt": {
+          "type": "Date"
+        },
+        "author": {
+          "type": "BelongTo",
+          "typeParameters": [
+            "User"
+          ]
+        },
+        "comments": {
+          "type": "Contains",
+          "typeParameters": [
+            "Comment"
+          ]
+        },
+        "tags": {
+          "type": "ManyToMany",
+          "typeParameters": [
+            "Tag"
+          ]
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Post model representing blog posts",
+          "properties": {
+            "author": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "comments": {
+              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "items": {
+                "allOf": [
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  },
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  }
+                ],
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+              },
+              "type": "array"
+            },
+            "content": {
+              "description": "Post content (markdown)",
+              "minLength": 10,
+              "type": "string"
+            },
+            "excerpt": {
+              "description": "Post excerpt for listings",
+              "maxLength": 500,
+              "type": "string"
+            },
+            "featuredImage": {
+              "description": "Featured image URL",
+              "format": "uri",
+              "type": "string"
+            },
+            "slug": {
+              "description": "URL-friendly slug",
+              "maxLength": 250,
+              "minLength": 5,
+              "pattern": "^[a-z0-9-]+$",
+              "type": "string"
+            },
+            "status": {
+              "description": "Publication status",
+              "enum": [
+                "draft",
+                "published",
+                "archived",
+                true
+              ],
+              "type": "string"
+            },
+            "tags": {
+              "description": "PUT|GET /posts/:slug/tags to get all tags for a post with a query\nPOST /posts/:slug/tags/123 to add a tag\nDELETE /posts/:slug/tags/123 to remove a tag\nPATCH /posts/:slug to update tags with an array of tag slugs\nPUT /posts/:slug to replace tags with an array of tag slugs, if tags is not defined nothing is changed\n\nOn the other side\nPUT|GET /tags/:slug/posts to get all posts with that tag with a query\nPOST /tags/:slug/posts/:postSlug to add a post\nDELETE /tags/:slug/posts/:postSlug to remove a post\nPATCH /tags/:slug to update posts with an array of post slugs\nPUT /tags/:slug to replace posts with an array of post slugs, if posts is not defined nothing is changed\n\nThis is a many-to-many relation that demonstrates the power of composite keys and join tables\nwith full type inference and relation management.",
+              "items": {
+                "allOf": [
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  },
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  }
+                ],
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+              },
+              "type": "array"
+            },
+            "title": {
+              "description": "Post title",
+              "maxLength": 200,
+              "minLength": 5,
+              "type": "string"
+            },
+            "viewCount": {
+              "description": "View count",
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required": [
+            "author",
+            "comments",
+            "content",
+            "slug",
+            "status",
+            "tags",
+            "title",
+            "viewCount"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Post model representing blog posts",
+          "properties": {
+            "author": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "comments": {
+              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "items": {
+                "allOf": [
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  },
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  }
+                ],
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+              },
+              "type": "array"
+            },
+            "content": {
+              "description": "Post content (markdown)",
+              "minLength": 10,
+              "type": "string"
+            },
+            "createdAt": {
+              "description": "Post creation date",
+              "format": "date-time",
+              "readonly": true,
+              "type": "string"
+            },
+            "excerpt": {
+              "description": "Post excerpt for listings",
+              "maxLength": 500,
+              "type": "string"
+            },
+            "featuredImage": {
+              "description": "Featured image URL",
+              "format": "uri",
+              "type": "string"
+            },
+            "publishedAt": {
+              "description": "Publication date",
+              "format": "date-time",
+              "readonly": true,
+              "type": "string"
+            },
+            "slug": {
+              "description": "URL-friendly slug",
+              "maxLength": 250,
+              "minLength": 5,
+              "pattern": "^[a-z0-9-]+$",
+              "type": "string"
+            },
+            "status": {
+              "description": "Publication status",
+              "enum": [
+                "draft",
+                "published",
+                "archived",
+                true
+              ],
+              "type": "string"
+            },
+            "tags": {
+              "description": "PUT|GET /posts/:slug/tags to get all tags for a post with a query\nPOST /posts/:slug/tags/123 to add a tag\nDELETE /posts/:slug/tags/123 to remove a tag\nPATCH /posts/:slug to update tags with an array of tag slugs\nPUT /posts/:slug to replace tags with an array of tag slugs, if tags is not defined nothing is changed\n\nOn the other side\nPUT|GET /tags/:slug/posts to get all posts with that tag with a query\nPOST /tags/:slug/posts/:postSlug to add a post\nDELETE /tags/:slug/posts/:postSlug to remove a post\nPATCH /tags/:slug to update posts with an array of post slugs\nPUT /tags/:slug to replace posts with an array of post slugs, if posts is not defined nothing is changed\n\nThis is a many-to-many relation that demonstrates the power of composite keys and join tables\nwith full type inference and relation management.",
+              "items": {
+                "allOf": [
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  },
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  }
+                ],
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+              },
+              "type": "array"
+            },
+            "title": {
+              "description": "Post title",
+              "maxLength": 200,
+              "minLength": 5,
+              "type": "string"
+            },
+            "updatedAt": {
+              "description": "Last update date",
+              "format": "date-time",
+              "readonly": true,
+              "type": "string"
+            },
+            "viewCount": {
+              "description": "View count",
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required": [
+            "author",
+            "comments",
+            "content",
+            "createdAt",
+            "slug",
+            "status",
+            "tags",
+            "title",
+            "updatedAt",
+            "viewCount"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Post model representing blog posts",
+          "properties": {
+            "author": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "comments": {
+              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "items": {
+                "allOf": [
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  },
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  }
+                ],
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+              },
+              "type": "array"
+            },
+            "content": {
+              "description": "Post content (markdown)",
+              "minLength": 10,
+              "type": "string"
+            },
+            "createdAt": {
+              "description": "Post creation date",
+              "format": "date-time",
+              "readonly": true,
+              "type": "string"
+            },
+            "excerpt": {
+              "description": "Post excerpt for listings",
+              "maxLength": 500,
+              "type": "string"
+            },
+            "featuredImage": {
+              "description": "Featured image URL",
+              "format": "uri",
+              "type": "string"
+            },
+            "publishedAt": {
+              "description": "Publication date",
+              "format": "date-time",
+              "readonly": true,
+              "type": "string"
+            },
+            "slug": {
+              "description": "URL-friendly slug",
+              "maxLength": 250,
+              "minLength": 5,
+              "pattern": "^[a-z0-9-]+$",
+              "type": "string"
+            },
+            "status": {
+              "description": "Publication status",
+              "enum": [
+                "draft",
+                "published",
+                "archived",
+                true
+              ],
+              "type": "string"
+            },
+            "tags": {
+              "description": "PUT|GET /posts/:slug/tags to get all tags for a post with a query\nPOST /posts/:slug/tags/123 to add a tag\nDELETE /posts/:slug/tags/123 to remove a tag\nPATCH /posts/:slug to update tags with an array of tag slugs\nPUT /posts/:slug to replace tags with an array of tag slugs, if tags is not defined nothing is changed\n\nOn the other side\nPUT|GET /tags/:slug/posts to get all posts with that tag with a query\nPOST /tags/:slug/posts/:postSlug to add a post\nDELETE /tags/:slug/posts/:postSlug to remove a post\nPATCH /tags/:slug to update posts with an array of post slugs\nPUT /tags/:slug to replace posts with an array of post slugs, if posts is not defined nothing is changed\n\nThis is a many-to-many relation that demonstrates the power of composite keys and join tables\nwith full type inference and relation management.",
+              "items": {
+                "allOf": [
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  },
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  }
+                ],
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+              },
+              "type": "array"
+            },
+            "title": {
+              "description": "Post title",
+              "maxLength": 200,
+              "minLength": 5,
+              "type": "string"
+            },
+            "updatedAt": {
+              "description": "Last update date",
+              "format": "date-time",
+              "readonly": true,
+              "type": "string"
+            },
+            "viewCount": {
+              "description": "View count",
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required": [
+            "author",
+            "comments",
+            "content",
+            "createdAt",
+            "slug",
+            "status",
+            "tags",
+            "title",
+            "updatedAt",
+            "viewCount"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {
+        "publish": {}
+      },
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Publish"
+      ],
+      "PrimaryKey": [
+        "slug"
+      ],
+      "Identifier": "WebdaSample/Post"
+    },
+    "WebdaSample/PostTag": {
+      "Plural": "PostTags",
+      "Import": "lib/models/PostTag:PostTag",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "createdAt": {
+          "type": "Date"
+        },
+        "post": {
+          "type": "BelongTo",
+          "typeParameters": [
+            "Post"
+          ]
+        },
+        "tag": {
+          "type": "RelateTo",
+          "typeParameters": [
+            "Tag"
+          ]
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "PostTag join table demonstrating composite primary keys\n\nThis is a classic many-to-many join table that shows the power\nof composite keys with full type inference.",
+          "properties": {
+            "createdAt": {
+              "description": "When this relationship was created",
+              "format": "date-time",
+              "type": "string"
+            },
+            "post": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "tag": {
+              "description": "Alias for ModelLink - defines a relation to another model.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "post",
+            "tag"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "PostTag join table demonstrating composite primary keys\n\nThis is a classic many-to-many join table that shows the power\nof composite keys with full type inference.",
+          "properties": {
+            "createdAt": {
+              "description": "When this relationship was created",
+              "format": "date-time",
+              "type": "string"
+            },
+            "post": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "tag": {
+              "description": "Alias for ModelLink - defines a relation to another model.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "post",
+            "tag"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "PostTag join table demonstrating composite primary keys\n\nThis is a classic many-to-many join table that shows the power\nof composite keys with full type inference.",
+          "properties": {
+            "createdAt": {
+              "description": "When this relationship was created",
+              "format": "date-time",
+              "type": "string"
+            },
+            "post": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "tag": {
+              "description": "Alias for ModelLink - defines a relation to another model.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "post",
+            "tag"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
+        "post",
+        "tag"
+      ],
+      "Identifier": "WebdaSample/PostTag"
+    },
+    "WebdaSample/Tag": {
+      "Plural": "Tags",
+      "Import": "lib/models/Tag:Tag",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        },
+        "posts": {
+          "type": "OneToMany",
+          "typeParameters": [
+            "Post",
+            "Tag",
+            "\"tags\""
+          ]
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Tag model for categorizing posts",
+          "properties": {
+            "color": {
+              "description": "Tag color (hex)",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "type": "string"
+            },
+            "description": {
+              "description": "Tag description",
+              "maxLength": 200,
+              "type": "string"
+            },
+            "name": {
+              "description": "Tag name",
+              "maxLength": 30,
+              "minLength": 2,
+              "type": "string"
+            },
+            "slug": {
+              "description": "URL-friendly slug",
+              "maxLength": 50,
+              "minLength": 2,
+              "pattern": "^[a-z0-9-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "slug"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Tag model for categorizing posts",
+          "properties": {
+            "color": {
+              "description": "Tag color (hex)",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "type": "string"
+            },
+            "description": {
+              "description": "Tag description",
+              "maxLength": 200,
+              "type": "string"
+            },
+            "name": {
+              "description": "Tag name",
+              "maxLength": 30,
+              "minLength": 2,
+              "type": "string"
+            },
+            "slug": {
+              "description": "URL-friendly slug",
+              "maxLength": 50,
+              "minLength": 2,
+              "pattern": "^[a-z0-9-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "slug"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Tag model for categorizing posts",
+          "properties": {
+            "color": {
+              "description": "Tag color (hex)",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "type": "string"
+            },
+            "description": {
+              "description": "Tag description",
+              "maxLength": 200,
+              "type": "string"
+            },
+            "name": {
+              "description": "Tag name",
+              "maxLength": 30,
+              "minLength": 2,
+              "type": "string"
+            },
+            "slug": {
+              "description": "URL-friendly slug",
+              "maxLength": 50,
+              "minLength": 2,
+              "pattern": "^[a-z0-9-]+$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "slug"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
+        "slug"
+      ],
+      "Identifier": "WebdaSample/Tag"
+    },
+    "WebdaSample/User": {
+      "Plural": "Users",
+      "Import": "lib/models/User:User",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "Password"
+        },
+        "email": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "bio": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "Date"
+        },
+        "updatedAt": {
+          "type": "Date"
+        },
+        "posts": {
+          "type": "OneToMany",
+          "typeParameters": [
+            "Post",
+            "User",
+            "\"author\""
+          ]
+        },
+        "comments": {
+          "type": "OneToMany",
+          "typeParameters": [
+            "Comment",
+            "User",
+            "\"author\""
+          ]
+        },
+        "followers": {
+          "type": "OneToMany",
+          "typeParameters": [
+            "UserFollow",
+            "User",
+            "\"following\""
+          ]
+        },
+        "following": {
+          "type": "OneToMany",
+          "typeParameters": [
+            "UserFollow",
+            "User",
+            "\"follower\""
+          ]
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "User model representing blog authors and readers",
+          "properties": {
+            "bio": {
+              "description": "User biography",
+              "maxLength": 500,
+              "type": "string"
+            },
+            "email": {
+              "description": "User's email address",
+              "format": "email",
+              "maxLength": 100,
+              "minLength": 5,
+              "type": "string"
+            },
+            "name": {
+              "description": "User's full name",
+              "maxLength": 50,
+              "minLength": 2,
+              "type": "string"
+            },
+            "password": {
+              "description": "User password",
+              "type": "string"
+            },
+            "username": {
+              "description": "Unique username",
+              "maxLength": 30,
+              "minLength": 3,
+              "pattern": "^[a-zA-Z0-9_]+$",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            },
+            "website": {
+              "description": "User's website",
+              "format": "uri",
+              "type": "string"
+            }
+          },
+          "required": [
+            "email",
+            "name",
+            "password",
+            "username",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "User model representing blog authors and readers",
+          "properties": {
+            "bio": {
+              "description": "User biography",
+              "maxLength": 500,
+              "type": "string"
+            },
+            "createdAt": {
+              "description": "Account creation date",
+              "format": "date-time",
+              "readonly": true,
+              "type": "string"
+            },
+            "email": {
+              "description": "User's email address",
+              "format": "email",
+              "maxLength": 100,
+              "minLength": 5,
+              "type": "string"
+            },
+            "name": {
+              "description": "User's full name",
+              "maxLength": 50,
+              "minLength": 2,
+              "type": "string"
+            },
+            "updatedAt": {
+              "description": "Last update date",
+              "format": "date-time",
+              "readonly": true,
+              "type": "string"
+            },
+            "username": {
+              "description": "Unique username",
+              "maxLength": 30,
+              "minLength": 3,
+              "pattern": "^[a-zA-Z0-9_]+$",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            },
+            "website": {
+              "description": "User's website",
+              "format": "uri",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "email",
+            "name",
+            "updatedAt",
+            "username",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "User model representing blog authors and readers",
+          "properties": {
+            "bio": {
+              "description": "User biography",
+              "maxLength": 500,
+              "type": "string"
+            },
+            "createdAt": {
+              "description": "Account creation date",
+              "format": "date-time",
+              "readonly": true,
+              "type": "string"
+            },
+            "email": {
+              "description": "User's email address",
+              "format": "email",
+              "maxLength": 100,
+              "minLength": 5,
+              "type": "string"
+            },
+            "name": {
+              "description": "User's full name",
+              "maxLength": 50,
+              "minLength": 2,
+              "type": "string"
+            },
+            "password": {
+              "description": "User password",
+              "type": "string"
+            },
+            "updatedAt": {
+              "description": "Last update date",
+              "format": "date-time",
+              "readonly": true,
+              "type": "string"
+            },
+            "username": {
+              "description": "Unique username",
+              "maxLength": 30,
+              "minLength": 3,
+              "pattern": "^[a-zA-Z0-9_]+$",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            },
+            "website": {
+              "description": "User's website",
+              "format": "uri",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "email",
+            "name",
+            "password",
+            "updatedAt",
+            "username",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {
+        "follow": {},
+        "unfollow": {},
+        "login": {
+          "global": true
+        },
+        "logout": {
+          "global": true
+        }
+      },
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Login",
+        "Follow",
+        "Unfollow",
+        "Logout"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "WebdaSample/User"
+    },
+    "WebdaSample/UserFollow": {
+      "Plural": "UserFollows",
+      "Import": "lib/models/UserFollow:UserFollow",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "createdAt": {
+          "type": "Date"
+        },
+        "follower": {
+          "type": "BelongTo",
+          "typeParameters": [
+            "User"
+          ]
+        },
+        "following": {
+          "type": "BelongTo",
+          "typeParameters": [
+            "User"
+          ]
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "UserFollow represents a follower relationship between users\n\nThis demonstrates:\n1. Self-referential relationships (User -> User)\n2. Composite primary keys with type inference\n3. Join table pattern",
+          "properties": {
+            "createdAt": {
+              "description": "When the follow relationship was created",
+              "format": "date-time",
+              "type": "string"
+            },
+            "follower": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "following": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "follower",
+            "following"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "UserFollow represents a follower relationship between users\n\nThis demonstrates:\n1. Self-referential relationships (User -> User)\n2. Composite primary keys with type inference\n3. Join table pattern",
+          "properties": {
+            "createdAt": {
+              "description": "When the follow relationship was created",
+              "format": "date-time",
+              "type": "string"
+            },
+            "follower": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "following": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "follower",
+            "following"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "UserFollow represents a follower relationship between users\n\nThis demonstrates:\n1. Self-referential relationships (User -> User)\n2. Composite primary keys with type inference\n3. Join table pattern",
+          "properties": {
+            "createdAt": {
+              "description": "When the follow relationship was created",
+              "format": "date-time",
+              "type": "string"
+            },
+            "follower": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            },
+            "following": {
+              "ModelLink": "but implies a Cascade delete",
+              "ModelParent": "Similar to",
+              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "follower",
+            "following"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
+        "follower",
+        "following"
+      ],
+      "Identifier": "WebdaSample/UserFollow"
+    }
+  },
+  "schemas": {
+    "WebdaSample/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "challenge": {
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
+        },
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    },
+    "WebdaSample/Post.publish.input": {
+      "type": "object",
+      "properties": {
+        "destination": {
+          "enum": [
+            "linkedin",
+            "twitter"
+          ],
+          "type": "string"
+        }
+      }
+    },
+    "WebdaSample/Post.publish.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "string"
+    },
+    "WebdaSample/User.follow.input": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "additionalProperties": false,
+          "description": "User model representing blog authors and readers",
+          "properties": {
+            "bio": {
+              "description": "User biography",
+              "maxLength": 500,
+              "type": "string"
+            },
+            "email": {
+              "description": "User's email address",
+              "format": "email",
+              "maxLength": 100,
+              "minLength": 5,
+              "type": "string"
+            },
+            "name": {
+              "description": "User's full name",
+              "maxLength": 50,
+              "minLength": 2,
+              "type": "string"
+            },
+            "password": {
+              "description": "User password",
+              "type": "string"
+            },
+            "username": {
+              "description": "Unique username",
+              "maxLength": 30,
+              "minLength": 3,
+              "pattern": "^[a-zA-Z0-9_]+$",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            },
+            "website": {
+              "description": "User's website",
+              "format": "uri",
+              "type": "string"
+            }
+          },
+          "required": [
+            "email",
+            "name",
+            "password",
+            "username",
+            "uuid"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "WebdaSample/User.follow.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "const": true,
+      "type": "boolean"
+    },
+    "WebdaSample/User.unfollow.input": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "additionalProperties": false,
+          "description": "User model representing blog authors and readers",
+          "properties": {
+            "bio": {
+              "description": "User biography",
+              "maxLength": 500,
+              "type": "string"
+            },
+            "email": {
+              "description": "User's email address",
+              "format": "email",
+              "maxLength": 100,
+              "minLength": 5,
+              "type": "string"
+            },
+            "name": {
+              "description": "User's full name",
+              "maxLength": 50,
+              "minLength": 2,
+              "type": "string"
+            },
+            "password": {
+              "description": "User password",
+              "type": "string"
+            },
+            "username": {
+              "description": "Unique username",
+              "maxLength": 30,
+              "minLength": 3,
+              "pattern": "^[a-zA-Z0-9_]+$",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            },
+            "website": {
+              "description": "User's website",
+              "format": "uri",
+              "type": "string"
+            }
+          },
+          "required": [
+            "email",
+            "name",
+            "password",
+            "username",
+            "uuid"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "WebdaSample/User.unfollow.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "WebdaSample/User.login.input": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "WebdaSample/User.login.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "boolean"
+    },
+    "WebdaSample/User.logout.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "WebdaSample/User.logout.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Publisher.publish.input": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "Publisher.publish.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "string"
+    },
+    "Publisher.publishPost.input": {
+      "type": "object",
+      "properties": {
+        "postId": {
+          "allOf": [
+            {
+              "additionalProperties": false,
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "type": "object"
+            }
+          ],
+          "description": "Get the primary key type of the object\n\nThe main difference with the PrimaryKey<T> type is that if the primary key is a not union type, it will\nbe returned as a single type, otherwise it will be returned as a Pick type\n\nThe PrimaryKey<T> will always return a Pick type"
+        }
+      }
+    },
+    "Publisher.publishPost.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "postId": {
+          "allOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "length": {
+                  "description": "Returns the length of a String object.",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "length"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "type": "object"
+            }
+          ],
+          "description": "Get the primary key type of the object\n\nThe main difference with the PrimaryKey<T> type is that if the primary key is a not union type, it will\nbe returned as a single type, otherwise it will be returned as a Pick type\n\nThe PrimaryKey<T> will always return a Pick type"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "postId",
+        "status"
+      ],
+      "type": "object"
+    },
+    "TestBean.testOperation.input": {
+      "type": "object",
+      "properties": {
+        "counter": {
+          "type": "number"
+        }
+      }
+    },
+    "TestBean.testOperation.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "string"
+    },
+    "TestBean.demonstrateTypeSafety.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "TestBean.demonstrateTypeSafety.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    }
+  }
+}

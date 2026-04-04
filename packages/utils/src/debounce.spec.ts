@@ -170,7 +170,7 @@ export class DebounceTest {
         callCount++;
       },
       100,
-      { maxWait: 150 }
+      { maxWait: 130 }
     );
 
     // Call repeatedly
@@ -195,7 +195,7 @@ export class DebounceTest {
   async "should preserve 'this' context"() {
     const obj = {
       value: "test",
-      method: debounce(function (this: any) {
+      method: debounce(function getValue(this: any) {
         return this.value;
       }, 50)
     };

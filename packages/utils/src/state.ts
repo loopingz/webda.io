@@ -81,7 +81,7 @@ const WRAPPED_FLAG = Symbol("__stateWrappedFlag");
  */
 export function State<E extends string = string>(options?: StateOptions<E>) {
   return (value: any, context: ClassMemberDecoratorContext) => {
-    context.addInitializer(function (this: any) {
+    context.addInitializer(function stateInitializer(this: any) {
       // If already wrapped on this instance, do nothing
       const current = this[context.name];
       if (current && current[WRAPPED_FLAG]) {
@@ -89,7 +89,7 @@ export function State<E extends string = string>(options?: StateOptions<E>) {
       }
       // Capture the most-derived implementation at instantiation time (could be an override)
       const original = current ?? value;
-      const wrapper = function (this: any, ...args: any[]) {
+      const wrapper = function stateWrapper(this: any, ...args: any[]) {
         // Root call detection (only outermost invocation performs start/end transitions)
         if (this[ACTIVE_COUNTER] === undefined) this[ACTIVE_COUNTER] = 0;
         const isRoot = this[ACTIVE_COUNTER] === 0;
@@ -132,7 +132,7 @@ export function State<E extends string = string>(options?: StateOptions<E>) {
  * @param target - The object whose state to query.
  * @returns The current state name.
  */
-State.getCurrentState = function (target: any): string {
+State.getCurrentState = function getCurrentState(target: any): string {
   const stateMap = States.get(target);
   return stateMap?.state ?? "initial";
 };
@@ -143,7 +143,7 @@ State.getCurrentState = function (target: any): string {
  * @param target - The object whose state status to retrieve.
  * @returns The `StateStatus` object associated with `target`.
  */
-State.getStateStatus = function (target: any): StateStatus {
+State.getStateStatus = function getStateStatus(target: any): StateStatus {
   let stateMap = States.get(target);
   if (!stateMap) {
     stateMap = {

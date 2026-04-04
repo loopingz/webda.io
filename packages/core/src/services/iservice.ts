@@ -27,7 +27,7 @@ export type ServicePartialParameters<T extends ServiceParameters> = DeepPartial<
  */
 export abstract class AbstractService<
   T extends ServiceParameters = ServiceParameters,
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+   
   E extends AsyncEventUnknown = {}
 > extends AsyncEventEmitterImpl<E> {
   public readonly name: string;

@@ -15,9 +15,7 @@
     "images": {
       "type": "FileBinary",
       "folder": "./data/images",
-      "map": {
-        "contacts": ["picture"]
-      }
+      "models": { "*": ["*"] },
     },
     "thumbnailsqueue": {
       "type": "MemoryQueue"
@@ -30,6 +28,10 @@
     },
     "rest": {
       "type": "RESTDomainService"
+    },
+    "CryptoService": {
+      "type": "Webda/CryptoService",
+      "autoCreate": true
     }
   },
   "parameters": {

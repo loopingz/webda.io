@@ -1,0 +1,119 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {},
+  "models": {
+    "Webda/Model": {
+      "Plural": "Models",
+      "Import": "lib/model:Model",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [
+        "Webda/UuidModel"
+      ],
+      "Reflection": {},
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Model object definition\n\nThis is the core of many application",
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Model object definition\n\nThis is the core of many application",
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Model object definition\n\nThis is the core of many application",
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [],
+      "PrimaryKey": [],
+      "Identifier": "Webda/Model"
+    },
+    "Webda/UuidModel": {
+      "Plural": "UuidModels",
+      "Import": "lib/model:UuidModel",
+      "Relations": {},
+      "Ancestors": [
+        "Webda/Model"
+      ],
+      "Subclasses": [],
+      "Reflection": {
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Simple model with a UUID",
+          "properties": {
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Simple model with a UUID",
+          "properties": {
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Simple model with a UUID",
+          "properties": {
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/UuidModel"
+    }
+  },
+  "schemas": {}
+}

@@ -1,12 +1,12 @@
 import { WorkerLogLevel } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
-import { Application } from "../application/application.js";
+import type { Application } from "../application/application.js";
+import { UnpackedApplication } from "../application/unpackedapplication.js";
 import { Configuration } from "../application/iconfiguration.js";
 import { BinaryService } from "../services/binary.js";
 import { Model, ModelClass } from "@webda/models";
 import * as WebdaError from "../errors/errors.js";
 import { Store } from "../stores/store.js";
-import { UnpackedApplication } from "../application/unpackedapplication.js";
 import { Logger } from "../loggers/ilogger.js";
 import { CancelablePromise, getUuid, State, StateOptions } from "@webda/utils";
 import { ICore, AbstractService, OperationDefinitionInfo } from "./icore.js";
@@ -439,7 +439,7 @@ export class Core implements ICore {
         serviceConstructor.createConfiguration(this.configuration[service])
       );
     } catch (err) {
-      this.log("ERROR", "Cannot create service", service, err);
+      this.log("ERROR", "Cannot create service", service, err.message || err);
     }
     return this.services[service];
   }

@@ -1,0 +1,6 @@
+{
+    "js/ts.tsdk.path": "node_modules/typescript/lib",
+    "files.associations": {
+        "webda.config.json": "jsonc"
+    }
+}

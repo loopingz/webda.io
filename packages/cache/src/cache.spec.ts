@@ -1,5 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import { createHash } from "crypto";
 import { argumentsSimpleKey, CacheMap, CacheOptions, CacheStorage, createCacheAnnotation, ObjectCache, ProcessCache } from "./cache";
 import { AsyncLocalStorage } from "async_hooks";
 
@@ -215,7 +216,7 @@ class CacheTest {
 
     // Access items to verify LRU order
     const keys = Array.from(cache.keys());
-    assert.strictEqual(keys.includes("getData$" + require("crypto").createHash("sha256").update("1").digest("base64")), false);
+    assert.strictEqual(keys.includes("getData$" + createHash("sha256").update("1").digest("base64")), false);
   }
 
   @test

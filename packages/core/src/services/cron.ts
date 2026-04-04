@@ -177,12 +177,12 @@ class CronService extends Service {
 }
 
 export function Cron(cron: string, description = "", ...args: any[]) {
-  return function <T extends (this: Service, ...a: any[]) => Promise<any>>(
+  return function cronDecorator<T extends (this: Service, ...a: any[]) => Promise<any>>(
     value: T,
     context: ClassMethodDecoratorContext<Service, T>
   ) {
     // Store metadata on each instance when it's constructed
-    context.addInitializer(function (this: Service) {
+    context.addInitializer(function cronInitializer(this: Service) {
       (this[CronSymbol] ??= []).push(new CronDefinition(cron, args, this.name, context.name as string, description));
     });
 

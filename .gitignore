@@ -1,5 +1,20 @@
 lerna-debug.log
 yarn-error.log
+pnpm-debug.log
+
+# Compiled output in src directories (output goes to lib/)
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
+sample-app/src/**/*.js
+sample-app/src/**/*.js.map
+sample-app/src/**/*.d.ts
+sample-app/src/**/*.d.ts.map
+sample-apps/*/src/**/*.js
+sample-apps/*/src/**/*.js.map
+sample-apps/*/src/**/*.d.ts
+sample-apps/*/src/**/*.d.ts.map
 node_modules
 lib
 reports
@@ -34,3 +49,5 @@ docs/build
 package-lock.json
 *.old
 .vite-custom
+docs/superpowers
+pnpm-lock.yaml

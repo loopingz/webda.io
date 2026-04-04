@@ -10,11 +10,10 @@
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "test": "c8 mocha",
-    "test:debug": "mocha src/**/*.spec.ts",
+    "test": "vitest run",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
-    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts"
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts"
   },
   "repository": {
     "type": "git",
@@ -36,39 +35,27 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
-    "@google-cloud/firestore": "^7.0.0",
-    "@google-cloud/kms": "^4.0.1",
-    "@google-cloud/pubsub": "^4.0.1",
-    "@google-cloud/storage": "~7.13.0",
-    "@webda/core": "^4.0.0-beta.1",
-    "@webda/ql": "^4.0.0-beta.1",
-    "mime-types": "^2.1.35"
-  },
-  "c8": {
-    "report-dir": "./reports",
-    "reporter": [
-      "html",
-      "lcov",
-      "json",
-      "text"
-    ],
-    "exclude": [
-      "**/*.spec.ts",
-      "test/**/*"
-    ]
+    "@google-cloud/firestore": "^8.3.0",
+    "@google-cloud/kms": "^5.4.0",
+    "@google-cloud/pubsub": "^5.3.0",
+    "@google-cloud/storage": "~7.19.0",
+    "@webda/core": "workspace:*",
+    "@webda/ql": "workspace:*",
+    "mime-types": "^3.0.2"
   },
   "publishConfig": {
     "access": "public"
   },
   "devDependencies": {
-    "@testdeck/mocha": "^0.3.2",
-    "@types/node": "22.0.0",
-    "@webda/async": "^4.0.0-beta.1",
-    "@webda/compiler": "^4.0.0-beta.2",
-    "jscodeshift": "^17.0.0",
-    "sinon": "^19.0.2",
-    "skott": "^0.35.3",
-    "tsx": "^4.17.0"
+    "@types/node": "25.5.0",
+    "@webda/async": "workspace:*",
+    "@webda/compiler": "workspace:^",
+    "@webda/test": "workspace:*",
+    "jscodeshift": "^17.3.0",
+    "sinon": "^21.0.3",
+    "skott": "^0.35.8",
+    "tsx": "^4.21.0",
+    "vite": "^6.0.0"
   },
   "type": "module",
   "engines": {

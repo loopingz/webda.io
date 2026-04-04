@@ -1,9 +1,9 @@
 // This file should not be exported in the library as it should only be used by CoreModel
-import { PipelineOptions, Writable } from "node:stream";
+import { Writable } from "node:stream";
 
 import { HttpContext } from "./httpcontext.js";
 import { NotEnumerable } from "@webda/tsc-esm";
-import { pipeline } from "node:stream/promises";
+import { pipeline, PipelineOptions } from "node:stream/promises";
 
 /**
  * Context is the object that will be passed to the services
@@ -142,10 +142,13 @@ export abstract class Context {
     const isPipelineOptions = (arg: NodeJS.ReadWriteStream | PipelineOptions): arg is PipelineOptions =>
       (arg as NodeJS.ReadWriteStream).writable === undefined;
     const item = streams.pop();
-    if (isPipelineOptions(item)) {
-      return pipeline([stream1, ...(<Array<NodeJS.ReadWriteStream>>streams), await this.getOutputStream()], item);
+    if (item !== undefined && isPipelineOptions(item)) {
+      await pipeline([stream1, ...(<Array<NodeJS.ReadWriteStream>>streams), await this.getOutputStream()], item);
     } else {
-      return pipeline([stream1, ...(<Array<NodeJS.ReadWriteStream>>streams), await this.getOutputStream()]);
+      if (item !== undefined) {
+        streams.push(item);
+      }
+      await pipeline([stream1, ...(<Array<NodeJS.ReadWriteStream>>streams), await this.getOutputStream()]);
     }
   }
 

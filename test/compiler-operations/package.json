@@ -1,0 +1,14 @@
+{
+  "name": "test-compiler-operations",
+  "webda": {
+    "namespace": "TestCompilerOperations"
+  },
+  "dependencies": {
+    "@webda/core": "^4.0.0-beta.1",
+    "@webda/models": "^4.0.0-beta.1"
+  },
+  "files": [
+    "lib",
+    "webda.module.json"
+  ]
+}

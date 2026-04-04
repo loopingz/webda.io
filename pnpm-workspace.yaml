@@ -2,5 +2,18 @@ packages:
   - packages/*
   - sample-app
   - sample-apps/*
-prefer-workspace-packages: true
-link-workspace-packages: true
+  # Exclude packages that are not yet ready
+  - "!packages/async"
+  - "!packages/gcp"
+  - "!packages/kubernetes"
+  - "!packages/shell"
+  - "!packages/elasticsearch"
+  - "!packages/google-auth"
+  - "!packages/postgres"
+  - "!packages/otel"
+  - "!packages/hawk"
+  - "!packages/mongodb"
+  - "!packages/amqp"
+  - "!packages/graphql"
+  - "!packages/runtime"
+  - "!packages/aws"

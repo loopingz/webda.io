@@ -1,4 +1,4 @@
-import { useLog } from "../loggers/hooks.js";
+import { useLog } from "@webda/workout";
 
 /**
  * Interface to specify the Service parameters

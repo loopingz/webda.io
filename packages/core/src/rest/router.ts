@@ -5,7 +5,7 @@ import type { IRouter, RequestFilter, RouteInfo } from "./irest.js";
 import { useApplication, useModelId } from "../application/hooks.js";
 import { useLog } from "../loggers/hooks.js";
 import type { OpenAPIV3 } from "openapi-types";
-import { useParameters } from "../core/instancestorage.js";
+import { useParameters } from "../application/hooks.js";
 import { useDynamicService, useService } from "../core/hooks.js";
 import { deepmerge } from "deepmerge-ts";
 import { JSONSchema7 } from "json-schema";
@@ -541,7 +541,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         components: {
           schemas: {
             Object: {
-              type: "object"
+              type: "object" as const
             }
           }
         },
@@ -549,7 +549,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         tags: []
       },
       useApplication().getCurrentConfiguration().openapi || {}
-    );
+    ) as OpenAPIV3.Document;
     const app = useApplication();
     const models = app.getModels();
     const schemas = app.getSchemas();

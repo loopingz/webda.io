@@ -16,34 +16,22 @@
     "pretest": "npm run build",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "test": "c8 mocha",
+    "test": "vitest run",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
-    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {
-    "@webda/core": "^4.0.0-beta.1",
-    "@webda/ql": "^4.0.0-beta.1",
-    "pg": "^8.7.1"
+    "@webda/core": "workspace:*",
+    "@webda/ql": "workspace:*",
+    "pg": "^8.20.0"
   },
   "files": [
     "lib",
     "test",
     "webda.module.json"
   ],
-  "c8": {
-    "report-dir": "./reports",
-    "reporter": [
-      "html",
-      "lcov",
-      "json",
-      "text"
-    ],
-    "exclude": [
-      "**/*.spec.ts"
-    ]
-  },
   "homepage": "https://webda.io",
   "publishConfig": {
     "access": "public"
@@ -52,12 +40,13 @@
     "namespace": "Webda"
   },
   "devDependencies": {
-    "@types/node": "22.0.0",
-    "@webda/shell": "^4.0.0-beta.1",
-    "tsx": "^4.17.0",
-    "skott": "^0.35.3",
-    "jscodeshift": "^17.0.0",
-    "@webda/compiler": "^4.0.0-beta.2"
+    "@types/node": "25.5.0",
+    "@webda/compiler": "workspace:^",
+    "@webda/shell": "workspace:*",
+    "jscodeshift": "^17.3.0",
+    "skott": "^0.35.8",
+    "tsx": "^4.21.0",
+    "vite": "^6.0.0"
   },
   "type": "module",
   "engines": {

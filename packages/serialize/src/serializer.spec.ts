@@ -968,7 +968,7 @@ class Serializer {
 
     // Create a mock WeakMap that throws a non-TypeError
     const originalSet = WeakMap.prototype.set;
-    WeakMap.prototype.set = function (key: any, value: any) {
+    WeakMap.prototype.set = function mockWeakMapSet(key: any, value: any) {
       if (key && typeof key === "object" && key.constructor?.name === "ErrorThrower") {
         throw new Error("Custom error");
       }

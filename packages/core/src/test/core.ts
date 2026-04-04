@@ -1,4 +1,5 @@
-import { CallbackOptionallyAsync, testWrapper, getMetadata, beforeAll } from "@webda/test";
+import { CallbackOptionallyAsync, testWrapper, getMetadata } from "@webda/test";
+import { beforeAll } from "vitest";
 import { ConsoleLogger, MemoryLogger, useLog, useWorkerOutput } from "@webda/workout";
 import { existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { sanitizeFilename } from "@webda/utils";

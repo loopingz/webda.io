@@ -296,7 +296,7 @@ class ModelTest {
     assert.ok(!isModelClass({}));
     assert.ok(!isModelClass("string"));
     assert.ok(!isModelClass(null));
-    assert.ok(!isModelClass(function () {}));
+    assert.ok(!isModelClass(function notAModel() {}));
 
     // WebdaFieldsMixIn - just returns the class unchanged
     const result = WebdaFieldsMixIn(TestModel);

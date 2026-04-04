@@ -251,10 +251,12 @@
               },
               "httpOnly": {
                 "default": true,
+                "description": "Enables the [`HttpOnly` `Set-Cookie` attribute](https://tools.ietf.org/html/rfc6265#section-5.2.6).\nWhen enabled, clients will not allow client-side JavaScript to see the cookie in `document.cookie`.",
                 "type": "boolean"
               },
               "maxAge": {
                 "default": "7d",
+                "description": "Specifies the `number` (in seconds) to be the value for the [`Max-Age` `Set-Cookie` attribute](https://tools.ietf.org/html/rfc6265#section-5.2.2).\n\nThe [cookie storage model specification](https://tools.ietf.org/html/rfc6265#section-5.3) states that if both `expires` and\n`maxAge` are set, then `maxAge` takes precedence, but it is possible not all clients by obey this,\nso if both are set, they should point to the same date and time.",
                 "minimum": 1,
                 "type": "number"
               },
@@ -264,10 +266,12 @@
               },
               "path": {
                 "default": "/",
+                "description": "Specifies the value for the [`Path` `Set-Cookie` attribute](https://tools.ietf.org/html/rfc6265#section-5.2.4).\nWhen no path is set, the path is considered the [\"default path\"](https://tools.ietf.org/html/rfc6265#section-5.1.4).",
                 "type": "string"
               },
               "sameSite": {
                 "default": "lax",
+                "description": "Specifies the value for the [`SameSite` `Set-Cookie` attribute](https://tools.ietf.org/html/draft-ietf-httpbis-rfc6265bis-09#section-5.4.7).\n\n- `true` will set the `SameSite` attribute to `Strict` for strict same site enforcement.\n- `'lax'` will set the `SameSite` attribute to `Lax` for lax same site enforcement.\n- `'none'` will set the `SameSite` attribute to `None` for an explicit cross-site cookie.\n- `'strict'` will set the `SameSite` attribute to `Strict` for strict same site enforcement.\n\nMore information about enforcement levels can be found in [the specification](https://tools.ietf.org/html/draft-ietf-httpbis-rfc6265bis-09#section-5.4.7).",
                 "enum": [
                   "none",
                   "strict",

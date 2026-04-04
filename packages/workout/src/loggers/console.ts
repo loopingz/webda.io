@@ -1,8 +1,8 @@
 import chalk from "yoctocolors";
 import { sprintf } from "sprintf-js";
 import * as util from "util";
-import { isWorkerLogLevel, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
-import { WorkerLogger } from "./index";
+import { isWorkerLogLevel, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core.js";
+import { WorkerLogger } from "./index.js";
 
 /**
  * Internal shape passed to sprintf when formatting a log line
@@ -41,10 +41,15 @@ class ConsoleLogger extends WorkerLogger {
    * @param level - Minimum log level to display (default: LOG_LEVEL env var or "INFO")
    * @param format - Optional sprintf format string; defaults to defaultFormat or defaultFormatWithLine
    */
-  constructor(output: WorkerOutput, level: WorkerLogLevel = isWorkerLogLevel(process.env.LOG_LEVEL) ? process.env.LOG_LEVEL : "INFO", format?: string) {
+  constructor(
+    output: WorkerOutput,
+    level: WorkerLogLevel = isWorkerLogLevel(process.env.LOG_LEVEL) ? process.env.LOG_LEVEL : "INFO",
+    format?: string
+  ) {
     super(output, level);
 
-    this.format = format || (output.addLogProducerLine ? ConsoleLogger.defaultFormatWithLine : ConsoleLogger.defaultFormat);
+    this.format =
+      format || (output.addLogProducerLine ? ConsoleLogger.defaultFormatWithLine : ConsoleLogger.defaultFormat);
   }
 
   /**
@@ -133,7 +138,7 @@ class ConsoleLogger extends WorkerLogger {
       ll: msg.context?.line ?? 0,
       ff: msg.context?.function ?? "",
       f: msg.context?.file ?? "",
-      c: msg.context?.column ?? 0,
+      c: msg.context?.column ?? 0
     };
     try {
       return sprintf(format, info);

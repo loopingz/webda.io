@@ -6,7 +6,7 @@ export default [
   eslintConfigPrettier,
   ...tseslint.configs.recommended,
   {
-    ignores: ["**/node_modules/**", "**/lib/**", "**/reports/**", "**/coverage/**"]
+    ignores: ["**/node_modules/**", "**/lib/**", "**/reports/**", "**/coverage/**", "packages/schema/test/fixtures/**", "packages/schema/test/vega-fixtures/**", "packages/schema/test/webda/**", "packages/compiler/test/**", "packages/compiler/other.ts", "**/.webda.d.ts"]
   },
   {
     plugins: {
@@ -17,7 +17,7 @@ export default [
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unsafe-declaration-merging": "off",
       "@typescript-eslint/no-unused-vars": ["off", { varsIgnorePattern: "^_", argsIgnorePattern: "^_" }],
-      "@typescript-eslint/no-empty-object-type": ["error", { allowInterfaces: "with-single-extends" }],
+      "@typescript-eslint/no-empty-object-type": ["error", { allowInterfaces: "with-single-extends", allowObjectTypes: "always" }],
       "@typescript-eslint/no-unsafe-function-type": "off",
       "@typescript-eslint/ban-ts-comment": "off",
       "no-useless-escape": "off",

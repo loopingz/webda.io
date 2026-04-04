@@ -1,0 +1,281 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {
+    "TestCompilerOperations/TestBean": {
+      "Import": "lib/service:TestBean",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "setting": {
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "setting"
+        ],
+        "type": "object",
+        "title": "TestBean"
+      }
+    }
+  },
+  "deployers": {},
+  "moddas": {},
+  "models": {
+    "TestCompilerOperations/TestModel": {
+      "Plural": "TestModels",
+      "Import": "lib/model:TestModel",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "email": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "email",
+            "name"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "email": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "email",
+            "name"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "email": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "email",
+            "name",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {
+        "doSomething": {},
+        "instanceAction": {},
+        "globalAction": {
+          "global": true,
+          "description": "A static global operation"
+        }
+      },
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "TestCompilerOperations/TestModel"
+    }
+  },
+  "schemas": {
+    "TestCompilerOperations/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "challenge": {
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
+        },
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    },
+    "TestCompilerOperations/TestModel.doSomething.input": {
+      "type": "object",
+      "properties": {
+        "input": {
+          "type": "string"
+        },
+        "count": {
+          "type": "number"
+        }
+      }
+    },
+    "TestCompilerOperations/TestModel.doSomething.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "success": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message"
+      ],
+      "type": "object"
+    },
+    "TestCompilerOperations/TestModel.instanceAction.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "TestCompilerOperations/TestModel.instanceAction.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "boolean"
+    },
+    "TestCompilerOperations/TestModel.globalAction.input": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        }
+      }
+    },
+    "TestCompilerOperations/TestModel.globalAction.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "TestBean.asyncWithObject.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "TestBean.asyncWithObject.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "count",
+        "name"
+      ],
+      "type": "object"
+    },
+    "TestBean.syncWithObject.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "TestBean.syncWithObject.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "active": {
+          "default": false,
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "type": "object"
+    },
+    "TestBean.syncPrimitive.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "TestBean.syncPrimitive.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "string"
+    }
+  }
+}

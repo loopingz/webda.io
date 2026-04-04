@@ -4,7 +4,6 @@ import { OperationDefinitionInfo, ICore } from "./icore.js";
 import { ContextProvider } from "../contexts/icontext.js";
 import { IRouter } from "../rest/irest.js";
 import type { Application } from "../application/application.js";
-import { useApplication } from "../application/hooks.js";
 import type { Core } from "./core.js";
 
 export type InstanceStorage = Partial<{
@@ -93,6 +92,3 @@ export function unregisterInteruptableProcess(process: { cancel: () => Promise<v
   useInstanceStorage().interruptables.delete(process);
 }
 
-export function useParameters(): Configuration["parameters"] {
-  return useApplication().getConfiguration().parameters;
-}

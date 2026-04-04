@@ -211,6 +211,7 @@ export function debounce<T extends (...args: any[]) => any>(
     const isInvoking = shouldInvoke(time);
 
     lastArgs = args;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     lastThis = this;
     lastCallTime = time;
 
@@ -220,6 +221,7 @@ export function debounce<T extends (...args: any[]) => any>(
       }
       if (maxWait !== undefined) {
         // Handle invocations in a tight loop
+        clearTimeout(timerId);
         timerId = setTimeout(timerExpired, wait);
         return invokeFunc(lastCallTime) as any;
       }

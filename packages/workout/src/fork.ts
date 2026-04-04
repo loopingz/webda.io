@@ -1,6 +1,6 @@
 import { ChildProcess, fork } from "node:child_process";
-import { useLog, useWorkerOutput, WorkerMessage, WorkerMessageType, WorkerOutput } from "./core";
-import { WorkerLogger } from "./loggers/index";
+import { useLog, useWorkerOutput, WorkerMessage, WorkerOutput } from "./core.js";
+import { WorkerLogger } from "./loggers/index.js";
 
 const PREFIX = "ForkParentLogger:";
 
@@ -61,7 +61,7 @@ export class ForkParentLogger extends WorkerLogger {
  * @example
  * ```ts
  * import { Fork } from "@webda/workout";
- * 
+ *
  * await Fork(async () => {
  *   // This code runs in the forked process
  *   useLog("Hello from the forked process");
@@ -81,7 +81,7 @@ export async function Fork(
 ) {
   let child: ChildProcess;
   if (process.send === undefined) {
-    child = fork(process.argv[1], process.argv.slice(2), { env: { FORKED: "true" } });
+    child = fork(process.argv[1], process.argv.slice(2));
   }
   if (process.send !== undefined) {
     const currentOutput = useWorkerOutput();

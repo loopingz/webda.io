@@ -1,4 +1,4 @@
-import { expect, test } from "@jest/globals";
+import { expect, test } from "vitest";
 import { CloudEvent } from "cloudevents";
 import { Server } from "http";
 import { SubscriptionMixIn } from "./subscription";
@@ -48,5 +48,5 @@ test("Subscription", async () => {
   expect(called).toBe(false);
   server.close();
   subscription.protocol = "UNKNOWN" as any;
-  expect(() => subscription.createEmitter()).toThrowError();
+  expect(() => subscription.createEmitter()).toThrow();
 });

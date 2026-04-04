@@ -1,16 +1,32 @@
-import { suite, test } from "@webda/test";
+import { describe, it, afterEach } from "vitest";
 import * as assert from "assert";
 import { existsSync, readFileSync, unlinkSync } from "fs";
 import { assertUnreachable, getFileName, isMainModule, NotEnumerable, StaticInterface, writer } from "./lib";
 
-@suite
+interface TestStatic {
+  count: number;
+}
+
 @StaticInterface<TestStatic>()
-class Test {
+class TestClass {
   @NotEnumerable
   notEnumerable = "test";
   static count: number = 0;
-  @test
-  simple() {
+}
+
+const testFiles: string[] = [];
+
+afterEach(() => {
+  for (const f of testFiles) {
+    if (existsSync(f)) {
+      unlinkSync(f);
+    }
+  }
+  testFiles.length = 0;
+});
+
+describe("tsc-esm", () => {
+  it("simple", () => {
     writer(
       "./test/plop.js",
       `import { PubSub } from "@google-cloud/pubsub";
@@ -35,6 +51,7 @@ let SinkService = class SinkService extends Service {
     }
 }`
     );
+    testFiles.push("./test/plop.js");
     const content = readFileSync("./test/plop.js").toString();
 
     assert.ok(content.includes('"./index.js"'));
@@ -43,10 +60,9 @@ let SinkService = class SinkService extends Service {
     assert.ok(content.includes("'./export.js'"));
     assert.ok(!content.includes('"node:fs/promises.js"'));
     assert.ok(!content.includes('"node:stream/promises.js"'));
-  }
+  });
 
-  @test
-  dynamicImports() {
+  it("dynamicImports", () => {
     writer(
       "./test/dynamic.js",
       `const a = await import("./utils");
@@ -55,39 +71,34 @@ const c = await import("./already.js");
 const d = await import("node:fs/promises");
 const e = await import("@google-cloud/pubsub");`
     );
+    testFiles.push("./test/dynamic.js");
     const content = readFileSync("./test/dynamic.js").toString();
-    // relative paths get .js appended
     assert.ok(content.includes('import("./utils.js")'));
     assert.ok(content.includes("import('./helpers.js')"));
-    // already has .js – must not double-add
     assert.ok(content.includes('import("./already.js")'));
     assert.ok(!content.includes('import("./already.js.js")'));
-    // node: protocol must not be touched
     assert.ok(!content.includes('"node:fs/promises.js"'));
-    // bare package specifier must not be touched
     assert.ok(!content.includes('"@google-cloud/pubsub.js"'));
-  }
+  });
 
-  @test
-  noScopedSubpathRewrite() {
+  it("noScopedSubpathRewrite", () => {
     writer(
       "./test/scoped.js",
       `import { X } from "@scope/pkg/sub";
 import { Y } from "some-pkg/deep/path";`
     );
+    testFiles.push("./test/scoped.js");
     const content = readFileSync("./test/scoped.js").toString();
-    // scoped sub-path imports from node_modules must NOT get .js appended
     assert.ok(!content.includes('"@scope/pkg/sub.js"'));
     assert.ok(!content.includes('"some-pkg/deep/path.js"'));
-  }
+  });
 
-  @test
-  meta() {
-    assert.ok(!Object.keys(this).includes("notEnumerable"));
-  }
+  it("meta", () => {
+    const t = new TestClass();
+    assert.ok(!Object.keys(t).includes("notEnumerable"));
+  });
 
-  @test
-  assertUnreachable() {
+  it("assertUnreachable", () => {
     function f(x: "a" | "b") {
       switch (x) {
         case "a":
@@ -101,31 +112,15 @@ import { Y } from "some-pkg/deep/path";`
     f("a");
     f("b");
     assert.throws(() => f("c" as any));
-  }
+  });
 
-  @test
-  isMainModule() {
-    // Cannot test properly in tsc-esm as we use ts-node for tests
-    // But we can at least check it does not crash
+  it("isMainModule", () => {
     assert.ok(!isMainModule(import.meta));
-  }
+  });
 
-  @test
-  getFileName() {
+  it("getFileName", () => {
     const fileName = getFileName(import.meta);
     assert.ok(fileName.match(/lib\.spec\.[tj]s$/));
     assert.throws(() => getFileName({} as any));
-  }
-
-  after() {
-    for (const f of ["./test/plop.js", "./test/dynamic.js", "./test/scoped.js"]) {
-      if (existsSync(f)) {
-        unlinkSync(f);
-      }
-    }
-  }
-}
-
-interface TestStatic {
-  count: number;
-}
+  });
+});

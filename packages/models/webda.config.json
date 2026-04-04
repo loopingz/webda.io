@@ -1,0 +1,7 @@
+{
+  "services": {
+    "Service1": {},
+    "Server": {}
+  },
+  "$schema": ".webda/config.schema.json"
+}

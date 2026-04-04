@@ -7,6 +7,8 @@ export default defineConfig({
   test: {
     allowOnly: true,
     coverage: {
+      enabled: true,
+      provider: "v8",
       include: ["src/*.ts", "!src/bin.ts"],
       exclude: ["src/*.spec.ts"],
       reporter: ["lcov", "html", "text"]

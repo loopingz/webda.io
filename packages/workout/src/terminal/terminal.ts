@@ -3,7 +3,7 @@ import { constants } from "os";
 import * as readline from "readline";
 import * as util from "util";
 
-import { ConsoleLogger } from "../loggers/console";
+import { ConsoleLogger } from "../loggers/console.js";
 import {
   LogFilter,
   WorkerInput,
@@ -12,7 +12,7 @@ import {
   WorkerMessage,
   WorkerOutput,
   WorkerProgress
-} from "../core";
+} from "../core.js";
 
 /**
  * Full-featured terminal UI with scrolling history, progress bars, and interactive input

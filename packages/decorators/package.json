@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
-    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
     "lint": "eslint",
@@ -25,11 +25,12 @@
     "test:debug": "vitest debug",
     "test:coverage": "vitest run --coverage"
   },
-  "dependencies": {},
   "devDependencies": {
-    "@types/node": "22.0.0",
-    "typescript": "^5.8.3",
-    "vitest": "^3.2.4"
+    "@types/node": "25.5.0",
+    "typescript": "^6.0.2",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2",
+    "skott": "^0.35.8"
   },
   "files": [
     "lib"

@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/TestClass",
+  "definitions": {
+    "TestClass": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "date": {
+          "$ref": "#/definitions/WebdaDate"
+        },
+        "timestamp": {
+          "$ref": "#/definitions/UnixTimestamp"
+        },
+        "native": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "custom": {
+          "$ref": "#/definitions/Custom"
+        },
+        "tool": {
+          "$ref": "#/definitions/Tool"
+        }
+      },
+      "required": [
+        "name",
+        "date",
+        "timestamp",
+        "native",
+        "custom",
+        "tool"
+      ],
+      "additionalProperties": false
+    },
+    "WebdaDate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "UnixTimestamp": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "Custom": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "Tool": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "date": {
+          "$ref": "#/definitions/WebdaDate"
+        },
+        "flag": {
+          "type": "boolean"
+        },
+        "ts": {
+          "$ref": "#/definitions/UnixTimestamp"
+        }
+      },
+      "required": [
+        "name",
+        "date",
+        "flag",
+        "ts"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

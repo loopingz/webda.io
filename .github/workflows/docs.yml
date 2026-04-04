@@ -14,20 +14,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v2
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
 
       - name: Install dependencies
-        run: yarn install && cd docs && yarn install
+        run: pnpm install && cd docs && pnpm install
 
       - name: Build docs
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
-        run: yarn docs
+        run: pnpm run docs
 
-      - name: Deploy 🚀
-        uses: JamesIves/github-pages-deploy-action@4.1.4
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@c15a2b0ec4f14477a295a7eda11b8f1dbdeceead # 4.8.0
         with:
-          branch: gh-pages # The branch the action should deploy to.
-          folder: docs/dist # The folder the action should deploy.
+          branch: gh-pages
+          folder: docs/dist

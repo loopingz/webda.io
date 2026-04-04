@@ -1,0 +1,2 @@
+- WebdaFields auto-generation: inline or type
+- Dirty: return a Proxy and add 3 methods -> Mixin

@@ -1,48 +1,8 @@
 import { CloudEvent } from "cloudevents";
 import { FilterImplementation } from "./abstract";
-import { Filter } from ".";
+import type { Filter, ExactFilter, PrefixFilter, SuffixFilter } from "./types";
 
-/**
- * Use of this MUST include exactly one nested property, where the key is the name of the
- * CloudEvents attribute to be matched, and its value is the String value to use in the comparison.
- * To evaluate to true the value of the matching CloudEvents attribute MUST exactly match the value
- * String specified (case sensitive).
- *
- * The attribute name and value specified in the filter express MUST NOT be empty strings.
- */
-export interface ExactFilter {
-  exact: {
-    [key: string]: string;
-  };
-}
-
-/**
- * Use of this MUST include exactly one nested property, where the key is the name of the CloudEvents
- * attribute to be matched, and its value is the String value to use in the comparison.
- * To evaluate to true the value of the matching CloudEvents attribute MUST start with the value
- * String specified (case sensitive).
- *
- * The attribute name and value specified in the filter express MUST NOT be empty strings.
- */
-export interface PrefixFilter {
-  prefix: {
-    [key: string]: string;
-  };
-}
-
-/**
- * Use of this MUST include exactly one nested property, where the key is the name of the CloudEvents
- * attribute to be matched, and its value is the String value to use in the comparison.
- * To evaluate to true the value of the matching CloudEvents attribute MUST end with the value
- * String specified (case sensitive).
- *
- * The attribute name and value specified in the filter express MUST NOT be empty strings.
- *
- */ export interface SuffixFilter {
-  suffix: {
-    [key: string]: string;
-  };
-}
+export type { ExactFilter, PrefixFilter, SuffixFilter } from "./types";
 
 /**
  * Abstract class to read CloudEvent specified property

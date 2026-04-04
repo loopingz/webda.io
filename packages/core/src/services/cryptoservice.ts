@@ -191,7 +191,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       this.parameters.asymetricType,
       this.parameters.asymetricOptions
     );
-    return { publicKey, privateKey };
+    return { publicKey: publicKey as string, privateKey: privateKey as string };
   }
 
   /**

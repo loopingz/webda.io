@@ -8,7 +8,7 @@ import {
   HistogramConfiguration,
   register
 } from "prom-client";
-import { useParameters } from "../core/instancestorage.js";
+import { useParameters } from "../application/hooks.js";
 
 /**
  * Generic type for metric

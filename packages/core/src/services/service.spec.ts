@@ -230,6 +230,36 @@ class ServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async getCapabilities() {
+    // getCapabilities() returns an object by default
+    const service = new FakeService("plop", { type: "FakeService" });
+    const caps = service.getCapabilities();
+    assert.ok(typeof caps === "object" && caps !== null);
+
+    // Each call returns an isolated copy - mutating one doesn't affect the next
+    caps["mutated"] = { extra: true };
+    const caps2 = service.getCapabilities();
+    assert.strictEqual(caps2["mutated"], undefined);
+
+    // A subclass can override getCapabilities()
+    class CapableService extends FakeService {
+      getCapabilities() {
+        const base = super.getCapabilities();
+        base["request-filter"] = { version: 1 };
+        return base;
+      }
+    }
+    const capable = new CapableService("capable", { type: "FakeService" });
+    const capableCaps = capable.getCapabilities();
+    assert.deepStrictEqual(capableCaps["request-filter"], { version: 1 });
+
+    // Compiled capabilities are loaded from module metadata during resolve()
+    const registered = await this.registerService(new FakeService("plop2", { type: "Webda/FakeService" }));
+    // Without metadata in modules, caps should be empty
+    assert.deepStrictEqual(registered.getCapabilities(), {});
+  }
+
+  @test
   getUrl() {
     const service = new FakeService("plop", { type: "FakeService" });
     assert.strictEqual(service.getUrl("/plop", ["GET"]), "/plop");

@@ -11,6 +11,7 @@ import type { OperationContext } from "../contexts/operationcontext.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { useService } from "../core/hooks.js";
 import type { ServiceName, ServicesMap } from "../core/hooks.js";
+import { useApplication } from "../application/hooks.js";
 import { AbstractService } from "../core/icore.js";
 import { useLogger } from "../loggers/hooks.js";
 import { WEBDA_EVENTS } from "@webda/models";
@@ -233,9 +234,30 @@ abstract class Service<
     // We wait for all services to be created before calling computeParameters
     this.computeParameters();
 
+    this.loadCapabilities();
     this.initRoutes();
     this.initOperations();
     return this;
+  }
+
+  /**
+   * Load capabilities from webda.module.json metadata
+   */
+  protected loadCapabilities() {
+    try {
+      const app = useApplication();
+      const modules = app.getModules();
+      const type = this.parameters.type;
+      const metadata = modules.moddas?.[type] || modules.beans?.[type];
+      if (metadata?.capabilities) {
+        this._compiledCapabilities = {};
+        for (const cap of metadata.capabilities) {
+          this._compiledCapabilities[cap] = {};
+        }
+      }
+    } catch {
+      // Application may not be available in tests
+    }
   }
 
   /**

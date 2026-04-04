@@ -194,10 +194,19 @@ if (framework.type !== "jest") {
   // @ts-ignore - top-level await in TS5/ES2022
   executers = await framework.executers;
 } else {
-  // In Jest, expose executers lazily via beforeAll on globals
-  (global as any).beforeAll(async () => {
-    executers = await framework.executers;
-  });
+  // In Jest, resolve executers synchronously since globals are available at module load time
+  executers = {
+    describe: global.describe,
+    test: global.it,
+    afterAll: (global as any).afterAll,
+    afterEach: global.afterEach,
+    beforeAll: (global as any).beforeAll,
+    beforeEach: global.beforeEach,
+    ["describe.only"]: (global as any).describe.only,
+    ["describe.skip"]: (global as any).describe.skip,
+    ["test.only"]: (global as any).it.only,
+    ["test.skip"]: (global as any).it.skip
+  };
 }
 /* v8 ignore stop */
 
@@ -387,7 +396,7 @@ export const suite: ReturnType<typeof createClassDecorator> & {
           }
         }
 
-        describe(suiteName, async () => {
+        describe(suiteName, () => {
           const instance = new (value as any)();
           if (hasParams) Object.assign(instance, combo);
           const lifecycles: LifecycleMeta[] = getBag(context.metadata, META.LIFECYCLE, [] as LifecycleMeta[]);

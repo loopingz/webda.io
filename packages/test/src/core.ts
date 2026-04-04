@@ -168,9 +168,9 @@ export function detectFramework(): TestFramework {
           afterEach: api.afterEach,
           beforeAll: api.beforeAll,
           beforeEach: api.beforeEach,
-          ["describe.only"]: api.describe.only,
+          ["describe.only"]: process.env.CI ? api.describe : api.describe.only,
           ["describe.skip"]: api.describe.skip,
-          ["test.only"]: api.it.only,
+          ["test.only"]: process.env.CI ? api.it : api.it.only,
           ["test.skip"]: api.it.skip,
           ["test.todo"]: api.it.todo
         };

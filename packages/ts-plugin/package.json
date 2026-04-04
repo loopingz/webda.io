@@ -31,7 +31,8 @@
     "lint:fix": "eslint --fix",
     "pretest": "tsc",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts"
   },
   "peerDependencies": {
     "ts-patch": ">=3.0.0",

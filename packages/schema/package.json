@@ -19,7 +19,8 @@
     "test:watch": "vitest",
     "presnapshots": "pnpm build",
     "snapshots": "tsx test/update-snapshots.ts",
-    "test:fixture": "FIXTURE=$FIXTURE vitest run test/schema.test.ts"
+    "test:fixture": "FIXTURE=$FIXTURE vitest run test/schema.test.ts",
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts"
   },
   "keywords": [
     "typescript",

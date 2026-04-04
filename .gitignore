@@ -50,3 +50,4 @@ package-lock.json
 *.old
 .vite-custom
 docs/superpowers
+pnpm-lock.yaml

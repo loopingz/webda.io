@@ -1,7 +1,7 @@
 // We need a compiler plugin to handle custom extraction
 
-import { WebdaModule } from "../definition";
-import { WebdaObjects } from "../module";
+import type { WebdaModule } from "../definition";
+import type { WebdaObjects } from "../module";
 import { MetadataPlugin } from "./plugin";
 
 /**

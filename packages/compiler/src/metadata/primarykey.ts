@@ -1,7 +1,7 @@
 import ts from "typescript";
-import { WebdaObjects } from "../module";
+import type { WebdaObjects } from "../module";
 import { MetadataPlugin } from "./plugin";
-import { WebdaModule } from "../definition";
+import type { WebdaModule } from "../definition";
 
 /**
  * Primary key metadata plugin

@@ -10,7 +10,8 @@
     "build": "webdac build",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "test": "vitest run"
+    "test": "vitest run",
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts"
   },
   "dependencies": {
     "@webda/core": "workspace:*",

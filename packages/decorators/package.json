@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
-    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
     "lint": "eslint",

@@ -17,7 +17,7 @@
   "scripts": {
     "build": "webdac build",
     "build:watch": "webdac build --watch",
-    "deps:graph": "skott --no-trackTypeOnlyDependencies --showCircularDependencies --displayMode=raw -e .ts",
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
     "lint": "eslint",

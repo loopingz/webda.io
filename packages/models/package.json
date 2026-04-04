@@ -13,7 +13,7 @@
     "test:coverage": "vitest run --coverage",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
-    "deps:graph": "skott --no-trackTypeOnlyDependencies --showCircularDependencies --displayMode=raw -e .ts",
+    "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "repository": {

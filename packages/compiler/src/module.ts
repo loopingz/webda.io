@@ -1,5 +1,5 @@
 import * as ts from "typescript";
-import { Compiler } from "./compiler";
+import type { Compiler } from "./compiler";
 import { useLog } from "@webda/workout";
 import { JSONSchema7 } from "json-schema";
 import { getTagsName, getParent, isSymbolMapper, SymbolMapper, getTypeIdFromTypeNode, getKeyKind } from "./utils";

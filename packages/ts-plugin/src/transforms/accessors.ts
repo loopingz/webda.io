@@ -3,6 +3,7 @@
 import type ts from "typescript";
 import type { CoercionRegistry } from "../coercions";
 import type { PerfTracker } from "../perf";
+import { dirname, relative, basename } from "path";
 
 /**
  * Resolved coercion info for a property field.
@@ -153,7 +154,6 @@ function resolveImportSource(
     return parts[0];
   }
   // Compute relative path for project files
-  const { dirname, relative } = require("path") as typeof import("path");
   const from = dirname(currentFile.fileName);
   let rel = relative(from, filePath)
     .replace(/\\/g, "/")
@@ -1092,7 +1092,6 @@ function findStorageImportSource(
           const isExported = stmt.modifiers?.some(m => m.kind === tsModule.SyntaxKind.ExportKeyword);
           if (isExported) {
             // Compute relative path
-            const { dirname, relative, basename } = require("path") as typeof import("path");
             const from = dirname(currentFile.fileName);
             let rel = relative(from, sf.fileName)
               .replace(/\\/g, "/")

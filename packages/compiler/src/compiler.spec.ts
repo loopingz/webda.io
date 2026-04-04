@@ -1,6 +1,7 @@
 import { suite, test } from "@webda/test";
 import { getCommonJS, JSONUtils } from "@webda/utils";
 import * as assert from "assert";
+import { existsSync } from "node:fs";
 import * as path from "path";
 import { Compiler } from "./index";
 import { WebdaModule, WebdaProject } from "./definition";
@@ -30,7 +31,7 @@ class CompilerTest {
   @test
   async compileCve() {
     const projectPath = path.join(__dirname, "..", "..", "..", "sample-apps", "cves");
-    if (!require("fs").existsSync(path.join(projectPath, "package.json"))) {
+    if (!existsSync(path.join(projectPath, "package.json"))) {
       // Skip if sample-apps/cves is not present (untracked directory)
       return;
     }

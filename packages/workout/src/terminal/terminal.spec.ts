@@ -13,7 +13,7 @@ const mockStdin = stdin();
 describe("TerminalTest", () => {
   let output: WorkerOutput;
   let terminal: Terminal;
-  let stubs: { [key: string]: any } = {};
+  const stubs: { [key: string]: any } = {};
 
   beforeEach(async () => {
     Terminal.refreshSpeed = 10;

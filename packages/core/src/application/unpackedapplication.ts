@@ -282,7 +282,7 @@ export class UnpackedApplication extends Application {
    * @returns
    */
   @ProcessCache()
-  static async findModulesFiles<T extends any>(this: T, path: string): Promise<string[]> {
+  static async findModulesFiles<T>(this: T, path: string): Promise<string[]> {
     if (!path.endsWith("node_modules") || !fs.existsSync(path)) {
       return [];
     }

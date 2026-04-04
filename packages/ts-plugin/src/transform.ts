@@ -1,6 +1,6 @@
 
 
-import type ts from "typescript";
+import ts from "typescript";
 import { DEFAULT_COERCIONS, CoercionRegistry } from "./coercions";
 import { createAccessorTransformer, createDeclarationAccessorTransformer } from "./transforms/accessors";
 import { createModuleGeneratorTransformer } from "./transforms/module-generator";
@@ -61,7 +61,7 @@ export default function transformer(
   config: TransformConfig
 ): ts.TransformerFactory<ts.SourceFile> {
   // ts-patch injects the TypeScript module into the program
-  const tsModule: typeof ts = (program as any).__tsModule ?? require("typescript");
+  const tsModule: typeof ts = (program as any).__tsModule ?? ts;
 
   const coercions = buildCoercions(config);
   const modelBases = new Set(["Model", "UuidModel", ...(config.modelBases ?? [])]);
@@ -83,7 +83,7 @@ export function afterDeclarations(
   program: ts.Program,
   config: TransformConfig
 ): ts.TransformerFactory<ts.SourceFile | ts.Bundle> {
-  const tsModule: typeof ts = (program as any).__tsModule ?? require("typescript");
+  const tsModule: typeof ts = (program as any).__tsModule ?? ts;
 
   const coercions = buildCoercions(config);
   const modelBases = new Set(["Model", "UuidModel", ...(config.modelBases ?? [])]);
@@ -135,7 +135,7 @@ export function afterDiagnostics(
   program: ts.Program,
   config: TransformConfig
 ): ts.Diagnostic[] {
-  const tsModule: typeof ts = (program as any).__tsModule ?? require("typescript");
+  const tsModule: typeof ts = (program as any).__tsModule ?? ts;
   const checker = program.getTypeChecker();
   const coercions = buildCoercions(config);
   const modelBases = new Set(["Model", "UuidModel", ...(config.modelBases ?? [])]);

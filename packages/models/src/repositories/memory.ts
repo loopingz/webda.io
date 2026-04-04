@@ -239,10 +239,9 @@ export class MemoryRepository<
    * @param query
    */
   async *iterate(query: string): AsyncGenerator<InstanceType<T>, any, any> {
-    let q: Query;
     WebdaQL ??= await import("@webda/ql");
     /* c8 ignore next */
-    q = WebdaQL.parse(query); // Ensure it is valid
+    const q: Query = WebdaQL.parse(query); // Ensure it is valid
     if (!q.limit) {
       q.limit = 100; // Default pagination size
     }

@@ -4,7 +4,7 @@
 export const WEBDA_DIRTY: unique symbol = Symbol("Dirty properties");
 
 /** Generic constructor type used by mixins */
-type Constructor<T = {}> = new (...args: any[]) => T;
+type Constructor<T = object> = new (...args: any[]) => T;
 
 /**
  * Tracks which fields of an object have been modified since the last clear.
@@ -243,7 +243,7 @@ export function track<T extends object>(
     set(target: any, p: string | symbol, value: any) {
       const oldValue = target[p];
       dirtyState.add(p.toString(), oldValue, value);
-      onChange && onChange(obj, dirtyState);
+      if (onChange) onChange(obj, dirtyState);
       target[p] = value;
       return true;
     },

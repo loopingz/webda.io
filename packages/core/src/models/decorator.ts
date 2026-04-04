@@ -6,16 +6,16 @@ import { truncate } from "fs/promises";
  */
 export const Masked = createPropertyDecorator((value: any, context, mask: string) => {
   if (context.kind === "field") {
-    context.addInitializer(function (this: any) {
+    context.addInitializer(function maskedInit(this: any) {
       const descriptor = Object.getOwnPropertyDescriptor(this, context.name) || {};
       Object.defineProperty(this, context.name, {
         ...descriptor,
-        // eslint-disable-next-line
-        get: function () {
+         
+        get: function maskedGet() {
           return this[`__${context.name}`];
         },
-        // eslint-disable-next-line
-        set: function (value) {
+         
+        set: function maskedSet(value) {
           value = value.padEnd(mask.length, "?");
           for (let i = 0; i < mask.length; i++) {
             if (mask[i] === "X") {
@@ -34,20 +34,20 @@ export const Masked = createPropertyDecorator((value: any, context, mask: string
 
 export const Encrypted = createPropertyDecorator((value: any, context) => {
   if (context.kind === "field") {
-    context.addInitializer(function (this: any) {
+    context.addInitializer(function encryptedInit(this: any) {
       const descriptor = Object.getOwnPropertyDescriptor(this, context.name) || {};
       Object.defineProperty(this, context.name, {
         ...descriptor,
-        // eslint-disable-next-line
-        get: function () {
+         
+        get: function encryptedGet() {
           const val = this[`__${context.name}`];
           if (val && val.startsWith("ENCRYPTED:")) {
             return val.substring("ENCRYPTED:".length);
           }
           return val;
         },
-        // eslint-disable-next-line
-        set: function (value) {
+         
+        set: function encryptedSet(value) {
           this[`__${context.name}`] = "ENCRYPTED:" + value;
         }
       });

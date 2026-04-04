@@ -149,7 +149,7 @@ export function Inject(parameterOrName?: string, defaultValue?: string | boolean
  */
 abstract class Service<
   T extends ServiceParameters = ServiceParameters,
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+   
   E extends AsyncEventUnknown = {}
 > extends AbstractService<T, E> {
   /**

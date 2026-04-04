@@ -126,7 +126,7 @@ describe("InteractiveConsoleLoggerTest", () => {
   it("testInputRequest", async () => {
     // This test requires @inquirer/prompts which is optional
     // We'll test the input flow by stubbing the onInput method
-    const onInputStub = sinon.stub(logger, "onInput").callsFake(async function (msg: WorkerMessage) {
+    const onInputStub = sinon.stub(logger, "onInput").callsFake(async function onInputFake(msg: WorkerMessage) {
       // Simulate successful input
       setTimeout(() => {
         this.output.returnInput(msg.input.uuid, "test value");

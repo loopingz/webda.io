@@ -153,7 +153,7 @@ export type OmitFirstArg<F> = F extends (x: any, ...args: infer P) => infer R ? 
  */
 export const NotEnumerable = createPropertyDecorator(context => {
   if (context.kind === "field") {
-    context.addInitializer(function (this: any) {
+    context.addInitializer(function notEnumerableInit(this: any) {
       Object.defineProperty(this, context.name, {
         enumerable: false,
         configurable: true,
@@ -190,7 +190,7 @@ export type FilterOutAttributes<T extends object, K> = {
  * Usage: @StaticInterface<YourStaticInterface>()
  */
 export function StaticInterface<S extends object>() {
-  return function <C extends Constructor & S>(value: C, _context: ClassDecoratorContext): void {
+  return function staticInterfaceCheck<C extends Constructor & S>(value: C, _context: ClassDecoratorContext): void {
     // no-op at runtime; the type of `value` enforces the static interface
   };
 }

@@ -41,7 +41,7 @@ export function registerRepository<T extends ModelClass>(model: T, repository: R
  *
  * @param Base - The base class to augment
  */
-export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) => {}>(Base: TBase) {
+export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) => object>(Base: TBase) {
   return class extends Base {
     static getRepository<T extends ModelClass>(this: T): Repository<T> {
       return useRepository(this);

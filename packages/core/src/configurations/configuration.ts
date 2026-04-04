@@ -137,6 +137,7 @@ class ConfigurationService<
         sourceService = useDynamicService(service);
         sourceId = id;
       } else {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         sourceService = this;
         sourceId = s;
       }

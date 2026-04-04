@@ -1,9 +1,8 @@
 import { CloudEvent } from "cloudevents";
 import { FilterImplementation } from "./abstract";
-import type { AllFilter, AnyFilter } from "./logical";
+import type { AllFilter, AnyFilter, Filter } from "./types";
 import { SqlFilterImplementation } from "./sql";
 import { ExactFilterImplementation, PrefixFilterImplementation, SuffixFilterImplementation } from "./string";
-import type { Filter } from "./types";
 
 interface FilterImplementationConstructor {
   new (definition: any): FilterImplementation<Filter>;

@@ -1,5 +1,5 @@
 import { ResourceAcl, Operation as Action, OperationContext, Store } from "@webda/core";
-import { Company } from "./company";
+import type { Company } from "./company";
 import { Model, ModelParent, WEBDA_PRIMARY_KEY } from "@webda/models";
 
 abstract class CoreModel extends Model {

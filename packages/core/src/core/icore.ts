@@ -1,9 +1,9 @@
 import { QueryValidator } from "@webda/ql";
 import { AbstractService } from "../services/iservice.js";
 import { Model, ModelClass } from "@webda/models";
-import { Service } from "../services/service.js";
-import { Store } from "../stores/store.js";
-import CryptoService from "../services/cryptoservice.js";
+import type { Service } from "../services/service.js";
+import type { Store } from "../stores/store.js";
+import type CryptoService from "../services/cryptoservice.js";
 import { CustomConstructor } from "@webda/tsc-esm";
 export { AbstractService };
 /**

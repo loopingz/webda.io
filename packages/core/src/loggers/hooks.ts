@@ -1,6 +1,6 @@
 import { WorkerOutput, useLog } from "@webda/workout";
 import { Logger } from "./ilogger.js";
-import { AbstractService } from "../core/icore.js";
+import type { AbstractService } from "../core/icore.js";
 import { Model } from "@webda/models";
 import { useModelId } from "../application/hooks.js";
 

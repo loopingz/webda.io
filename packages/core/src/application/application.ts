@@ -24,7 +24,6 @@ import { JSONSchema7 } from "json-schema";
 import { InstanceCache } from "../cache/cache.js";
 import type { Service } from "../services/service.js";
 import { ModelMetadata } from "@webda/compiler";
-import { Core } from "../core/core.js";
 
 export type ApplicationState = "initial" | "loading" | "ready";
 
@@ -135,19 +134,14 @@ export class Application {
    * @returns
    */
   async run() {
-    return runWithInstanceStorage({}, async () => {
-      useInstanceStorage().application = this;
-      await this.load();
-      const core = new Core(this);
-      process.on("SIGINT", async () => {
-        console.log("Received SIGINT. Cancelling all interuptables.");
-        await Promise.all([...CancelablePromise.promises].map(p => p.cancel()));
-        await core.stop();
-        process.exit(0);
-      });
-      await core.init();
-    });
+    return Application._runner(this);
   }
+
+  /**
+   * Pluggable runner — set by runner.ts to avoid circular dependency with Core.
+   * @internal
+   */
+  static _runner: (app: Application) => Promise<void>;
 
   /**
    * Import all required modules

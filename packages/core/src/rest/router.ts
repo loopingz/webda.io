@@ -5,7 +5,7 @@ import type { IRouter, RequestFilter, RouteInfo } from "./irest.js";
 import { useApplication, useModelId } from "../application/hooks.js";
 import { useLog } from "../loggers/hooks.js";
 import type { OpenAPIV3 } from "openapi-types";
-import { useParameters } from "../core/instancestorage.js";
+import { useParameters } from "../application/hooks.js";
 import { useDynamicService, useService } from "../core/hooks.js";
 import { deepmerge } from "deepmerge-ts";
 import { JSONSchema7 } from "json-schema";

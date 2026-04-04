@@ -1,6 +1,6 @@
 import { Binaries, Binary, CoreModel, OperationContext } from "@webda/core";
 import { ModelLink } from "@webda/models";
-import { User } from "./user";
+import type { User } from "./user";
 
 /**
  * @WebdaModel Contact

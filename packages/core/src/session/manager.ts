@@ -1,4 +1,4 @@
-import { CryptoService } from "../services/cryptoservice.js";
+import type { CryptoService } from "../services/cryptoservice.js";
 import { JWTOptions } from "../services/icryptoservice.js";
 import { Inject, Service } from "../services/service.js";
 

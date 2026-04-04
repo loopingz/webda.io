@@ -1,4 +1,5 @@
 import { useInstanceStorage } from "../core/instancestorage.js";
+import type { Configuration } from "./iconfiguration.js";
 import type { Model } from "@webda/models";
 import { ModelDefinition } from "../models/types.js";
 import type { Application } from "./application.js";
@@ -41,4 +42,8 @@ export function useModel<T extends Model = Model>(name: string | T): ModelDefini
  */
 export function useModelId(object: any): string | undefined {
   return useApplication().getModelId(object);
+}
+
+export function useParameters(): Configuration["parameters"] {
+  return useApplication().getConfiguration().parameters;
 }

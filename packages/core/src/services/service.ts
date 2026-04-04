@@ -9,7 +9,8 @@ import { useMetric, type Counter, type Gauge, type Histogram, type MetricConfigu
 import type { Logger } from "../loggers/ilogger.js";
 import type { OperationContext } from "../contexts/operationcontext.js";
 import { ServiceParameters } from "./serviceparameters.js";
-import { ServiceName, ServicesMap, useService } from "../core/hooks.js";
+import { useService } from "../core/hooks.js";
+import type { ServiceName, ServicesMap } from "../core/hooks.js";
 import { AbstractService } from "../core/icore.js";
 import { useLogger } from "../loggers/hooks.js";
 import { WEBDA_EVENTS } from "@webda/models";

@@ -1,5 +1,5 @@
-import { CryptoService, Logger, Store } from "@webda/core";
-import { generateConfigurationSchemas } from "@webda/compiler";
+import { Application, CryptoService, Logger, Store } from "@webda/core";
+import { generateConfigurationSchemas, CommandDefinition, CommandArgDefinition } from "@webda/compiler";
 import { FileUtils, JSONUtils, CancelablePromise, getCommonJS } from "@webda/utils";
 import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerOutput } from "@webda/workout";
 import chalk from "chalk";
@@ -105,7 +105,12 @@ export default class WebdaConsole {
         type: "boolean",
         default: false
       })
-      .option("app-path", { default: process.cwd() });
+      .option("app-path", { default: process.cwd() })
+      .option("service", {
+        type: "string",
+        description: "Filter command to specific service(s), comma-separated",
+        global: true
+      });
     const cmds = WebdaConsole.builtinCommands();
     Object.keys(cmds).forEach(key => {
       const cmd = cmds[key];
@@ -668,6 +673,135 @@ ${Object.keys(operationsExport.operations)
   }
 
   /**
+   * Collect all CLI commands declared in webda.module.json across loaded modules.
+   *
+   * Iterates moddas, beans, and deployers sections looking for services that declare
+   * commands via the @Command decorator (compiled into the commands field of ServiceMetadata).
+   *
+   * @param app The loaded Application instance
+   * @returns A map of command names to their merged definitions and providing services
+   */
+  static collectServiceCommands(app: Application): {
+    [name: string]: {
+      description: string;
+      services: { name: string; method: string; type: string }[];
+      args: { [name: string]: CommandArgDefinition };
+    };
+  } {
+    const commands: {
+      [name: string]: {
+        description: string;
+        services: { name: string; method: string; type: string }[];
+        args: { [name: string]: CommandArgDefinition };
+      };
+    } = {};
+    const modules = app.getModules();
+
+    for (const section of ["moddas", "beans", "deployers"] as const) {
+      for (const [typeName, metadata] of Object.entries(modules[section] || {})) {
+        if (!metadata.commands) continue;
+        for (const [cmdName, cmdDef] of Object.entries(metadata.commands)) {
+          commands[cmdName] ??= {
+            description: cmdDef.description,
+            services: [],
+            args: { ...cmdDef.args }
+          };
+          commands[cmdName].services.push({
+            name: typeName,
+            method: cmdDef.method,
+            type: typeName
+          });
+          // Merge args from multiple services providing the same command
+          for (const [argName, argDef] of Object.entries(cmdDef.args)) {
+            commands[cmdName].args[argName] ??= argDef;
+          }
+        }
+      }
+    }
+
+    return commands;
+  }
+
+  /**
+   * Execute a service command by dispatching to all matching services.
+   *
+   * If --service filter is provided, only services whose type name ends with or equals
+   * one of the filter values will be dispatched to.
+   *
+   * @param cmdName The command name being executed
+   * @param cmdInfo The collected command info (services, args)
+   * @param argv Parsed CLI arguments
+   * @returns 0 on success, 1 on error
+   */
+  static async executeServiceCommand(
+    cmdName: string,
+    cmdInfo: {
+      description: string;
+      services: { name: string; method: string; type: string }[];
+      args: { [name: string]: CommandArgDefinition };
+    },
+    argv: any
+  ): Promise<number> {
+    // Filter by --service if provided
+    let targetServices = cmdInfo.services;
+    if (argv.service) {
+      const serviceFilter = Array.isArray(argv.service)
+        ? argv.service
+        : String(argv.service).split(",");
+      targetServices = targetServices.filter(s =>
+        serviceFilter.some(f => s.name.endsWith(f) || s.name === f)
+      );
+      if (targetServices.length === 0) {
+        this.log("ERROR", `No services match filter '${argv.service}' for command '${cmdName}'`);
+        return 1;
+      }
+    }
+
+    // Build args object from argv using the command's arg definitions
+    const commandArgs: { [key: string]: any } = {};
+    for (const argName of Object.keys(cmdInfo.args)) {
+      if (argv[argName] !== undefined) {
+        commandArgs[argName] = argv[argName];
+      }
+    }
+
+    // Boot webda if not already booted
+    if (!this.webda) {
+      WebdaConsole.webda = new WebdaServer(this.app);
+      await this.webda.init();
+    }
+
+    // Execute each matching service handler
+    // For beans, the type name is the service name.
+    // For moddas, we need to find services by their type.
+    for (const svc of targetServices) {
+      // Try direct lookup first (works for beans)
+      let service = this.webda.getService(svc.name);
+      if (!service) {
+        // Search through all services for ones matching the type
+        const allServices = this.webda.getServices();
+        for (const [instanceName, instanceService] of Object.entries(allServices)) {
+          if (instanceService?.constructor?.name === svc.type.split("/").pop()) {
+            service = instanceService;
+            break;
+          }
+        }
+      }
+      if (!service) {
+        this.log("WARN", `Service '${svc.name}' not found, skipping`);
+        continue;
+      }
+      if (!service[svc.method]) {
+        this.log("ERROR", `Method '${svc.method}' not found on service '${svc.name}'`);
+        return 1;
+      }
+      await service[svc.method](...Object.values(commandArgs));
+    }
+
+    return 0;
+  }
+
+  /**
    * Main command switch
    *
    * Parse arguments
@@ -1205,6 +1339,39 @@ ${Object.keys(operationsExport.operations)
       // Launch builtin commands
       if (WebdaConsole.builtinCommands()[argv._[0]]) {
         result = (await WebdaConsole.builtinCommands()[argv._[0]].handler.bind(this)(argv)) ?? 0;
+      } else if (this.app) {
+        // Try service commands from webda.module.json
+        const serviceCommands = WebdaConsole.collectServiceCommands(this.app);
+        // Support subcommands: "webda aws s3" → try "aws s3" first, then "aws"
+        const fullCommand = (<string[]>argv._).join(" ");
+        const firstCommand = <string>argv._[0];
+        const cmdInfo = serviceCommands[fullCommand] || serviceCommands[firstCommand];
+
+        if (cmdInfo) {
+          const cmdName = serviceCommands[fullCommand] ? fullCommand : firstCommand;
+          this.log("DEBUG", `Dispatching service command '${cmdName}'`);
+          // Re-parse with command-specific args for yargs awareness
+          for (const [argName, argDef] of Object.entries(cmdInfo.args)) {
+            parser = parser.option(argName, {
+              type: argDef.type as "string" | "number" | "boolean",
+              default: argDef.default,
+              alias: argDef.alias,
+              description: argDef.description,
+              deprecated: argDef.deprecated
+            });
+          }
+          argv = parser.parse(args);
+          result = await this.executeServiceCommand(cmdName, cmdInfo, argv);
+        } else if (extension) {
+          this.log("WARN", "Shell extensions via webda.shell.json are deprecated, use @Command decorator instead");
+          this.log("DEBUG", "Launching extension " + argv._[0], extension);
+          // Load lib
+          argv._.shift();
+          result = await this.executeShellExtension(extension, extension.relPath, argv);
+        } else {
+          // Display help if nothing is found
+          this.displayHelp(parser);
+        }
       } else if (extension) {
         this.log("DEBUG", "Launching extension " + argv._[0], extension);
         // Load lib

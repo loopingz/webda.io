@@ -14,8 +14,6 @@ import { CommandsMetadata } from "./metadata/commands";
 import { EventsMetadata } from "./metadata/events";
 import { PrimaryKeyMetadata } from "./metadata/primarykey";
 import { PluralMetadata } from "./metadata/plural";
-import { CapabilitiesMetadata } from "./metadata/capabilities";
-import { CommandsMetadata } from "./metadata/commands";
 import { SchemaGenerator } from "@webda/schema";
 
 /**

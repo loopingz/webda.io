@@ -1,4 +1,5 @@
 import { Service } from "./service.js";
+import { Command } from "./command.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext.js";
@@ -115,7 +116,7 @@ export class HttpServer<
   server: Server;
   protected subnetChecker: (address: string) => boolean;
 
-  @Command("serve", "Start the HTTP server")
+  @Command("serve", { description: "Start the HTTP server" })
   async serve(bind?: string, port?: number) {
     this.parameters.with(async params => {
       if (this.server) {

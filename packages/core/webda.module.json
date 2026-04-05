@@ -775,6 +775,85 @@
       },
       "Configuration": "lib/loggers/params:FileLoggerServiceParameters"
     },
+    "Webda/HttpServer": {
+      "Import": "lib/services/httpserver:HttpServer",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "defaultHeaders": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Default headers to send to the client\n\nHaving a Cache-Control: private will prevent caching for API\nIf you overwrite this parameter, you will need to add it back",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "csrfOrigins": {
+            "description": "Allowed origin for referer that match\nany of this regexp\n\n{@link OriginFilter }",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "defaultHeaders": {
+            "$ref": "#/definitions/defaultHeaders",
+            "description": "Default headers to send to the client\n\nHaving a Cache-Control: private will prevent caching for API\nIf you overwrite this parameter, you will need to add it back"
+          },
+          "port": {
+            "default": 18080,
+            "description": "Port to listen on",
+            "type": "number"
+          },
+          "requestLimit": {
+            "default": "10Mb",
+            "description": "Will not try to parse request bigger than this\n\nThis parameter can be overriden by a direct call to\ngetHttpContext().getRawBody(xxx)",
+            "type": "number"
+          },
+          "requestTimeout": {
+            "default": 60000,
+            "description": "Will not take more than this to read a request (unit: milliseconds)\n\nThis parameter can be overriden by a direct call to\ngetHttpContext().getRawBody(undefined, xxx)",
+            "type": "number"
+          },
+          "trustedProxies": {
+            "description": "Trust this reverse proxies",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "trustedProxies",
+          "type"
+        ],
+        "type": "object",
+        "title": "HttpServer"
+      },
+      "commands": {
+        "serve": {
+          "description": "Start the HTTP server",
+          "method": "serve",
+          "args": {
+            "bind": {
+              "type": "string"
+            },
+            "port": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
     "Webda/KubernetesConfigurationService": {
       "Import": "lib/configurations/kubernetesconfiguration:KubernetesConfigurationService",
       "Schema": {

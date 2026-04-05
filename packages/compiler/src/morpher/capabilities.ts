@@ -1,11 +1,36 @@
 import { ExpressionStatement, SourceFile, SyntaxKind } from "ts-morph";
 
 /**
- * Remove `this.getWebda().registerRequestFilter(this)` and
- * `this.getWebda().registerCORSFilter(this)` call statements,
- * as well as their commented-out equivalents.
+ * Morpher module that removes manual `registerRequestFilter(this)` and
+ * `registerCORSFilter(this)` calls from service source files.
  *
- * Calls where the argument is NOT `this` (e.g. anonymous objects in tests) are left untouched.
+ * These manual registrations are replaced by the capabilities auto-discovery
+ * system. The morpher only removes calls where the argument is `this`
+ * (service self-registration). Calls with other arguments (e.g., anonymous
+ * objects in test files) are preserved.
+ *
+ * Also removes commented-out versions of these calls (e.g.,
+ * `//this._webda.registerCORSFilter(this);`).
+ *
+ * @param sourceFile - The ts-morph SourceFile to transform (modified in place)
+ *
+ * @example
+ * ```typescript
+ * // Before morpher:
+ * class HawkService extends Service {
+ *   resolve() {
+ *     this.getWebda().registerRequestFilter(this);  // removed
+ *     this.getWebda().registerCORSFilter(this);      // removed
+ *   }
+ * }
+ *
+ * // After morpher:
+ * class HawkService extends Service {
+ *   resolve() {
+ *     // calls removed — capability auto-discovery handles registration
+ *   }
+ * }
+ * ```
  */
 export function removeFilterRegistrations(sourceFile: SourceFile): void {
   // --- Remove live call statements ---

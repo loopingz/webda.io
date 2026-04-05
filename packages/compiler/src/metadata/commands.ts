@@ -11,6 +11,15 @@ import { MetadataPlugin } from "./plugin.js";
  * them into webda.module.json under moddas[name].commands and beans[name].commands.
  */
 export class CommandsMetadata extends MetadataPlugin {
+  /**
+   * Iterate over all moddas and beans, extract `@Command`-decorated methods,
+   * and write the resulting command definitions into the module metadata.
+   *
+   * @param module - The module definition being built; commands are written
+   *   into `module[section][name].commands`
+   * @param objects - Resolved service/bean objects containing AST nodes
+   *   for each declared service
+   */
   getMetadata(module: WebdaModule, objects: WebdaObjects): void {
     for (const section of ["moddas", "beans"] as const) {
       for (const name of Object.keys(objects[section])) {
@@ -24,7 +33,17 @@ export class CommandsMetadata extends MetadataPlugin {
   }
 
   /**
-   * Extract all @Command decorated methods from a class node
+   * Extract all `@Command`-decorated methods from a class declaration and
+   * return a map of command name to its definition.
+   *
+   * Iterates over every member of the class. For each method that carries a
+   * `@Command` decorator, delegates to {@link extractCommandDefinition} to
+   * parse the decorator arguments and method signature.
+   *
+   * @param classNode - The AST node for the class declaration to inspect.
+   *   If not a class declaration, returns an empty map.
+   * @returns Map of command name (e.g., `"serve"`) to its {@link CommandDefinition}.
+   *   Empty object if the class has no `@Command`-decorated methods.
    */
   private extractCommands(classNode: ts.Node): { [name: string]: CommandDefinition } {
     const commands: { [name: string]: CommandDefinition } = {};
@@ -52,7 +71,18 @@ export class CommandsMetadata extends MetadataPlugin {
   }
 
   /**
-   * Extract command definition from decorator and method signature
+   * Parse a `@Command` decorator and method signature into a command name
+   * and its full definition including arguments.
+   *
+   * The decorator is expected to be called as `@Command("name", { description: "..." })`.
+   * The first argument is the command name (required string literal), and the
+   * second is an optional options object with a `description` property.
+   *
+   * @param decorator - The `@Command` decorator AST node
+   * @param methodName - The name of the decorated method (used as the `method` field)
+   * @param method - The method declaration, used to extract parameter definitions
+   * @returns An object with `commandName` and `definition`, or `undefined` if
+   *   the decorator is not a valid call expression or has no string literal name
    */
   private extractCommandDefinition(
     decorator: ts.Decorator,
@@ -105,7 +135,19 @@ export class CommandsMetadata extends MetadataPlugin {
   }
 
   /**
-   * Extract a single parameter's definition
+   * Extract a single method parameter's type, default value, and JSDoc metadata
+   * into a {@link CommandArgDefinition}.
+   *
+   * Determines the argument type from the TypeScript type annotation (defaults to
+   * `"string"`), checks whether the parameter is required (no default, no `?`),
+   * extracts the default value from the initializer, and reads `@alias`,
+   * `@description`, and `@deprecated` from leading JSDoc comments.
+   *
+   * @param param - The parameter declaration AST node to analyze
+   * @param sourceFile - The source file containing the parameter, needed to
+   *   read leading comment ranges for JSDoc tag extraction
+   * @returns The argument definition, or `undefined` if the parameter cannot
+   *   be represented as a CLI argument
    */
   private extractParamDefinition(param: ts.ParameterDeclaration, sourceFile: ts.SourceFile): CommandArgDefinition | undefined {
     // Determine type
@@ -151,7 +193,17 @@ export class CommandsMetadata extends MetadataPlugin {
   }
 
   /**
-   * Extract JSDoc tags from parameter leading comments
+   * Parse leading comment ranges on a parameter declaration to extract
+   * `@alias`, `@description`, and `@deprecated` JSDoc tags.
+   *
+   * Uses `ts.getLeadingCommentRanges` to find comments immediately before
+   * the parameter token, then applies regex patterns to extract tag values.
+   *
+   * @param param - The parameter declaration whose leading comments to inspect
+   * @param sourceFile - The source file, used to obtain the full text for
+   *   comment range slicing
+   * @returns An object with optional `alias`, `description`, and `deprecated`
+   *   fields. All fields are omitted if no matching tags are found.
    */
   private extractJSDocTagsFromParam(
     param: ts.ParameterDeclaration,

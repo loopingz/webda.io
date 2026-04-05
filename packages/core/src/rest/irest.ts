@@ -104,31 +104,73 @@ export interface RouteInfo {
 }
 
 /**
- * RequestFilter allow a service which implement it to control incoming request
+ * RequestFilter allows a service to control incoming requests.
  *
- * If one of the filter replies with "true" then the request will go through
+ * Services implementing this interface can accept or reject HTTP requests
+ * based on authentication, authorization, or other criteria. If at least one
+ * registered filter returns `true`, the request proceeds.
+ *
+ * The compiler detects this interface via the `@WebdaCapability` tag and
+ * automatically registers implementing services with the Router during
+ * framework initialization.
+ *
  * @WebdaCapability request-filter
+ *
+ * @typeParam T - The context type, defaults to {@link IWebContext}
+ *
+ * @example
+ * ```typescript
+ * class ApiKeyFilter extends Service implements RequestFilter {
+ *   async checkRequest(context: IWebContext, type: "CORS" | "AUTH"): Promise<boolean> {
+ *     if (type === "AUTH") {
+ *       return context.getHttpContext().getHeader("x-api-key") === this.parameters.apiKey;
+ *     }
+ *     return true;
+ *   }
+ * }
+ * ```
  */
 export interface RequestFilter<T extends IWebContext = IWebContext> {
   /**
-   * Return true if the request should be allowed
+   * Check whether a request should be allowed through.
    *
-   * @param context to check for
+   * @param context - The current request context
+   * @param type - The check type: `"CORS"` for cross-origin validation,
+   *               `"AUTH"` for authentication/authorization
+   * @returns `true` to allow the request, `false` to reject it
    */
   checkRequest(context: T, type: "CORS" | "AUTH"): Promise<boolean>;
 }
 
 /**
- * CORSFilter allow a service to control CORS requests
+ * CORSFilter allows a service to control Cross-Origin Resource Sharing requests.
  *
- * Does not apply in devMode
+ * Similar to {@link RequestFilter} but specifically for CORS validation.
+ * CORS filters are **not applied in devMode**, allowing unrestricted
+ * cross-origin requests during development.
+ *
  * @WebdaCapability cors-filter
+ *
+ * @typeParam T - The context type, defaults to {@link IWebContext}
+ *
+ * @example
+ * ```typescript
+ * class OriginFilter extends Service implements CORSFilter {
+ *   async checkRequest(context: IWebContext, type: "CORS" | "AUTH"): Promise<boolean> {
+ *     const origin = context.getHttpContext().getHeader("origin");
+ *     return this.parameters.allowedOrigins.includes(origin);
+ *   }
+ * }
+ * ```
  */
 export interface CORSFilter<T extends IWebContext = IWebContext> {
   /**
-   * Return true if the CORS request should be allowed
+   * Check whether a CORS request should be allowed.
    *
-   * @param context to check for
+   * @param context - The current request context
+   * @param type - The check type: `"CORS"` for cross-origin validation,
+   *               `"AUTH"` for authentication/authorization
+   * @returns `true` to allow the request, `false` to reject it
    */
   checkRequest(context: T, type: "CORS" | "AUTH"): Promise<boolean>;
 }

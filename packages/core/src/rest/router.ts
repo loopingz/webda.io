@@ -627,8 +627,27 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   }
 
   /**
-   * Auto-discover services with request-filter and cors-filter capabilities
-   * Called during framework initialization after all services are resolved
+   * Auto-discover services that declare `request-filter` or `cors-filter` capabilities
+   * and register them with the Router.
+   *
+   * Called during framework initialization (after all services are resolved and
+   * initialized) to replace manual `registerRequestFilter(this)` calls. Iterates
+   * all services, checks their {@link Service.getCapabilities} return value, and
+   * registers matching services as request or CORS filters.
+   *
+   * @param services - Iterable of initialized services to scan for filter capabilities
+   *
+   * @example
+   * ```typescript
+   * // Called automatically by Core.init():
+   * router.discoverFilters(Object.values(this.services));
+   *
+   * // A service with "request-filter" capability is auto-registered:
+   * class HawkService extends Service implements RequestFilter {
+   *   // getCapabilities() returns { "request-filter": {}, "cors-filter": {} }
+   *   // → automatically registered with router as both request and CORS filter
+   * }
+   * ```
    */
   discoverFilters(services: Iterable<Service>): void {
     for (const service of services) {

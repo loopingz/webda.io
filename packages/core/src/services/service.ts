@@ -241,7 +241,25 @@ abstract class Service<
   }
 
   /**
-   * Load capabilities from webda.module.json metadata
+   * Load capabilities from webda.module.json metadata into {@link _compiledCapabilities}.
+   *
+   * Called during {@link resolve} after dependency injection. Reads the service's
+   * type name from parameters, looks it up in the application's module metadata
+   * (moddas or beans section), and populates `_compiledCapabilities` with an
+   * empty object for each declared capability name.
+   *
+   * Fails silently if the application is not available (e.g., in unit tests
+   * where services are instantiated without a full application context).
+   *
+   * @example
+   * ```typescript
+   * // If webda.module.json contains:
+   * // { "moddas": { "MyApp/HawkService": { "capabilities": ["request-filter", "cors-filter"] } } }
+   * // Then after resolve(), this.getCapabilities() returns:
+   * // { "request-filter": {}, "cors-filter": {} }
+   * ```
+   *
+   * @see getCapabilities
    */
   protected loadCapabilities() {
     try {

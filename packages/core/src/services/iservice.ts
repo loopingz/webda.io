@@ -44,8 +44,14 @@ export abstract class AbstractService<
   static filterConfiguration?: (params: any) => any;
 
   /**
-   * Compiled capabilities from webda.module.json
-   * Populated during resolve() from module metadata
+   * Capabilities detected at compile-time from `@WebdaCapability`-tagged interfaces.
+   *
+   * Populated during {@link Service.resolve} by reading the service's entry in
+   * `webda.module.json`. Each key is a capability name (e.g., `"request-filter"`),
+   * and the value is an empty object `{}` by default. Override {@link getCapabilities}
+   * to provide capability-specific configuration or to conditionally disable capabilities.
+   *
+   * @see getCapabilities
    */
   protected _compiledCapabilities: Record<string, any> = {};
 

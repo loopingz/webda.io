@@ -61,6 +61,7 @@ export * from "./services/cryptoservice.js";
 export * from "./services/serviceparameters.js";
 export * from "./services/cron.js";
 export * from "./services/command.js";
+export * from "./services/servicecommands.js";
 export * from "./services/icryptoservice.js";
 export * from "./configurations/fileconfiguration.js";
 export * from "./services/audit.js";

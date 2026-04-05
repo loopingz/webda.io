@@ -239,7 +239,100 @@ export function buildCli(ops: OperationsFile, handler: OperationHandler, argv?: 
     });
   }
 
-  return cli.demandCommand(1, "Specify a command").strict().help();
+  return cli.demandCommand(1, "Specify a command").help();
+}
+
+/**
+ * Add service commands (from `@Command` decorators) to a yargs CLI instance.
+ *
+ * Reads commands from `webda.module.json` via the Application and registers
+ * them as yargs commands. Subcommands (space-separated names like `"aws s3"`)
+ * are nested as yargs subcommand groups.
+ *
+ * A global `--service` option is added to filter which services handle a command
+ * when multiple services declare the same command name.
+ *
+ * @param cli - The yargs CLI instance to add commands to
+ * @param serviceCommands - Command map from {@link collectServiceCommands}
+ * @param handler - Called when a service command is invoked, receives command name and parsed args
+ *
+ * @example
+ * ```typescript
+ * import { collectServiceCommands, addServiceCommandsToCli } from "@webda/core";
+ *
+ * const cmds = collectServiceCommands(app);
+ * const cli = yargs().scriptName("webda");
+ * addServiceCommandsToCli(cli, cmds, async (cmdName, args) => {
+ *   await executeServiceCommand(cmdName, cmds[cmdName], args, core.getServices(), args.service?.split(","));
+ * });
+ * ```
+ */
+export function addServiceCommandsToCli(
+  cli: Argv,
+  serviceCommands: { [name: string]: import("../services/servicecommands.js").ServiceCommandInfo },
+  handler: (cmdName: string, args: Record<string, any>) => Promise<void>
+): Argv {
+  // Add global --service filter
+  cli.option("service", {
+    type: "string",
+    description: "Filter command to specific service(s), comma-separated",
+    global: true
+  });
+
+  // Group commands by top-level name for subcommand support
+  const topLevel = new Map<string, { name: string; info: import("../services/servicecommands.js").ServiceCommandInfo }[]>();
+
+  for (const [cmdName, cmdInfo] of Object.entries(serviceCommands)) {
+    const parts = cmdName.split(" ");
+    const top = parts[0];
+    if (!topLevel.has(top)) topLevel.set(top, []);
+    topLevel.get(top)!.push({ name: cmdName, info: cmdInfo });
+  }
+
+  for (const [top, commands] of topLevel) {
+    if (commands.length === 1 && commands[0].name === top) {
+      // Simple command (no subcommands)
+      const { name, info } = commands[0];
+      cli.command(
+        top,
+        info.description,
+        y => addCommandArgs(y, info.args),
+        async args => handler(name, args as Record<string, any>)
+      );
+    } else {
+      // Command group with subcommands
+      cli.command(top, `${top} commands`, groupY => {
+        for (const { name, info } of commands) {
+          const sub = name.substring(top.length + 1) || top;
+          groupY.command(
+            sub,
+            info.description,
+            y => addCommandArgs(y, info.args),
+            async args => handler(name, args as Record<string, any>)
+          );
+        }
+        return groupY.demandCommand(1, `Specify a subcommand for ${top}`);
+      });
+    }
+  }
+
+  return cli;
+}
+
+/**
+ * Add command argument definitions to a yargs builder.
+ */
+function addCommandArgs(y: Argv, args: { [name: string]: import("@webda/compiler").CommandArgDefinition }): Argv {
+  for (const [argName, argDef] of Object.entries(args)) {
+    y.option(argName, {
+      type: argDef.type as "string" | "number" | "boolean",
+      default: argDef.default,
+      alias: argDef.alias,
+      description: argDef.description,
+      demandOption: argDef.required
+    });
+  }
+  return y;
 }
 
 /**

@@ -48,6 +48,7 @@ export default defineConfig({
       //"src/services/prometheus.spec.ts", // Check parameters loading
       //"src/services/resource.spec.ts",
       "src/services/command.spec.ts",
+      "src/services/servicecommands.spec.ts",
       "src/services/service.spec.ts",
       "src/services/serviceparameters.spec.ts",
       // "src/session/*.spec.ts",

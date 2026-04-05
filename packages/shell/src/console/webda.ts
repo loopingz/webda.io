@@ -1,5 +1,6 @@
-import { CryptoService, Logger, Store } from "@webda/core";
-import { generateConfigurationSchemas } from "@webda/compiler";
+import { Application, CryptoService, Logger, Store, collectServiceCommands, executeServiceCommand } from "@webda/core";
+import type { ServiceCommandInfo } from "@webda/core";
+import { generateConfigurationSchemas, CommandDefinition, CommandArgDefinition } from "@webda/compiler";
 import { FileUtils, JSONUtils, CancelablePromise, getCommonJS } from "@webda/utils";
 import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerOutput } from "@webda/workout";
 import chalk from "chalk";
@@ -105,7 +106,12 @@ export default class WebdaConsole {
         type: "boolean",
         default: false
       })
-      .option("app-path", { default: process.cwd() });
+      .option("app-path", { default: process.cwd() })
+      .option("service", {
+        type: "string",
+        description: "Filter command to specific service(s), comma-separated",
+        global: true
+      });
     const cmds = WebdaConsole.builtinCommands();
     Object.keys(cmds).forEach(key => {
       const cmd = cmds[key];
@@ -668,6 +674,45 @@ ${Object.keys(operationsExport.operations)
   }
 
   /**
+   * Collect all CLI commands declared by services.
+   * @deprecated Use `collectServiceCommands` from `@webda/core` directly.
+   */
+  static collectServiceCommands(app: Application): { [name: string]: ServiceCommandInfo } {
+    return collectServiceCommands(app);
+  }
+
+  /**
+   * Execute a CLI command by dispatching to all services that declared it.
+   * @deprecated Use `executeServiceCommand` from `@webda/core` directly.
+   */
+  static async executeServiceCommand(
+    cmdName: string,
+    cmdInfo: ServiceCommandInfo,
+    argv: any
+  ): Promise<number> {
+    // Boot webda if not already booted
+    if (!this.webda) {
+      WebdaConsole.webda = new WebdaServer(this.app);
+      await this.webda.init();
+    }
+
+    // Extract args from yargs argv
+    const args: { [key: string]: any } = {};
+    for (const argName of Object.keys(cmdInfo.args)) {
+      if (argv[argName] !== undefined) {
+        args[argName] = argv[argName];
+      }
+    }
+
+    // Parse --service filter
+    const serviceFilter = argv.service
+      ? (Array.isArray(argv.service) ? argv.service : String(argv.service).split(","))
+      : undefined;
+
+    return executeServiceCommand(cmdName, cmdInfo, args, this.webda.getServices(), serviceFilter);
+  }
+
+  /**
    * Main command switch
    *
    * Parse arguments
@@ -723,6 +768,10 @@ ${Object.keys(operationsExport.operations)
     // Load each files
     for (const i in files) {
       try {
+        this.log(
+          "WARN",
+          `Deprecation: ${files[i]} is deprecated. Migrate commands to @Command decorators on services. See https://docs.webda.io/migration/commands`
+        );
         const info = JSON.parse(fs.readFileSync(files[i]).toString());
         for (const j in info.commands) {
           WebdaConsole.extensions[j] = info.commands[j];
@@ -1205,6 +1254,39 @@ ${Object.keys(operationsExport.operations)
       // Launch builtin commands
       if (WebdaConsole.builtinCommands()[argv._[0]]) {
         result = (await WebdaConsole.builtinCommands()[argv._[0]].handler.bind(this)(argv)) ?? 0;
+      } else if (this.app) {
+        // Try service commands from webda.module.json
+        const serviceCommands = WebdaConsole.collectServiceCommands(this.app);
+        // Support subcommands: "webda aws s3" → try "aws s3" first, then "aws"
+        const fullCommand = (<string[]>argv._).join(" ");
+        const firstCommand = <string>argv._[0];
+        const cmdInfo = serviceCommands[fullCommand] || serviceCommands[firstCommand];
+
+        if (cmdInfo) {
+          const cmdName = serviceCommands[fullCommand] ? fullCommand : firstCommand;
+          this.log("DEBUG", `Dispatching service command '${cmdName}'`);
+          // Re-parse with command-specific args for yargs awareness
+          for (const [argName, argDef] of Object.entries(cmdInfo.args)) {
+            parser = parser.option(argName, {
+              type: argDef.type as "string" | "number" | "boolean",
+              default: argDef.default,
+              alias: argDef.alias,
+              description: argDef.description,
+              deprecated: argDef.deprecated
+            });
+          }
+          argv = parser.parse(args);
+          result = await this.executeServiceCommand(cmdName, cmdInfo, argv);
+        } else if (extension) {
+          this.log("WARN", "Shell extensions via webda.shell.json are deprecated, use @Command decorator instead");
+          this.log("DEBUG", "Launching extension " + argv._[0], extension);
+          // Load lib
+          argv._.shift();
+          result = await this.executeShellExtension(extension, extension.relPath, argv);
+        } else {
+          // Display help if nothing is found
+          this.displayHelp(parser);
+        }
       } else if (extension) {
         this.log("DEBUG", "Launching extension " + argv._[0], extension);
         // Load lib

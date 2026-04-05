@@ -133,6 +133,64 @@ class CompilerTest {
       i.startsWith("_")
     );
     assert.ok(Array.isArray(computerUnderscoreFields));
+
+    // Verify @WebdaCapability extraction: CustomService implements RequestFilter
+    assert.deepStrictEqual(
+      mod.beans!["WebdaDemo/CustomService"].capabilities,
+      ["request-filter"],
+      "CustomService should have request-filter capability"
+    );
+
+    // Verify end-to-end: TestCommandService has both capabilities and commands
+    const testSvc = mod.moddas!["WebdaDemo/TestCommandService"];
+    assert.ok(testSvc, "TestCommandService should be in moddas");
+
+    // Capabilities: implements RequestFilter → request-filter
+    assert.deepStrictEqual(
+      testSvc.capabilities,
+      ["request-filter"],
+      "TestCommandService should have request-filter capability"
+    );
+
+    // Commands: @Command decorated methods
+    assert.ok(testSvc.commands, "TestCommandService should have commands");
+
+    // greet command
+    const greetCmd = testSvc.commands!["greet"];
+    assert.ok(greetCmd, "greet command should exist");
+    assert.strictEqual(greetCmd.description, "Greet a user by name");
+    assert.strictEqual(greetCmd.method, "greet");
+    assert.strictEqual(greetCmd.args["name"].type, "string");
+    assert.strictEqual(greetCmd.args["name"].default, "world");
+    assert.strictEqual(greetCmd.args["name"].alias, "n");
+    assert.strictEqual(greetCmd.args["verbose"].type, "boolean");
+    assert.strictEqual(greetCmd.args["verbose"].default, false);
+    assert.strictEqual(greetCmd.args["verbose"].alias, "v");
+
+    // deploy command (has a required arg)
+    const deployCmd = testSvc.commands!["deploy"];
+    assert.ok(deployCmd, "deploy command should exist");
+    assert.strictEqual(deployCmd.description, "Deploy a resource");
+    assert.strictEqual(deployCmd.method, "deploy");
+    assert.strictEqual(deployCmd.args["target"].type, "string");
+    assert.strictEqual(deployCmd.args["target"].required, true);
+    assert.strictEqual(deployCmd.args["target"].alias, "t");
+    assert.strictEqual(deployCmd.args["dryRun"].type, "boolean");
+    assert.strictEqual(deployCmd.args["dryRun"].default, false);
+    assert.strictEqual(deployCmd.args["dryRun"].alias, "d");
+
+    // Verify services without capabilities/commands don't have those fields
+    const simpleService = mod.moddas!["WebdaDemo/SimpleService"];
+    if (simpleService) {
+      assert.strictEqual(simpleService.capabilities, undefined, "SimpleService should have no capabilities");
+      assert.strictEqual(simpleService.commands, undefined, "SimpleService should have no commands");
+    }
+
+    // Verify deploy command required arg does NOT have a default
+    assert.strictEqual(deployCmd.args["target"].default, undefined, "Required arg should have no default");
+    // Verify optional args with defaults do NOT have required flag
+    assert.strictEqual(deployCmd.args["dryRun"].required, undefined, "Optional arg should not be required");
+    assert.strictEqual(greetCmd.args["name"].required, undefined, "Arg with default should not be required");
   }
 
   @test

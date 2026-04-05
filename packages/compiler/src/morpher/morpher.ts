@@ -3,6 +3,7 @@ import { setLoadParameters } from "./loadparameters";
 import { updateImports } from "./imports";
 import { deserializer } from "./deserialize";
 import { transformAccessors } from "./accessors";
+import { removeFilterRegistrations } from "./capabilities";
 import { useLog, useWorkerOutput } from "@webda/workout";
 import { diffLines } from "diff";
 import { EventEmitter } from "stream";
@@ -47,7 +48,8 @@ export class WebdaMorpher {
     unserializer: sourceFile => deserializer(sourceFile, this.project.getTypeChecker()),
     loadParameters: setLoadParameters,
     accessors: transformAccessors,
-    updateImports: sourceFile => updateImports(sourceFile, replacePackages)
+    updateImports: sourceFile => updateImports(sourceFile, replacePackages),
+    capabilities: removeFilterRegistrations
   };
 
   constructor(protected options: WebdaMorpherOptions = {}) {

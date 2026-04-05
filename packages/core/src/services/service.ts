@@ -11,6 +11,7 @@ import type { OperationContext } from "../contexts/operationcontext.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { useService } from "../core/hooks.js";
 import type { ServiceName, ServicesMap } from "../core/hooks.js";
+import { useApplication } from "../application/hooks.js";
 import { AbstractService } from "../core/icore.js";
 import { useLogger } from "../loggers/hooks.js";
 import { WEBDA_EVENTS } from "@webda/models";
@@ -233,9 +234,48 @@ abstract class Service<
     // We wait for all services to be created before calling computeParameters
     this.computeParameters();
 
+    this.loadCapabilities();
     this.initRoutes();
     this.initOperations();
     return this;
+  }
+
+  /**
+   * Load capabilities from webda.module.json metadata into {@link _compiledCapabilities}.
+   *
+   * Called during {@link resolve} after dependency injection. Reads the service's
+   * type name from parameters, looks it up in the application's module metadata
+   * (moddas or beans section), and populates `_compiledCapabilities` with an
+   * empty object for each declared capability name.
+   *
+   * Fails silently if the application is not available (e.g., in unit tests
+   * where services are instantiated without a full application context).
+   *
+   * @example
+   * ```typescript
+   * // If webda.module.json contains:
+   * // { "moddas": { "MyApp/HawkService": { "capabilities": ["request-filter", "cors-filter"] } } }
+   * // Then after resolve(), this.getCapabilities() returns:
+   * // { "request-filter": {}, "cors-filter": {} }
+   * ```
+   *
+   * @see getCapabilities
+   */
+  protected loadCapabilities() {
+    try {
+      const app = useApplication();
+      const modules = app.getModules();
+      const type = this.parameters.type;
+      const metadata = modules.moddas?.[type] || modules.beans?.[type];
+      if (metadata?.capabilities) {
+        this._compiledCapabilities = {};
+        for (const cap of metadata.capabilities) {
+          this._compiledCapabilities[cap] = {};
+        }
+      }
+    } catch {
+      // Application may not be available in tests
+    }
   }
 
   /**

@@ -1,6 +1,6 @@
 import uriTemplates from "uri-templates";
 import { HttpMethodType } from "../contexts/httpcontext.js";
-import type { IRouter, RequestFilter, RouteInfo } from "./irest.js";
+import type { IRouter, RequestFilter, CORSFilter, RouteInfo } from "./irest.js";
 
 import { useApplication, useModelId } from "../application/hooks.js";
 import { useLog } from "../loggers/hooks.js";
@@ -47,7 +47,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   /**
    * Request filters to apply for CORS
    */
-  private _requestCORSFilters: RequestFilter[] = [];
+  private _requestCORSFilters: CORSFilter[] = [];
 
   /**
    * Registration of a model
@@ -501,7 +501,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @param context Context of the request
    */
   protected async checkCORSRequest(ctx: IWebContext): Promise<boolean> {
-    return (await Promise.all(this._requestFilters.map(filter => filter.checkRequest(ctx, "CORS")))).some(v => v);
+    return (await Promise.all(this._requestCORSFilters.map(filter => filter.checkRequest(ctx, "CORS")))).some(v => v);
   }
 
   /**
@@ -622,7 +622,42 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * Does not apply in devMode
    * @param filter
    */
-  registerCORSFilter(filter: RequestFilter) {
+  registerCORSFilter(filter: CORSFilter) {
     this._requestCORSFilters.push(filter);
+  }
+
+  /**
+   * Auto-discover services that declare `request-filter` or `cors-filter` capabilities
+   * and register them with the Router.
+   *
+   * Called during framework initialization (after all services are resolved and
+   * initialized) to replace manual `registerRequestFilter(this)` calls. Iterates
+   * all services, checks their {@link Service.getCapabilities} return value, and
+   * registers matching services as request or CORS filters.
+   *
+   * @param services - Iterable of initialized services to scan for filter capabilities
+   *
+   * @example
+   * ```typescript
+   * // Called automatically by Core.init():
+   * router.discoverFilters(Object.values(this.services));
+   *
+   * // A service with "request-filter" capability is auto-registered:
+   * class HawkService extends Service implements RequestFilter {
+   *   // getCapabilities() returns { "request-filter": {}, "cors-filter": {} }
+   *   // → automatically registered with router as both request and CORS filter
+   * }
+   * ```
+   */
+  discoverFilters(services: Iterable<Service>): void {
+    for (const service of services) {
+      const caps = service.getCapabilities();
+      if ("request-filter" in caps) {
+        this.registerRequestFilter(service as unknown as RequestFilter);
+      }
+      if ("cors-filter" in caps) {
+        this.registerCORSFilter(service as unknown as CORSFilter);
+      }
+    }
   }
 }

@@ -43,10 +43,41 @@ export abstract class AbstractService<
    */
   static filterConfiguration?: (params: any) => any;
 
+  /**
+   * Capabilities detected at compile-time from `@WebdaCapability`-tagged interfaces.
+   *
+   * Populated during {@link Service.resolve} by reading the service's entry in
+   * `webda.module.json`. Each key is a capability name (e.g., `"request-filter"`),
+   * and the value is an empty object `{}` by default. Override {@link getCapabilities}
+   * to provide capability-specific configuration or to conditionally disable capabilities.
+   *
+   * @see getCapabilities
+   */
+  protected _compiledCapabilities: Record<string, any> = {};
+
   constructor(name: string, params: T | JSONed<T>) {
     super();
     this.name = name;
     this.parameters = (this.constructor as typeof AbstractService).createConfiguration?.(params) || params;
+  }
+
+  /**
+   * Return the capabilities of this service.
+   *
+   * By default returns capabilities detected at compile-time from
+   * @WebdaCapability-tagged interfaces in webda.module.json.
+   *
+   * Override to disable capabilities based on configuration:
+   * ```typescript
+   * getCapabilities() {
+   *   const caps = super.getCapabilities();
+   *   if (!this.parameters.enabled) delete caps["request-filter"];
+   *   return caps;
+   * }
+   * ```
+   */
+  getCapabilities(): Record<string, any> {
+    return structuredClone(this._compiledCapabilities);
   }
 
   /**

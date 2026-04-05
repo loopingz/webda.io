@@ -844,6 +844,467 @@ export default class FakeTerminal {
   }
 
   @test
+  async collectServiceCommandsEmpty() {
+    // When no modules have commands, should return empty object
+    const fakeApp = {
+      getModules: () => ({
+        moddas: {
+          "MyApp/PlainService": { Import: "plain.js" }
+        },
+        beans: {},
+        deployers: {}
+      })
+    };
+    const commands = WebdaConsole.collectServiceCommands(fakeApp as any);
+    assert.deepStrictEqual(commands, {});
+  }
+
+  @test
+  async collectServiceCommandsSingleService() {
+    // A single modda with one command
+    const fakeApp = {
+      getModules: () => ({
+        moddas: {
+          "MyApp/Migrator": {
+            Import: "migrator.js",
+            commands: {
+              migrate: {
+                description: "Run migrations",
+                method: "runMigrate",
+                args: {
+                  dryRun: { type: "boolean", default: false }
+                }
+              }
+            }
+          }
+        },
+        beans: {},
+        deployers: {}
+      })
+    };
+    const commands = WebdaConsole.collectServiceCommands(fakeApp as any);
+    assert.strictEqual(Object.keys(commands).length, 1);
+    assert.strictEqual(commands["migrate"].description, "Run migrations");
+    assert.strictEqual(commands["migrate"].services.length, 1);
+    assert.strictEqual(commands["migrate"].services[0].name, "MyApp/Migrator");
+    assert.strictEqual(commands["migrate"].services[0].method, "runMigrate");
+    assert.deepStrictEqual(commands["migrate"].args, { dryRun: { type: "boolean", default: false } });
+  }
+
+  @test
+  async collectServiceCommandsMergesMultipleServices() {
+    // Two services declare the same command -- services should merge, first args win
+    const fakeApp = {
+      getModules: () => ({
+        moddas: {
+          "MyApp/PostgresMigrator": {
+            Import: "pg.js",
+            commands: {
+              migrate: {
+                description: "Run PG migrations",
+                method: "migrate",
+                args: {
+                  dryRun: { type: "boolean", default: false },
+                  pgOnly: { type: "string" }
+                }
+              }
+            }
+          },
+          "MyApp/MongoMigrator": {
+            Import: "mongo.js",
+            commands: {
+              migrate: {
+                description: "Run Mongo migrations",
+                method: "migrate",
+                args: {
+                  dryRun: { type: "boolean", default: true },
+                  mongoOnly: { type: "number" }
+                }
+              }
+            }
+          }
+        },
+        beans: {},
+        deployers: {}
+      })
+    };
+    const commands = WebdaConsole.collectServiceCommands(fakeApp as any);
+    assert.strictEqual(commands["migrate"].services.length, 2);
+    assert.strictEqual(commands["migrate"].services[0].name, "MyApp/PostgresMigrator");
+    assert.strictEqual(commands["migrate"].services[1].name, "MyApp/MongoMigrator");
+    // First definition wins for description
+    assert.strictEqual(commands["migrate"].description, "Run PG migrations");
+    // First definition wins for shared args (dryRun.default = false from PG)
+    assert.strictEqual(commands["migrate"].args.dryRun.default, false);
+    // Both unique args are present
+    assert.ok(commands["migrate"].args.pgOnly);
+    assert.ok(commands["migrate"].args.mongoOnly);
+  }
+
+  @test
+  async collectServiceCommandsFromAllSections() {
+    // Commands from moddas, beans, and deployers should all be collected
+    const fakeApp = {
+      getModules: () => ({
+        moddas: {
+          "MyApp/HttpServer": {
+            Import: "http.js",
+            commands: {
+              serve: { description: "Start server", method: "serve", args: { port: { type: "number" } } }
+            }
+          }
+        },
+        beans: {
+          "MyApp/CacheBean": {
+            Import: "cache.js",
+            commands: {
+              "cache-clear": { description: "Clear cache", method: "clearAll", args: {} }
+            }
+          }
+        },
+        deployers: {
+          "MyApp/K8sDeployer": {
+            Import: "k8s.js",
+            commands: {
+              deploy: { description: "Deploy to K8s", method: "deploy", args: { namespace: { type: "string" } } }
+            }
+          }
+        }
+      })
+    };
+    const commands = WebdaConsole.collectServiceCommands(fakeApp as any);
+    assert.strictEqual(Object.keys(commands).length, 3);
+    assert.ok(commands["serve"]);
+    assert.ok(commands["cache-clear"]);
+    assert.ok(commands["deploy"]);
+    assert.strictEqual(commands["serve"].services[0].name, "MyApp/HttpServer");
+    assert.strictEqual(commands["cache-clear"].services[0].name, "MyApp/CacheBean");
+    assert.strictEqual(commands["deploy"].services[0].name, "MyApp/K8sDeployer");
+  }
+
+  @test
+  async collectServiceCommandsSubcommandNames() {
+    // Subcommand names (with spaces) should be preserved as keys
+    const fakeApp = {
+      getModules: () => ({
+        moddas: {
+          "MyApp/S3Service": {
+            Import: "s3.js",
+            commands: {
+              "aws s3": { description: "Manage S3", method: "manageS3", args: {} }
+            }
+          }
+        },
+        beans: {},
+        deployers: {}
+      })
+    };
+    const commands = WebdaConsole.collectServiceCommands(fakeApp as any);
+    assert.ok(commands["aws s3"]);
+    assert.strictEqual(commands["aws s3"].description, "Manage S3");
+    assert.strictEqual(commands["aws s3"].services[0].method, "manageS3");
+  }
+
+  @test
+  async collectServiceCommandsHandlesMissingSections() {
+    // Modules with undefined sections should not crash
+    const fakeApp = {
+      getModules: () => ({
+        moddas: undefined,
+        beans: undefined,
+        deployers: undefined
+      })
+    };
+    const commands = WebdaConsole.collectServiceCommands(fakeApp as any);
+    assert.deepStrictEqual(commands, {});
+  }
+
+  @test
+  async executeServiceCommandAllServices() {
+    // All services should be called when no --service filter
+    const callLog: string[] = [];
+    const fakeService1 = { migrate: (...args) => callLog.push("svc1:" + JSON.stringify(args)) };
+    const fakeService2 = { migrate: (...args) => callLog.push("svc2:" + JSON.stringify(args)) };
+    const savedWebda = WebdaConsole.webda;
+    try {
+      // @ts-ignore
+      WebdaConsole.webda = {
+        getService: (name: string) => {
+          if (name === "MyApp/Svc1") return fakeService1;
+          if (name === "MyApp/Svc2") return fakeService2;
+          return undefined;
+        },
+        getServices: () => ({})
+      };
+      const cmdInfo = {
+        description: "Test",
+        services: [
+          { name: "MyApp/Svc1", method: "migrate", type: "MyApp/Svc1" },
+          { name: "MyApp/Svc2", method: "migrate", type: "MyApp/Svc2" }
+        ],
+        args: { dryRun: { type: "boolean" as const, default: false } }
+      };
+      const result = await WebdaConsole.executeServiceCommand("migrate", cmdInfo, { dryRun: true });
+      assert.strictEqual(result, 0);
+      assert.strictEqual(callLog.length, 2);
+      assert.ok(callLog[0].startsWith("svc1:"));
+      assert.ok(callLog[1].startsWith("svc2:"));
+    } finally {
+      WebdaConsole.webda = savedWebda;
+    }
+  }
+
+  @test
+  async executeServiceCommandWithServiceFilter() {
+    // Only the matching service should be called
+    const callLog: string[] = [];
+    const fakeService1 = { migrate: () => callLog.push("svc1") };
+    const fakeService2 = { migrate: () => callLog.push("svc2") };
+    const savedWebda = WebdaConsole.webda;
+    try {
+      // @ts-ignore
+      WebdaConsole.webda = {
+        getService: (name: string) => {
+          if (name === "MyApp/Svc1") return fakeService1;
+          if (name === "MyApp/Svc2") return fakeService2;
+          return undefined;
+        },
+        getServices: () => ({})
+      };
+      const cmdInfo = {
+        description: "Test",
+        services: [
+          { name: "MyApp/Svc1", method: "migrate", type: "MyApp/Svc1" },
+          { name: "MyApp/Svc2", method: "migrate", type: "MyApp/Svc2" }
+        ],
+        args: {}
+      };
+      const result = await WebdaConsole.executeServiceCommand("migrate", cmdInfo, { service: "MyApp/Svc1" });
+      assert.strictEqual(result, 0);
+      assert.strictEqual(callLog.length, 1);
+      assert.strictEqual(callLog[0], "svc1");
+    } finally {
+      WebdaConsole.webda = savedWebda;
+    }
+  }
+
+  @test
+  async executeServiceCommandNoMatchingFilter() {
+    // When --service filter matches nothing, should return 1
+    const savedWebda = WebdaConsole.webda;
+    try {
+      // @ts-ignore
+      WebdaConsole.webda = {
+        getService: () => undefined,
+        getServices: () => ({})
+      };
+      const cmdInfo = {
+        description: "Test",
+        services: [
+          { name: "MyApp/Svc1", method: "migrate", type: "MyApp/Svc1" }
+        ],
+        args: {}
+      };
+      const result = await WebdaConsole.executeServiceCommand("migrate", cmdInfo, { service: "NonExistent" });
+      assert.strictEqual(result, 1);
+    } finally {
+      WebdaConsole.webda = savedWebda;
+    }
+  }
+
+  @test
+  async executeServiceCommandCommaSeparatedFilter() {
+    // Comma-separated --service filter should match multiple services
+    const callLog: string[] = [];
+    const fakeService1 = { migrate: () => callLog.push("svc1") };
+    const fakeService2 = { migrate: () => callLog.push("svc2") };
+    const fakeService3 = { migrate: () => callLog.push("svc3") };
+    const savedWebda = WebdaConsole.webda;
+    try {
+      // @ts-ignore
+      WebdaConsole.webda = {
+        getService: (name: string) => {
+          if (name === "MyApp/Svc1") return fakeService1;
+          if (name === "MyApp/Svc2") return fakeService2;
+          if (name === "MyApp/Svc3") return fakeService3;
+          return undefined;
+        },
+        getServices: () => ({})
+      };
+      const cmdInfo = {
+        description: "Test",
+        services: [
+          { name: "MyApp/Svc1", method: "migrate", type: "MyApp/Svc1" },
+          { name: "MyApp/Svc2", method: "migrate", type: "MyApp/Svc2" },
+          { name: "MyApp/Svc3", method: "migrate", type: "MyApp/Svc3" }
+        ],
+        args: {}
+      };
+      const result = await WebdaConsole.executeServiceCommand("migrate", cmdInfo, { service: "Svc1,Svc2" });
+      assert.strictEqual(result, 0);
+      assert.strictEqual(callLog.length, 2);
+      assert.strictEqual(callLog[0], "svc1");
+      assert.strictEqual(callLog[1], "svc2");
+    } finally {
+      WebdaConsole.webda = savedWebda;
+    }
+  }
+
+  @test
+  async executeServiceCommandServiceNotFound() {
+    // Service referenced in cmdInfo but not found in webda -- should skip with warning
+    const savedWebda = WebdaConsole.webda;
+    try {
+      // @ts-ignore
+      WebdaConsole.webda = {
+        getService: () => undefined,
+        getServices: () => ({})
+      };
+      const cmdInfo = {
+        description: "Test",
+        services: [
+          { name: "MyApp/Ghost", method: "migrate", type: "MyApp/Ghost" }
+        ],
+        args: {}
+      };
+      const result = await WebdaConsole.executeServiceCommand("migrate", cmdInfo, {});
+      // Service not found is a warning, not an error -- returns 0
+      assert.strictEqual(result, 0);
+    } finally {
+      WebdaConsole.webda = savedWebda;
+    }
+  }
+
+  @test
+  async executeServiceCommandMethodNotFound() {
+    // Service found but method missing -- should return 1
+    const fakeService = { otherMethod: () => {} };
+    const savedWebda = WebdaConsole.webda;
+    try {
+      // @ts-ignore
+      WebdaConsole.webda = {
+        getService: () => fakeService,
+        getServices: () => ({})
+      };
+      const cmdInfo = {
+        description: "Test",
+        services: [
+          { name: "MyApp/Svc1", method: "nonExistentMethod", type: "MyApp/Svc1" }
+        ],
+        args: {}
+      };
+      const result = await WebdaConsole.executeServiceCommand("migrate", cmdInfo, {});
+      assert.strictEqual(result, 1);
+    } finally {
+      WebdaConsole.webda = savedWebda;
+    }
+  }
+
+  @test
+  async executeServiceCommandFallbackToTypeMatch() {
+    // When getService returns null, should search by constructor name
+    const callLog: string[] = [];
+    class Svc1 {
+      migrate() {
+        callLog.push("found-by-type");
+      }
+    }
+    const fakeInstance = new Svc1();
+    const savedWebda = WebdaConsole.webda;
+    try {
+      // @ts-ignore
+      WebdaConsole.webda = {
+        getService: () => undefined,
+        getServices: () => ({ myInstance: fakeInstance })
+      };
+      const cmdInfo = {
+        description: "Test",
+        services: [
+          { name: "MyApp/Svc1", method: "migrate", type: "MyApp/Svc1" }
+        ],
+        args: {}
+      };
+      const result = await WebdaConsole.executeServiceCommand("migrate", cmdInfo, {});
+      assert.strictEqual(result, 0);
+      assert.strictEqual(callLog.length, 1);
+      assert.strictEqual(callLog[0], "found-by-type");
+    } finally {
+      WebdaConsole.webda = savedWebda;
+    }
+  }
+
+  @test
+  async executeServiceCommandPassesArgs() {
+    // Verify that command args from argv are extracted and passed to the method
+    const receivedArgs: any[] = [];
+    const fakeService = {
+      doStuff: (...args) => {
+        receivedArgs.push(...args);
+      }
+    };
+    const savedWebda = WebdaConsole.webda;
+    try {
+      // @ts-ignore
+      WebdaConsole.webda = {
+        getService: () => fakeService,
+        getServices: () => ({})
+      };
+      const cmdInfo = {
+        description: "Test",
+        services: [
+          { name: "MyApp/Svc1", method: "doStuff", type: "MyApp/Svc1" }
+        ],
+        args: {
+          port: { type: "number" as const, default: 8080 },
+          host: { type: "string" as const }
+        }
+      };
+      const result = await WebdaConsole.executeServiceCommand("test", cmdInfo, {
+        port: 3000,
+        host: "localhost",
+        unrelated: "ignored"
+      });
+      assert.strictEqual(result, 0);
+      // Should receive port and host values (from cmdInfo.args keys)
+      assert.strictEqual(receivedArgs[0], 3000);
+      assert.strictEqual(receivedArgs[1], "localhost");
+    } finally {
+      WebdaConsole.webda = savedWebda;
+    }
+  }
+
+  @test
+  async executeServiceCommandSuffixMatching() {
+    // The --service filter supports suffix matching (endsWith)
+    const callLog: string[] = [];
+    const fakeService = { migrate: () => callLog.push("called") };
+    const savedWebda = WebdaConsole.webda;
+    try {
+      // @ts-ignore
+      WebdaConsole.webda = {
+        getService: (name: string) => {
+          if (name === "MyApp/PostgresMigrator") return fakeService;
+          return undefined;
+        },
+        getServices: () => ({})
+      };
+      const cmdInfo = {
+        description: "Test",
+        services: [
+          { name: "MyApp/PostgresMigrator", method: "migrate", type: "MyApp/PostgresMigrator" }
+        ],
+        args: {}
+      };
+      // Filter by suffix only
+      const result = await WebdaConsole.executeServiceCommand("migrate", cmdInfo, { service: "PostgresMigrator" });
+      assert.strictEqual(result, 0);
+      assert.strictEqual(callLog.length, 1);
+    } finally {
+      WebdaConsole.webda = savedWebda;
+    }
+  }
+
+  @test
   async generateConfigurationSchemaTest() {
     await WebdaSampleApplication.load();
     WebdaConsole.app = new SourceApplication(WebdaSampleApplication.getAppPath());

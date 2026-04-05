@@ -234,6 +234,22 @@ export namespace WebdaQL {
     }
 
     /**
+     * IS NULL expression
+     */
+    visitIsNullExpression(ctx: any) {
+      const left = ctx.getChild(0);
+      return new ComparisonExpression("IS NULL", left.text, null);
+    }
+
+    /**
+     * IS NOT NULL expression
+     */
+    visitIsNotNullExpression(ctx: any) {
+      const left = ctx.getChild(0);
+      return new ComparisonExpression("IS NOT NULL", left.text, null);
+    }
+
+    /**
      * Get the OrExpression, regrouping all the parameters
      *
      * By default the parser is doing a OR (b OR (c OR d)) creating 3 depth expressions
@@ -319,7 +335,7 @@ export namespace WebdaQL {
     abstract toString(depth?: number): string;
   }
 
-  export type ComparisonOperator = "=" | "<=" | ">=" | "<" | ">" | "!=" | "LIKE" | "IN" | "CONTAINS";
+  export type ComparisonOperator = "=" | "<=" | ">=" | "<" | ">" | "!=" | "LIKE" | "IN" | "CONTAINS" | "IS NULL" | "IS NOT NULL";
   /**
    * Comparison expression
    */
@@ -430,6 +446,10 @@ export namespace WebdaQL {
             return left.includes(this.value);
           }
           return false;
+        case "IS NOT NULL":
+          return left !== null && left !== undefined;
+        case "IS NULL":
+          return left === null || left === undefined;
       }
     }
 

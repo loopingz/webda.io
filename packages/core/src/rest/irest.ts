@@ -121,11 +121,8 @@ export interface RouteInfo {
  * @example
  * ```typescript
  * class ApiKeyFilter extends Service implements RequestFilter {
- *   async checkRequest(context: IWebContext, type: "CORS" | "AUTH"): Promise<boolean> {
- *     if (type === "AUTH") {
- *       return context.getHttpContext().getHeader("x-api-key") === this.parameters.apiKey;
- *     }
- *     return true;
+ *   async checkRequest(context: IWebContext, type: "AUTH"): Promise<boolean> {
+ *     return context.getHttpContext().getHeader("x-api-key") === this.parameters.apiKey;
  *   }
  * }
  * ```
@@ -134,12 +131,13 @@ export interface RequestFilter<T extends IWebContext = IWebContext> {
   /**
    * Check whether a request should be allowed through.
    *
+   * Called for authentication/authorization checks on every incoming request.
+   *
    * @param context - The current request context
-   * @param type - The check type: `"CORS"` for cross-origin validation,
-   *               `"AUTH"` for authentication/authorization
+   * @param type - Always `"AUTH"` for request filters
    * @returns `true` to allow the request, `false` to reject it
    */
-  checkRequest(context: T, type: "CORS" | "AUTH"): Promise<boolean>;
+  checkRequest(context: T, type: "AUTH"): Promise<boolean>;
 }
 
 /**
@@ -156,7 +154,7 @@ export interface RequestFilter<T extends IWebContext = IWebContext> {
  * @example
  * ```typescript
  * class OriginFilter extends Service implements CORSFilter {
- *   async checkRequest(context: IWebContext, type: "CORS" | "AUTH"): Promise<boolean> {
+ *   async checkRequest(context: IWebContext, type: "CORS"): Promise<boolean> {
  *     const origin = context.getHttpContext().getHeader("origin");
  *     return this.parameters.allowedOrigins.includes(origin);
  *   }
@@ -167,12 +165,14 @@ export interface CORSFilter<T extends IWebContext = IWebContext> {
   /**
    * Check whether a CORS request should be allowed.
    *
+   * Called for cross-origin validation. CORS filters are **not applied
+   * in devMode**, allowing unrestricted cross-origin requests during development.
+   *
    * @param context - The current request context
-   * @param type - The check type: `"CORS"` for cross-origin validation,
-   *               `"AUTH"` for authentication/authorization
+   * @param type - Always `"CORS"` for CORS filters
    * @returns `true` to allow the request, `false` to reject it
    */
-  checkRequest(context: T, type: "CORS" | "AUTH"): Promise<boolean>;
+  checkRequest(context: T, type: "CORS"): Promise<boolean>;
 }
 
 export interface IRouter {
@@ -182,7 +182,7 @@ export interface IRouter {
   exportOpenAPI(arg0: boolean): any;
   registerModelUrl(arg0: any, prefix: string): unknown;
   registerRequestFilter(filter: RequestFilter);
-  registerCORSFilter(filter: RequestFilter);
+  registerCORSFilter(filter: CORSFilter);
   execute(context: IWebContext): Promise<void>;
   /**
    * Auto-discover services with request-filter and cors-filter capabilities

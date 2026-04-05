@@ -178,6 +178,19 @@ class CompilerTest {
     assert.strictEqual(deployCmd.args["dryRun"].type, "boolean");
     assert.strictEqual(deployCmd.args["dryRun"].default, false);
     assert.strictEqual(deployCmd.args["dryRun"].alias, "d");
+
+    // Verify services without capabilities/commands don't have those fields
+    const simpleService = mod.moddas!["WebdaDemo/SimpleService"];
+    if (simpleService) {
+      assert.strictEqual(simpleService.capabilities, undefined, "SimpleService should have no capabilities");
+      assert.strictEqual(simpleService.commands, undefined, "SimpleService should have no commands");
+    }
+
+    // Verify deploy command required arg does NOT have a default
+    assert.strictEqual(deployCmd.args["target"].default, undefined, "Required arg should have no default");
+    // Verify optional args with defaults do NOT have required flag
+    assert.strictEqual(deployCmd.args["dryRun"].required, undefined, "Optional arg should not be required");
+    assert.strictEqual(greetCmd.args["name"].required, undefined, "Arg with default should not be required");
   }
 
   @test

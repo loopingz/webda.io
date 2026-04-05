@@ -62,8 +62,9 @@ export function removeFilterRegistrations(sourceFile: SourceFile): void {
   //   // this._webda.registerCORSFilter(this);
   //   // this.getWebda().registerRequestFilter(this);
   const fullText = sourceFile.getFullText();
-  const commentPattern = /^\s*\/\/\s*this[\._].*register(?:Request|CORS)Filter\(this\);\s*\n?/gm;
-  if (commentPattern.test(fullText)) {
-    sourceFile.replaceWithText(fullText.replace(commentPattern, ""));
+  const commentPattern = /^\s*\/\/\s*this[\._].*register(?:Request|CORS)Filter\(this\);[^\S\n]*\n?/gm;
+  const cleaned = fullText.replace(commentPattern, "");
+  if (cleaned !== fullText) {
+    sourceFile.replaceWithText(cleaned);
   }
 }

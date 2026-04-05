@@ -9,6 +9,7 @@ import {
   Service,
   ServiceParameters,
   useApplication,
+  useRouter,
   WebdaError
 } from "../index.js";
 // Updated to use barrel index from test folder
@@ -260,6 +261,53 @@ class ServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async loadCapabilitiesWithNoApplication() {
+    // Service created outside application context
+    // getCapabilities() should return empty object without error
+    class StandaloneService extends Service {
+      // No override
+    }
+    const service = new StandaloneService("standalone", {} as any);
+    // loadCapabilities is called in resolve() - but without app it should not throw
+    const caps = service.getCapabilities();
+    assert.deepStrictEqual(caps, {});
+  }
+
+  @test
+  async getCapabilitiesReturnsIsolatedCopies() {
+    // Mutating one result should not affect subsequent calls
+    class TestCapService extends Service {
+      getCapabilities() {
+        return { server: { port: 8080 } };
+      }
+    }
+    const service = new TestCapService("test", {} as any);
+    const caps1 = service.getCapabilities();
+    caps1.server.port = 9999;
+    caps1.newCap = {};
+    const caps2 = service.getCapabilities();
+    assert.strictEqual(caps2.server.port, 8080);
+    assert.strictEqual(caps2.newCap, undefined);
+  }
+
+  @test
+  async getCapabilitiesOverrideCanDisable() {
+    class ConditionalService extends Service {
+      getCapabilities() {
+        const caps = super.getCapabilities();
+        // Conditionally disable a capability
+        delete caps["request-filter"];
+        return caps;
+      }
+    }
+    const service = new ConditionalService("conditional", {} as any);
+    service["_compiledCapabilities"] = { "request-filter": {}, server: {} };
+    const caps = service.getCapabilities();
+    assert.strictEqual("request-filter" in caps, false);
+    assert.strictEqual("server" in caps, true);
+  }
+
+  @test
   getUrl() {
     const service = new FakeService("plop", { type: "FakeService" });
     assert.strictEqual(service.getUrl("/plop", ["GET"]), "/plop");
@@ -298,5 +346,87 @@ class ServiceTest extends WebdaApplicationTest {
       "ERROR_Listener error",
       "INFO_Long listener"
     ]);
+  }
+}
+
+@suite
+class DiscoverFiltersTest extends WebdaApplicationTest {
+  getTestConfiguration() {
+    return {
+      services: {}
+    };
+  }
+
+  @test
+  async discoverFiltersRegistersRequestFilter() {
+    // Create a service with request-filter capability
+    class FilterService extends Service {
+      getCapabilities() {
+        return { "request-filter": {} };
+      }
+
+      async checkRequest(_ctx: any, _type: "AUTH"): Promise<boolean> {
+        return true;
+      }
+    }
+    const service = new FilterService("testFilter", {} as any);
+    const router = useRouter();
+    const initialCount = router["_requestFilters"].length;
+    router.discoverFilters([service]);
+    assert.strictEqual(router["_requestFilters"].length, initialCount + 1);
+  }
+
+  @test
+  async discoverFiltersRegistersCORSFilter() {
+    class CorsService extends Service {
+      getCapabilities() {
+        return { "cors-filter": {} };
+      }
+
+      async checkRequest(_ctx: any, _type: "CORS"): Promise<boolean> {
+        return true;
+      }
+    }
+    const service = new CorsService("testCors", {} as any);
+    const router = useRouter();
+    const initialCount = router["_requestCORSFilters"].length;
+    router.discoverFilters([service]);
+    assert.strictEqual(router["_requestCORSFilters"].length, initialCount + 1);
+  }
+
+  @test
+  async discoverFiltersBothCapabilities() {
+    class DualService extends Service {
+      getCapabilities() {
+        return { "request-filter": {}, "cors-filter": {} };
+      }
+
+      async checkRequest(_ctx: any, _type: "AUTH" | "CORS"): Promise<boolean> {
+        return true;
+      }
+    }
+    const service = new DualService("testDual", {} as any);
+    const router = useRouter();
+    const reqBefore = router["_requestFilters"].length;
+    const corsBefore = router["_requestCORSFilters"].length;
+    router.discoverFilters([service]);
+    assert.strictEqual(router["_requestFilters"].length, reqBefore + 1);
+    assert.strictEqual(router["_requestCORSFilters"].length, corsBefore + 1);
+  }
+
+  @test
+  async discoverFiltersSkipsNoCapabilities() {
+    class PlainService extends Service {
+      getCapabilities() {
+        return {};
+      }
+    }
+    const service = new PlainService("plain", {} as any);
+    const router = useRouter();
+    const reqBefore = router["_requestFilters"].length;
+    const corsBefore = router["_requestCORSFilters"].length;
+    router.discoverFilters([service]);
+    assert.strictEqual(router["_requestFilters"].length, reqBefore);
+    assert.strictEqual(router["_requestCORSFilters"].length, corsBefore);
   }
 }

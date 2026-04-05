@@ -91,6 +91,8 @@ export type HttpServerEvents = {
 
 /**
  * Basic HTTP server service
+ *
+ * @WebdaModda
  */
 export class HttpServer<
   P extends HttpServerParameters = HttpServerParameters,
@@ -113,9 +115,8 @@ export class HttpServer<
   server: Server;
   protected subnetChecker: (address: string) => boolean;
 
-
-  async init(): Promise<this> {
-    await super.init();
+  @Command("serve", "Start the HTTP server")
+  async serve(bind?: string, port?: number) {
     this.parameters.with(async params => {
       if (this.server) {
         await new Promise(resolve => this.server.close(resolve));
@@ -124,26 +125,23 @@ export class HttpServer<
         // TODO Initiate the httpContext
         const context = await this.getContextFromRequest(req, res);
         await emitCoreEvent("Webda.Request", { context: context as WebContext });
-        res.on("close", async () => {
-        });
+        res.on("close", async () => {});
         await emitCoreEvent("Webda.Result", { context: context as WebContext });
       });
-      this.server.listen(params.port || 18080);
+      this.server.listen(port || params.port || 18080);
     });
     // We do not want to stop server if other params are changed
     this.parameters.with(params => {
       this.subnetChecker = createChecker(
         params.trustedProxies.map(n => (n.indexOf("/") < 0 ? `${n.trim()}/32` : n.trim()))
       );
-    })
-    return this;
+    });
   }
 
   async stop(): Promise<void> {
     await super.stop();
     this.server?.close();
   }
-
 
   /**
    * Return a Context object based on a request
@@ -194,7 +192,7 @@ export class HttpServer<
     if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
       httpContext.setBody(req);
     }
-    return this.newContext({http: httpContext, stream: <Writable>res});
+    return this.newContext({ http: httpContext, stream: <Writable>res });
   }
 
   /**

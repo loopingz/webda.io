@@ -149,7 +149,10 @@ export class CommandsMetadata extends MetadataPlugin {
    * @returns The argument definition, or `undefined` if the parameter cannot
    *   be represented as a CLI argument
    */
-  private extractParamDefinition(param: ts.ParameterDeclaration, sourceFile: ts.SourceFile): CommandArgDefinition | undefined {
+  private extractParamDefinition(
+    param: ts.ParameterDeclaration,
+    sourceFile: ts.SourceFile
+  ): CommandArgDefinition | undefined {
     // Determine type
     let type: "string" | "number" | "boolean" = "string";
     if (param.type) {
@@ -223,10 +226,19 @@ export class CommandsMetadata extends MetadataPlugin {
       if (aliasMatch) result.alias = aliasMatch[1];
 
       const descMatch = commentText.match(/@description\s+(.+?)(?:\n|$|\*\/)/);
-      if (descMatch) result.description = descMatch[1].trim().replace(/\s*\*\s*/g, " ").trim();
+      if (descMatch)
+        result.description = descMatch[1]
+          .trim()
+          .replace(/\s*\*\s*/g, " ")
+          .trim();
 
       const deprecatedMatch = commentText.match(/@deprecated\s*(.*?)(?:\n|$|\*\/)/);
-      if (deprecatedMatch) result.deprecated = deprecatedMatch[1].trim().replace(/\s*\*\s*/g, " ").trim() || "";
+      if (deprecatedMatch)
+        result.deprecated =
+          deprecatedMatch[1]
+            .trim()
+            .replace(/\s*\*\s*/g, " ")
+            .trim() || "";
     }
 
     return result;

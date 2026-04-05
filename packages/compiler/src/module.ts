@@ -14,6 +14,8 @@ import { CommandsMetadata } from "./metadata/commands";
 import { EventsMetadata } from "./metadata/events";
 import { PrimaryKeyMetadata } from "./metadata/primarykey";
 import { PluralMetadata } from "./metadata/plural";
+import { CapabilitiesMetadata } from "./metadata/capabilities";
+import { CommandsMetadata } from "./metadata/commands";
 import { SchemaGenerator } from "@webda/schema";
 
 /**
@@ -999,7 +1001,9 @@ export class ModuleGenerator {
       new CommandsMetadata(this),
       new EventsMetadata(this),
       new PrimaryKeyMetadata(this),
-      new PluralMetadata(this)
+      new PluralMetadata(this),
+      new CapabilitiesMetadata(this),
+      new CommandsMetadata(this)
     ];
     // Clean objects
     Object.keys(objects.models).forEach(name => {

@@ -348,5 +348,19 @@ class CompilerTest {
       undefined,
       "Bean output schema should be in export"
     );
+
+    // Capabilities: service with no RequestFilter should not have Capabilities field
+    assert.strictEqual(
+      mod.beans!["TestCompilerOperations/TestBean"].Capabilities,
+      undefined,
+      "TestBean should not have Capabilities since it does not implement RequestFilter"
+    );
+
+    // Commands: service with no @Command methods should not have Commands field
+    assert.strictEqual(
+      mod.beans!["TestCompilerOperations/TestBean"].Commands,
+      undefined,
+      "TestBean should not have Commands since it has no @Command methods"
+    );
   }
 }

@@ -4,7 +4,7 @@ import type { Application } from "../application/application.js";
 import { UnpackedApplication } from "../application/unpackedapplication.js";
 import { Configuration } from "../application/iconfiguration.js";
 import { BinaryService } from "../services/binary.js";
-import { Model, ModelClass } from "@webda/models";
+import { Model, type ModelClass } from "@webda/models";
 import * as WebdaError from "../errors/errors.js";
 import { Store } from "../stores/store.js";
 import { Logger } from "../loggers/ilogger.js";

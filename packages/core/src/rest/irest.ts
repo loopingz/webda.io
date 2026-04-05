@@ -3,7 +3,7 @@ import type { OpenAPIV3 } from "openapi-types";
 import { HttpMethodType } from "../contexts/httpcontext.js";
 import { createMethodDecorator, createPropertyDecorator, DeepPartial } from "@webda/tsc-esm";
 import { IWebContext } from "../contexts/icontext.js";
-import { Repository } from "@webda/models";
+import type { Repository } from "@webda/models";
 
 /**
  * Define overridable OpenAPI description

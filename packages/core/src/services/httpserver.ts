@@ -9,7 +9,8 @@ import { createServer, IncomingMessage, Server, ServerResponse } from "node:http
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { AddressInfo } from "node:net";
 import { createChecker } from "is-in-subnet";
-import { JSONed } from "@webda/models";
+import { useLog } from "@webda/workout";
+import type { JSONed } from "@webda/models";
 import { Writable } from "node:stream";
 
 class HttpServerParameters extends ServiceParameters {
@@ -118,7 +119,8 @@ export class HttpServer<
 
   @Command("serve", { description: "Start the HTTP server" })
   async serve(bind?: string, port?: number) {
-    this.parameters.with(async params => {
+    return this.parameters.with(async params => {
+      useLog("INFO", `Starting HTTP server on ${bind ?? "0.0.0.0"}:${port ?? params.port ?? 18080}`);
       if (this.server) {
         await new Promise(resolve => this.server.close(resolve));
       }
@@ -139,6 +141,9 @@ export class HttpServer<
     });
   }
 
+  /**
+   * @override
+   */
   async stop(): Promise<void> {
     await super.stop();
     this.server?.close();

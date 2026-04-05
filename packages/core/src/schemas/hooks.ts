@@ -1,7 +1,7 @@
 import { Ajv, ErrorObject } from "ajv";
 import addFormats from "ajv-formats";
 import { useApplication, useModelId } from "../application/hooks.js";
-import { Model } from "@webda/models";
+import type { Model } from "@webda/models";
 import { JSONUtils } from "@webda/utils";
 import { JSONSchema7 } from "json-schema";
 import { useLog } from "@webda/workout";

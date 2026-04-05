@@ -926,15 +926,29 @@ export class ModuleGenerator {
       type: "object",
       properties: {}
     };
+    const required: string[] = [];
     for (const param of signatures[0]!.parameters) {
-      parametersSchema.properties![param.getName()] = this.schemaGenerator.getSchemaFromType(
+      const paramName = param.getName();
+      parametersSchema.properties![paramName] = this.schemaGenerator.getSchemaFromType(
         this.compiler.typeChecker.getTypeOfSymbolAtLocation(param, method.parent),
         {
           asRef: false,
           type: "input"
         }
       );
-      delete parametersSchema.properties![param.getName()]["$schema"];
+      delete parametersSchema.properties![paramName]["$schema"];
+      // Check if parameter is required (no ? modifier and no default value)
+      const isOptional =
+        (param.flags & ts.SymbolFlags.Optional) !== 0 ||
+        param.declarations?.some(
+          d => ts.isParameter(d) && (d.questionToken !== undefined || d.initializer !== undefined)
+        );
+      if (!isOptional) {
+        required.push(paramName);
+      }
+    }
+    if (required.length > 0) {
+      parametersSchema.required = required;
     }
     return parametersSchema;
   }

@@ -19,7 +19,7 @@ import { join, resolve, dirname, isAbsolute } from "node:path";
 import * as WebdaError from "../errors/errors.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
-import { isModelClass, Model, ModelClass, Storable } from "@webda/models";
+import { isModelClass, type Model, type ModelClass, type Storable } from "@webda/models";
 import { JSONSchema7 } from "json-schema";
 import { InstanceCache } from "../cache/cache.js";
 import type { Service } from "../services/service.js";

@@ -13,7 +13,7 @@ import { IWebContext } from "../contexts/icontext.js";
 import { Service } from "../services/service.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
-import { Storable } from "@webda/models";
+import type { Storable } from "@webda/models";
 import { templateVariables } from "../templates/templates.js";
 import { useCoreEvents } from "../events/events.js";
 

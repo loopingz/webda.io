@@ -1,6 +1,6 @@
 import { QueryValidator } from "@webda/ql";
 import { AbstractService } from "../services/iservice.js";
-import { Model, ModelClass } from "@webda/models";
+import type { Model, ModelClass } from "@webda/models";
 import type { Service } from "../services/service.js";
 import type { Store } from "../stores/store.js";
 import type CryptoService from "../services/cryptoservice.js";

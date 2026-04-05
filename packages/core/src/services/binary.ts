@@ -12,7 +12,7 @@ import { Counter } from "../metrics/metrics.js";
 import { IOperationContext } from "../contexts/icontext.js";
 import { IStore } from "../core/icore.js";
 import { MappingService } from "../stores/istore.js";
-import { Model, Storable, WEBDA_STORAGE } from "@webda/models";
+import { type Model, type Storable, WEBDA_STORAGE } from "@webda/models";
 import { streamToBuffer, FileSize } from "@webda/utils";
 
 /**

@@ -1495,7 +1495,10 @@
           ],
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "destination"
+      ]
     },
     "WebdaSample/Post.publish.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1557,7 +1560,10 @@
           ],
           "type": "object"
         }
-      }
+      },
+      "required": [
+        "target"
+      ]
     },
     "WebdaSample/User.follow.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1620,7 +1626,10 @@
           ],
           "type": "object"
         }
-      }
+      },
+      "required": [
+        "target"
+      ]
     },
     "WebdaSample/User.unfollow.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1635,7 +1644,11 @@
         "password": {
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "email",
+        "password"
+      ]
     },
     "WebdaSample/User.login.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1655,7 +1668,10 @@
         "message": {
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "message"
+      ]
     },
     "Publisher.publish.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1677,7 +1693,10 @@
           ],
           "description": "Get the primary key type of the object\n\nThe main difference with the PrimaryKey<T> type is that if the primary key is a not union type, it will\nbe returned as a single type, otherwise it will be returned as a Pick type\n\nThe PrimaryKey<T> will always return a Pick type"
         }
-      }
+      },
+      "required": [
+        "postId"
+      ]
     },
     "Publisher.publishPost.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1721,7 +1740,10 @@
         "counter": {
           "type": "number"
         }
-      }
+      },
+      "required": [
+        "counter"
+      ]
     },
     "TestBean.testOperation.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",

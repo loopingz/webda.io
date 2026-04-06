@@ -25,7 +25,6 @@ import * as Utils from "antlr4ts/misc/Utils";
 import { CESQLParserListener } from "./CESQLParserListener";
 import { CESQLParserVisitor } from "./CESQLParserVisitor";
 
-/** Parser for the CloudEvents SQL expression language, generated from CESQLParser.g4. */
 export class CESQLParserParser extends Parser {
   public static readonly SPACE = 1;
   public static readonly LR_BRACKET = 2;
@@ -158,64 +157,35 @@ export class CESQLParserParser extends Parser {
 
   // @Override
   // @NotNull
-  /**
-   * Get the vocabulary used by this parser.
-   * @returns the vocabulary
-   */
   public get vocabulary(): Vocabulary {
     return CESQLParserParser.VOCABULARY;
   }
   // tslint:enable:no-trailing-whitespace
 
   // @Override
-  /**
-   * Get the grammar file name this parser was generated from.
-   * @returns the grammar file name
-   */
   public get grammarFileName(): string {
     return "CESQLParser.g4";
   }
 
   // @Override
-  /**
-   * Get the list of parser rule names.
-   * @returns the rule names
-   */
   public get ruleNames(): string[] {
     return CESQLParserParser.ruleNames;
   }
 
   // @Override
-  /**
-   * Get the serialized ATN used by this parser.
-   * @returns the serialized ATN
-   */
   public get serializedATN(): string {
     return CESQLParserParser._serializedATN;
   }
 
-  /**
-   * Create a FailedPredicateException for semantic predicate failures during parsing.
-   * @param predicate - the predicate that failed
-   * @param message - the error message
-   * @returns the exception
-   */
   protected createFailedPredicateException(predicate?: string, message?: string): FailedPredicateException {
     return new FailedPredicateException(this, predicate, message);
   }
 
-  /** Create a new CESQLParserParser.
-   * @param input - the token stream to parse
-   */
   constructor(input: TokenStream) {
     super(input);
     this._interp = new ParserATNSimulator(CESQLParserParser._ATN, this);
   }
   // @RuleVersion(0)
-  /**
-   * Parse the top-level CESQL rule (expression followed by EOF).
-   * @returns the CESQL context
-   */
   public cesql(): CesqlContext {
     const _localctx: CesqlContext = new CesqlContext(this._ctx, this.state);
     this.enterRule(_localctx, 0, CESQLParserParser.RULE_cesql);
@@ -241,22 +211,9 @@ export class CESQLParserParser extends Parser {
     return _localctx;
   }
 
-  /** Parse an expression with default precedence.
-   * @returns the expression context
-   */
   public expression(): ExpressionContext;
-  /**
-   * Parse an expression with the given precedence level.
-   * @param _p - the precedence level
-   * @returns the expression context
-   */
   public expression(_p: number): ExpressionContext;
   // @RuleVersion(0)
-  /**
-   * Parse an expression, handling operator precedence via recursive descent.
-   * @param _p - the precedence level
-   * @returns the expression context
-   */
   public expression(_p?: number): ExpressionContext {
     if (_p === undefined) {
       _p = 0;
@@ -567,10 +524,6 @@ export class CESQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse an atom (boolean, integer, string literal, or identifier).
-   * @returns the atom context
-   */
   public atom(): AtomContext {
     let _localctx: AtomContext = new AtomContext(this._ctx, this.state);
     this.enterRule(_localctx, 4, CESQLParserParser.RULE_atom);
@@ -630,10 +583,6 @@ export class CESQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse an identifier (attribute name reference).
-   * @returns the identifier context
-   */
   public identifier(): IdentifierContext {
     const _localctx: IdentifierContext = new IdentifierContext(this._ctx, this.state);
     this.enterRule(_localctx, 6, CESQLParserParser.RULE_identifier);
@@ -668,10 +617,6 @@ export class CESQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse a function identifier (name that can include underscores).
-   * @returns the function identifier context
-   */
   public functionIdentifier(): FunctionIdentifierContext {
     const _localctx: FunctionIdentifierContext = new FunctionIdentifierContext(this._ctx, this.state);
     this.enterRule(_localctx, 8, CESQLParserParser.RULE_functionIdentifier);
@@ -706,10 +651,6 @@ export class CESQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse a boolean literal (TRUE or FALSE).
-   * @returns the boolean literal context
-   */
   public booleanLiteral(): BooleanLiteralContext {
     const _localctx: BooleanLiteralContext = new BooleanLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 10, CESQLParserParser.RULE_booleanLiteral);
@@ -744,10 +685,6 @@ export class CESQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse a string literal (single or double quoted).
-   * @returns the string literal context
-   */
   public stringLiteral(): StringLiteralContext {
     const _localctx: StringLiteralContext = new StringLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 12, CESQLParserParser.RULE_stringLiteral);
@@ -782,10 +719,6 @@ export class CESQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse an integer literal.
-   * @returns the integer literal context
-   */
   public integerLiteral(): IntegerLiteralContext {
     const _localctx: IntegerLiteralContext = new IntegerLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 14, CESQLParserParser.RULE_integerLiteral);
@@ -809,10 +742,6 @@ export class CESQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse a function parameter list enclosed in parentheses.
-   * @returns the function parameter list context
-   */
   public functionParameterList(): FunctionParameterListContext {
     const _localctx: FunctionParameterListContext = new FunctionParameterListContext(this._ctx, this.state);
     this.enterRule(_localctx, 16, CESQLParserParser.RULE_functionParameterList);
@@ -881,10 +810,6 @@ export class CESQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse a set expression (comma-separated expressions in parentheses) for IN clauses.
-   * @returns the set expression context
-   */
   public setExpression(): SetExpressionContext {
     const _localctx: SetExpressionContext = new SetExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 18, CESQLParserParser.RULE_setExpression);
@@ -929,13 +854,6 @@ export class CESQLParserParser extends Parser {
     return _localctx;
   }
 
-  /**
-   * Evaluate semantic predicates for precedence climbing in expression parsing.
-   * @param _localctx - the local rule context
-   * @param ruleIndex - the rule index
-   * @param predIndex - the predicate index
-   * @returns whether the predicate is satisfied
-   */
   public sempred(_localctx: RuleContext, ruleIndex: number, predIndex: number): boolean {
     switch (ruleIndex) {
       case 1:
@@ -943,12 +861,6 @@ export class CESQLParserParser extends Parser {
     }
     return true;
   }
-  /**
-   * Check expression-specific semantic predicates for operator precedence.
-   * @param _localctx - the expression context
-   * @param predIndex - the predicate index
-   * @returns whether the predicate is satisfied
-   */
   private expression_sempred(_localctx: ExpressionContext, predIndex: number): boolean {
     switch (predIndex) {
       case 0:
@@ -1020,10 +932,6 @@ export class CESQLParserParser extends Parser {
     "\x02\x02jk\x03\x02\x02\x02km\x03\x02\x02\x02lj\x03\x02\x02\x02mn\x07\x05" +
     "\x02\x02n\x15\x03\x02\x02\x02\v(8>BDK]`j";
   public static __ATN: ATN;
-  /**
-   * Get the deserialized ATN, lazily initializing it on first access.
-   * @returns the ATN
-   */
   public static get _ATN(): ATN {
     if (!CESQLParserParser.__ATN) {
       CESQLParserParser.__ATN = new ATNDeserializer().deserialize(Utils.toCharArray(CESQLParserParser._serializedATN));
@@ -1033,63 +941,33 @@ export class CESQLParserParser extends Parser {
   }
 }
 
-/** Parse tree context for the top-level CESQL rule. */
 export class CesqlContext extends ParserRuleContext {
-  /**
-   * Get the expression sub-rule context.
-   * @returns the expression context
-   */
   public expression(): ExpressionContext {
     return this.getRuleContext(0, ExpressionContext);
   }
-  /**
-   * Get the EOF token.
-   * @returns the EOF terminal node
-   */
   public EOF(): TerminalNode {
     return this.getToken(CESQLParserParser.EOF, 0);
   }
-  /** Create a new CesqlContext.
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index for this context.
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return CESQLParserParser.RULE_cesql;
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterCesql) {
       listener.enterCesql(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitCesql) {
       listener.exitCesql(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitCesql) {
       return visitor.visitCesql(this);
@@ -1099,80 +977,42 @@ export class CesqlContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for expression rules. */
 export class ExpressionContext extends ParserRuleContext {
-  /** Create a new ExpressionContext.
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index for this context.
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return CESQLParserParser.RULE_expression;
   }
-  /**
-   * Copy state from another expression context.
-   * @param ctx - the source context
-   */
   public copyFrom(ctx: ExpressionContext): void {
     super.copyFrom(ctx);
   }
 }
-/** Parse tree context for function invocation expressions. */
 export class FunctionInvocationExpressionContext extends ExpressionContext {
-  /**
-   * Get the functionIdentifier sub-rule context.
-   * @returns the function identifier context
-   */
   public functionIdentifier(): FunctionIdentifierContext {
     return this.getRuleContext(0, FunctionIdentifierContext);
   }
-  /**
-   * Get the functionParameterList sub-rule context.
-   * @returns the function parameter list context
-   */
   public functionParameterList(): FunctionParameterListContext {
     return this.getRuleContext(0, FunctionParameterListContext);
   }
-  /** Create a new FunctionInvocationExpressionContext.
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterFunctionInvocationExpression) {
       listener.enterFunctionInvocationExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitFunctionInvocationExpression) {
       listener.exitFunctionInvocationExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitFunctionInvocationExpression) {
       return visitor.visitFunctionInvocationExpression(this);
@@ -1181,55 +1021,30 @@ export class FunctionInvocationExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for unary logic (NOT) expressions. */
 export class UnaryLogicExpressionContext extends ExpressionContext {
-  /**
-   * Get the NOT token.
-   * @returns the NOT terminal node
-   */
   public NOT(): TerminalNode {
     return this.getToken(CESQLParserParser.NOT, 0);
   }
-  /**
-   * Get the expression sub-rule context.
-   * @returns the expression context
-   */
   public expression(): ExpressionContext {
     return this.getRuleContext(0, ExpressionContext);
   }
-  /** Create a new UnaryLogicExpressionContext.
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterUnaryLogicExpression) {
       listener.enterUnaryLogicExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitUnaryLogicExpression) {
       listener.exitUnaryLogicExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitUnaryLogicExpression) {
       return visitor.visitUnaryLogicExpression(this);
@@ -1238,55 +1053,30 @@ export class UnaryLogicExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for unary numeric (negation) expressions. */
 export class UnaryNumericExpressionContext extends ExpressionContext {
-  /**
-   * Get the MINUS token.
-   * @returns the MINUS terminal node
-   */
   public MINUS(): TerminalNode {
     return this.getToken(CESQLParserParser.MINUS, 0);
   }
-  /**
-   * Get the expression sub-rule context.
-   * @returns the expression context
-   */
   public expression(): ExpressionContext {
     return this.getRuleContext(0, ExpressionContext);
   }
-  /** Create a new UnaryNumericExpressionContext.
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterUnaryNumericExpression) {
       listener.enterUnaryNumericExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitUnaryNumericExpression) {
       listener.exitUnaryNumericExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitUnaryNumericExpression) {
       return visitor.visitUnaryNumericExpression(this);
@@ -1295,69 +1085,36 @@ export class UnaryNumericExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for LIKE pattern matching expressions. */
 export class LikeExpressionContext extends ExpressionContext {
-  /**
-   * Get the expression sub-rule context.
-   * @returns the expression context
-   */
   public expression(): ExpressionContext {
     return this.getRuleContext(0, ExpressionContext);
   }
-  /**
-   * Get the LIKE token.
-   * @returns the LIKE terminal node
-   */
   public LIKE(): TerminalNode {
     return this.getToken(CESQLParserParser.LIKE, 0);
   }
-  /**
-   * Get the stringLiteral sub-rule context.
-   * @returns the string literal context
-   */
   public stringLiteral(): StringLiteralContext {
     return this.getRuleContext(0, StringLiteralContext);
   }
-  /**
-   * Get the NOT token if present.
-   * @returns the NOT terminal node or undefined
-   */
   public NOT(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.NOT, 0);
   }
-  /** Create a new LikeExpressionContext.
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterLikeExpression) {
       listener.enterLikeExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitLikeExpression) {
       listener.exitLikeExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitLikeExpression) {
       return visitor.visitLikeExpression(this);
@@ -1366,55 +1123,30 @@ export class LikeExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for EXISTS attribute check expressions. */
 export class ExistsExpressionContext extends ExpressionContext {
-  /**
-   * Get the EXISTS token.
-   * @returns the EXISTS terminal node
-   */
   public EXISTS(): TerminalNode {
     return this.getToken(CESQLParserParser.EXISTS, 0);
   }
-  /**
-   * Get the identifier sub-rule context.
-   * @returns the identifier context
-   */
   public identifier(): IdentifierContext {
     return this.getRuleContext(0, IdentifierContext);
   }
-  /** Create a new ExistsExpressionContext.
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterExistsExpression) {
       listener.enterExistsExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitExistsExpression) {
       listener.exitExistsExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitExistsExpression) {
       return visitor.visitExistsExpression(this);
@@ -1423,69 +1155,36 @@ export class ExistsExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for IN set membership expressions. */
 export class InExpressionContext extends ExpressionContext {
-  /**
-   * Get the expression sub-rule context.
-   * @returns the expression context
-   */
   public expression(): ExpressionContext {
     return this.getRuleContext(0, ExpressionContext);
   }
-  /**
-   * Get the IN token.
-   * @returns the IN terminal node
-   */
   public IN(): TerminalNode {
     return this.getToken(CESQLParserParser.IN, 0);
   }
-  /**
-   * Get the setExpression sub-rule context.
-   * @returns the set expression context
-   */
   public setExpression(): SetExpressionContext {
     return this.getRuleContext(0, SetExpressionContext);
   }
-  /**
-   * Get the NOT token if present.
-   * @returns the NOT terminal node or undefined
-   */
   public NOT(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.NOT, 0);
   }
-  /** Create a new InExpressionContext.
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterInExpression) {
       listener.enterInExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitInExpression) {
       listener.exitInExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitInExpression) {
       return visitor.visitInExpression(this);
@@ -1494,24 +1193,9 @@ export class InExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for binary multiplicative (*, /, %) expressions. */
 export class BinaryMultiplicativeExpressionContext extends ExpressionContext {
-  /**
-   * Get all expression sub-rule contexts.
-   * @returns the expression contexts
-   */
   public expression(): ExpressionContext[];
-  /**
-   * Get a specific expression sub-rule context by index.
-   * @param i - the index
-   * @returns the expression context
-   */
   public expression(i: number): ExpressionContext;
-  /**
-   * Get expression sub-rule context(s).
-   * @param i - the optional index
-   * @returns the expression context(s)
-   */
   public expression(i?: number): ExpressionContext | ExpressionContext[] {
     if (i === undefined) {
       return this.getRuleContexts(ExpressionContext);
@@ -1519,60 +1203,32 @@ export class BinaryMultiplicativeExpressionContext extends ExpressionContext {
       return this.getRuleContext(i, ExpressionContext);
     }
   }
-  /**
-   * Get the STAR token if present.
-   * @returns the STAR terminal node or undefined
-   */
   public STAR(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.STAR, 0);
   }
-  /**
-   * Get the DIVIDE token if present.
-   * @returns the DIVIDE terminal node or undefined
-   */
   public DIVIDE(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.DIVIDE, 0);
   }
-  /**
-   * Get the MODULE token if present.
-   * @returns the MODULE terminal node or undefined
-   */
   public MODULE(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.MODULE, 0);
   }
-  /** Create a new BinaryMultiplicativeExpressionContext.
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterBinaryMultiplicativeExpression) {
       listener.enterBinaryMultiplicativeExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitBinaryMultiplicativeExpression) {
       listener.exitBinaryMultiplicativeExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitBinaryMultiplicativeExpression) {
       return visitor.visitBinaryMultiplicativeExpression(this);
@@ -1581,24 +1237,9 @@ export class BinaryMultiplicativeExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for binary additive (+, -) expressions. */
 export class BinaryAdditiveExpressionContext extends ExpressionContext {
-  /**
-   * Get all expression sub-rule contexts.
-   * @returns the expression contexts
-   */
   public expression(): ExpressionContext[];
-  /**
-   * Get a specific expression sub-rule context by index.
-   * @param i - the index
-   * @returns the expression context
-   */
   public expression(i: number): ExpressionContext;
-  /**
-   * Get expression sub-rule context(s).
-   * @param i - the optional index
-   * @returns the expression context(s)
-   */
   public expression(i?: number): ExpressionContext | ExpressionContext[] {
     if (i === undefined) {
       return this.getRuleContexts(ExpressionContext);
@@ -1606,53 +1247,29 @@ export class BinaryAdditiveExpressionContext extends ExpressionContext {
       return this.getRuleContext(i, ExpressionContext);
     }
   }
-  /**
-   * Get the PLUS token if present.
-   * @returns the PLUS terminal node or undefined
-   */
   public PLUS(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.PLUS, 0);
   }
-  /**
-   * Get the MINUS token if present.
-   * @returns the MINUS terminal node or undefined
-   */
   public MINUS(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.MINUS, 0);
   }
-  /** Create a new BinaryAdditiveExpressionContext.
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterBinaryAdditiveExpression) {
       listener.enterBinaryAdditiveExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitBinaryAdditiveExpression) {
       listener.exitBinaryAdditiveExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitBinaryAdditiveExpression) {
       return visitor.visitBinaryAdditiveExpression(this);
@@ -1661,24 +1278,9 @@ export class BinaryAdditiveExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for binary comparison (=, !=, <, >, <=, >=, <>) expressions. */
 export class BinaryComparisonExpressionContext extends ExpressionContext {
-  /**
-   * Get all expression sub-rule contexts.
-   * @returns the expression contexts
-   */
   public expression(): ExpressionContext[];
-  /**
-   * Get a specific expression sub-rule context by index.
-   * @param i - the index
-   * @returns the expression context
-   */
   public expression(i: number): ExpressionContext;
-  /**
-   * Get expression sub-rule context(s).
-   * @param i - the optional index
-   * @returns the expression context(s)
-   */
   public expression(i?: number): ExpressionContext | ExpressionContext[] {
     if (i === undefined) {
       return this.getRuleContexts(ExpressionContext);
@@ -1686,88 +1288,44 @@ export class BinaryComparisonExpressionContext extends ExpressionContext {
       return this.getRuleContext(i, ExpressionContext);
     }
   }
-  /**
-   * Get the EQUAL token if present.
-   * @returns the EQUAL terminal node or undefined
-   */
   public EQUAL(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.EQUAL, 0);
   }
-  /**
-   * Get the NOT_EQUAL token if present.
-   * @returns the NOT_EQUAL terminal node or undefined
-   */
   public NOT_EQUAL(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.NOT_EQUAL, 0);
   }
-  /**
-   * Get the LESS_GREATER token if present.
-   * @returns the LESS_GREATER terminal node or undefined
-   */
   public LESS_GREATER(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.LESS_GREATER, 0);
   }
-  /**
-   * Get the GREATER_OR_EQUAL token if present.
-   * @returns the GREATER_OR_EQUAL terminal node or undefined
-   */
   public GREATER_OR_EQUAL(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.GREATER_OR_EQUAL, 0);
   }
-  /**
-   * Get the LESS_OR_EQUAL token if present.
-   * @returns the LESS_OR_EQUAL terminal node or undefined
-   */
   public LESS_OR_EQUAL(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.LESS_OR_EQUAL, 0);
   }
-  /**
-   * Get the LESS token if present.
-   * @returns the LESS terminal node or undefined
-   */
   public LESS(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.LESS, 0);
   }
-  /**
-   * Get the GREATER token if present.
-   * @returns the GREATER terminal node or undefined
-   */
   public GREATER(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.GREATER, 0);
   }
-  /** Create a new BinaryComparisonExpressionContext.
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterBinaryComparisonExpression) {
       listener.enterBinaryComparisonExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitBinaryComparisonExpression) {
       listener.exitBinaryComparisonExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitBinaryComparisonExpression) {
       return visitor.visitBinaryComparisonExpression(this);
@@ -1776,24 +1334,9 @@ export class BinaryComparisonExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for binary logic (AND, OR, XOR) expressions. */
 export class BinaryLogicExpressionContext extends ExpressionContext {
-  /**
-   * Get all expression sub-rule contexts.
-   * @returns the expression contexts
-   */
   public expression(): ExpressionContext[];
-  /**
-   * Get a specific expression sub-rule context by index.
-   * @param i - the index
-   * @returns the expression context
-   */
   public expression(i: number): ExpressionContext;
-  /**
-   * Get expression sub-rule context(s).
-   * @param i - the optional index
-   * @returns the expression context(s)
-   */
   public expression(i?: number): ExpressionContext | ExpressionContext[] {
     if (i === undefined) {
       return this.getRuleContexts(ExpressionContext);
@@ -1801,60 +1344,32 @@ export class BinaryLogicExpressionContext extends ExpressionContext {
       return this.getRuleContext(i, ExpressionContext);
     }
   }
-  /**
-   * Get the AND token if present.
-   * @returns the AND terminal node or undefined
-   */
   public AND(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.AND, 0);
   }
-  /**
-   * Get the OR token if present.
-   * @returns the OR terminal node or undefined
-   */
   public OR(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.OR, 0);
   }
-  /**
-   * Get the XOR token if present.
-   * @returns the XOR terminal node or undefined
-   */
   public XOR(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.XOR, 0);
   }
-  /** Create a new BinaryLogicExpressionContext.
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterBinaryLogicExpression) {
       listener.enterBinaryLogicExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitBinaryLogicExpression) {
       listener.exitBinaryLogicExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitBinaryLogicExpression) {
       return visitor.visitBinaryLogicExpression(this);
@@ -1863,62 +1378,33 @@ export class BinaryLogicExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for parenthesized sub-expressions. */
 export class SubExpressionContext extends ExpressionContext {
-  /**
-   * Get the left parenthesis token.
-   * @returns the left bracket terminal node
-   */
   public LR_BRACKET(): TerminalNode {
     return this.getToken(CESQLParserParser.LR_BRACKET, 0);
   }
-  /**
-   * Get the expression sub-rule context.
-   * @returns the expression context
-   */
   public expression(): ExpressionContext {
     return this.getRuleContext(0, ExpressionContext);
   }
-  /**
-   * Get the right parenthesis token.
-   * @returns the right bracket terminal node
-   */
   public RR_BRACKET(): TerminalNode {
     return this.getToken(CESQLParserParser.RR_BRACKET, 0);
   }
-  /** Create a new SubExpressionContext.
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterSubExpression) {
       listener.enterSubExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitSubExpression) {
       listener.exitSubExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitSubExpression) {
       return visitor.visitSubExpression(this);
@@ -1927,48 +1413,27 @@ export class SubExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for atomic value expressions. */
 export class AtomExpressionContext extends ExpressionContext {
-  /**
-   * Get the atom sub-rule context.
-   * @returns the atom context
-   */
   public atom(): AtomContext {
     return this.getRuleContext(0, AtomContext);
   }
-  /** Create a new AtomExpressionContext.
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterAtomExpression) {
       listener.enterAtomExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitAtomExpression) {
       listener.exitAtomExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitAtomExpression) {
       return visitor.visitAtomExpression(this);
@@ -1978,73 +1443,39 @@ export class AtomExpressionContext extends ExpressionContext {
   }
 }
 
-/** Parse tree context for atom rules (literal values or identifiers). */
 export class AtomContext extends ParserRuleContext {
-  /** Create a new AtomContext.
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index for this context.
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return CESQLParserParser.RULE_atom;
   }
-  /**
-   * Copy state from another atom context.
-   * @param ctx - the source context
-   */
   public copyFrom(ctx: AtomContext): void {
     super.copyFrom(ctx);
   }
 }
-/** Parse tree context for boolean atom values. */
 export class BooleanAtomContext extends AtomContext {
-  /**
-   * Get the booleanLiteral sub-rule context.
-   * @returns the boolean literal context
-   */
   public booleanLiteral(): BooleanLiteralContext {
     return this.getRuleContext(0, BooleanLiteralContext);
   }
-  /** Create a new BooleanAtomContext.
-   * @param ctx - the atom context to copy from
-   */
   constructor(ctx: AtomContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterBooleanAtom) {
       listener.enterBooleanAtom(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitBooleanAtom) {
       listener.exitBooleanAtom(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitBooleanAtom) {
       return visitor.visitBooleanAtom(this);
@@ -2053,48 +1484,27 @@ export class BooleanAtomContext extends AtomContext {
     }
   }
 }
-/** Parse tree context for integer atom values. */
 export class IntegerAtomContext extends AtomContext {
-  /**
-   * Get the integerLiteral sub-rule context.
-   * @returns the integer literal context
-   */
   public integerLiteral(): IntegerLiteralContext {
     return this.getRuleContext(0, IntegerLiteralContext);
   }
-  /** Create a new IntegerAtomContext.
-   * @param ctx - the atom context to copy from
-   */
   constructor(ctx: AtomContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterIntegerAtom) {
       listener.enterIntegerAtom(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitIntegerAtom) {
       listener.exitIntegerAtom(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitIntegerAtom) {
       return visitor.visitIntegerAtom(this);
@@ -2103,48 +1513,27 @@ export class IntegerAtomContext extends AtomContext {
     }
   }
 }
-/** Parse tree context for string atom values. */
 export class StringAtomContext extends AtomContext {
-  /**
-   * Get the stringLiteral sub-rule context.
-   * @returns the string literal context
-   */
   public stringLiteral(): StringLiteralContext {
     return this.getRuleContext(0, StringLiteralContext);
   }
-  /** Create a new StringAtomContext.
-   * @param ctx - the atom context to copy from
-   */
   constructor(ctx: AtomContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterStringAtom) {
       listener.enterStringAtom(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitStringAtom) {
       listener.exitStringAtom(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitStringAtom) {
       return visitor.visitStringAtom(this);
@@ -2153,48 +1542,27 @@ export class StringAtomContext extends AtomContext {
     }
   }
 }
-/** Parse tree context for identifier atom values. */
 export class IdentifierAtomContext extends AtomContext {
-  /**
-   * Get the identifier sub-rule context.
-   * @returns the identifier context
-   */
   public identifier(): IdentifierContext {
     return this.getRuleContext(0, IdentifierContext);
   }
-  /** Create a new IdentifierAtomContext.
-   * @param ctx - the atom context to copy from
-   */
   constructor(ctx: AtomContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterIdentifierAtom) {
       listener.enterIdentifierAtom(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitIdentifierAtom) {
       listener.exitIdentifierAtom(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitIdentifierAtom) {
       return visitor.visitIdentifierAtom(this);
@@ -2204,63 +1572,33 @@ export class IdentifierAtomContext extends AtomContext {
   }
 }
 
-/** Parse tree context for identifier references. */
 export class IdentifierContext extends ParserRuleContext {
-  /**
-   * Get the IDENTIFIER token if present.
-   * @returns the IDENTIFIER terminal node or undefined
-   */
   public IDENTIFIER(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.IDENTIFIER, 0);
   }
-  /**
-   * Get the IDENTIFIER_WITH_NUMBER token if present.
-   * @returns the IDENTIFIER_WITH_NUMBER terminal node or undefined
-   */
   public IDENTIFIER_WITH_NUMBER(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.IDENTIFIER_WITH_NUMBER, 0);
   }
-  /** Create a new IdentifierContext.
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index for this context.
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return CESQLParserParser.RULE_identifier;
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterIdentifier) {
       listener.enterIdentifier(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitIdentifier) {
       listener.exitIdentifier(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitIdentifier) {
       return visitor.visitIdentifier(this);
@@ -2270,63 +1608,33 @@ export class IdentifierContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for function name identifiers. */
 export class FunctionIdentifierContext extends ParserRuleContext {
-  /**
-   * Get the IDENTIFIER token if present.
-   * @returns the IDENTIFIER terminal node or undefined
-   */
   public IDENTIFIER(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.IDENTIFIER, 0);
   }
-  /**
-   * Get the FUNCTION_IDENTIFIER_WITH_UNDERSCORE token if present.
-   * @returns the FUNCTION_IDENTIFIER_WITH_UNDERSCORE terminal node or undefined
-   */
   public FUNCTION_IDENTIFIER_WITH_UNDERSCORE(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.FUNCTION_IDENTIFIER_WITH_UNDERSCORE, 0);
   }
-  /** Create a new FunctionIdentifierContext.
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index for this context.
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return CESQLParserParser.RULE_functionIdentifier;
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterFunctionIdentifier) {
       listener.enterFunctionIdentifier(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitFunctionIdentifier) {
       listener.exitFunctionIdentifier(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitFunctionIdentifier) {
       return visitor.visitFunctionIdentifier(this);
@@ -2336,63 +1644,33 @@ export class FunctionIdentifierContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for boolean literal values (TRUE/FALSE). */
 export class BooleanLiteralContext extends ParserRuleContext {
-  /**
-   * Get the TRUE token if present.
-   * @returns the TRUE terminal node or undefined
-   */
   public TRUE(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.TRUE, 0);
   }
-  /**
-   * Get the FALSE token if present.
-   * @returns the FALSE terminal node or undefined
-   */
   public FALSE(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.FALSE, 0);
   }
-  /** Create a new BooleanLiteralContext.
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index for this context.
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return CESQLParserParser.RULE_booleanLiteral;
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterBooleanLiteral) {
       listener.enterBooleanLiteral(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitBooleanLiteral) {
       listener.exitBooleanLiteral(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitBooleanLiteral) {
       return visitor.visitBooleanLiteral(this);
@@ -2402,63 +1680,33 @@ export class BooleanLiteralContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for string literal values. */
 export class StringLiteralContext extends ParserRuleContext {
-  /**
-   * Get the DQUOTED_STRING_LITERAL token if present.
-   * @returns the DQUOTED_STRING_LITERAL terminal node or undefined
-   */
   public DQUOTED_STRING_LITERAL(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.DQUOTED_STRING_LITERAL, 0);
   }
-  /**
-   * Get the SQUOTED_STRING_LITERAL token if present.
-   * @returns the SQUOTED_STRING_LITERAL terminal node or undefined
-   */
   public SQUOTED_STRING_LITERAL(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.SQUOTED_STRING_LITERAL, 0);
   }
-  /** Create a new StringLiteralContext.
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index for this context.
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return CESQLParserParser.RULE_stringLiteral;
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterStringLiteral) {
       listener.enterStringLiteral(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitStringLiteral) {
       listener.exitStringLiteral(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitStringLiteral) {
       return visitor.visitStringLiteral(this);
@@ -2468,56 +1716,30 @@ export class StringLiteralContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for integer literal values. */
 export class IntegerLiteralContext extends ParserRuleContext {
-  /**
-   * Get the INTEGER_LITERAL token.
-   * @returns the INTEGER_LITERAL terminal node
-   */
   public INTEGER_LITERAL(): TerminalNode {
     return this.getToken(CESQLParserParser.INTEGER_LITERAL, 0);
   }
-  /** Create a new IntegerLiteralContext.
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index for this context.
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return CESQLParserParser.RULE_integerLiteral;
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterIntegerLiteral) {
       listener.enterIntegerLiteral(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitIntegerLiteral) {
       listener.exitIntegerLiteral(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitIntegerLiteral) {
       return visitor.visitIntegerLiteral(this);
@@ -2527,38 +1749,15 @@ export class IntegerLiteralContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for function parameter lists. */
 export class FunctionParameterListContext extends ParserRuleContext {
-  /**
-   * Get the left parenthesis token.
-   * @returns the left bracket terminal node
-   */
   public LR_BRACKET(): TerminalNode {
     return this.getToken(CESQLParserParser.LR_BRACKET, 0);
   }
-  /**
-   * Get the right parenthesis token.
-   * @returns the right bracket terminal node
-   */
   public RR_BRACKET(): TerminalNode {
     return this.getToken(CESQLParserParser.RR_BRACKET, 0);
   }
-  /**
-   * Get all expression sub-rule contexts.
-   * @returns the expression contexts
-   */
   public expression(): ExpressionContext[];
-  /**
-   * Get a specific expression sub-rule context by index.
-   * @param i - the index
-   * @returns the expression context
-   */
   public expression(i: number): ExpressionContext;
-  /**
-   * Get expression sub-rule context(s).
-   * @param i - the optional index
-   * @returns the expression context(s)
-   */
   public expression(i?: number): ExpressionContext | ExpressionContext[] {
     if (i === undefined) {
       return this.getRuleContexts(ExpressionContext);
@@ -2566,22 +1765,8 @@ export class FunctionParameterListContext extends ParserRuleContext {
       return this.getRuleContext(i, ExpressionContext);
     }
   }
-  /**
-   * Get all COMMA tokens.
-   * @returns the COMMA terminal nodes
-   */
   public COMMA(): TerminalNode[];
-  /**
-   * Get a specific COMMA token by index.
-   * @param i - the index
-   * @returns the COMMA terminal node
-   */
   public COMMA(i: number): TerminalNode;
-  /**
-   * Get COMMA token(s).
-   * @param i - the optional index
-   * @returns the COMMA terminal node(s)
-   */
   public COMMA(i?: number): TerminalNode | TerminalNode[] {
     if (i === undefined) {
       return this.getTokens(CESQLParserParser.COMMA);
@@ -2589,47 +1774,26 @@ export class FunctionParameterListContext extends ParserRuleContext {
       return this.getToken(CESQLParserParser.COMMA, i);
     }
   }
-  /** Create a new FunctionParameterListContext.
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index for this context.
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return CESQLParserParser.RULE_functionParameterList;
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterFunctionParameterList) {
       listener.enterFunctionParameterList(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitFunctionParameterList) {
       listener.exitFunctionParameterList(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitFunctionParameterList) {
       return visitor.visitFunctionParameterList(this);
@@ -2639,31 +1803,12 @@ export class FunctionParameterListContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for set expressions used in IN clauses. */
 export class SetExpressionContext extends ParserRuleContext {
-  /**
-   * Get the left parenthesis token.
-   * @returns the left bracket terminal node
-   */
   public LR_BRACKET(): TerminalNode {
     return this.getToken(CESQLParserParser.LR_BRACKET, 0);
   }
-  /**
-   * Get all expression sub-rule contexts.
-   * @returns the expression contexts
-   */
   public expression(): ExpressionContext[];
-  /**
-   * Get a specific expression sub-rule context by index.
-   * @param i - the index
-   * @returns the expression context
-   */
   public expression(i: number): ExpressionContext;
-  /**
-   * Get expression sub-rule context(s).
-   * @param i - the optional index
-   * @returns the expression context(s)
-   */
   public expression(i?: number): ExpressionContext | ExpressionContext[] {
     if (i === undefined) {
       return this.getRuleContexts(ExpressionContext);
@@ -2671,29 +1816,11 @@ export class SetExpressionContext extends ParserRuleContext {
       return this.getRuleContext(i, ExpressionContext);
     }
   }
-  /**
-   * Get the right parenthesis token.
-   * @returns the right bracket terminal node
-   */
   public RR_BRACKET(): TerminalNode {
     return this.getToken(CESQLParserParser.RR_BRACKET, 0);
   }
-  /**
-   * Get all COMMA tokens.
-   * @returns the COMMA terminal nodes
-   */
   public COMMA(): TerminalNode[];
-  /**
-   * Get a specific COMMA token by index.
-   * @param i - the index
-   * @returns the COMMA terminal node
-   */
   public COMMA(i: number): TerminalNode;
-  /**
-   * Get COMMA token(s).
-   * @param i - the optional index
-   * @returns the COMMA terminal node(s)
-   */
   public COMMA(i?: number): TerminalNode | TerminalNode[] {
     if (i === undefined) {
       return this.getTokens(CESQLParserParser.COMMA);
@@ -2701,47 +1828,26 @@ export class SetExpressionContext extends ParserRuleContext {
       return this.getToken(CESQLParserParser.COMMA, i);
     }
   }
-  /** Create a new SetExpressionContext.
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index for this context.
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return CESQLParserParser.RULE_setExpression;
   }
   // @Override
-  /**
-   * Notify the listener that this context has been entered.
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: CESQLParserListener): void {
     if (listener.enterSetExpression) {
       listener.enterSetExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that this context is being exited.
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: CESQLParserListener): void {
     if (listener.exitSetExpression) {
       listener.exitSetExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor to traverse this context node.
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: CESQLParserVisitor<Result>): Result {
     if (visitor.visitSetExpression) {
       return visitor.visitSetExpression(this);

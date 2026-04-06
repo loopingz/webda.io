@@ -21,7 +21,6 @@ import * as Utils from "antlr4ts/misc/Utils.js";
 import { WebdaQLParserListener } from "./WebdaQLParserListener";
 import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor";
 
-/** ANTLR-generated recursive-descent parser for WebdaQL queries */
 export class WebdaQLParserParser extends Parser {
   public static readonly SPACE = 1;
   public static readonly LR_BRACKET = 2;
@@ -157,64 +156,35 @@ export class WebdaQLParserParser extends Parser {
 
   // @Override
   // @NotNull
-  /**
-   * Get the vocabulary for this parser
-   * @returns the vocabulary
-   */
   public get vocabulary(): Vocabulary {
     return WebdaQLParserParser.VOCABULARY;
   }
   // tslint:enable:no-trailing-whitespace
 
   // @Override
-  /**
-   * Get the grammar file name
-   * @returns the grammar file name
-   */
   public get grammarFileName(): string {
     return "WebdaQLParser.g4";
   }
 
   // @Override
-  /**
-   * Get the rule names
-   * @returns the rule names
-   */
   public get ruleNames(): string[] {
     return WebdaQLParserParser.ruleNames;
   }
 
   // @Override
-  /**
-   * Get the serialized ATN
-   * @returns the serialized ATN
-   */
   public get serializedATN(): string {
     return WebdaQLParserParser._serializedATN;
   }
 
-  /**
-   * Create a FailedPredicateException for semantic predicate failures
-   * @param predicate - the failed predicate text
-   * @param message - the error message
-   * @returns the exception
-   */
   protected createFailedPredicateException(predicate?: string, message?: string): FailedPredicateException {
     return new FailedPredicateException(this, predicate, message);
   }
 
-  /** Create a new parser for the given token stream.
-   * @param input - the token stream to parse
-   */
   constructor(input: TokenStream) {
     super(input);
     this._interp = new ParserATNSimulator(WebdaQLParserParser._ATN, this);
   }
   // @RuleVersion(0)
-  /**
-   * Parse the top-level webdaql rule (expression + optional ORDER BY, LIMIT, OFFSET)
-   * @returns the parsed context
-   */
   public webdaql(): WebdaqlContext {
     const _localctx: WebdaqlContext = new WebdaqlContext(this._ctx, this.state);
     this.enterRule(_localctx, 0, WebdaQLParserParser.RULE_webdaql);
@@ -291,10 +261,6 @@ export class WebdaQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse a LIMIT clause
-   * @returns the parsed context
-   */
   public limitExpression(): LimitExpressionContext {
     const _localctx: LimitExpressionContext = new LimitExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 2, WebdaQLParserParser.RULE_limitExpression);
@@ -320,10 +286,6 @@ export class WebdaQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse an OFFSET clause
-   * @returns the parsed context
-   */
   public offsetExpression(): OffsetExpressionContext {
     const _localctx: OffsetExpressionContext = new OffsetExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 4, WebdaQLParserParser.RULE_offsetExpression);
@@ -349,10 +311,6 @@ export class WebdaQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse a single ORDER BY field with optional ASC/DESC direction
-   * @returns the parsed context
-   */
   public orderFieldExpression(): OrderFieldExpressionContext {
     const _localctx: OrderFieldExpressionContext = new OrderFieldExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 6, WebdaQLParserParser.RULE_orderFieldExpression);
@@ -396,10 +354,6 @@ export class WebdaQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse an ORDER BY clause with one or more field expressions
-   * @returns the parsed context
-   */
   public orderExpression(): OrderExpressionContext {
     const _localctx: OrderExpressionContext = new OrderExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 8, WebdaQLParserParser.RULE_orderExpression);
@@ -442,16 +396,9 @@ export class WebdaQLParserParser extends Parser {
     return _localctx;
   }
 
-  /** Parse a filter expression (comparison, logical, or sub-expression) */
   public expression(): ExpressionContext;
-  /** Parse a filter expression with precedence level */
   public expression(_p: number): ExpressionContext;
   // @RuleVersion(0)
-  /**
-   * Parse a filter expression with optional precedence climbing
-   * @param _p - the precedence level
-   * @returns the parsed context
-   */
   public expression(_p?: number): ExpressionContext {
     if (_p === undefined) {
       _p = 0;
@@ -639,10 +586,6 @@ export class WebdaQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse a value literal (boolean, integer, or string)
-   * @returns the parsed context
-   */
   public values(): ValuesContext {
     let _localctx: ValuesContext = new ValuesContext(this._ctx, this.state);
     this.enterRule(_localctx, 12, WebdaQLParserParser.RULE_values);
@@ -693,10 +636,6 @@ export class WebdaQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse an atom (a value literal or an identifier)
-   * @returns the parsed context
-   */
   public atom(): AtomContext {
     let _localctx: AtomContext = new AtomContext(this._ctx, this.state);
     this.enterRule(_localctx, 14, WebdaQLParserParser.RULE_atom);
@@ -742,10 +681,6 @@ export class WebdaQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse an identifier (field name, possibly with dots for nested access)
-   * @returns the parsed context
-   */
   public identifier(): IdentifierContext {
     const _localctx: IdentifierContext = new IdentifierContext(this._ctx, this.state);
     this.enterRule(_localctx, 16, WebdaQLParserParser.RULE_identifier);
@@ -780,10 +715,6 @@ export class WebdaQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse a boolean literal (TRUE or FALSE)
-   * @returns the parsed context
-   */
   public booleanLiteral(): BooleanLiteralContext {
     const _localctx: BooleanLiteralContext = new BooleanLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 18, WebdaQLParserParser.RULE_booleanLiteral);
@@ -818,10 +749,6 @@ export class WebdaQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse a string literal (single or double quoted)
-   * @returns the parsed context
-   */
   public stringLiteral(): StringLiteralContext {
     const _localctx: StringLiteralContext = new StringLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 20, WebdaQLParserParser.RULE_stringLiteral);
@@ -858,10 +785,6 @@ export class WebdaQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse an integer literal
-   * @returns the parsed context
-   */
   public integerLiteral(): IntegerLiteralContext {
     const _localctx: IntegerLiteralContext = new IntegerLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 22, WebdaQLParserParser.RULE_integerLiteral);
@@ -885,10 +808,6 @@ export class WebdaQLParserParser extends Parser {
     return _localctx;
   }
   // @RuleVersion(0)
-  /**
-   * Parse a set expression (bracket-enclosed list of values, e.g. `['a', 'b']`)
-   * @returns the parsed context
-   */
   public setExpression(): SetExpressionContext {
     const _localctx: SetExpressionContext = new SetExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 24, WebdaQLParserParser.RULE_setExpression);
@@ -933,13 +852,6 @@ export class WebdaQLParserParser extends Parser {
     return _localctx;
   }
 
-  /**
-   * Evaluate semantic predicates for precedence climbing in recursive rules
-   * @param _localctx - the current rule context
-   * @param ruleIndex - the rule index
-   * @param predIndex - the predicate index
-   * @returns whether the predicate is satisfied
-   */
   public sempred(_localctx: RuleContext, ruleIndex: number, predIndex: number): boolean {
     switch (ruleIndex) {
       case 5:
@@ -947,12 +859,6 @@ export class WebdaQLParserParser extends Parser {
     }
     return true;
   }
-  /**
-   * Semantic predicates for expression precedence (AND has higher precedence than OR)
-   * @param _localctx - the expression context
-   * @param predIndex - the predicate index
-   * @returns whether the predicate is satisfied
-   */
   private expression_sempred(_localctx: ExpressionContext, predIndex: number): boolean {
     switch (predIndex) {
       case 0:
@@ -1016,10 +922,6 @@ export class WebdaQLParserParser extends Parser {
     "\x02\x02\x02yw\x03\x02\x02\x02z{\x07\n\x02\x02{\x1B\x03\x02\x02\x02\x0E" +
     "\x1D #&2:S[]cgw";
   public static __ATN: ATN;
-  /**
-   * Get the deserialized ATN, lazily initialized
-   * @returns the deserialized ATN
-   */
   public static get _ATN(): ATN {
     if (!WebdaQLParserParser.__ATN) {
       WebdaQLParserParser.__ATN = new ATNDeserializer().deserialize(
@@ -1031,84 +933,42 @@ export class WebdaQLParserParser extends Parser {
   }
 }
 
-/** Parse tree context for the top-level webdaql rule */
 export class WebdaqlContext extends ParserRuleContext {
-  /**
-   * Get the EOF terminal node
-   * @returns the EOF node
-   */
   public EOF(): TerminalNode {
     return this.getToken(WebdaQLParserParser.EOF, 0);
   }
-  /**
-   * Get the optional expression child
-   * @returns the expression context or undefined
-   */
   public expression(): ExpressionContext | undefined {
     return this.tryGetRuleContext(0, ExpressionContext);
   }
-  /**
-   * Get the optional ORDER BY expression
-   * @returns the order expression context or undefined
-   */
   public orderExpression(): OrderExpressionContext | undefined {
     return this.tryGetRuleContext(0, OrderExpressionContext);
   }
-  /**
-   * Get the optional LIMIT expression
-   * @returns the limit expression context or undefined
-   */
   public limitExpression(): LimitExpressionContext | undefined {
     return this.tryGetRuleContext(0, LimitExpressionContext);
   }
-  /**
-   * Get the optional OFFSET expression
-   * @returns the offset expression context or undefined
-   */
   public offsetExpression(): OffsetExpressionContext | undefined {
     return this.tryGetRuleContext(0, OffsetExpressionContext);
   }
-  /** @inheritdoc
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return WebdaQLParserParser.RULE_webdaql;
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterWebdaql) {
       listener.enterWebdaql(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitWebdaql) {
       listener.exitWebdaql(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitWebdaql) {
       return visitor.visitWebdaql(this);
@@ -1118,63 +978,33 @@ export class WebdaqlContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for a LIMIT clause */
 export class LimitExpressionContext extends ParserRuleContext {
-  /**
-   * Get the LIMIT token
-   * @returns the LIMIT terminal node
-   */
   public LIMIT(): TerminalNode {
     return this.getToken(WebdaQLParserParser.LIMIT, 0);
   }
-  /**
-   * Get the integer literal child
-   * @returns the integer literal context
-   */
   public integerLiteral(): IntegerLiteralContext {
     return this.getRuleContext(0, IntegerLiteralContext);
   }
-  /** @inheritdoc
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return WebdaQLParserParser.RULE_limitExpression;
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterLimitExpression) {
       listener.enterLimitExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitLimitExpression) {
       listener.exitLimitExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitLimitExpression) {
       return visitor.visitLimitExpression(this);
@@ -1184,63 +1014,33 @@ export class LimitExpressionContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for an OFFSET clause */
 export class OffsetExpressionContext extends ParserRuleContext {
-  /**
-   * Get the OFFSET token
-   * @returns the OFFSET terminal node
-   */
   public OFFSET(): TerminalNode {
     return this.getToken(WebdaQLParserParser.OFFSET, 0);
   }
-  /**
-   * Get the string literal child
-   * @returns the string literal context
-   */
   public stringLiteral(): StringLiteralContext {
     return this.getRuleContext(0, StringLiteralContext);
   }
-  /** @inheritdoc
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return WebdaQLParserParser.RULE_offsetExpression;
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterOffsetExpression) {
       listener.enterOffsetExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitOffsetExpression) {
       listener.exitOffsetExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitOffsetExpression) {
       return visitor.visitOffsetExpression(this);
@@ -1250,70 +1050,36 @@ export class OffsetExpressionContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for a single ORDER BY field with optional direction */
 export class OrderFieldExpressionContext extends ParserRuleContext {
-  /**
-   * Get the identifier child
-   * @returns the identifier context
-   */
   public identifier(): IdentifierContext {
     return this.getRuleContext(0, IdentifierContext);
   }
-  /**
-   * Get the optional ASC token
-   * @returns the ASC terminal node or undefined
-   */
   public ASC(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.ASC, 0);
   }
-  /**
-   * Get the optional DESC token
-   * @returns the DESC terminal node or undefined
-   */
   public DESC(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.DESC, 0);
   }
-  /** @inheritdoc
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return WebdaQLParserParser.RULE_orderFieldExpression;
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterOrderFieldExpression) {
       listener.enterOrderFieldExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitOrderFieldExpression) {
       listener.exitOrderFieldExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitOrderFieldExpression) {
       return visitor.visitOrderFieldExpression(this);
@@ -1323,24 +1089,12 @@ export class OrderFieldExpressionContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for an ORDER BY clause */
 export class OrderExpressionContext extends ParserRuleContext {
-  /**
-   * Get the ORDER BY token
-   * @returns the ORDER BY terminal node
-   */
   public ORDER_BY(): TerminalNode {
     return this.getToken(WebdaQLParserParser.ORDER_BY, 0);
   }
-  /** Get all orderFieldExpression children */
   public orderFieldExpression(): OrderFieldExpressionContext[];
-  /** Get the orderFieldExpression child at index i */
   public orderFieldExpression(i: number): OrderFieldExpressionContext;
-  /**
-   * Get one or all orderFieldExpression children
-   * @param i - optional child index
-   * @returns the context or array of contexts
-   */
   public orderFieldExpression(i?: number): OrderFieldExpressionContext | OrderFieldExpressionContext[] {
     if (i === undefined) {
       return this.getRuleContexts(OrderFieldExpressionContext);
@@ -1348,15 +1102,8 @@ export class OrderExpressionContext extends ParserRuleContext {
       return this.getRuleContext(i, OrderFieldExpressionContext);
     }
   }
-  /** Get all COMMA tokens */
   public COMMA(): TerminalNode[];
-  /** Get the COMMA token at index i */
   public COMMA(i: number): TerminalNode;
-  /**
-   * Get one or all COMMA tokens
-   * @param i - optional token index
-   * @returns the terminal node or array of terminal nodes
-   */
   public COMMA(i?: number): TerminalNode | TerminalNode[] {
     if (i === undefined) {
       return this.getTokens(WebdaQLParserParser.COMMA);
@@ -1364,47 +1111,26 @@ export class OrderExpressionContext extends ParserRuleContext {
       return this.getToken(WebdaQLParserParser.COMMA, i);
     }
   }
-  /** @inheritdoc
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return WebdaQLParserParser.RULE_orderExpression;
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterOrderExpression) {
       listener.enterOrderExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitOrderExpression) {
       listener.exitOrderExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitOrderExpression) {
       return visitor.visitOrderExpression(this);
@@ -1414,87 +1140,45 @@ export class OrderExpressionContext extends ParserRuleContext {
   }
 }
 
-/** Base parse tree context for filter expressions */
 export class ExpressionContext extends ParserRuleContext {
-  /** @inheritdoc
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return WebdaQLParserParser.RULE_expression;
   }
-  /**
-   * Copy state from another ExpressionContext
-   * @param ctx - the source context
-   */
   public copyFrom(ctx: ExpressionContext): void {
     super.copyFrom(ctx);
   }
 }
-/** Parse tree context for a LIKE expression */
 export class LikeExpressionContext extends ExpressionContext {
-  /**
-   * Get the identifier child
-   * @returns the identifier context
-   */
   public identifier(): IdentifierContext {
     return this.getRuleContext(0, IdentifierContext);
   }
-  /**
-   * Get the LIKE token
-   * @returns the LIKE terminal node
-   */
   public LIKE(): TerminalNode {
     return this.getToken(WebdaQLParserParser.LIKE, 0);
   }
-  /**
-   * Get the string literal child
-   * @returns the string literal context
-   */
   public stringLiteral(): StringLiteralContext {
     return this.getRuleContext(0, StringLiteralContext);
   }
-  /** @inheritdoc
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterLikeExpression) {
       listener.enterLikeExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitLikeExpression) {
       listener.exitLikeExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitLikeExpression) {
       return visitor.visitLikeExpression(this);
@@ -1503,62 +1187,33 @@ export class LikeExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for an IN expression */
 export class InExpressionContext extends ExpressionContext {
-  /**
-   * Get the identifier child
-   * @returns the identifier context
-   */
   public identifier(): IdentifierContext {
     return this.getRuleContext(0, IdentifierContext);
   }
-  /**
-   * Get the IN token
-   * @returns the IN terminal node
-   */
   public IN(): TerminalNode {
     return this.getToken(WebdaQLParserParser.IN, 0);
   }
-  /**
-   * Get the set expression child
-   * @returns the set expression context
-   */
   public setExpression(): SetExpressionContext {
     return this.getRuleContext(0, SetExpressionContext);
   }
-  /** @inheritdoc
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterInExpression) {
       listener.enterInExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitInExpression) {
       listener.exitInExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitInExpression) {
       return visitor.visitInExpression(this);
@@ -1567,62 +1222,33 @@ export class InExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for a CONTAINS expression */
 export class ContainsExpressionContext extends ExpressionContext {
-  /**
-   * Get the identifier child
-   * @returns the identifier context
-   */
   public identifier(): IdentifierContext {
     return this.getRuleContext(0, IdentifierContext);
   }
-  /**
-   * Get the CONTAINS token
-   * @returns the CONTAINS terminal node
-   */
   public CONTAINS(): TerminalNode {
     return this.getToken(WebdaQLParserParser.CONTAINS, 0);
   }
-  /**
-   * Get the string literal child
-   * @returns the string literal context
-   */
   public stringLiteral(): StringLiteralContext {
     return this.getRuleContext(0, StringLiteralContext);
   }
-  /** @inheritdoc
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterContainsExpression) {
       listener.enterContainsExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitContainsExpression) {
       listener.exitContainsExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitContainsExpression) {
       return visitor.visitContainsExpression(this);
@@ -1631,97 +1257,48 @@ export class ContainsExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for a binary comparison (=, !=, <, <=, >, >=) */
 export class BinaryComparisonExpressionContext extends ExpressionContext {
-  /**
-   * Get the identifier child
-   * @returns the identifier context
-   */
   public identifier(): IdentifierContext {
     return this.getRuleContext(0, IdentifierContext);
   }
-  /**
-   * Get the values child
-   * @returns the values context
-   */
   public values(): ValuesContext {
     return this.getRuleContext(0, ValuesContext);
   }
-  /**
-   * Get the optional = token
-   * @returns the EQUAL terminal node or undefined
-   */
   public EQUAL(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.EQUAL, 0);
   }
-  /**
-   * Get the optional != token
-   * @returns the NOT_EQUAL terminal node or undefined
-   */
   public NOT_EQUAL(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.NOT_EQUAL, 0);
   }
-  /**
-   * Get the optional >= token
-   * @returns the GREATER_OR_EQUAL terminal node or undefined
-   */
   public GREATER_OR_EQUAL(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.GREATER_OR_EQUAL, 0);
   }
-  /**
-   * Get the optional <= token
-   * @returns the LESS_OR_EQUAL terminal node or undefined
-   */
   public LESS_OR_EQUAL(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.LESS_OR_EQUAL, 0);
   }
-  /**
-   * Get the optional < token
-   * @returns the LESS terminal node or undefined
-   */
   public LESS(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.LESS, 0);
   }
-  /**
-   * Get the optional > token
-   * @returns the GREATER terminal node or undefined
-   */
   public GREATER(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.GREATER, 0);
   }
-  /** @inheritdoc
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterBinaryComparisonExpression) {
       listener.enterBinaryComparisonExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitBinaryComparisonExpression) {
       listener.exitBinaryComparisonExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitBinaryComparisonExpression) {
       return visitor.visitBinaryComparisonExpression(this);
@@ -1730,17 +1307,9 @@ export class BinaryComparisonExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for an AND logical expression */
 export class AndLogicExpressionContext extends ExpressionContext {
-  /** Get all expression children */
   public expression(): ExpressionContext[];
-  /** Get the expression child at index i */
   public expression(i: number): ExpressionContext;
-  /**
-   * Get one or all expression children
-   * @param i - optional child index
-   * @returns the context or array of contexts
-   */
   public expression(i?: number): ExpressionContext | ExpressionContext[] {
     if (i === undefined) {
       return this.getRuleContexts(ExpressionContext);
@@ -1748,46 +1317,26 @@ export class AndLogicExpressionContext extends ExpressionContext {
       return this.getRuleContext(i, ExpressionContext);
     }
   }
-  /**
-   * Get the AND token
-   * @returns the AND terminal node
-   */
   public AND(): TerminalNode {
     return this.getToken(WebdaQLParserParser.AND, 0);
   }
-  /** @inheritdoc
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterAndLogicExpression) {
       listener.enterAndLogicExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitAndLogicExpression) {
       listener.exitAndLogicExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitAndLogicExpression) {
       return visitor.visitAndLogicExpression(this);
@@ -1796,17 +1345,9 @@ export class AndLogicExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for an OR logical expression */
 export class OrLogicExpressionContext extends ExpressionContext {
-  /** Get all expression children */
   public expression(): ExpressionContext[];
-  /** Get the expression child at index i */
   public expression(i: number): ExpressionContext;
-  /**
-   * Get one or all expression children
-   * @param i - optional child index
-   * @returns the context or array of contexts
-   */
   public expression(i?: number): ExpressionContext | ExpressionContext[] {
     if (i === undefined) {
       return this.getRuleContexts(ExpressionContext);
@@ -1814,46 +1355,26 @@ export class OrLogicExpressionContext extends ExpressionContext {
       return this.getRuleContext(i, ExpressionContext);
     }
   }
-  /**
-   * Get the OR token
-   * @returns the OR terminal node
-   */
   public OR(): TerminalNode {
     return this.getToken(WebdaQLParserParser.OR, 0);
   }
-  /** @inheritdoc
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterOrLogicExpression) {
       listener.enterOrLogicExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitOrLogicExpression) {
       listener.exitOrLogicExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitOrLogicExpression) {
       return visitor.visitOrLogicExpression(this);
@@ -1862,62 +1383,33 @@ export class OrLogicExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for a parenthesized sub-expression */
 export class SubExpressionContext extends ExpressionContext {
-  /**
-   * Get the left bracket token
-   * @returns the left bracket terminal node
-   */
   public LR_BRACKET(): TerminalNode {
     return this.getToken(WebdaQLParserParser.LR_BRACKET, 0);
   }
-  /**
-   * Get the inner expression
-   * @returns the expression context
-   */
   public expression(): ExpressionContext {
     return this.getRuleContext(0, ExpressionContext);
   }
-  /**
-   * Get the right bracket token
-   * @returns the right bracket terminal node
-   */
   public RR_BRACKET(): TerminalNode {
     return this.getToken(WebdaQLParserParser.RR_BRACKET, 0);
   }
-  /** @inheritdoc
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterSubExpression) {
       listener.enterSubExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitSubExpression) {
       listener.exitSubExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitSubExpression) {
       return visitor.visitSubExpression(this);
@@ -1926,48 +1418,27 @@ export class SubExpressionContext extends ExpressionContext {
     }
   }
 }
-/** Parse tree context for a standalone atom expression */
 export class AtomExpressionContext extends ExpressionContext {
-  /**
-   * Get the atom child
-   * @returns the atom context
-   */
   public atom(): AtomContext {
     return this.getRuleContext(0, AtomContext);
   }
-  /** @inheritdoc
-   * @param ctx - the expression context to copy from
-   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterAtomExpression) {
       listener.enterAtomExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitAtomExpression) {
       listener.exitAtomExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitAtomExpression) {
       return visitor.visitAtomExpression(this);
@@ -1977,73 +1448,39 @@ export class AtomExpressionContext extends ExpressionContext {
   }
 }
 
-/** Base parse tree context for value literals */
 export class ValuesContext extends ParserRuleContext {
-  /** @inheritdoc
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return WebdaQLParserParser.RULE_values;
   }
-  /**
-   * Copy state from another ValuesContext
-   * @param ctx - the source context
-   */
   public copyFrom(ctx: ValuesContext): void {
     super.copyFrom(ctx);
   }
 }
-/** Parse tree context for a boolean value atom */
 export class BooleanAtomContext extends ValuesContext {
-  /**
-   * Get the boolean literal child
-   * @returns the boolean literal context
-   */
   public booleanLiteral(): BooleanLiteralContext {
     return this.getRuleContext(0, BooleanLiteralContext);
   }
-  /** @inheritdoc
-   * @param ctx - the values context to copy from
-   */
   constructor(ctx: ValuesContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterBooleanAtom) {
       listener.enterBooleanAtom(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitBooleanAtom) {
       listener.exitBooleanAtom(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitBooleanAtom) {
       return visitor.visitBooleanAtom(this);
@@ -2052,48 +1489,27 @@ export class BooleanAtomContext extends ValuesContext {
     }
   }
 }
-/** Parse tree context for an integer value atom */
 export class IntegerAtomContext extends ValuesContext {
-  /**
-   * Get the integer literal child
-   * @returns the integer literal context
-   */
   public integerLiteral(): IntegerLiteralContext {
     return this.getRuleContext(0, IntegerLiteralContext);
   }
-  /** @inheritdoc
-   * @param ctx - the values context to copy from
-   */
   constructor(ctx: ValuesContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterIntegerAtom) {
       listener.enterIntegerAtom(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitIntegerAtom) {
       listener.exitIntegerAtom(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitIntegerAtom) {
       return visitor.visitIntegerAtom(this);
@@ -2102,48 +1518,27 @@ export class IntegerAtomContext extends ValuesContext {
     }
   }
 }
-/** Parse tree context for a string value atom */
 export class StringAtomContext extends ValuesContext {
-  /**
-   * Get the string literal child
-   * @returns the string literal context
-   */
   public stringLiteral(): StringLiteralContext {
     return this.getRuleContext(0, StringLiteralContext);
   }
-  /** @inheritdoc
-   * @param ctx - the values context to copy from
-   */
   constructor(ctx: ValuesContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterStringAtom) {
       listener.enterStringAtom(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitStringAtom) {
       listener.exitStringAtom(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitStringAtom) {
       return visitor.visitStringAtom(this);
@@ -2153,73 +1548,39 @@ export class StringAtomContext extends ValuesContext {
   }
 }
 
-/** Base parse tree context for atoms (values or identifiers) */
 export class AtomContext extends ParserRuleContext {
-  /** @inheritdoc
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return WebdaQLParserParser.RULE_atom;
   }
-  /**
-   * Copy state from another AtomContext
-   * @param ctx - the source context
-   */
   public copyFrom(ctx: AtomContext): void {
     super.copyFrom(ctx);
   }
 }
-/** Parse tree context for a values-based atom */
 export class ValuesAtomContext extends AtomContext {
-  /**
-   * Get the values child
-   * @returns the values context
-   */
   public values(): ValuesContext {
     return this.getRuleContext(0, ValuesContext);
   }
-  /** @inheritdoc
-   * @param ctx - the atom context to copy from
-   */
   constructor(ctx: AtomContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterValuesAtom) {
       listener.enterValuesAtom(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitValuesAtom) {
       listener.exitValuesAtom(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitValuesAtom) {
       return visitor.visitValuesAtom(this);
@@ -2228,48 +1589,27 @@ export class ValuesAtomContext extends AtomContext {
     }
   }
 }
-/** Parse tree context for an identifier-based atom */
 export class IdentifierAtomContext extends AtomContext {
-  /**
-   * Get the identifier child
-   * @returns the identifier context
-   */
   public identifier(): IdentifierContext {
     return this.getRuleContext(0, IdentifierContext);
   }
-  /** @inheritdoc
-   * @param ctx - the atom context to copy from
-   */
   constructor(ctx: AtomContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterIdentifierAtom) {
       listener.enterIdentifierAtom(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitIdentifierAtom) {
       listener.exitIdentifierAtom(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitIdentifierAtom) {
       return visitor.visitIdentifierAtom(this);
@@ -2279,63 +1619,33 @@ export class IdentifierAtomContext extends AtomContext {
   }
 }
 
-/** Parse tree context for an identifier (field name) */
 export class IdentifierContext extends ParserRuleContext {
-  /**
-   * Get the optional IDENTIFIER token
-   * @returns the IDENTIFIER terminal node or undefined
-   */
   public IDENTIFIER(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.IDENTIFIER, 0);
   }
-  /**
-   * Get the optional IDENTIFIER_WITH_NUMBER token
-   * @returns the IDENTIFIER_WITH_NUMBER terminal node or undefined
-   */
   public IDENTIFIER_WITH_NUMBER(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.IDENTIFIER_WITH_NUMBER, 0);
   }
-  /** @inheritdoc
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return WebdaQLParserParser.RULE_identifier;
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterIdentifier) {
       listener.enterIdentifier(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitIdentifier) {
       listener.exitIdentifier(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitIdentifier) {
       return visitor.visitIdentifier(this);
@@ -2345,63 +1655,33 @@ export class IdentifierContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for a boolean literal (TRUE/FALSE) */
 export class BooleanLiteralContext extends ParserRuleContext {
-  /**
-   * Get the optional TRUE token
-   * @returns the TRUE terminal node or undefined
-   */
   public TRUE(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.TRUE, 0);
   }
-  /**
-   * Get the optional FALSE token
-   * @returns the FALSE terminal node or undefined
-   */
   public FALSE(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.FALSE, 0);
   }
-  /** @inheritdoc
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return WebdaQLParserParser.RULE_booleanLiteral;
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterBooleanLiteral) {
       listener.enterBooleanLiteral(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitBooleanLiteral) {
       listener.exitBooleanLiteral(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitBooleanLiteral) {
       return visitor.visitBooleanLiteral(this);
@@ -2411,63 +1691,33 @@ export class BooleanLiteralContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for a string literal */
 export class StringLiteralContext extends ParserRuleContext {
-  /**
-   * Get the optional double-quoted string literal token
-   * @returns the DQUOTED_STRING_LITERAL terminal node or undefined
-   */
   public DQUOTED_STRING_LITERAL(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.DQUOTED_STRING_LITERAL, 0);
   }
-  /**
-   * Get the optional single-quoted string literal token
-   * @returns the SQUOTED_STRING_LITERAL terminal node or undefined
-   */
   public SQUOTED_STRING_LITERAL(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.SQUOTED_STRING_LITERAL, 0);
   }
-  /** @inheritdoc
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return WebdaQLParserParser.RULE_stringLiteral;
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterStringLiteral) {
       listener.enterStringLiteral(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitStringLiteral) {
       listener.exitStringLiteral(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitStringLiteral) {
       return visitor.visitStringLiteral(this);
@@ -2477,56 +1727,30 @@ export class StringLiteralContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for an integer literal */
 export class IntegerLiteralContext extends ParserRuleContext {
-  /**
-   * Get the INTEGER_LITERAL token
-   * @returns the INTEGER_LITERAL terminal node
-   */
   public INTEGER_LITERAL(): TerminalNode {
     return this.getToken(WebdaQLParserParser.INTEGER_LITERAL, 0);
   }
-  /** @inheritdoc
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return WebdaQLParserParser.RULE_integerLiteral;
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterIntegerLiteral) {
       listener.enterIntegerLiteral(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitIntegerLiteral) {
       listener.exitIntegerLiteral(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitIntegerLiteral) {
       return visitor.visitIntegerLiteral(this);
@@ -2536,24 +1760,12 @@ export class IntegerLiteralContext extends ParserRuleContext {
   }
 }
 
-/** Parse tree context for a set expression ([value, ...]) */
 export class SetExpressionContext extends ParserRuleContext {
-  /**
-   * Get the left square bracket token
-   * @returns the left square bracket terminal node
-   */
   public LR_SQ_BRACKET(): TerminalNode {
     return this.getToken(WebdaQLParserParser.LR_SQ_BRACKET, 0);
   }
-  /** Get all values children */
   public values(): ValuesContext[];
-  /** Get the values child at index i */
   public values(i: number): ValuesContext;
-  /**
-   * Get one or all values children
-   * @param i - optional child index
-   * @returns the context or array of contexts
-   */
   public values(i?: number): ValuesContext | ValuesContext[] {
     if (i === undefined) {
       return this.getRuleContexts(ValuesContext);
@@ -2561,22 +1773,11 @@ export class SetExpressionContext extends ParserRuleContext {
       return this.getRuleContext(i, ValuesContext);
     }
   }
-  /**
-   * Get the right square bracket token
-   * @returns the right square bracket terminal node
-   */
   public RR_SQ_BRACKET(): TerminalNode {
     return this.getToken(WebdaQLParserParser.RR_SQ_BRACKET, 0);
   }
-  /** Get all COMMA tokens */
   public COMMA(): TerminalNode[];
-  /** Get the COMMA token at index i */
   public COMMA(i: number): TerminalNode;
-  /**
-   * Get one or all COMMA tokens
-   * @param i - optional token index
-   * @returns the terminal node or array of terminal nodes
-   */
   public COMMA(i?: number): TerminalNode | TerminalNode[] {
     if (i === undefined) {
       return this.getTokens(WebdaQLParserParser.COMMA);
@@ -2584,47 +1785,26 @@ export class SetExpressionContext extends ParserRuleContext {
       return this.getToken(WebdaQLParserParser.COMMA, i);
     }
   }
-  /** @inheritdoc
-   * @param parent - the parent rule context
-   * @param invokingState - the invoking state number
-   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
   // @Override
-  /**
-   * Get the rule index
-   * @returns the rule index
-   */
   public get ruleIndex(): number {
     return WebdaQLParserParser.RULE_setExpression;
   }
   // @Override
-  /**
-   * Notify the listener that we are entering this context
-   * @param listener - the parse tree listener
-   */
   public enterRule(listener: WebdaQLParserListener): void {
     if (listener.enterSetExpression) {
       listener.enterSetExpression(this);
     }
   }
   // @Override
-  /**
-   * Notify the listener that we are exiting this context
-   * @param listener - the parse tree listener
-   */
   public exitRule(listener: WebdaQLParserListener): void {
     if (listener.exitSetExpression) {
       listener.exitSetExpression(this);
     }
   }
   // @Override
-  /**
-   * Accept a visitor
-   * @param visitor - the parse tree visitor
-   * @returns the visitor result
-   */
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitSetExpression) {
       return visitor.visitSetExpression(this);

@@ -13,7 +13,6 @@ import { VocabularyImpl } from "antlr4ts/VocabularyImpl";
 
 import * as Utils from "antlr4ts/misc/Utils";
 
-/** Lexer for the CloudEvents SQL expression language, generated from CESQLParser.g4. */
 export class CESQLParserLexer extends Lexer {
   public static readonly SPACE = 1;
   public static readonly LR_BRACKET = 2;
@@ -171,64 +170,37 @@ export class CESQLParserLexer extends Lexer {
 
   // @Override
   // @NotNull
-  /**
-   * Get the vocabulary used by this lexer.
-   * @returns the vocabulary
-   */
   public get vocabulary(): Vocabulary {
     return CESQLParserLexer.VOCABULARY;
   }
   // tslint:enable:no-trailing-whitespace
 
-  /** Create a new CESQLParserLexer.
-   * @param input - the character stream to lex
-   */
   constructor(input: CharStream) {
     super(input);
     this._interp = new LexerATNSimulator(CESQLParserLexer._ATN, this);
   }
 
   // @Override
-  /**
-   * Get the grammar file name this lexer was generated from.
-   * @returns the grammar file name
-   */
   public get grammarFileName(): string {
     return "CESQLParser.g4";
   }
 
   // @Override
-  /**
-   * Get the list of lexer rule names.
-   * @returns the rule names
-   */
   public get ruleNames(): string[] {
     return CESQLParserLexer.ruleNames;
   }
 
   // @Override
-  /**
-   * Get the serialized ATN used by this lexer.
-   * @returns the serialized ATN
-   */
   public get serializedATN(): string {
     return CESQLParserLexer._serializedATN;
   }
 
   // @Override
-  /**
-   * Get the channel names used by this lexer.
-   * @returns the channel names
-   */
   public get channelNames(): string[] {
     return CESQLParserLexer.channelNames;
   }
 
   // @Override
-  /**
-   * Get the mode names used by this lexer.
-   * @returns the mode names
-   */
   public get modeNames(): string[] {
     return CESQLParserLexer.modeNames;
   }
@@ -338,10 +310,6 @@ export class CESQLParserLexer extends Lexer {
     "\x03\x02\x02\x02\xEC\xEA\x03\x02\x02\x02\x0F\x02T[cepr}\x8C\xDA\xDF\xE4" +
     "\xEA\x03\b\x02\x02";
   public static __ATN: ATN;
-  /**
-   * Get the deserialized ATN, lazily initializing it on first access.
-   * @returns the ATN
-   */
   public static get _ATN(): ATN {
     if (!CESQLParserLexer.__ATN) {
       CESQLParserLexer.__ATN = new ATNDeserializer().deserialize(Utils.toCharArray(CESQLParserLexer._serializedATN));

@@ -14,13 +14,13 @@ import { LogsPanel } from "./components/logs.js";
 const html = htm.bind(h);
 
 const TABS = [
+  { id: "logs", label: "Logs" },
   { id: "models", label: "Models" },
   { id: "services", label: "Services" },
   { id: "operations", label: "Operations" },
   { id: "routes", label: "Routes" },
   { id: "config", label: "Config" },
   { id: "requests", label: "Requests" },
-  { id: "logs", label: "Logs" },
   { id: "openapi", label: "OpenAPI" }
 ];
 
@@ -35,7 +35,7 @@ async function fetchApi(path) {
 }
 
 function App() {
-  const [tab, setTab] = useState("models");
+  const [tab, setTab] = useState("logs");
   const [wsConnected, setWsConnected] = useState(false);
   const [wsEvents, setWsEvents] = useState([]);
   const [dataVersion, setDataVersion] = useState(0);

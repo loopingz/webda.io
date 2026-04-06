@@ -14,8 +14,8 @@ const { terminal: term } = termkit;
 /**
  * Terminal UI dashboard for the Webda debug server.
  *
- * Provides a tab-based interface with seven panels (Models, Services,
- * Operations, Routes, Config, Requests, Logs) and live WebSocket updates.
+ * Provides a tab-based interface with seven panels (Logs, Models, Services,
+ * Operations, Routes, Config, Requests) and live WebSocket updates.
  * Connect to an already-running debug server started with `webda debug`.
  */
 export class DebugTui {
@@ -37,13 +37,13 @@ export class DebugTui {
     this.client = new DebugClient(`http://localhost:${port}`);
     this.logsPanel = new LogsPanel(this.client);
     this.panels = [
+      this.logsPanel,
       new ModelsPanel(this.client),
       new ServicesPanel(this.client),
       new OperationsPanel(this.client),
       new RoutesPanel(this.client),
       new ConfigPanel(this.client),
-      new RequestsPanel(this.client),
-      this.logsPanel
+      new RequestsPanel(this.client)
     ];
   }
 

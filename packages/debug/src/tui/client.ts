@@ -146,6 +146,14 @@ export class DebugClient {
   }
 
   /**
+   * Fetch application info (package name, version, working directory).
+   * @returns project information record
+   */
+  async getAppInfo(): Promise<any> {
+    return this.fetchJson("/api/info");
+  }
+
+  /**
    * Search application log entries by query string.
    *
    * @param query - search text to filter logs

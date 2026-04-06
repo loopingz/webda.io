@@ -27,6 +27,7 @@ export class DebugTui {
   private renderTimer?: ReturnType<typeof setInterval>;
   private lastRefresh = "";
   private wsUnsubscribe?: () => void;
+  private appInfo: any = null;
 
   /**
    * Create a new TUI instance.
@@ -98,6 +99,7 @@ export class DebugTui {
       String(now.getSeconds()).padStart(2, "0");
 
     const refreshPromises = this.panels.map(p => (p.refresh ? p.refresh() : Promise.resolve()));
+    refreshPromises.push(this.client.getAppInfo().then(info => { this.appInfo = info; }));
     await Promise.allSettled(refreshPromises);
 
     if (this.running) this.render();
@@ -181,7 +183,16 @@ export class DebugTui {
   private renderHeader(width: number): void {
     term.moveTo(1, 1);
     term.eraseLine();
-    term.bgWhite.black(" Webda Debug Dashboard ");
+    term.white("web");
+    term.yellow("da");
+    term.white(" debug");
+
+    if (this.appInfo) {
+      const name = this.appInfo.package?.name || "";
+      const cwd = (this.appInfo.workingDirectory || "").replace(/^\/(Users|home)\/[^/]+\//, "~/");
+      term.dim(` | ${name} ${cwd}`);
+    }
+
     term("  ");
 
     for (let i = 0; i < this.panels.length; i++) {
@@ -192,10 +203,6 @@ export class DebugTui {
         term.dim(label);
       }
     }
-
-    // Fill rest of line
-    const curX = term.getCursorLocation ? 0 : 0;
-    term(" ".repeat(Math.max(0, 2)));
 
     // Separator line
     term.moveTo(1, 2);

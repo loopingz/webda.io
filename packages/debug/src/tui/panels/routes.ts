@@ -130,19 +130,19 @@ export class RoutesPanel extends ScrollablePanel {
   private getMethodColor(term: any, method: string, inverse: boolean): any {
     const m = method.toUpperCase();
     if (inverse) {
-      if (m === "GET") return term.inverse.green.bind(term);
-      if (m === "POST") return term.inverse.cyan.bind(term);
-      if (m === "PUT") return term.inverse.yellow.bind(term);
-      if (m === "DELETE") return term.inverse.red.bind(term);
-      if (m === "PATCH") return term.inverse.magenta.bind(term);
-      return term.inverse.bind(term);
+      if (m === "GET") return (s: string) => term.inverse.green(s);
+      if (m === "POST") return (s: string) => term.inverse.cyan(s);
+      if (m === "PUT") return (s: string) => term.inverse.yellow(s);
+      if (m === "DELETE") return (s: string) => term.inverse.red(s);
+      if (m === "PATCH") return (s: string) => term.inverse.magenta(s);
+      return (s: string) => term.inverse(s);
     }
-    if (m === "GET") return term.green.bind(term);
-    if (m === "POST") return term.cyan.bind(term);
-    if (m === "PUT") return term.yellow.bind(term);
-    if (m === "DELETE") return term.red.bind(term);
-    if (m === "PATCH") return term.magenta.bind(term);
-    return term.bind(term);
+    if (m === "GET") return (s: string) => term.green(s);
+    if (m === "POST") return (s: string) => term.cyan(s);
+    if (m === "PUT") return (s: string) => term.yellow(s);
+    if (m === "DELETE") return (s: string) => term.red(s);
+    if (m === "PATCH") return (s: string) => term.magenta(s);
+    return (s: string) => term(s);
   }
 
   /**

@@ -1,4 +1,4 @@
-"use strict";
+
 
 /**
  * A single entry in the request log

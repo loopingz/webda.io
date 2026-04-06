@@ -1,4 +1,4 @@
-"use strict";
+
 
 import { useApplication, useCore, useRouter, listOperations, useModelMetadata } from "@webda/core";
 
@@ -107,7 +107,7 @@ export function getServices(): ServiceInfo[] {
     .filter(([, svc]) => svc != null)
     .map(([name, svc]) => ({
       name,
-      type: svc.getParameters()?.type || "unknown",
+      type: (svc.parameters as any)?.type || "unknown",
       state: svc.getState(),
       capabilities: svc.getCapabilities()
     }));
@@ -123,7 +123,7 @@ export function getServices(): ServiceInfo[] {
  */
 export function getOperations(): OperationInfo[] {
   const ops = listOperations();
-  return Object.entries(ops).map(([id, def]) => ({ id, ...def }));
+  return Object.entries(ops).map(([opId, def]) => ({ ...def, id: opId }));
 }
 
 /**

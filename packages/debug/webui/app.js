@@ -14,14 +14,14 @@ import { LogsPanel } from "./components/logs.js";
 const html = htm.bind(h);
 
 const TABS = [
-  { id: "logs", label: "Logs" },
-  { id: "models", label: "Models" },
-  { id: "services", label: "Services" },
-  { id: "operations", label: "Operations" },
-  { id: "routes", label: "Routes" },
-  { id: "config", label: "Config" },
-  { id: "requests", label: "Requests" },
-  { id: "openapi", label: "OpenAPI" }
+  { id: "logs", label: "Logs", color: "#f7992c" },
+  { id: "models", label: "Models", color: "#81bf6b" },
+  { id: "services", label: "Services", color: "#6b8fd4" },
+  { id: "operations", label: "Operations", color: "#f4f4f4" },
+  { id: "routes", label: "Routes", color: "#f7992c" },
+  { id: "config", label: "Config", color: "#81bf6b" },
+  { id: "requests", label: "Requests", color: "#6b8fd4" },
+  { id: "openapi", label: "OpenAPI", color: "#f4f4f4" }
 ];
 
 /**
@@ -128,6 +128,7 @@ function App() {
             <button
               key=${t.id}
               class="nav-tab ${tab === t.id ? "active" : ""}"
+              style="${tab === t.id ? `color:${t.color};border-bottom-color:${t.color}` : ""}"
               onClick=${() => setTab(t.id)}
             >
               ${t.label}

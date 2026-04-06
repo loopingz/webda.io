@@ -107,14 +107,15 @@ code, pre, .mono {
 }
 
 .nav-tab.active {
-  color: var(--focus-color);
-  border-bottom-color: var(--focus-color);
+  border-bottom-width: 2px;
+  border-bottom-style: solid;
 }
 
 @keyframes focus-rotate {
   0%, 100% { --focus-color: #f7992c; }
-  33% { --focus-color: #81bf6b; }
-  66% { --focus-color: #4557a4; }
+  25% { --focus-color: #81bf6b; }
+  50% { --focus-color: #6b8fd4; }
+  75% { --focus-color: #f4f4f4; }
 }
 
 @property --focus-color {

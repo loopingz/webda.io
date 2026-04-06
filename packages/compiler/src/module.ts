@@ -1013,9 +1013,7 @@ export class ModuleGenerator {
       new CommandsMetadata(this),
       new EventsMetadata(this),
       new PrimaryKeyMetadata(this),
-      new PluralMetadata(this),
-      new CapabilitiesMetadata(this),
-      new CommandsMetadata(this)
+      new PluralMetadata(this)
     ];
     // Clean objects
     Object.keys(objects.models).forEach(name => {

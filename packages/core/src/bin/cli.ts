@@ -72,7 +72,11 @@ const KNOWN_PARAMS: Record<string, { positional?: string; options?: Record<strin
 };
 
 /**
- * Convert a JSON Schema to yargs options (for custom parameter schemas)
+ * Convert a JSON Schema's properties into yargs option definitions.
+ *
+ * @param schema - JSON Schema describing an object with properties
+ * @param skipRequired - When true, all options are marked optional (useful when input can also come from --json/--file)
+ * @returns Map of property names to yargs {@link Options} definitions
  */
 function schemaToOptions(schema: JSONSchema7, skipRequired?: boolean): Record<string, Options> {
   if (schema.type !== "object" || !schema.properties) return {};
@@ -104,10 +108,10 @@ export function loadOperations(appPath: string = "."): OperationsFile {
 }
 
 /**
- * Group operations by their prefix before the dot
+ * Group operations by their prefix before the first dot (e.g., "Task.Create" belongs to group "Task").
  *
- * "Task.Create" → group "Task"
- * "Tasks.Query" → group "Tasks"
+ * @param operations - Map of operation IDs to their entries
+ * @returns Map of group names to their operation entries
  */
 function groupOperations(operations: Record<string, OperationEntry>): Map<string, OperationEntry[]> {
   const groups = new Map<string, OperationEntry[]>();
@@ -157,7 +161,12 @@ function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): 
 }
 
 /**
- * Extract parameters from parsed args based on the operation definition
+ * Extract operation parameters from parsed CLI args using well-known param defs or custom schemas.
+ *
+ * @param args - Parsed yargs arguments
+ * @param op - The operation entry defining which parameters to extract
+ * @param ops - The full operations file (for resolving custom parameter schemas)
+ * @returns Object containing only the recognized parameter values
  */
 function extractParameters(args: Record<string, any>, op: OperationEntry, ops: OperationsFile): Record<string, any> {
   const params: Record<string, any> = {};
@@ -182,7 +191,12 @@ function extractParameters(args: Record<string, any>, op: OperationEntry, ops: O
 }
 
 /**
- * Extract input from parsed args
+ * Extract operation input body from parsed CLI args (via --json, --file, or individual schema properties).
+ *
+ * @param args - Parsed yargs arguments
+ * @param op - The operation entry defining the input schema
+ * @param ops - The full operations file (for resolving input schemas)
+ * @returns Parsed input object, or undefined if no input was provided
  */
 function extractInput(args: Record<string, any>, op: OperationEntry, ops: OperationsFile): any | undefined {
   if (args.json) {
@@ -359,6 +373,10 @@ function addCommandArgs(y: Argv, args: { [name: string]: import("@webda/compiler
 /**
  * Prompt the user interactively for missing input properties.
  * If stdin is not a TTY, returns the input as-is (validation will fail later).
+ *
+ * @param input - Partially filled input object
+ * @param schema - JSON Schema describing expected input properties (used to determine what is missing)
+ * @returns The input object augmented with user-provided values, coerced to the expected types
  */
 async function promptForMissingInput(input: Record<string, any>, schema: JSONSchema7): Promise<Record<string, any>> {
   if (schema.type !== "object" || !schema.properties) return input;
@@ -400,8 +418,11 @@ async function promptForMissingInput(input: Record<string, any>, schema: JSONSch
 }
 
 /**
- * Ensure a service is available in the app configuration.
- * For beans that aren't registered as moddas, this loads them via sectionLoader.
+ * Ensure a service is available in the app configuration, injecting it if necessary.
+ * For beans that aren't registered as moddas, this dynamically imports and registers them.
+ *
+ * @param app - The application instance whose configuration may be modified
+ * @param serviceName - Name (or namespace-qualified name) of the service to ensure
  */
 async function ensureServiceInConfig(app: Application, serviceName: string): Promise<void> {
   const appConfig = app.getConfiguration();
@@ -458,7 +479,10 @@ async function defaultHandler(call: OperationCall): Promise<void> {
 }
 
 /**
- * Load the Application from a path (packaged or unpacked)
+ * Load the Application from a path, choosing packaged or unpacked mode based on the presence of `.webda/packaged.json`.
+ *
+ * @param appPath - Absolute or relative path to the application root directory
+ * @returns An {@link Application} (packaged) or {@link UnpackedApplication} instance
  */
 function loadApplication(appPath: string): Application {
   if (!existsSync(join(appPath, ".webda", "packaged.json"))) {

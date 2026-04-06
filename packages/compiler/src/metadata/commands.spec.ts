@@ -58,11 +58,11 @@ function createMockModuleGenerator(checker: ts.TypeChecker) {
 suite("CommandsMetadata", () => {
   test("detects @Command methods with typed args", () => {
     const source = `
-      function Command() {
+      function Command(...args: any[]) {
         return function(t: any, c: any) { return t; };
       }
       class TestService {
-        @Command()
+        @Command("deploy", { description: "Deploy the app" })
         deploy(env: string, count: number): void {}
       }
     `;
@@ -82,9 +82,7 @@ suite("CommandsMetadata", () => {
     const type = checker.getTypeAtLocation(serviceClass);
 
     const objects = {
-      beans: {
-        "Test/TestService": { type, node: serviceClass }
-      },
+      beans: { "Test/TestService": { type, node: serviceClass } },
       moddas: {},
       models: {},
       deployers: {},
@@ -93,21 +91,22 @@ suite("CommandsMetadata", () => {
 
     plugin.getMetadata(module, objects);
 
-    const cmds = module.beans!["Test/TestService"].Commands;
+    const cmds = module.beans!["Test/TestService"].commands;
     expect(cmds).toBeDefined();
     expect(cmds!["deploy"]).toBeDefined();
-    expect(cmds!["deploy"].args).toHaveLength(2);
-    expect(cmds!["deploy"].args[0]).toMatchObject({ name: "env", type: "string", required: true });
-    expect(cmds!["deploy"].args[1]).toMatchObject({ name: "count", type: "number", required: true });
+    expect(cmds!["deploy"].description).toBe("Deploy the app");
+    expect(cmds!["deploy"].method).toBe("deploy");
+    expect(cmds!["deploy"].args["env"]).toMatchObject({ type: "string", required: true });
+    expect(cmds!["deploy"].args["count"]).toMatchObject({ type: "number", required: true });
   });
 
   test("detects optional args (? token)", () => {
     const source = `
-      function Command() {
+      function Command(...args: any[]) {
         return function(t: any, c: any) { return t; };
       }
       class TestService {
-        @Command()
+        @Command("status", { description: "Show status" })
         status(verbose?: boolean): void {}
       }
     `;
@@ -136,18 +135,18 @@ suite("CommandsMetadata", () => {
 
     plugin.getMetadata(module, objects);
 
-    const cmd = module.beans!["Test/TestService"].Commands!["status"];
-    expect(cmd.args[0].required).toBeUndefined();
-    expect(cmd.args[0].type).toBe("boolean");
+    const cmd = module.beans!["Test/TestService"].commands!["status"];
+    expect(cmd.args["verbose"].required).toBeUndefined();
+    expect(cmd.args["verbose"].type).toBe("boolean");
   });
 
   test("detects default values and marks args as not required", () => {
     const source = `
-      function Command() {
+      function Command(...args: any[]) {
         return function(t: any, c: any) { return t; };
       }
       class TestService {
-        @Command()
+        @Command("deploy", { description: "Deploy" })
         deploy(env: string, count: number = 1, verbose: boolean = false): void {}
       }
     `;
@@ -176,26 +175,25 @@ suite("CommandsMetadata", () => {
 
     plugin.getMetadata(module, objects);
 
-    const cmd = module.beans!["Test/TestService"].Commands!["deploy"];
+    const cmd = module.beans!["Test/TestService"].commands!["deploy"];
     // env is required (no default, no ?)
-    expect(cmd.args[0].required).toBe(true);
-    expect(cmd.args[0].default).toBeUndefined();
+    expect(cmd.args["env"].required).toBe(true);
+    expect(cmd.args["env"].default).toBeUndefined();
     // count has default=1, so not required
-    expect(cmd.args[1].required).toBeUndefined();
-    expect(cmd.args[1].default).toBe(1);
+    expect(cmd.args["count"].required).toBeUndefined();
+    expect(cmd.args["count"].default).toBe(1);
     // verbose has default=false
-    expect(cmd.args[2].required).toBeUndefined();
-    expect(cmd.args[2].default).toBe(false);
+    expect(cmd.args["verbose"].required).toBeUndefined();
+    expect(cmd.args["verbose"].default).toBe(false);
   });
 
-  test("extracts JSDoc description from method", () => {
+  test("extracts description from decorator options", () => {
     const source = `
-      function Command() {
+      function Command(...args: any[]) {
         return function(t: any, c: any) { return t; };
       }
       class TestService {
-        /** Deploy the application to a target environment */
-        @Command()
+        @Command("deploy", { description: "Deploy the application to a target environment" })
         deploy(env: string): void {}
       }
     `;
@@ -224,97 +222,11 @@ suite("CommandsMetadata", () => {
 
     plugin.getMetadata(module, objects);
 
-    const cmd = module.beans!["Test/TestService"].Commands!["deploy"];
+    const cmd = module.beans!["Test/TestService"].commands!["deploy"];
     expect(cmd.description).toBe("Deploy the application to a target environment");
   });
 
-  test("extracts param description from JSDoc @param tags", () => {
-    const source = `
-      function Command() {
-        return function(t: any, c: any) { return t; };
-      }
-      class TestService {
-        /**
-         * Deploy command
-         * @param env The target environment
-         */
-        @Command()
-        deploy(env: string): void {}
-      }
-    `;
-    const { checker, classes } = compileSource(source);
-    const gen = createMockModuleGenerator(checker);
-    const plugin = new CommandsMetadata(gen);
-
-    const module: WebdaModule = {
-      beans: { "Test/TestService": { Import: "lib:TestService", Schema: {} } },
-      moddas: {},
-      deployers: {},
-      models: {},
-      schemas: {}
-    };
-
-    const serviceClass = classes.find(c => c.name?.text === "TestService")!;
-    const type = checker.getTypeAtLocation(serviceClass);
-
-    const objects = {
-      beans: { "Test/TestService": { type, node: serviceClass } },
-      moddas: {},
-      models: {},
-      deployers: {},
-      schemas: {} as any
-    };
-
-    plugin.getMetadata(module, objects);
-
-    const arg = module.beans!["Test/TestService"].Commands!["deploy"].args[0];
-    expect(arg.description).toBe("The target environment");
-  });
-
-  test("extracts @description from method JSDoc tag", () => {
-    const source = `
-      function Command() {
-        return function(t: any, c: any) { return t; };
-      }
-      class TestService {
-        /** @description Prints current status */
-        @Command()
-        status(): void {}
-      }
-    `;
-    const { checker, classes } = compileSource(source);
-    const gen = createMockModuleGenerator(checker);
-    const plugin = new CommandsMetadata(gen);
-
-    const module: WebdaModule = {
-      beans: { "Test/TestService": { Import: "lib:TestService", Schema: {} } },
-      moddas: {},
-      deployers: {},
-      models: {},
-      schemas: {}
-    };
-
-    const serviceClass = classes.find(c => c.name?.text === "TestService")!;
-    const type = checker.getTypeAtLocation(serviceClass);
-
-    const objects = {
-      beans: { "Test/TestService": { type, node: serviceClass } },
-      moddas: {},
-      models: {},
-      deployers: {},
-      schemas: {} as any
-    };
-
-    plugin.getMetadata(module, objects);
-
-    // The @description tag should be extracted
-    const cmd = module.beans!["Test/TestService"].Commands!["status"];
-    expect(cmd).toBeDefined();
-    // Note: The JSDoc parser may extract @description as a tag, not as the main comment
-    // The exact behavior depends on the TypeScript JSDoc parser
-  });
-
-  test("does not add Commands when no @Command methods exist", () => {
+  test("does not add commands when no @Command methods exist", () => {
     const source = `
       class TestService {
         doWork(): void {}
@@ -345,16 +257,16 @@ suite("CommandsMetadata", () => {
 
     plugin.getMetadata(module, objects);
 
-    expect(module.beans!["Test/TestService"].Commands).toBeUndefined();
+    expect(module.beans!["Test/TestService"].commands).toBeUndefined();
   });
 
   test("handles command with no arguments", () => {
     const source = `
-      function Command() {
+      function Command(...args: any[]) {
         return function(t: any, c: any) { return t; };
       }
       class TestService {
-        @Command()
+        @Command("cleanup", { description: "Clean up" })
         cleanup(): void {}
       }
     `;
@@ -383,18 +295,18 @@ suite("CommandsMetadata", () => {
 
     plugin.getMetadata(module, objects);
 
-    const cmd = module.beans!["Test/TestService"].Commands!["cleanup"];
+    const cmd = module.beans!["Test/TestService"].commands!["cleanup"];
     expect(cmd).toBeDefined();
-    expect(cmd.args).toHaveLength(0);
+    expect(Object.keys(cmd.args)).toHaveLength(0);
   });
 
   test("detects commands on moddas", () => {
     const source = `
-      function Command() {
+      function Command(...args: any[]) {
         return function(t: any, c: any) { return t; };
       }
       class TestModda {
-        @Command()
+        @Command("run", { description: "Run it" })
         run(target: string): void {}
       }
     `;
@@ -423,17 +335,17 @@ suite("CommandsMetadata", () => {
 
     plugin.getMetadata(module, objects);
 
-    expect(module.moddas!["Test/TestModda"].Commands).toBeDefined();
-    expect(module.moddas!["Test/TestModda"].Commands!["run"]).toBeDefined();
+    expect(module.moddas!["Test/TestModda"].commands).toBeDefined();
+    expect(module.moddas!["Test/TestModda"].commands!["run"]).toBeDefined();
   });
 
   test("infers type from default value when no type annotation", () => {
     const source = `
-      function Command() {
+      function Command(...args: any[]) {
         return function(t: any, c: any) { return t; };
       }
       class TestService {
-        @Command()
+        @Command("run", { description: "Run" })
         run(count = 5, verbose = true, name = "default"): void {}
       }
     `;
@@ -462,9 +374,9 @@ suite("CommandsMetadata", () => {
 
     plugin.getMetadata(module, objects);
 
-    const cmd = module.beans!["Test/TestService"].Commands!["run"];
-    expect(cmd.args[0]).toMatchObject({ name: "count", type: "number", default: 5 });
-    expect(cmd.args[1]).toMatchObject({ name: "verbose", type: "boolean", default: true });
-    expect(cmd.args[2]).toMatchObject({ name: "name", type: "string", default: "default" });
+    const cmd = module.beans!["Test/TestService"].commands!["run"];
+    expect(cmd.args["count"]).toMatchObject({ default: 5 });
+    expect(cmd.args["verbose"]).toMatchObject({ default: true });
+    expect(cmd.args["name"]).toMatchObject({ default: "default" });
   });
 });

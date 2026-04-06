@@ -349,18 +349,50 @@ class CompilerTest {
       "Bean output schema should be in export"
     );
 
-    // Capabilities: service with no RequestFilter should not have Capabilities field
+    // Capabilities: service with no RequestFilter should not have capabilities field
     assert.strictEqual(
-      mod.beans!["TestCompilerOperations/TestBean"].Capabilities,
+      mod.beans!["TestCompilerOperations/TestBean"].capabilities,
       undefined,
-      "TestBean should not have Capabilities since it does not implement RequestFilter"
+      "TestBean should not have capabilities since it does not implement RequestFilter"
     );
 
-    // Commands: service with no @Command methods should not have Commands field
+    // Commands: service with no @Command methods should not have commands field
     assert.strictEqual(
-      mod.beans!["TestCompilerOperations/TestBean"].Commands,
+      mod.beans!["TestCompilerOperations/TestBean"].commands,
       undefined,
-      "TestBean should not have Commands since it has no @Command methods"
+      "TestBean should not have commands since it has no @Command methods"
     );
+
+  }
+
+  @test
+  async operationInputSchemaRequired() {
+    // Test getMethodParametersSchema generates `required` for non-optional params
+    // Uses the blog-system sample app which has a testOperation(counter: number) method
+    const projectPath = path.join(__dirname, "..", "..", "..", "sample-apps", "blog-system");
+    if (!existsSync(path.join(projectPath, "package.json"))) {
+      return; // Skip if not present
+    }
+    const project = new WebdaProject(projectPath);
+    const compiler = new Compiler(project);
+    compiler.compile(true);
+    const mod: WebdaModule = JSONUtils.loadFile(path.join(projectPath, "webda.module.json"));
+
+    // testOperation(counter: number) — counter should be required
+    const testOpInput = mod.schemas["TestBean.testOperation.input"];
+    assert.notStrictEqual(testOpInput, undefined, "testOperation input schema should exist");
+    assert.deepStrictEqual(testOpInput.required, ["counter"], "counter should be required");
+    assert.strictEqual(testOpInput.properties.counter.type, "number");
+
+    // demonstrateTypeSafety() — no params, no required
+    const demoInput = mod.schemas["TestBean.demonstrateTypeSafety.input"];
+    assert.notStrictEqual(demoInput, undefined, "demonstrateTypeSafety input schema should exist");
+    assert.strictEqual(demoInput.required, undefined, "No params should be required");
+
+    // serve(bind?: string, port?: number) — optional params, no required
+    const serveInput = mod.schemas["HttpServer.serve.input"];
+    if (serveInput) {
+      assert.strictEqual(serveInput.required, undefined, "Optional params should not be required");
+    }
   }
 }

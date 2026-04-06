@@ -4,11 +4,41 @@ import { CapabilitiesMetadata } from "./capabilities";
 import type { WebdaModule } from "../definition";
 
 /**
- * Create a minimal mock ModuleGenerator
+ * Helper: compile a source string and return class nodes + type checker
  */
-function createMockModuleGenerator() {
+function compileSource(source: string) {
+  const fileName = "test.ts";
+  const compilerHost = ts.createCompilerHost({});
+  const originalGetSourceFile = compilerHost.getSourceFile.bind(compilerHost);
+  compilerHost.getSourceFile = (name, languageVersion, onError) => {
+    if (name === fileName) {
+      return ts.createSourceFile(name, source, languageVersion);
+    }
+    return originalGetSourceFile(name, languageVersion, onError);
+  };
+  compilerHost.fileExists = (name: string) => name === fileName || ts.sys.fileExists(name);
+  compilerHost.readFile = (name: string) => (name === fileName ? source : ts.sys.readFile(name));
+
+  const program = ts.createProgram([fileName], { target: ts.ScriptTarget.ES2020, strict: false }, compilerHost);
+  const checker = program.getTypeChecker();
+  const sourceFile = program.getSourceFile(fileName)!;
+
+  const classes: ts.ClassDeclaration[] = [];
+  ts.forEachChild(sourceFile, node => {
+    if (ts.isClassDeclaration(node)) {
+      classes.push(node);
+    }
+  });
+
+  return { program, checker, sourceFile, classes };
+}
+
+/**
+ * Create a mock ModuleGenerator with a real type checker
+ */
+function createMockModuleGenerator(checker: ts.TypeChecker) {
   return {
-    typeChecker: {} as ts.TypeChecker,
+    typeChecker: checker,
     compiler: {} as any,
     getDecoratorName: () => undefined as string | undefined,
     propertyIsKeyedBySymbol: () => false,
@@ -16,50 +46,26 @@ function createMockModuleGenerator() {
   } as any;
 }
 
-/**
- * Create a minimal mock class node with implements clauses
- */
-function createClassNode(implementsNames: string[]): ts.Node {
-  if (implementsNames.length === 0) {
-    return {
-      kind: ts.SyntaxKind.ClassDeclaration,
-      heritageClauses: undefined
-    } as unknown as ts.Node;
-  }
-
-  const types = implementsNames.map(name => ({
-    expression: {
-      getText: () => name
-    } as any
-  }));
-
-  return {
-    kind: ts.SyntaxKind.ClassDeclaration,
-    heritageClauses: [
-      {
-        token: ts.SyntaxKind.ImplementsKeyword,
-        types
-      }
-    ]
-  } as unknown as ts.ClassDeclaration;
-}
-
-function createMockType(properties: string[] = []) {
-  return {
-    getProperty: (name: string) => (properties.includes(name) ? {} : undefined),
-    getBaseTypes: () => []
-  } as unknown as ts.Type;
-}
-
 suite("CapabilitiesMetadata", () => {
-  test("detects RequestFilter capability from implements clause", () => {
-    const gen = createMockModuleGenerator();
+  test("detects capability from @WebdaCapability JSDoc tag on interface", () => {
+    const source = `
+      /** @WebdaCapability request-filter */
+      interface RequestFilter {
+        checkRequest(): boolean;
+      }
+      class MyBean implements RequestFilter {
+        checkRequest() { return true; }
+      }
+    `;
+    const { checker, classes } = compileSource(source);
+    const gen = createMockModuleGenerator(checker);
     const plugin = new CapabilitiesMetadata(gen);
 
+    const classNode = classes.find(c => c.name?.text === "MyBean")!;
+    const type = checker.getTypeAtLocation(classNode);
+
     const module: WebdaModule = {
-      beans: {
-        "Test/MyBean": { Import: "lib/bean:MyBean", Schema: {} }
-      },
+      beans: { "Test/MyBean": { Import: "lib/bean:MyBean", Schema: {} } },
       moddas: {},
       deployers: {},
       models: {},
@@ -67,12 +73,7 @@ suite("CapabilitiesMetadata", () => {
     };
 
     const objects = {
-      beans: {
-        "Test/MyBean": {
-          type: createMockType(),
-          node: createClassNode(["RequestFilter"])
-        }
-      },
+      beans: { "Test/MyBean": { type, node: classNode } },
       moddas: {},
       models: {},
       deployers: {},
@@ -81,18 +82,29 @@ suite("CapabilitiesMetadata", () => {
 
     plugin.getMetadata(module, objects);
 
-    expect(module.beans!["Test/MyBean"].Capabilities).toBeDefined();
-    expect(module.beans!["Test/MyBean"].Capabilities).toContain("requestFilter");
+    expect(module.beans!["Test/MyBean"].capabilities).toBeDefined();
+    expect(module.beans!["Test/MyBean"].capabilities).toContain("request-filter");
   });
 
   test("detects CronDefinition capability", () => {
-    const gen = createMockModuleGenerator();
+    const source = `
+      /** @WebdaCapability cron */
+      interface CronDefinition {
+        schedule(): void;
+      }
+      class CronBean implements CronDefinition {
+        schedule() {}
+      }
+    `;
+    const { checker, classes } = compileSource(source);
+    const gen = createMockModuleGenerator(checker);
     const plugin = new CapabilitiesMetadata(gen);
 
+    const classNode = classes.find(c => c.name?.text === "CronBean")!;
+    const type = checker.getTypeAtLocation(classNode);
+
     const module: WebdaModule = {
-      beans: {
-        "Test/CronBean": { Import: "lib/bean:CronBean", Schema: {} }
-      },
+      beans: { "Test/CronBean": { Import: "lib/bean:CronBean", Schema: {} } },
       moddas: {},
       deployers: {},
       models: {},
@@ -100,12 +112,7 @@ suite("CapabilitiesMetadata", () => {
     };
 
     const objects = {
-      beans: {
-        "Test/CronBean": {
-          type: createMockType(),
-          node: createClassNode(["CronDefinition"])
-        }
-      },
+      beans: { "Test/CronBean": { type, node: classNode } },
       moddas: {},
       models: {},
       deployers: {},
@@ -114,17 +121,27 @@ suite("CapabilitiesMetadata", () => {
 
     plugin.getMetadata(module, objects);
 
-    expect(module.beans!["Test/CronBean"].Capabilities).toContain("cron");
+    expect(module.beans!["Test/CronBean"].capabilities).toContain("cron");
   });
 
-  test("does not add capabilities for service without known interfaces", () => {
-    const gen = createMockModuleGenerator();
+  test("does not add capabilities for service without @WebdaCapability interfaces", () => {
+    const source = `
+      interface PlainInterface {
+        doWork(): void;
+      }
+      class PlainBean implements PlainInterface {
+        doWork() {}
+      }
+    `;
+    const { checker, classes } = compileSource(source);
+    const gen = createMockModuleGenerator(checker);
     const plugin = new CapabilitiesMetadata(gen);
 
+    const classNode = classes.find(c => c.name?.text === "PlainBean")!;
+    const type = checker.getTypeAtLocation(classNode);
+
     const module: WebdaModule = {
-      beans: {
-        "Test/PlainBean": { Import: "lib/bean:PlainBean", Schema: {} }
-      },
+      beans: { "Test/PlainBean": { Import: "lib/bean:PlainBean", Schema: {} } },
       moddas: {},
       deployers: {},
       models: {},
@@ -132,12 +149,7 @@ suite("CapabilitiesMetadata", () => {
     };
 
     const objects = {
-      beans: {
-        "Test/PlainBean": {
-          type: createMockType(),
-          node: createClassNode([])
-        }
-      },
+      beans: { "Test/PlainBean": { type, node: classNode } },
       moddas: {},
       models: {},
       deployers: {},
@@ -146,50 +158,29 @@ suite("CapabilitiesMetadata", () => {
 
     plugin.getMetadata(module, objects);
 
-    expect(module.beans!["Test/PlainBean"].Capabilities).toBeUndefined();
-  });
-
-  test("detects requestFilter via duck typing (checkRequest method)", () => {
-    const gen = createMockModuleGenerator();
-    const plugin = new CapabilitiesMetadata(gen);
-
-    const module: WebdaModule = {
-      beans: {
-        "Test/DuckBean": { Import: "lib/bean:DuckBean", Schema: {} }
-      },
-      moddas: {},
-      deployers: {},
-      models: {},
-      schemas: {}
-    };
-
-    const objects = {
-      beans: {
-        "Test/DuckBean": {
-          type: createMockType(["checkRequest"]),
-          node: createClassNode([])
-        }
-      },
-      moddas: {},
-      models: {},
-      deployers: {},
-      schemas: {} as any
-    };
-
-    plugin.getMetadata(module, objects);
-
-    expect(module.beans!["Test/DuckBean"].Capabilities).toContain("requestFilter");
+    expect(module.beans!["Test/PlainBean"].capabilities).toBeUndefined();
   });
 
   test("detects capabilities on moddas", () => {
-    const gen = createMockModuleGenerator();
+    const source = `
+      /** @WebdaCapability request-filter */
+      interface RequestFilter {
+        checkRequest(): boolean;
+      }
+      class MyModda implements RequestFilter {
+        checkRequest() { return true; }
+      }
+    `;
+    const { checker, classes } = compileSource(source);
+    const gen = createMockModuleGenerator(checker);
     const plugin = new CapabilitiesMetadata(gen);
+
+    const classNode = classes.find(c => c.name?.text === "MyModda")!;
+    const type = checker.getTypeAtLocation(classNode);
 
     const module: WebdaModule = {
       beans: {},
-      moddas: {
-        "Test/MyModda": { Import: "lib/modda:MyModda", Schema: {} }
-      },
+      moddas: { "Test/MyModda": { Import: "lib/modda:MyModda", Schema: {} } },
       deployers: {},
       models: {},
       schemas: {}
@@ -197,12 +188,7 @@ suite("CapabilitiesMetadata", () => {
 
     const objects = {
       beans: {},
-      moddas: {
-        "Test/MyModda": {
-          type: createMockType(),
-          node: createClassNode(["RequestFilter"])
-        }
-      },
+      moddas: { "Test/MyModda": { type, node: classNode } },
       models: {},
       deployers: {},
       schemas: {} as any
@@ -210,17 +196,33 @@ suite("CapabilitiesMetadata", () => {
 
     plugin.getMetadata(module, objects);
 
-    expect(module.moddas!["Test/MyModda"].Capabilities).toContain("requestFilter");
+    expect(module.moddas!["Test/MyModda"].capabilities).toContain("request-filter");
   });
 
   test("capabilities are sorted", () => {
-    const gen = createMockModuleGenerator();
+    const source = `
+      /** @WebdaCapability request-filter */
+      interface RequestFilter {
+        checkRequest(): boolean;
+      }
+      /** @WebdaCapability cron */
+      interface CronDefinition {
+        schedule(): void;
+      }
+      class MultiBean implements CronDefinition, RequestFilter {
+        schedule() {}
+        checkRequest() { return true; }
+      }
+    `;
+    const { checker, classes } = compileSource(source);
+    const gen = createMockModuleGenerator(checker);
     const plugin = new CapabilitiesMetadata(gen);
 
+    const classNode = classes.find(c => c.name?.text === "MultiBean")!;
+    const type = checker.getTypeAtLocation(classNode);
+
     const module: WebdaModule = {
-      beans: {
-        "Test/MultiBean": { Import: "lib/bean:MultiBean", Schema: {} }
-      },
+      beans: { "Test/MultiBean": { Import: "lib/bean:MultiBean", Schema: {} } },
       moddas: {},
       deployers: {},
       models: {},
@@ -228,12 +230,7 @@ suite("CapabilitiesMetadata", () => {
     };
 
     const objects = {
-      beans: {
-        "Test/MultiBean": {
-          type: createMockType(["checkRequest"]),
-          node: createClassNode(["Deployer", "CronDefinition"])
-        }
-      },
+      beans: { "Test/MultiBean": { type, node: classNode } },
       moddas: {},
       models: {},
       deployers: {},
@@ -242,13 +239,26 @@ suite("CapabilitiesMetadata", () => {
 
     plugin.getMetadata(module, objects);
 
-    const caps = module.beans!["Test/MultiBean"].Capabilities!;
-    expect(caps).toEqual(["cron", "deployer", "requestFilter"]);
+    const caps = module.beans!["Test/MultiBean"].capabilities!;
+    expect(caps).toEqual(["cron", "request-filter"]);
   });
 
   test("skips service not in module section", () => {
-    const gen = createMockModuleGenerator();
+    const source = `
+      /** @WebdaCapability request-filter */
+      interface RequestFilter {
+        checkRequest(): boolean;
+      }
+      class MissingBean implements RequestFilter {
+        checkRequest() { return true; }
+      }
+    `;
+    const { checker, classes } = compileSource(source);
+    const gen = createMockModuleGenerator(checker);
     const plugin = new CapabilitiesMetadata(gen);
+
+    const classNode = classes.find(c => c.name?.text === "MissingBean")!;
+    const type = checker.getTypeAtLocation(classNode);
 
     const module: WebdaModule = {
       beans: {},
@@ -260,10 +270,7 @@ suite("CapabilitiesMetadata", () => {
 
     const objects = {
       beans: {
-        "Test/MissingBean": {
-          type: createMockType(),
-          node: createClassNode(["RequestFilter"])
-        }
+        "Test/MissingBean": { type, node: classNode }
       },
       moddas: {},
       models: {},
@@ -271,7 +278,7 @@ suite("CapabilitiesMetadata", () => {
       schemas: {} as any
     };
 
-    // Should not throw
+    // Should not throw — bean is in objects but not in module
     plugin.getMetadata(module, objects);
     expect(module.beans!["Test/MissingBean"]).toBeUndefined();
   });

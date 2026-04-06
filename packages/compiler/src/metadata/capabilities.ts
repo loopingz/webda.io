@@ -40,6 +40,7 @@ export class CapabilitiesMetadata extends MetadataPlugin {
     for (const section of ["moddas", "beans"] as const) {
       for (const name of Object.keys(objects[section])) {
         const searchResult = objects[section][name];
+        if (!module[section]?.[name]) continue;
         const capabilities = this.extractCapabilities(searchResult.type, typeChecker);
         if (capabilities.length > 0) {
           module[section][name].capabilities = capabilities;

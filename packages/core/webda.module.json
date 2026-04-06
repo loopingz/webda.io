@@ -2261,6 +2261,11 @@
                 "refresh"
               ],
               "type": "object"
+            },
+            "ModelLink<User>": {
+              "additionalProperties": false,
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "object"
             }
           },
           "description": "First basic model for Ident",
@@ -2290,16 +2295,7 @@
               "type": "string"
             },
             "_user": {
-              "allOf": [
-                {
-                  "additionalProperties": false,
-                  "type": "object"
-                },
-                {
-                  "additionalProperties": false,
-                  "type": "object"
-                }
-              ],
+              "$ref": "#/definitions/ModelLink%3CUser%3E",
               "description": "Default owner of the object"
             },
             "_validation": {

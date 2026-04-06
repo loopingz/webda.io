@@ -104,13 +104,16 @@ export class DebugService extends Service {
    *
    * @param port - Port for the debug dashboard API
    * @param servePort - Port for the application HTTP server
+   * @param web - Disable TUI and only serve the web dashboard
    */
   @Command("debug", { description: "Start dev server with debug dashboard", requires: ["router", "rest-domain"] })
   async debug(
     /** @alias p @description Debug dashboard port */
     port: number = 18181,
     /** @alias s @description Application server port */
-    servePort: number = 18080
+    servePort: number = 18080,
+    /** @description Disable TUI and only serve the web dashboard */
+    web?: boolean
   ): Promise<void> {
     // Start the main application server
     const httpServer = useDynamicService<any>("HttpServer");
@@ -122,21 +125,12 @@ export class DebugService extends Service {
     // Start the debug HTTP + WebSocket server
     await this.startDebugServer(port);
     this.log("INFO", `Debug dashboard API listening on port ${port}`);
-  }
 
-  /**
-   * Open the terminal debug dashboard, connecting to an already-running
-   * debug server. Run `webda debug` first in another terminal.
-   *
-   * @param port - Debug server port to connect to
-   */
-  @Command("debug tui", { description: "Open terminal debug dashboard" })
-  async debugTui(
-    /** @alias p @description Debug server port to connect to */
-    port: number = 18181
-  ): Promise<void> {
-    const tui = new DebugTui(port);
-    await tui.start();
+    // Launch TUI by default, unless --web is passed
+    if (!web) {
+      const tui = new DebugTui(port);
+      await tui.start();
+    }
   }
 
   /**

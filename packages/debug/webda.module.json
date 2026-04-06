@@ -31,24 +31,16 @@
               "default": 18080,
               "alias": "s",
               "description": "Application server port"
+            },
+            "web": {
+              "type": "boolean",
+              "description": "Disable TUI and only serve the web dashboard"
             }
           },
           "requires": [
             "router",
             "rest-domain"
           ]
-        },
-        "debug tui": {
-          "description": "Open terminal debug dashboard",
-          "method": "debugTui",
-          "args": {
-            "port": {
-              "type": "number",
-              "default": 18181,
-              "alias": "p",
-              "description": "Debug server port to connect to"
-            }
-          }
         }
       }
     }

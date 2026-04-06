@@ -70,7 +70,11 @@ code, pre, .mono {
 }
 
 .header-title span {
-  color: var(--accent);
+  color: var(--focus-color);
+}
+
+.header {
+  animation: focus-rotate 9s ease-in-out infinite;
 }
 
 .nav-tabs {
@@ -103,8 +107,20 @@ code, pre, .mono {
 }
 
 .nav-tab.active {
-  color: var(--accent);
-  border-bottom-color: var(--yellow);
+  color: var(--focus-color);
+  border-bottom-color: var(--focus-color);
+}
+
+@keyframes focus-rotate {
+  0%, 100% { --focus-color: #f7992c; }
+  33% { --focus-color: #81bf6b; }
+  66% { --focus-color: #4557a4; }
+}
+
+@property --focus-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f7992c;
 }
 
 .ws-indicator {
@@ -230,7 +246,7 @@ tr:hover td {
 
 .list-item.active {
   background: var(--bg-tertiary);
-  color: var(--accent);
+  color: var(--focus-color);
 }
 
 /* JSON tree */
@@ -305,7 +321,7 @@ tr:hover td {
 }
 
 .search-input:focus {
-  border-color: var(--accent);
+  border-color: var(--focus-color);
 }
 
 /* Swagger UI overrides */

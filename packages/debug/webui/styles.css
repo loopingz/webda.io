@@ -41,12 +41,29 @@ code, pre, .mono {
 /* Header / Nav */
 .header {
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
   padding: 0 1.5rem;
   display: flex;
   align-items: center;
   height: 48px;
   flex-shrink: 0;
+  transition: border-color 0.3s, filter 0.3s;
+}
+
+.header.disconnected {
+  border-bottom-color: var(--red);
+  filter: grayscale(0.7);
+}
+
+.header.disconnected .header-title,
+.header.disconnected .header-app-name,
+.header.disconnected .nav-tab {
+  color: var(--text-muted) !important;
+}
+
+.header.disconnected .nav-tab.active {
+  color: var(--text-muted) !important;
+  border-bottom-color: var(--text-muted) !important;
 }
 
 .header-logo {

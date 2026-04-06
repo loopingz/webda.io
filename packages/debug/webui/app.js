@@ -143,7 +143,7 @@ function App() {
   };
 
   return html`
-    <div class="header">
+    <div class="header ${wsConnected ? "" : "disconnected"}">
       <div class="header-logo">
         <img src="/logo.svg" alt="Webda" />
         <div class="header-title">web<span>da</span> debug</div>

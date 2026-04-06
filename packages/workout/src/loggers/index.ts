@@ -1,4 +1,4 @@
-import { WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core.js";
+import { getLogLevelOverride, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core.js";
 
 /**
  * Abstract base class for all loggers
@@ -14,15 +14,22 @@ export abstract class WorkerLogger {
 
   /**
    * Create a new logger instance
+   *
+   * The effective log level is resolved as:
+   * 1. Async-local override from {@link useLogLevel} (if active)
+   * 2. The `level` parameter (string or function)
+   * 3. `process.env.LOG_LEVEL` or `"INFO"` as fallback
+   *
    * @param output - The WorkerOutput to listen to
    * @param level - Log level as string or function (defaults to process.env.LOG_LEVEL or "INFO")
    */
   constructor(output: WorkerOutput, level?: WorkerLogLevel | (() => WorkerLogLevel)) {
-    this.level = level
+    const defaultLevel: () => WorkerLogLevel = level
       ? typeof level === "function"
         ? level
         : () => level
       : () => <any>process.env.LOG_LEVEL || "INFO";
+    this.level = () => getLogLevelOverride() ?? defaultLevel();
     this.listener = msg => {
       this.onMessage(msg);
     };

@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
 import { format } from "util";
 import { randomUUID } from "crypto";
+import { AsyncLocalStorage } from "async_hooks";
 
 /**
  * Common interface for objects that can receive log and progress events
@@ -69,6 +70,30 @@ export function useLogWithContext(level: WorkerLogLevel, context: any, ...args: 
   }
   // We want to capture the caller line, so we use wrapWithStack
   moduleOutput.logWithContext(level, context, ...args);
+}
+
+const logLevelStorage = new AsyncLocalStorage<WorkerLogLevel>();
+
+/**
+ * Return the current async-local log level override, if any.
+ * @returns the overridden log level, or undefined if none is set
+ */
+export function getLogLevelOverride(): WorkerLogLevel | undefined {
+  return logLevelStorage.getStore();
+}
+
+/**
+ * Run a callback with a temporary log level override.
+ *
+ * All loggers that use {@link getLogLevelOverride} in their level function
+ * will respect this override for the duration of the callback.
+ *
+ * @param level - the log level to apply within the callback
+ * @param callback - the function to execute with the overridden log level
+ * @returns the return value of the callback
+ */
+export function useLogLevel<T>(level: WorkerLogLevel, callback: () => T): T {
+  return logLevelStorage.run(level, callback);
 }
 
 /**

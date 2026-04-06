@@ -10,8 +10,9 @@ import { collectServiceCommands, executeServiceCommand } from "../services/servi
 import { Core } from "../core/core.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { CancelablePromise } from "@webda/utils";
-import { ConsoleLogger, useLog, useWorkerOutput } from "@webda/workout";
+import { ConsoleLogger, useLog, useLogLevel, useWorkerOutput } from "@webda/workout";
 import { createInterface } from "node:readline";
+import { createRequire } from "node:module";
 
 /**
  * Operation entry from operations.json
@@ -502,6 +503,102 @@ function loadApplication(appPath: string): Application {
   return new Application(appPath);
 }
 
+/**
+ * Run a service command with file watching: compiles first, then restarts on changes.
+ *
+ * @param appPath - application root path
+ * @param app - the loaded Application instance
+ * @param cmdName - the service command name
+ * @param cmdInfo - the command metadata
+ * @param args - parsed CLI arguments
+ * @param serviceFilter - optional service name filter
+ */
+async function runWithWatch(
+  appPath: string,
+  app: Application,
+  cmdName: string,
+  cmdInfo: import("../services/servicecommands.js").ServiceCommandInfo,
+  args: Record<string, any>,
+  serviceFilter?: string[]
+): Promise<void> {
+  const { Compiler, WebdaProject } = await import("@webda/compiler");
+  const project = new WebdaProject(resolve(appPath), useWorkerOutput());
+
+  let core: Core | undefined;
+  let restarting = false;
+
+  const bootCore = async () => {
+    // Reload application to pick up regenerated webda.module.json
+    await app.load();
+    core = new Core(app);
+    await core.init();
+    const exitCode = await executeServiceCommand(cmdName, cmdInfo, args, core.getServices(), serviceFilter);
+    if (exitCode !== 0) {
+      useLog("ERROR", `Command '${cmdName}' exited with code ${exitCode}`);
+    }
+  };
+
+  const restart = async () => {
+    if (restarting) return;
+    restarting = true;
+    await useLogLevel("INFO", async () => {
+      try {
+        if (core) {
+          useLog("INFO", "Restarting...");
+          await core.stop();
+          core = undefined;
+        }
+        await bootCore();
+      } catch (err) {
+        useLog("ERROR", "Failed to restart", err.message);
+      } finally {
+        restarting = false;
+      }
+    });
+  };
+
+  // Subscribe to compiler events
+  project.on("compiling", () => {
+    useLogLevel("INFO", () => useLog("INFO", "Changes detected, recompiling..."));
+  });
+
+  project.on("compilationError", () => {
+    useLog("ERROR", "Compilation failed, keeping current server running");
+  });
+
+  // On successful compilation + module generation, restart
+  let firstBuild = true;
+  const firstBuildReady = new Promise<void>(resolveReady => {
+    project.on("done", async () => {
+      if (firstBuild) {
+        firstBuild = false;
+        resolveReady();
+      } else {
+        await restart();
+      }
+    });
+  });
+
+  // Start the compiler in watch mode with reduced log verbosity
+  const compiler = new Compiler(project);
+  useLogLevel("WARN", () => compiler.watch(() => {}));
+
+  // Wait for initial compilation before booting
+  await firstBuildReady;
+  await bootCore();
+
+  // Handle SIGINT
+  process.once("SIGINT", async () => {
+    compiler.stopWatch();
+    await Promise.all([...CancelablePromise.promises].map(p => p.cancel()));
+    if (core) await core.stop();
+    process.exit(0);
+  });
+
+  // Keep process alive
+  await new Promise(() => {});
+}
+
 // Main entry point when run directly
 const isMain = isMainModule(import.meta);
 if (isMain) {
@@ -520,9 +617,28 @@ if (isMain) {
       // Track which command was matched so we know whether to boot Core
       let matchedCommand: { type: "operation"; call: OperationCall } | { type: "service"; name: string; args: Record<string, any> } | undefined;
 
+      // Detect if @webda/compiler is available for --watch support
+      let hasCompiler = false;
+      try {
+        createRequire(join(resolve(appPath), "package.json")).resolve("@webda/compiler");
+        hasCompiler = true;
+      } catch {
+        // @webda/compiler not installed
+      }
+
       // Build the CLI with operations (if available) and service commands
       const rawArgv = process.argv.slice(2);
       const cli = yargs(rawArgv).scriptName("webda").usage("$0 <command> [options]");
+
+      // Add --watch flag only if compiler is available
+      if (hasCompiler) {
+        cli.option("watch", {
+          alias: "w",
+          type: "boolean",
+          description: "Watch for changes, recompile and restart (requires @webda/compiler)",
+          default: false
+        });
+      }
 
       // Add service commands (serve, build, etc. from @Command decorators)
       addServiceCommandsToCli(cli, serviceCommands, async (cmdName, args) => {
@@ -584,7 +700,7 @@ if (isMain) {
         await ensureServiceInConfig(app, serviceName);
 
         const core = new Core(app);
-        process.on("SIGINT", async () => {
+        process.once("SIGINT", async () => {
           await Promise.all([...CancelablePromise.promises].map(p => p.cancel()));
           await core.stop();
           process.exit(0);
@@ -649,23 +765,39 @@ if (isMain) {
           }
         }
 
-        const core = new Core(app);
-        process.on("SIGINT", async () => {
-          await Promise.all([...CancelablePromise.promises].map(p => p.cancel()));
-          await core.stop();
-          process.exit(0);
-        });
-        await core.init();
+        // Auto-inject Router if the command needs HTTP routing (e.g. serve)
+        if (matchedCommand.name === "serve") {
+          const hasRouter =
+            Object.values(appConfig.services || {}).some(
+              (cfg: any) => cfg.type === "Webda/Router" || cfg.type === "Router"
+            ) || appConfig.services?.Router;
+          if (!hasRouter) {
+            appConfig.services ??= {};
+            appConfig.services.Router = { type: "Webda/Router" };
+          }
+        }
 
-        const exitCode = await executeServiceCommand(
-          matchedCommand.name,
-          cmdInfo,
-          matchedCommand.args,
-          core.getServices(),
-          serviceFilter
-        );
-        if (exitCode !== 0) {
-          process.exit(exitCode);
+        if (matchedCommand.args.watch && hasCompiler) {
+          await runWithWatch(appPath, app, matchedCommand.name, cmdInfo, matchedCommand.args, serviceFilter);
+        } else {
+          const core = new Core(app);
+          process.once("SIGINT", async () => {
+            await Promise.all([...CancelablePromise.promises].map(p => p.cancel()));
+            await core.stop();
+            process.exit(0);
+          });
+          await core.init();
+
+          const exitCode = await executeServiceCommand(
+            matchedCommand.name,
+            cmdInfo,
+            matchedCommand.args,
+            core.getServices(),
+            serviceFilter
+          );
+          if (exitCode !== 0) {
+            process.exit(exitCode);
+          }
         }
       }
     } catch (err) {

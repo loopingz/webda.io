@@ -15,7 +15,8 @@ import { WebContext } from "../contexts/webcontext.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import type { Storable } from "@webda/models";
 import { templateVariables } from "../templates/templates.js";
-import { useCoreEvents } from "../events/events.js";
+import { emitCoreEvent, useCoreEvents } from "../events/events.js";
+import { useInstanceStorage } from "../core/instancestorage.js";
 
 /** Parameters for the Router service */
 export class RouterParameters extends ServiceParameters {
@@ -64,9 +65,17 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @returns the result
    */
   resolve() {
+    // Register as the instance router
+    useInstanceStorage().router = this;
     // Remap route
     useCoreEvents("Webda.Init", () => {
       this.remapRoutes();
+    });
+    // Listen to incoming requests and route them
+    useCoreEvents("Webda.Request", async ({ context }) => {
+      if (context instanceof WebContext) {
+        await this.execute(context);
+      }
     });
     return super.resolve();
   }
@@ -506,7 +515,45 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @param ctx - the operation context
    */
   async execute(ctx: WebContext<any, any, any>) {
-    const info = this.getRouteFromUrl(ctx, ctx.getHttpContext().getMethod(), ctx.getHttpContext().getUrl());
+    const httpContext = ctx.getHttpContext();
+    const method = httpContext.getMethod();
+    const url = httpContext.getUrl();
+
+    // Handle CORS preflight
+    if (method === "OPTIONS") {
+      const methods = this.getRouteMethodsFromUrl(url);
+      if (methods.length > 0 && (await this.checkCORSRequest(ctx))) {
+        ctx.setHeader("Access-Control-Allow-Methods", methods.join(","));
+        ctx.writeHead(204);
+        return;
+      }
+      emitCoreEvent("Webda.404", { context: ctx });
+      ctx.writeHead(404);
+      return;
+    }
+
+    const info = this.getRouteFromUrl(ctx, method, url);
+    if (!info) {
+      emitCoreEvent("Webda.404", { context: ctx });
+      ctx.writeHead(404);
+      return;
+    }
+
+    // Check request filters (authentication, etc.)
+    if (!(await this.checkRequest(ctx))) {
+      ctx.writeHead(403);
+      return;
+    }
+
+    // Execute the route handler
+    if (typeof info._method === "function") {
+      await info._method(ctx);
+    } else if (info._method && info.executor) {
+      const service = useDynamicService<any>(info.executor);
+      if (service && typeof service[info._method] === "function") {
+        await service[info._method](ctx);
+      }
+    }
   }
 
   /**

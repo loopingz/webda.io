@@ -18,7 +18,7 @@ import type { Storable } from "@webda/models";
 import { templateVariables } from "../templates/templates.js";
 import { emitCoreEvent, useCoreEvents } from "../events/events.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
-import { writeFileSync } from "node:fs";
+import { FileUtils } from "@webda/utils";
 
 /** Parameters for the Router service */
 export class RouterParameters extends ServiceParameters {
@@ -599,7 +599,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     const doc = this.exportOpenAPI(!includeHidden);
     const json = JSON.stringify(doc, undefined, 2);
     if (output) {
-      writeFileSync(output, json);
+      FileUtils.save(doc, output);
       useLog("INFO", `OpenAPI definition written to ${output}`);
     } else {
       console.log(json);

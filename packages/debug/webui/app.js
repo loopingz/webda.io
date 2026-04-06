@@ -128,7 +128,7 @@ function App() {
         <div class="header-title">web<span>da</span> debug</div>
         ${appInfo && html`<div class="header-app-info">
           <div class="header-app-name">${appInfo.package?.name || "unknown"}</div>
-          <div class="header-cwd">${appInfo.workingDirectory}</div>
+          <div class="header-cwd">${(appInfo.workingDirectory || "").replace(/^\/(Users|home)\/[^/]+\//, "~/")}</div>
         </div>`}
       </div>
       <nav class="nav-tabs">

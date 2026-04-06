@@ -54,10 +54,10 @@ export function ServicesPanel({ fetchApi, dataVersion }) {
                   <td class="mono" style="color: var(--text-muted);">${s.type || "-"}</td>
                   <td>${stateBadge(s.state)}</td>
                   <td>
-                    ${(s.capabilities || []).map(
+                    ${Object.keys(s.capabilities || {}).map(
                       (c) => html`<span key=${c} class="badge badge-purple" style="margin-right: 0.25rem;">${c}</span>`
                     )}
-                    ${(!s.capabilities || s.capabilities.length === 0) && html`<span style="color: var(--text-muted);">-</span>`}
+                    ${Object.keys(s.capabilities || {}).length === 0 && html`<span style="color: var(--text-muted);">-</span>`}
                   </td>
                 </tr>
               `

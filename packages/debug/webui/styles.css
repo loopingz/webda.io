@@ -82,6 +82,8 @@ code, pre, .mono {
   gap: 0;
   height: 100%;
   overflow-x: auto;
+  flex: 1;
+  min-width: 0;
 }
 
 .nav-tab {
@@ -100,6 +102,8 @@ code, pre, .mono {
   border-left: none;
   border-right: none;
   font-family: inherit;
+  position: relative;
+  z-index: 1;
 }
 
 .nav-tab:hover {
@@ -125,7 +129,8 @@ code, pre, .mono {
 }
 
 .ws-indicator {
-  margin-left: auto;
+  margin-left: 1rem;
+  flex-shrink: 0;
   font-size: 0.75rem;
   display: flex;
   align-items: center;

@@ -7,7 +7,8 @@ export type WsEvent =
   | { type: "request"; id: string; method: string; url: string; timestamp: number }
   | { type: "result"; id: string; statusCode: number; duration: number }
   | { type: "404"; id: string; method: string; url: string }
-  | { type: "restart" };
+  | { type: "restart" }
+  | { type: "log"; level: string; message: string; timestamp: number };
 
 /**
  * Callback for WebSocket events.
@@ -134,6 +135,24 @@ export class DebugClient {
    */
   async getRequests(): Promise<any[]> {
     return this.fetchJson("/api/requests");
+  }
+
+  /**
+   * Fetch recent application log entries.
+   * @returns array of log entries
+   */
+  async getLogs(): Promise<any[]> {
+    return this.fetchJson("/api/logs");
+  }
+
+  /**
+   * Search application log entries by query string.
+   *
+   * @param query - search text to filter logs
+   * @returns array of matching log entries
+   */
+  async searchLogs(query: string): Promise<any[]> {
+    return this.fetchJson(`/api/logs?q=${encodeURIComponent(query)}`);
   }
 
   /**

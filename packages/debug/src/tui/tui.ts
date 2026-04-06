@@ -6,6 +6,7 @@ import { OperationsPanel } from "./panels/operations.js";
 import { RoutesPanel } from "./panels/routes.js";
 import { ConfigPanel } from "./panels/config.js";
 import { RequestsPanel } from "./panels/requests.js";
+import { LogsPanel } from "./panels/logs.js";
 import type { Panel } from "./panels/panel.js";
 
 const { terminal: term } = termkit;
@@ -13,13 +14,14 @@ const { terminal: term } = termkit;
 /**
  * Terminal UI dashboard for the Webda debug server.
  *
- * Provides a tab-based interface with six panels (Models, Services,
- * Operations, Routes, Config, Requests) and live WebSocket updates.
+ * Provides a tab-based interface with seven panels (Models, Services,
+ * Operations, Routes, Config, Requests, Logs) and live WebSocket updates.
  * Connect to an already-running debug server started with `webda debug`.
  */
 export class DebugTui {
   private client: DebugClient;
   private panels: Panel[] = [];
+  private logsPanel: LogsPanel;
   private activeTab = 0;
   private running = false;
   private renderTimer?: ReturnType<typeof setInterval>;
@@ -33,13 +35,15 @@ export class DebugTui {
    */
   constructor(port: number = 18181) {
     this.client = new DebugClient(`http://localhost:${port}`);
+    this.logsPanel = new LogsPanel(this.client);
     this.panels = [
       new ModelsPanel(this.client),
       new ServicesPanel(this.client),
       new OperationsPanel(this.client),
       new RoutesPanel(this.client),
       new ConfigPanel(this.client),
-      new RequestsPanel(this.client)
+      new RequestsPanel(this.client),
+      this.logsPanel
     ];
   }
 
@@ -60,10 +64,12 @@ export class DebugTui {
     // Connect WebSocket for live events
     this.client.connectWebSocket();
 
-    // Listen for restart events to refetch all data
+    // Listen for WebSocket events: restart triggers refetch, log events go to LogsPanel
     this.wsUnsubscribe = this.client.onEvent(event => {
       if (event.type === "restart") {
         this.refreshAll();
+      } else if (event.type === "log") {
+        this.logsPanel.onWsEvent(event);
       }
     });
 
@@ -109,7 +115,7 @@ export class DebugTui {
     }
 
     // Tab switching with number keys
-    const tabKeys = ["1", "2", "3", "4", "5", "6"];
+    const tabKeys = ["1", "2", "3", "4", "5", "6", "7"];
     const tabIdx = tabKeys.indexOf(key);
     if (tabIdx >= 0 && tabIdx < this.panels.length) {
       this.activeTab = tabIdx;
@@ -217,7 +223,7 @@ export class DebugTui {
     term.dim(`Last refresh: ${this.lastRefresh || "never"}`);
 
     // Right-aligned help
-    const help = " q:Quit  r:Refresh  1-6:Tabs  Arrows:Navigate ";
+    const help = " q:Quit  r:Refresh  1-7:Tabs  Arrows:Navigate ";
     const pos = Math.max(1, width - help.length);
     term.moveTo(pos, height);
     term.dim(help);

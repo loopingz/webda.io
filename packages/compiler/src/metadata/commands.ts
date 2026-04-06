@@ -99,8 +99,9 @@ export class CommandsMetadata extends MetadataPlugin {
     if (!ts.isStringLiteral(firstArg)) return undefined;
     const commandName = firstArg.text;
 
-    // Second arg (optional): options object { description: "..." }
+    // Second arg (optional): options object { description: "...", requires: [...] }
     let description = "";
+    let requires: string[] | undefined;
     if (args.length > 1 && ts.isObjectLiteralExpression(args[1])) {
       for (const prop of args[1].properties) {
         if (
@@ -110,6 +111,14 @@ export class CommandsMetadata extends MetadataPlugin {
           ts.isStringLiteral(prop.initializer)
         ) {
           description = prop.initializer.text;
+        }
+        if (
+          ts.isPropertyAssignment(prop) &&
+          ts.isIdentifier(prop.name) &&
+          prop.name.text === "requires" &&
+          ts.isArrayLiteralExpression(prop.initializer)
+        ) {
+          requires = prop.initializer.elements.filter(ts.isStringLiteral).map(el => el.text);
         }
       }
     }
@@ -129,7 +138,8 @@ export class CommandsMetadata extends MetadataPlugin {
       definition: {
         description,
         method: methodName,
-        args: methodArgs
+        args: methodArgs,
+        requires
       }
     };
   }

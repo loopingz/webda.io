@@ -1044,7 +1044,8 @@ export class ModuleGenerator {
       deployers: JSONUtils.sortObject(objects.deployers, jsOnly),
       moddas: JSONUtils.sortObject(objects.moddas, jsOnly),
       models: this.processModels(objects.models),
-      schemas: {}
+      schemas: {},
+      capabilities: this.compiler.project.packageDescription.webda?.capabilities
     };
     // Dispatch schemas
     objects.schemas.generateSchemas(this, mod);

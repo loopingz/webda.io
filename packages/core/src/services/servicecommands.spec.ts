@@ -1,5 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import { resolveCapabilities } from "../bin/cli.js";
 import { collectServiceCommands, executeServiceCommand } from "./servicecommands.js";
 
 @suite
@@ -333,5 +334,52 @@ class ExecuteServiceCommandTest {
     const result = await executeServiceCommand("test", cmdInfo, { name: "hello" }, services);
     assert.strictEqual(result, 0);
     assert.deepStrictEqual(receivedArgs, ["hello", false]);
+  }
+}
+
+@suite
+class ResolveCapabilitiesTest {
+  @test
+  injectsMissingProviders() {
+    const config = { services: {} as any };
+    const app = {
+      getModules: () => ({
+        capabilities: {
+          router: "Webda/Router",
+          "rest-domain": "Webda/RESTDomainService"
+        }
+      }),
+      getConfiguration: () => config
+    } as any;
+    resolveCapabilities(app, ["router", "rest-domain"]);
+    assert.strictEqual(config.services.Router.type, "Webda/Router");
+    assert.strictEqual(config.services.RESTDomainService.type, "Webda/RESTDomainService");
+  }
+
+  @test
+  skipsAlreadyConfigured() {
+    const config = { services: { MyRouter: { type: "Webda/Router" } } as any };
+    const app = {
+      getModules: () => ({
+        capabilities: { router: "Webda/Router" }
+      }),
+      getConfiguration: () => config
+    } as any;
+    resolveCapabilities(app, ["router"]);
+    // Should not add a second Router entry
+    assert.strictEqual(Object.keys(config.services).length, 1);
+    assert.strictEqual(config.services.MyRouter.type, "Webda/Router");
+  }
+
+  @test
+  warnsOnUnknownCapability() {
+    const config = { services: {} as any };
+    const app = {
+      getModules: () => ({ capabilities: {} }),
+      getConfiguration: () => config
+    } as any;
+    // Should not throw, just warn
+    resolveCapabilities(app, ["unknown-cap"]);
+    assert.deepStrictEqual(config.services, {});
   }
 }

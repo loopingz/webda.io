@@ -74,18 +74,22 @@ code, pre, .mono {
 }
 
 .header-app-info {
-  font-size: 0.75rem;
-  color: var(--text-muted);
   margin-left: 0.75rem;
   padding-left: 0.75rem;
   border-left: 1px solid var(--border);
-  font-family: "SF Mono", "Fira Code", Consolas, monospace;
+  line-height: 1.2;
+}
+
+.header-app-name {
+  font-size: 0.8rem;
+  color: var(--text);
 }
 
 .header-cwd {
+  font-size: 0.65rem;
   color: var(--text-muted);
   opacity: 0.6;
-  margin-left: 0.5rem;
+  font-family: "SF Mono", "Fira Code", Consolas, monospace;
 }
 
 .header {

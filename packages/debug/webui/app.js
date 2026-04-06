@@ -126,7 +126,10 @@ function App() {
       <div class="header-logo">
         <img src="/logo.svg" alt="Webda" />
         <div class="header-title">web<span>da</span> debug</div>
-        ${appInfo && html`<div class="header-app-info">${appInfo.package?.name || "unknown"}@${appInfo.package?.version || "0.0.0"} <span class="header-cwd">${appInfo.workingDirectory}</span></div>`}
+        ${appInfo && html`<div class="header-app-info">
+          <div class="header-app-name">${appInfo.package?.name || "unknown"}</div>
+          <div class="header-cwd">${appInfo.workingDirectory}</div>
+        </div>`}
       </div>
       <nav class="nav-tabs">
         ${TABS.map(

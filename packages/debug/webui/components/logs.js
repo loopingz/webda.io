@@ -1,5 +1,5 @@
 import { h } from "https://esm.sh/preact@10.25.4";
-import { useState, useEffect, useRef } from "https://esm.sh/preact@10.25.4/hooks";
+import { useState, useEffect, useRef, useMemo } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 
 const html = htm.bind(h);
@@ -17,23 +17,36 @@ function formatTime(ts) {
   return new Date(ts).toISOString().substring(11, 23);
 }
 
-export function LogsPanel({ fetchApi, dataVersion }) {
-  const [entries, setEntries] = useState([]);
+export function LogsPanel({ data }) {
+  const [liveEntries, setLiveEntries] = useState([]);
   const [search, setSearch] = useState("");
   const [autoScroll, setAutoScroll] = useState(true);
   const [levelFilter, setLevelFilter] = useState("ALL");
   const listRef = useRef(null);
 
-  useEffect(() => {
-    const url = search ? "/api/logs?q=" + encodeURIComponent(search) : "/api/logs";
-    fetchApi(url).then(setEntries).catch(() => {});
-  }, [dataVersion, search]);
+
+  // Merge cached + live, deduplicate by id
+  const allEntries = useMemo(() => {
+    const seen = new Set();
+    const merged = [];
+    for (const e of liveEntries) {
+      if (!seen.has(e.id)) { seen.add(e.id); merged.push(e); }
+    }
+    for (const e of (data || [])) {
+      if (!seen.has(e.id)) { seen.add(e.id); merged.push(e); }
+    }
+    return merged;
+  }, [data, liveEntries]);
+
+  const entries = search
+    ? allEntries.filter(e => e.message?.toLowerCase().includes(search.toLowerCase()) || e.level?.toLowerCase().includes(search.toLowerCase()))
+    : allEntries;
 
   // Listen for live log events via custom event dispatched from WebSocket handler
   useEffect(() => {
     const handler = (event) => {
       if (event.detail?.type === "log") {
-        setEntries((prev) => [...prev, event.detail].slice(-2000));
+        setLiveEntries((prev) => [event.detail, ...prev].slice(0, 2000));
       }
     };
     window.addEventListener("debug-ws-event", handler);

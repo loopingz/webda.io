@@ -52,13 +52,12 @@ code, pre, .mono {
 
 .header.disconnected {
   border-bottom-color: var(--red);
-  filter: grayscale(0.7);
 }
 
-.header.disconnected .header-title,
-.header.disconnected .header-app-name,
-.header.disconnected .nav-tab {
-  color: var(--text-muted) !important;
+.header.disconnected .header-logo,
+.header.disconnected .nav-tabs {
+  filter: grayscale(1);
+  opacity: 0.5;
 }
 
 .header.disconnected .nav-tab.active {

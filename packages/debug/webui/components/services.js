@@ -1,5 +1,5 @@
 import { h } from "https://esm.sh/preact@10.25.4";
-import { useState, useEffect } from "https://esm.sh/preact@10.25.4/hooks";
+import { useState } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 
 const html = htm.bind(h);
@@ -13,13 +13,9 @@ function stateBadge(state) {
   return html`<span class="badge badge-muted">${state}</span>`;
 }
 
-export function ServicesPanel({ fetchApi, dataVersion }) {
-  const [services, setServices] = useState([]);
+export function ServicesPanel({ data }) {
   const [filter, setFilter] = useState("");
-
-  useEffect(() => {
-    fetchApi("/api/services").then(setServices).catch(() => {});
-  }, [dataVersion]);
+  const services = data || [];
 
   const filtered = services.filter(
     (s) =>

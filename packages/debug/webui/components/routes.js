@@ -1,5 +1,5 @@
 import { h } from "https://esm.sh/preact@10.25.4";
-import { useState, useEffect } from "https://esm.sh/preact@10.25.4/hooks";
+import { useState } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 
 const html = htm.bind(h);
@@ -9,13 +9,9 @@ function methodBadge(method) {
   return html`<span class="badge method-${m.toLowerCase()}" style="margin-right: 0.25rem;">${m}</span>`;
 }
 
-export function RoutesPanel({ fetchApi, dataVersion }) {
-  const [routes, setRoutes] = useState([]);
+export function RoutesPanel({ data }) {
   const [filter, setFilter] = useState("");
-
-  useEffect(() => {
-    fetchApi("/api/routes").then(setRoutes).catch(() => {});
-  }, [dataVersion]);
+  const routes = data || [];
 
   const filtered = routes.filter(
     (r) =>

@@ -1,17 +1,13 @@
 import { h } from "https://esm.sh/preact@10.25.4";
-import { useState, useEffect } from "https://esm.sh/preact@10.25.4/hooks";
+import { useState } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 
 const html = htm.bind(h);
 
-export function OperationsPanel({ fetchApi, dataVersion }) {
-  const [operations, setOperations] = useState([]);
+export function OperationsPanel({ data }) {
   const [filter, setFilter] = useState("");
   const [expanded, setExpanded] = useState(null);
-
-  useEffect(() => {
-    fetchApi("/api/operations").then(setOperations).catch(() => {});
-  }, [dataVersion]);
+  const operations = data || [];
 
   const filtered = operations.filter(
     (o) => (o.id || o.operationId || "").toLowerCase().includes(filter.toLowerCase())

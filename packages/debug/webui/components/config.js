@@ -1,15 +1,11 @@
 import { h } from "https://esm.sh/preact@10.25.4";
-import { useState, useEffect, useCallback } from "https://esm.sh/preact@10.25.4/hooks";
+import { useState, useCallback } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 
 const html = htm.bind(h);
 
-export function ConfigPanel({ fetchApi, dataVersion }) {
-  const [config, setConfig] = useState(null);
-
-  useEffect(() => {
-    fetchApi("/api/config").then(setConfig).catch(() => {});
-  }, [dataVersion]);
+export function ConfigPanel({ data }) {
+  const config = data || null;
 
   if (!config) {
     return html`<div style="color: var(--text-muted); padding: 2rem;">Loading configuration...</div>`;

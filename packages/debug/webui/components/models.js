@@ -1,26 +1,14 @@
 import { h } from "https://esm.sh/preact@10.25.4";
-import { useState, useEffect } from "https://esm.sh/preact@10.25.4/hooks";
+import { useState } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 
 const html = htm.bind(h);
 
-export function ModelsPanel({ fetchApi, dataVersion }) {
-  const [models, setModels] = useState([]);
+export function ModelsPanel({ data }) {
   const [selected, setSelected] = useState(null);
-  const [detail, setDetail] = useState(null);
   const [filter, setFilter] = useState("");
-
-  useEffect(() => {
-    fetchApi("/api/models").then(setModels).catch(() => {});
-  }, [dataVersion]);
-
-  useEffect(() => {
-    if (!selected) {
-      setDetail(null);
-      return;
-    }
-    fetchApi(`/api/models/${encodeURIComponent(selected)}`).then(setDetail).catch(() => {});
-  }, [selected, dataVersion]);
+  const models = data || [];
+  const detail = selected ? models.find((m) => m.id === selected) || null : null;
 
   const filtered = models.filter(
     (m) => (m.id || m.name || "").toLowerCase().includes(filter.toLowerCase())

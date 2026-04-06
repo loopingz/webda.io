@@ -39,12 +39,24 @@ function App() {
   const [wsConnected, setWsConnected] = useState(false);
   const [wsEvents, setWsEvents] = useState([]);
   const [dataVersion, setDataVersion] = useState(0);
-  const [appInfo, setAppInfo] = useState(null);
+  const [cache, setCache] = useState({});
   const wsRef = useRef(null);
   const reconnectTimer = useRef(null);
 
+  // Load all data upfront and on rebuild (restart event)
   useEffect(() => {
-    fetchApi("/api/info").then(setAppInfo).catch(() => {});
+    Promise.all([
+      fetchApi("/api/info").catch(() => null),
+      fetchApi("/api/models").catch(() => []),
+      fetchApi("/api/services").catch(() => []),
+      fetchApi("/api/operations").catch(() => []),
+      fetchApi("/api/routes").catch(() => []),
+      fetchApi("/api/config").catch(() => {}),
+      fetchApi("/api/requests").catch(() => []),
+      fetchApi("/api/logs").catch(() => [])
+    ]).then(([info, models, services, operations, routes, config, requests, logs]) => {
+      setCache({ info, models, services, operations, routes, config, requests, logs });
+    });
   }, [dataVersion]);
 
   useEffect(() => {
@@ -122,19 +134,19 @@ function App() {
   const renderPanel = () => {
     switch (tab) {
       case "models":
-        return html`<${ModelsPanel} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
+        return html`<${ModelsPanel} data=${cache.models} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
       case "services":
-        return html`<${ServicesPanel} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
+        return html`<${ServicesPanel} data=${cache.services} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
       case "operations":
-        return html`<${OperationsPanel} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
+        return html`<${OperationsPanel} data=${cache.operations} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
       case "routes":
-        return html`<${RoutesPanel} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
+        return html`<${RoutesPanel} data=${cache.routes} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
       case "config":
-        return html`<${ConfigPanel} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
+        return html`<${ConfigPanel} data=${cache.config} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
       case "requests":
-        return html`<${RequestsPanel} fetchApi=${fetchApi} dataVersion=${dataVersion} wsEvents=${wsEvents} />`;
+        return html`<${RequestsPanel} data=${cache.requests} fetchApi=${fetchApi} dataVersion=${dataVersion} wsEvents=${wsEvents} />`;
       case "logs":
-        return html`<${LogsPanel} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
+        return html`<${LogsPanel} data=${cache.logs} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
       case "openapi":
         return html`<${OpenAPIPanel} />`;
       default:
@@ -147,9 +159,9 @@ function App() {
       <div class="header-logo">
         <img src="/logo.svg" alt="Webda" />
         <div class="header-title">web<span>da</span> debug</div>
-        ${appInfo && html`<div class="header-app-info">
-          <div class="header-app-name">${appInfo.package?.name || "unknown"}</div>
-          <div class="header-cwd">${(appInfo.workingDirectory || "").replace(/^\/(Users|home)\/[^/]+\//, "~/")}</div>
+        ${cache.info && html`<div class="header-app-info">
+          <div class="header-app-name">${cache.info.package?.name || "unknown"}</div>
+          <div class="header-cwd">${(cache.info.workingDirectory || "").replace(/^\/(Users|home)\/[^/]+\//, "~/")}</div>
         </div>`}
       </div>
       <nav class="nav-tabs">

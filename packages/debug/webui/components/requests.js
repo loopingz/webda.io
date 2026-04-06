@@ -1,5 +1,5 @@
 import { h } from "https://esm.sh/preact@10.25.4";
-import { useState, useEffect, useMemo } from "https://esm.sh/preact@10.25.4/hooks";
+import { useMemo } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 
 const html = htm.bind(h);
@@ -24,12 +24,8 @@ function formatTime(ts) {
   return d.toLocaleTimeString();
 }
 
-export function RequestsPanel({ fetchApi, dataVersion, wsEvents }) {
-  const [historical, setHistorical] = useState([]);
-
-  useEffect(() => {
-    fetchApi("/api/requests").then(setHistorical).catch(() => {});
-  }, [dataVersion]);
+export function RequestsPanel({ data, wsEvents }) {
+  const historical = data || [];
 
   // Merge websocket events with historical data
   // wsEvents are newest-first; historical may be oldest-first or newest-first

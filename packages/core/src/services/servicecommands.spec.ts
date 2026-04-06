@@ -132,6 +132,63 @@ class CollectServiceCommandsTest {
     assert.strictEqual(Object.keys(cmds).length, 1);
     assert.ok(cmds.test);
   }
+
+  @test
+  mergesRequires() {
+    const app = {
+      getModules: () => ({
+        moddas: {
+          "Webda/HttpServer": {
+            commands: {
+              serve: {
+                description: "Start server",
+                method: "serve",
+                args: {},
+                requires: ["router", "rest-domain"]
+              }
+            }
+          },
+          "Webda/Router": {
+            commands: {
+              serve: {
+                description: "Start server",
+                method: "serveRouter",
+                args: {},
+                requires: ["router"]
+              }
+            }
+          }
+        },
+        beans: {},
+        deployers: {}
+      })
+    } as any;
+    const commands = collectServiceCommands(app);
+    assert.deepStrictEqual(commands.serve.requires, ["router", "rest-domain"]);
+  }
+
+  @test
+  defaultsRequiresToEmpty() {
+    const app = {
+      getModules: () => ({
+        moddas: {
+          "Webda/Router": {
+            commands: {
+              openapi: {
+                description: "Export OpenAPI",
+                method: "openapi",
+                args: {}
+              }
+            }
+          }
+        },
+        beans: {},
+        deployers: {}
+      })
+    } as any;
+    const commands = collectServiceCommands(app);
+    assert.deepStrictEqual(commands.openapi.requires, []);
+  }
 }
 
 @suite

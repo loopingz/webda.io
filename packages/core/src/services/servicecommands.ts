@@ -25,6 +25,8 @@ export interface ServiceCommandInfo {
   services: ServiceCommandTarget[];
   /** Merged argument definitions from all services */
   args: { [name: string]: CommandArgDefinition };
+  /** Merged capability requirements from all services declaring this command */
+  requires: string[];
 }
 
 /**
@@ -62,7 +64,8 @@ export function collectServiceCommands(app: Application): { [name: string]: Serv
         commands[cmdName] ??= {
           description: cmdDef.description,
           services: [],
-          args: { ...cmdDef.args }
+          args: { ...cmdDef.args },
+          requires: []
         };
         commands[cmdName].services.push({
           name: typeName,
@@ -72,6 +75,12 @@ export function collectServiceCommands(app: Application): { [name: string]: Serv
         // Merge args from multiple services providing the same command
         for (const [argName, argDef] of Object.entries(cmdDef.args)) {
           commands[cmdName].args[argName] ??= argDef;
+        }
+        // Merge requires (union, no duplicates)
+        for (const req of cmdDef.requires || []) {
+          if (!commands[cmdName].requires.includes(req)) {
+            commands[cmdName].requires.push(req);
+          }
         }
       }
     }

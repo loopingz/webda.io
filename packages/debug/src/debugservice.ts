@@ -1,0 +1,257 @@
+import { Service, ServiceParameters, useDynamicService, useCoreEvents, useRouter } from "@webda/core";
+import { Command } from "@webda/core";
+import { useLog } from "@webda/workout";
+import { createServer, IncomingMessage, ServerResponse, Server } from "node:http";
+import { WebSocketServer, WebSocket } from "ws";
+import { RequestLog } from "./requestlog.js";
+import { getModels, getModel, getServices, getOperations, getRoutes, getConfig } from "./introspection.js";
+
+const log = useLog("DebugService");
+
+/**
+ * Debug dashboard service that provides an HTTP API for introspection
+ * and a WebSocket feed of live request events.
+ *
+ * @WebdaModda
+ */
+export class DebugService extends Service {
+  /** Ring buffer of recent HTTP requests */
+  requestLog: RequestLog = new RequestLog();
+  /** HTTP server for the debug API */
+  private server?: Server;
+  /** WebSocket server for live event push */
+  private wss?: WebSocketServer;
+  /** Connected WebSocket clients */
+  private clients: Set<WebSocket> = new Set();
+  /** Unsubscribe functions for core event listeners */
+  private unsubscribers: (() => void)[] = [];
+  /** Timing map: requestId -> start timestamp */
+  private timings: Map<string, number> = new Map();
+
+  /**
+   * Subscribe to core events to populate the request log.
+   * @returns this for chaining
+   */
+  async resolve(): Promise<this> {
+    await super.resolve();
+    this.subscribeToEvents();
+    return this;
+  }
+
+  /**
+   * Wire up core event listeners for request tracking.
+   */
+  private subscribeToEvents(): void {
+    this.unsubscribers.push(
+      useCoreEvents("Webda.Request", evt => {
+        const id = Math.random().toString(36).substring(2);
+        const ctx = evt.context;
+        ctx.setExtension("debugRequestId", id);
+        const http = ctx.getHttpContext?.();
+        const method = http?.getMethod?.() ?? "UNKNOWN";
+        const url = http?.getUrl?.() ?? "/";
+        this.timings.set(id, Date.now());
+        this.requestLog.startRequest(id, method, url);
+      })
+    );
+
+    this.unsubscribers.push(
+      useCoreEvents("Webda.Result", evt => {
+        const ctx = evt.context;
+        const id = ctx.getExtension<string>("debugRequestId");
+        if (!id) return;
+        const start = this.timings.get(id);
+        const duration = start ? Date.now() - start : 0;
+        this.timings.delete(id);
+        const statusCode = ctx.getResponseCode?.() ?? 200;
+        this.requestLog.completeRequest(id, statusCode, duration);
+      })
+    );
+
+    this.unsubscribers.push(
+      useCoreEvents("Webda.404", evt => {
+        const ctx = evt.context;
+        const id = ctx.getExtension<string>("debugRequestId");
+        if (!id) return;
+        this.timings.delete(id);
+        this.requestLog.markNotFound(id);
+      })
+    );
+
+    // Forward request log events to WebSocket clients
+    this.requestLog.onEvent(event => {
+      this.broadcast(event);
+    });
+  }
+
+  /**
+   * Start the application HTTP server and the debug HTTP+WS server.
+   *
+   * @param port - Port for the debug dashboard API
+   * @param servePort - Port for the application HTTP server
+   */
+  @Command("debug", { description: "Start dev server with debug dashboard", requires: ["router", "rest-domain"] })
+  async debug(
+    /** @alias p @description Debug dashboard port */
+    port: number = 18181,
+    /** @alias s @description Application server port */
+    servePort: number = 18080
+  ): Promise<void> {
+    // Start the main application server
+    const httpServer = useDynamicService<any>("HttpServer");
+    if (httpServer?.serve) {
+      await httpServer.serve(undefined, servePort);
+      log("INFO", `Application server started on port ${servePort}`);
+    }
+
+    // Start the debug HTTP + WebSocket server
+    await this.startDebugServer(port);
+    log("INFO", `Debug dashboard API listening on port ${port}`);
+  }
+
+  /**
+   * Create and start the debug HTTP server with WebSocket support.
+   * @param port - Port to listen on
+   */
+  async startDebugServer(port: number): Promise<void> {
+    this.server = createServer((req, res) => this.handleRequest(req, res));
+    this.wss = new WebSocketServer({ server: this.server });
+
+    this.wss.on("connection", (ws: WebSocket) => {
+      this.clients.add(ws);
+      ws.on("close", () => this.clients.delete(ws));
+      ws.on("error", () => this.clients.delete(ws));
+    });
+
+    await new Promise<void>(resolve => {
+      this.server!.listen(port, () => resolve());
+    });
+  }
+
+  /**
+   * Route incoming HTTP requests to introspection handlers.
+   * @param req - Incoming HTTP request
+   * @param res - Server response
+   */
+  private handleRequest(req: IncomingMessage, res: ServerResponse): void {
+    // CORS headers
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const url = req.url || "/";
+    const pathname = url.split("?")[0];
+
+    try {
+      // Route to handlers
+      if (pathname === "/api/models") {
+        this.sendJson(res, getModels());
+      } else if (pathname.startsWith("/api/models/")) {
+        const id = decodeURIComponent(pathname.slice("/api/models/".length));
+        const model = getModel(id);
+        if (model) {
+          this.sendJson(res, model);
+        } else {
+          this.sendJson(res, { error: "Model not found" }, 404);
+        }
+      } else if (pathname === "/api/services") {
+        this.sendJson(res, getServices());
+      } else if (pathname === "/api/operations") {
+        this.sendJson(res, getOperations());
+      } else if (pathname === "/api/routes") {
+        this.sendJson(res, getRoutes());
+      } else if (pathname === "/api/config") {
+        this.sendJson(res, getConfig());
+      } else if (pathname === "/api/openapi") {
+        this.sendJson(res, this.getOpenAPISpec());
+      } else if (pathname === "/api/requests") {
+        this.sendJson(res, this.requestLog.getEntries());
+      } else {
+        this.sendJson(res, { error: "Not found" }, 404);
+      }
+    } catch (err: any) {
+      log("ERROR", `Debug API error: ${err.message}`);
+      this.sendJson(res, { error: err.message || "Internal server error" }, 500);
+    }
+  }
+
+  /**
+   * Build an OpenAPI spec from the router.
+   * @returns OpenAPI document or a stub if the router is unavailable
+   */
+  private getOpenAPISpec(): Record<string, any> {
+    try {
+      const router = useRouter();
+      const doc: any = {
+        openapi: "3.0.3",
+        info: { title: "Webda Application", version: "1.0.0" },
+        paths: {},
+        tags: []
+      };
+      router.completeOpenAPI(doc);
+      return doc;
+    } catch {
+      return { openapi: "3.0.3", info: { title: "Webda Application", version: "1.0.0" }, paths: {} };
+    }
+  }
+
+  /**
+   * Write a JSON response.
+   * @param res - Server response
+   * @param data - Data to serialize
+   * @param statusCode - HTTP status code
+   */
+  private sendJson(res: ServerResponse, data: unknown, statusCode: number = 200): void {
+    res.writeHead(statusCode, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(data));
+  }
+
+  /**
+   * Broadcast a message to all connected WebSocket clients.
+   * @param data - Data to send (will be JSON-serialized)
+   */
+  broadcast(data: unknown): void {
+    const message = JSON.stringify(data);
+    for (const client of this.clients) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    }
+  }
+
+  /**
+   * Clean up HTTP server and WebSocket connections.
+   */
+  async stop(): Promise<void> {
+    // Unsubscribe from core events
+    for (const unsub of this.unsubscribers) {
+      unsub();
+    }
+    this.unsubscribers = [];
+
+    // Close WebSocket connections
+    for (const client of this.clients) {
+      client.close();
+    }
+    this.clients.clear();
+
+    // Close servers
+    if (this.wss) {
+      this.wss.close();
+      this.wss = undefined;
+    }
+    if (this.server) {
+      await new Promise<void>(resolve => this.server!.close(() => resolve()));
+      this.server = undefined;
+    }
+
+    this.timings.clear();
+    await super.stop();
+  }
+}

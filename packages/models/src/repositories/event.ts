@@ -29,7 +29,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
 
   /**
    * Increment numeric attributes with event emission
-   * @inheritdoc
+   * @override
    */
   async incrementAttributes<
     K extends PropertyPaths<InstanceType<T>>,
@@ -56,9 +56,9 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   }
 
   /**
-   *
-   * @param query The query to execute
-   * @returns
+   * Query with event emission
+   * @param query - the query to execute
+   * @returns the query results with optional continuation token
    */
   async query(query: string): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
     await this.emit("Query", { query } as any);
@@ -69,8 +69,8 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
 
   /**
    * Iterate through all objects
-   * @param query
-   * @returns
+   * @param query - the query filter
+   * @returns an async generator of objects
    */
   iterate(query: string): AsyncGenerator<InstanceType<T>, any, any> {
     return this.repository.iterate(query);
@@ -127,7 +127,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
 
   /**
    * Upsert item to collection with event emission
-   * @inheritdoc
+   * @override
    */
   async upsertItemToCollection<
     K extends Extract<PropertyPaths<InstanceType<T>, any[]>, keyof InstanceType<T>>,
@@ -177,7 +177,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   }
   /**
    * Remove attribute with event emission
-   * @inheritdoc
+   * @override
    */
   async removeAttribute<
     L extends PropertyPaths<InstanceType<T>>,
@@ -210,14 +210,14 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       }
     } as any);
   }
-  /** @inheritdoc */
+  /** @override */
   async get(primaryKey: PrimaryKeyType<InstanceType<T>>): Promise<Helpers<InstanceType<T>>> {
     const res = await this.repository.get(primaryKey);
     return res;
   }
   /**
    * Create with event emission (emits Create before and Created after)
-   * @inheritdoc
+   * @override
    */
   async create(data: Helpers<InstanceType<T>>, save?: boolean): Promise<InstanceType<T>> {
     await this.emit("Create", { object_id: this.getPrimaryKey(data), object: data } as any);
@@ -227,7 +227,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   }
   /**
    * Patch with event emission (emits Patch before and Patched after)
-   * @inheritdoc
+   * @override
    */
   async patch<K extends PropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
@@ -241,7 +241,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   }
   /**
    * Update with event emission (emits Update before and Updated after)
-   * @inheritdoc
+   * @override
    */
   async update<K extends PropertyPaths<InstanceType<T>>>(
     data: Helpers<InstanceType<T>>,
@@ -254,7 +254,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   }
   /**
    * Delete with event emission (emits Delete before and Deleted after)
-   * @inheritdoc
+   * @override
    */
   async delete<K extends PropertyPaths<InstanceType<T>>>(
     uuid: PrimaryKeyType<InstanceType<T>>,
@@ -265,7 +265,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     await this.repository.delete(uuid, conditionField, condition);
     await this.emit("Deleted", { object_id: uuid } as any);
   }
-  /** @inheritdoc */
+  /** @override */
   async exists(uuid: PrimaryKeyType<InstanceType<T>>): Promise<boolean> {
     const res = await this.repository.exists(uuid);
     return res;

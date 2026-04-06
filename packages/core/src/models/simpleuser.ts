@@ -9,6 +9,9 @@ import { User } from "./user.js";
  * models
  */
 export class SimpleUser extends User {
+  /** Create a new SimpleUser
+   * @param data - initial data
+   */
   constructor(data?: Settable<SimpleUser>) {
     super(data);
   }
@@ -26,7 +29,7 @@ export class SimpleUser extends User {
   _idents: ModelRelated<Ident, User, "_user">;
   /**
    * Return idents
-   * @returns
+   * @returns the result
    */
   getIdents() {
     return this._idents as any;
@@ -34,8 +37,8 @@ export class SimpleUser extends User {
 
   /**
    * Add a group for the user
-   * @param group
-   * @returns
+   * @param group - the group name
+   * @returns the result
    */
   addGroup(group: string) {
     if (this.inGroup(group)) {
@@ -46,8 +49,8 @@ export class SimpleUser extends User {
 
   /**
    *
-   * @param group
-   * @returns
+   * @param group - the group name
+   * @returns true if the condition is met
    */
   inGroup(group: string): boolean {
     if (group === "all" || group === this.uuid) {
@@ -56,6 +59,10 @@ export class SimpleUser extends User {
     return this._groups.includes(group);
   }
 
+  /**
+   * Remove a group from this user
+   * @param group - the group name
+   */
   removeGroup(group: string) {
     const ind = this._groups.indexOf(group);
     if (ind < 0) {
@@ -64,14 +71,26 @@ export class SimpleUser extends User {
     this._groups.splice(ind, 1);
   }
 
+  /**
+   * Get all groups this user belongs to
+   * @returns the list of results
+   */
   getGroups(): string[] {
     return this._groups;
   }
 
+  /**
+   * Get all roles assigned to this user
+   * @returns the list of results
+   */
   getRoles(): string[] {
     return this._roles;
   }
 
+  /**
+   * Add a role to this user if not already present
+   * @param role - the role
+   */
   addRole(role: string) {
     if (this.hasRole(role)) {
       return;
@@ -79,10 +98,19 @@ export class SimpleUser extends User {
     this._roles.push(role);
   }
 
+  /**
+   * Check if this user has the given role
+   * @param role - the role
+   * @returns the result
+   */
   hasRole(role: string) {
     return this._roles.indexOf(role) >= 0;
   }
 
+  /**
+   * Remove a role from this user
+   * @param role - the role
+   */
   removeRole(role: string) {
     const ind = this._roles.indexOf(role);
     if (ind < 0) {

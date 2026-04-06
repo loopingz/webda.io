@@ -30,8 +30,16 @@ export abstract class Diagram {
   content: string;
   file: string;
 
+  /** Create a new Diagram.
+   * @param name - the diagram name
+   */
   constructor(protected name: string) {}
 
+  /**
+   * Update the diagram section in the given file using live Webda core metadata
+   * @param file - target file path
+   * @param webda - running Webda core instance
+   */
   update(file: string, webda: Core) {
     this.file = file;
     if (existsSync(file)) {
@@ -57,10 +65,16 @@ export abstract class Diagram {
  * Export each CoreModel and their Store
  */
 export class StorageDiagram extends Diagram {
+  /** Create a new StorageDiagram. */
   constructor() {
     super("StorageDiagram");
   }
 
+  /**
+   * Generate a Mermaid flowchart showing models grouped by their backing Store
+   * @param webda - running Webda core instance
+   * @returns the Mermaid diagram string
+   */
   generate(webda: Core): string {
     let diagram = "```mermaid\nflowchart BT\n";
     const tree = webda.getApplication().getModelHierarchy("CoreModel");
@@ -91,10 +105,16 @@ export class StorageDiagram extends Diagram {
  * Export each CoreModel, their properties and actions
  */
 export class ModelDiagram extends Diagram {
+  /** Create a new ModelDiagram. */
   constructor() {
     super("ClassDiagram");
   }
 
+  /**
+   * Generate a Mermaid class body with properties and actions from a JSON schema
+   * @param schema - the model JSON schema
+   * @returns the Mermaid class body string
+   */
   generateClassDefinition(
     schema: JSONSchema7,
     actions: {
@@ -124,6 +144,11 @@ export class ModelDiagram extends Diagram {
     return definition;
   }
 
+  /**
+   * Generate a Mermaid class diagram with properties and actions for each model
+   * @param webda - running Webda core instance
+   * @returns the Mermaid diagram string
+   */
   generate(webda: Core<CoreEvents>): string {
     const models = webda.getApplication().getModels();
     let diagram = "```mermaid\nclassDiagram\n";
@@ -143,10 +168,16 @@ export class ModelDiagram extends Diagram {
  * So dynamic dependencies are not detected
  */
 export class ServiceDiagram extends Diagram {
+  /** Create a new ServiceDiagram. */
   constructor() {
     super("ServiceDiagram");
   }
 
+  /**
+   * Generate a Mermaid flowchart showing service-to-service dependencies
+   * @param webda - running Webda core instance
+   * @returns the Mermaid diagram string
+   */
   generate(webda: Core<CoreEvents>): string {
     const services = Object.values(webda.getServices()).filter(service => service.getName);
     let diagram = "```mermaid\nflowchart TD\n";

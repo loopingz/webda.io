@@ -2,20 +2,31 @@ import { ResourceAcl, Operation as Action, OperationContext, Store } from "@webd
 import type { Company } from "./company";
 import { Model, ModelParent, WEBDA_PRIMARY_KEY } from "@webda/models";
 
+/** Base model providing proxy and authorization stubs for the sample app. */
 abstract class CoreModel extends Model {
   /**
    * Injected by Webda framework
-   * @param key
-   * @returns
    */
   // static $(key: string): ModelRefWithCreate<any> {
   //   return undefined;
   // }
 
+  /**
+   * Return a proxy wrapper for this model (identity by default).
+   *
+   * @returns the proxy
+   */
   toProxy(): any {
     return this;
   }
 
+  /**
+   * Check whether the given action is permitted (always returns true).
+   *
+   * @param action - the action to check
+   * @param context - optional context
+   * @returns true
+   */
   async canAct(action: string, context?: any): Promise<boolean> {
     return true;
   }
@@ -53,6 +64,9 @@ export class Project extends AbstractProject<TestDoc2> implements Test, TestDoc2
   n: number;
   test2: string;
   test: Date;
+  /** Create a new Project.
+   * @param myparam - optional parameter
+   */
   constructor(private myparam?: string) {
     super();
   }
@@ -70,12 +84,23 @@ export class Project extends AbstractProject<TestDoc2> implements Test, TestDoc2
     n: number;
   };
 
+  /**
+   * Abstract method implementation returning null (test stub).
+   *
+   * @returns null
+   */
   protected method1(): Store {
     return null;
   }
 
+  /** Private no-op method for testing visibility handling. */
   private method2(): void {}
 
+  /**
+   * Return a hardcoded test object.
+   *
+   * @returns a test object
+   */
   public method3(): { test: string; n: number } {
     return {
       test: "plop",
@@ -83,11 +108,17 @@ export class Project extends AbstractProject<TestDoc2> implements Test, TestDoc2
     };
   }
 
+  /**
+   * Return a union-typed value for testing schema generation.
+   *
+   * @returns a union-typed value
+   */
   union(): string | CoreModel | number {
     return 1;
   }
 }
 
+/** Subclass of Project with no additional fields, used for inheritance testing. */
 export class SubProject extends Project {}
 
 /**
@@ -105,8 +136,14 @@ class SubSubProject2 extends AnotherSubProject<Test, TestDoc2[]> {}
  */
 export class SubSubProject3 extends AnotherSubProject<Test, TestDoc2[]> {}
 
+/** Concrete sub-sub-project with custom actions for testing action exposure. */
 export class SubSubProject extends AnotherSubProject<Test, TestDoc2[]> {
   attribute1: string;
+  /**
+   * Sample action taking a string parameter.
+   *
+   * @param param - the action parameter
+   */
   @Action()
   action(
     /**
@@ -115,12 +152,27 @@ export class SubSubProject extends AnotherSubProject<Test, TestDoc2[]> {
     param: string
   ) {}
 
+  /**
+   * Action accepting a partial project payload.
+   *
+   * @param project - partial project data
+   */
   @Action()
   action2(project: Partial<Project>) {}
 
+  /**
+   * Action accepting a full project payload.
+   *
+   * @param project - project data
+   */
   @Action()
   action3(project: Project) {}
 
+  /**
+   * Action accepting a string argument.
+   *
+   * @param toto - string argument
+   */
   @Action()
   action4(toto: string) {}
 }

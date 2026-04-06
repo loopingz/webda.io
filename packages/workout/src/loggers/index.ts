@@ -38,6 +38,8 @@ export abstract class WorkerLogger {
 
   /**
    * Stop listening to messages (alias for close())
+   *
+   * @returns the result of close()
    */
   stop() {
     return this.close();

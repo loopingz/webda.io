@@ -61,6 +61,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
 
   /**
    * Get current http context
+   * @returns the result
    */
   public getHttpContext(): HttpContext {
     return this.getExtension<HttpContext>("http");
@@ -104,6 +105,9 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    *
    * @param output If it is an object it will be serializeb with toPublicJSON, if it is a String it will be appended to the result, if it is a buffer it will replace the result
    * @param ...args any arguments to pass to the toPublicJSON method
+   * @param encoding - the encoding to use
+   * @param cb - the callback function
+   * @returns true if the condition is met
    */
   // @ts-ignore
   public write(output: U, encoding?: string, cb?: (error: Error) => void): boolean {
@@ -122,6 +126,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    *
    * @param {Number} statusCode to return to the client
    * @param {Object} headers to add to the response
+   * @returns this for chaining
    */
   writeHead(statusCode: number, headers: http.OutgoingHttpHeaders = undefined): this {
     Object.entries(headers || {}).forEach(([key, value]) => {
@@ -135,7 +140,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
 
   /**
    *
-   * @returns
+   * @returns the result
    */
   getResponseCode() {
     return this.statusCode || 200;
@@ -143,13 +148,16 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
 
   /**
    * Redirect to another url
-   * @param url
+   * @param url - the URL
    */
   redirect(url: string) {
     this.writeHead(302, { Location: url });
   }
   /**
    * For compatibility reason
+   * @param param - the parameter name
+   * @param value - the value to set
+   * @param options - the options
    */
   cookie(param, value, options = undefined) {
     /** @ignore */
@@ -159,10 +167,18 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
     this._cookie[param] = { name: param, value, options };
   }
 
+  /**
+   * Get all cookies set on the response
+   * @returns the result map
+   */
   getResponseCookies(): Map<string, Cookie> {
     return this._cookie;
   }
 
+  /**
+   * Whether the response has been ended
+   * @returns the result
+   */
   isEnded() {
     return this._ended;
   }
@@ -176,6 +192,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
   /**
    * Express response allow statusCode to be defined this way
    * @param code to return
+   * @returns this for chaining
    */
   public status(code: number): this {
     this.statusCode = code;
@@ -185,6 +202,8 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
   /**
    * Express response allow answer to be sent this way
    * @param code to return
+   * @param obj - the target object
+   * @returns this for chaining
    */
   public json(obj: any): this {
     this.write(obj);
@@ -193,7 +212,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
 
   /**
    * Return the response size
-   * @returns
+   * @returns the result
    */
   getResponseSize(): number | undefined {
     return this._body ? Buffer.byteLength(this._body, "utf8") : undefined;
@@ -204,6 +223,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    *
    * @emits 'finish' event
    * @throws Error if the request was already ended
+   * @returns the result
    */
   async end() {
     /** @ignore */
@@ -226,8 +246,8 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
 
   /**
    * Alias to keep compatibility with WebContext
-   * @param sanitizedOptions
-   * @returns
+   * @param sanitizedOptions - the sanitized options
+   * @returns the result
    */
   async getRequestBody(
     sanitizedOptions: any = {
@@ -240,7 +260,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
 
   /**
    * Get request body
-   * @returns
+   * @returns the result
    */
   getResponseBody() {
     if (!this._body && this._stream instanceof WritableStreamBuffer) {
@@ -253,7 +273,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    * Retrieve a http.IncomingMessage valid from Context
    *
    * Need more testing
-   * @returns
+   * @returns the result
    */
   getRequest(): http.IncomingMessage {
     const stream = Readable.from([JSON.stringify(this.getRequestBody())]);
@@ -279,6 +299,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
 
   /**
    * Get the request locale if found
+   * @returns the result
    */
   getLocale() {
     const locales = useCore().getLocales();
@@ -292,7 +313,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
 
   /**
    * Return true if Headers got flushed already
-   * @returns
+   * @returns the result
    */
   hasFlushedHeaders() {
     return this.headersFlushed;
@@ -300,7 +321,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
 
   /**
    * Set flushed header status
-   * @param status
+   * @param status - the HTTP status code
    */
   setFlushedHeaders(status: boolean = true) {
     this.headersFlushed = status;
@@ -327,6 +348,11 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
     this.headers = new Map();
   }
 
+  /**
+   * Initialize the web context, loading session and setting up stream listeners
+   * @param force - whether to force the operation
+   * @returns this for chaining
+   */
   async init(force: boolean = false): Promise<this> {
     if (this._init && !force) {
       return this._init;

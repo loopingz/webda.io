@@ -19,6 +19,7 @@ import { registerOperation } from "../core/operations.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
 
+/** Parameters for DomainService, controlling model exposure, URL naming, and query methods */
 export class DomainServiceParameters extends ServiceParameters {
   /**
    * Expose objects as operations too
@@ -53,6 +54,11 @@ export class DomainServiceParameters extends ServiceParameters {
    */
   private excludedModels: string[];
 
+  /**
+   * Load parameters with defaults for operations, naming, and query method
+   * @param params - the service parameters
+   * @returns this for chaining
+   */
   load(params: any = {}): this {
     super.load(params);
     // Init default here
@@ -70,8 +76,8 @@ export class DomainServiceParameters extends ServiceParameters {
 
   /**
    * Is a model is included in the service
-   * @param model
-   * @returns
+   * @param model - the model to use
+   * @returns the result
    */
   isIncluded(model: string) {
     return !this.isExcluded(model) && (this.models.includes("*") || this.models.includes(model));
@@ -79,8 +85,8 @@ export class DomainServiceParameters extends ServiceParameters {
 
   /**
    * Is a model excluded from the service
-   * @param model
-   * @returns
+   * @param model - the model to use
+   * @returns the result
    */
   isExcluded(model: string) {
     return this.excludedModels.includes(model);
@@ -203,8 +209,8 @@ export abstract class DomainService<
 
   /**
    * Return the model name for this service
-   * @param name
-   * @returns
+   * @param name - the name to use
+   * @returns the result string
    *
    * @see https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go
    */
@@ -223,11 +229,11 @@ export abstract class DomainService<
 
   /**
    * Explore the models
-   * @param model
-   * @param name
-   * @param depth
-   * @param modelContext
-   * @returns
+   * @param model - the model to use
+   * @param name - the name to use
+   * @param depth - the depth level
+   * @param modelContext - the model context
+   * @returns the result
    */
   walkModel(model: ModelClass, name?: string, depth: number = 0, modelContext: any = {}) {
     const { Identifier: identifier, Relations: relations, Plural: plural } = useModelMetadata(model);
@@ -259,6 +265,7 @@ export abstract class DomainService<
 
   /**
    * Your service is now created as all the other services
+   * @returns this for chaining
    */
   resolve(): this {
     super.resolve();
@@ -271,6 +278,10 @@ export abstract class DomainService<
     return this;
   }
 
+  /**
+   * Get all top-level models (those without a parent relation) to expose as REST roots
+   * @returns the result
+   */
   getRootExposedModels() {
     // By default any models that have no parent
     return Object.values(this.app.getModels()).filter(m => m?.Metadata && !m.Metadata.Relations.parent);
@@ -278,8 +289,10 @@ export abstract class DomainService<
 
   /**
    *
-   * @param model
-   * @param uuid
+   * @param model - the model to use
+   * @param uuid - the unique identifier
+   * @param context - the execution context
+   * @returns the result
    */
   private async getModel(context: OperationContext): Promise<Model> {
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
@@ -297,7 +310,7 @@ export abstract class DomainService<
 
   /**
    * Create a model operation implementation
-   * @param context
+   * @param context - the execution context
    */
   async modelCreate(context: OperationContext) {
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
@@ -319,7 +332,7 @@ export abstract class DomainService<
 
   /**
    * Update a model operation implementation
-   * @param context
+   * @param context - the execution context
    */
   async modelUpdate(context: OperationContext) {
     const object = await this.getModel(context);
@@ -332,7 +345,7 @@ export abstract class DomainService<
 
   /**
    * Get a model operation implementation
-   * @param context
+   * @param context - the execution context
    */
   async modelGet(context: OperationContext) {
     const object = await this.getModel(context);
@@ -342,7 +355,7 @@ export abstract class DomainService<
 
   /**
    * Delete a model operation implementation
-   * @param context
+   * @param context - the execution context
    */
   async modelDelete(context: OperationContext) {
     const object = await this.getModel(context);
@@ -356,7 +369,7 @@ export abstract class DomainService<
 
   /**
    * Query models
-   * @param context
+   * @param context - the execution context
    */
   async modelQuery(context: OperationContext) {
     const { model } = context.getExtension<{ model: ModelClass }>("operationContext");
@@ -376,7 +389,7 @@ export abstract class DomainService<
 
   /**
    * Patch a model
-   * @param context
+   * @param context - the execution context
    */
   async modelPatch(context: OperationContext) {
     const object = await this.getModel(context);
@@ -388,7 +401,7 @@ export abstract class DomainService<
 
   /**
    * Action on a model
-   * @param context
+   * @param context - the execution context
    */
   async modelAction(context: OperationContext) {
     const { model, action } = context.getExtension<{
@@ -410,7 +423,7 @@ export abstract class DomainService<
 
   /**
    * Add operations for all exposed models
-   * @returns
+   * @returns the result
    */
   initOperations(): void {
     super.initOperations();
@@ -537,6 +550,12 @@ export abstract class DomainService<
     }
   }
 
+  /**
+   * Register upload, download, delete, and metadata operations for binary attributes
+   * @param model - the model to use
+   * @param Metadata - the model metadata
+   * @param name - the name to use
+   */
   addBinaryOperations(model: ModelClass<Model>, Metadata: any, name: string) {
     (Metadata.Relations.binaries || []).forEach(binary => {
       const webda = useCore();
@@ -601,7 +620,7 @@ export abstract class DomainService<
 
   /**
    * Implement the binary challenge operation
-   * @param context
+   * @param context - the execution context
    */
   async binaryChallenge(context: OperationContext<BinaryFileInfo & { hash: string; challenge: string }>) {
     const body = await context.getInput();
@@ -630,9 +649,9 @@ export abstract class DomainService<
 
   /**
    *
-   * @param property
-   * @param hash
-   * @returns
+   * @param property - the property name
+   * @param hash - the hash value
+   * @returns true if the condition is met
    */
   protected checkBinaryAlreadyLinked(property: BinaryMap | BinaryMap[], hash: string): boolean {
     if (Array.isArray(property)) {
@@ -643,7 +662,7 @@ export abstract class DomainService<
 
   /**
    * Set the binary content
-   * @param context
+   * @param context - the execution context
    */
   async binaryPut(context: OperationContext) {
     const { model, binaryStore, binary } = context.getExtension<{
@@ -667,7 +686,7 @@ export abstract class DomainService<
 
   /**
    * Get the binary content
-   * @param context
+   * @param context - the execution context
    */
   async binaryGet(context: OperationContext) {
     const { model, returnUrl, binaryStore, binary } = context.getExtension<{
@@ -723,6 +742,10 @@ export abstract class DomainService<
     }
   }
 
+  /**
+   * Execute a binary operation (create, delete, or metadata update) on a model's binary attribute
+   * @param context - the execution context
+   */
   async binaryAction(context: OperationContext) {
     const { model, binaryStore, binary, action } = context.getExtension<{
       binaryStore: BinaryService;
@@ -771,6 +794,8 @@ export abstract class DomainService<
 export class ModelsOperationsService<T extends DomainServiceParameters> extends DomainService<T> {
   /**
    * Default domain
+   * @param params - the service parameters
+   * @returns the result
    */
   loadParameters(params: DeepPartial<DomainServiceParameters>): T {
     return <T>new DomainServiceParameters().load(params);
@@ -778,6 +803,10 @@ export class ModelsOperationsService<T extends DomainServiceParameters> extends 
 
   /**
    * Do nothing here
+   * @param model - the model to use
+   * @param name - the name to use
+   * @param context - the execution context
+   * @returns true if the condition is met
    */
   handleModel(model: ModelClass, name: string, context: any): boolean {
     return true;

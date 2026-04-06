@@ -111,13 +111,13 @@ export interface GenerateSchemaOptions {
   transformer?: (options: SchemaPropertyArguments) => SchemaPropertyArguments;
 }
 
+/* c8 ignore next 7 -- trivial utility; exercised indirectly by schema generation */
 /**
  * Check whether a TypeScript type's symbol carries the `Optional` flag.
  *
  * @param type - The type to inspect
  * @returns `true` when the underlying symbol is marked optional
  */
-/* c8 ignore next 4 -- trivial utility; exercised indirectly by schema generation */
 export function isOptional(type: ts.Type): boolean {
   const symbol = type.getSymbol();
   return !!symbol && (symbol.getFlags() & ts.SymbolFlags.Optional) !== 0;
@@ -271,6 +271,8 @@ export class SchemaGenerator {
   /**
    * Merge per-call options with the constructor-level defaults and store
    * the result in {@link currentOptions}.
+   *
+   * @param opts - per-call option overrides
    */
   private setOptions(opts: Partial<SchemaGenerator["currentOptions"]>) {
     const merged = {
@@ -281,7 +283,11 @@ export class SchemaGenerator {
     this.currentOptions = merged;
   }
 
-  /** Emit a diagnostic message via the configured log callback (no-op when absent). */
+  /**
+   * Emit a diagnostic message via the configured log callback (no-op when absent).
+   *
+   * @param args - log arguments
+   */
   private log(...args: any[]): void {
     this.currentOptions.log?.(...args);
   }
@@ -303,12 +309,20 @@ export class SchemaGenerator {
   /**
    * Return the value type of a string index signature (`{ [key: string]: T }`),
    * or `undefined` if the type does not have one.
+   *
+   * @param type - the TypeScript type to inspect
+   * @returns the index value type or undefined
    */
   private hasStringIndex(type: ts.Type): ts.Type | undefined {
     return this.checker.getIndexTypeOfType(type, ts.IndexKind.String) || undefined;
   }
 
-  /** Return `true` when the type is an anonymous object literal type. */
+  /**
+   * Return `true` when the type is an anonymous object literal type.
+   *
+   * @param type - the TypeScript type to inspect
+   * @returns true if the type is anonymous
+   */
   private isAnonymousObject(type: ts.Type): boolean {
     const anyT = type as any;
     return !!(anyT.flags & ts.TypeFlags.Object) && !!(anyT.objectFlags & ts.ObjectFlags.Anonymous);
@@ -321,6 +335,7 @@ export class SchemaGenerator {
    *
    * @param decl - The property declaration node (may be `undefined` for synthesised properties)
    * @param sym - The property symbol
+   * @returns true if the key is a Symbol
    */
   private isSymbolKey(decl: ts.Declaration | undefined, sym: ts.Symbol): boolean {
     let isSymbol = false;
@@ -348,6 +363,7 @@ export class SchemaGenerator {
    *
    * @param rawKey - The raw type string
    * @param path - The current schema path used as a fallback key
+   * @returns the normalized definition key
    */
   private normalizeDefinitionKey(rawKey: string, path: string): string {
     if (rawKey.startsWith("{") || rawKey.endsWith('">')) {
@@ -501,6 +517,8 @@ export class SchemaGenerator {
    *
    * Useful when callers need to query the type-checker or source files
    * outside of schema generation.
+   *
+   * @returns the TypeScript program
    */
   getProgram(): ts.Program {
     return this.program;
@@ -550,6 +568,11 @@ export class SchemaGenerator {
     const parsed = ts.parseJsonConfigFileContent(configFile.config, parseConfigHost, sys.getCurrentDirectory());
     const files = new Map<string, { version: number; text: string }>();
 
+    /**
+     * Register a source file in the in-memory file map if not already present.
+     *
+     * @param fileName - the file path to register
+     */
     function ensureFile(fileName: string) {
       if (!files.has(fileName)) {
         const text = sys.readFile(fileName) || "";
@@ -588,6 +611,7 @@ export class SchemaGenerator {
    *
    * @param tupleType - The tuple type reference
    * @param index - Zero-based element index
+   * @returns true if the element is optional
    */
   isOptionalTupleElement(tupleType: ts.Type, index: number): boolean {
     // TupleTypeReference so we can access typeArguments & target
@@ -705,6 +729,7 @@ export class SchemaGenerator {
    * @param type - The TypeScript type to inspect
    * @param methodNames - Method names to check in order (first match wins)
    * @param resolveNode - Node used for symbol resolution context
+   * @returns the return type or undefined
    */
   private resolveMethodReturnType(type: ts.Type, methodNames: string[], resolveNode: ts.Node): ts.Type | undefined {
     for (const name of methodNames) {
@@ -731,6 +756,7 @@ export class SchemaGenerator {
    *
    * @param type - The TypeScript type to inspect
    * @param resolveNode - Node used for symbol resolution context
+   * @returns the parameter type, "skip", or undefined
    */
   private resolveFromDto(type: ts.Type, resolveNode: ts.Node): ts.Type | "skip" | undefined {
     const methodNames = ["fromDTO", "fromDto"];
@@ -810,6 +836,17 @@ export class SchemaGenerator {
     return type;
   }
 
+  /**
+   * Process a class or interface type into a JSON Schema definition, resolving properties and inheritance.
+   *
+   * @param type - the TypeScript type
+   * @param definition - mutable schema to populate
+   * @param path - current schema path
+   * @param propTypeString - human-readable type string
+   * @param node - optional AST node for resolution context
+   * @param depth - current recursion depth
+   * @returns "resolved", "skip", or false
+   */
   processClassOrInterface(
     type: ts.Type,
     definition: JSONSchema7,
@@ -923,6 +960,8 @@ export class SchemaGenerator {
    *
    * @param definition - The mutable schema to populate
    * @param ctx - Context with the TypeScript type and schema path
+   * @param ctx.type - the TypeScript type
+   * @param ctx.path - the schema path
    */
   defineBufferMapping(definition: JSONSchema7, ctx: { type: ts.Type; path: string }) {
     if (this.options.mapBuffer) {
@@ -968,6 +1007,7 @@ export class SchemaGenerator {
    * unrecognised expressions.
    *
    * @param expr - The initializer expression to inspect
+   * @returns the type name and constant value, or undefined
    */
   tryGetNonNumericEnumLiteral(
     expr: ts.Expression
@@ -993,6 +1033,7 @@ export class SchemaGenerator {
     }
   }
 
+  /* c8 ignore next 12 -- fallback for TS < 4.8 without skipOuterExpressions */
   /**
    * Manually peel parenthesised expressions, `as` casts, and type assertions
    * to reach the inner expression.
@@ -1003,7 +1044,6 @@ export class SchemaGenerator {
    * @param expr - The expression to unwrap
    * @returns The innermost non-wrapper expression
    */
-  /* c8 ignore next 6 -- fallback for TS < 4.8 without skipOuterExpressions */
   skipOuterExpressionsManual(expr: ts.Expression): ts.Expression {
     while (ts.isParenthesizedExpression(expr) || ts.isAsExpression(expr) || ts.isTypeAssertionExpression(expr)) {
       expr = (expr as ts.ParenthesizedExpression | ts.AsExpression | ts.TypeAssertion).expression;
@@ -1667,6 +1707,7 @@ export class SchemaGenerator {
    *
    * @param type - The TypeScript type to check
    * @param typeString - The stringified type name (used for heuristic matching)
+   * @returns true if the type is a buffer type
    */
   private isBufferType(type: ts.Type, typeString: string): boolean {
     const symbol = type.getSymbol();
@@ -1734,6 +1775,8 @@ export class SchemaGenerator {
    * with the `enum` keyword removed entirely.
    *
    * @param definition - The mutable schema containing an `enum` array
+   * @param definition.enum - the enum values to deduplicate
+   * @param definition.type - optional type name to set
    */
   enumOptimizer(definition: { enum: (any | undefined)[]; type?: JSONSchema7TypeName }): void {
     // Ensure unique enum values
@@ -1754,6 +1797,7 @@ export class SchemaGenerator {
    * Falls back to `"AnonymousFunction"` when no name can be determined.
    *
    * @param node - The AST node to inspect
+   * @returns the derived function name
    */
   getFunctionName(node?: ts.Node): string {
     if (!node) return "AnonymousFunction";
@@ -2023,6 +2067,7 @@ export class SchemaGenerator {
    * reference target symbol name for `Array` / `ReadonlyArray`.
    *
    * @param type - The TypeScript type to test
+   * @returns true if the type is array-like
    */
   private isArrayLike(type: ts.Type): boolean {
     // Mapped types (e.g. { [P in Keys]?: T }) should never be treated as arrays

@@ -2,6 +2,7 @@ import { WorkerLogLevel } from "@webda/workout";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { useLog } from "./hooks.js";
 
+/** Base parameters for logger services, including log level and producer line info */
 export class LoggerServiceParameters extends ServiceParameters {
   /**
    * Specify the log level of this service
@@ -13,7 +14,7 @@ export class LoggerServiceParameters extends ServiceParameters {
   addLogProducerLine?: boolean;
 
   /**
-   * @inheritdoc
+   * @override
    */
   load(params: any = {}): this {
     super.load(params);
@@ -27,6 +28,7 @@ export class LoggerServiceParameters extends ServiceParameters {
   }
 }
 
+/** Parameters for MemoryLoggerService, adding a memory size limit */
 export class MemoryLoggerServiceParameters extends LoggerServiceParameters {
   /**
    * Max size of the logs in memory
@@ -34,6 +36,7 @@ export class MemoryLoggerServiceParameters extends LoggerServiceParameters {
   limit?: number;
 }
 
+/** Parameters for ConsoleLoggerService, adding output format configuration */
 export class ConsoleLoggerServiceParameters extends LoggerServiceParameters {
   /**
    * Format of the logs
@@ -41,6 +44,7 @@ export class ConsoleLoggerServiceParameters extends LoggerServiceParameters {
   format?: string;
 }
 
+/** Parameters for FileLoggerService, adding file path, format, and size limit */
 export class FileLoggerServiceParameters extends LoggerServiceParameters {
   /**
    * Format of the logs

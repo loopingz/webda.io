@@ -13,6 +13,7 @@ import { useLog } from "@webda/workout";
 import type { JSONed } from "@webda/models";
 import { Writable } from "node:stream";
 
+/** Parameters for the HTTP server including request limits, timeouts, and trusted proxy settings */
 class HttpServerParameters extends ServiceParameters {
   /**
    * Will not try to parse request bigger than this
@@ -58,6 +59,11 @@ class HttpServerParameters extends ServiceParameters {
    */
   port?: number;
 
+  /**
+   * Load parameters with defaults for request limits, timeouts, and proxy configuration
+   * @param params - the service parameters
+   * @returns this for chaining
+   */
   load(params: Omit<JSONed<HttpServerParameters>, "trustedProxies"> & { trustedProxies?: string | string[] }): this {
     super.load(params);
     this.requestLimit ??= 10 * 1024 * 1024;
@@ -117,6 +123,12 @@ export class HttpServer<
   server: Server;
   protected subnetChecker: (address: string) => boolean;
 
+  /**
+   * Start the HTTP server, handling incoming requests and routing them through Webda
+   * @param bind - the bind address
+   * @param port - the port number
+   * @returns the result
+   */
   @Command("serve", { description: "Start the HTTP server" })
   async serve(bind?: string, port?: number) {
     return this.parameters.with(async params => {
@@ -153,7 +165,7 @@ export class HttpServer<
    * Return a Context object based on a request
    * @param req to initiate object from
    * @param res to add for body
-   * @returns
+   * @returns the result
    */
   async getContextFromRequest(req: IncomingMessage, res?: ServerResponse) {
     // Handle reverse proxy
@@ -203,8 +215,8 @@ export class HttpServer<
 
   /**
    * Check if a proxy is a trusted proxy
-   * @param ip
-   * @returns
+   * @param ip - the IP address
+   * @returns true if the condition is met
    */
   isProxyTrusted(ip: string): boolean {
     // ipv4 mapped to v6
@@ -213,8 +225,9 @@ export class HttpServer<
 
   /**
    * Get a context based on the info
-   * @param info
-   * @returns
+   * @param info - the information object
+   * @returns the result
+   * @param noInit - whether to skip initialization
    * @TODO Move to the HttpServer service
    */
   async newContext<T extends Context>(info: ContextProviderInfo, noInit: boolean = false): Promise<Context> {
@@ -229,7 +242,7 @@ export class HttpServer<
 
   /**
    * Register a new context provider
-   * @param provider
+   * @param provider - the provider name
    * @TODO Move to the HttpServer service
    */
   registerContextProvider(provider: ContextProvider) {

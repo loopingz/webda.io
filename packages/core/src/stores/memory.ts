@@ -48,6 +48,11 @@ export class MemoryStoreParameters extends StoreParameters {
     compressionLevel?: number;
   };
 
+  /**
+   * Load parameters with persistence defaults and force noCache for memory stores
+   * @param params - the service parameters
+   * @returns this for chaining
+   */
   load(params: any = {}): this {
     super.load(params);
     if (this.persistence) {
@@ -61,15 +66,20 @@ export class MemoryStoreParameters extends StoreParameters {
   }
 }
 
+/** Readable stream that serializes a MemoryModelMap to line-delimited JSON */
 class LDJSONMemoryStreamWriter extends Readable {
   private data: any[];
   private index: number = 0;
 
+  /** Create a new LDJSONMemoryStreamWriter
+   * @param storage - the memory model map to serialize
+   */
   constructor(protected storage: MemoryModelMap) {
     super();
     this.data = [...storage.keys()];
   }
 
+  /** Push the next key-value line or signal end of stream */
   _read() {
     if (this.index >= this.data.length) {
       this.push(null);
@@ -80,10 +90,14 @@ class LDJSONMemoryStreamWriter extends Readable {
   }
 }
 
+/** Writable stream that parses line-delimited JSON or legacy JSON format into a Map */
 class LDJSONMemoryStreamReader extends Writable {
   current: string = "";
   oldFormat: string = undefined;
   firstBytes: boolean = true;
+  /** Create a new LDJSONMemoryStreamReader
+   * @param data - the map to populate from the stream
+   */
   constructor(protected data: Map<string, string>) {
     super();
   }
@@ -92,7 +106,10 @@ class LDJSONMemoryStreamReader extends Writable {
    * Handle old format by storing it to memory to JSON.parse it later
    * Or read the new format to avoid parsing
    *
-   * @returns
+   * @param chunk - the data chunk
+   * @param encoding - the encoding to use
+   * @param callback - the callback function
+   * @returns the result
    */
   _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error) => void): void {
     if (this.firstBytes) {
@@ -121,6 +138,10 @@ class LDJSONMemoryStreamReader extends Writable {
     callback();
   }
 
+  /**
+   * Finalize parsing, handling legacy JSON format conversion
+   * @param callback - the callback function
+   */
   _final(callback: (error?: Error) => void): void {
     // Parse the content if old format
     if (this.oldFormat !== undefined) {
@@ -133,8 +154,15 @@ class LDJSONMemoryStreamReader extends Writable {
   }
 }
 
+/** Map subclass that triggers persistence on every write */
 class MemoryModelMap extends Map<string, string> {
   persistence: () => void;
+  /**
+   * Set a value and trigger persistence callback
+   * @param key - the key
+   * @param object - the target object
+   * @returns the result
+   */
   set(key: string, object: string) {
     super.set(key, object);
     this.persistence?.();
@@ -298,6 +326,11 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
     }
   }
 
+  /**
+   * Get or create a MemoryRepository for the given model, using the shared storage map
+   * @param model - the model to use
+   * @returns the result
+   */
   @InstanceCache()
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     // Use our own storage to allow persistence

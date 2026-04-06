@@ -19,13 +19,20 @@ export class WebdaTest {
    */
   stubs: { restore: () => void }[] = [];
 
+  /**
+   * Override point for wrapping test callbacks (e.g., with async storage)
+   * @param type - the type to look up
+   * @param callback - the callback function
+   * @returns the result
+   */
   async wrap(type: "beforeAll" | "test" | "afterAll", callback: CallbackOptionallyAsync) {
     return callback();
   }
 
   /**
    * Run the test with a custom memory logger to store logs in case of failure
-   * @param callback
+   * @param callback - the callback function
+   * @param type - the type to look up
    */
   @testWrapper
   protected async testWrapper(type: "beforeAll" | "test" | "afterAll" = "test", callback: CallbackOptionallyAsync) {
@@ -49,11 +56,12 @@ export class WebdaTest {
   /**
    * Get log file for the test
    *
-   * @param object
-   * @param method
-   * @param memory
-   * @param start
-   * @returns
+   * @param object - the target object
+   * @param method - the HTTP method
+   * @param memory - the memory logger
+   * @param start - the start time
+   * @param type - the type to look up
+   * @returns the result string
    */
   static exportMemoryLogger(
     type: "beforeAll" | "test" | "afterAll" = "test",
@@ -101,7 +109,7 @@ export class WebdaTest {
 
   /**
    * Clean all logs for this suite
-   * @returns
+   * @returns the result
    */
   static cleanLogs() {
     const folder = `.webda/tests/${sanitizeFilename((this as any)["__webda_suite_name"] ?? this.name ?? "Suite")}`;
@@ -110,6 +118,7 @@ export class WebdaTest {
   }
 
   // Optional: keep no-op private hooks for parity (not used by the TS5 decorator wiring)
+  /** Clean up temporary files and restore stubs after each test */
   async afterEach() {
     try {
       this.cleanFiles.filter(existsSync).forEach(unlinkSync);
@@ -130,7 +139,14 @@ export class WebdaTest {
     obj: T,
     method: K
   ): T[K] extends (...args: infer TArgs) => infer TReturnValue ? SinonStub<TArgs, TReturnValue> : SinonStub;
+  /** Wrap an entire object with a stub */
   stub<T>(obj: T): SinonStub;
+  /**
+   * Create a sinon stub and auto-register it for cleanup
+   * @param obj - the target object
+   * @param method - the HTTP method
+   * @returns the result
+   */
   stub(obj: any, method?: any): SinonStub {
     const stub = sinon.stub(obj, method);
     this.stubs.push(stub);
@@ -139,7 +155,7 @@ export class WebdaTest {
 
   /**
    * Wait for x ms
-   * @param ms
+   * @param ms - the milliseconds to wait
    */
   async wait(ms: number): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, ms));

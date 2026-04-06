@@ -3,6 +3,7 @@ import { ServiceParameters } from "../services/serviceparameters.js";
 import { Service } from "../services/service.js";
 import { CancelablePromise } from "@webda/utils";
 
+/** Abstract base for publish/subscribe messaging services with metrics tracking */
 export default abstract class PubSubService<
   T = any,
   K extends ServiceParameters = ServiceParameters
@@ -51,9 +52,9 @@ export default abstract class PubSubService<
 
   /**
    * Unserialize into class
-   * @param data
-   * @param proto
-   * @returns
+   * @param data - the data to process
+   * @param proto - the proto
+   * @returns the result
    */
   unserialize<L>(data: string, proto?: { new (): L }): L {
     if (proto) {

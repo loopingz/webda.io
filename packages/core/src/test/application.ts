@@ -53,7 +53,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
 
   /**
    * Allow test to add custom made service
-   * @param app
+   * @param app - the application instance
    */
   async tweakApp(app: TestApplication) {
     // Use MemoryStore for Registry without persistence
@@ -70,7 +70,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
 
   /**
    * Return an application
-   * @returns
+   * @returns the result
    */
   getApplication() {
     return new TestApplication(this.getTestConfiguration(), useWorkerOutput());
@@ -80,6 +80,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * Build the webda application
    *
    * Add a ConsoleLogger if addConsoleLogger is true
+   * @returns the result
    */
   protected async buildWebda(): Promise<Core> {
     if (process.env["WEBDA_TEST_LOG"]) {
@@ -112,10 +113,12 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     }
   }
 
+  /** Reset the webda reference from the current instance storage */
   async beforeEach(): Promise<void> {
     this.webda = <Core>useCore();
   }
 
+  /** Stop the Core instance after all tests */
   async afterAll() {
     //
     await useCore()?.stop();
@@ -123,8 +126,8 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
 
   /**
    *
-   * @param level
-   * @param args
+   * @param level - the log level
+   * @param args - additional arguments
    */
   log(level: WorkerLogLevel, ...args: any[]) {
     useLog(level, "TEST", ...args);
@@ -136,7 +139,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * The context is initialized to GET test.webda.io/
    *
    * @param body to add to the context
-   * @returns
+   * @returns the result
    */
   async newContext<T extends WebContext>(body: any = {}): Promise<T> {
     const res = await this.newWebContext<T>(new HttpContext("test.webda.io", "GET", "/"));
@@ -146,8 +149,8 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
 
   /**
    * New context with a web context
-   * @param httpContext
-   * @returns
+   * @param httpContext - the HTTP context
+   * @returns the result
    */
   async newWebContext<T extends WebContext>(httpContext: HttpContext): Promise<T> {
     // TODO Need to update this one
@@ -157,13 +160,13 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
   /**
    * Get an Executor from Webda
    *
-   * @param ctx
-   * @param host
-   * @param method
-   * @param url
-   * @param body
-   * @param headers
-   * @returns
+   * @param ctx - the operation context
+   * @param host - the host name
+   * @param method - the HTTP method
+   * @param url - the URL
+   * @param body - the request body
+   * @param headers - the request headers
+   * @returns the result
    *
    * @deprecated use http instead
    */
@@ -195,9 +198,9 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
 
   /**
    * Execute a test request
-   * @param params
+   * @param params - the service parameters
    * @param context used only if params is an url
-   * @returns
+   * @returns the result
    */
   async http<T = any>(
     params:
@@ -230,6 +233,15 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     return await this.execute(params.context, "test.webda.io", params.method, params.url, params.body, params.headers);
   }
 
+  /**
+   * Execute an HTTP request through the Webda core and return the context
+   * @param context - the execution context
+   * @param host - the host name
+   * @param method - the HTTP method
+   * @param url - the URL
+   * @param body - the request body
+   * @returns the result
+   */
   async execute(
     context: WebContext = undefined,
     host: string = "test.webda.io",
@@ -259,6 +271,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    *
    * @param time ms
    * @deprecated use sleep instead
+   * @returns the result
    */
   async sleep(time): Promise<void> {
     return sleep(time);
@@ -278,7 +291,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
   /**
    * Get service from Webda
    * @param service name
-   * @returns
+   * @returns the result map
    *
    * @deprecated useService instead
    */
@@ -291,6 +304,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    *
    * @param name of the service to add
    * @param service to add
+   * @returns the result
    */
   registerService<T extends Service>(service: T, name: string = service.getName()): T {
     useCore().getServices()[name] = service;
@@ -299,6 +313,10 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
 
   /**
    * Register service with resolve and init
+   * @param service - the service instance
+   * @param params - the service parameters
+   * @param name - the name to use
+   * @returns the result
    */
   async addService<P extends Service>(
     service: new (string, any) => P,
@@ -317,8 +335,10 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
 
   /**
    * Dynamic add a model to webda
-   * @param model
-   * @param klass
+   * @param model - the model to use
+   * @param klass - the class
+   * @param name - the name to use
+   * @param metadata - the model metadata
    */
   registerModel<T extends ModelClass>(model: T, name: string = model.constructor.name, metadata?: ModelMetadata) {
     useApplication<Application>().addModel(name, model, metadata);

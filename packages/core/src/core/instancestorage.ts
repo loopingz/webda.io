@@ -27,6 +27,10 @@ export type InstanceStorage = Partial<{
 process["webdaInstanceStorage"] ??= new AsyncLocalStorage<InstanceStorage>();
 const storage = process["webdaInstanceStorage"];
 
+/**
+ * Retrieve the current async-local InstanceStorage, throwing if called outside a storage context
+ * @returns the result
+ */
 export function useInstanceStorage(): InstanceStorage {
   const store = storage.getStore();
   if (!store) {
@@ -35,6 +39,12 @@ export function useInstanceStorage(): InstanceStorage {
   return store;
 }
 
+/**
+ * Run a function within an async-local InstanceStorage context, merging with defaults
+ * @param instanceStorage - the instance storage
+ * @param fn - the function to wrap
+ * @returns the result
+ */
 export function runWithInstanceStorage(instanceStorage: InstanceStorage = {}, fn) {
   return storage.run(
     {
@@ -52,8 +62,8 @@ export function runWithInstanceStorage(instanceStorage: InstanceStorage = {}, fn
 
 /**
  * Create a hook that is present in the instance storage
- * @param hookName
- * @returns
+ * @param hookName - the hook name
+ * @returns the result
  */
 export function createCoreHook<K extends keyof InstanceStorage>(
   hookName: K
@@ -70,8 +80,8 @@ type ReservedInstance = keyof InstanceStorage;
 
 /**
  * Create a custom hook that is not reserved
- * @param hookName
- * @returns
+ * @param hookName - the hook name
+ * @returns the result
  */
 export function createHook<T extends string>(
   hookName: T & Exclude<T, ReservedInstance>
@@ -84,10 +94,20 @@ export function createHook<T extends string>(
   ];
 }
 
+/**
+ * Register a cancelable process so it can be interrupted on shutdown
+ * @param process - the process to manage
+ * @param process.cancel - the cancel callback
+ */
 export function registerInteruptableProcess(process: { cancel: () => Promise<void> }) {
   useInstanceStorage().interruptables.add(process);
 }
 
+/**
+ * Unregister a previously registered cancelable process
+ * @param process - the process to manage
+ * @param process.cancel - the cancel callback
+ */
 export function unregisterInteruptableProcess(process: { cancel: () => Promise<void> }) {
   useInstanceStorage().interruptables.delete(process);
 }

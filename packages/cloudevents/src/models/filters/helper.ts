@@ -16,6 +16,9 @@ interface FilterImplementationConstructor {
  */
 export class AllFilterImplementation extends FilterImplementation<AllFilter> {
   filters: FilterImplementation<Filter>[];
+  /** Create a new AllFilterImplementation.
+   * @param definition - the all-filter definition
+   */
   constructor(definition: AllFilter) {
     super(definition);
     this.filters = this.definition.all.map(f => FiltersHelper.get(f));
@@ -41,6 +44,9 @@ export class AllFilterImplementation extends FilterImplementation<AllFilter> {
  */
 export class AnyFilterImplementation extends FilterImplementation<AnyFilter> {
   filters: FilterImplementation<Filter>[];
+  /** Create a new AnyFilterImplementation.
+   * @param definition - the any-filter definition
+   */
   constructor(definition: AnyFilter) {
     super(definition);
     this.filters = definition.any.map(f => FiltersHelper.get(f));
@@ -77,8 +83,8 @@ const FilterImplementations: { [key: string]: FilterImplementationConstructor } 
 export class FiltersHelper {
   /**
    * Get the filter implementation
-   * @param filter
-   * @returns
+   * @param filter - the filter definition
+   * @returns the resolved filter implementation
    */
   static get<T extends Filter>(filter: T): FilterImplementation<Filter> {
     const type = Object.keys(filter).pop();
@@ -90,8 +96,8 @@ export class FiltersHelper {
 
   /**
    * Register a custom filter implementation
-   * @param name
-   * @param clazz
+   * @param name - the filter type name
+   * @param clazz - the filter implementation class
    */
   register(name: string, clazz: FilterImplementationConstructor) {
     FilterImplementations[name] = clazz;

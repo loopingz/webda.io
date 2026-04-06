@@ -64,9 +64,9 @@ export default class Contact extends CoreModel {
 
   /**
    * Allow all manipulations
-   * @param _context
-   * @param _action
-   * @returns
+   * @param _context - the operation context
+   * @param _action - the action to check
+   * @returns true
    */
   canAct(_context: OperationContext<any, any>, _action: string): Promise<string | boolean> {
     return Promise.resolve(true);

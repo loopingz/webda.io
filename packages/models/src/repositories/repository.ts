@@ -305,6 +305,8 @@ export interface CollectionOperations<T extends ModelClass = ModelClass> {
 
 /**
  * Type guard to check if repository supports atomic operations
+ * @param repo - the repository to check
+ * @returns true if atomic operations are supported
  */
 export function supportsAtomicOperations<T extends ModelClass>(
   repo: CoreRepository<T>
@@ -314,6 +316,8 @@ export function supportsAtomicOperations<T extends ModelClass>(
 
 /**
  * Type guard to check if repository supports collection operations
+ * @param repo - the repository to check
+ * @returns true if collection operations are supported
  */
 export function supportsCollectionOperations<T extends ModelClass>(
   repo: CoreRepository<T>

@@ -20,6 +20,7 @@
             "type": "object"
           }
         },
+        "description": "Configuration parameters for the filesystem-backed binary storage service.",
         "properties": {
           "folder": {
             "description": "Define the folder to store objects in",
@@ -27,7 +28,8 @@
           },
           "maxFileSize": {
             "default": "10 MB",
-            "description": "Define the maximum filesize to accept as direct upload",
+            "description": "Define the maximum filesize to accept as direct upload\nGet the max file size in bytes",
+            "returns": "the result number",
             "type": "number"
           },
           "maxSize": {
@@ -91,6 +93,7 @@
             "type": "object"
           }
         },
+        "description": "Configuration parameters for the filesystem-backed FIFO queue.",
         "properties": {
           "expire": {
             "default": 30,
@@ -147,6 +150,7 @@
             "type": "object"
           }
         },
+        "description": "Configuration parameters for the JSON-file-backed store.",
         "properties": {
           "additionalModels": {
             "default": [],

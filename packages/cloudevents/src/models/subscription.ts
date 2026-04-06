@@ -190,8 +190,8 @@ export default interface Subscription {
 
 /**
  * Subscription Mixin to add default behavior to a subscription
- * @param clazz
- * @returns
+ * @param clazz - the base class to extend
+ * @returns the extended class with subscription behavior
  */
 export function SubscriptionMixIn(clazz: any) {
   /**
@@ -213,6 +213,7 @@ export function SubscriptionMixIn(clazz: any) {
     sink: string = "";
     filters: Filter[] = [];
 
+    /** Create a new SubscriptionParameters. */
     constructor() {
       super();
       this.id ??= randomUUID();
@@ -220,8 +221,8 @@ export function SubscriptionMixIn(clazz: any) {
 
     /**
      * Verify that an event match its filters
-     * @param event
-     * @returns
+     * @param event - the cloud event to check
+     * @returns true if the event matches all filters
      */
     match(event: CloudEvent): boolean {
       // Need to filter first on types
@@ -234,7 +235,7 @@ export function SubscriptionMixIn(clazz: any) {
 
     /**
      * Create the emitter for the subscription
-     * @returns
+     * @returns the emitter function for the configured protocol
      */
     createEmitter(): EmitterFunction {
       if (this.protocol === "HTTP") {
@@ -245,7 +246,7 @@ export function SubscriptionMixIn(clazz: any) {
 
     /**
      * Emit a cloudevent
-     * @param event
+     * @param event - the cloud event to emit
      */
     async emit(event: CloudEvent) {
       // Ensure the subscription match the event

@@ -42,6 +42,7 @@ type WebdaMorpherOptions = {
   modules?: string[];
 };
 
+/** Applies a set of code transformation modules (deserializer, loadParameters, etc.) to project source files */
 export class WebdaMorpher {
   project: Project;
   modules: { [key: string]: (sourceFile: SourceFile) => void } = {
@@ -52,6 +53,9 @@ export class WebdaMorpher {
     capabilities: removeFilterRegistrations
   };
 
+  /** Create a new WebdaMorpher.
+   * @param options - morpher configuration options
+   */
   constructor(protected options: WebdaMorpherOptions = {}) {
     this.project = new Project(options.project);
     this.options.modules ??= Object.keys(this.modules);
@@ -59,7 +63,7 @@ export class WebdaMorpher {
 
   /**
    * Update the source files
-   * @returns
+   * @returns promise resolving when all files are saved
    */
   async check() {
     const p: Promise<void>[] = [];
@@ -98,8 +102,8 @@ export class WebdaMorpher {
 
   /**
    * Parse on file and return the updated content
-   * @param input
-   * @returns
+   * @param input - file path or SourceFile to process
+   * @returns the updated file content
    */
   update(input: string | SourceFile): string {
     const sourceFile = typeof input === "string" ? this.project.addSourceFileAtPath(input) : input;

@@ -12,6 +12,10 @@ type SchemaValidResult = true;
 
 let ajvInstance: (Ajv & { rawSchema: Record<string, JSONSchema7> }) | null = null;
 
+/**
+ * Get or lazily create the singleton Ajv validator instance
+ * @returns the result
+ */
 function getAjv(): Ajv & { rawSchema: Record<string, JSONSchema7> } {
   if (!ajvInstance) {
     ajvInstance = new Ajv({ allErrors: true, strict: false, allowUnionTypes: true }) as any;
@@ -31,6 +35,9 @@ export class ValidationError extends Error {
   readonly ajv: true;
   readonly validation: true;
 
+  /** Create a new ValidationError
+   * @param errors - the validation error objects
+   */
   constructor(errors: Partial<ErrorObject>[]) {
     super(`validation failed: ${errors.map(e => e.message).join("; ")}`);
     this.errors = errors;
@@ -68,8 +75,8 @@ export function validateModelSchema(
 
 /**
  * Register a schema
- * @param name
- * @param schema
+ * @param name - the name to use
+ * @param schema - the schema object
  */
 export function registerSchema(name: string, schema: object): void {
   const ajv = getAjv();
@@ -82,6 +89,8 @@ export function registerSchema(name: string, schema: object): void {
  *
  * @param schema path to use
  * @param object to validate
+ * @param ignoreRequired - whether to ignore required fields
+ * @returns the result
  */
 export function validateSchema(
   schema: string,
@@ -107,6 +116,11 @@ export function validateSchema(
   throw new ValidationError(ajv.errors);
 }
 
+/**
+ * Check whether a JSON schema is registered for the given model or schema key
+ * @param webdaObject - the Webda object to validate
+ * @returns true if the condition is met
+ */
 export function hasSchema(webdaObject: Model | string): boolean {
   let key: string;
   if (typeof webdaObject === "string") {

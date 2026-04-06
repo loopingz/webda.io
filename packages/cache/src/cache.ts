@@ -98,6 +98,9 @@ export interface CacheOptions {
 export class CacheStorage extends Map<string, { value: any; timestamp: number }> {
   stats: CacheStats = { hits: 0, misses: 0, evictions: 0, sets: 0 };
 
+  /** Create a new CacheStorage.
+   * @param options - cache configuration options
+   */
   constructor(private options?: CacheOptions) {
     super();
   }
@@ -105,6 +108,9 @@ export class CacheStorage extends Map<string, { value: any; timestamp: number }>
   /**
    * Check whether a cached value exists and is still valid.
    * Applies TTL: if an entry is expired, it is evicted and treated as missing.
+   *
+   * @param key - the method cache key
+   * @returns true if a valid cached entry exists
    */
   hasCachedMethod(key: string) {
     const exists = this.has(key);
@@ -129,6 +135,10 @@ export class CacheStorage extends Map<string, { value: any; timestamp: number }>
    * Implements LRU eviction when maxSize is reached.
    *
    * Note: `args` is accepted for potential future strategies but not used here.
+   *
+   * @param key - the method cache key
+   * @param _args - original method arguments (reserved)
+   * @param value - the value to cache
    */
   setCachedMethod(key: string, _args: any[], value: any) {
     // LRU: if key exists, delete it so we can re-add it at the end (most recent)
@@ -156,6 +166,9 @@ export class CacheStorage extends Map<string, { value: any; timestamp: number }>
 
   /**
    * Retrieve the cached value for the given method key (without TTL re-check).
+   *
+   * @param key - the method cache key
+   * @returns the cached value or undefined
    */
   getCachedMethod(key: string) {
     const cached = this.get(key);
@@ -165,6 +178,8 @@ export class CacheStorage extends Map<string, { value: any; timestamp: number }>
   /**
    * Delete cache entries.
    * If the key ends with `$`, all entries starting with the prefix are removed.
+   *
+   * @param key - the method cache key or prefix
    */
   deleteCachedMethod(key: string) {
     if (key.endsWith("$")) {
@@ -200,6 +215,8 @@ export class CacheStorage extends Map<string, { value: any; timestamp: number }>
 
   /**
    * Get current cache statistics.
+   *
+   * @returns a copy of the current stats
    */
   getStats(): CacheStats {
     return { ...this.stats };
@@ -221,6 +238,9 @@ export class CacheStorage extends Map<string, { value: any; timestamp: number }>
 export class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
   private gcTimer?: NodeJS.Timeout;
 
+  /** Create a new CacheMap.
+   * @param options - cache configuration options
+   */
   constructor(private options?: CacheOptions) {
     super();
     // Start automatic garbage collection if interval is configured
@@ -231,6 +251,10 @@ export class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
 
   /**
    * Get a cached value for a given instance and method key.
+   *
+   * @param target - the instance key
+   * @param key - the method cache key
+   * @returns the cached value or undefined
    */
   getCachedMethod(target: T, key: string) {
     if (!this.has(target)) {
@@ -242,6 +266,10 @@ export class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
   /**
    * Check if a cached value exists for the given instance and method key.
    * Tracks cache hits when enableStats is true (misses tracked in setCachedMethod).
+   *
+   * @param target - the instance key
+   * @param key - the method cache key
+   * @returns true if a valid cached entry exists
    */
   hasCachedMethod(target: T, key: string) {
     if (this.has(target)) {
@@ -258,6 +286,11 @@ export class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
   /**
    * Store a cached value for the given instance + method key.
    * Tracks misses when enableStats is true (only if key didn't exist).
+   *
+   * @param target - the instance key
+   * @param key - the method cache key
+   * @param _args - original method arguments (reserved)
+   * @param value - the value to cache
    */
   setCachedMethod(target: T, key: string, _args: any[], value: any) {
     if (!this.has(target)) {
@@ -309,6 +342,8 @@ export class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
 
   /**
    * Get aggregated statistics across all instance caches.
+   *
+   * @returns the aggregated stats
    */
   getStats(): CacheStats {
     const aggregated: CacheStats = { hits: 0, misses: 0, evictions: 0, sets: 0 };
@@ -345,6 +380,11 @@ interface CacheHost {
  * The provider is expected to return a host object on which `caches`
  * will be lazily initialized to a `CacheMap`. If the provider returns
  * `null`, caching is disabled and `null` is returned.
+ *
+ * @param provider - function returning the cache host
+ * @param options - cache configuration options
+ * @param target - the target instance or null
+ * @returns the CacheMap or null if caching is disabled
  */
 function getSource(
   provider: (target: object | null) => CacheHost | null,
@@ -364,6 +404,9 @@ function getSource(
  *
  * Returns a base64-encoded SHA-256 digest, or `undefined` if any
  * argument cannot be serialized deterministically.
+ *
+ * @param args - the arguments to hash
+ * @returns base64 SHA-256 digest or undefined
  */
 export function argumentsHash(args: any[]): string | undefined {
   const hash = createHash("sha256");
@@ -414,6 +457,9 @@ export function argumentsHash(args: any[]): string | undefined {
  * This is faster than {@link argumentsHash} because it skips the SHA-256
  * step. Keys may be longer in proportion to argument size. Prefer this
  * strategy for hot sync paths with small, simple arguments.
+ *
+ * @param args - the arguments to encode
+ * @returns typed key string or undefined
  */
 export function argumentsSimpleKey(args: any[]): string | undefined {
   const parts: string[] = [];
@@ -459,6 +505,8 @@ export function argumentsSimpleKey(args: any[]): string | undefined {
 let cacheLogger: (...args: any[]) => void = (...args: any[]) => {};
 /**
  * Register a logger used by the cache system to report non-cacheable calls.
+ *
+ * @param logger - the logging function to register
  */
 export function registerCacheLogger(logger: (...args: any[]) => void) {
   cacheLogger = logger;
@@ -472,6 +520,10 @@ export function registerCacheLogger(logger: (...args: any[]) => void) {
  * - `clear(target, propertyKey, ...args)`: Clear specific cache entry
  * - `clearAll(target, propertyKey?)`: Clear all or method-prefixed entries
  * - `garbageCollect()`: Run TTL-based cleanup
+ *
+ * @param source - function returning the cache host for a given target
+ * @param options - cache configuration options
+ * @returns the cache method decorator with utility methods
  */
 export function createCacheAnnotation(source: (target: object | null) => object | null, options: CacheOptions = {}) {
   options.methodKeyGenerator ??= (property: string, args: any[]) => {
@@ -573,6 +625,10 @@ export function createCacheAnnotation(source: (target: object | null) => object 
 
   /**
    * Clear a specific cached entry for a target method and arguments.
+   *
+   * @param target - the instance to clear cache for
+   * @param propertyKey - the method name
+   * @param args - the method arguments identifying the entry
    */
   annotation.clear = function clearCache(target: object, propertyKey: string, ...args: any[]) {
     const cache = getSource(source, options, target);
@@ -592,6 +648,9 @@ export function createCacheAnnotation(source: (target: object | null) => object 
    * Clear all cached entries for a target, or only those for a specific method.
    *
    * If `propertyKey` is provided, all entries with that method prefix are removed.
+   *
+   * @param target - the instance to clear cache for
+   * @param propertyKey - optional method name to scope clearing
    */
   annotation.clearAll = function clearAllCache(target: object, propertyKey?: string) {
     const cache = getSource(source, options, target);
@@ -624,6 +683,8 @@ export function createCacheAnnotation(source: (target: object | null) => object 
 
   /**
    * Get aggregated cache statistics.
+   *
+   * @returns the aggregated stats
    */
   annotation.getStats = function getStats(): CacheStats {
     const cache = getSource(source, options, null);

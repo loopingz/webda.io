@@ -101,9 +101,9 @@ export class Application {
   deploymentFile: string;
 
   /**
-   *
-   * @param {string} fileOrFolder to load Webda Application from
-   * @param {Logger} logger
+   * Create a new Application
+   * @param file - file path or unpacked configuration to load from
+   * @param logger - the logger instance
    */
   constructor(file: string | UnpackedConfiguration, logger: WorkerOutput = undefined) {
     this.logger = logger || new WorkerOutput();
@@ -131,7 +131,7 @@ export class Application {
 
   /**
    * Run the application
-   * @returns
+   * @returns the result
    */
   async run() {
     return Application._runner(this);
@@ -145,6 +145,7 @@ export class Application {
 
   /**
    * Import all required modules
+   * @returns the result
    */
   @ApplicationState({ start: "loading", end: "ready" })
   @InstanceCache()
@@ -157,8 +158,8 @@ export class Application {
   /**
    * Allow subclass to implement migration
    *
-   * @param file
-   * @returns
+   * @param file - the file path
+   * @returns the result
    */
   async loadConfiguration(file: string): Promise<void> {
     // Check if file is a file or folder
@@ -182,8 +183,8 @@ export class Application {
    * Get a schema from a type
    *
    * Schema should be precomputed in the default app
-   * @param type
-   * @returns
+   * @param type - the type to look up
+   * @returns the result
    */
   getSchema(type: string): JSONSchema7 {
     return (
@@ -194,7 +195,7 @@ export class Application {
 
   /**
    * Get schemas
-   * @returns
+   * @returns the result
    */
   getSchemas(): { [key: string]: JSONSchema7 } {
     return this.baseConfiguration.cachedModules.schemas;
@@ -206,6 +207,7 @@ export class Application {
    * When deployed the application contains cachedModules in the `webda.config.json`
    * It allows to avoid the search for `webda.module.json` inside node_modules and
    * take the schema from the cached modules also
+   * @returns true if the condition is met
    */
   isCached(): boolean {
     return true;
@@ -215,6 +217,7 @@ export class Application {
    * Retrieve specific webda conf from package.json
    *
    * In case of workspaces the object is combined
+   * @returns the result
    */
   getPackageWebda(): WebdaPackageDescriptor {
     return (
@@ -225,6 +228,7 @@ export class Application {
   }
   /**
    * Retrieve content of package.json
+   * @returns the result
    */
   getPackageDescription(): PackageDescriptor {
     return this.baseConfiguration.cachedModules?.project?.package || {};
@@ -242,6 +246,7 @@ export class Application {
 
   /**
    * Get current logger
+   * @returns the result
    */
   getWorkerOutput() {
     return this.logger;
@@ -251,6 +256,7 @@ export class Application {
    * Return the current app path
    *
    * @param subpath to append to
+   * @returns the result string
    */
   getPath(subpath: string = undefined): string {
     if (subpath && subpath !== "") {
@@ -265,8 +271,9 @@ export class Application {
   /**
    * Add a new service
    *
-   * @param name
-   * @param service
+   * @param name - the name to use
+   * @param service - the service instance
+   * @returns this for chaining
    */
   addModda(name: string, service: Modda): this {
     this.log("TRACE", "Registering service", name);
@@ -276,9 +283,10 @@ export class Application {
 
   /**
    *
-   * @param section
-   * @param name
-   * @param caseSensitive
+   * @param section - the section name
+   * @param name - the name to use
+   * @param caseSensitive - whether matching is case sensitive
+   * @returns true if the condition is met
    */
   hasWebdaObject(section: Section, name: string): boolean {
     let objectName = this.completeNamespace(name);
@@ -293,8 +301,8 @@ export class Application {
    * Define if the model is the last one in the hierarchy
    *
    * TODO Define clearly
-   * @param model
-   * @returns
+   * @param model - the model to use
+   * @returns true if the condition is met
    */
   isFinalModel(model: string): boolean {
     if (!this.models[model]) {
@@ -310,9 +318,9 @@ export class Application {
 
   /**
    *
-   * @param section
-   * @param name
-   * @returns
+   * @param section - the section name
+   * @param name - the name to use
+   * @returns the result
    */
   getWebdaObject(section: Section, name: string) {
     let objectName = this.completeNamespace(name);
@@ -335,7 +343,8 @@ export class Application {
   /**
    * Get a service based on name
    *
-   * @param name
+   * @param name - the name to use
+   * @returns the result
    */
   getModda(name: string): Modda {
     return this.getWebdaObject("moddas", name);
@@ -343,6 +352,7 @@ export class Application {
 
   /**
    * Return all services of the application
+   * @returns the result
    */
   getModdas(): { [key: string]: Modda } {
     return this.moddas;
@@ -352,6 +362,7 @@ export class Application {
    * Retrieve the model implementation
    *
    * @param name model to retrieve
+   * @returns the result
    */
   getModel<T extends Model = Model>(name: string): ModelDefinition<T> {
     return this.getWebdaObject("models", name);
@@ -359,6 +370,7 @@ export class Application {
 
   /**
    * Get all models definitions
+   * @returns the result
    */
   getModels(): {
     [key: string]: ModelDefinition<any>;
@@ -368,7 +380,8 @@ export class Application {
 
   /**
    * Return the model name for a object
-   * @param object
+   * @param object - the target object
+   * @returns the result
    */
   getModelFromInstance(object: Storable): string | undefined {
     return Object.keys(this.models).find(k => this.models[k] === object.constructor);
@@ -376,7 +389,9 @@ export class Application {
 
   /**
    * Return the model name for a object
-   * @param object
+   * @param object - the target object
+   * @param model - the model to use
+   * @returns the result
    */
   getModelFromConstructor(model: ModelClass): string | undefined {
     // @ts-ignore
@@ -386,7 +401,7 @@ export class Application {
   /**
    * Get the model name from a model or a constructor
    *
-   * @param model
+   * @param model - the model to use
    * @paramn full if true always include the namespace, default is false e.g Webda/
    * @returns longId for a model
    */
@@ -399,6 +414,7 @@ export class Application {
 
   /**
    * Return all deployers
+   * @returns the result
    */
   getDeployers(): { [key: string]: Modda } {
     return this.deployers;
@@ -407,9 +423,11 @@ export class Application {
   /**
    * Add a new model
    *
-   * @param name
-   * @param model
+   * @param name - the name to use
+   * @param model - the model to use
    * @param dynamic class is dynamic so recompute the hierarchy
+   * @param metadata - the model metadata
+   * @returns this for chaining
    */
   addModel(
     name: string,
@@ -446,9 +464,9 @@ export class Application {
   /* SERIALIZATION */
   /**
    *
-   * @param this
-   * @param json
-   * @returns
+   * @param this - the constructor
+   * @param json - the JSON data
+   * @returns the result
    */
   static deserialize<T extends Application>(this: new (...args: any[]) => T, json: any): T {
     const instance = new this();
@@ -458,6 +476,10 @@ export class Application {
     return instance;
   }
 
+  /**
+   * Serialize the application state to a plain object
+   * @returns the result
+   */
   toJSON() {
     return {
       baseConfiguration: this.baseConfiguration,
@@ -481,6 +503,9 @@ export class Application {
    *
    * {@link GitInformation} for more details on how the information is gathered
    * @return the git information
+   * @param _packageName - the package name
+   * @param _version - the version string
+   * @returns the result
    */
   getGitInformation(_packageName?: string, _version?: string): GitInformation {
     return this.baseConfiguration.cachedModules.project?.git;
@@ -488,7 +513,7 @@ export class Application {
 
   /**
    * Retrieve the project information
-   * @returns
+   * @returns the result
    */
   getProjectInfo(): ProjectInformation | undefined {
     return this.baseConfiguration.cachedModules.project;
@@ -496,6 +521,7 @@ export class Application {
 
   /**
    * Get current deployment name
+   * @returns the result string
    */
   getCurrentDeployment(): string {
     return this.baseConfiguration.cachedModules.project.deployment.name;
@@ -505,7 +531,7 @@ export class Application {
    * Return all application modules merged as one
    *
    * Used when deployed
-   * @returns
+   * @returns the result
    */
   getModules(): CachedModule {
     return this.baseConfiguration.cachedModules;
@@ -513,7 +539,8 @@ export class Application {
 
   /**
    * Get application configuration
-   * @returns
+   * @param _deployment - the deployment name
+   * @returns the result
    */
   getConfiguration(_deployment: string = undefined): Configuration {
     return this.baseConfiguration;
@@ -527,6 +554,7 @@ export class Application {
    * ```js
    * getConfiguration(this.currentDeployment);
    * ```
+   * @returns the result
    */
   getCurrentConfiguration(): Configuration {
     return this.getConfiguration();
@@ -537,7 +565,9 @@ export class Application {
    *
    * If the `default` is set take this or use old format
    *
-   * @param info
+   * @param info - the information object
+   * @param withExport - whether to include exports
+   * @returns the result
    */
   protected async importFile(info: string, withExport: boolean = true): Promise<any> {
     if (info.startsWith(".")) {
@@ -576,8 +606,8 @@ export class Application {
 
   /**
    * Get implementations of a class
-   * @param object
-   * @returns
+   * @param object - the target object
+   * @returns the result
    */
   getImplementations<T extends Service>(object: T): { [key: string]: Modda<T> } {
     const res: any = {};
@@ -670,7 +700,7 @@ export class Application {
   /**
    * Set object Metadata
    * Need to be done after all models are loaded to resolve Ancestors and Subclasses
-   * @param info
+   * @param info - the information object
    */
   protected setModelMetadata(info: { [key: string]: ModelMetadata }) {
     // Might want to move this to specific methods
@@ -697,7 +727,8 @@ export class Application {
    * This method will make sure the namespace is present, adding it if no '/'
    * is found in the name
    *
-   * @param name
+   * @param name - the name to use
+   * @returns the result string
    */
   completeNamespace(name: string = ""): string {
     // Do not add a namespace if already present
@@ -709,7 +740,7 @@ export class Application {
 
   /**
    * Return current namespace
-   * @returns
+   * @returns the result string
    */
   getNamespace(): string {
     return this.baseConfiguration?.cachedModules?.project?.webda?.namespace || "Webda";

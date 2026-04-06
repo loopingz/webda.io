@@ -16,6 +16,7 @@ export class DirtyState {
   private originalValues: Record<string, any> = {};
 
   /**
+   * @param parent - the object being tracked
    * @param fields - Initial set of dirty field names
    */
   constructor(
@@ -27,6 +28,8 @@ export class DirtyState {
    * Returns `true` when at least one field is dirty.
    *
    * Allows `if (dirtyState)` boolean coercion.
+   *
+   * @returns true if any fields are dirty
    */
   valueOf(): boolean {
     return this.fields.size > 0;
@@ -67,13 +70,20 @@ export class DirtyState {
     }
   }
 
-  /** Checks if a specific field is currently dirty */
+  /**
+   * Checks if a specific field is currently dirty
+   *
+   * @param field - the field name to check
+   * @returns true if the field is dirty
+   */
   has(field: string): boolean {
     return this.fields.has(field);
   }
 
   /**
    * Returns the names of all currently dirty fields.
+   *
+   * @returns array of dirty field names
    */
   getProperties(): string[] {
     return [...this.fields];
@@ -103,6 +113,9 @@ const NON_PROXYABLE = [Date, RegExp, Map, Set, WeakMap, WeakSet, Promise, ArrayB
  *
  * Rejects built-in types (Date, RegExp, Map, Set, etc.) that have
  * internal slots a Proxy cannot forward.
+ *
+ * @param value - the value to check
+ * @returns true if the value can be proxied
  */
 function isProxyable(value: any): boolean {
   for (const ctor of NON_PROXYABLE) {
@@ -118,6 +131,11 @@ function isProxyable(value: any): boolean {
  * The full property path is tracked (e.g. "address.street.name").
  *
  * Read-only operations pass through untouched.
+ *
+ * @param value - the object to wrap
+ * @param pathPrefix - dot-separated path prefix for nested tracking
+ * @param markDirty - callback invoked with the full property path on mutation
+ * @returns the proxied object
  */
 function createDeepDirtyProxy<V extends object>(
   value: V,
@@ -175,6 +193,9 @@ export function DirtyMixIn<T extends Constructor>(
   clazz: T
 ): T & Constructor<{ dirty: DirtyState | null; [WEBDA_DIRTY]: DirtyState }> {
   return class extends clazz {
+    /** Create a new DirtyMixIn instance.
+     * @param args - constructor arguments forwarded to the base class
+     */
     constructor(...args: any[]) {
       super(...args);
       return new Proxy(this, {
@@ -203,7 +224,11 @@ export function DirtyMixIn<T extends Constructor>(
     }
     [WEBDA_DIRTY]: DirtyState = new DirtyState(this, new Set());
 
-    /** Returns the current {@link DirtyState} if any fields were modified, or `null` if clean */
+    /**
+     * Returns the current {@link DirtyState} if any fields were modified, or `null` if clean
+     *
+     * @returns the dirty state or null
+     */
     get dirty(): DirtyState | null {
       return this[WEBDA_DIRTY].valueOf() ? this[WEBDA_DIRTY] : null;
     }
@@ -218,7 +243,7 @@ export function DirtyMixIn<T extends Constructor>(
  * @param obj - The object to track
  * @param onChange - Called when property change
  * @param dirtyProperty - The name of the property to use for accessing the dirty state (default: "dirty")
- * @return A proxy of the input object with dirty-tracking capabilities
+ * @returns A proxy of the input object with dirty-tracking capabilities
  *
  * @example
  * ```ts

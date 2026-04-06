@@ -73,6 +73,12 @@ const RELATION_TYPES: Record<string, string> = {
  * @webda/compiler module.ts (1200+ lines) handles additional edge cases,
  * JSON schema generation, and metadata plugins — those can be migrated
  * incrementally.
+ * @param tsModule - the TypeScript module
+ * @param program - the TypeScript program
+ * @param config - namespace and model base configuration
+ * @param config.namespace - the module namespace
+ * @param config.modelBases - additional model base class names
+ * @returns the transformer factory
  */
 export function createModuleGeneratorTransformer(
   tsModule: typeof ts,
@@ -121,6 +127,12 @@ export function createModuleGeneratorTransformer(
 
 /**
  * Analyze the full TypeScript program to extract Webda module metadata.
+ * @param tsModule - the TypeScript module
+ * @param program - the TypeScript program
+ * @param checker - the type checker
+ * @param namespace - the module namespace
+ * @param modelBases - set of known model base class names
+ * @returns the module metadata
  */
 function analyzeProgram(
   tsModule: typeof ts,
@@ -198,6 +210,14 @@ function analyzeProgram(
 
 /**
  * Extract model metadata from a class declaration.
+ * @param tsModule - the TypeScript module
+ * @param classDecl - the class declaration node
+ * @param checker - the type checker
+ * @param identifier - the namespaced model identifier
+ * @param importPath - the module import path
+ * @param namespace - the module namespace
+ * @param modelBases - set of known model base class names
+ * @returns the model metadata
  */
 function extractModelMetadata(
   tsModule: typeof ts,
@@ -290,6 +310,10 @@ function extractModelMetadata(
  *
  * Looks for `[WEBDA_PRIMARY_KEY] = ["field1", "field2"] as const` property declarations,
  * walking up the inheritance chain until one is found.
+ * @param tsModule - the TypeScript module
+ * @param classDecl - the class declaration node
+ * @param checker - the type checker
+ * @returns array of primary key field names
  */
 function extractPrimaryKey(
   tsModule: typeof ts,
@@ -363,6 +387,11 @@ function extractPrimaryKey(
 
 /**
  * Extract relation metadata from a property with a relation type.
+ * @param tsModule - the TypeScript module
+ * @param member - the property declaration node
+ * @param checker - the type checker
+ * @param relations - the relations object to populate
+ * @param relationType - the relation type identifier
  */
 function extractRelation(
   tsModule: typeof ts,
@@ -395,6 +424,11 @@ function extractRelation(
 
 /**
  * Check if a class extends a known model base.
+ * @param tsModule - the TypeScript module
+ * @param classDecl - the class declaration node
+ * @param checker - the type checker
+ * @param modelBases - set of known model base class names
+ * @returns true if the class is a model class
  */
 function isModelClassDecl(
   tsModule: typeof ts,
@@ -440,6 +474,9 @@ function isModelClassDecl(
 
 /**
  * Get JSDoc tags from a node.
+ * @param tsModule - the TypeScript module
+ * @param node - the AST node
+ * @returns a set of tag names
  */
 function getJsDocTags(tsModule: typeof ts, node: ts.Node): Set<string> {
   const tags = new Set<string>();
@@ -452,6 +489,9 @@ function getJsDocTags(tsModule: typeof ts, node: ts.Node): Set<string> {
 
 /**
  * Check if a class has a default export.
+ * @param tsModule - the TypeScript module
+ * @param node - the class declaration node
+ * @returns true if it is the default export
  */
 function isDefaultExport(tsModule: typeof ts, node: ts.ClassDeclaration): boolean {
   return !!node.modifiers?.some(m => m.kind === tsModule.SyntaxKind.DefaultKeyword);
@@ -459,6 +499,8 @@ function isDefaultExport(tsModule: typeof ts, node: ts.ClassDeclaration): boolea
 
 /**
  * Walk up directories to find package.json.
+ * @param startDir - the starting directory
+ * @returns the path to package.json, or undefined
  */
 function findPackageJson(startDir: string): string | undefined {
   let dir = startDir;

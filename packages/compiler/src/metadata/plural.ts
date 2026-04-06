@@ -8,6 +8,8 @@ import { MetadataPlugin } from "./plugin";
  * Plural
  *
  * https://www.teflcourse.net/english-grammar-corner/changing-nouns-from-singular-to-plural/
+ * @param name - the singular noun
+ * @returns the pluralized form
  */
 export function getPlural(name: string): string {
   if (name.endsWith("y")) {
@@ -57,6 +59,11 @@ export function getPlural(name: string): string {
   }
   return name + "s";
 }
+/**
+ * Check whether a character is a vowel (including y)
+ * @param char - the character to check
+ * @returns true if vowel
+ */
 function isVowel(char: string): boolean {
   return "aeiouy".includes(char.toLowerCase());
 }
@@ -65,6 +72,11 @@ function isVowel(char: string): boolean {
  * Plural metadata plugin
  */
 export class PluralMetadata extends MetadataPlugin {
+    /**
+     * Set the plural form for each model using a WebdaPlural tag or English pluralization rules
+     * @param module - the module to populate
+     * @param objects - discovered Webda objects
+     */
     getMetadata(module: WebdaModule, objects: WebdaObjects): void {
         Object.keys(objects.models).forEach(name => {
             const { tags } = objects.models[name];

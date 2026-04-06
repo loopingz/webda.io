@@ -12,6 +12,9 @@ export type UserEvents<T> = ModelEvents<T> & {
  */
 export class User extends UuidModel {
   [WEBDA_EVENTS]: UserEvents<this>;
+  /** Create a new User
+   * @param data - initial data
+   */
   constructor(data?: Settable<User>) {
     super();
     Object.assign(this, data);
@@ -47,7 +50,7 @@ export class User extends UuidModel {
 
   /**
    * Return displayable public entry
-   * @returns
+   * @returns the result
    * @Frontend
    */
   toPublicEntry(): any {
@@ -61,7 +64,7 @@ export class User extends UuidModel {
 
   /**
    * Get email
-   * @returns
+   * @returns the result
    */
   getEmail(): string | undefined {
     return this.email;
@@ -69,7 +72,7 @@ export class User extends UuidModel {
 
   /**
    * Get user groups
-   * @returns
+   * @returns the list of results
    */
   getGroups(): string[] {
     return [];
@@ -77,7 +80,7 @@ export class User extends UuidModel {
 
   /**
    * Get roles
-   * @returns
+   * @returns the list of results
    */
   getRoles(): string[] {
     return [];
@@ -85,7 +88,7 @@ export class User extends UuidModel {
 
   /**
    * Get display name
-   * @returns
+   * @returns the result string
    */
   getDisplayName(): string {
     return this.displayName;
@@ -93,8 +96,8 @@ export class User extends UuidModel {
 
   /**
    *
-   * @param timestamp
-   * @returns
+   * @param timestamp - the timestamp
+   * @returns true if the condition is met
    */
   lastPasswordRecoveryBefore(timestamp: number): boolean {
     return this._lastPasswordRecovery < timestamp;
@@ -102,16 +105,26 @@ export class User extends UuidModel {
 
   /**
    * Get the password
-   * @returns
+   * @returns the result
    */
   getPassword() {
     return this.__password;
   }
 
+  /**
+   * Set the user password hash
+   * @param password - the password
+   */
   setPassword(password: string) {
     this.__password = password;
   }
 
+  /**
+   * Only the user themselves can act on their own object
+   * @param ctx - the operation context
+   * @param action - the action to check
+   * @returns the result
+   */
   async canAct(ctx: IOperationContext, action: string): Promise<string | boolean> {
     if (!ctx.getCurrentUserId() || ctx.getCurrentUserId() !== this.getUUID()) {
       return "You can't act on this user";
@@ -119,6 +132,10 @@ export class User extends UuidModel {
     return true;
   }
 
+  /**
+   * String representation of the user
+   * @returns the result
+   */
   toString() {
     return `User[${this.getUUID()}]`;
   }

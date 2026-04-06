@@ -7,6 +7,9 @@ import type { CoercionRegistry } from "./coercions";
  * Detect if a type has a `set` method marked with `@WebdaAutoSetter` and return its parameter type(s) as a string.
  * For example, if MFA has `@WebdaAutoSetter set(secret: string)`, returns "string".
  * Returns undefined if the set method exists but lacks the JSDoc tag.
+ * @param checker - the TypeScript type checker
+ * @param type - the type to inspect
+ * @returns the setter parameter type string, or undefined
  */
 function detectSetMethodType(checker: ts.TypeChecker, type: ts.Type): string | undefined {
   try {
@@ -32,6 +35,8 @@ function detectSetMethodType(checker: ts.TypeChecker, type: ts.Type): string | u
 
 /**
  * Check if a symbol's declaration has a `@WebdaAutoSetter` JSDoc tag.
+ * @param symbol - the symbol to check
+ * @returns true if the tag is present
  */
 function hasWebdaAutoSetterTag(symbol: ts.Symbol): boolean {
   const declarations = symbol.getDeclarations();
@@ -57,6 +62,10 @@ export interface CoercibleProperty {
  * Check if a class implements the `Accessors` marker interface.
  *
  * Looks for `implements Accessors` in the class heritage clauses.
+ * @param tsModule - the TypeScript module
+ * @param classDecl - the class declaration node
+ * @param checker - the type checker
+ * @returns true if the Accessors marker is present
  */
 export function hasAccessorsMarker(
   tsModule: typeof ts,
@@ -84,6 +93,12 @@ export function hasAccessorsMarker(
  * Check if a class should have its properties transformed.
  * Returns true if it's a model class, implements the Accessors marker interface,
  * or `accessorsForAll` is enabled.
+ * @param tsModule - the TypeScript module
+ * @param classDecl - the class declaration node
+ * @param checker - the type checker
+ * @param modelBases - set of known model base class names
+ * @param accessorsForAll - if true, transform all classes
+ * @returns true if the class should be transformed
  */
 export function shouldTransformClass(
   tsModule: typeof ts,
@@ -102,6 +117,11 @@ export function shouldTransformClass(
  *
  * Walks the heritage chain using the type checker to resolve base classes,
  * even when they come from external packages.
+ * @param tsModule - the TypeScript module
+ * @param classDecl - the class declaration node
+ * @param checker - the type checker
+ * @param modelBases - set of known model base class names
+ * @returns true if the class is a model class
  */
 export function isModelClass(
   tsModule: typeof ts,
@@ -166,6 +186,11 @@ export function isModelClass(
  *
  * Walks the class and its ancestors to find properties whose declared type
  * has an entry in the coercion registry.
+ * @param tsModule - the TypeScript module
+ * @param classDecl - the class declaration node
+ * @param checker - the type checker
+ * @param coercions - the coercion registry
+ * @returns array of coercible properties
  */
 export function getCoercibleProperties(
   tsModule: typeof ts,

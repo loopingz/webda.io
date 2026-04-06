@@ -17,6 +17,7 @@ import type { Storable } from "@webda/models";
 import { templateVariables } from "../templates/templates.js";
 import { useCoreEvents } from "../events/events.js";
 
+/** Parameters for the Router service */
 export class RouterParameters extends ServiceParameters {
   /**
    * Display a WARNING if a route is overriden
@@ -51,13 +52,17 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
 
   /**
    * Registration of a model
-   * @param model
-   * @param url
+   * @param model - the model to use
+   * @param url - the URL
    */
   registerModelUrl(model: string, url: string) {
     this.models.set(model, url);
   }
 
+  /**
+   * Resolve dependencies and register route remapping on core init
+   * @returns the result
+   */
   resolve() {
     // Remap route
     useCoreEvents("Webda.Init", () => {
@@ -68,8 +73,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
 
   /**
    * Return the route for model
-   * @param model
-   * @returns
+   * @param model - the model to use
+   * @returns the result
    */
   getModelUrl(model: string | Storable) {
     if (typeof model !== "string") {
@@ -80,8 +85,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
 
   /**
    * Include prefix to the url if not present
-   * @param url
-   * @returns
+   * @param url - the URL
+   * @returns the result string
    */
   getFinalUrl(url: string): string {
     // We have to replace all @ by %40 as it is allowed in url rfc (https://www.rfc-editor.org/rfc/rfc3986#page-22)
@@ -104,7 +109,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
 
   /**
    * Return routes
-   * @returns
+   * @returns the result
    */
   getRoutes() {
     return this.routes;
@@ -151,6 +156,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * Remove a route dynamicly
    *
    * @param {String} url to remove
+   * @param info - the information object
    */
   removeRoute(url: string, info: RouteInfo = undefined): void {
     const finalUrl = this.getFinalUrl(url);
@@ -197,6 +203,12 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     this.pathMap.sort(this.comparePath);
   }
 
+  /**
+   * Compare two route paths for sorting, prioritizing literal segments over parameters
+   * @param a - the first route
+   * @param b - the second route
+   * @returns the result number
+   */
   protected comparePath(a, b): number {
     // Normal node works with localeCompare but not Lambda...
     // Local compare { to a return: 26 on Lambda
@@ -214,6 +226,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
 
   /**
    * @hidden
+   * @param config - the configuration
    */
   protected initURITemplates(config: Map<string, RouteInfo[]>): void {
     // Prepare tbe URI parser
@@ -263,9 +276,10 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
 
   /**
    * Get all method for a specific url
-   * @param config
-   * @param method
-   * @param url
+   * @param config - the configuration
+   * @param method - the HTTP method
+   * @param url - the URL
+   * @returns the list of results
    */
   getRouteMethodsFromUrl(url): HttpMethodType[] {
     const finalUrl = this.getFinalUrl(url);
@@ -288,6 +302,10 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
 
   /**
    * Get the route from a method / url
+   * @param ctx - the operation context
+   * @param method - the HTTP method
+   * @param url - the URL
+   * @returns the result
    */
   public getRouteFromUrl(ctx: IWebContext, method: HttpMethodType, url: string) {
     const finalUrl = this.getFinalUrl(url);
@@ -344,6 +362,11 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     }
   }
 
+  /**
+   * Convert a schema name or object to an OpenAPI $ref or inline schema
+   * @param schema - the schema object
+   * @returns the result
+   */
   protected getOpenAPISchema(schema) {
     if (!schema) {
       return {
@@ -478,6 +501,10 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     }
   }
 
+  /**
+   * Execute the matched route handler for a web context
+   * @param ctx - the operation context
+   */
   async execute(ctx: WebContext<any, any, any>) {
     const info = this.getRouteFromUrl(ctx, ctx.getHttpContext().getMethod(), ctx.getHttpContext().getUrl());
   }
@@ -486,6 +513,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * Verify if a request can be done
    *
    * @param context Context of the request
+   * @param ctx - the operation context
+   * @returns true if the condition is met
    */
   protected async checkRequest(ctx: IWebContext): Promise<boolean> {
     // Do not need to filter on OPTIONS as CORS is for that
@@ -499,6 +528,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * Verify if an origin is allowed to do request on the API
    *
    * @param context Context of the request
+   * @param ctx - the operation context
+   * @returns true if the condition is met
    */
   protected async checkCORSRequest(ctx: IWebContext): Promise<boolean> {
     return (await Promise.all(this._requestCORSFilters.map(filter => filter.checkRequest(ctx, "CORS")))).some(v => v);
@@ -506,8 +537,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
 
   /**
    * Export OpenAPI
-   * @param skipHidden
-   * @returns
+   * @param skipHidden - whether to skip hidden entries
+   * @returns the result
    */
   exportOpenAPI(skipHidden: boolean = true): OpenAPIV3.Document {
     const packageInfo = useApplication().getPackageDescription();
@@ -610,7 +641,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * Register a request filtering
    *
    * Will apply to all requests regardless of the devMode
-   * @param filter
+   * @param filter - the filter to apply
    */
   registerRequestFilter(filter: RequestFilter) {
     this._requestFilters.push(filter);
@@ -620,7 +651,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * Register a CORS request filtering
    *
    * Does not apply in devMode
-   * @param filter
+   * @param filter - the filter to apply
    */
   registerCORSFilter(filter: CORSFilter) {
     this._requestCORSFilters.push(filter);

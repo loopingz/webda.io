@@ -27,6 +27,8 @@ const KNOWN_MODEL_BASES = new Set(["Model", "UuidModel"]);
 /**
  * Returns true if the class (directly or transitively) extends a known model base.
  * Works even when the base class is from an external package (resolved via heritage clause text).
+ * @param cls - the class declaration to check
+ * @returns true if extends a known model base
  */
 function extendsModel(cls: ClassDeclaration): boolean {
   const visited = new Set<string>();
@@ -52,6 +54,7 @@ function extendsModel(cls: ClassDeclaration): boolean {
 /**
  * Ensure WEBDA_STORAGE is imported in the source file.
  * Adds to an existing @webda/models or ./storable import, or inserts a new one.
+ * @param sourceFile - the source file to update
  */
 function ensureStorageImport(sourceFile: SourceFile) {
   const alreadyImported = sourceFile
@@ -90,6 +93,7 @@ function ensureStorageImport(sourceFile: SourceFile) {
  *
  * Applies to classes that (directly or transitively) extend Model or UuidModel.
  * Skips fields that already have a getter or setter defined.
+ * @param sourceFile - the source file to transform
  */
 export function transformAccessors(sourceFile: SourceFile) {
   const modelClasses = sourceFile.getClasses().filter(extendsModel);

@@ -2,8 +2,8 @@ import * as ts from "typescript";
 
 /**
  * Load all JSDoc tags for a node
- * @param node
- * @returns
+ * @param node - the AST node to inspect
+ * @returns map of tag names to values
  */
 export function getTagsName(node: ts.Node) {
   const tags = {};
@@ -36,8 +36,9 @@ export type SymbolMapper = {
  * Get id from TypeNode
  *
  * The id is not exposed in the TypeNode
- * @param type
- * @returns
+ * @param type - the type node
+ * @param checker - the type checker
+ * @returns the symbol mapper
  */
 export function getTypeIdFromTypeNode(type: ts.TypeNode, checker: ts.TypeChecker): SymbolMapper {
   return {
@@ -49,8 +50,8 @@ export function getTypeIdFromTypeNode(type: ts.TypeNode, checker: ts.TypeChecker
 
 /**
  * Ensure the model is of type SymbolMapper
- * @param symbol
- * @returns
+ * @param symbol - the value to check
+ * @returns true if SymbolMapper
  */
 export function isSymbolMapper(symbol: string | SymbolMapper): symbol is SymbolMapper {
   return (symbol as SymbolMapper)?.symbolMap === true;
@@ -58,9 +59,9 @@ export function isSymbolMapper(symbol: string | SymbolMapper): symbol is SymbolM
 
 /**
  * Get a parent of a certain Type
- * @param node
- * @param type
- * @returns
+ * @param node - the starting node
+ * @param type - the syntax kind to find
+ * @returns the parent node matching the type
  */
 export function getParent(node: ts.Node, type: ts.SyntaxKind): ts.Node {
   let parent = node.parent;
@@ -74,7 +75,8 @@ export function getParent(node: ts.Node, type: ts.SyntaxKind): ts.Node {
 }
 /**
  * Display all parent of a Node
- * @param node
+ * @param node - the node to display parents for
+ * @param stream - optional output stream
  */
 export function displayParents(node: ts.Node, stream?: any) {
   let parent = node.parent;
@@ -95,8 +97,9 @@ export function displayParents(node: ts.Node, stream?: any) {
  * Utils to display a tree in console
  *
  * Useful during development
- * @param node
- * @param level
+ * @param node - the root node
+ * @param stream - optional output stream
+ * @param level - indentation depth
  */
 export function displayTree(node: ts.Node, stream?: (...args) => void, level: number = 0) {
   displayItem(node, stream, level);
@@ -105,8 +108,9 @@ export function displayTree(node: ts.Node, stream?: (...args) => void, level: nu
 
 /**
  * Display an item
- * @param node
- * @param level
+ * @param node - the node to display
+ * @param log - optional logger function
+ * @param level - indentation depth
  */
 export function displayItem(node: ts.Node, log?: (...args) => void, level: number = 0) {
   if (!log) {
@@ -117,6 +121,12 @@ export function displayItem(node: ts.Node, log?: (...args) => void, level: numbe
 
 type KeyKind = "string" | "number" | "symbol" | "other-computed";
 
+/**
+ * Determine whether a declaration's property key is a string, number, symbol, or other computed kind
+ * @param decl - the named declaration
+ * @param checker - the type checker
+ * @returns the key kind or undefined
+ */
 export function getKeyKind(
   decl: ts.NamedDeclaration,
   checker: ts.TypeChecker

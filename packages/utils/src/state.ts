@@ -78,6 +78,7 @@ const WRAPPED_FLAG = Symbol("__stateWrappedFlag");
  * Nested / recursive calls are counted and only the outermost call triggers transitions.
  *
  * @param options - Optional transition state names.
+ * @returns the method decorator
  */
 export function State<E extends string = string>(options?: StateOptions<E>) {
   return (value: any, context: ClassMemberDecoratorContext) => {

@@ -3,6 +3,7 @@ import { Model, ModelEvents, UuidModel } from "../src/model";
 import { ModelLinksArray, ModelLinksMap, ModelLinksSimpleArray, ModelParent, ModelRelated } from "../src/relations";
 import { JSONed, PrimaryKeyType, SelfJSONed, WEBDA_EVENTS, WEBDA_PRIMARY_KEY } from "../src/storable";
 
+/** Customer identified by country + identifier with related invoices. */
 class Customer extends Model {
   // Define the primary key for the Customer model
   [WEBDA_PRIMARY_KEY] = ["country", "identifier"] as const;
@@ -24,6 +25,7 @@ class Customer extends Model {
   invoices: ModelRelated<Invoice>;
 }
 
+/** Invoice linked to a customer with line-item product relations. */
 class Invoice extends UuidModel {
   amount: number;
   customer: ModelParent<Customer>;
@@ -93,6 +95,7 @@ const testJsoned: JSONed<Invoice> = {
   items4: ["1234", "5678"]
 };
 
+/** Product with inventory tracking and sales counters. */
 export class Product extends UuidModel {
   name: string;
   price: number;
@@ -101,17 +104,20 @@ export class Product extends UuidModel {
   totalSold: number;
 }
 
+/** Contact identified by email address. */
 class Contact extends Model {
   [WEBDA_PRIMARY_KEY] = ["email"] as const;
   name: string;
   email: string;
 }
 
+/** Email message with recipients and linked contacts. */
 class Email extends UuidModel {
   recipents: string[];
   contacts: ModelLinksSimpleArray<Contact>;
 }
 
+/** Multi-factor authentication value object with verify/confirm actions. */
 export class MFA implements Actionable {
   [WEBDA_ACTIONS]: {
     verify: {
@@ -122,22 +128,43 @@ export class MFA implements Actionable {
     };
   };
   secret: string;
+  /**
+   * Verify a MFA code.
+   * @param code - the verification code
+   * @returns true if verified
+   */
   async verify(code: string) {
     return true;
   }
+  /**
+   * Confirm a MFA code with two factors and a secret.
+   * @param code - the first factor code
+   * @param code2 - the second factor code
+   * @param secret - the MFA secret
+   * @returns true if confirmed
+   */
   async confirm(code: string, code2: string, secret: string) {
     return true;
   }
 
+  /**
+   * Convert to a DTO exposing only whether MFA is enabled.
+   * @returns the DTO representation
+   */
   toDTO() {
     return {
       enabled: this.secret !== undefined
     };
   }
 
+  /**
+   * Restore state from a DTO (no-op).
+   * @param dto - the data transfer object
+   */
   fromDTO(dto: any): void {}
 }
 
+/** Read-only MFA variant that disables the confirm action. */
 class ReadonlyMFA extends MFA {
   [WEBDA_ACTIONS]: MFA[typeof WEBDA_ACTIONS] & {
     confirm: {
@@ -146,6 +173,7 @@ class ReadonlyMFA extends MFA {
   };
 }
 
+/** User model with MFA, login tracking, and action-based authorization. */
 class User extends UuidModel {
   [WEBDA_EVENTS]: ModelEvents<this> & {
     Login: { user: User };
@@ -163,10 +191,19 @@ class User extends UuidModel {
   readonly_mfa: ReadonlyMFA;
   loginCount: number;
 
+  /**
+   * Log the user out.
+   * @returns true on success
+   */
   logout() {
     return true;
   }
 
+  /**
+   * Determine whether the given action is permitted for this user.
+   * @param action - the action to check
+   * @returns true or a string reason if permitted, false otherwise
+   */
   async canAct(action: ActionsEnum<User>): Promise<boolean | string> {
     if (action === "mfa.confirm") {
       return true;
@@ -200,10 +237,15 @@ Customer.ref({
   categories: []
 });
 
+/** GitHub issue model identified by numeric id. */
 class GithubIssue extends Model {
   [WEBDA_PRIMARY_KEY] = ["id"] as const;
   id: number;
 
+  /**
+   * Serialize this issue to its JSON representation.
+   * @returns the JSON representation
+   */
   toJSON(): SelfJSONed<this> {
     return <SelfJSONed<this>>this;
   }

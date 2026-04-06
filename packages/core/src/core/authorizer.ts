@@ -16,9 +16,9 @@ export type AuthorizerFunction = (...args: any[]) => boolean | Promise<boolean>;
  * Return false if all authorizer deny the action
  * Throw exeption if one of the authorizer return a hard no
  * 
- * @param authorizer 
- * @param args 
- * @returns 
+ * @param authorizer - the authorizer function
+ * @param args - additional arguments
+ * @returns true if the condition is met
  * @see AuthorizerFunction
  */
 export async function checkAuthorizer(authorizer: AuthorizerFunction[], ...args: any[]): Promise<boolean> {

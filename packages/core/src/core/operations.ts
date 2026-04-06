@@ -19,9 +19,10 @@ import { useLog } from "@webda/workout";
 /**
  * Check if an operation can be executed with the current context
  * Not checking the input use `checkOperation` instead to check everything
- * @param context
- * @param operationId
+ * @param context - the execution context
+ * @param operationId - the operation identifier
  * @throws OperationError if operation is unknown
+ * @param operation - the operation definition
  * @returns true if operation can be executed
  */
 function checkOperationPermission(
@@ -41,8 +42,8 @@ function checkOperationPermission(
 
 /**
  * Check if an operation can be executed with the current context
- * @param context
- * @param operationId
+ * @param context - the execution context
+ * @param operationId - the operation identifier
  */
 async function checkOperation(context: OperationContext, operationId: string) {
   const operations = useInstanceStorage().operations;
@@ -76,6 +77,8 @@ async function checkOperation(context: OperationContext, operationId: string) {
 
 /**
  * Call an operation within the framework
+ * @param context - the execution context
+ * @param operationId - the operation identifier
  */
 export async function callOperation(context: OperationContext, operationId: string): Promise<void> {
   const operations = useInstanceStorage().operations;
@@ -112,7 +115,7 @@ export async function callOperation(context: OperationContext, operationId: stri
 
 /**
  * Get available operations
- * @returns
+ * @returns the result
  */
 export function listOperations(): { [key: string]: Omit<OperationDefinition, "service" | "method"> } {
   const list = {};
@@ -129,8 +132,8 @@ export function listOperations(): { [key: string]: Omit<OperationDefinition, "se
 
 /**
  * Register a new operation within the app
- * @param operationId
- * @param definition
+ * @param operationId - the operation identifier
+ * @param definition - the definition object
  */
 export function registerOperation(operationId: string, definition: Omit<OperationDefinition, "id">) {
   // Check operation naming convention
@@ -235,6 +238,11 @@ function Operation(
   target: (this: OperationTarget, ...args: any) => any,
   context: ClassMethodDecoratorContext
 ): void;
+/**
+ * Decorator that registers a class method as an operation with optional configuration
+ * @param args - additional arguments
+ * @returns the result
+ */
 function Operation(...args: any[]) {
   const annotate = (
     target: AnyMethod,

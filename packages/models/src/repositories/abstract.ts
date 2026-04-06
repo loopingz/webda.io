@@ -28,25 +28,21 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     protected pks: string[],
     protected separator: string = "_"
   ) {}
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   getRootModel(): T {
     return this.model;
   }
 
   /**
    * Return a ref from the uuid
-   * @param uid
-   * @returns
+   * @param uid - the serialized primary key
+   * @returns a model reference with create capability
    */
   fromUID(uid: string): ModelRefWithCreate<InstanceType<T>> {
     return this.ref(this.parseUID(uid));
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   parseUID(uid: string, forceObject?: boolean): PrimaryKeyType<InstanceType<T>> | PrimaryKey<InstanceType<T>> {
     if (this.pks.length === 1) {
       return forceObject
@@ -64,9 +60,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     return result;
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   excludePrimaryKey(object: any): any {
     const pkFields = (object.PrimaryKey || this.pks || []) as Array<keyof T>;
     const result = { ...object };
@@ -76,11 +70,11 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     return result;
   }
 
+  /** Get the primary key value for an object as a scalar or string. */
   getPrimaryKey(object: any, forceObject?: false): PrimaryKeyType<InstanceType<T>>;
+  /** Get the primary key value for an object as a structured key object. */
   getPrimaryKey(object: any, forceObject: true): PrimaryKey<InstanceType<T>>;
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   getPrimaryKey(object: any, forceObject?: boolean): PrimaryKeyType<InstanceType<T>> | PrimaryKey<InstanceType<T>> {
     const pkFields = (object[WEBDA_PRIMARY_KEY] || this.pks || []) as Array<keyof InstanceType<T>>;
     if (pkFields.length === 0) {
@@ -119,16 +113,12 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     return key;
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   getUID(object: any): string {
     return this.getPrimaryKey(object).toString();
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   async upsert(data: Helpers<InstanceType<T>>): Promise<InstanceType<T>> {
     const key = this.getPrimaryKey(data);
     if (await this.exists(key)) {
@@ -138,9 +128,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     return this.create(data);
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   async setAttribute<K extends PropertyPaths<InstanceType<T>>, L extends PropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string,
     attribute: K,
@@ -151,18 +139,14 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     return this.patch(this.getPrimaryKey(primaryKey), { [attribute]: value } as any, conditionField, condition);
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   public ref(
     key: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>
   ): ModelRefWithCreate<InstanceType<T>> {
     return new ModelRefWithCreate<InstanceType<T>>(key, this as any);
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   async incrementAttribute<K extends PropertyPaths<InstanceType<T>>, L extends NumericPropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
     info: L | { property: L; value?: number },
@@ -233,9 +217,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   ): Promise<void>;
   abstract exists(uuid: PrimaryKeyType<InstanceType<T>>): Promise<boolean>;
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   on<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
     event: K,
     listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void
@@ -246,9 +228,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     this.events.get(event)!.add(listener as any);
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   once<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
     event: K,
     listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void
@@ -260,9 +240,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     this.on(event, wrapper as any);
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   off<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
     event: K,
     listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void

@@ -9,13 +9,16 @@ import { RequestFilter } from "./irest.js";
  */
 export class OriginFilter implements RequestFilter<IWebContext> {
   regexs: RegExpValidator;
+  /** Create a new OriginFilter
+   * @param origins - allowed origin patterns
+   */
   constructor(origins: string[]) {
     this.regexs = new RegExpValidator(origins);
   }
   /**
    *
-   * @param context
-   * @returns
+   * @param context - the execution context
+   * @returns true if the condition is met
    */
   async checkRequest(context: IWebContext): Promise<boolean> {
     const httpContext = context.getHttpContext();
@@ -28,6 +31,9 @@ export class OriginFilter implements RequestFilter<IWebContext> {
  */
 export class WebsiteOriginFilter implements RequestFilter<IWebContext> {
   websites: string[] = [];
+  /** Create a new WebsiteOriginFilter
+   * @param website - allowed website URL or array of URLs
+   */
   constructor(website: any) {
     if (!Array.isArray(website)) {
       if (typeof website === "object") {
@@ -40,6 +46,11 @@ export class WebsiteOriginFilter implements RequestFilter<IWebContext> {
     }
   }
 
+  /**
+   * Verify that the request origin or host is in the allowed websites list
+   * @param context - the execution context
+   * @returns true if the condition is met
+   */
   async checkRequest(context: IWebContext): Promise<boolean> {
     const httpContext = context.getHttpContext();
     if (

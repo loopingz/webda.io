@@ -28,7 +28,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
 
   /**
    * Set object owner
-   * @param uuid
+   * @param uuid - the unique identifier
    */
   setOwner(uuid: PrimaryKeyType<T>): void {
     this._user ??= new ModelLink<T>(this.getOwnerModel()).set(uuid);
@@ -39,12 +39,18 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
    * Return the owner of the object
    *
    * Only the owner can do update to the object
-   * @returns
+   * @returns the result
    */
   getOwner(): ModelLink<T> {
     return this._user;
   }
 
+  /**
+   * Check if the current user can perform the given action based on ownership
+   * @param context - the execution context
+   * @param action - the action to check
+   * @returns the result
+   */
   async canAct(context: IOperationContext, action: string): Promise<string | boolean> {
     // Object is public
     if (this.public && (action === "get" || action === "get_binary")) {
@@ -63,8 +69,8 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
   /**
    * Return a query to filter OwnerModel
    *
-   * @param context
-   * @returns
+   * @param context - the execution context
+   * @returns the result
    */
   static getPermissionQuery(context?: IOperationContext): null | { partial: boolean; query: string } {
     if (!context) {
@@ -81,6 +87,10 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
  * @WebdaModel
  */
 export class OwnerModel extends AbstractOwnerModel<User> {
+  /**
+   * Get the User model class used for ownership
+   * @returns the result
+   */
   getOwnerModel(): ModelClass<User> {
     return User;
   }

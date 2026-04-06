@@ -39,6 +39,10 @@ export interface EventBinaryMetadataUpdate<T extends Storable = Storable> extend
  * Emitted if binary does not exist
  */
 export class BinaryNotFoundError extends WebdaError.CodeError {
+  /** Create a new BinaryNotFoundError
+   * @param hash - the binary hash
+   * @param storeName - the binary service name
+   */
   constructor(hash: string, storeName: string) {
     super("BINARY_NOTFOUND", `Binary not found ${hash} BinaryService(${storeName})`);
   }
@@ -116,13 +120,16 @@ export abstract class BinaryFile<T extends object = {}> implements BinaryFileInf
    */
   metadata?: T;
 
+  /** Create a new BinaryFile
+   * @param info - the binary file information
+   */
   constructor(info: BinaryFileInfo<T>) {
     this.set(info);
   }
 
   /**
    * Set the information
-   * @param info
+   * @param info - the information object
    */
   set(info: BinaryFileInfo<T>) {
     this.name = info.name;
@@ -135,7 +142,7 @@ export abstract class BinaryFile<T extends object = {}> implements BinaryFileInf
 
   /**
    * Retrieve a plain BinaryFileInfo object
-   * @returns
+   * @returns the result
    */
   toBinaryFileInfo(): BinaryFileInfo<T> {
     return {
@@ -153,8 +160,8 @@ export abstract class BinaryFile<T extends object = {}> implements BinaryFileInf
 
   /**
    * Create hashes
-   * @param buffer
-   * @returns
+   * @param buffer - the buffer
+   * @returns the result
    */
   public async getHashes(): Promise<{ hash: string; challenge: string }> {
     if (!this.hash) {
@@ -184,12 +191,16 @@ export abstract class BinaryFile<T extends object = {}> implements BinaryFileInf
   }
 }
 
+/** BinaryFile backed by a local filesystem path */
 export class LocalBinaryFile extends BinaryFile {
   /**
    * Path on the hard drive
    */
   path: string;
 
+  /** Create a new LocalBinaryFile
+   * @param filePath - path to the local file
+   */
   constructor(filePath: string) {
     super({
       name: path.basename(filePath),
@@ -207,6 +218,7 @@ export class LocalBinaryFile extends BinaryFile {
   }
 }
 
+/** BinaryFile backed by an in-memory Buffer */
 export class MemoryBinaryFile extends BinaryFile {
   /**
    * Content
@@ -214,6 +226,10 @@ export class MemoryBinaryFile extends BinaryFile {
   @NotEnumerable
   buffer: Buffer;
 
+  /** Create a new MemoryBinaryFile
+   * @param buffer - the binary content
+   * @param info - optional file information
+   */
   constructor(buffer: Buffer | string, info: Partial<BinaryFileInfo> = {}) {
     super({
       ...info,
@@ -250,6 +266,10 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
     service: BinaryService;
   } = {} as any;
 
+  /** Create a new BinaryMap
+   * @param service - the binary service
+   * @param obj - the binary file information
+   */
   constructor(service: BinaryService, obj: BinaryFileInfo<T>) {
     super(obj);
     this.set(obj);
@@ -259,7 +279,7 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
   /**
    * Get the binary data
    *
-   * @returns
+   * @returns the result
    */
   get(): Promise<Readable> {
     return this[WEBDA_STORAGE].service.get(this);
@@ -267,6 +287,7 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
 
   /**
    * Get into a buffer
+   * @returns the result
    */
   async getAsBuffer(): Promise<Buffer> {
     return BinaryService.streamToBuffer(await this.get());
@@ -277,7 +298,8 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
    *
    * Shortcut to call {@link Binary.downloadTo} with current object
    *
-   * @param filename
+   * @param filename - the filename
+   * @returns the result
    */
   async downloadTo(filename: string): Promise<void> {
     return this[WEBDA_STORAGE].service.downloadTo(this, filename);
@@ -296,6 +318,10 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
     service: BinaryService;
     empty: boolean;
   } = {} as any;
+  /** Create a new Binary
+   * @param attribute - the model attribute name
+   * @param model - the parent model
+   */
   constructor(attribute: string, model: Model) {
     super(<any>useCore().getBinaryStore(model, attribute), model[attribute] || {});
     this[WEBDA_STORAGE].empty = model[attribute] === undefined;
@@ -305,7 +331,7 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
 
   /**
    * isEmpty
-   * @returns
+   * @returns the result
    */
   isEmpty() {
     return this[WEBDA_STORAGE].empty;
@@ -313,7 +339,7 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
 
   /**
    * Ensure empty is set correctly
-   * @param info
+   * @param info - the information object
    */
   set(info: BinaryFileInfo<T>): void {
     super.set(info);
@@ -322,9 +348,10 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
 
   /**
    * Replace the binary
-   * @param id
-   * @param ctx
-   * @returns
+   * @param id - the identifier
+   * @param ctx - the operation context
+   * @param file - the file path
+   * @returns the result
    */
   async upload(file: BinaryFile<T>): Promise<void> {
     await this[WEBDA_STORAGE].service.store(this[WEBDA_STORAGE].model, this[WEBDA_STORAGE].attribute, file);
@@ -342,7 +369,7 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
 
   /**
    * Return undefined if no hash
-   * @returns
+   * @returns the result
    */
   toJSON(): BinaryFileInfo<T> | undefined {
     if (!this.hash) {
@@ -361,15 +388,20 @@ export class BinariesItem<T extends object = {}> extends BinaryMap<T> {
     parent: BinariesImpl<T>;
   } = {} as any;
 
+  /** Create a new BinariesItem
+   * @param parent - the parent binaries collection
+   * @param info - the binary file information
+   */
   constructor(parent: BinariesImpl<T>, info: BinaryFileInfo<T>) {
     super(parent[WEBDA_STORAGE].service, info);
     this[WEBDA_STORAGE].parent = parent;
   }
   /**
    * Replace the binary
-   * @param id
-   * @param ctx
-   * @returns
+   * @param id - the identifier
+   * @param ctx - the operation context
+   * @param file - the file path
+   * @returns the result
    */
   async upload(file: BinaryFile<T>): Promise<void> {
     await this[WEBDA_STORAGE].parent.upload(file, this);
@@ -378,6 +410,7 @@ export class BinariesItem<T extends object = {}> extends BinaryMap<T> {
 
   /**
    * Delete the binary, if you need to replace just use upload
+   * @returns the result
    */
   async delete() {
     return this[WEBDA_STORAGE].parent.delete(this);
@@ -394,8 +427,18 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
     service: BinaryService;
   } = {} as any;
 
+  /**
+   * No-op: BinariesImpl cannot be constructed from DTO
+   * @param data - the data to process
+   */
   static fromDto(data: never): void {}
 
+  /**
+   * Bind this collection to a model and attribute, populating from existing binary data
+   * @param model - the model to use
+   * @param attribute - the attribute name
+   * @returns this for chaining
+   */
   assign(model: Model, attribute: string): this {
     this[WEBDA_STORAGE].model = model;
     this[WEBDA_STORAGE].attribute = attribute;
@@ -406,26 +449,35 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
     return this;
   }
 
-  // Readonly methods
+  /** @throws Readonly collection */
   pop(): BinariesItem<T> {
     throw new Error("Readonly");
   }
+  /** @throws Readonly collection */
   slice(): BinariesItem<T>[] {
     throw new Error("Readonly");
   }
+  /** @throws Readonly collection */
   unshift(): number {
     throw new Error("Readonly");
   }
+  /** @throws Readonly collection */
   shift(): BinariesItem<T> {
     throw new Error("Readonly");
   }
+  /**
+   * Add binary items, wrapping plain objects in BinariesItem
+   * @param args - additional arguments
+   * @returns the result number
+   */
   push(...args): number {
     return super.push(...args.map(arg => (arg instanceof BinariesItem ? arg : new BinariesItem(this, arg))));
   }
 
   /**
    * Upload a file to this model
-   * @param file
+   * @param file - the file path
+   * @param replace - whether to replace existing
    */
   async upload(file: BinaryFile<T>, replace?: BinariesItem<T>): Promise<void> {
     await this[WEBDA_STORAGE].service.store(this[WEBDA_STORAGE].model, this[WEBDA_STORAGE].attribute, file);
@@ -438,7 +490,7 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
 
   /**
    * Delete an item
-   * @param item
+   * @param item - the item
    */
   async delete(item: BinariesItem<T>) {
     let itemIndex = this.indexOf(item);
@@ -461,6 +513,7 @@ export type Binaries<T extends object = {}> = Readonly<Array<BinariesItem<T>>> &
   upload: (file: BinaryFile<T>) => Promise<void>;
 };
 
+/** Parameters for BinaryService, defining model mappings and max upload size */
 export class BinaryParameters extends ServiceParameters {
   /**
    * max file size
@@ -483,10 +536,19 @@ export class BinaryParameters extends ServiceParameters {
   set maxFileSize(value: number | string) {
     this._maxFileSize = new FileSize(value).valueOf();
   }
+  /**
+   * Get the max file size in bytes
+   * @returns the result number
+   */
   get maxFileSize(): number {
     return this._maxFileSize;
   }
 
+  /**
+   * Load parameters with defaults for model mappings and max file size
+   * @param params - the service parameters
+   * @returns this for chaining
+   */
   load(params: any = {}): this {
     super.load(params);
     // Store all models in it by default
@@ -580,6 +642,10 @@ export abstract class BinaryService<
   /**
    * Get a UrlFromObject
    *
+   * @param binaryMap - the binary map definition
+   * @param _context - the execution context
+   * @param _expires - the expiration time
+   * @returns the result
    */
   async getRedirectUrlFromObject(
     binaryMap: BinaryMap,
@@ -591,8 +657,8 @@ export abstract class BinaryService<
 
   /**
    * Define if binary is managed by the store
-   * @param modelName
-   * @param attribute
+   * @param modelName - the model name
+   * @param attribute - the attribute name
    * @returns -1 if not managed, 0 if managed but by default, 1 if managed and in the map, 2 if explicit with attribute and model
    */
   handleBinary(modelName: string, attribute: string): -1 | 0 | 1 | 2 {
@@ -667,6 +733,7 @@ export abstract class BinaryService<
    *
    * @param {Object} info The reference stored in your target object
    * @emits 'binaryGet'
+   * @returns the result
    */
   async get(info: BinaryMap): Promise<Readable> {
     await this.emit("Binary.Get", {
@@ -682,6 +749,7 @@ export abstract class BinaryService<
    *
    * @param {Object} info The reference stored in your target object
    * @param {String} filepath to save the binary to
+   * @param filename - the filename
    */
   async downloadTo(info: BinaryMap, filename): Promise<void> {
     await this.emit("Binary.Get", {
@@ -713,8 +781,8 @@ export abstract class BinaryService<
 
   /**
    * Based on the raw Map init a BinaryMap
-   * @param obj
-   * @returns
+   * @param obj - the target object
+   * @returns the result map
    */
   newModel(obj: any): BinaryMap {
     return new BinaryMap(this, obj);
@@ -723,8 +791,8 @@ export abstract class BinaryService<
   /**
    * Read a stream to a buffer
    *
-   * @param stream
-   * @returns
+   * @param stream - the stream
+   * @returns the result
    */
   static streamToBuffer(stream: Readable): Promise<Buffer> {
     // codesnippet from https://stackoverflow.com/questions/14269233/node-js-how-to-read-a-stream-into-a-buffer
@@ -734,8 +802,9 @@ export abstract class BinaryService<
   /**
    * Check if a map is defined
    *
-   * @param name
-   * @param property
+   * @param name - the name to use
+   * @param property - the property name
+   * @param object - the target object
    */
   protected checkMap(object: Model, property: string) {
     const { Identifier } = useModelMetadata(object);
@@ -747,6 +816,9 @@ export abstract class BinaryService<
 
   /**
    * Ensure events are sent correctly after an upload and update the BinaryFileInfo in targetted object
+   * @param object - the target object
+   * @param property - the property name
+   * @param fileInfo - the file information
    */
   async uploadSuccess(
     object: CoreModelWithBinary,
@@ -806,11 +878,11 @@ export abstract class BinaryService<
 
   /**
    *
-   * @param targetStore
-   * @param object
-   * @param property
-   * @param index
-   * @returns
+   * @param targetStore - the target store
+   * @param object - the target object
+   * @param property - the property name
+   * @param index - the index
+   * @returns the result
    */
   async deleteSuccess(object: CoreModelWithBinary, property: string, index?: number) {
     const info: BinaryMap = <BinaryMap>(index !== undefined ? object[property][index] : object[property]);
@@ -838,8 +910,8 @@ export abstract class BinaryService<
 
   /**
    * Get file either from multipart post or raw
-   * @param req
-   * @returns
+   * @param req - the request
+   * @returns the result
    */
   async getFile(req: IOperationContext): Promise<BinaryFile> {
     const { size } = req.getParameters();
@@ -864,7 +936,7 @@ export abstract class BinaryService<
 
   /**
    * Return the name of the service for OpenAPI
-   * @returns
+   * @returns the result string
    */
   protected getOperationName(): string {
     return this.name.toLowerCase() === "binary" ? "" : this.name;
@@ -872,8 +944,8 @@ export abstract class BinaryService<
 
   /**
    * Based on the request parameter verify it match a known mapping
-   * @param ctx
-   * @returns
+   * @param ctx - the operation context
+   * @returns the result
    */
   protected verifyMapAndStore(ctx: IOperationContext): IStore {
     // Check for model
@@ -887,6 +959,7 @@ export abstract class BinaryService<
   /**
    * By default no challenge is managed so throws 404
    *
+   * @param args - additional arguments
    */
   async putRedirectUrl(...args: any): Promise<{ url: string; method?: string; headers?: { [key: string]: string } }> {
     // Dont handle the redirect url

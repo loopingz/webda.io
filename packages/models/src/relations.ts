@@ -31,8 +31,8 @@ export const RelationModel = Symbol("RelationModel");
 export const RelationAttributes = Symbol("RelationAttributes");
 /**
  * Assign non symbol properties from source to target
- * @param target
- * @param source
+ * @param target - the destination object
+ * @param source - the source object
  */
 export function assignNonSymbols(target: any, source: any) {
   Object.keys(source).forEach(key => {
@@ -62,6 +62,7 @@ export class ModelRef<T extends Storable> {
 
   /**
    * Get the repository and ensure it's initialized
+   * @returns the repository instance
    */
   protected getRepository(): Repository<ModelClass<T>> {
     if (!this[RelationRepository]) {
@@ -72,6 +73,7 @@ export class ModelRef<T extends Storable> {
 
   /**
    * Get the primary key and ensure it's initialized
+   * @returns the primary key value
    */
   protected getKey(): PrimaryKeyType<T> {
     return this.getPrimaryKey();
@@ -79,6 +81,7 @@ export class ModelRef<T extends Storable> {
 
   /**
    * Get the model
+   * @returns the primary key value
    */
   getPrimaryKey(): PrimaryKeyType<T> {
     if (!this[RelationKey]) {
@@ -89,6 +92,7 @@ export class ModelRef<T extends Storable> {
 
   /**
    * Serialize the reference to its primary key value
+   * @returns the primary key value
    */
   toJSON(): PrimaryKeyType<T> {
     return this.getKey();
@@ -96,9 +100,9 @@ export class ModelRef<T extends Storable> {
 
   /**
    * Set the attribute of the model
-   * @param attribute
-   * @param value
-   * @returns
+   * @param attribute - the attribute path to set
+   * @param value - the new attribute value
+   * @returns a promise resolving when complete
    */
   setAttribute<A extends PropertyPaths<T>>(attribute: A, value: JSONed<PropertyPathType<T, A>>): Promise<void> {
     return this.getRepository().setAttribute(this.getKey(), attribute, value as any);
@@ -106,10 +110,10 @@ export class ModelRef<T extends Storable> {
 
   /**
    * Patch the model
-   * @param data
-   * @param conditionField
-   * @param condition
-   * @returns
+   * @param data - the partial data to patch
+   * @param conditionField - optional field for optimistic locking
+   * @param condition - expected value for the condition field
+   * @returns a promise resolving when complete
    */
   patch<K extends keyof T, A extends PropertyPaths<T>>(
     data: Partial<Omit<T, PrimaryKeyAttributes<T>>>,
@@ -124,6 +128,7 @@ export class ModelRef<T extends Storable> {
    * @param data - Complete model data excluding primary key
    * @param conditionField - Optional field for optimistic locking
    * @param condition - Expected value for the condition field
+   * @returns a promise resolving when complete
    */
   update<A extends PropertyPaths<T>>(
     data: Omit<Helpers<T>, PrimaryKeyAttributes<T>>,
@@ -135,7 +140,7 @@ export class ModelRef<T extends Storable> {
 
   /**
    * Get the model referenced by the key
-   * @returns
+   * @returns the resolved model instance
    */
   get(): Promise<T> {
     return this.getRepository().get(this.getKey()) as Promise<T>;
@@ -146,9 +151,9 @@ export class ModelRef<T extends Storable> {
    *
    * If a condition is specified, it will be used to check if the model can be deleted
    *
-   * @param conditionField
-   * @param condition
-   * @returns
+   * @param conditionField - optional field for optimistic locking
+   * @param condition - expected value for the condition field
+   * @returns a promise resolving when complete
    */
   delete<A extends PropertyPaths<T>>(
     conditionField?: A,
@@ -159,7 +164,7 @@ export class ModelRef<T extends Storable> {
 
   /**
    * Check if the model exists in the repository
-   * @returns
+   * @returns true if the model exists
    */
   exists(): Promise<boolean> {
     return this.getRepository().exists(this.getKey());
@@ -168,9 +173,9 @@ export class ModelRef<T extends Storable> {
   /**
    * Increment the attributes of the model
    * @param info The attributes to increment
-   * @param conditionField
-   * @param condition
-   * @returns
+   * @param conditionField - optional field for optimistic locking
+   * @param condition - expected value for the condition field
+   * @returns a promise resolving when complete
    */
   incrementAttributes(
     info:
@@ -183,12 +188,12 @@ export class ModelRef<T extends Storable> {
   }
   /**
    * Add an item to a collection
-   * @param collection
-   * @param item
-   * @param index
-   * @param itemWriteConditionField
-   * @param itemWriteCondition
-   * @returns
+   * @param collection - the collection field name
+   * @param item - the item to add or update
+   * @param index - optional position to insert at
+   * @param itemWriteConditionField - optional field for item write condition
+   * @param itemWriteCondition - expected value for the item write condition
+   * @returns a promise resolving when complete
    */
   upsertItemToCollection<K extends Extract<PropertyPaths<T, any[]>, keyof T>, L extends keyof ArrayElement<T[K]>>(
     collection: K,
@@ -209,11 +214,11 @@ export class ModelRef<T extends Storable> {
 
   /**
    * Remove an item from a collection
-   * @param collection
-   * @param index
-   * @param itemWriteConditionField
-   * @param itemWriteCondition
-   * @returns
+   * @param collection - the collection field name
+   * @param index - the position to remove from
+   * @param itemWriteConditionField - optional field for item write condition
+   * @param itemWriteCondition - expected value for the item write condition
+   * @returns a promise resolving when complete
    */
   deleteItemFromCollection<K extends Extract<PropertyPaths<T, any[]>, keyof T>, L extends keyof ArrayElement<T[K]>>(
     collection: K,
@@ -232,10 +237,10 @@ export class ModelRef<T extends Storable> {
 
   /**
    * Remove an attribute from the model
-   * @param attribute
-   * @param conditionField
-   * @param condition
-   * @returns
+   * @param attribute - the attribute to remove
+   * @param conditionField - optional field for optimistic locking
+   * @param condition - expected value for the condition field
+   * @returns a promise resolving when complete
    */
   removeAttribute<A extends PropertyPaths<T>>(
     attribute: Exclude<PropertyPaths<T>, PrimaryKeyAttributes<T>>,
@@ -246,11 +251,11 @@ export class ModelRef<T extends Storable> {
   }
   /**
    * Increment only one attribute of the model
-   * @param property
-   * @param value
-   * @param conditionField
-   * @param condition
-   * @returns
+   * @param property - the numeric property to increment
+   * @param value - the increment amount
+   * @param conditionField - optional field for optimistic locking
+   * @param condition - expected value for the condition field
+   * @returns a promise resolving when complete
    */
   incrementAttribute(
     property: NumericPropertyPaths<T>,
@@ -275,8 +280,8 @@ export type ModelRelations<T extends object> =
 export class ModelRefWithCreate<T extends Storable> extends ModelRef<T> {
   /**
    * Upsert a model reference
-   * @param data
-   * @returns
+   * @param data - the model data excluding primary key
+   * @returns the upserted model instance
    */
   upsert(data: Omit<JSONed<T>, T[typeof WEBDA_PRIMARY_KEY][number]>): Promise<T> {
     return this.getRepository().upsert({
@@ -288,8 +293,8 @@ export class ModelRefWithCreate<T extends Storable> extends ModelRef<T> {
    * Create a model reference
    *
    * It will fail if the model already exists
-   * @param data
-   * @returns
+   * @param data - the model data excluding primary key
+   * @returns the created model instance
    */
   create(data: Omit<AttributesArgument<T>, T[typeof WEBDA_PRIMARY_KEY][number]>): Promise<T> {
     return this.getRepository().create({
@@ -319,6 +324,11 @@ export class ModelRelated<
 > {
   private repoSource: Repository<any>;
 
+  /** Create a new ModelRelated
+   * @param targetClass - the target model class
+   * @param object - the source object owning the relation
+   * @param attribute - the attribute name linking the relation
+   */
   constructor(
     targetClass: ModelClass<T>,
     private object: L,
@@ -327,6 +337,11 @@ export class ModelRelated<
     this.repoSource = useRepository(targetClass) as Repository<any>;
   }
 
+  /**
+   * Build a WebdaQL query string that filters related objects by this model's primary key.
+   * @param query - optional additional query filter
+   * @returns the constructed query string
+   */
   getQuery(query: string = ""): string {
     // PrependQuery
     return WebdaQL.PrependCondition(query, `${this.attribute} = "${this.object.getPrimaryKey()}"`);
@@ -334,8 +349,8 @@ export class ModelRelated<
 
   /**
    * Query the related objects
-   * @param query
-   * @returns
+   * @param query - optional additional query filter
+   * @returns the query results with optional continuation token
    */
   async query(query: string = ""): Promise<{ results: T[]; continuationToken?: string }> {
     return this.repoSource.query(this.getQuery(query));
@@ -343,6 +358,8 @@ export class ModelRelated<
 
   /**
    * Iterate through linked objects
+   * @param query - the query filter
+   * @returns an async iterable of linked objects
    */
   iterate(query: string): AsyncIterable<T> {
     return this.repoSource.iterate(this.getQuery(query));
@@ -386,6 +403,9 @@ export class ModelLink<T extends Storable> implements ModelLinker {
   protected [RelationKey]: PrimaryKeyType<T>;
   readonly [RelationModel]: ModelClass<T>;
 
+  /** Create a new ModelLink
+   * @param model - the model class to link to
+   */
   constructor(
     /**
      * The repository of the object to link
@@ -397,6 +417,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
 
   /**
    * Resolve the link and fetch the target model from the repository
+   * @returns the linked model instance
    */
   async get(): Promise<T> {
     if (!this[RelationKey]) {
@@ -408,6 +429,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
   /**
    * Update the link to point to a different target
    * @param id - New target: a primary key, model instance, or string UID
+   * @returns this link instance
    * @WebdaAutoSetter
    */
   set(id: PrimaryKeyType<T> | T | string): this {
@@ -421,6 +443,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
 
   /**
    * Return the string representation of the linked key
+   * @returns the string representation
    */
   toString(): string {
     if (!this[RelationKey]) {
@@ -431,6 +454,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
 
   /**
    * Serialize the link to its primary key value
+   * @returns the primary key value
    */
   toJSON(): PrimaryKeyType<T> {
     if (!this[RelationKey]) {
@@ -441,6 +465,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
 
   /**
    * Get the primary key of the linked model
+   * @returns the primary key value
    */
   getPrimaryKey(): PrimaryKeyType<T> {
     if (!this[RelationKey]) {
@@ -476,6 +501,11 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
   // COMPOSITION: Internal array instead of extending Array
   private items: ModelRef<T>[] = [];
 
+  /** Create a new ModelLinksSimpleArray
+   * @param model - the model class for linked items
+   * @param content - initial array of primary keys
+   * @param parentObject - optional parent object owning this relation
+   */
   constructor(model: ModelClass<T>, content: PrimaryKeyType<T>[] = [], parentObject?: T) {
     this[RelationRepository] = useRepository(model);
     // Initialize internal array
@@ -506,6 +536,8 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Add items to the end of the collection
+   * @param items - items to add
+   * @returns the new collection length
    */
   push(...items: (string | PrimaryKeyType<T> | ModelRef<T> | T)[]): number {
     const result = this.items.push(...items.map(i => this.getModelRef(i)));
@@ -515,6 +547,8 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Add items to the beginning of the collection
+   * @param items - items to prepend
+   * @returns the new collection length
    */
   unshift(...items: (string | PrimaryKeyType<T> | ModelRef<T> | T)[]): number {
     const result = this.items.unshift(...items.map(i => this.getModelRef(i)));
@@ -524,6 +558,7 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Remove and return the last item
+   * @returns the removed item, or undefined
    */
   pop(): ModelRef<T> | undefined {
     const result = this.items.pop();
@@ -535,6 +570,7 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Remove and return the first item
+   * @returns the removed item, or undefined
    */
   shift(): ModelRef<T> | undefined {
     const result = this.items.shift();
@@ -546,6 +582,10 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Remove/add items at specified index
+   * @param start - the start index
+   * @param deleteCount - number of items to remove
+   * @param rest - items to insert
+   * @returns the removed items
    */
   splice(
     start: number,
@@ -561,8 +601,7 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Add a model to the collection
-   * @param model
-   * @returns
+   * @param model - the model to add
    * @deprecated use push instead
    */
   add(model: string | PrimaryKeyType<T> | ModelRef<T> | T) {
@@ -571,7 +610,7 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Set the collection to a new set of items
-   * @param items
+   * @param items - the new items to set
    * @WebdaAutoSetter
    */
   set(items?: (string | PrimaryKeyType<T> | ModelRef<T> | T)[]): void {
@@ -581,6 +620,8 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Remove item by reference or primary key
+   * @param model - the item to remove
+   * @returns true if the item was found and removed
    */
   remove(model: string | ModelRef<T> | PrimaryKeyType<T> | T): boolean {
     const uuid = this.getModelRef(model).getPrimaryKey().toString();
@@ -595,6 +636,7 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Get the number of items
+   * @returns the item count
    */
   get length(): number {
     return this.items.length;
@@ -602,6 +644,8 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Get item at index
+   * @param index - the array index
+   * @returns the item, or undefined
    */
   at(index: number): ModelRef<T> | undefined {
     return this.items[index];
@@ -609,6 +653,8 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Find item by predicate
+   * @param predicate - the search predicate
+   * @returns the found item, or undefined
    */
   find(predicate: (item: ModelRef<T>, index: number, array: ModelRef<T>[]) => boolean): ModelRef<T> | undefined {
     return this.items.find(predicate);
@@ -616,6 +662,8 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Find index by predicate
+   * @param predicate - the search predicate
+   * @returns the index, or -1
    */
   findIndex(predicate: (item: ModelRef<T>, index: number, array: ModelRef<T>[]) => boolean): number {
     return this.items.findIndex(predicate);
@@ -623,6 +671,8 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Map over items (does NOT mutate)
+   * @param callback - the mapping function
+   * @returns the mapped array
    */
   map<U>(callback: (item: ModelRef<T>, index: number, array: ModelRef<T>[]) => U): U[] {
     return this.items.map(callback);
@@ -630,6 +680,8 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Filter items (does NOT mutate)
+   * @param predicate - the filter predicate
+   * @returns the filtered items
    */
   filter(predicate: (item: ModelRef<T>, index: number, array: ModelRef<T>[]) => boolean): ModelRef<T>[] {
     return this.items.filter(predicate);
@@ -637,6 +689,7 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Execute callback for each item
+   * @param callback - the function to execute for each item
    */
   forEach(callback: (item: ModelRef<T>, index: number, array: ModelRef<T>[]) => void): void {
     this.items.forEach(callback);
@@ -644,6 +697,8 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Check if any item matches predicate
+   * @param predicate - the test predicate
+   * @returns true if any item matches
    */
   some(predicate: (item: ModelRef<T>, index: number, array: ModelRef<T>[]) => boolean): boolean {
     return this.items.some(predicate);
@@ -651,6 +706,8 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Check if all items match predicate
+   * @param predicate - the test predicate
+   * @returns true if all items match
    */
   every(predicate: (item: ModelRef<T>, index: number, array: ModelRef<T>[]) => boolean): boolean {
     return this.items.every(predicate);
@@ -658,6 +715,7 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Convert to JSON
+   * @returns array of primary key values
    */
   toJSON(): PrimaryKeyType<T>[] {
     return this.items.map(m => m.getPrimaryKey());
@@ -665,6 +723,7 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Make the collection iterable (for...of loops)
+   * @returns an iterator over the items
    */
   [Symbol.iterator](): Iterator<ModelRef<T>> {
     return this.items[Symbol.iterator]();
@@ -677,6 +736,8 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   /**
    * Convert any accepted input (string, key, ref, or model) into a ModelRef
+   * @param model - the input to convert
+   * @returns the model reference
    */
   protected getModelRef(model: string | PrimaryKeyType<T> | ModelRef<T> | T): ModelRef<T> {
     let modelRef: ModelRef<T>;
@@ -725,6 +786,12 @@ type ModelRefCustomProperties<T extends Storable, K extends object> = ModelRef<T
 class ModelRefCustom<T extends Storable, K> extends ModelRef<T> {
   protected [RelationData]: K;
 
+  /** Create a new ModelRefCustom
+   * @param key - the primary key of the referenced object
+   * @param repo - the repository managing the referenced model
+   * @param data - custom data associated with this reference
+   * @param parent - optional parent storable
+   */
   constructor(key: PrimaryKeyType<T>, repo: Repository<ModelClass<T>>, data: K, parent?: Storable) {
     super(key, repo, parent);
     this[RelationData] = data;
@@ -734,6 +801,7 @@ class ModelRefCustom<T extends Storable, K> extends ModelRef<T> {
 
   /**
    * Override toJSON to include custom properties along with primary key
+   * @returns the relation data
    */
   toJSON(): any {
     // Return the relation data which should already include the primary key
@@ -767,6 +835,10 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
   // COMPOSITION: Internal array instead of extending Array
   private items: ModelRefCustomProperties<T, K>[] = [];
 
+  /** Create a new ModelLinksCustomArray
+   * @param repo - the repository for the linked model
+   * @param content - initial array of primary keys with custom data
+   */
   constructor(
     protected repo: Repository<ModelClass<T>>,
     content: (PrimaryKey<T> & K)[] = []
@@ -803,8 +875,7 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Add a model to the collection
-   * @param model
-   * @returns
+   * @param model - the model to add
    * @deprecated use push instead
    */
   add(model: JSONed<ModelRefCustomProperties<T, K>>) {
@@ -813,6 +884,8 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Add items to the end of the collection
+   * @param items - items to add
+   * @returns the new collection length
    */
   push(...items: (ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>)[]): number {
     const result = this.items.push(...items.map(i => this.getModelRef(i)));
@@ -822,6 +895,7 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Remove and return the last item
+   * @returns the removed item, or undefined
    */
   pop(): ModelRefCustomProperties<T, K> | undefined {
     const result = this.items.pop();
@@ -833,6 +907,7 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Remove and return the first item
+   * @returns the removed item, or undefined
    */
   shift(): ModelRefCustomProperties<T, K> | undefined {
     const result = this.items.shift();
@@ -844,6 +919,8 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Add items to the beginning of the collection
+   * @param items - items to prepend
+   * @returns the new collection length
    */
   unshift(...items: (ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>)[]): number {
     const result = this.items.unshift(...items.map(i => this.getModelRef(i)));
@@ -853,6 +930,10 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Remove/add items at specified index
+   * @param start - the start index
+   * @param deleteCount - number of items to remove
+   * @param rest - items to insert
+   * @returns the removed items
    */
   splice(
     start: number,
@@ -868,6 +949,8 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Remove item by reference or primary key
+   * @param model - the item to remove
+   * @returns true if found and removed
    */
   remove(model: ModelRefCustomProperties<T, K> | PrimaryKeyType<T> | T): boolean {
     const uuid = typeof (model as any)["getPrimaryKey"] === "function" ? (model as any)["getPrimaryKey"]() : model;
@@ -882,6 +965,7 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Get the number of items
+   * @returns the item count
    */
   get length(): number {
     return this.items.length;
@@ -889,6 +973,8 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Get item at index
+   * @param index - the array index
+   * @returns the item, or undefined
    */
   at(index: number): ModelRefCustomProperties<T, K> | undefined {
     return this.items[index];
@@ -896,6 +982,8 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Find item by predicate
+   * @param predicate - the search predicate
+   * @returns the found item, or undefined
    */
   find(
     predicate: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => boolean
@@ -905,6 +993,8 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Find index by predicate
+   * @param predicate - the search predicate
+   * @returns the index, or -1
    */
   findIndex(
     predicate: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => boolean
@@ -914,6 +1004,9 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Check if item exists in collection
+   * @param search - the item to look for
+   * @param fromIndex - optional start index
+   * @returns true if found
    */
   includes(search: ModelRefCustomProperties<T, K>, fromIndex?: number): boolean {
     return this.items.includes(search, fromIndex);
@@ -921,6 +1014,8 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Map over items (does NOT mutate)
+   * @param callback - the mapping function
+   * @returns the mapped array
    */
   map<U>(
     callback: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => U
@@ -930,6 +1025,8 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Filter items (does NOT mutate)
+   * @param predicate - the filter predicate
+   * @returns the filtered items
    */
   filter(
     predicate: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => boolean
@@ -939,6 +1036,7 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Execute callback for each item
+   * @param callback - the function to execute for each item
    */
   forEach(
     callback: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => void
@@ -948,6 +1046,8 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Check if any item matches predicate
+   * @param predicate - the test predicate
+   * @returns true if any item matches
    */
   some(
     predicate: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => boolean
@@ -957,6 +1057,8 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Check if all items match predicate
+   * @param predicate - the test predicate
+   * @returns true if all items match
    */
   every(
     predicate: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => boolean
@@ -966,6 +1068,7 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Convert to JSON
+   * @returns array of serialized items
    */
   toJSON(): JSONed<ModelRefCustomProperties<T, K>>[] {
     return <any>this.items;
@@ -973,6 +1076,7 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Make the collection iterable (for...of loops)
+   * @returns an iterator over the items
    */
   [Symbol.iterator](): Iterator<ModelRefCustomProperties<T, K>> {
     return this.items[Symbol.iterator]();
@@ -985,6 +1089,8 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   /**
    * Convert input into a ModelRefCustom, preserving custom properties
+   * @param model - the input to convert
+   * @returns the model reference with custom properties
    */
   protected getModelRef(
     model: ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>
@@ -1011,6 +1117,10 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
  * @deprecated
  */
 export class ModelRefCustomMap<T extends Storable, K> extends ModelRefCustom<T, K> {
+  /**
+   * Serialize the relation data as a plain object (excluding the primary key).
+   * @returns the relation data
+   */
   toJSON(): any {
     return this[RelationData] || {};
   }
@@ -1064,19 +1174,28 @@ export class JunctionLink<T extends Storable, K extends Storable> implements Sto
   [WEBDA_PRIMARY_KEY] = ["linkA", "linkB"] as const;
   linkA: ModelParent<T>;
   linkB: ModelLink<K>;
-  /** Return the composite primary key (linkA + linkB) */
+  /**
+   * Return the composite primary key (linkA + linkB)
+   * @returns the composite primary key object
+   */
   getPrimaryKey() {
     return { linkA: this.linkA.getPrimaryKey(), linkB: this.linkB.getPrimaryKey() };
   }
-  /** @inheritdoc */
+  /** @override */
   load(params: any): this {
     return this;
   }
-  /** Return a string UID combining both link keys */
+  /**
+   * Return a string UID combining both link keys
+   * @returns the combined UID string
+   */
   getUUID(): string {
     return `${this.linkA.getPrimaryKey()}_${this.linkB.getPrimaryKey()}`;
   }
-  /** Return the proxied version of this model (identity for JunctionLink) */
+  /**
+   * Return the proxied version of this model (identity for JunctionLink)
+   * @returns this instance
+   */
   toProxy() {
     return this;
   }

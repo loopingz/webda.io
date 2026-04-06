@@ -6,6 +6,11 @@ class ThrottlerItem {
    * Once the promise is in progress
    */
   public promise?: Promise<any>;
+  /** Create a new ThrottlerItem.
+   * @param method - the async function to execute
+   * @param callbacks - resolve callbacks for waiting callers
+   * @param name - human-readable task name
+   */
   constructor(
     public method: () => Promise<any>,
     public callbacks: ((res?: any) => void)[],

@@ -3,6 +3,12 @@ import * as fs from "fs";
 import * as path from "path";
 import { SchemaGenerator } from "../src/generator";
 
+/**
+ * Recursively sort object keys and arrays for deterministic comparison.
+ *
+ * @param value - the value to sort
+ * @returns the sorted value
+ */
 function stableSort(value: any): any {
   if (Array.isArray(value)) return value.sort().map(stableSort);
   if (value && typeof value === "object" && !Array.isArray(value)) {
@@ -30,6 +36,12 @@ describe("schema generation", () => {
             .filter(Boolean)
         )
       : null;
+    /**
+     * Check whether a fixture directory should be included based on the env filter.
+     *
+     * @param dir - the directory name to check
+     * @returns true if the directory should be included
+     */
     function shouldInclude(dir: string): boolean {
       if (!fixtureFilter) return true;
       // Exact directory match OR type name match (PascalCase schema file prefix)
@@ -38,6 +50,12 @@ describe("schema generation", () => {
       for (const f of fixtureFilter) if (f.toLowerCase() === dir.toLowerCase()) return true;
       return false;
     }
+    /**
+     * Register snapshot test cases for each fixture directory under `root`.
+     *
+     * @param root - root directory path
+     * @param relativeBase - base path for relative references
+     */
     function addFolderSnapshots(root: string, relativeBase: string) {
       if (!fs.existsSync(root)) return;
       const dirs = fs.readdirSync(root).filter(d => fs.statSync(path.join(root, d)).isDirectory());

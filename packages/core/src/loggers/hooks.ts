@@ -12,6 +12,11 @@ let workerOutput: WorkerOutput;
 
 export { useLog };
 
+/**
+ * Set the global log output target for all loggers
+ * @param object - the target object
+ * @param object.log - the object.log
+ */
 export function setLogContext(object: { log: (level, ...args) => void }) {
   output = object;
   if (output instanceof WorkerOutput) {
@@ -21,8 +26,8 @@ export function setLogContext(object: { log: (level, ...args) => void }) {
 
 /**
  * Return a logger for the given class
- * @param clazz
- * @returns
+ * @param clazz - the class to check
+ * @returns the result
  */
 export function useLogger(clazz: string | AbstractService | Model): Logger {
   let className = typeof clazz === "string" ? clazz : "";

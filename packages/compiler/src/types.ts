@@ -18,6 +18,10 @@ export interface TsConfigParseResult {
  * Compilation error with proper typing
  */
 export class CompilationError extends Error {
+  /** Create a new CompilationError.
+   * @param message - error message
+   * @param diagnostics - TypeScript diagnostic entries
+   */
   constructor(
     message: string,
     public diagnostics: ReadonlyArray<ts.Diagnostic>

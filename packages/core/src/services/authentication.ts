@@ -113,6 +113,7 @@ interface LoginBody {
   password?: string;
 }
 
+/** Parameters for the Authentication service including identity, email, and password settings */
 export class AuthenticationParameters extends ServiceParameters {
   /**
    * Idents store for authentication identifiers
@@ -187,6 +188,11 @@ export class AuthenticationParameters extends ServiceParameters {
    */
   registerRedirect: string;
 
+  /**
+   * Load parameters with defaults for authentication URLs, models, and password policy
+   * @param params - the service parameters
+   * @returns this for chaining
+   */
   load(params: any = {}): this {
     super.load(params);
     this.identModel ??= "Webda/Ident";
@@ -233,10 +239,11 @@ export type AuthenticationEvents = {
  *   url: 'url' // By default /auth
  * ```
  *
+ * Core authentication service handling login, registration, password recovery, and email validation
+ *
  * @category CoreServices
  * @WebdaModda
  */
-
 class Authentication<
   T extends AuthenticationParameters = AuthenticationParameters,
   E extends AuthenticationEvents = AuthenticationEvents
@@ -274,7 +281,7 @@ class Authentication<
 
   /**
    * Get user model
-   * @returns
+   * @returns the result
    */
   getUserModel() {
     return this.userModel;
@@ -282,7 +289,7 @@ class Authentication<
 
   /**
    * Get ident model
-   * @returns
+   * @returns the result
    */
   getIdentModel() {
     return this.identModel;
@@ -407,7 +414,7 @@ class Authentication<
 
   /**
    * Add a provider to the oauth scheme
-   * @param name
+   * @param name - the name to use
    */
   addProvider(name: string) {
     this.providers.add(name);
@@ -427,7 +434,7 @@ class Authentication<
   /**
    * Send or resend an email to validate the email address
    *
-   * @param ctx
+   * @param ctx - the operation context
    * @throws 409 if ident is linked to someone else
    * @throws 412 if the email is already validated
    * @throws 429 if a validation email has been sent recently
@@ -485,7 +492,7 @@ class Authentication<
 
   /**
    * Return current user
-   * @param ctx
+   * @param ctx - the operation context
    */
   @Route("./me", ["GET"], {
     get: {
@@ -510,8 +517,8 @@ class Authentication<
    * Handle both list of available authentication
    * and logout with method 'DELETE'
    *
-   * @param ctx
-   * @returns
+   * @param ctx - the operation context
+   * @returns the result
    */
   @Route(".", ["GET", "DELETE"], {
     get: {
@@ -543,6 +550,14 @@ class Authentication<
     ctx.write(Array.from(this.providers));
   }
 
+  /**
+   * Handle login via an identity provider, creating or linking the ident to a user
+   * @param ctx - the operation context
+   * @param provider - the provider name
+   * @param identId - the identity identifier
+   * @param profile - the user profile
+   * @param tokens - the authentication tokens
+   */
   async onIdentLogin(ctx: WebContext, provider: string, identId: string, profile: any, tokens: any = undefined) {
     // Auto postifx with provider name
     const postfix = `_${provider}`;
@@ -619,6 +634,14 @@ class Authentication<
   }
     */
 
+  /**
+   * Create and register a new user, emitting a registration event
+   * @param ctx - the operation context
+   * @param data - the data to process
+   * @param identId - the identity identifier
+   * @param user - the user object
+   * @returns the result
+   */
   async registerUser(ctx: WebContext, data: any, identId: string, user?: User): Promise<User> {
     user ??= await this.userModel.create(
       {
@@ -639,6 +662,12 @@ class Authentication<
     return user;
   }
 
+  /**
+   * Generate password recovery info (token and expiry) for a user
+   * @param uuid - the unique identifier
+   * @param interval - the interval
+   * @returns the result
+   */
   async getPasswordRecoveryInfos(
     uuid: string | User,
     interval = this.parameters.email.delay
@@ -663,7 +692,7 @@ class Authentication<
 
   /**
    * Manage password recovery
-   * @param ctx
+   * @param ctx - the operation context
    */
   async _passwordRecoveryEmail(ctx: WebContext) {
     const email = ctx.parameter("email");
@@ -683,6 +712,11 @@ class Authentication<
     await this.sendRecoveryEmail(ctx, user, email);
   }
 
+  /**
+   * Verify that a password meets the configured policy or custom verifier
+   * @param password - the password
+   * @param user - the user object
+   */
   async _verifyPassword(password: string, user?: User) {
     if (this._passwordVerifier) {
       if (!(await this._passwordVerifier.validate(password, user))) {
@@ -696,6 +730,10 @@ class Authentication<
     }
   }
 
+  /**
+   * Handle password recovery: verify token and update the user's password
+   * @param ctx - the operation context
+   */
   async _passwordRecovery(ctx: WebContext<PasswordRecoveryBody>) {
     const body = await ctx.getRequestBody();
     const user: User = await this.userModel.ref(body.login.toLowerCase()).get();
@@ -725,8 +763,8 @@ class Authentication<
 
   /**
    * Callback to validate an email address
-   * @param ctx
-   * @returns
+   * @param ctx - the operation context
+   * @returns the result
    */
   @Route("./email/callback{?email,token,user?}", ["GET"], {
     hidden: true
@@ -787,10 +825,10 @@ class Authentication<
   /**
    * Send an email to recover the user password
    *
-   * @param ctx
-   * @param user
-   * @param email
-   * @returns
+   * @param ctx - the operation context
+   * @param user - the user object
+   * @param email - the email address
+   * @returns the result
    */
   async sendRecoveryEmail(ctx: WebContext, user, email: string) {
     const infos = await this.getPasswordRecoveryInfos(user);
@@ -814,9 +852,9 @@ class Authentication<
    * Send an email to validate the user email by sending a unique link to
    * his email
    *
-   * @param ctx
-   * @param email
-   * @returns
+   * @param ctx - the operation context
+   * @param email - the email address
+   * @returns the result
    */
   async sendValidationEmail(ctx: WebContext, email: string) {
     const mailer: Mailer = this.getMailMan();
@@ -849,6 +887,8 @@ class Authentication<
    * Check the password match the stored hash
    * @param hash generate prior by hashPassword
    * @param password as entered by the user
+   * @param pass - the password
+   * @returns true if the condition is met
    */
   checkPassword(hash: string = "", pass: string = ""): boolean {
     return bcrypt.compareSync(pass, hash);
@@ -858,6 +898,7 @@ class Authentication<
    * Hash the password according to good practices
    *
    * @param pass to hash
+   * @returns the result string
    */
   hashPassword(pass: string): string {
     return bcrypt.hashSync(pass, this.parameters.salt || 10);
@@ -865,6 +906,7 @@ class Authentication<
 
   /**
    * Logout user
+   * @param ctx - the operation context
    */
   async logout(ctx: WebContext) {
     await this.emit("Authentication.Logout", <EventAuthenticationLogout>{
@@ -876,10 +918,11 @@ class Authentication<
   /**
    * Login a user
    *
-   * @param ctx
-   * @param user
-   * @param ident
-   * @returns
+   * @param ctx - the operation context
+   * @param user - the user object
+   * @param ident - the identity object
+   * @param provider - the provider name
+   * @returns the result
    */
   async login(ctx: WebContext, user: User | string, ident: Ident, provider: string) {
     const event: EventAuthenticationLogin = {
@@ -903,7 +946,7 @@ class Authentication<
 
   /**
    * Get the mailer service
-   * @returns
+   * @returns the result
    */
   getMailMan(): Mailer {
     return useDynamicService<Mailer>(
@@ -914,8 +957,8 @@ class Authentication<
   /**
    * Handle a user login request
    *
-   * @param ctx
-   * @param ident
+   * @param ctx - the operation context
+   * @param ident - the identity object
    */
   protected async handleLogin(ctx: WebContext<LoginBody>, ident: Ident) {
     const updates: any = {};
@@ -954,8 +997,8 @@ class Authentication<
   /**
    * Handle the POST /auth/email
    *
-   * @param ctx
-   * @returns
+   * @param ctx - the operation context
+   * @returns the result
    */
   async _handleEmail(ctx: WebContext<LoginBody>) {
     // If called while logged in reject
@@ -1050,13 +1093,22 @@ class Authentication<
     throw new WebdaError.NotFound("");
   }
 
+  /**
+   * Generate an HMAC-based token for email address validation
+   * @param user - the user object
+   * @param email - the email address
+   * @returns the result string
+   */
   async generateEmailValidationToken(user: string, email: string): Promise<string> {
     return this.cryptoService.hmac(email + "_" + user);
   }
 
   /**
    * Create a new User with the link ident
-   * @param ident
+   * @param ident - the identity object
+   * @param provider - the provider name
+   * @param identId - the identity identifier
+   * @param profile - the user profile
    */
   async createUserWithIdent(provider: string, identId: string, profile: any = {}) {
     if (await this.identModel.ref(`${identId}_${provider}`).exists()) {

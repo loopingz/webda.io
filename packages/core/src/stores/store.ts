@@ -10,13 +10,24 @@ import { useLog } from "../loggers/hooks.js";
 import { useCore } from "../core/hooks.js";
 import { InstanceCache } from "../cache/cache.js";
 
+/** Error thrown when an item is not found in a store */
 export class StoreNotFoundError extends WebdaError.CodeError {
+  /** Create a new StoreNotFoundError
+   * @param uuid - the item primary key
+   * @param storeName - the store name
+   */
   constructor(uuid: PrimaryKey<any>, storeName: string) {
     super("STORE_NOTFOUND", `Item not found ${uuid} Store(${storeName})`);
   }
 }
 
+/** Error thrown when a conditional update fails due to a version/condition mismatch */
 export class UpdateConditionFailError extends WebdaError.CodeError {
+  /** Create a new UpdateConditionFailError
+   * @param uuid - the item primary key
+   * @param conditionField - the condition field name
+   * @param condition - the expected condition value
+   */
   constructor(uuid: PrimaryKey<any>, conditionField: string, condition: string | Date) {
     super(
       "STORE_UPDATE_CONDITION_FAILED",
@@ -256,6 +267,11 @@ export class StoreParameters extends ServiceParameters {
    */
   noCache?: boolean;
 
+  /**
+   * Load store parameters with defaults for model type, strict mode, and aliases
+   * @param params - the service parameters
+   * @returns the result
+   */
   load(params: any) {
     // REFACTOR >= 5
     if (params.expose) {
@@ -325,6 +341,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     queries: Histogram;
   };
 
+  /** Compute and register repositories for all known models based on available stores */
   @InstanceCache()
   static computeStores() {
     // Gather all stores and register Repository
@@ -410,13 +427,19 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     */
   }
 
+  /**
+   * Log a slow query (placeholder for future implementation)
+   * @param _query - the query to execute
+   * @param _reason - the reason
+   * @param _time - the time
+   */
   logSlowQuery(_query: string, _reason: string, _time: number) {
     // TODO Need to implement: https://github.com/loopingz/webda.io/issues/202
   }
 
   /**
    * Initialize the store
-   * @returns
+   * @returns this for chaining
    */
   async init(): Promise<this> {
     Store.computeStores();
@@ -453,7 +476,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
 
   /**
    * Return Store current model
-   * @returns
+   * @returns the result
    */
   getModel(): ModelClass {
     return this._model;
@@ -461,9 +484,10 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
 
   /**
    * Return if a model is handled by the store
-   * @param model
+   * @param model - the model to use
    * @return distance from the managed class -1 means not managed, 0 manage exactly this model, >0 manage an ancestor model
    *
+   * @returns the result number
    */
   handleModel(model: ModelClass | Model): number {
     const name = useModelId(model);

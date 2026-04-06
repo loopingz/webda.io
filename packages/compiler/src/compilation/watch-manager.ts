@@ -13,6 +13,10 @@ export class WatchManager {
   private watchProgram: ts.WatchOfConfigFile<ts.EmitAndSemanticDiagnosticsBuilderProgram> | undefined;
   private configParseResult: TsConfigParseResult | undefined;
 
+  /** Create a new WatchManager.
+   * @param project - the Webda project to watch
+   * @param onModuleGeneration - callback invoked after module regeneration
+   */
   constructor(
     private project: WebdaProject,
     private onModuleGeneration: () => void | Promise<void>
@@ -132,6 +136,7 @@ export class WatchManager {
 
   /**
    * Check if currently watching
+   * @returns true if watch mode is active
    */
   isWatching(): boolean {
     return this.watchProgram !== undefined;

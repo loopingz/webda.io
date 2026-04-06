@@ -22,7 +22,7 @@ export function useCore<T extends Core = Core>(): T {
 
 /**
  * Set the current core
- * @param core
+ * @param core - the Core instance
  */
 export function setCore(core: Core) {
   useInstanceStorage().core = core;
@@ -48,8 +48,8 @@ export type ServiceName = keyof ServicesMap;
 
 /**
  * Get a service by name
- * @param name
- * @returns
+ * @param name - the name to use
+ * @returns the result map
  */
 export function useService<K extends keyof ServicesMap>(name: K): ServicesMap[K];
 //export function useService<T = Service>(name: ServiceName): T;
@@ -59,8 +59,8 @@ export function useService(name: ServiceName) {
 
 /**
  * When you want to use a service that is not defined in the ServicesMap, you can use this function
- * @param name
- * @returns
+ * @param name - the name to use
+ * @returns the result
  */
 export function useDynamicService<T = Service>(name: string): T {
   return useService(name as keyof ServicesMap) as T;
@@ -68,8 +68,9 @@ export function useDynamicService<T = Service>(name: string): T {
 
 /**
  * Get the metadata for a model
- * @param object
- * @returns
+ * @param object - the target object
+ * @param name - the name to use
+ * @returns the result
  */
 export function useModelMetadata(name: string | Model | ModelClass): ModelMetadata {
   if (name["Metadata"]) {
@@ -80,13 +81,18 @@ export function useModelMetadata(name: string | Model | ModelClass): ModelMetada
 
 /**
  * Use model store
- * @param name
- * @returns
+ * @param name - the name to use
+ * @returns the result
  */
 export function useModelStore<T extends Model>(name: string | T | CustomConstructor<T>): IStore {
   return useCore().getModelStore(name);
 }
 
+/**
+ * Get the repository for a model, typed as Repository
+ * @param name - the name to use
+ * @returns the result
+ */
 export function useModelRepository<T extends Model>(
   name: string | T | CustomConstructor<T>
 ): Repository<ModelClass<T>> {
@@ -95,7 +101,7 @@ export function useModelRepository<T extends Model>(
 
 /**
  * Get a machine id
- * @returns
+ * @returns the result
  */
 export function getMachineId() {
   try {

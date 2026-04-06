@@ -1,7 +1,14 @@
 
 const COMMENTS = Symbol("comments");
 
+/** Base class for all nodes in a JSONC abstract syntax tree, carrying associated comment metadata. */
 abstract class JSONCNode {
+  /**
+   * Wrap a plain JS value into the appropriate JSONCNode subclass.
+   *
+   * @param arg0 - the value to wrap
+   * @returns the corresponding JSONC node
+   */
   static fromValue(arg0: any): JSONCObject | JSONCValue | JSONCArray {
     if (arg0["$$target"] instanceof JSONCNode || arg0 instanceof JSONCArrayProxy) {
       return <any>arg0;
@@ -26,6 +33,11 @@ abstract class JSONCNode {
     startEndOfLine: ""
   };
 
+  /**
+   * Copy all comment metadata from another node onto this one.
+   *
+   * @param node - the source node to copy comments from
+   */
   cloneComments(node: JSONCNode) {
     Object.keys(this[COMMENTS]).forEach(key => {
       this[COMMENTS][key] = node[COMMENTS][key];
@@ -33,15 +45,25 @@ abstract class JSONCNode {
   }
 }
 
+/**
+ * Remove block comments from a string.
+ *
+ * @param str - the input string
+ * @returns the string without block comments
+ */
 function stripComments(str: string) {
   return str.replace(/\/\*[\s\S]*?\*\//g, "");
 }
 
+/** Represents a JSONC object `{ ... }` with ordered properties and formatting metadata. */
 class JSONCObject extends JSONCNode {
   indentation: number = 2;
   sorted: boolean = false;
   multiline: boolean = true;
 
+  /** Create a new JSONCObject.
+   * @param value - optional plain object to initialize from
+   */
   constructor(value?: any) {
     super();
     if (value) {
@@ -52,6 +74,7 @@ class JSONCObject extends JSONCNode {
   }
   properties: JSONCProperty[] = [];
 
+  /** Detect indentation, multiline layout, and sort order from existing properties. */
   computeFormatting() {
     // Keep with the default formatting
     if (this.properties.length === 0) {
@@ -85,6 +108,11 @@ class JSONCObject extends JSONCNode {
     }
   }
 
+  /**
+   * Add a property to this object, maintaining sort order and `$schema`-first placement.
+   *
+   * @param property - the property to add
+   */
   addProperty(property: JSONCProperty) {
     property.key[COMMENTS].prefix = " ".repeat(this.indentation);
     if (this.multiline) {
@@ -101,6 +129,12 @@ class JSONCObject extends JSONCNode {
     }
   }
 
+  /**
+   * Serialize this object to a JSONC string, preserving comments and whitespace.
+   *
+   * @param separator - trailing separator (e.g. comma)
+   * @returns the formatted JSONC string
+   */
   toString(separator: string = "") {
     let res = this[COMMENTS].prefix + "{" + this[COMMENTS].startEndOfLine;
     for (let i = 0; i < this.properties.length; i++) {
@@ -110,6 +144,11 @@ class JSONCObject extends JSONCNode {
     return res;
   }
 
+  /**
+   * Return a Proxy that behaves like a plain object but writes back to this JSONC tree.
+   *
+   * @returns a proxy object
+   */
   toProxy() {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
@@ -154,6 +193,11 @@ class JSONCObject extends JSONCNode {
     });
   }
 
+  /**
+   * Convert to a plain JavaScript object (strips comments).
+   *
+   * @returns the plain object
+   */
   toJSON() {
     const obj: any = {};
     this.properties.forEach(prop => {
@@ -163,6 +207,7 @@ class JSONCObject extends JSONCNode {
   }
 }
 
+/** Represents a JSONC leaf value (string, number, boolean, or null). */
 class JSONCValue extends JSONCNode {
   value: any;
   [COMMENTS] = {
@@ -172,34 +217,64 @@ class JSONCValue extends JSONCNode {
     startEndOfLine: ""
   };
 
+  /** Create a new JSONCValue.
+   * @param value - the raw scalar value
+   */
   constructor(value: any) {
     super();
     this.value = value;
   }
 
+  /**
+   * Serialize the value with its surrounding comments and whitespace.
+   *
+   * @param sep - trailing separator
+   * @returns the formatted string
+   */
   toString(sep: string = "") {
     return this[COMMENTS].prefix + JSON.stringify(this.value) + this[COMMENTS].suffix + sep + this[COMMENTS].endOfLine;
   }
 
+  /**
+   * Return the raw value (no proxy needed for scalars).
+   *
+   * @returns the raw value
+   */
   toProxy() {
     return this.value;
   }
 
+  /**
+   * Return the raw value.
+   *
+   * @returns the raw value
+   */
   toJSON() {
     return this.value;
   }
 }
 
+/** Represents a key-value pair inside a JSONCObject. */
 class JSONCProperty extends JSONCNode {
   key: JSONCKey;
   value: JSONCValue | JSONCObject | JSONCArray;
 
+  /** Create a new JSONCProperty.
+   * @param key - the property key node
+   * @param value - the property value node
+   */
   constructor(key: JSONCKey, value: JSONCValue | JSONCObject | JSONCArray) {
     super();
     this.key = key;
     this.value = value;
   }
 
+  /**
+   * Serialize this property as `"key": value` with comments preserved.
+   *
+   * @param separator - trailing separator (e.g. comma)
+   * @returns the formatted string
+   */
   toString(separator: string = "") {
     return (
       this[COMMENTS].prefix + this.key.toString() + ":" + this.value.toString() + this[COMMENTS].suffix + separator + this[COMMENTS].endOfLine
@@ -207,24 +282,42 @@ class JSONCProperty extends JSONCNode {
   }
 }
 
+/** Represents a quoted property key inside a JSONC object. */
 class JSONCKey extends JSONCNode {
   name: string;
 
+  /** Create a new JSONCKey.
+   * @param name - the property name
+   */
   constructor(name: string) {
     super();
     this.name = name;
   }
 
+  /**
+   * Serialize the key as a double-quoted string with surrounding whitespace/comments.
+   *
+   * @returns the formatted key string
+   */
   toString() {
     return this[COMMENTS].prefix + `"${this.name}"` + this[COMMENTS].suffix;
   }
 }
 
+/** Array subclass that mirrors mutations to the underlying JSONCArray AST node. */
 class JSONCArrayProxy extends Array {
+  /**
+   * Return plain Array for derived methods like `map` and `filter`.
+   *
+   * @returns the Array constructor
+   */
   static get [Symbol.species]() {
     return Array;
   }
 
+  /** Create a new JSONCArrayProxy.
+   * @param array - the underlying JSONCArray AST node
+   */
   constructor(private array: JSONCArray) {
     super();
     array.elements.forEach(el => {
@@ -232,40 +325,80 @@ class JSONCArrayProxy extends Array {
     });
   }
 
+  /**
+   * Append items to both the proxy array and the underlying AST.
+   *
+   * @param items - items to append
+   * @returns the new array length
+   */
   push(...items: any[]): number {
     this.array.elements.push(...this.mapper(items));
     return super.push(...items);
   }
 
+  /**
+   * Remove the last element from both the proxy array and the underlying AST.
+   *
+   * @returns the removed element
+   */
   pop(): any | undefined {
     this.array.elements.pop();
     return super.pop();
   }
 
+  /**
+   * Remove the first element from both the proxy array and the underlying AST.
+   *
+   * @returns the removed element
+   */
   shift() {
     this.array.elements.shift();
     return super.shift();
   }
 
+  /**
+   * Convert plain values to JSONC nodes with appropriate formatting for this array.
+   *
+   * @param items - the values to convert
+   * @returns the formatted JSONC nodes
+   */
   mapper(items: any[]) {
     return items.map(item => this.array.computePrefix(JSONCNode.fromValue(item)));
   }
 
+  /**
+   * Prepend items to both the proxy array and the underlying AST.
+   *
+   * @param items - items to prepend
+   * @returns the new array length
+   */
   unshift(...items: any[]): number {
     this.array.elements.unshift(...this.mapper(items));
     return super.unshift(...items);
   }
 
+  /**
+   * Splice elements in both the proxy array and the underlying AST.
+   *
+   * @param start - start index
+   * @param deleteCount - number of elements to remove
+   * @param rest - elements to insert
+   * @returns the removed elements
+   */
   splice(start: unknown, deleteCount?: unknown, ...rest: unknown[]): any[] {
     this.array.elements.splice(start as number, deleteCount as number, ...this.mapper(rest));
     return super.splice(start as number, deleteCount as number, ...rest);
   }
 }
 
+/** Represents a JSONC array `[ ... ]` with elements and formatting metadata. */
 class JSONCArray extends JSONCNode {
   multiline: boolean = true;
   indentation: number = 2;
 
+  /** Create a new JSONCArray.
+   * @param value - optional array of values to initialize from
+   */
   constructor(value?: any[]) {
     super();
     this.elements =
@@ -276,6 +409,7 @@ class JSONCArray extends JSONCNode {
 
   elements: (JSONCValue | JSONCObject | JSONCArray)[];
 
+  /** Detect indentation and multiline layout from existing elements. */
   computeFormatting() {
     // Keep with the default formatting
     if (this.elements.length === 0) {
@@ -305,6 +439,12 @@ class JSONCArray extends JSONCNode {
     }
   }
 
+  /**
+   * Apply this array's indentation and newline style to a new element node.
+   *
+   * @param property - the node to format
+   * @returns the formatted node
+   */
   computePrefix(property: JSONCObject | JSONCValue | JSONCArray) {
     if (this.multiline) {
       property[COMMENTS].prefix = " ".repeat(this.indentation);
@@ -315,6 +455,11 @@ class JSONCArray extends JSONCNode {
     return property;
   }
 
+  /**
+   * Serialize this array to a JSONC string, preserving comments and whitespace.
+   *
+   * @returns the formatted JSONC string
+   */
   toString() {
     let res = this[COMMENTS].prefix + "[";
     for (let i = 0; i < this.elements.length; i++) {
@@ -324,20 +469,41 @@ class JSONCArray extends JSONCNode {
     return res;
   }
 
+  /**
+   * Return a JSONCArrayProxy that mirrors mutations back to this AST node.
+   *
+   * @returns the proxy array
+   */
   toProxy() {
     return new JSONCArrayProxy(this);
   }
 
+  /**
+   * Convert to a plain JavaScript array (strips comments).
+   *
+   * @returns the plain array
+   */
   toJSON() {
     return this.elements.map(el => el.toJSON());
   }
 }
 
+/**
+ * Parse a JSONC string into an AST of JSONCNode objects and return a proxy for manipulation.
+ *
+ * @param jsoncString - the JSONC source string
+ * @returns a proxy object for the parsed tree
+ */
 function parseJsoncToTree(jsoncString: string): any {
   let i = 0;
   const res = parseValue();
   return res instanceof JSONCNode ? res.toProxy() : res;
 
+  /**
+   * Parse the next JSON value (object, array, string, keyword, or number) at position `i`.
+   *
+   * @returns the parsed JSONC node
+   */
   function parseValue(): JSONCValue | JSONCObject | JSONCArray | null {
     const first = i == 0;
     const prefix = skipWhitespace();
@@ -365,6 +531,11 @@ function parseJsoncToTree(jsoncString: string): any {
     return value;
   }
 
+  /**
+   * Parse a JSONC object `{ ... }` starting after the opening brace.
+   *
+   * @returns the parsed object node
+   */
   function parseObject(): JSONCObject {
     const obj = new JSONCObject();
     i++; // Consume '{'
@@ -415,6 +586,11 @@ function parseJsoncToTree(jsoncString: string): any {
     return obj;
   }
 
+  /**
+   * Parse a JSONC array `[ ... ]` starting after the opening bracket.
+   *
+   * @returns the parsed array node
+   */
   function parseArray(): JSONCArray {
     const arr = new JSONCArray();
     i++; // Consume '['
@@ -451,6 +627,11 @@ function parseJsoncToTree(jsoncString: string): any {
     return arr;
   }
 
+  /**
+   * Parse a double-quoted string literal and return it as a JSONCValue.
+   *
+   * @returns the parsed string value
+   */
   function parseString(): JSONCValue {
     let str = "";
     i++; // Consume '"'
@@ -469,11 +650,21 @@ function parseJsoncToTree(jsoncString: string): any {
     return new JSONCValue(str);
   }
 
+  /**
+   * Parse a property key (quoted string) and return it as a JSONCKey.
+   *
+   * @returns the parsed key
+   */
   function parseKey(): JSONCKey {
     const key = parseString();
     return new JSONCKey(key.value);
   }
 
+  /**
+   * Parse a keyword literal (`true`, `false`, or `null`).
+   *
+   * @returns the parsed keyword value
+   */
   function parseKeyword(): JSONCValue {
     if (jsoncString.substring(i, i + 4) === "true") {
       i += 4;
@@ -489,6 +680,11 @@ function parseJsoncToTree(jsoncString: string): any {
     }
   }
 
+  /**
+   * Parse a numeric literal (integer, optionally negative).
+   *
+   * @returns the parsed number value
+   */
   function parseNumber(): JSONCValue {
     let numStr = "";
     if (jsoncString[i] === "-") {
@@ -503,6 +699,11 @@ function parseJsoncToTree(jsoncString: string): any {
     return new JSONCValue(parseFloat(numStr));
   }
 
+  /**
+   * Advance past whitespace and comments, returning the skipped text.
+   *
+   * @returns the skipped whitespace and comment text
+   */
   function skipWhitespace(): string {
     const start = i;
     let inStarComment = false;

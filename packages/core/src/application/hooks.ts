@@ -6,6 +6,7 @@ import type { Application } from "./application.js";
 
 /**
  * Get the current application
+ * @returns the result
  */
 export function useApplication<T extends Application = Application>(): T {
   return useInstanceStorage().application as T; // Ensure we are in a instance storage context
@@ -13,7 +14,7 @@ export function useApplication<T extends Application = Application>(): T {
 /**
  * Set the current application
  *
- * @param application
+ * @param application - the application instance
  */
 export function setApplication(application: Application) {
   useInstanceStorage().application = application;
@@ -21,8 +22,8 @@ export function setApplication(application: Application) {
 
 /**
  * Useful if you want to allow model override
- * @param name
- * @returns
+ * @param name - the name to use
+ * @returns the result
  */
 export function useModel<T extends Model = Model>(name: string | T): ModelDefinition<T> {
   if (name === undefined) {
@@ -44,6 +45,10 @@ export function useModelId(object: any): string | undefined {
   return useApplication().getModelId(object);
 }
 
+/**
+ * Get the current application parameters from the active configuration
+ * @returns the result
+ */
 export function useParameters(): Configuration["parameters"] {
   return useApplication().getConfiguration().parameters;
 }

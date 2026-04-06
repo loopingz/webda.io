@@ -57,7 +57,7 @@ export interface OperationDefinition {
 
 /**
  * Record the class as a Bean
- * @param constructor
+ * @param constructor - the constructor function
  */
 // @Bean to declare as a Singleton service
 export function Bean(constructor: Function) {

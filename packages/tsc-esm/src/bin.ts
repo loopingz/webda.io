@@ -6,6 +6,8 @@ import { writer, isMainModule } from "./lib.js";
 /**
  * Resolve the tsconfig path from CLI arguments, mirroring tsc's -p/--project flag.
  * Accepts a file path or a directory (in which case tsconfig.json is appended).
+ *
+ * @returns the resolved absolute path to tsconfig.json
  */
 function resolveConfig(): string {
   const args = process.argv.slice(2);

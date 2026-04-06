@@ -35,7 +35,7 @@ export class GlobalContext extends Context {
 
   /**
    * Provide an empty session object
-   * @returns
+   * @returns the result
    */
   getSession() {
     return {};

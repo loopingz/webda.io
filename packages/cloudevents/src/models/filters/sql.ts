@@ -175,6 +175,7 @@ const functions: { [key in FunctionName]: (...args: any[]) => any } = {
  */
 export abstract class Expression {
   protected deps: Expression[] = [];
+  /** Create a new Expression. */
   constructor() {}
 
   /**
@@ -191,7 +192,7 @@ export abstract class Expression {
    * Resolve the expression if possible
    *
    * If the expression only contains static values then it can be resolved
-   * @returns
+   * @returns the resolved or original expression
    */
   resolve(): Expression {
     if (this.deps.length && this.deps.every(d => d instanceof ValueExpression)) {
@@ -205,6 +206,9 @@ export abstract class Expression {
  * Represent an attribute expression
  */
 export class AttributeExpression extends Expression {
+  /** Create a new AttributeExpression.
+   * @param attribute - the attribute name to evaluate
+   */
   constructor(public readonly attribute: string) {
     super();
   }
@@ -267,7 +271,7 @@ export class FunctionExpression extends Expression {
 export class UnaryLogicExpression extends Expression {
   /**
    * Invert the result of the child expression
-   * @param child
+   * @param child - the expression to negate
    */
   constructor(public readonly child: Expression) {
     super();
@@ -295,7 +299,7 @@ export class UnaryLogicExpression extends Expression {
 export class UnaryNumericExpression extends Expression {
   /**
    * Negative the result of the child expression
-   * @param child
+   * @param child - the expression to negate numerically
    */
   constructor(public readonly child: Expression) {
     super();
@@ -437,7 +441,7 @@ export class BinaryMultiplicativeExpression extends Expression {
    *
    * @param left part of the expression
    * @param right part of the expression
-   * @param operator
+   * @param operator - the arithmetic operator
    */
   constructor(
     public readonly left: Expression,
@@ -478,7 +482,7 @@ export class BinaryAdditiveExpression extends Expression {
    *
    * @param left part of the expression
    * @param right part of the expression
-   * @param operator
+   * @param operator - the additive operator
    */
   constructor(
     public readonly left: Expression,
@@ -598,7 +602,7 @@ export class BinaryLogicExpression extends Expression {
 export class ValueExpression extends Expression {
   /**
    * Value represented by the expression
-   * @param value
+   * @param value - the static value
    */
   constructor(public readonly value: any) {
     super();
@@ -632,7 +636,7 @@ export class ValueExpression extends Expression {
 export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression> implements CESQLParserVisitor<any> {
   /**
    * By default accepting it
-   * @returns
+   * @returns the default value expression
    */
   protected defaultResult() {
     return new ValueExpression(true);
@@ -723,17 +727,17 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
 
   /**
    * Retrieve the children results
-   * @param ctx
-   * @returns
+   * @param ctx - the parse tree context
+   * @returns the visited children results
    */
   getChildrenResults(ctx: any): any[] {
     return ctx.children.map((c: any) => this.visit(c));
   }
 
   /**
-   *
-   * @param ctx
-   * @returns
+   * Visit a binary comparison expression node
+   * @param ctx - the binary comparison expression context
+   * @returns the comparison expression
    */
   visitBinaryComparisonExpression(ctx: BinaryComparisonExpressionContext): Expression {
     const [left, op, right] = [this.visit(ctx.children![0]), ctx.children![1].text, this.visit(ctx.children![2])];
@@ -837,8 +841,8 @@ export class SqlFilterImplementation extends FilterImplementation<SqlFilter> {
 
   /**
    * Check if a cloudevent match the filter
-   * @param event
-   * @returns
+   * @param event - the cloud event to check
+   * @returns true if the event matches
    */
   match(event: CloudEvent): boolean {
     return this.query.eval(event);
@@ -852,7 +856,7 @@ export class SqlFilterImplementation extends FilterImplementation<SqlFilter> {
    *  RIGHT(a, 3) = "foo" => suffix: {a: "foo"}
    *  a = "foo" => exact: {a: "foo"}
    *
-   * @returns
+   * @returns the optimized filter implementation
    */
   optimize(): FilterImplementation<ExactFilter | PrefixFilter | SuffixFilter | SqlFilter> {
     if (

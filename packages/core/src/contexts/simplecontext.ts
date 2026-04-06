@@ -10,8 +10,8 @@ export class SimpleOperationContext extends OperationContext {
 
   /**
    * Create another context from an existing one
-   * @param context
-   * @returns
+   * @param context - the execution context
+   * @returns the result
    */
   static async fromContext(context: OperationContext): Promise<SimpleOperationContext> {
     const ctx = new SimpleOperationContext(context["_webda"]);
@@ -23,6 +23,8 @@ export class SimpleOperationContext extends OperationContext {
 
   /**
    * Set the input
+   * @param input - the input
+   * @returns this for chaining
    */
   setInput(input: Buffer): this {
     this.input = input;
@@ -31,8 +33,8 @@ export class SimpleOperationContext extends OperationContext {
 
   /**
    * Set the session
-   * @param session
-   * @returns
+   * @param session - the session object
+   * @returns this for chaining
    */
   setSession(session: Session): this {
     this.session = session;

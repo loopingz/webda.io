@@ -292,6 +292,8 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
 
   /**
    * Import the inquirer module (extracted for testability)
+   *
+   * @returns the inquirer prompts module
    */
   protected importInquirer(): Promise<any> {
     return import("@inquirer/prompts");

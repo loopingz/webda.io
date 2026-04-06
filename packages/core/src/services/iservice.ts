@@ -17,6 +17,8 @@ export type ServiceStates =
 
 /**
  * Define the service state for the application
+ * @param options - the options
+ * @returns the result
  */
 export const ServiceState = (options: StateOptions<ServiceStates>) => State({ error: "errored", ...options });
 
@@ -55,6 +57,10 @@ export abstract class AbstractService<
    */
   protected _compiledCapabilities: Record<string, any> = {};
 
+  /** Create a new AbstractService
+   * @param name - the service name
+   * @param params - the service parameters
+   */
   constructor(name: string, params: T | JSONed<T>) {
     super();
     this.name = name;
@@ -75,6 +81,7 @@ export abstract class AbstractService<
    *   return caps;
    * }
    * ```
+   * @returns the result
    */
   getCapabilities(): Record<string, any> {
     return structuredClone(this._compiledCapabilities);

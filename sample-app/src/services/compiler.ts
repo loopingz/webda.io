@@ -16,6 +16,7 @@ export class SimpleService extends Service {}
 interface MyInterfaceParam {
   test: string;
 }
+/** Parameters for AnotherService with interface-based configuration. */
 export class AnotherServiceParameters extends ServiceParameters {
   anotherParameter: string;
   /**
@@ -24,6 +25,7 @@ export class AnotherServiceParameters extends ServiceParameters {
   interfaceParam: Partial<MyInterfaceParam>;
 }
 
+/** Extended parameters adding a bounded numeric field for the fourth service. */
 export class FourthServiceParameters extends AnotherServiceParameters {
   /**
    * @minimum 100

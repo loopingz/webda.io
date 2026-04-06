@@ -28,6 +28,7 @@ interface ConfigurationProvider {
   canTriggerConfiguration(id: string, callback: () => void, defaultValue?: any): boolean;
 }
 
+/** Parameters for the ConfigurationService, defining how configuration sources are loaded and refreshed */
 export class ConfigurationServiceParameters extends ServiceParameters {
   /**
    * Check configuration every {checkInterval} seconds
@@ -36,6 +37,7 @@ export class ConfigurationServiceParameters extends ServiceParameters {
   checkInterval: Duration;
   /**
    * Check interval in ms
+   * @returns the result
    */
   get checkIntervalMs() {
     return this.checkInterval.toMs();
@@ -55,6 +57,11 @@ export class ConfigurationServiceParameters extends ServiceParameters {
    */
   default?: any;
 
+  /**
+   * Load and apply defaults to configuration parameters
+   * @param params - the service parameters
+   * @returns the result
+   */
   load(params: any) {
     super.load(params);
     this.default ??= {
@@ -123,7 +130,7 @@ class ConfigurationService<
 
   /**
    * Resolve the service
-   * @returns
+   * @returns the result
    */
   resolve() {
     super.resolve();
@@ -153,7 +160,7 @@ class ConfigurationService<
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async init(): Promise<this> {
     // Check interval by default every hour
@@ -185,7 +192,9 @@ class ConfigurationService<
 
   /**
    * Check if the configuration can be triggered
-   * @returns
+   * @param _id - the identifier
+   * @param _callback - the callback function
+   * @returns true if the condition is met
    */
   canTriggerConfiguration(_id: string, _callback: () => void): boolean {
     return false;
@@ -193,6 +202,7 @@ class ConfigurationService<
 
   /**
    * Clear the check interval if exist
+   * @returns the result
    */
   async stop() {
     if (this.interval !== undefined) {
@@ -204,6 +214,7 @@ class ConfigurationService<
 
   /**
    *
+   * @param _id - the identifier
    * @returns current configuration
    */
   async getConfiguration(_id: string): Promise<{ [key: string]: any }> {
@@ -212,7 +223,7 @@ class ConfigurationService<
 
   /**
    * Load the configuration by calling the source service with the source id
-   * @returns
+   * @returns the result
    */
   protected async loadConfiguration(): Promise<{ [key: string]: any }> {
     let finalConfig: any = this.parameters.default || { services: {}, parameters: {} };
@@ -229,7 +240,8 @@ class ConfigurationService<
   /**
    * Checking for configuration updates
    *
-   * @returns
+   * @param dynamic - whether the registration is dynamic
+   * @returns the result
    */
   protected async checkUpdate(dynamic: boolean = false) {
     // If the ConfigurationProvider cannot trigger we check at interval
@@ -263,7 +275,7 @@ class ConfigurationService<
 
   /**
    *
-   * @param core
+   * @param core - the Core instance
    */
   async bootstrap(core: Core): Promise<void> {
     this.log("DEBUG", "Bootstrapping configuration service");

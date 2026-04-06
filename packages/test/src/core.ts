@@ -87,12 +87,13 @@ type TestFramework = {
   }>;
 };
 
-/**
- * Detect the test framework in use
- * We support mocha, jest, vitest, bun
- *
- */
 /* v8 ignore start */
+/**
+ * Detect the test framework in use.
+ * We support mocha, jest, vitest, bun.
+ *
+ * @returns the detected test framework
+ */
 export function detectFramework(): TestFramework {
   if (process.env.VITEST) {
     return {
@@ -269,8 +270,8 @@ export function getBag(metadata: Record<string | symbol, any>, key: string, fall
 
 /**
  * Get the test metadata for a target, including inherited metadata
- * @param target
- * @returns
+ * @param target - the class constructor to inspect
+ * @returns the merged metadata object
  */
 export function getMetadata(target: AnyCtor): {
   "webda:suite"?: SuiteMeta;
@@ -568,6 +569,7 @@ export function testWrapper(
  * Returns a method decorator that applies `mutator` to the `TestMeta` entry for the
  * decorated method, creating a stub entry first if `@test` has not yet been applied.
  * @param mutator Function that modifies the `TestMeta` in place.
+ * @returns a method decorator
  */
 function mutateTestMeta(mutator: (m: TestMeta) => void) {
   return (_: any, context: ClassMethodDecoratorContext) => {
@@ -591,12 +593,24 @@ function mutateTestMeta(mutator: (m: TestMeta) => void) {
   };
 }
 
-/** Marks the decorated test as the only test to run in the suite (exclusive execution). */
+/**
+ * Marks the decorated test as the only test to run in the suite (exclusive execution).
+ *
+ * @param _ - unused decorator value
+ * @param context - method decorator context
+ * @returns the decorator result
+ */
 export function only(_: any, context: ClassMethodDecoratorContext) {
   return mutateTestMeta(m => (m.mode = "only"))(_, context);
 }
 test.only = only;
-/** Marks the decorated test so it is skipped during the test run. */
+/**
+ * Marks the decorated test so it is skipped during the test run.
+ *
+ * @param _ - unused decorator value
+ * @param context - method decorator context
+ * @returns the decorator result
+ */
 export function skip(_: any, context: ClassMethodDecoratorContext) {
   return mutateTestMeta(m => (m.mode = "skip"))(_, context);
 }
@@ -604,7 +618,13 @@ test.skip = test({ execution: "skip" });
 (suite as any).only = suite(undefined, { execution: "only" });
 (suite as any).skip = suite(undefined, { execution: "skip" });
 (suite as any).todo = suite(undefined, { execution: "todo" });
-/** Marks the decorated test as a pending TODO — reported but not executed. */
+/**
+ * Marks the decorated test as a pending TODO — reported but not executed.
+ *
+ * @param _ - unused decorator value
+ * @param context - method decorator context
+ * @returns the decorator result
+ */
 export function todo(_: any, context: ClassMethodDecoratorContext) {
   return mutateTestMeta(m => (m.mode = "todo"))(_, context);
 }
@@ -612,6 +632,7 @@ test.todo = test({ execution: "todo" });
 /**
  * Sets the timeout for the decorated test.
  * @param ms Timeout in milliseconds.
+ * @returns the method decorator
  */
 export function timeout(ms: number) {
   return mutateTestMeta(m => {
@@ -621,6 +642,7 @@ export function timeout(ms: number) {
 /**
  * Sets the number of retry attempts for the decorated test (Mocha only).
  * @param n Number of retries.
+ * @returns the method decorator
  */
 export function retries(n: number) {
   return mutateTestMeta(m => {
@@ -630,6 +652,7 @@ export function retries(n: number) {
 /**
  * Sets the "slow" threshold for the decorated test.
  * @param ms Threshold in milliseconds; tests exceeding this are highlighted as slow.
+ * @returns the method decorator
  */
 export function slow(ms: number) {
   return mutateTestMeta(m => {
@@ -639,8 +662,8 @@ export function slow(ms: number) {
 
 /**
  * Not yet used here but could generate multiple suites with different params
- * @param matrix
- * @returns
+ * @param matrix - parameter combinations for test generation
+ * @returns the class decorator
  */
 export function params(matrix: Record<string, unknown[]>) {
   return (value: Function, context: ClassDecoratorContext) => {

@@ -5,6 +5,8 @@ import { Application } from "./application.js";
 
 /**
  * Run the application by creating a Core instance, initializing it, and handling SIGINT.
+ * @param application - the application instance
+ * @returns the result
  */
 export async function runApplication(application: Application): Promise<void> {
   return runWithInstanceStorage({}, async () => {

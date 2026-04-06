@@ -278,6 +278,8 @@ export class SerializerContext {
    * This is used by the top-level `serialize()`, `deserialize()`, and `registerSerializer()`
    * functions. All built-in types (Date, Map, Set, etc.) are pre-registered here.
    *
+   * @returns the global context instance
+   *
    * @example
    * ```typescript
    * SerializerContext.globalContext.registerSerializer("MyType", mySerializer);
@@ -328,8 +330,17 @@ export class SerializerContext {
    * @throws Error if no deserializer is provided and the constructor lacks a static deserialize method
    */
   public registerSerializer(type: ConstructorWithDeserialize): this;
+  /** Register a serializer by type name and constructor. */
   public registerSerializer(type: string, clazz: ConstructorWithDeserialize): this;
+  /** Register a serializer by type name and explicit serialize/deserialize methods. */
   public registerSerializer(type: string, methods: Serializer, overwrite?: boolean): this;
+  /**
+   * @hidden Implementation signature
+   * @param type - type name or constructor
+   * @param info - serializer methods or constructor
+   * @param overwrite - whether to replace an existing serializer
+   * @returns this context for chaining
+   */
   public registerSerializer(
     type: string | ConstructorWithDeserialize,
     info?: Serializer | ConstructorWithDeserialize,
@@ -717,6 +728,7 @@ export class SerializerContext {
    *
    * @template T The expected return type
    * @param str A JSON string produced by {@link serialize}
+   * @param type - optional type hint for deserialization
    * @returns The reconstructed object with proper types
    * @throws Error if a required serializer is not registered
    *
@@ -757,6 +769,8 @@ export class SerializerContext {
    *
    * @template T The expected return type
    * @param info An object containing `value` and `$serializer` metadata
+   * @param info.value - the serialized value
+   * @param info.$serializer - the serializer metadata
    * @returns The reconstructed object with proper types
    * @throws Error if a required serializer is not registered
    *
@@ -873,6 +887,8 @@ export function deserialize<T>(str: string): T {
  *
  * @template T The expected return type
  * @param info An object containing `value` and `$serializer` metadata
+ * @param info.value - the serialized value
+ * @param info.$serializer - the serializer metadata
  * @returns The reconstructed object with proper types
  * @throws Error if a required serializer is not registered
  *
@@ -888,6 +904,12 @@ export function deserializeRaw<T>(info: { value: any; $serializer: any }): T {
   return SerializerContext.globalContext.deserializeRaw(info);
 }
 
+/**
+ * Check whether a serializer is registered for the given type name or constructor.
+ *
+ * @param type - the type name or constructor to check
+ * @returns true if a serializer is registered
+ */
 export function hasSerializer(type: string | Constructor): boolean {
   try {
     SerializerContext.globalContext.getSerializer(type);

@@ -35,11 +35,11 @@ export class CronDefinition {
 
   /**
    *
-   * @param cron
-   * @param args
-   * @param serviceName
-   * @param method
-   * @param description
+   * @param cron - the cron expression
+   * @param args - additional arguments
+   * @param serviceName - the service name
+   * @param method - the HTTP method
+   * @param description - the description
    */
   constructor(cron: string, args: any[] = [], serviceName: string = "", method: string = "", description: string = "") {
     this.cron = cron;
@@ -49,6 +49,10 @@ export class CronDefinition {
     this.args = args;
   }
 
+  /**
+   * Format the cron definition as a human-readable string
+   * @returns the result
+   */
   toString() {
     return `${this.cron}: ${this.serviceName}.${this.method}(${this.args.map(a => a.toString()).join(",")})${
       this.description !== "" ? ` # ${this.description}` : ""
@@ -73,6 +77,13 @@ class CronService extends Service {
   crontabSchedule = schedule;
   private _scanned: boolean = false;
 
+  /**
+   * Legacy decorator factory for annotating a method with a cron schedule
+   * @param cron - the cron expression
+   * @param description - the description
+   * @param args - additional arguments
+   * @returns the result
+   */
   static Annotation(cron: string, description: string = "", ...args): MethodDecorator {
     return (_target: any, property: string | symbol, descriptor: PropertyDescriptor) => {
       descriptor.value.cron = descriptor.value.cron || [];
@@ -80,6 +91,12 @@ class CronService extends Service {
     };
   }
 
+  /**
+   * Generate a short hash-based identifier for a cron definition
+   * @param cron - the cron expression
+   * @param name - the name to use
+   * @returns the result
+   */
   static getCronId(cron: CronDefinition, name: string = "") {
     const hash = createHash("sha256");
     return hash
@@ -88,6 +105,11 @@ class CronService extends Service {
       .substring(0, 8);
   }
 
+  /**
+   * Collect all @Cron-annotated methods from the provided services
+   * @param services - the services
+   * @returns the list of results
+   */
   static loadAnnotations(services): CronDefinition[] {
     const cronsResult: CronDefinition[] = [];
     for (const i in services) {
@@ -101,6 +123,7 @@ class CronService extends Service {
     return cronsResult;
   }
 
+  /** Scan all services for cron annotations and add them to the schedule (once) */
   addAnnotations() {
     if (this._scanned) {
       return;
@@ -109,16 +132,30 @@ class CronService extends Service {
     this.crons.push(...CronService.loadAnnotations(useCore().getServices()));
   }
 
+  /**
+   * Get all registered cron entries including annotations
+   * @returns the result
+   */
   getCrontab() {
     // Load all annotations
     this.addAnnotations();
     return this.crons;
   }
 
+  /**
+   * Start the cron worker, optionally including annotated crons
+   * @param annotations - the annotations
+   * @returns the result
+   */
   work(annotations: string = "true"): CancelablePromise {
     return this.run(annotations === "true");
   }
 
+  /**
+   * Schedule and start all registered cron jobs
+   * @param annotations - the annotations
+   * @returns the result
+   */
   run(annotations: boolean = true): CancelablePromise {
     this.log("INFO", "Running crontab with" + (annotations ? "" : "out"), "annotations");
     // Load all annotations
@@ -159,6 +196,12 @@ class CronService extends Service {
     return new CancelablePromise();
   }
 
+  /**
+   * Register a cron expression to execute a callback, buffering if not yet enabled
+   * @param cron - the cron expression
+   * @param cb - the callback function
+   * @param description - the description
+   */
   schedule(cron: string, cb: () => any, description: string = "") {
     if (this.enable) {
       this.crontabSchedule(cron, cb);
@@ -176,6 +219,13 @@ class CronService extends Service {
   }
 }
 
+/**
+ * Decorator to schedule a service method with a cron expression
+ * @param cron - the cron expression
+ * @param description - the description
+ * @param args - additional arguments
+ * @returns the result
+ */
 export function Cron(cron: string, description = "", ...args: any[]) {
   return function cronDecorator<T extends (this: Service, ...a: any[]) => Promise<any>>(
     value: T,

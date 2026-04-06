@@ -188,6 +188,8 @@ export type FilterOutAttributes<T extends object, K> = {
 /**
  * Ensure the decorated class's *constructor object* conforms to S (its static side).
  * Usage: @StaticInterface<YourStaticInterface>()
+ *
+ * @returns a class decorator that enforces the static interface
  */
 export function StaticInterface<S extends object>() {
   return function staticInterfaceCheck<C extends Constructor & S>(value: C, _context: ClassDecoratorContext): void {
@@ -239,6 +241,8 @@ export type OmitPrefixed<T, Prefix extends string> = {
  * If the switch statement is not exhaustive, there will be a type error caught in CI.
  *
  * See https://stackoverflow.com/questions/39419170/how-do-i-check-that-a-switch-block-is-exhaustive-in-typescript for more details.
+ *
+ * @param unreachable - the value that should be unreachable (type `never`)
  */
 export function assertUnreachable(unreachable: never): never {
   throw new Error(`Unreachable: ${JSON.stringify(unreachable)}`);

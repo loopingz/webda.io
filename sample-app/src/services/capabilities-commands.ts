@@ -8,6 +8,9 @@ import { Command, RequestFilter, Service } from "@webda/core";
 export class TestCommandService extends Service implements RequestFilter {
   /**
    * A test command that greets someone.
+   *
+   * @param name - user name to greet
+   * @param verbose - enable verbose output
    */
   @Command("greet", { description: "Greet a user by name" })
   async greet(
@@ -21,6 +24,9 @@ export class TestCommandService extends Service implements RequestFilter {
 
   /**
    * A command with a required argument.
+   *
+   * @param target - the deployment target
+   * @param dryRun - simulate without deploying
    */
   @Command("deploy", { description: "Deploy a resource" })
   async deploy(
@@ -32,6 +38,11 @@ export class TestCommandService extends Service implements RequestFilter {
     // Deploy command implementation
   }
 
+  /**
+   * Check whether the incoming request should be accepted (always returns true).
+   *
+   * @returns true
+   */
   async checkRequest(): Promise<boolean> {
     return true;
   }

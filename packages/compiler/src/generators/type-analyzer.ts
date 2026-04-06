@@ -8,10 +8,15 @@ import { FileUtils } from "@webda/utils";
  * Provides methods for analyzing types, hierarchies, and packages
  */
 export class TypeAnalyzer {
+  /** Create a new TypeAnalyzer.
+   * @param typeChecker - the TypeScript type checker to use
+   */
   constructor(private typeChecker: ts.TypeChecker) {}
 
   /**
    * Get the class hierarchy for a type
+   * @param type - the type to get the hierarchy for
+   * @returns array of types from child to parent
    */
   getClassTree(type: ts.Type): ts.Type[] {
     const res = [type];
@@ -36,6 +41,10 @@ export class TypeAnalyzer {
 
   /**
    * Check if a type extends a certain base type (packageName/symbolName)
+   * @param types - the class hierarchy to check
+   * @param packageName - the package to match
+   * @param symbolName - the symbol name to match
+   * @returns true if any type in the hierarchy matches
    */
   extends(types: ts.Type[], packageName: string, symbolName: string): boolean {
     for (const type of types) {
@@ -48,6 +57,8 @@ export class TypeAnalyzer {
 
   /**
    * Get the package name for a type
+   * @param type - the type to resolve
+   * @returns the npm package name or undefined
    */
   getPackageFromType(type: ts.Type): string | undefined {
     const fileName = type.symbol.getDeclarations()?.[0]?.getSourceFile()?.fileName;
@@ -70,6 +81,10 @@ export class TypeAnalyzer {
   /**
    * Get a schema node for a typed parameter
    * Looks for ServiceParameters or other generic type in class hierarchy
+   * @param classTree - the class hierarchy
+   * @param typeName - the type name to search for
+   * @param packageName - the package name to match
+   * @returns the matching type node or undefined
    */
   getSchemaNode(
     classTree: ts.Type[],
@@ -109,6 +124,8 @@ export class TypeAnalyzer {
 
   /**
    * Resolve symbol aliases
+   * @param sym - the symbol to resolve
+   * @returns the resolved symbol
    */
   resolveAliases(sym: ts.Symbol | undefined): ts.Symbol | undefined {
     if (!sym) return sym;
@@ -117,6 +134,10 @@ export class TypeAnalyzer {
 
   /**
    * Check if a property is keyed by a specific symbol
+   * @param propSym - the property symbol
+   * @param packageName - the package containing the key symbol
+   * @param symbolName - the expected key symbol name
+   * @returns true if the property uses the specified symbol key
    */
   propertyIsKeyedBySymbol(propSym: ts.Symbol, packageName: string, symbolName: string): boolean {
     for (const d of propSym.getDeclarations() ?? []) {

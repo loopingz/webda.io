@@ -18,7 +18,7 @@ export class FileLoggerService<
   workoutLogger: FileLogger;
   /**
    *
-   * @returns
+   * @returns the result
    */
   resolve() {
     if (this.parameters.file === undefined) {
@@ -35,7 +35,7 @@ export class FileLoggerService<
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   loadParameters(params: ServicePartialParameters<T>): T {
     return <T>new FileLoggerServiceParameters().load(params);

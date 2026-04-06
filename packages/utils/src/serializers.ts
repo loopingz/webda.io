@@ -93,6 +93,7 @@ export class BufferWritableStream extends Writable {
   chunks = [];
   buffer: Buffer;
   ends: Promise<Buffer>;
+  /** Create a new BufferWritableStream. */
   public constructor() {
     super({
       write: (chunk, encoding, callback) => {
@@ -327,13 +328,13 @@ export const FileUtils: StorageFinder & {
    * Recursively run a process through all descendant files under a path
    * Faster than the synchronous version
    *
-   * @param {string} path
+   * @param {string} path - root path to walk
    * @param {Function} processor Processing function, eg: (filepath: string) => void
-   * @param {string} currentPath Path to dig
+   * @param options - walker options
    * @param {boolean} options.followSymlinks Follow symlinks which targets a folder
    * @param {boolean} options.includeDir Include folders to results transmitted to the processor function
    * @param {number} options.maxDepth Maximum depth level to investigate, default is 100 to prevent infinite loops
-   * @param {number} state.depth Starting level counter
+   * @param {number} depth Starting level counter
    */
   walk: async (
     path: string,
@@ -349,11 +350,12 @@ export const FileUtils: StorageFinder & {
    * Without pattern provided, ALL FOUND FILES will be returned by default
    *
    * @param {string} currentPath Path to explore
+   * @param options - finder options
    * @param {boolean} options.followSymlinks Follow symlinks which targets a folder
    * @param {boolean} options.includeDir Include folders to results transmitted to the processor function
    * @param {number} options.maxDepth Maximum depth level to investigate
    * @param {RegExp} options.filterPattern RegExp pattern to filter, no filter will find all files
-   * @returns
+   * @returns array of matched file paths
    */
   find: async (currentPath: string, options: FinderOptionsType = { maxDepth: 3 }) => {
     const found = [];
@@ -571,6 +573,7 @@ export const JSONUtils = {
    *
    * @param object - The object to serialize.
    * @param filename - Destination file path.
+   * @returns void
    *
    * @example
    * ```ts
@@ -617,6 +620,7 @@ export const YAMLUtils = {
    *
    * @param object - The object to serialize.
    * @param filename - Destination file path.
+   * @returns void
    *
    * @example
    * ```ts

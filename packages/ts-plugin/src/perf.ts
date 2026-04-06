@@ -18,12 +18,19 @@ export interface PerfStats {
   maxMs: number;
 }
 
+/** Lightweight instrumentation tracker that records call counts and timings for named operations. */
 export class PerfTracker {
   private stats = new Map<string, PerfStats>();
   readonly enabled: boolean;
   private warnMs: number;
   private logger: (msg: string) => void;
 
+  /** Create a new PerfTracker.
+   * @param logger - logging function for performance warnings
+   * @param options - tracker configuration
+   * @param options.enabled - whether tracking is enabled
+   * @param options.warnMs - threshold in ms before logging a warning
+   */
   constructor(logger: (msg: string) => void, options?: { enabled?: boolean; warnMs?: number }) {
     this.logger = logger;
     this.enabled = options?.enabled ?? true;
@@ -35,6 +42,9 @@ export class PerfTracker {
    *
    * When the tracker is disabled the function is called directly — no
    * `performance.now()` calls, no map lookups.
+   * @param name - the operation name
+   * @param fn - the function to measure
+   * @returns the function's return value
    */
   measure<T>(name: string, fn: () => T): T {
     if (!this.enabled) return fn();
@@ -46,6 +56,11 @@ export class PerfTracker {
     }
   }
 
+  /**
+   * Record a single timing measurement, logging a warning if it exceeds the threshold.
+   * @param name - the operation name
+   * @param ms - elapsed time in milliseconds
+   */
   private record(name: string, ms: number): void {
     let entry = this.stats.get(name);
     if (!entry) {
@@ -67,6 +82,8 @@ export class PerfTracker {
 
   /**
    * Get stats for a specific operation, or undefined if never measured.
+   * @param name - the operation name
+   * @returns the stats, or undefined
    */
   get(name: string): Readonly<PerfStats> | undefined {
     return this.stats.get(name);
@@ -74,6 +91,7 @@ export class PerfTracker {
 
   /**
    * Get a snapshot of all tracked stats, sorted by total time descending.
+   * @returns a map of all stats
    */
   getAll(): Map<string, Readonly<PerfStats>> {
     return new Map([...this.stats.entries()].sort((a, b) => b[1].totalMs - a[1].totalMs));
@@ -81,6 +99,7 @@ export class PerfTracker {
 
   /**
    * Format a human-readable summary of all tracked operations.
+   * @returns the formatted summary string
    */
   summary(): string {
     if (this.stats.size === 0) return "perf: no data collected";

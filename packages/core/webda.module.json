@@ -1586,7 +1586,24 @@
         "type": "object",
         "title": "Router"
       },
-      "Configuration": "lib/rest/router:RouterParameters"
+      "Configuration": "lib/rest/router:RouterParameters",
+      "commands": {
+        "openapi": {
+          "description": "Export the OpenAPI definition",
+          "method": "openapi",
+          "args": {
+            "output": {
+              "type": "string",
+              "alias": "o",
+              "description": "Output file path (stdout if omitted)"
+            },
+            "includeHidden": {
+              "type": "boolean",
+              "description": "Include hidden routes"
+            }
+          }
+        }
+      }
     }
   },
   "models": {

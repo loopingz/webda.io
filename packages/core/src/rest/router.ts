@@ -3,6 +3,7 @@ import { HttpMethodType } from "../contexts/httpcontext.js";
 import type { IRouter, RequestFilter, CORSFilter, RouteInfo } from "./irest.js";
 
 import { useApplication, useModelId } from "../application/hooks.js";
+import { Command } from "../services/command.js";
 import { useLog } from "../loggers/hooks.js";
 import type { OpenAPIV3 } from "openapi-types";
 import { useParameters } from "../application/hooks.js";
@@ -17,6 +18,7 @@ import type { Storable } from "@webda/models";
 import { templateVariables } from "../templates/templates.js";
 import { emitCoreEvent, useCoreEvents } from "../events/events.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
+import { writeFileSync } from "node:fs";
 
 /** Parameters for the Router service */
 export class RouterParameters extends ServiceParameters {
@@ -580,6 +582,28 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    */
   protected async checkCORSRequest(ctx: IWebContext): Promise<boolean> {
     return (await Promise.all(this._requestCORSFilters.map(filter => filter.checkRequest(ctx, "CORS")))).some(v => v);
+  }
+
+  /**
+   * Export the OpenAPI definition as JSON to stdout
+   * @param output - file path to write to (prints to stdout if omitted)
+   * @param includeHidden - include hidden routes in the output
+   */
+  @Command("openapi", { description: "Export the OpenAPI definition" })
+  openapi(
+    /** @alias o @description Output file path (stdout if omitted) */
+    output?: string,
+    /** @description Include hidden routes */
+    includeHidden?: boolean
+  ) {
+    const doc = this.exportOpenAPI(!includeHidden);
+    const json = JSON.stringify(doc, undefined, 2);
+    if (output) {
+      writeFileSync(output, json);
+      useLog("INFO", `OpenAPI definition written to ${output}`);
+    } else {
+      console.log(json);
+    }
   }
 
   /**

@@ -16,6 +16,9 @@ interface FilterImplementationConstructor {
  */
 export class AllFilterImplementation extends FilterImplementation<AllFilter> {
   filters: FilterImplementation<Filter>[];
+  /** Create a new AllFilterImplementation.
+   * @param definition - the all-filter definition
+   */
   constructor(definition: AllFilter) {
     super(definition);
     this.filters = this.definition.all.map(f => FiltersHelper.get(f));
@@ -41,6 +44,9 @@ export class AllFilterImplementation extends FilterImplementation<AllFilter> {
  */
 export class AnyFilterImplementation extends FilterImplementation<AnyFilter> {
   filters: FilterImplementation<Filter>[];
+  /** Create a new AnyFilterImplementation.
+   * @param definition - the any-filter definition
+   */
   constructor(definition: AnyFilter) {
     super(definition);
     this.filters = definition.any.map(f => FiltersHelper.get(f));

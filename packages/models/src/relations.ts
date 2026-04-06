@@ -324,6 +324,11 @@ export class ModelRelated<
 > {
   private repoSource: Repository<any>;
 
+  /** Create a new ModelRelated
+   * @param targetClass - the target model class
+   * @param object - the source object owning the relation
+   * @param attribute - the attribute name linking the relation
+   */
   constructor(
     targetClass: ModelClass<T>,
     private object: L,
@@ -398,6 +403,9 @@ export class ModelLink<T extends Storable> implements ModelLinker {
   protected [RelationKey]: PrimaryKeyType<T>;
   readonly [RelationModel]: ModelClass<T>;
 
+  /** Create a new ModelLink
+   * @param model - the model class to link to
+   */
   constructor(
     /**
      * The repository of the object to link
@@ -493,6 +501,11 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
   // COMPOSITION: Internal array instead of extending Array
   private items: ModelRef<T>[] = [];
 
+  /** Create a new ModelLinksSimpleArray
+   * @param model - the model class for linked items
+   * @param content - initial array of primary keys
+   * @param parentObject - optional parent object owning this relation
+   */
   constructor(model: ModelClass<T>, content: PrimaryKeyType<T>[] = [], parentObject?: T) {
     this[RelationRepository] = useRepository(model);
     // Initialize internal array
@@ -773,6 +786,12 @@ type ModelRefCustomProperties<T extends Storable, K extends object> = ModelRef<T
 class ModelRefCustom<T extends Storable, K> extends ModelRef<T> {
   protected [RelationData]: K;
 
+  /** Create a new ModelRefCustom
+   * @param key - the primary key of the referenced object
+   * @param repo - the repository managing the referenced model
+   * @param data - custom data associated with this reference
+   * @param parent - optional parent storable
+   */
   constructor(key: PrimaryKeyType<T>, repo: Repository<ModelClass<T>>, data: K, parent?: Storable) {
     super(key, repo, parent);
     this[RelationData] = data;
@@ -816,6 +835,10 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
   // COMPOSITION: Internal array instead of extending Array
   private items: ModelRefCustomProperties<T, K>[] = [];
 
+  /** Create a new ModelLinksCustomArray
+   * @param repo - the repository for the linked model
+   * @param content - initial array of primary keys with custom data
+   */
   constructor(
     protected repo: Repository<ModelClass<T>>,
     content: (PrimaryKey<T> & K)[] = []
@@ -1158,7 +1181,7 @@ export class JunctionLink<T extends Storable, K extends Storable> implements Sto
   getPrimaryKey() {
     return { linkA: this.linkA.getPrimaryKey(), linkB: this.linkB.getPrimaryKey() };
   }
-  /** @inheritdoc */
+  /** @override */
   load(params: any): this {
     return this;
   }

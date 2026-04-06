@@ -9,6 +9,9 @@ import { User } from "./user.js";
  * models
  */
 export class SimpleUser extends User {
+  /** Create a new SimpleUser
+   * @param data - initial data
+   */
   constructor(data?: Settable<SimpleUser>) {
     super(data);
   }

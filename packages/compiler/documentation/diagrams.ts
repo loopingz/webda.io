@@ -30,6 +30,9 @@ export abstract class Diagram {
   content: string;
   file: string;
 
+  /** Create a new Diagram.
+   * @param name - the diagram name
+   */
   constructor(protected name: string) {}
 
   /**
@@ -62,6 +65,7 @@ export abstract class Diagram {
  * Export each CoreModel and their Store
  */
 export class StorageDiagram extends Diagram {
+  /** Create a new StorageDiagram. */
   constructor() {
     super("StorageDiagram");
   }
@@ -101,6 +105,7 @@ export class StorageDiagram extends Diagram {
  * Export each CoreModel, their properties and actions
  */
 export class ModelDiagram extends Diagram {
+  /** Create a new ModelDiagram. */
   constructor() {
     super("ClassDiagram");
   }
@@ -163,6 +168,7 @@ export class ModelDiagram extends Diagram {
  * So dynamic dependencies are not detected
  */
 export class ServiceDiagram extends Diagram {
+  /** Create a new ServiceDiagram. */
   constructor() {
     super("ServiceDiagram");
   }

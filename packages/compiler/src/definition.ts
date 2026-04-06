@@ -643,6 +643,10 @@ export interface ProjectInformation {
 export class WebdaProject {
   namespace: string;
   packageDescription: PackageDescriptor;
+  /** Create a new WebdaProject.
+   * @param folder - path to the project root
+   * @param output - worker output for logging
+   */
   constructor(
     protected folder: string,
     protected output: WorkerOutput = new WorkerOutput()

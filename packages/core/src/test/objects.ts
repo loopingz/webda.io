@@ -218,6 +218,10 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
   ): Promise<any> {
     throw new Error("Method not implemented.");
   }
+  /** Create a new VoidStore
+   * @param name - the service name
+   * @param params - the service parameters
+   */
   constructor(name, params) {
     super(name, params);
     if (this.parameters.brokenConstructor) throw Error();
@@ -423,6 +427,10 @@ export class TestIdent extends WebdaIdent {
  * Test use ts-node so to share same prototypes we need to load from the sources
  */
 export class TestApplication extends UnpackedApplication {
+  /** Create a new TestApplication
+   * @param file - file path or partial configuration
+   * @param logger - the logger instance
+   */
   constructor(file?: string | Partial<UnpackedConfiguration>, logger?: WorkerOutput) {
     super(file || "./", logger);
   }

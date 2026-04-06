@@ -175,7 +175,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async _get(info: BinaryMap): Promise<Readable> {
     const path = this._getPath(info.hash, "data");
@@ -339,7 +339,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async getUsageCount(hash: string) {
     const path = this._getPath(hash);
@@ -383,7 +383,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async delete(object: CoreModelWithBinary, property: string, index?: number): Promise<void> {
     const hash = (index !== undefined ? object[property][index] : object[property] as any).hash;
@@ -404,7 +404,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async cascadeDelete(info: BinaryMap, uuid: string) {
     return this._cleanUsage(info.hash, uuid);
@@ -432,7 +432,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async store(object: CoreModel, property: string, file: BinaryFile): Promise<any> {
     await file.getHashes();

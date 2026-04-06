@@ -160,7 +160,7 @@ class ConfigurationService<
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async init(): Promise<this> {
     // Check interval by default every hour

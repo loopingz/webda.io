@@ -9,6 +9,9 @@ export abstract class FilterImplementation<T extends Filter> {
    * Definition from the spec
    */
   definition: T;
+  /** Create a new FilterImplementation.
+   * @param definition - the filter definition
+   */
   constructor(definition: T) {
     this.definition = definition;
   }

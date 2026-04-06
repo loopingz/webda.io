@@ -204,6 +204,9 @@ export class CESQLParserParser extends Parser {
     return new FailedPredicateException(this, predicate, message);
   }
 
+  /** Create a new CESQLParserParser.
+   * @param input - the token stream to parse
+   */
   constructor(input: TokenStream) {
     super(input);
     this._interp = new ParserATNSimulator(CESQLParserParser._ATN, this);
@@ -1046,6 +1049,10 @@ export class CesqlContext extends ParserRuleContext {
   public EOF(): TerminalNode {
     return this.getToken(CESQLParserParser.EOF, 0);
   }
+  /** Create a new CesqlContext.
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -1094,6 +1101,10 @@ export class CesqlContext extends ParserRuleContext {
 
 /** Parse tree context for expression rules. */
 export class ExpressionContext extends ParserRuleContext {
+  /** Create a new ExpressionContext.
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -1129,6 +1140,9 @@ export class FunctionInvocationExpressionContext extends ExpressionContext {
   public functionParameterList(): FunctionParameterListContext {
     return this.getRuleContext(0, FunctionParameterListContext);
   }
+  /** Create a new FunctionInvocationExpressionContext.
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1183,6 +1197,9 @@ export class UnaryLogicExpressionContext extends ExpressionContext {
   public expression(): ExpressionContext {
     return this.getRuleContext(0, ExpressionContext);
   }
+  /** Create a new UnaryLogicExpressionContext.
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1237,6 +1254,9 @@ export class UnaryNumericExpressionContext extends ExpressionContext {
   public expression(): ExpressionContext {
     return this.getRuleContext(0, ExpressionContext);
   }
+  /** Create a new UnaryNumericExpressionContext.
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1305,6 +1325,9 @@ export class LikeExpressionContext extends ExpressionContext {
   public NOT(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.NOT, 0);
   }
+  /** Create a new LikeExpressionContext.
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1359,6 +1382,9 @@ export class ExistsExpressionContext extends ExpressionContext {
   public identifier(): IdentifierContext {
     return this.getRuleContext(0, IdentifierContext);
   }
+  /** Create a new ExistsExpressionContext.
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1427,6 +1453,9 @@ export class InExpressionContext extends ExpressionContext {
   public NOT(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.NOT, 0);
   }
+  /** Create a new InExpressionContext.
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1511,6 +1540,9 @@ export class BinaryMultiplicativeExpressionContext extends ExpressionContext {
   public MODULE(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.MODULE, 0);
   }
+  /** Create a new BinaryMultiplicativeExpressionContext.
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1588,6 +1620,9 @@ export class BinaryAdditiveExpressionContext extends ExpressionContext {
   public MINUS(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.MINUS, 0);
   }
+  /** Create a new BinaryAdditiveExpressionContext.
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1700,6 +1735,9 @@ export class BinaryComparisonExpressionContext extends ExpressionContext {
   public GREATER(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.GREATER, 0);
   }
+  /** Create a new BinaryComparisonExpressionContext.
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1784,6 +1822,9 @@ export class BinaryLogicExpressionContext extends ExpressionContext {
   public XOR(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.XOR, 0);
   }
+  /** Create a new BinaryLogicExpressionContext.
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1845,6 +1886,9 @@ export class SubExpressionContext extends ExpressionContext {
   public RR_BRACKET(): TerminalNode {
     return this.getToken(CESQLParserParser.RR_BRACKET, 0);
   }
+  /** Create a new SubExpressionContext.
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1892,6 +1936,9 @@ export class AtomExpressionContext extends ExpressionContext {
   public atom(): AtomContext {
     return this.getRuleContext(0, AtomContext);
   }
+  /** Create a new AtomExpressionContext.
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1933,6 +1980,10 @@ export class AtomExpressionContext extends ExpressionContext {
 
 /** Parse tree context for atom rules (literal values or identifiers). */
 export class AtomContext extends ParserRuleContext {
+  /** Create a new AtomContext.
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -1961,6 +2012,9 @@ export class BooleanAtomContext extends AtomContext {
   public booleanLiteral(): BooleanLiteralContext {
     return this.getRuleContext(0, BooleanLiteralContext);
   }
+  /** Create a new BooleanAtomContext.
+   * @param ctx - the atom context to copy from
+   */
   constructor(ctx: AtomContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -2008,6 +2062,9 @@ export class IntegerAtomContext extends AtomContext {
   public integerLiteral(): IntegerLiteralContext {
     return this.getRuleContext(0, IntegerLiteralContext);
   }
+  /** Create a new IntegerAtomContext.
+   * @param ctx - the atom context to copy from
+   */
   constructor(ctx: AtomContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -2055,6 +2112,9 @@ export class StringAtomContext extends AtomContext {
   public stringLiteral(): StringLiteralContext {
     return this.getRuleContext(0, StringLiteralContext);
   }
+  /** Create a new StringAtomContext.
+   * @param ctx - the atom context to copy from
+   */
   constructor(ctx: AtomContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -2102,6 +2162,9 @@ export class IdentifierAtomContext extends AtomContext {
   public identifier(): IdentifierContext {
     return this.getRuleContext(0, IdentifierContext);
   }
+  /** Create a new IdentifierAtomContext.
+   * @param ctx - the atom context to copy from
+   */
   constructor(ctx: AtomContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -2157,6 +2220,10 @@ export class IdentifierContext extends ParserRuleContext {
   public IDENTIFIER_WITH_NUMBER(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.IDENTIFIER_WITH_NUMBER, 0);
   }
+  /** Create a new IdentifierContext.
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -2219,6 +2286,10 @@ export class FunctionIdentifierContext extends ParserRuleContext {
   public FUNCTION_IDENTIFIER_WITH_UNDERSCORE(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.FUNCTION_IDENTIFIER_WITH_UNDERSCORE, 0);
   }
+  /** Create a new FunctionIdentifierContext.
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -2281,6 +2352,10 @@ export class BooleanLiteralContext extends ParserRuleContext {
   public FALSE(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.FALSE, 0);
   }
+  /** Create a new BooleanLiteralContext.
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -2343,6 +2418,10 @@ export class StringLiteralContext extends ParserRuleContext {
   public SQUOTED_STRING_LITERAL(): TerminalNode | undefined {
     return this.tryGetToken(CESQLParserParser.SQUOTED_STRING_LITERAL, 0);
   }
+  /** Create a new StringLiteralContext.
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -2398,6 +2477,10 @@ export class IntegerLiteralContext extends ParserRuleContext {
   public INTEGER_LITERAL(): TerminalNode {
     return this.getToken(CESQLParserParser.INTEGER_LITERAL, 0);
   }
+  /** Create a new IntegerLiteralContext.
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -2506,6 +2589,10 @@ export class FunctionParameterListContext extends ParserRuleContext {
       return this.getToken(CESQLParserParser.COMMA, i);
     }
   }
+  /** Create a new FunctionParameterListContext.
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -2614,6 +2701,10 @@ export class SetExpressionContext extends ParserRuleContext {
       return this.getToken(CESQLParserParser.COMMA, i);
     }
   }
+  /** Create a new SetExpressionContext.
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }

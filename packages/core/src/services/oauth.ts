@@ -153,6 +153,8 @@ export abstract class OAuthService<
 
   /**
    * Ensure default parameter url
+   * @param name - the service name
+   * @param params - the service parameters
    */
   constructor(name: string, params?: any) {
     super(name, params);

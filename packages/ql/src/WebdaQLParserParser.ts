@@ -203,7 +203,9 @@ export class WebdaQLParserParser extends Parser {
     return new FailedPredicateException(this, predicate, message);
   }
 
-  /** Create a new parser for the given token stream */
+  /** Create a new parser for the given token stream.
+   * @param input - the token stream to parse
+   */
   constructor(input: TokenStream) {
     super(input);
     this._interp = new ParserATNSimulator(WebdaQLParserParser._ATN, this);
@@ -1066,7 +1068,10 @@ export class WebdaqlContext extends ParserRuleContext {
   public offsetExpression(): OffsetExpressionContext | undefined {
     return this.tryGetRuleContext(0, OffsetExpressionContext);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -1129,7 +1134,10 @@ export class LimitExpressionContext extends ParserRuleContext {
   public integerLiteral(): IntegerLiteralContext {
     return this.getRuleContext(0, IntegerLiteralContext);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -1192,7 +1200,10 @@ export class OffsetExpressionContext extends ParserRuleContext {
   public stringLiteral(): StringLiteralContext {
     return this.getRuleContext(0, StringLiteralContext);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -1262,7 +1273,10 @@ export class OrderFieldExpressionContext extends ParserRuleContext {
   public DESC(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.DESC, 0);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -1350,7 +1364,10 @@ export class OrderExpressionContext extends ParserRuleContext {
       return this.getToken(WebdaQLParserParser.COMMA, i);
     }
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -1399,7 +1416,10 @@ export class OrderExpressionContext extends ParserRuleContext {
 
 /** Base parse tree context for filter expressions */
 export class ExpressionContext extends ParserRuleContext {
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -1442,7 +1462,9 @@ export class LikeExpressionContext extends ExpressionContext {
   public stringLiteral(): StringLiteralContext {
     return this.getRuleContext(0, StringLiteralContext);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1504,7 +1526,9 @@ export class InExpressionContext extends ExpressionContext {
   public setExpression(): SetExpressionContext {
     return this.getRuleContext(0, SetExpressionContext);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1566,7 +1590,9 @@ export class ContainsExpressionContext extends ExpressionContext {
   public stringLiteral(): StringLiteralContext {
     return this.getRuleContext(0, StringLiteralContext);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1663,7 +1689,9 @@ export class BinaryComparisonExpressionContext extends ExpressionContext {
   public GREATER(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.GREATER, 0);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1727,7 +1755,9 @@ export class AndLogicExpressionContext extends ExpressionContext {
   public AND(): TerminalNode {
     return this.getToken(WebdaQLParserParser.AND, 0);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1791,7 +1821,9 @@ export class OrLogicExpressionContext extends ExpressionContext {
   public OR(): TerminalNode {
     return this.getToken(WebdaQLParserParser.OR, 0);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1853,7 +1885,9 @@ export class SubExpressionContext extends ExpressionContext {
   public RR_BRACKET(): TerminalNode {
     return this.getToken(WebdaQLParserParser.RR_BRACKET, 0);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1901,7 +1935,9 @@ export class AtomExpressionContext extends ExpressionContext {
   public atom(): AtomContext {
     return this.getRuleContext(0, AtomContext);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param ctx - the expression context to copy from
+   */
   constructor(ctx: ExpressionContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -1943,7 +1979,10 @@ export class AtomExpressionContext extends ExpressionContext {
 
 /** Base parse tree context for value literals */
 export class ValuesContext extends ParserRuleContext {
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -1972,7 +2011,9 @@ export class BooleanAtomContext extends ValuesContext {
   public booleanLiteral(): BooleanLiteralContext {
     return this.getRuleContext(0, BooleanLiteralContext);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param ctx - the values context to copy from
+   */
   constructor(ctx: ValuesContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -2020,7 +2061,9 @@ export class IntegerAtomContext extends ValuesContext {
   public integerLiteral(): IntegerLiteralContext {
     return this.getRuleContext(0, IntegerLiteralContext);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param ctx - the values context to copy from
+   */
   constructor(ctx: ValuesContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -2068,7 +2111,9 @@ export class StringAtomContext extends ValuesContext {
   public stringLiteral(): StringLiteralContext {
     return this.getRuleContext(0, StringLiteralContext);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param ctx - the values context to copy from
+   */
   constructor(ctx: ValuesContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -2110,7 +2155,10 @@ export class StringAtomContext extends ValuesContext {
 
 /** Base parse tree context for atoms (values or identifiers) */
 export class AtomContext extends ParserRuleContext {
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -2139,7 +2187,9 @@ export class ValuesAtomContext extends AtomContext {
   public values(): ValuesContext {
     return this.getRuleContext(0, ValuesContext);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param ctx - the atom context to copy from
+   */
   constructor(ctx: AtomContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -2187,7 +2237,9 @@ export class IdentifierAtomContext extends AtomContext {
   public identifier(): IdentifierContext {
     return this.getRuleContext(0, IdentifierContext);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param ctx - the atom context to copy from
+   */
   constructor(ctx: AtomContext) {
     super(ctx.parent, ctx.invokingState);
     this.copyFrom(ctx);
@@ -2243,7 +2295,10 @@ export class IdentifierContext extends ParserRuleContext {
   public IDENTIFIER_WITH_NUMBER(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.IDENTIFIER_WITH_NUMBER, 0);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -2306,7 +2361,10 @@ export class BooleanLiteralContext extends ParserRuleContext {
   public FALSE(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.FALSE, 0);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -2369,7 +2427,10 @@ export class StringLiteralContext extends ParserRuleContext {
   public SQUOTED_STRING_LITERAL(): TerminalNode | undefined {
     return this.tryGetToken(WebdaQLParserParser.SQUOTED_STRING_LITERAL, 0);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -2425,7 +2486,10 @@ export class IntegerLiteralContext extends ParserRuleContext {
   public INTEGER_LITERAL(): TerminalNode {
     return this.getToken(WebdaQLParserParser.INTEGER_LITERAL, 0);
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }
@@ -2520,7 +2584,10 @@ export class SetExpressionContext extends ParserRuleContext {
       return this.getToken(WebdaQLParserParser.COMMA, i);
     }
   }
-  /** @inheritdoc */
+  /** @inheritdoc
+   * @param parent - the parent rule context
+   * @param invokingState - the invoking state number
+   */
   constructor(parent: ParserRuleContext | undefined, invokingState: number) {
     super(parent, invokingState);
   }

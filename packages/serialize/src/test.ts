@@ -4,7 +4,9 @@ import * as assert from "assert";
 /** Multi-factor authentication token with serialize/deserialize support. */
 class MFA {
   secret: string = "";
-  /** Create an MFA instance with an optional secret. */
+  /** Create an MFA instance with an optional secret.
+   * @param secret - the MFA secret value
+   */
   constructor(secret: string = "") {
     this.secret = secret;
   }

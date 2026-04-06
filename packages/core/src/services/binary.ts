@@ -39,6 +39,10 @@ export interface EventBinaryMetadataUpdate<T extends Storable = Storable> extend
  * Emitted if binary does not exist
  */
 export class BinaryNotFoundError extends WebdaError.CodeError {
+  /** Create a new BinaryNotFoundError
+   * @param hash - the binary hash
+   * @param storeName - the binary service name
+   */
   constructor(hash: string, storeName: string) {
     super("BINARY_NOTFOUND", `Binary not found ${hash} BinaryService(${storeName})`);
   }
@@ -116,6 +120,9 @@ export abstract class BinaryFile<T extends object = {}> implements BinaryFileInf
    */
   metadata?: T;
 
+  /** Create a new BinaryFile
+   * @param info - the binary file information
+   */
   constructor(info: BinaryFileInfo<T>) {
     this.set(info);
   }
@@ -191,6 +198,9 @@ export class LocalBinaryFile extends BinaryFile {
    */
   path: string;
 
+  /** Create a new LocalBinaryFile
+   * @param filePath - path to the local file
+   */
   constructor(filePath: string) {
     super({
       name: path.basename(filePath),
@@ -216,6 +226,10 @@ export class MemoryBinaryFile extends BinaryFile {
   @NotEnumerable
   buffer: Buffer;
 
+  /** Create a new MemoryBinaryFile
+   * @param buffer - the binary content
+   * @param info - optional file information
+   */
   constructor(buffer: Buffer | string, info: Partial<BinaryFileInfo> = {}) {
     super({
       ...info,
@@ -252,6 +266,10 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
     service: BinaryService;
   } = {} as any;
 
+  /** Create a new BinaryMap
+   * @param service - the binary service
+   * @param obj - the binary file information
+   */
   constructor(service: BinaryService, obj: BinaryFileInfo<T>) {
     super(obj);
     this.set(obj);
@@ -300,6 +318,10 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
     service: BinaryService;
     empty: boolean;
   } = {} as any;
+  /** Create a new Binary
+   * @param attribute - the model attribute name
+   * @param model - the parent model
+   */
   constructor(attribute: string, model: Model) {
     super(<any>useCore().getBinaryStore(model, attribute), model[attribute] || {});
     this[WEBDA_STORAGE].empty = model[attribute] === undefined;
@@ -366,6 +388,10 @@ export class BinariesItem<T extends object = {}> extends BinaryMap<T> {
     parent: BinariesImpl<T>;
   } = {} as any;
 
+  /** Create a new BinariesItem
+   * @param parent - the parent binaries collection
+   * @param info - the binary file information
+   */
   constructor(parent: BinariesImpl<T>, info: BinaryFileInfo<T>) {
     super(parent[WEBDA_STORAGE].service, info);
     this[WEBDA_STORAGE].parent = parent;

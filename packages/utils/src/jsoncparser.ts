@@ -61,6 +61,9 @@ class JSONCObject extends JSONCNode {
   sorted: boolean = false;
   multiline: boolean = true;
 
+  /** Create a new JSONCObject.
+   * @param value - optional plain object to initialize from
+   */
   constructor(value?: any) {
     super();
     if (value) {
@@ -214,6 +217,9 @@ class JSONCValue extends JSONCNode {
     startEndOfLine: ""
   };
 
+  /** Create a new JSONCValue.
+   * @param value - the raw scalar value
+   */
   constructor(value: any) {
     super();
     this.value = value;
@@ -253,6 +259,10 @@ class JSONCProperty extends JSONCNode {
   key: JSONCKey;
   value: JSONCValue | JSONCObject | JSONCArray;
 
+  /** Create a new JSONCProperty.
+   * @param key - the property key node
+   * @param value - the property value node
+   */
   constructor(key: JSONCKey, value: JSONCValue | JSONCObject | JSONCArray) {
     super();
     this.key = key;
@@ -276,6 +286,9 @@ class JSONCProperty extends JSONCNode {
 class JSONCKey extends JSONCNode {
   name: string;
 
+  /** Create a new JSONCKey.
+   * @param name - the property name
+   */
   constructor(name: string) {
     super();
     this.name = name;
@@ -302,6 +315,9 @@ class JSONCArrayProxy extends Array {
     return Array;
   }
 
+  /** Create a new JSONCArrayProxy.
+   * @param array - the underlying JSONCArray AST node
+   */
   constructor(private array: JSONCArray) {
     super();
     array.elements.forEach(el => {
@@ -380,6 +396,9 @@ class JSONCArray extends JSONCNode {
   multiline: boolean = true;
   indentation: number = 2;
 
+  /** Create a new JSONCArray.
+   * @param value - optional array of values to initialize from
+   */
   constructor(value?: any[]) {
     super();
     this.elements =

@@ -123,6 +123,9 @@ class YAMLArray<T> extends Array<T> implements YAMLProxies {
     return Array;
   }
 
+  /** Create a new YAMLArrayProxy.
+   * @param doc - the YAML pair node backing this array
+   */
   constructor(doc: yaml.Pair) {
     super();
     nodesMap.set(this, doc);
@@ -218,6 +221,9 @@ class YAMLArray<T> extends Array<T> implements YAMLProxies {
  * YAML Map Proxy
  */
 class YAMLMap implements YAMLProxies {
+  /** Create a new YAMLMap.
+   * @param doc - the YAML document node to proxy
+   */
   constructor(doc: any) {
     nodesMap.set(this, doc);
     this.setYAMLNodes(doc);

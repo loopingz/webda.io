@@ -47,7 +47,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   // @ts-ignore
   async delete(object: CoreModelWithBinary, property: string, index: number) {
@@ -57,7 +57,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async cascadeDelete(info: BinaryMap, uuid: string): Promise<void> {
     try {

@@ -80,7 +80,8 @@ export class Core implements ICore {
   applicationConfiguration: Configuration;
 
   /**
-   * @params {Object} config - The configuration Object, if undefined will load the configuration file
+   * Create a new Core
+   * @param application - the application instance
    */
   constructor(application?: Application) {
     useInstanceStorage().core = this;

@@ -39,6 +39,10 @@ export class Logger implements WorkoutLogger {
     return this._output || useWorkerOutput();
   }
 
+  /** Create a new ILogger
+   * @param output - the worker output
+   * @param context - the logging context
+   */
   constructor(output: WorkerOutput, context: any = {}) {
     this.output = output || useWorkerOutput();
     this.context = context;

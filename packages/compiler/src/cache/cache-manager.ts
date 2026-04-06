@@ -12,6 +12,9 @@ export class CacheManager {
   private readonly cacheDir: string;
   private readonly cacheFile: string;
 
+  /** Create a new CacheManager.
+   * @param project - the Webda project to manage cache for
+   */
   constructor(private project: WebdaProject) {
     this.cacheDir = project.getAppPath(".webda");
     this.cacheFile = project.getAppPath(".webda/cache");

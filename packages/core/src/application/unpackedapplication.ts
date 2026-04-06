@@ -35,6 +35,10 @@ export const EmptyGitInformation: GitInformation = {
  * the cachedModule to avoid any unecessary action within a production environment
  */
 export class UnpackedApplication extends Application {
+  /** Create a new UnpackedApplication
+   * @param file - file path or partial configuration
+   * @param logger - the logger instance
+   */
   constructor(file: string | Partial<UnpackedConfiguration>, logger?: WorkerOutput) {
     super(
       typeof file === "string"

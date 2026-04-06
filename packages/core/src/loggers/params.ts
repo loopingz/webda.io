@@ -14,7 +14,7 @@ export class LoggerServiceParameters extends ServiceParameters {
   addLogProducerLine?: boolean;
 
   /**
-   * @inheritdoc
+   * @override
    */
   load(params: any = {}): this {
     super.load(params);

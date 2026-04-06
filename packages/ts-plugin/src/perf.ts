@@ -25,6 +25,12 @@ export class PerfTracker {
   private warnMs: number;
   private logger: (msg: string) => void;
 
+  /** Create a new PerfTracker.
+   * @param logger - logging function for performance warnings
+   * @param options - tracker configuration
+   * @param options.enabled - whether tracking is enabled
+   * @param options.warnMs - threshold in ms before logging a warning
+   */
   constructor(logger: (msg: string) => void, options?: { enabled?: boolean; warnMs?: number }) {
     this.logger = logger;
     this.enabled = options?.enabled ?? true;

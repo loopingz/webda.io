@@ -35,12 +35,12 @@ export default [
             MethodDefinition: true,
             FunctionDeclaration: true
           },
-          checkConstructors: false
+          checkConstructors: true
         }
       ],
-      "jsdoc/require-param": ["error", { checkConstructors: false }],
+      "jsdoc/require-param": ["error", { exemptedBy: ["override"] }],
       "jsdoc/require-param-description": "error",
-      "jsdoc/require-returns": ["error", { checkConstructors: false }],
+      "jsdoc/require-returns": ["error", { exemptedBy: ["override"] }],
       "jsdoc/require-returns-description": "error"
     }
   },

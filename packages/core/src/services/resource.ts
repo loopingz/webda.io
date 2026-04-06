@@ -61,6 +61,9 @@ export class ResourceServiceParameters extends ServiceParameters {
    */
   allowHiddenFiles?: boolean;
 
+  /** Create a new ResourceServiceParameters
+   * @param params - the raw parameters
+   */
   constructor(params: any) {
     super();
     Object.assign(this, params);

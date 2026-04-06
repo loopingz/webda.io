@@ -349,6 +349,9 @@ export interface Query {
 export abstract class Expression<T = string> {
   operator: T;
 
+  /** Create a new Expression.
+   * @param operator - the expression operator
+   */
   constructor(operator: T) {
     this.operator = operator;
   }

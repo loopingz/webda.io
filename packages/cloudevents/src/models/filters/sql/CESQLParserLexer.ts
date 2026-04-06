@@ -180,6 +180,9 @@ export class CESQLParserLexer extends Lexer {
   }
   // tslint:enable:no-trailing-whitespace
 
+  /** Create a new CESQLParserLexer.
+   * @param input - the character stream to lex
+   */
   constructor(input: CharStream) {
     super(input);
     this._interp = new LexerATNSimulator(CESQLParserLexer._ATN, this);

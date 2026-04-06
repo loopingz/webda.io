@@ -98,6 +98,9 @@ export interface CacheOptions {
 export class CacheStorage extends Map<string, { value: any; timestamp: number }> {
   stats: CacheStats = { hits: 0, misses: 0, evictions: 0, sets: 0 };
 
+  /** Create a new CacheStorage.
+   * @param options - cache configuration options
+   */
   constructor(private options?: CacheOptions) {
     super();
   }
@@ -235,6 +238,9 @@ export class CacheStorage extends Map<string, { value: any; timestamp: number }>
 export class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
   private gcTimer?: NodeJS.Timeout;
 
+  /** Create a new CacheMap.
+   * @param options - cache configuration options
+   */
   constructor(private options?: CacheOptions) {
     super();
     // Start automatic garbage collection if interval is configured

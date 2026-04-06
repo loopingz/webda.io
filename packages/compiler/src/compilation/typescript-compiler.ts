@@ -22,6 +22,9 @@ export class TypeScriptCompiler {
   private configParseResult: TsConfigParseResult | undefined;
   private program: ts.Program | undefined;
 
+  /** Create a new TypeScriptCompiler.
+   * @param project - the Webda project to compile
+   */
   constructor(private project: WebdaProject) {}
 
   /**

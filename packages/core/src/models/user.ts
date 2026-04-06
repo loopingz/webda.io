@@ -12,6 +12,9 @@ export type UserEvents<T> = ModelEvents<T> & {
  */
 export class User extends UuidModel {
   [WEBDA_EVENTS]: UserEvents<this>;
+  /** Create a new User
+   * @param data - initial data
+   */
   constructor(data?: Settable<User>) {
     super();
     Object.assign(this, data);

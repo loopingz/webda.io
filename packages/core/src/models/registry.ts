@@ -5,6 +5,9 @@ import { useLog } from "@webda/workout";
  * Specific type for registry
  */
 export class RegistryEntry extends UuidModel {
+  /** Create a new RegistryEntry
+   * @param data - initial data
+   */
   constructor(data?: Settable<RegistryEntry>) {
     super(data);
     Object.assign(this, data);

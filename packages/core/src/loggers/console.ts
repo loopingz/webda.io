@@ -27,7 +27,7 @@ export class ConsoleLoggerService<
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   loadParameters(params: any): T {
     return <T>new ConsoleLoggerServiceParameters().load(params);

@@ -16,6 +16,10 @@ export abstract class StringPropertyFilterImplementation<T extends Filter> exten
    * Filter property to read from
    */
   filterProperty: string;
+  /** Create a new StringPropertyFilterImplementation.
+   * @param definition - the filter definition
+   * @param filterProperty - the property name to filter on
+   */
   constructor(definition: T, filterProperty: string) {
     super(definition);
     this.filterProperty = filterProperty;
@@ -55,6 +59,9 @@ export abstract class StringPropertyFilterImplementation<T extends Filter> exten
  * String specified (case sensitive).
  */
 export class PrefixFilterImplementation extends StringPropertyFilterImplementation<PrefixFilter> {
+  /** Create a new PrefixFilterImplementation.
+   * @param definition - the prefix filter definition
+   */
   constructor(definition: PrefixFilter) {
     super(definition, "prefix");
   }
@@ -74,6 +81,9 @@ export class PrefixFilterImplementation extends StringPropertyFilterImplementati
  * String specified (case sensitive).
  */
 export class SuffixFilterImplementation extends StringPropertyFilterImplementation<SuffixFilter> {
+  /** Create a new SuffixFilterImplementation.
+   * @param definition - the suffix filter definition
+   */
   constructor(definition: SuffixFilter) {
     super(definition, "suffix");
   }
@@ -93,6 +103,9 @@ export class SuffixFilterImplementation extends StringPropertyFilterImplementati
  * specified (case sensitive).
  */
 export class ExactFilterImplementation extends StringPropertyFilterImplementation<ExactFilter> {
+  /** Create a new ExactFilterImplementation.
+   * @param definition - the exact filter definition
+   */
   constructor(definition: ExactFilter) {
     super(definition, "exact");
   }

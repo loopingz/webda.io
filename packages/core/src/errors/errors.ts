@@ -33,6 +33,10 @@ export class CodeError extends Error {
 
 /** HTTP error with a status code, auto-generating the error code from the class name */
 export class HttpError extends CodeError {
+  /** Create a new HttpError
+   * @param message - error message
+   * @param statusCode - HTTP status code
+   */
   constructor(
     message: string,
     public statusCode: number = 500
@@ -52,6 +56,9 @@ export class HttpError extends CodeError {
 
 /** HTTP 401 Unauthorized error */
 export class Unauthorized extends HttpError {
+  /** Create a new Unauthorized
+   * @param message - error message
+   */
   constructor(message: string) {
     super(message, 401);
   }
@@ -59,6 +66,9 @@ export class Unauthorized extends HttpError {
 
 /** HTTP 403 Forbidden error */
 export class Forbidden extends HttpError {
+  /** Create a new Forbidden
+   * @param message - error message
+   */
   constructor(message: string) {
     super(message, 403);
   }
@@ -66,6 +76,9 @@ export class Forbidden extends HttpError {
 
 /** HTTP 404 Not Found error */
 export class NotFound extends HttpError {
+  /** Create a new NotFound
+   * @param message - error message
+   */
   constructor(message: string) {
     super(message, 404);
   }
@@ -73,6 +86,9 @@ export class NotFound extends HttpError {
 
 /** HTTP 400 Bad Request error */
 export class BadRequest extends HttpError {
+  /** Create a new BadRequest
+   * @param message - error message
+   */
   constructor(message: string) {
     super(message, 400);
   }
@@ -80,6 +96,9 @@ export class BadRequest extends HttpError {
 
 /** HTTP 409 Conflict error */
 export class Conflict extends HttpError {
+  /** Create a new Conflict
+   * @param message - error message
+   */
   constructor(message: string) {
     super(message, 409);
   }
@@ -87,6 +106,9 @@ export class Conflict extends HttpError {
 
 /** HTTP 501 Not Implemented error */
 export class NotImplemented extends HttpError {
+  /** Create a new NotImplemented
+   * @param message - error message
+   */
   constructor(message: string) {
     super(message, 501);
   }
@@ -94,6 +116,9 @@ export class NotImplemented extends HttpError {
 
 /** HTTP 503 Service Unavailable error */
 export class ServiceUnavailable extends HttpError {
+  /** Create a new ServiceUnavailable
+   * @param message - error message
+   */
   constructor(message: string) {
     super(message, 503);
   }
@@ -101,6 +126,9 @@ export class ServiceUnavailable extends HttpError {
 
 /** HTTP 429 Too Many Requests error */
 export class TooManyRequests extends HttpError {
+  /** Create a new TooManyRequests
+   * @param message - error message
+   */
   constructor(message: string) {
     super(message, 429);
   }
@@ -108,6 +136,9 @@ export class TooManyRequests extends HttpError {
 
 /** HTTP 410 Gone error */
 export class Gone extends HttpError {
+  /** Create a new Gone
+   * @param message - error message
+   */
   constructor(message: string) {
     super(message, 410);
   }
@@ -115,6 +146,9 @@ export class Gone extends HttpError {
 
 /** HTTP 412 Precondition Failed error */
 export class PreconditionFailed extends HttpError {
+  /** Create a new PreconditionFailed
+   * @param message - error message
+   */
   constructor(message: string) {
     super(message, 412);
   }
@@ -124,6 +158,10 @@ export class PreconditionFailed extends HttpError {
  * Can be used to redirect the user
  */
 export class Redirect extends HttpError {
+  /** Create a new Redirect
+   * @param message - error message
+   * @param location - URL to redirect to
+   */
   constructor(
     message: string,
     public location: string

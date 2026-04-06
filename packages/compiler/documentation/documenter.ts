@@ -46,6 +46,10 @@ class NodeDocumentation<T extends ts.Node = ts.Node> {
   parent?: NodeDocumentation;
   jsdoc?: string;
 
+  /** Create a new NodeDocumentation.
+   * @param node - the TypeScript AST node
+   * @param parent - optional parent documentation node
+   */
   constructor(node: T, parent?: NodeDocumentation) {
     this.filename = node.getSourceFile().fileName;
 
@@ -113,6 +117,10 @@ interface DocumentationNode {}
 /** Documentation wrapper for a TypeScript type node */
 class TypeDocumentation extends NodeDocumentation<ts.TypeNode> {
   name: string;
+  /** Create a new TypeDocumentation.
+   * @param node - the TypeScript type node
+   * @param parent - optional parent documentation node
+   */
   constructor(node: ts.TypeNode, parent?: NodeDocumentation) {
     super(node, parent);
   }
@@ -127,6 +135,10 @@ class ParameterOrPropertyDocumentation extends NodeDocumentation<
   defaultValue: string;
   optional: boolean = false;
 
+  /** Create a new ParameterOrPropertyDocumentation.
+   * @param node - the parameter or property AST node
+   * @param parent - optional parent documentation node
+   */
   constructor(
     node: ts.ParameterDeclaration | ts.PropertySignature | ts.PropertyDeclaration,
     parent?: NodeDocumentation
@@ -159,6 +171,10 @@ class ParameterOrPropertyDocumentation extends NodeDocumentation<
 
 /** Documentation for a function/method parameter */
 class ParameterDocumentation extends ParameterOrPropertyDocumentation {
+  /** Create a new ParameterDocumentation.
+   * @param node - the parameter AST node
+   * @param parent - optional parent documentation node
+   */
   constructor(node: ts.ParameterDeclaration, parent?: NodeDocumentation) {
     super(node, parent);
   }
@@ -172,6 +188,10 @@ class PropertyDocumentation extends ParameterOrPropertyDocumentation {
   optional: boolean;
   stringType: string;
 
+  /** Create a new PropertyDocumentation.
+   * @param node - the property AST node
+   * @param parent - optional parent documentation node
+   */
   constructor(node: ts.PropertyDeclaration | ts.PropertySignature, parent?: NodeDocumentation) {
     super(node, parent);
     const checker = this.getChecker();
@@ -200,6 +220,10 @@ class MethodDocumentation extends NodeDocumentation<ts.MethodDeclaration | ts.Me
   abstract: boolean = false;
   async: boolean = false;
 
+  /** Create a new MethodDocumentation.
+   * @param node - the method AST node
+   * @param parent - optional parent documentation node
+   */
   constructor(node: ts.MethodDeclaration | ts.MethodSignature, parent?: NodeDocumentation) {
     super(node, parent);
     this.parameters = node.parameters.map(p => new ParameterDocumentation(p));
@@ -265,6 +289,10 @@ class ClassInterfaceDocumentation extends NodeDocumentation<ts.ClassDeclaration 
     return this.typeChecker || this.parent?.getChecker();
   }
 
+  /** Create a new ClassInterfaceDocumentation.
+   * @param node - the class or interface AST node
+   * @param parent - optional parent node or type checker
+   */
   constructor(node: ts.ClassDeclaration | ts.InterfaceDeclaration, parent?: NodeDocumentation | ts.TypeChecker) {
     super(node, parent instanceof NodeDocumentation ? parent : undefined);
     this.typeChecker = parent instanceof NodeDocumentation ? undefined : parent;
@@ -289,6 +317,10 @@ class ClassDocumentation extends ClassInterfaceDocumentation {
   construct: MethodDocumentation;
   abstract: boolean = false;
 
+  /** Create a new ClassDocumentation.
+   * @param node - the class AST node
+   * @param parent - optional parent node or type checker
+   */
   constructor(node: ts.ClassDeclaration, parent?: NodeDocumentation | ts.TypeChecker) {
     super(node, parent);
     // Class Property
@@ -320,6 +352,10 @@ class InterfaceDocumentation extends ClassInterfaceDocumentation {
   methods: MethodDocumentation[];
   properties: PropertyDocumentation[];
 
+  /** Create a new InterfaceDocumentation.
+   * @param node - the interface AST node
+   * @param parent - optional parent node or type checker
+   */
   constructor(node: ts.InterfaceDeclaration, parent?: NodeDocumentation | ts.TypeChecker) {
     super(node, parent);
     // Interface Property

@@ -64,6 +64,9 @@ export class Project extends AbstractProject<TestDoc2> implements Test, TestDoc2
   n: number;
   test2: string;
   test: Date;
+  /** Create a new Project.
+   * @param myparam - optional parameter
+   */
   constructor(private myparam?: string) {
     super();
   }

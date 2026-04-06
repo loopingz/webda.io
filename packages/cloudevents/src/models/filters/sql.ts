@@ -175,6 +175,7 @@ const functions: { [key in FunctionName]: (...args: any[]) => any } = {
  */
 export abstract class Expression {
   protected deps: Expression[] = [];
+  /** Create a new Expression. */
   constructor() {}
 
   /**
@@ -205,6 +206,9 @@ export abstract class Expression {
  * Represent an attribute expression
  */
 export class AttributeExpression extends Expression {
+  /** Create a new AttributeExpression.
+   * @param attribute - the attribute name to evaluate
+   */
   constructor(public readonly attribute: string) {
     super();
   }

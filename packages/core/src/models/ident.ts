@@ -14,6 +14,9 @@ export class IdentTokens {
  * @WebdaModel
  */
 export class Ident extends OwnerModel {
+  /** Create a new Ident
+   * @param data - initial data
+   */
   constructor(data?: Settable<Ident>) {
     super(data);
   }

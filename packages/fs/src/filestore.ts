@@ -32,6 +32,10 @@ export class FileStoreParameters extends StoreParameters {
  * Keys are UUIDs; values are JSON strings of stored objects.
  */
 class FileBackedMap extends Map<string, string> {
+  /** Create a new FileBackedMap.
+   * @param folder - the directory to store files in
+   * @param extension - the file extension to use
+   */
   constructor(
     private folder: string,
     private extension: string = ".json"
@@ -269,7 +273,7 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async _upsertItemToCollection(
     uid: string,
@@ -301,7 +305,7 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async _removeAttribute(uuid: string, attribute: string, writeCondition?: any, writeConditionField?: string) {
     const res = await this._get(uuid, true);
@@ -311,7 +315,7 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async _deleteItemFromCollection(
     uid: string,
@@ -329,7 +333,7 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async _delete(uid: string) {
     const filePath = this.file(uid);
@@ -339,7 +343,7 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async _patch(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
     const stored = await this._get(uid, true);

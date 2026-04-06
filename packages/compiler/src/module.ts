@@ -63,6 +63,9 @@ export class ModuleGenerator {
   typeChecker: ts.TypeChecker;
   schemaGenerator: SchemaGenerator;
 
+  /** Create a new ModuleGenerator.
+   * @param compiler - the compiler instance
+   */
   constructor(protected compiler: Compiler) {}
 
   /**

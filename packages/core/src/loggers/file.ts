@@ -35,7 +35,7 @@ export class FileLoggerService<
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   loadParameters(params: ServicePartialParameters<T>): T {
     return <T>new FileLoggerServiceParameters().load(params);

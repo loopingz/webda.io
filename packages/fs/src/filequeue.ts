@@ -32,7 +32,7 @@ export class FileQueueParameters extends QueueParameters {
  */
 export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParameters> extends Queue<T, K> {
   /**
-   * @inheritdoc
+   * @override
    */
   loadParameters(params: any): K {
     return <K>new FileQueueParameters().load(params);
@@ -50,7 +50,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async size(): Promise<number> {
     return fs.readdirSync(this.parameters.folder).filter(f => f.endsWith(".json")).length;
@@ -67,7 +67,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async sendMessage(params) {
     let uid = randomUUID();
@@ -80,7 +80,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
     const files = fs
@@ -126,7 +126,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async deleteMessage(receipt) {
     const file = this.getFile(receipt);

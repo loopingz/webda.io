@@ -53,6 +53,9 @@ export class WebdaMorpher {
     capabilities: removeFilterRegistrations
   };
 
+  /** Create a new WebdaMorpher.
+   * @param options - morpher configuration options
+   */
   constructor(protected options: WebdaMorpherOptions = {}) {
     this.project = new Project(options.project);
     this.options.modules ??= Object.keys(this.modules);

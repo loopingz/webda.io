@@ -16,6 +16,7 @@ export class DirtyState {
   private originalValues: Record<string, any> = {};
 
   /**
+   * @param parent - the object being tracked
    * @param fields - Initial set of dirty field names
    */
   constructor(
@@ -192,6 +193,9 @@ export function DirtyMixIn<T extends Constructor>(
   clazz: T
 ): T & Constructor<{ dirty: DirtyState | null; [WEBDA_DIRTY]: DirtyState }> {
   return class extends clazz {
+    /** Create a new DirtyMixIn instance.
+     * @param args - constructor arguments forwarded to the base class
+     */
     constructor(...args: any[]) {
       super(...args);
       return new Proxy(this, {

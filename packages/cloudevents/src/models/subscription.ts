@@ -213,6 +213,7 @@ export function SubscriptionMixIn(clazz: any) {
     sink: string = "";
     filters: Filter[] = [];
 
+    /** Create a new SubscriptionParameters. */
     constructor() {
       super();
       this.id ??= randomUUID();

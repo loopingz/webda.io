@@ -57,6 +57,10 @@ export abstract class AbstractService<
    */
   protected _compiledCapabilities: Record<string, any> = {};
 
+  /** Create a new AbstractService
+   * @param name - the service name
+   * @param params - the service parameters
+   */
   constructor(name: string, params: T | JSONed<T>) {
     super();
     this.name = name;

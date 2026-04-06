@@ -51,9 +51,7 @@ export class MemoryRepository<
     super(model, pks, separator);
     this.storage = map || (new Map<string, string>() as K);
   }
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   async get(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string
   ): Promise<Helpers<InstanceType<T>>> {
@@ -63,9 +61,7 @@ export class MemoryRepository<
     return this.deserialize(item) as Helpers<InstanceType<T>>;
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   async create(data: Helpers<InstanceType<T>>, save: boolean = true): Promise<InstanceType<T>> {
     const key = this.getPrimaryKey(data).toString();
     if (this.storage.has(key)) {
@@ -78,9 +74,7 @@ export class MemoryRepository<
     return item;
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   async update<K extends PropertyPaths<InstanceType<T>>>(
     data: Helpers<InstanceType<T>>,
     conditionField?: K | null,
@@ -109,9 +103,7 @@ export class MemoryRepository<
       }
     }
   }
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   async patch<K extends PropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string,
     data: Partial<InstanceType<T>>,
@@ -254,9 +246,7 @@ export class MemoryRepository<
     } while (q.continuationToken);
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   async delete<K extends PropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
     _conditionField?: K | null,
@@ -265,18 +255,14 @@ export class MemoryRepository<
     this.storage.delete(this.getPrimaryKey(primaryKey).toString());
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   async exists(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string
   ): Promise<boolean> {
     return this.storage.has(this.getPrimaryKey(primaryKey).toString());
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   async incrementAttributes<K extends PropertyPaths<InstanceType<T>>, L extends NumericPropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string,
     info: (L | { property: L; value?: number })[] | Record<L, number>,
@@ -337,9 +323,7 @@ export class MemoryRepository<
     throw new Error("Item write condition failed");
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   async upsertItemToCollection<
     K extends Extract<PropertyPaths<InstanceType<T>, any[]>, keyof InstanceType<T>>,
     L extends keyof ArrayElement<InstanceType<T>[K]>
@@ -368,9 +352,7 @@ export class MemoryRepository<
     this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(obj));
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   async deleteItemFromCollection<
     K extends Extract<PropertyPaths<InstanceType<T>, any[]>, keyof InstanceType<T>>,
     L extends keyof ArrayElement<InstanceType<T>[K]>
@@ -395,9 +377,7 @@ export class MemoryRepository<
     }
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @override */
   async removeAttribute<L extends PropertyPaths<InstanceType<T>>, K extends PropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
     attribute: K,

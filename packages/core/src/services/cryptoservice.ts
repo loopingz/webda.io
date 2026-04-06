@@ -14,6 +14,10 @@ import { useRegistry } from "../models/registry.js";
 
 /** Wraps a secret string value, masking it in logs and inspect output */
 export class SecretString {
+  /** Create a new SecretString
+   * @param str - the secret value
+   * @param encrypter - the encrypter service name
+   */
   constructor(
     protected str: string,
     protected encrypter: string

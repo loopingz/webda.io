@@ -93,6 +93,7 @@ export class BufferWritableStream extends Writable {
   chunks = [];
   buffer: Buffer;
   ends: Promise<Buffer>;
+  /** Create a new BufferWritableStream. */
   public constructor() {
     super({
       write: (chunk, encoding, callback) => {

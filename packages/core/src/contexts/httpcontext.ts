@@ -56,6 +56,14 @@ export class HttpContext {
    */
   prefix: string = "";
 
+  /** Create a new HttpContext
+   * @param hostname - the request hostname
+   * @param method - the HTTP method
+   * @param uri - the request URI
+   * @param protocol - the protocol
+   * @param port - the port number
+   * @param headers - the request headers
+   */
   constructor(
     hostname: string,
     method: HttpMethodType,

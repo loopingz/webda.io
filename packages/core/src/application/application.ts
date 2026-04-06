@@ -101,9 +101,9 @@ export class Application {
   deploymentFile: string;
 
   /**
-   *
-   * @param {string} fileOrFolder to load Webda Application from
-   * @param {Logger} logger - the logger instance
+   * Create a new Application
+   * @param file - file path or unpacked configuration to load from
+   * @param logger - the logger instance
    */
   constructor(file: string | UnpackedConfiguration, logger: WorkerOutput = undefined) {
     this.logger = logger || new WorkerOutput();

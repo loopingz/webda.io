@@ -12,6 +12,10 @@ import { InstanceCache } from "../cache/cache.js";
 
 /** Error thrown when an item is not found in a store */
 export class StoreNotFoundError extends WebdaError.CodeError {
+  /** Create a new StoreNotFoundError
+   * @param uuid - the item primary key
+   * @param storeName - the store name
+   */
   constructor(uuid: PrimaryKey<any>, storeName: string) {
     super("STORE_NOTFOUND", `Item not found ${uuid} Store(${storeName})`);
   }
@@ -19,6 +23,11 @@ export class StoreNotFoundError extends WebdaError.CodeError {
 
 /** Error thrown when a conditional update fails due to a version/condition mismatch */
 export class UpdateConditionFailError extends WebdaError.CodeError {
+  /** Create a new UpdateConditionFailError
+   * @param uuid - the item primary key
+   * @param conditionField - the condition field name
+   * @param condition - the expected condition value
+   */
   constructor(uuid: PrimaryKey<any>, conditionField: string, condition: string | Date) {
     super(
       "STORE_UPDATE_CONDITION_FAILED",

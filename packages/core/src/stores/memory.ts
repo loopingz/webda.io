@@ -71,6 +71,9 @@ class LDJSONMemoryStreamWriter extends Readable {
   private data: any[];
   private index: number = 0;
 
+  /** Create a new LDJSONMemoryStreamWriter
+   * @param storage - the memory model map to serialize
+   */
   constructor(protected storage: MemoryModelMap) {
     super();
     this.data = [...storage.keys()];
@@ -92,6 +95,9 @@ class LDJSONMemoryStreamReader extends Writable {
   current: string = "";
   oldFormat: string = undefined;
   firstBytes: boolean = true;
+  /** Create a new LDJSONMemoryStreamReader
+   * @param data - the map to populate from the stream
+   */
   constructor(protected data: Map<string, string>) {
     super();
   }

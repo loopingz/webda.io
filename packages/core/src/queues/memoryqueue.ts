@@ -107,7 +107,7 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
     const items = this.getItem<L>(proto);
@@ -133,7 +133,7 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
   async deleteMessage(receipt) {
     if (this._queue[receipt]) {

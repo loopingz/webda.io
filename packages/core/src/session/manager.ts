@@ -30,6 +30,9 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
 export class SessionModel extends UuidModel {
   ttl: number;
   session: any;
+  /** Create a new SessionModel
+   * @param data - the session data
+   */
   constructor(data: any) {
     super(data);
     this.ttl = data.ttl || 0;

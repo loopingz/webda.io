@@ -35,6 +35,9 @@ export class ValidationError extends Error {
   readonly ajv: true;
   readonly validation: true;
 
+  /** Create a new ValidationError
+   * @param errors - the validation error objects
+   */
   constructor(errors: Partial<ErrorObject>[]) {
     super(`validation failed: ${errors.map(e => e.message).join("; ")}`);
     this.errors = errors;

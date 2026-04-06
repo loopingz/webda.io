@@ -173,7 +173,9 @@ export class WebdaQLParserLexer extends Lexer {
   }
   // tslint:enable:no-trailing-whitespace
 
-  /** Create a new WebdaQLParserLexer for the given character stream */
+  /** Create a new WebdaQLParserLexer for the given character stream.
+   * @param input - the character stream to lex
+   */
   constructor(input: CharStream) {
     super(input);
     this._interp = new LexerATNSimulator(WebdaQLParserLexer._ATN, this);

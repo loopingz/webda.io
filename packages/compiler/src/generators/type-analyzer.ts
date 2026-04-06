@@ -8,6 +8,9 @@ import { FileUtils } from "@webda/utils";
  * Provides methods for analyzing types, hierarchies, and packages
  */
 export class TypeAnalyzer {
+  /** Create a new TypeAnalyzer.
+   * @param typeChecker - the TypeScript type checker to use
+   */
   constructor(private typeChecker: ts.TypeChecker) {}
 
   /**

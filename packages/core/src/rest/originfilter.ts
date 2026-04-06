@@ -40,6 +40,7 @@ export class WebsiteOriginFilter implements RequestFilter<IWebContext> {
     }
   }
 
+  /** Verify that the request origin or host is in the allowed websites list */
   async checkRequest(context: IWebContext): Promise<boolean> {
     const httpContext = context.getHttpContext();
     if (

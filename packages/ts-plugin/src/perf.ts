@@ -18,6 +18,7 @@ export interface PerfStats {
   maxMs: number;
 }
 
+/** Lightweight instrumentation tracker that records call counts and timings for named operations. */
 export class PerfTracker {
   private stats = new Map<string, PerfStats>();
   readonly enabled: boolean;
@@ -46,6 +47,7 @@ export class PerfTracker {
     }
   }
 
+  /** Record a single timing measurement, logging a warning if it exceeds the threshold. */
   private record(name: string, ms: number): void {
     let entry = this.stats.get(name);
     if (!entry) {

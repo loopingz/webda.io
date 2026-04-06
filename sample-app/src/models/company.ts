@@ -34,6 +34,7 @@ export class Company extends CoreModel {
    */
   permissions: Permission[];
 
+  /** Check whether the given action is allowed (always returns true). */
   async canAct(_ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
     return true;
   }

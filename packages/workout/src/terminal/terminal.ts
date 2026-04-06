@@ -601,11 +601,11 @@ export class Terminal {
     }
   }
 
-  /**
-   * Clear the entire terminal screen
-   * Used for testing - production code uses displayScreen() instead
-   */
   /* c8 ignore next 4 */
+  /**
+   * Clear the entire terminal screen.
+   * Used for testing - production code uses displayScreen() instead.
+   */
   clearScreen() {
     readline.cursorTo(process.stdout, 0, 0);
     readline.clearScreenDown(process.stdout);

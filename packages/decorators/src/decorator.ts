@@ -82,6 +82,7 @@ export function createMethodDecorator<
   function deco(value: T, context: C): T;
   function deco(...args: TArgs): (value: T, context: C) => T;
 
+  /** Dispatch between direct decorator usage and factory call with arguments. */
   function deco(...all: unknown[]): any {
     // If called directly as a decorator: @deco
     if (typeof all[0] === "function" && all[1] && typeof all[1] === "object") {
@@ -141,6 +142,7 @@ export function createClassDecorator<TArgs extends any[]>(
   function deco<C extends AnyCtor>(value: C, context: ClassDecoratorContext): C | void;
   function deco(...args: TArgs): <C extends AnyCtor>(value: C, context: ClassDecoratorContext) => C | void;
 
+  /** Dispatch between direct class decorator usage and factory call with arguments. */
   function deco(...all: unknown[]): any {
     // Direct use: @deco
     if (
@@ -208,6 +210,7 @@ export function createPropertyDecorator<TArgs extends any[], C extends ClassFiel
   function deco(target: undefined, context: C): void;
   function deco(...args: TArgs): (target: undefined, context: C) => (target: undefined, context: C) => void;
 
+  /** Dispatch between direct field decorator usage and factory call with arguments. */
   function deco(...all: unknown[]): any {
     // Direct use: @deco
     // In field decorators, the second arg is a context with kind === "field"

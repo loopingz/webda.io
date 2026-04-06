@@ -159,10 +159,12 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
     this._cookie[param] = { name: param, value, options };
   }
 
+  /** Get all cookies set on the response */
   getResponseCookies(): Map<string, Cookie> {
     return this._cookie;
   }
 
+  /** Whether the response has been ended */
   isEnded() {
     return this._ended;
   }
@@ -327,6 +329,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
     this.headers = new Map();
   }
 
+  /** Initialize the web context, loading session and setting up stream listeners */
   async init(force: boolean = false): Promise<this> {
     if (this._init && !force) {
       return this._init;

@@ -37,9 +37,11 @@ interface PluginConfig {
   perfWarnMs?: number;
 }
 
+/** Initialize the TypeScript language service plugin with coercion and accessor transforms. */
 function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
   const tsModule = modules.typescript;
 
+  /** Create the decorated language service instance with coercion diagnostics. */
   function create(info: ts.server.PluginCreateInfo): ts.LanguageService {
     const config: PluginConfig = info.config ?? {};
     const log = (msg: string) => info.project.projectService.logger.info(`[@webda/ts-plugin] ${msg}`);
@@ -70,6 +72,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     let shouldTransformCache = new Map<ts.ClassDeclaration, boolean>();
     let coerciblePropsCache = new Map<ts.ClassDeclaration, CoercibleProperty[]>();
 
+    /** Invalidate per-program caches when the TypeScript program instance changes. */
     function getCache(program: ts.Program) {
       if (cachedProgram !== program) {
         cachedProgram = program;
@@ -78,6 +81,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
       }
     }
 
+    /** Return whether a class declaration should receive accessor transforms, with caching. */
     function cachedShouldTransform(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
       let result = shouldTransformCache.get(classDecl);
       if (result === undefined) {
@@ -89,6 +93,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
       return result;
     }
 
+    /** Return coercible properties for a class declaration, with caching. */
     function cachedGetCoercibleProps(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): CoercibleProperty[] {
       let result = coerciblePropsCache.get(classDecl);
       if (result === undefined) {
@@ -262,6 +267,7 @@ function createProxy(ls: ts.LanguageService): ts.LanguageService {
  * Find the innermost node at a given position in the source file.
  */
 function findNodeAtPosition(tsModule: typeof ts, sourceFile: ts.SourceFile, position: number): ts.Node | undefined {
+  /** Recursively walk the AST to find the deepest node spanning the position. */
   function find(node: ts.Node): ts.Node | undefined {
     if (position >= node.getStart(sourceFile) && position < node.getEnd()) {
       return tsModule.forEachChild(node, find) || node;

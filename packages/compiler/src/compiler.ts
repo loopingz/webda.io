@@ -392,7 +392,9 @@ function isCoercibleAssignmentError(
   );
 }
 
+/** Find the most specific AST node at the given character position in a source file */
 function findNodeAt(tsModule: typeof ts, sourceFile: ts.SourceFile, position: number): ts.Node | undefined {
+  /** Recursively walk children to find the deepest node containing the position */
   function find(node: ts.Node): ts.Node | undefined {
     if (position >= node.getStart(sourceFile) && position < node.getEnd()) {
       return tsModule.forEachChild(node, find) || node;
@@ -402,6 +404,7 @@ function findNodeAt(tsModule: typeof ts, sourceFile: ts.SourceFile, position: nu
   return find(sourceFile);
 }
 
+/** Check whether a class declaration inherits from one of the known model base classes */
 function isModelClassForDiag(
   tsModule: typeof ts,
   classDecl: ts.ClassDeclaration,

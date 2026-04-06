@@ -8,6 +8,7 @@ const fixturesRoot = path.join(process.cwd(), 'test', 'fixtures');
 if (!fs.existsSync(fixturesRoot)) fs.mkdirSync(fixturesRoot, { recursive: true });
 const generator = new SchemaGenerator({ project: process.cwd() });
 
+/** Regenerate all schema snapshot files under the given fixture directory. */
 function updateFolderFixtures(root: string, relativeBase: string) {
   const dirs = fs.readdirSync(root).filter(d => fs.statSync(path.join(root, d)).isDirectory());
   for (const dir of dirs) {

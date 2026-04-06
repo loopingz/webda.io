@@ -184,7 +184,9 @@ export function afterDiagnostics(
   });
 }
 
+/** Find the innermost AST node at a given character position in the source file. */
 function findNodeAtPosition(tsModule: typeof ts, sourceFile: ts.SourceFile, position: number): ts.Node | undefined {
+  /** Recursively descend into child nodes to find the deepest match. */
   function find(node: ts.Node): ts.Node | undefined {
     if (position >= node.getStart(sourceFile) && position < node.getEnd()) {
       return tsModule.forEachChild(node, find) || node;
@@ -194,6 +196,7 @@ function findNodeAtPosition(tsModule: typeof ts, sourceFile: ts.SourceFile, posi
   return find(sourceFile);
 }
 
+/** Walk up the AST from a node to find an enclosing assignment expression. */
 function findAssignment(tsModule: typeof ts, node: ts.Node): ts.BinaryExpression | undefined {
   let current: ts.Node | undefined = node;
   while (current) {
@@ -205,6 +208,7 @@ function findAssignment(tsModule: typeof ts, node: ts.Node): ts.BinaryExpression
   return undefined;
 }
 
+/** Check whether a class declaration extends one of the known model base classes. */
 function isModelClassCheck(
   tsModule: typeof ts,
   classDecl: ts.ClassDeclaration,
@@ -247,6 +251,7 @@ function isModelClassCheck(
   return false;
 }
 
+/** Return true if the actual type string is assignable to the accepted type (simple literal check). */
 function isTypeCompatible(actual: string, accepted: string): boolean {
   if (actual === accepted) return true;
   if (accepted === "string" && actual.startsWith('"')) return true;

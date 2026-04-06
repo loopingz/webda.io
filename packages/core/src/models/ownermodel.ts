@@ -45,6 +45,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
     return this._user;
   }
 
+  /** Check if the current user can perform the given action based on ownership */
   async canAct(context: IOperationContext, action: string): Promise<string | boolean> {
     // Object is public
     if (this.public && (action === "get" || action === "get_binary")) {
@@ -81,6 +82,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
  * @WebdaModel
  */
 export class OwnerModel extends AbstractOwnerModel<User> {
+  /** Get the User model class used for ownership */
   getOwnerModel(): ModelClass<User> {
     return User;
   }

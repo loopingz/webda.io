@@ -2,6 +2,7 @@ import type { LoadParameters, SelfJSONed, Settable } from "@webda/models";
 import { OwnerModel } from "./ownermodel.js";
 import type { User } from "./user.js";
 
+/** OAuth tokens associated with an identity provider */
 export class IdentTokens {
   refresh: string;
   access: string;
@@ -57,22 +58,27 @@ export class Ident extends OwnerModel {
    */
   provider?: string;
 
+  /** Get the email for this ident */
   getEmail(): string {
     return this.email;
   }
 
+  /** Get the provider type */
   getType() {
     return this._type;
   }
 
+  /** Set the provider type */
   setType(type) {
     this._type = type;
   }
 
+  /** Get the user who owns this ident */
   getUser() {
     return this.getOwner();
   }
 
+  /** Set the user who owns this ident */
   setUser(uuid: string | User) {
     this.setOwner(typeof uuid === "string" ? uuid : uuid.getPrimaryKey());
   }

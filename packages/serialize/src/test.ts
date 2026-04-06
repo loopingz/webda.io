@@ -1,17 +1,22 @@
 import { registerSerializer, hasSerializer, SerializerContext, Constructor } from "./serializer";
 import * as assert from "assert";
 
+/** Multi-factor authentication token with serialize/deserialize support. */
 class MFA {
   secret: string = "";
+  /** Create an MFA instance with an optional secret. */
   constructor(secret: string = "") {
     this.secret = secret;
   }
+  /** Convert to a data-transfer object indicating whether MFA is enabled. */
   toDTO() {
     return {enabled: this.secret !== ""}
   }
+  /** Reconstruct an MFA from a DTO (no-op placeholder). */
   static fromDTO(dto: never): void {
     
   }
+  /** Reconstruct an MFA instance from serialized data. */
   static deserialize(data: {secret: string}): MFA {
     return new MFA(data.secret);
   }
@@ -29,6 +34,7 @@ interface WithFields {
   [WEBDA_FIELDS]: Record<string, FieldDefinition>;
 }
 
+/** Example model with Date and MFA fields for testing serialization round-trips. */
 class AClass {
   static [WEBDA_FIELDS]: Record<string, FieldDefinition> = {
     date: Date,
@@ -37,11 +43,13 @@ class AClass {
   date: Date = new Date();
   mfa: MFA = new MFA();
 
+  /** Serialize this instance to a JSON string using the global context. */
   serialize() {
     const data = SerializerContext.globalContext.serializeRaw(this);
     return JSON.stringify(data.value);
   }
 
+  /** Deserialize a JSON string or plain object into a class instance, restoring typed fields. */
   static deserialize<T extends WithFields>(this: T, value: string | Record<string, any> = {}, instance?: InstanceType<T>): InstanceType<T> {
     let data: any = value;
     if (typeof value === "string") {
@@ -65,6 +73,7 @@ class AClass {
   }
 }
 
+/** Extended model adding an extra Date field to verify inherited serialization. */
 class BClass extends AClass {
   static [WEBDA_FIELDS]: Record<string, FieldDefinition> = {
     ...AClass[WEBDA_FIELDS],

@@ -15,6 +15,7 @@ import {
 import { JSONUtils } from "@webda/utils";
 import * as WebdaQL from "@webda/ql";
 
+/** Configuration parameters for the JSON-file-backed store. */
 export class FileStoreParameters extends StoreParameters {
   /**
    * Local path where to store all `json` files
@@ -38,25 +39,30 @@ class FileBackedMap extends Map<string, string> {
     super();
   }
 
+  /** Build the full filesystem path for a given key. */
   private filePath(key: string): string {
     return path.join(this.folder, `${key}${this.extension}`);
   }
 
+  /** Check whether a JSON file exists for the given key. */
   has(key: string): boolean {
     return fs.existsSync(this.filePath(key));
   }
 
+  /** Read and return the JSON content for a key, or undefined if missing. */
   get(key: string): string | undefined {
     const p = this.filePath(key);
     if (!fs.existsSync(p)) return undefined;
     return fs.readFileSync(p, "utf-8");
   }
 
+  /** Write a JSON string value to the file for the given key. */
   set(key: string, value: string): this {
     fs.writeFileSync(this.filePath(key), value, "utf-8");
     return this;
   }
 
+  /** Remove the JSON file for the given key, returning true if it existed. */
   delete(key: string): boolean {
     const p = this.filePath(key);
     if (!fs.existsSync(p)) return false;
@@ -64,6 +70,7 @@ class FileBackedMap extends Map<string, string> {
     return true;
   }
 
+  /** Delete all JSON files in the backing folder. */
   clear(): void {
     if (fs.existsSync(this.folder)) {
       for (const f of fs.readdirSync(this.folder)) {
@@ -74,6 +81,7 @@ class FileBackedMap extends Map<string, string> {
     }
   }
 
+  /** Iterate over all stored keys by listing JSON files in the folder. */
   keys(): MapIterator<string> {
     if (!fs.existsSync(this.folder)) return [].values();
     const ext = this.extension;
@@ -84,6 +92,7 @@ class FileBackedMap extends Map<string, string> {
     return files.values();
   }
 
+  /** Iterate over all key-value pairs stored in the folder. */
   [Symbol.iterator](): MapIterator<[string, string]> {
     const entries = [...this.keys()].map(key => [key, this.get(key)!] as [string, string]);
     return entries.values();

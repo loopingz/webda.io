@@ -7,8 +7,10 @@
     "@types/json-schema": "^7.0.15",
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.5.0",
+    "@vitest/coverage-v8": "^4.1.2",
     "commitlint": "^20.5.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jsdoc": "^62.9.0",
     "eslint-plugin-unused-imports": "^4.4.1",
     "gh-pages": "^6.3.0",
     "glob": "^13.0.6",
@@ -20,9 +22,8 @@
     "prettier-plugin-organize-imports": "^4.3.0",
     "sinon": "^21.0.3",
     "typescript": "^6.0.2",
-    "vitest": "^4.1.2",
-    "@vitest/coverage-v8": "^4.1.2",
-    "typescript-eslint": "^8.57.2"
+    "typescript-eslint": "^8.57.2",
+    "vitest": "^4.1.2"
   },
   "author": "loopingz",
   "license": "LGPL-3.0-only",

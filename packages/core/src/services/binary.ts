@@ -184,6 +184,7 @@ export abstract class BinaryFile<T extends object = {}> implements BinaryFileInf
   }
 }
 
+/** BinaryFile backed by a local filesystem path */
 export class LocalBinaryFile extends BinaryFile {
   /**
    * Path on the hard drive
@@ -207,6 +208,7 @@ export class LocalBinaryFile extends BinaryFile {
   }
 }
 
+/** BinaryFile backed by an in-memory Buffer */
 export class MemoryBinaryFile extends BinaryFile {
   /**
    * Content
@@ -394,8 +396,10 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
     service: BinaryService;
   } = {} as any;
 
+  /** No-op: BinariesImpl cannot be constructed from DTO */
   static fromDto(data: never): void {}
 
+  /** Bind this collection to a model and attribute, populating from existing binary data */
   assign(model: Model, attribute: string): this {
     this[WEBDA_STORAGE].model = model;
     this[WEBDA_STORAGE].attribute = attribute;
@@ -406,19 +410,23 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
     return this;
   }
 
-  // Readonly methods
+  /** @throws Readonly collection */
   pop(): BinariesItem<T> {
     throw new Error("Readonly");
   }
+  /** @throws Readonly collection */
   slice(): BinariesItem<T>[] {
     throw new Error("Readonly");
   }
+  /** @throws Readonly collection */
   unshift(): number {
     throw new Error("Readonly");
   }
+  /** @throws Readonly collection */
   shift(): BinariesItem<T> {
     throw new Error("Readonly");
   }
+  /** Add binary items, wrapping plain objects in BinariesItem */
   push(...args): number {
     return super.push(...args.map(arg => (arg instanceof BinariesItem ? arg : new BinariesItem(this, arg))));
   }
@@ -461,6 +469,7 @@ export type Binaries<T extends object = {}> = Readonly<Array<BinariesItem<T>>> &
   upload: (file: BinaryFile<T>) => Promise<void>;
 };
 
+/** Parameters for BinaryService, defining model mappings and max upload size */
 export class BinaryParameters extends ServiceParameters {
   /**
    * max file size
@@ -483,10 +492,12 @@ export class BinaryParameters extends ServiceParameters {
   set maxFileSize(value: number | string) {
     this._maxFileSize = new FileSize(value).valueOf();
   }
+  /** Get the max file size in bytes */
   get maxFileSize(): number {
     return this._maxFileSize;
   }
 
+  /** Load parameters with defaults for model mappings and max file size */
   load(params: any = {}): this {
     super.load(params);
     // Store all models in it by default

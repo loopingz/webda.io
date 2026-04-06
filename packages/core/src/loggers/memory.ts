@@ -14,6 +14,7 @@ export class MemoryLoggerService<
 > extends LoggerService<T> {
   workoutLogger: MemoryLogger;
 
+  /** Resolve dependencies and create the underlying MemoryLogger */
   resolve() {
     this.workoutLogger = new MemoryLogger(useWorkerOutput(), this.parameters.logLevel, this.parameters.limit);
     return super.resolve();

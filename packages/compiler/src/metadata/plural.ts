@@ -57,6 +57,7 @@ export function getPlural(name: string): string {
   }
   return name + "s";
 }
+/** Check whether a character is a vowel (including y) */
 function isVowel(char: string): boolean {
   return "aeiouy".includes(char.toLowerCase());
 }
@@ -65,6 +66,7 @@ function isVowel(char: string): boolean {
  * Plural metadata plugin
  */
 export class PluralMetadata extends MetadataPlugin {
+    /** Set the plural form for each model using a WebdaPlural tag or English pluralization rules */
     getMetadata(module: WebdaModule, objects: WebdaObjects): void {
         Object.keys(objects.models).forEach(name => {
             const { tags } = objects.models[name];

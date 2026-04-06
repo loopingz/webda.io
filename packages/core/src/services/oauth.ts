@@ -35,6 +35,7 @@ export interface OAuthReturn {
   identId: string;
 }
 
+/** Parameters for OAuth services including client credentials, scopes, and redirect URIs */
 export class OAuthServiceParameters extends ServiceParameters {
   /**
    * URL to use for expose
@@ -86,6 +87,7 @@ export class OAuthServiceParameters extends ServiceParameters {
    */
   authenticationService: string;
 
+  /** Load parameters with defaults for scopes, auth service, and URI settings */
   load(params: any) {
     super.load(params);
     this.scope ??= ["email"];
@@ -153,6 +155,7 @@ export abstract class OAuthService<
     this.parameters.url ??= this.getDefaultUrl();
   }
 
+  /** Initialize OAuth-specific metrics for tracking logins */
   initMetrics(): void {
     super.initMetrics();
     this.metrics.login = this.getMetric(Counter, {

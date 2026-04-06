@@ -82,6 +82,7 @@ interface BuildArguments extends Arguments {
   watch: boolean;
 }
 
+/** Type guard for the "build" CLI command */
 function isBuildCommand(argv: Arguments): argv is BuildArguments {
   return argv._[0] === "build";
 }
@@ -89,6 +90,7 @@ function isBuildCommand(argv: Arguments): argv is BuildArguments {
 interface CodeArguments extends Arguments {
   module: string[];
 }
+/** Type guard for the "code" CLI command */
 function isCodeCommand(argv: Arguments): argv is CodeArguments {
   return argv._[0] === "code";
 }

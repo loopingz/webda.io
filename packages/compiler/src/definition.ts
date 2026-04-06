@@ -639,6 +639,7 @@ export interface ProjectInformation {
   };
 }
 
+/** Represents a Webda project on disk, providing access to package metadata and project paths */
 export class WebdaProject {
   namespace: string;
   packageDescription: PackageDescriptor;
@@ -705,14 +706,17 @@ export class WebdaProject {
     }
   }
 
+  /** Subscribe to output events */
   on(event: string, listener: (...args: any[]) => void) {
     this.output.on(event, listener);
   }
 
+  /** Emit an output event */
   emit(event: string, ...args: any[]) {
     this.output.emit(event, ...args);
   }
 
+  /** Get an absolute path within the project folder, or the project root if no path given */
   getAppPath(path?: string) {
     if (!path) {
       return this.folder;
@@ -720,10 +724,12 @@ export class WebdaProject {
     return join(this.folder, path);
   }
 
+  /** Log a message at the specified level through the worker output */
   log(level: WorkerLogLevel, ...args: any[]) {
     this.output.log(level, ...args);
   }
 
+  /** Prefix a name with the project namespace if it does not already contain one */
   completeNamespace(name: string) {
     if (!name.includes("/")) {
       return `${this.namespace}/${name}`;

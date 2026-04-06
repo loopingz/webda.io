@@ -328,8 +328,11 @@ export class SerializerContext {
    * @throws Error if no deserializer is provided and the constructor lacks a static deserialize method
    */
   public registerSerializer(type: ConstructorWithDeserialize): this;
+  /** Register a serializer by type name and constructor. */
   public registerSerializer(type: string, clazz: ConstructorWithDeserialize): this;
+  /** Register a serializer by type name and explicit serialize/deserialize methods. */
   public registerSerializer(type: string, methods: Serializer, overwrite?: boolean): this;
+  /** @hidden Implementation signature */
   public registerSerializer(
     type: string | ConstructorWithDeserialize,
     info?: Serializer | ConstructorWithDeserialize,
@@ -888,6 +891,7 @@ export function deserializeRaw<T>(info: { value: any; $serializer: any }): T {
   return SerializerContext.globalContext.deserializeRaw(info);
 }
 
+/** Check whether a serializer is registered for the given type name or constructor. */
 export function hasSerializer(type: string | Constructor): boolean {
   try {
     SerializerContext.globalContext.getSerializer(type);

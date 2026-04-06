@@ -60,6 +60,7 @@ export type CoreEvents = {
   "Webda.Configuration.Applied": { configuration: { [key: string]: any }; delta: { [key: string]: any } };
 };
 
+/** Base event class that carries a request context */
 export class EventWithContext<T extends Context = Context> {
   context: T;
 }

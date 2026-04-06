@@ -16,6 +16,7 @@ export class ServiceParameters {
     callback: (params: any) => void;
   }[] = [];
 
+  /** Load raw parameters by assigning them onto this instance */
   load(params: any = {}): this {
     Object.assign(this, params);
     return this;

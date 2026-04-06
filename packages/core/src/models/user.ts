@@ -108,10 +108,12 @@ export class User extends UuidModel {
     return this.__password;
   }
 
+  /** Set the user password hash */
   setPassword(password: string) {
     this.__password = password;
   }
 
+  /** Only the user themselves can act on their own object */
   async canAct(ctx: IOperationContext, action: string): Promise<string | boolean> {
     if (!ctx.getCurrentUserId() || ctx.getCurrentUserId() !== this.getUUID()) {
       return "You can't act on this user";
@@ -119,6 +121,7 @@ export class User extends UuidModel {
     return true;
   }
 
+  /** String representation of the user */
   toString() {
     return `User[${this.getUUID()}]`;
   }

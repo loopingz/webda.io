@@ -26,6 +26,7 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
   abstract save(context: Context, session: Session): Promise<void>;
 }
 
+/** Persistent session data stored in a model with a TTL */
 export class SessionModel extends UuidModel {
   ttl: number;
   session: any;
@@ -36,6 +37,7 @@ export class SessionModel extends UuidModel {
   }
 }
 
+/** Parameters for the cookie-based session manager */
 export class CookieSessionParameters extends ServiceParameters {
   /**
    * Options for issue JWT token
@@ -46,6 +48,7 @@ export class CookieSessionParameters extends ServiceParameters {
    */
   cookie?: CookieOptions;
 
+  /** Load parameters and initialize cookie options */
   load(params: any = {}): this {
     super.load(params);
     this.cookie = new CookieOptions(this.cookie || {});

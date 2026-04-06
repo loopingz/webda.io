@@ -31,6 +31,7 @@ type ReplaceModelWith<T, L> = T extends object
   ? { [K in keyof T]: K extends "model" ? L : ReplaceModelWith<T[K], L> }
   : T;
 
+/** Check whether a property symbol has a @NotEnumerable decorator */
 function hasNotEnumerableDecorator(symbol: ts.Symbol): boolean {
   const declaration = symbol.valueDeclaration;
 
@@ -487,6 +488,7 @@ export class ModuleGenerator {
     return relative(this.compiler.project.getAppPath(), filePath);
   }
 
+  /** Resolve a type parameter reference to its constraint or default type string */
   getTypeParameterResolution(node: ts.TypeReferenceNode): string | undefined {
     const checker = this.typeChecker;
     const type = checker.getTypeAtLocation(node);
@@ -516,6 +518,7 @@ export class ModuleGenerator {
     return undefined;
   }
 
+  /** Look up an exported symbol by name from an ambient TypeScript module */
   getExportedSymbolFromModule(moduleSpecifier: string, exportName: string): ts.Symbol | undefined {
     const checker = this.typeChecker;
 
@@ -553,6 +556,7 @@ export class ModuleGenerator {
     return false;
   }
 
+  /** Follow symbol aliases to their original declaration */
   resolveAliases(sym: ts.Symbol | undefined) {
     if (!sym) return sym;
     return sym.flags & ts.SymbolFlags.Alias ? this.typeChecker.getAliasedSymbol(sym) : sym;
@@ -1077,6 +1081,7 @@ export class ModuleGenerator {
   }
 }
 
+/** Generate the webda.module.json from the compiled TypeScript program */
 export function generateModule(compiler: Compiler) {
   try {
     return new ModuleGenerator(compiler).generate();
@@ -1125,6 +1130,7 @@ class WebdaSchemaResults {
   protected schemas: { [key: string]: JSONSchema7 } = {};
   protected byNode = new Map<ts.Node, string>();
 
+  /** Get the schema name associated with a given AST node */
   get(node: ts.Node) {
     if (this.byNode.has(node)) {
       return this.byNode.get(node);
@@ -1206,6 +1212,7 @@ class WebdaSchemaResults {
     this.schemas[name] = schema;
   }
 
+  /** Register a schema entry to be generated, linking it to an AST node or external reference */
   add(
     name: string,
     info?: ts.Node | string,

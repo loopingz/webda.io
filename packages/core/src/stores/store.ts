@@ -10,12 +10,14 @@ import { useLog } from "../loggers/hooks.js";
 import { useCore } from "../core/hooks.js";
 import { InstanceCache } from "../cache/cache.js";
 
+/** Error thrown when an item is not found in a store */
 export class StoreNotFoundError extends WebdaError.CodeError {
   constructor(uuid: PrimaryKey<any>, storeName: string) {
     super("STORE_NOTFOUND", `Item not found ${uuid} Store(${storeName})`);
   }
 }
 
+/** Error thrown when a conditional update fails due to a version/condition mismatch */
 export class UpdateConditionFailError extends WebdaError.CodeError {
   constructor(uuid: PrimaryKey<any>, conditionField: string, condition: string | Date) {
     super(
@@ -256,6 +258,7 @@ export class StoreParameters extends ServiceParameters {
    */
   noCache?: boolean;
 
+  /** Load store parameters with defaults for model type, strict mode, and aliases */
   load(params: any) {
     // REFACTOR >= 5
     if (params.expose) {
@@ -325,6 +328,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     queries: Histogram;
   };
 
+  /** Compute and register repositories for all known models based on available stores */
   @InstanceCache()
   static computeStores() {
     // Gather all stores and register Repository
@@ -410,6 +414,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     */
   }
 
+  /** Log a slow query (placeholder for future implementation) */
   logSlowQuery(_query: string, _reason: string, _time: number) {
     // TODO Need to implement: https://github.com/loopingz/webda.io/issues/202
   }

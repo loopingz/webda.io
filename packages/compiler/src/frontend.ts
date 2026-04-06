@@ -2,9 +2,11 @@ import * as ts from "typescript";
 import { writeFileSync } from "fs";
 import { basename } from "path";
 
+/** Extract nodes tagged with @Frontend JSDoc and write them to a separate frontend source file */
 export function createFrontendAST(sourceFile: ts.SourceFile): ts.SourceFile {
   const frontendNodes: ts.Node[] = [];
 
+  /** Recursively visit AST nodes, collecting those marked with @Frontend */
   function visit(node: ts.Node) {
     // Check for @Frontend JSDoc tag
     const jsDoc = (node as any).jsDoc;
@@ -74,6 +76,7 @@ export function createFrontendAST(sourceFile: ts.SourceFile): ts.SourceFile {
   return sourceFile;
 }
 
+/** TypeScript compiler transformer that extracts @Frontend-tagged code into separate files */
 export default function transformer(program: ts.Program): ts.TransformerFactory<ts.SourceFile> {
   return (context: ts.TransformationContext) => (sourceFile: ts.SourceFile) => {
     return createFrontendAST(sourceFile);

@@ -27,6 +27,7 @@ export type InstanceStorage = Partial<{
 process["webdaInstanceStorage"] ??= new AsyncLocalStorage<InstanceStorage>();
 const storage = process["webdaInstanceStorage"];
 
+/** Retrieve the current async-local InstanceStorage, throwing if called outside a storage context */
 export function useInstanceStorage(): InstanceStorage {
   const store = storage.getStore();
   if (!store) {
@@ -35,6 +36,7 @@ export function useInstanceStorage(): InstanceStorage {
   return store;
 }
 
+/** Run a function within an async-local InstanceStorage context, merging with defaults */
 export function runWithInstanceStorage(instanceStorage: InstanceStorage = {}, fn) {
   return storage.run(
     {
@@ -84,10 +86,12 @@ export function createHook<T extends string>(
   ];
 }
 
+/** Register a cancelable process so it can be interrupted on shutdown */
 export function registerInteruptableProcess(process: { cancel: () => Promise<void> }) {
   useInstanceStorage().interruptables.add(process);
 }
 
+/** Unregister a previously registered cancelable process */
 export function unregisterInteruptableProcess(process: { cancel: () => Promise<void> }) {
   useInstanceStorage().interruptables.delete(process);
 }

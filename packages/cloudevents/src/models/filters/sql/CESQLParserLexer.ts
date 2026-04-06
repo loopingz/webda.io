@@ -13,6 +13,7 @@ import { VocabularyImpl } from "antlr4ts/VocabularyImpl";
 
 import * as Utils from "antlr4ts/misc/Utils";
 
+/** Lexer for the CloudEvents SQL expression language, generated from CESQLParser.g4. */
 export class CESQLParserLexer extends Lexer {
   public static readonly SPACE = 1;
   public static readonly LR_BRACKET = 2;
@@ -170,6 +171,7 @@ export class CESQLParserLexer extends Lexer {
 
   // @Override
   // @NotNull
+  /** Get the vocabulary used by this lexer. */
   public get vocabulary(): Vocabulary {
     return CESQLParserLexer.VOCABULARY;
   }
@@ -181,26 +183,31 @@ export class CESQLParserLexer extends Lexer {
   }
 
   // @Override
+  /** Get the grammar file name this lexer was generated from. */
   public get grammarFileName(): string {
     return "CESQLParser.g4";
   }
 
   // @Override
+  /** Get the list of lexer rule names. */
   public get ruleNames(): string[] {
     return CESQLParserLexer.ruleNames;
   }
 
   // @Override
+  /** Get the serialized ATN used by this lexer. */
   public get serializedATN(): string {
     return CESQLParserLexer._serializedATN;
   }
 
   // @Override
+  /** Get the channel names used by this lexer. */
   public get channelNames(): string[] {
     return CESQLParserLexer.channelNames;
   }
 
   // @Override
+  /** Get the mode names used by this lexer. */
   public get modeNames(): string[] {
     return CESQLParserLexer.modeNames;
   }
@@ -310,6 +317,7 @@ export class CESQLParserLexer extends Lexer {
     "\x03\x02\x02\x02\xEC\xEA\x03\x02\x02\x02\x0F\x02T[cepr}\x8C\xDA\xDF\xE4" +
     "\xEA\x03\b\x02\x02";
   public static __ATN: ATN;
+  /** Get the deserialized ATN, lazily initializing it on first access. */
   public static get _ATN(): ATN {
     if (!CESQLParserLexer.__ATN) {
       CESQLParserLexer.__ATN = new ATNDeserializer().deserialize(Utils.toCharArray(CESQLParserLexer._serializedATN));

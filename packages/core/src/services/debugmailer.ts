@@ -8,9 +8,11 @@ import { AbstractMailer } from "./mailer.js";
 export class DebugMailer extends AbstractMailer {
   sent: any[] = [];
 
+  /** Create the default configuration */
   static createConfiguration(params: any): any {
     return new ServiceParameters().load(params);
   }
+  /** Return parameters unchanged */
   static filterParameters(params: any): any {
     return params;
   }

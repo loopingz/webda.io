@@ -3,6 +3,7 @@ import { ServiceParameters } from "../services/serviceparameters.js";
 import { Service } from "../services/service.js";
 import { CancelablePromise } from "@webda/utils";
 
+/** Abstract base for publish/subscribe messaging services with metrics tracking */
 export default abstract class PubSubService<
   T = any,
   K extends ServiceParameters = ServiceParameters

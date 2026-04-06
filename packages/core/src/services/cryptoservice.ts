@@ -12,12 +12,14 @@ import { OperationContext } from "../contexts/operationcontext.js";
 import { Route } from "../rest/irest.js";
 import { useRegistry } from "../models/registry.js";
 
+/** Wraps a secret string value, masking it in logs and inspect output */
 export class SecretString {
   constructor(
     protected str: string,
     protected encrypter: string
   ) {}
 
+  /** Extract the plain string value, warning if the string is not encrypted */
   static from(value: string | SecretString, path?: string): string {
     if (value instanceof SecretString) {
       return value.getValue();
@@ -27,12 +29,15 @@ export class SecretString {
     return value;
   }
 
+  /** Get the underlying secret value */
   getValue(): string {
     return this.str;
   }
+  /** Return a masked representation to prevent secret leakage */
   toString(): string {
     return "********";
   }
+  /** Custom inspect handler to mask the secret in Node.js util.inspect */
   [util.inspect.custom](depth, options, inspect) {
     return "********";
   }

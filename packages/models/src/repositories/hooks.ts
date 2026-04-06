@@ -39,6 +39,7 @@ export function registerRepository<T extends ModelClass>(model: T, repository: R
  */
 export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) => object>(Base: TBase) {
   return class extends Base {
+    /** Get the repository registered for this model class. */
     static getRepository<T extends ModelClass>(this: T): Repository<T> {
       return useRepository(this);
     }

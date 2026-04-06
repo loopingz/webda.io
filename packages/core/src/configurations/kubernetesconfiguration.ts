@@ -10,6 +10,7 @@ import { useApplication } from "../application/hooks.js";
  * Throw error if default is set
  */
 export class KubernetesConfigurationParameters extends ConfigurationServiceParameters {
+  /** Load parameters, rejecting any default configuration since Kubernetes sources are required */
   load(params: any) {
     super.load(params);
     if (
@@ -38,6 +39,7 @@ export class KubernetesConfigurationService<
 > extends ConfigurationService<T> {
   sourcePaths: Record<string, string> = {};
 
+  /** Resolve the Kubernetes-mounted file path for a configuration source */
   getFilePath(id: string): string {
     this.sourcePaths[id] ??= useApplication().getPath(id);
     if (!fs.existsSync(this.sourcePaths[id])) {

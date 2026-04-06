@@ -235,6 +235,7 @@ function Operation(
   target: (this: OperationTarget, ...args: any) => any,
   context: ClassMethodDecoratorContext
 ): void;
+/** Decorator that registers a class method as an operation with optional configuration */
 function Operation(...args: any[]) {
   const annotate = (
     target: AnyMethod,

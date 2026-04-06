@@ -2,10 +2,12 @@ import { InstanceStorage, runWithInstanceStorage, useInstanceStorage } from "../
 import { CallbackOptionallyAsync } from "@webda/test";
 import { WebdaTest } from "./core.js";
 
+/** Test base that runs each test phase within a shared AsyncLocalStorage context */
 export class WebdaAsyncStorageTest extends WebdaTest {
   pretestState: string;
   instanceStorage: InstanceStorage = {} as any;
 
+  /** Wrap test callbacks inside a shared InstanceStorage context */
   wrap(type: "beforeAll" | "test" | "afterAll", callback: CallbackOptionallyAsync) {
     // @ts-ignore
     global.it ??= () => {};

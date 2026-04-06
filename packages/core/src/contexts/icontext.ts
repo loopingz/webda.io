@@ -36,6 +36,7 @@ export abstract class Context {
    */
   protected flushed: boolean = false;
 
+  /** Whether this is the global (non-request-scoped) context */
   isGlobalContext(): boolean {
     return false;
   }
@@ -155,6 +156,7 @@ export abstract class Context {
   abstract getOutputStream(): Promise<Writable>;
 }
 
+/** Abstract context for an operation, providing access to input, parameters, output, and session */
 export abstract class IOperationContext<Input = any, Parameters = any, Output = any> extends Context {
   /**
    * Get the input of the context

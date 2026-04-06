@@ -42,6 +42,7 @@ type WebdaMorpherOptions = {
   modules?: string[];
 };
 
+/** Applies a set of code transformation modules (deserializer, loadParameters, etc.) to project source files */
 export class WebdaMorpher {
   project: Project;
   modules: { [key: string]: (sourceFile: SourceFile) => void } = {

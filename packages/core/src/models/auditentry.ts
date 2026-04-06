@@ -1,5 +1,6 @@
 import { UuidModel } from "@webda/models";
 
+/** Represents a single audit log entry with actor, operation, and result metadata */
 export class AuditEntry extends UuidModel {
   actor: string | "SYSTEM";
   timestamp: number;

@@ -5,7 +5,9 @@ import { FileUtils } from "@webda/utils";
 import { TestApplication } from "./objects.js";
 import { WebdaApplicationTest } from "./application.js";
 
+/** Test application variant that strips workspace info from project metadata */
 export class TestInternalApplication extends TestApplication {
+  /** Load project info and strip workspace configuration for isolated testing */
   loadProjectInformation() {
     const info = super.loadProjectInformation();
     delete info.webda.workspaces;
@@ -14,7 +16,9 @@ export class TestInternalApplication extends TestApplication {
 }
 
 type TeacherType = UuidModel & { name: string; senior: boolean; uuid: string };
+/** Test base using TestInternalApplication, loading configuration from a test fixture */
 export class WebdaInternalTest extends WebdaApplicationTest {
+  /** Create a TestInternalApplication from the test configuration */
   getApplication(): TestApplication {
     let cfg = this.getTestConfiguration();
     if (typeof cfg === "string") {
@@ -163,6 +167,7 @@ export class WebdaInternalTest extends WebdaApplicationTest {
  * Empty application
  */
 export class WebdaInternalSimpleTest extends WebdaInternalTest {
+  /** Return a minimal configuration with beans ignored */
   getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
     return {
       parameters: {

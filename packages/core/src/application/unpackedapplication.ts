@@ -203,6 +203,7 @@ export class UnpackedApplication extends Application {
     };
   }
 
+  /** Upgrade a v3 configuration to v4 format */
   upgradeConfigToV4() {
     /*
     // Move to router

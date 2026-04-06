@@ -3,7 +3,9 @@ import { ModelLink, ModelLinksArray, ModelLinksSimpleArray, ModelParent, ModelRe
 import { MemoryRepository, Repository } from "../src/repository";
 import { PrimaryKeyType, WEBDA_PRIMARY_KEY } from "../src/storable";
 
+/** Date subclass with a `set` method for updating the internal time value. */
 class WebdaDate extends Date {
+  /** Set the date value from a string, Date, or numeric timestamp. */
   set(value: string | Date | number) {
     if (typeof value === "string") {
       const parsed = Date.parse(value);
@@ -19,6 +21,7 @@ class WebdaDate extends Date {
     }
   }
 }
+/** Base model identified by a slug with creator/updater tracking. */
 export class SlugModel extends Model {
   [WEBDA_PRIMARY_KEY]: readonly "slug"[] = ["slug"];
   slug: string;
@@ -28,16 +31,19 @@ export class SlugModel extends Model {
   lastUpdater: ModelLink<User>;
 }
 
+/** Blog entry with multiple authors and an approver. */
 export class Blog extends SlugModel {
   authors: ModelLinksSimpleArray<User>;
   approver: ModelLink<User>;
 }
 
+/** Content section with a title and description. */
 export class Section extends SlugModel {
   title: string;
   description: string;
 }
 
+/** Named group of users with hierarchical parent-child relationships. */
 export class Group extends Model {
   [WEBDA_PRIMARY_KEY] = ["name"] as const;
   name: string;
@@ -46,6 +52,7 @@ export class Group extends Model {
   subgroups: ModelRelated<Group, "parent">;
 }
 
+/** User with blogs, groups, friends, and a linked profile. */
 export class User extends UuidModel {
   blogs: ModelRelated<Blog, "authors">;
   groups: ModelRelated<Group, "members">;

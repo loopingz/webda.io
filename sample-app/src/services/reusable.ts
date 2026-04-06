@@ -1,5 +1,6 @@
 import { Service, ServiceParameters } from "@webda/core";
 
+/** Parameters for the reusable service requiring a mandatory field. */
 export class CustomReusableServiceParameters extends ServiceParameters {
   mandatoryField: string;
 }

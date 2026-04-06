@@ -265,6 +265,7 @@ class WorkerInputEmitter extends WorkerInput {
   /** Timeout handle that rejects the promise after a configurable delay */
   timeout?: NodeJS.Timeout;
 
+  /** Convert this emitter to a plain WorkerInput message, stripping promise-related fields. */
   toMessage(): WorkerInput {
     return new WorkerInput(this.uuid, this.title, this.type, this.validators);
   }

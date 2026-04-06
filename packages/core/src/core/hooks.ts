@@ -87,6 +87,7 @@ export function useModelStore<T extends Model>(name: string | T | CustomConstruc
   return useCore().getModelStore(name);
 }
 
+/** Get the repository for a model, typed as Repository */
 export function useModelRepository<T extends Model>(
   name: string | T | CustomConstructor<T>
 ): Repository<ModelClass<T>> {

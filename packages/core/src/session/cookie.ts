@@ -40,6 +40,7 @@ export class CookieOptions implements Omit<CookieSerializeOptions, "domain"> {
   set maxAge(value: string | number) {
     this._maxAge = new Duration(value);
   }
+  /** Get the max age in seconds, defaulting to 7 days */
   get maxAge() : number {
     return this._maxAge?.toSeconds() ?? 86400 * 7;
   }

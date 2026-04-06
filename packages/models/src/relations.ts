@@ -327,6 +327,7 @@ export class ModelRelated<
     this.repoSource = useRepository(targetClass) as Repository<any>;
   }
 
+  /** Build a WebdaQL query string that filters related objects by this model's primary key. */
   getQuery(query: string = ""): string {
     // PrependQuery
     return WebdaQL.PrependCondition(query, `${this.attribute} = "${this.object.getPrimaryKey()}"`);
@@ -1011,6 +1012,7 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
  * @deprecated
  */
 export class ModelRefCustomMap<T extends Storable, K> extends ModelRefCustom<T, K> {
+  /** Serialize the relation data as a plain object (excluding the primary key). */
   toJSON(): any {
     return this[RelationData] || {};
   }

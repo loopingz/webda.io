@@ -10,10 +10,12 @@ export class RegistryEntry extends UuidModel {
     Object.assign(this, data);
   }
 
+  /** Registry entries are not serializable to DTO */
   toDTO(): undefined {
     return undefined;
   }
 
+  /** No-op DTO deserialization for registry entries */
   fromDTO(): this {
     return this;
   }
@@ -62,10 +64,12 @@ export class RegistryEntry extends UuidModel {
     return <any>await RegistryEntry.ref(uuid).upsert(<any>data);
   }
 
+  /** Delete a registry entry by UUID */
   static async delete(uuid: string) {
     return await RegistryEntry.ref(uuid).delete();
   }
 
+  /** Check if a registry entry exists */
   static exists(uuid: string) {
     return RegistryEntry.ref(uuid).exists();
   }

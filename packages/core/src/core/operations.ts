@@ -248,7 +248,7 @@ function Operation(...args: any[]) {
       static: context.static,
       generator: isGeneratorFunction(target)
     });
-    return function (this: any, ...args) {
+    return function operationWrapper(this: any, ...args) {
       // TODO Make sure if an Operation is called we launch it with Core to get listeners
       // it would also enforce permission checks and audit logs
       try {

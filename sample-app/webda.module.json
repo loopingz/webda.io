@@ -53,7 +53,10 @@
         "type": "object",
         "title": "CustomService"
       },
-      "Configuration": "lib/services/custom:CustomParameters"
+      "Configuration": "lib/services/custom:CustomParameters",
+      "capabilities": [
+        "request-filter"
+      ]
     },
     "WebdaDemo/SampleAppGoodBean": {
       "Import": "lib/services/bean:SampleAppGoodBean",
@@ -317,6 +320,57 @@
         }
       },
       "Configuration": "node_modules/@webda/core/lib/services/serviceparameters:ServiceParameters"
+    },
+    "WebdaDemo/TestCommandService": {
+      "Import": "lib/services/capabilities-commands:TestCommandService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "TestCommandService",
+        "properties": {
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "Configuration": "node_modules/@webda/core/lib/services/serviceparameters:ServiceParameters",
+      "capabilities": [
+        "request-filter"
+      ],
+      "commands": {
+        "greet": {
+          "description": "Greet a user by name",
+          "method": "greet",
+          "args": {
+            "name": {
+              "type": "string",
+              "default": "world",
+              "alias": "n"
+            },
+            "verbose": {
+              "type": "boolean",
+              "default": false,
+              "alias": "v"
+            }
+          }
+        },
+        "deploy": {
+          "description": "Deploy a resource",
+          "method": "deploy",
+          "args": {
+            "target": {
+              "type": "string",
+              "required": true,
+              "alias": "t"
+            },
+            "dryRun": {
+              "type": "boolean",
+              "default": false,
+              "alias": "d"
+            }
+          }
+        }
+      }
     },
     "WebdaDemo/ThirdOtherService": {
       "Import": "lib/services/compiler:ThirdOtherService",
@@ -4585,7 +4639,10 @@
         "param": {
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "param"
+      ]
     },
     "WebdaDemo/SubSubProject.action.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -4648,7 +4705,10 @@
           },
           "type": "object"
         }
-      }
+      },
+      "required": [
+        "project"
+      ]
     },
     "WebdaDemo/SubSubProject.action2.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -4721,7 +4781,10 @@
           ],
           "type": "object"
         }
-      }
+      },
+      "required": [
+        "project"
+      ]
     },
     "WebdaDemo/SubSubProject.action3.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -4733,7 +4796,10 @@
         "toto": {
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "toto"
+      ]
     },
     "WebdaDemo/SubSubProject.action4.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -4822,7 +4888,10 @@
           ],
           "type": "object"
         }
-      }
+      },
+      "required": [
+        "context"
+      ]
     },
     "WebdaDemo/Classroom.test.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -4911,7 +4980,10 @@
           ],
           "type": "object"
         }
-      }
+      },
+      "required": [
+        "context"
+      ]
     },
     "WebdaDemo/Hardware.globalAction.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -4923,7 +4995,10 @@
         "projectId": {
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "projectId"
+      ]
     },
     "SampleAppGoodBean.operation.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5020,7 +5095,10 @@
           ],
           "type": "object"
         }
-      }
+      },
+      "required": [
+        "ctx"
+      ]
     },
     "CustomService.testOperation.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5109,7 +5187,10 @@
           ],
           "type": "object"
         }
-      }
+      },
+      "required": [
+        "ctx"
+      ]
     },
     "CustomService.testOperationWithOutput.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",

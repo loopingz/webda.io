@@ -18,7 +18,7 @@
   "scripts": {
     "build": "webdac build",
     "dev": "npm run build && tsx src/index.ts",
-    "demo": "webda",
+    "webda": "webda",
     "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts"
   },
   "engines": {

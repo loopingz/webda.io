@@ -22,6 +22,7 @@ export default defineConfig({
     setupFiles: ["./vitest.chdir.mts"],
     reporters: "verbose",
     include: [
+      "src/bin/*.spec.ts",
       "src/application/*.spec.ts",
       "src/cache/*.spec.ts",
       "src/configurations/*.spec.ts",

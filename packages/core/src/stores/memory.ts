@@ -5,7 +5,7 @@ import { Readable, Writable } from "node:stream";
 import { createGzip } from "node:zlib";
 import { GunzipConditional } from "@webda/utils";
 import { Store, StoreParameters } from "./store.js";
-import { MemoryRepository, ModelClass, Repository } from "@webda/models";
+import { MemoryRepository, type ModelClass, type Repository } from "@webda/models";
 import { InstanceCache } from "../cache/cache.js";
 import { useModelMetadata } from "../core/hooks.js";
 
@@ -84,7 +84,7 @@ class LDJSONMemoryStreamReader extends Writable {
   current: string = "";
   oldFormat: string = undefined;
   firstBytes: boolean = true;
-  constructor(protected data: any) {
+  constructor(protected data: Map<string, string>) {
     super();
   }
 
@@ -114,7 +114,7 @@ class LDJSONMemoryStreamReader extends Writable {
     for (let i = 0; i < res.length - 1; i++) {
       const info = res[i];
       const split = info.indexOf("\t");
-      this.data[info.substring(0, split)] = info.substring(split + 1);
+      this.data.set(info.substring(0, split), info.substring(split + 1));
     }
     this.current = res[res.length - 1];
 
@@ -126,7 +126,7 @@ class LDJSONMemoryStreamReader extends Writable {
     if (this.oldFormat !== undefined) {
       const data = JSON.parse(this.oldFormat);
       for (const i in data) {
-        this.data[i] = data[i];
+        this.data.set(i, data[i]);
       }
     }
     callback();

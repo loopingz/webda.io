@@ -14,7 +14,7 @@ import { EventWithContext } from "../events/events.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { useService, useModelRepository, ServiceName, useDynamicService } from "../core/hooks.js";
 import { WebContext } from "../contexts/webcontext.js";
-import { ModelClass, Repository } from "@webda/models";
+import type { ModelClass, Repository } from "@webda/models";
 
 /**
  * Emitted when the /me route is called

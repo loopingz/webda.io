@@ -1,4 +1,4 @@
-import { LoadParameters, SelfJSONed, Settable } from "@webda/models";
+import type { LoadParameters, SelfJSONed, Settable } from "@webda/models";
 import { OwnerModel } from "./ownermodel.js";
 import type { User } from "./user.js";
 

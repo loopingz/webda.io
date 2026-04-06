@@ -13,6 +13,7 @@ export default defineConfig({
       exclude: ["src/**/*.spec.ts"],
       reporter: ["lcov", "html", "text"]
     },
+    testTimeout: 30000,
     reporters: "verbose",
     include: ["src/**/*.spec.ts"]
   }

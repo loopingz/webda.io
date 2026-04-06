@@ -1,5 +1,5 @@
 import { IOperationContext } from "../contexts/icontext.js";
-import { ModelEvents, Settable, UuidModel, WEBDA_EVENTS } from "@webda/models";
+import { type ModelEvents, type Settable, UuidModel, WEBDA_EVENTS } from "@webda/models";
 
 export type UserEvents<T> = ModelEvents<T> & {
   Login: { user: T };

@@ -12,7 +12,7 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "bin": {
-    "webda": "./lib/bin/cli.js"
+    "webda": "./lib/bin/launcher.js"
   },
   "scripts": {
     "build": "webdac build",

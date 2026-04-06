@@ -1,4 +1,4 @@
-import { Model, PrimaryKeyType, Repository, SelfJSONed, Settable, useRepository, UuidModel } from "@webda/models";
+import { type Model, type PrimaryKeyType, type Repository, type SelfJSONed, type Settable, useRepository, UuidModel } from "@webda/models";
 import { useLog } from "@webda/workout";
 
 /**

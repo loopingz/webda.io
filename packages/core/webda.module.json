@@ -66,6 +66,7 @@
             "type": "object"
           }
         },
+        "description": "Parameters for the Authentication service including identity, email, and password settings",
         "properties": {
           "email": {
             "$ref": "#/definitions/email",
@@ -143,10 +144,12 @@
             "type": "object"
           }
         },
+        "description": "Parameters for BinaryService, defining model mappings and max upload size",
         "properties": {
           "maxFileSize": {
             "default": "10 MB",
-            "description": "Define the maximum filesize to accept as direct upload",
+            "description": "Define the maximum filesize to accept as direct upload\nGet the max file size in bytes",
+            "returns": "the result number",
             "type": "number"
           },
           "models": {
@@ -183,6 +186,7 @@
             "type": "number | string * Supported units:\n- seconds: `s`, `sec`, `secs`, `second`, `seconds`\n- minutes: `m`, `min`, `mins`, `minute`, `minutes`\n- hours: `h`, `hr`, `hour`, `hours`\n- days: `d`, `day`, `days`\n- months: `mo`, `mon`, `month`, `months` (assumed 30 days)\n- years: `y`, `yr`, `year`, `years` (assumed 365 days)\n\nExamples:\n- `10` → 10 seconds\n- `15s` → 15 seconds\n- `2m` → 120 seconds\n- `1d2h30m` → 1 day + 2 hours + 30 minutes\n- `1 d 2 h` → same as above (spaces allowed)"
           }
         },
+        "description": "Parameters for the ConfigurationService, defining how configuration sources are loaded and refreshed",
         "properties": {
           "checkInterval": {
             "$ref": "#/definitions/Duration",
@@ -223,6 +227,51 @@
       },
       "Configuration": "lib/configurations/configuration:ConfigurationServiceParameters"
     },
+    "Webda/ConsoleLogger": {
+      "Import": "lib/loggers/console:ConsoleLoggerService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Parameters for ConsoleLoggerService, adding output format configuration",
+        "properties": {
+          "addLogProducerLine": {
+            "default": false,
+            "description": "Add file and line number of the log producer (if possible)",
+            "type": "boolean"
+          },
+          "format": {
+            "description": "Format of the logs",
+            "type": "string"
+          },
+          "logLevel": {
+            "description": "Specify the log level of this service",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "logLevel",
+          "type"
+        ],
+        "type": "object",
+        "title": "ConsoleLoggerService"
+      },
+      "Configuration": "lib/loggers/params:ConsoleLoggerServiceParameters"
+    },
     "Webda/CookieSessionManager": {
       "Import": "lib/session/manager:CookieSessionManager",
       "Schema": {
@@ -256,8 +305,9 @@
               },
               "maxAge": {
                 "default": "7d",
-                "description": "Specifies the `number` (in seconds) to be the value for the [`Max-Age` `Set-Cookie` attribute](https://tools.ietf.org/html/rfc6265#section-5.2.2).\n\nThe [cookie storage model specification](https://tools.ietf.org/html/rfc6265#section-5.3) states that if both `expires` and\n`maxAge` are set, then `maxAge` takes precedence, but it is possible not all clients by obey this,\nso if both are set, they should point to the same date and time.",
+                "description": "Get the max age in seconds, defaulting to 7 days",
                 "minimum": 1,
+                "returns": "the result number",
                 "type": "number"
               },
               "name": {
@@ -372,6 +422,7 @@
             "type": "object"
           }
         },
+        "description": "Parameters for the cookie-based session manager",
         "properties": {
           "cookie": {
             "$ref": "#/definitions/CookieOptions",
@@ -573,6 +624,7 @@
             "type": "object"
           }
         },
+        "description": "Parameters for the CryptoService including key lifecycle, rotation, and algorithm settings",
         "properties": {
           "asymetricOptions": {
             "$ref": "#/definitions/asymetricOptions",
@@ -682,6 +734,7 @@
             "type": "number | string * Supported units:\n- seconds: `s`, `sec`, `secs`, `second`, `seconds`\n- minutes: `m`, `min`, `mins`, `minute`, `minutes`\n- hours: `h`, `hr`, `hour`, `hours`\n- days: `d`, `day`, `days`\n- months: `mo`, `mon`, `month`, `months` (assumed 30 days)\n- years: `y`, `yr`, `year`, `years` (assumed 365 days)\n\nExamples:\n- `10` → 10 seconds\n- `15s` → 15 seconds\n- `2m` → 120 seconds\n- `1d2h30m` → 1 day + 2 hours + 30 minutes\n- `1 d 2 h` → same as above (spaces allowed)"
           }
         },
+        "description": "Parameters for the ConfigurationService, defining how configuration sources are loaded and refreshed",
         "properties": {
           "checkInterval": {
             "$ref": "#/definitions/Duration",
@@ -727,6 +780,7 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "description": "Parameters for FileLoggerService, adding file path, format, and size limit",
         "properties": {
           "addLogProducerLine": {
             "default": false,
@@ -789,6 +843,7 @@
             "type": "object"
           }
         },
+        "description": "Parameters for the HTTP server including request limits, timeouts, and trusted proxy settings",
         "properties": {
           "csrfOrigins": {
             "description": "Allowed origin for referer that match\nany of this regexp\n\n{@link OriginFilter }",
@@ -961,6 +1016,7 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "description": "Parameters for MemoryLoggerService, adding a memory size limit",
         "properties": {
           "addLogProducerLine": {
             "default": false,
@@ -1026,6 +1082,7 @@
             "type": "object"
           }
         },
+        "description": "Parameters for the in-memory FIFO queue, including message expiration and receive timeout",
         "properties": {
           "expire": {
             "default": 30,
@@ -1185,6 +1242,7 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "description": "Parameters for DomainService, controlling model exposure, URL naming, and query methods",
         "properties": {
           "models": {
             "default": [
@@ -1302,6 +1360,7 @@
             "type": "object"
           }
         },
+        "description": "Parameters for the Prometheus metrics endpoint service",
         "properties": {
           "bind": {
             "description": "If defined along with portNumber used to bind specific address\nfor dedicated http server",
@@ -1505,6 +1564,7 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "description": "Parameters for the Router service",
         "properties": {
           "overrideWarning": {
             "default": false,
@@ -1736,6 +1796,7 @@
               "type": "object"
             }
           },
+          "description": "Represents a single audit log entry with actor, operation, and result metadata",
           "properties": {
             "actor": {
               "type": "string"
@@ -1794,6 +1855,7 @@
               "type": "object"
             }
           },
+          "description": "Represents a single audit log entry with actor, operation, and result metadata",
           "properties": {
             "actor": {
               "type": "string"
@@ -1852,6 +1914,7 @@
               "type": "object"
             }
           },
+          "description": "Represents a single audit log entry with actor, operation, and result metadata",
           "properties": {
             "actor": {
               "type": "string"
@@ -1929,6 +1992,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Base model class for Webda applications, extending UuidModel",
           "properties": {
             "uuid": {
               "description": "UUID of the model",
@@ -1945,6 +2009,7 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Base model class for Webda applications, extending UuidModel",
           "properties": {
             "uuid": {
               "description": "UUID of the model",
@@ -1961,6 +2026,7 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Base model class for Webda applications, extending UuidModel",
           "properties": {
             "uuid": {
               "description": "UUID of the model",
@@ -2064,6 +2130,7 @@
           "definitions": {
             "IdentTokens": {
               "additionalProperties": false,
+              "description": "OAuth tokens associated with an identity provider",
               "properties": {
                 "access": {
                   "type": "string"
@@ -2156,6 +2223,7 @@
           "definitions": {
             "IdentTokens": {
               "additionalProperties": false,
+              "description": "OAuth tokens associated with an identity provider",
               "properties": {
                 "access": {
                   "type": "string"
@@ -2248,6 +2316,7 @@
           "definitions": {
             "IdentTokens": {
               "additionalProperties": false,
+              "description": "OAuth tokens associated with an identity provider",
               "properties": {
                 "access": {
                   "type": "string"
@@ -2596,18 +2665,21 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Model with role-based access control, mapping actions to required roles",
           "type": "object",
           "$webda": "fromDto$auto"
         },
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Model with role-based access control, mapping actions to required roles",
           "type": "object",
           "$webda": "toDto$auto"
         },
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Model with role-based access control, mapping actions to required roles",
           "type": "object",
           "$webda": "toJSON$return"
         }
@@ -2651,6 +2723,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Persistent session data stored in a model with a TTL",
           "properties": {
             "session": {},
             "ttl": {
@@ -2673,6 +2746,7 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Persistent session data stored in a model with a TTL",
           "properties": {
             "session": {},
             "ttl": {
@@ -2695,6 +2769,7 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Persistent session data stored in a model with a TTL",
           "properties": {
             "session": {},
             "ttl": {

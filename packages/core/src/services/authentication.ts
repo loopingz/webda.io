@@ -239,11 +239,11 @@ export type AuthenticationEvents = {
  *   url: 'url' // By default /auth
  * ```
  *
+ * Core authentication service handling login, registration, password recovery, and email validation
+ *
  * @category CoreServices
  * @WebdaModda
  */
-
-/** Core authentication service handling login, registration, password recovery, and email validation */
 class Authentication<
   T extends AuthenticationParameters = AuthenticationParameters,
   E extends AuthenticationEvents = AuthenticationEvents

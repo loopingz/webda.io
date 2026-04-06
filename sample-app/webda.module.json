@@ -33,6 +33,7 @@
             "type": "object"
           }
         },
+        "description": "Parameters for the custom service with introspection support.",
         "properties": {
           "introspection": {
             "$ref": "#/definitions/Partial%3CServiceParameters%3E"
@@ -92,6 +93,7 @@
             "type": "object"
           }
         },
+        "description": "Parameters for AnotherService with interface-based configuration.",
         "properties": {
           "anotherParameter": {
             "type": "string"
@@ -124,6 +126,7 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "description": "Parameters for the reusable service requiring a mandatory field.",
         "properties": {
           "mandatoryField": {
             "type": "string"
@@ -163,6 +166,7 @@
             "type": "object"
           }
         },
+        "description": "Extended parameters adding a bounded numeric field for the fourth service.",
         "properties": {
           "anotherParameter": {
             "type": "string"
@@ -222,6 +226,7 @@
             "type": "object"
           }
         },
+        "description": "Parameters for the in-memory FIFO queue, including message expiration and receive timeout",
         "properties": {
           "expire": {
             "default": 30,
@@ -280,6 +285,7 @@
             "type": "object"
           }
         },
+        "description": "Parameters for AnotherService with interface-based configuration.",
         "properties": {
           "anotherParameter": {
             "type": "string"
@@ -984,6 +990,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Physical classroom with courses and hardware inventory.",
           "properties": {
             "name": {
               "type": "string"
@@ -1003,6 +1010,7 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Physical classroom with courses and hardware inventory.",
           "properties": {
             "name": {
               "type": "string"
@@ -1022,6 +1030,7 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Physical classroom with courses and hardware inventory.",
           "properties": {
             "name": {
               "type": "string"
@@ -1656,6 +1665,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Computer screen hardware with model and serial number.",
           "properties": {
             "classroom": {
               "ModelLink": "but implies a Cascade delete",
@@ -1690,6 +1700,7 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Computer screen hardware with model and serial number.",
           "properties": {
             "classroom": {
               "ModelLink": "but implies a Cascade delete",
@@ -1724,6 +1735,7 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Computer screen hardware with model and serial number.",
           "properties": {
             "classroom": {
               "ModelLink": "but implies a Cascade delete",
@@ -2311,6 +2323,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Course linking a teacher, students, and a classroom.",
           "properties": {
             "classroom": {
               "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
@@ -2373,6 +2386,7 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Course linking a teacher, students, and a classroom.",
           "properties": {
             "classroom": {
               "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
@@ -2435,6 +2449,7 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Course linking a teacher, students, and a classroom.",
           "properties": {
             "classroom": {
               "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
@@ -2533,6 +2548,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Hardware item belonging to a classroom, with associated brands.",
           "properties": {
             "classroom": {
               "ModelLink": "but implies a Cascade delete",
@@ -2559,6 +2575,7 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Hardware item belonging to a classroom, with associated brands.",
           "properties": {
             "classroom": {
               "ModelLink": "but implies a Cascade delete",
@@ -2585,6 +2602,7 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Hardware item belonging to a classroom, with associated brands.",
           "properties": {
             "classroom": {
               "ModelLink": "but implies a Cascade delete",
@@ -3000,6 +3018,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Student with email-based UUID, linked to teachers and courses.",
           "properties": {
             "constraints": {
               "type": "null"
@@ -3083,6 +3102,7 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Student with email-based UUID, linked to teachers and courses.",
           "properties": {
             "constraints": {
               "type": "null"
@@ -3166,6 +3186,7 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Student with email-based UUID, linked to teachers and courses.",
           "properties": {
             "constraints": {
               "type": "null"
@@ -3317,6 +3338,7 @@
               "type": "object"
             }
           },
+          "description": "Subclass of Project with no additional fields, used for inheritance testing.",
           "properties": {
             "acls": {
               "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
@@ -3396,6 +3418,7 @@
               "type": "object"
             }
           },
+          "description": "Subclass of Project with no additional fields, used for inheritance testing.",
           "properties": {
             "acls": {
               "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
@@ -3465,6 +3488,7 @@
               "type": "object"
             }
           },
+          "description": "Subclass of Project with no additional fields, used for inheritance testing.",
           "properties": {
             "acls": {
               "$ref": "#/definitions/ResourceAcl"
@@ -3612,6 +3636,7 @@
               "type": "object"
             }
           },
+          "description": "Concrete sub-sub-project with custom actions for testing action exposure.",
           "properties": {
             "acls": {
               "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
@@ -3695,6 +3720,7 @@
               "type": "object"
             }
           },
+          "description": "Concrete sub-sub-project with custom actions for testing action exposure.",
           "properties": {
             "acls": {
               "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
@@ -3768,6 +3794,7 @@
               "type": "object"
             }
           },
+          "description": "Concrete sub-sub-project with custom actions for testing action exposure.",
           "properties": {
             "acls": {
               "$ref": "#/definitions/ResourceAcl"
@@ -3894,6 +3921,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Teacher with courses and student relations.",
           "properties": {
             "anyArray": {
               "description": "Test that graphql can handle any[]",
@@ -3923,6 +3951,7 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Teacher with courses and student relations.",
           "properties": {
             "anyArray": {
               "description": "Test that graphql can handle any[]",
@@ -3952,6 +3981,7 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "description": "Teacher with courses and student relations.",
           "properties": {
             "anyArray": {
               "description": "Test that graphql can handle any[]",

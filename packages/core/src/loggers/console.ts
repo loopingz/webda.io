@@ -1,3 +1,8 @@
+import { ConsoleLogger } from "@webda/workout";
+import { LoggerService } from "./logger.js";
+import { ConsoleLoggerServiceParameters } from "./params.js";
+import { useWorkerOutput } from "./ilogger.js";
+
 /**
  * Log to the console
  *
@@ -6,13 +11,6 @@
  * @see @webda/workout.ConsoleLogger
  * @WebdaModda ConsoleLogger
  */
-
-import { ConsoleLogger } from "@webda/workout";
-import { LoggerService } from "./logger.js";
-import { ConsoleLoggerServiceParameters } from "./params.js";
-import { useWorkerOutput } from "./ilogger.js";
-
-/** Logger service that outputs to the console via @webda/workout ConsoleLogger */
 export class ConsoleLoggerService<
   T extends ConsoleLoggerServiceParameters = ConsoleLoggerServiceParameters
 > extends LoggerService<T> {

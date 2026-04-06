@@ -118,7 +118,10 @@ function App() {
 
   return html`
     <div class="header">
-      <div class="header-title">Webda Debug</div>
+      <div class="header-logo">
+        <img src="/logo.svg" alt="Webda" />
+        <div class="header-title">web<span>da</span> debug</div>
+      </div>
       <nav class="nav-tabs">
         ${TABS.map(
           (t) => html`

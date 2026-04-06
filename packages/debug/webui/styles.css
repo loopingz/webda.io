@@ -4,14 +4,15 @@
   --bg-tertiary: #0f3460;
   --text: #e0e0e0;
   --text-muted: #8892a4;
-  --accent: #0ea5e9;
+  --accent: #f7992c;
+  --accent-secondary: #4557a4;
   --border: #2a2a4a;
-  --green: #22c55e;
-  --yellow: #eab308;
+  --green: #81bf6b;
+  --yellow: #f7992c;
   --red: #ef4444;
-  --blue: #3b82f6;
+  --blue: #4557a4;
   --purple: #a855f7;
-  --orange: #f97316;
+  --orange: #f7992c;
 }
 
 * {
@@ -48,12 +49,28 @@ code, pre, .mono {
   flex-shrink: 0;
 }
 
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: 2rem;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.header-logo img {
+  width: 28px;
+  height: 28px;
+}
+
 .header-title {
   font-size: 1rem;
   font-weight: 600;
+  color: var(--text);
+}
+
+.header-title span {
   color: var(--accent);
-  margin-right: 2rem;
-  white-space: nowrap;
 }
 
 .nav-tabs {
@@ -87,7 +104,7 @@ code, pre, .mono {
 
 .nav-tab.active {
   color: var(--accent);
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--yellow);
 }
 
 .ws-indicator {

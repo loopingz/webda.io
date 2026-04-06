@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { RouteInfo } from "./router.js";
 import { TestApplication, WebdaTest } from "../test/index.js";
-import { HttpContext } from "../utils/httpcontext.js";
+import { HttpContext } from "../contexts/httpcontext.js";
 import { RESTDomainService } from "./restdomainservice.js";
 import { ImageUser } from "../services/binary.spec.js";
 

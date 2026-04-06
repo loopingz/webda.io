@@ -15,6 +15,13 @@ export interface CommandOptions {
    * and shell tab completion
    */
   description: string;
+  /**
+   * Capabilities required by this command.
+   * Each string names a capability that must be provided by a configured service.
+   * If not configured, the CLI auto-injects the default provider from the
+   * capabilities map in webda.module.json.
+   */
+  requires?: string[];
 }
 
 /**
@@ -86,7 +93,8 @@ export const Command = createMethodDecorator(
     (context.metadata["webda.commands"] as any[]).push({
       name,
       description: options.description,
-      method: context.name
+      method: context.name,
+      requires: options.requires
     });
   }
 );

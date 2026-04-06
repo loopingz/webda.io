@@ -589,7 +589,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @param output - file path to write to (prints to stdout if omitted)
    * @param includeHidden - include hidden routes in the output
    */
-  @Command("openapi", { description: "Export the OpenAPI definition" })
+  @Command("openapi", { description: "Export the OpenAPI definition", requires: ["rest-domain"] })
   openapi(
     /** @alias o @description Output file path (stdout if omitted) */
     output?: string,

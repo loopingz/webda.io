@@ -280,6 +280,12 @@ export type CommandDefinition = {
    * which become `--flag` names in the CLI.
    */
   args: { [name: string]: CommandArgDefinition };
+  /**
+   * Capabilities required by this command.
+   * The CLI resolves these against the capabilities map and auto-injects
+   * missing services before booting Core.
+   */
+  requires?: string[];
 };
 
 export type ServiceMetadata = {
@@ -368,6 +374,12 @@ export interface WebdaModule {
      */
     [key: string]: ModelMetadata;
   };
+  /**
+   * Default capability providers declared by this package.
+   * Maps capability names to service type names.
+   * Merged from dependencies at build/load time; project-level values override.
+   */
+  capabilities?: { [name: string]: string };
 }
 
 /**
@@ -395,6 +407,11 @@ export interface WebdaPackageDescriptor {
      */
     method: string;
   };
+  /**
+   * Default capability providers for this package.
+   * Maps capability names to service type names.
+   */
+  capabilities?: { [name: string]: string };
   /**
    * Information on the workspace
    */

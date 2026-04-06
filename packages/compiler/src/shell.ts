@@ -51,6 +51,10 @@ function scanNodeModules(dir: string, mod: any, seen: Set<string>) {
             mod[section] = { ...mod[section], ...depMod[section] };
           }
         }
+        // Capabilities: project values override dependencies
+        if (depMod.capabilities) {
+          mod.capabilities = { ...depMod.capabilities, ...mod.capabilities };
+        }
       } catch {
         // Skip invalid modules
       }

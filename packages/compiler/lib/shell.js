@@ -13,6 +13,9 @@ import { bold, italic, yellow } from "yoctocolors";
 import { WebdaMorpher } from "./morpher/morpher.js";
 /**
  * Scan a single node_modules directory for webda.module.json files
+ * @param dir - the node_modules directory path
+ * @param mod - the module object to merge into
+ * @param seen - set of already-visited directories
  */
 function scanNodeModules(dir, mod, seen) {
     if (!existsSync(dir))
@@ -54,6 +57,10 @@ function scanNodeModules(dir, mod, seen) {
                         mod[section] = { ...mod[section], ...depMod[section] };
                     }
                 }
+                // Capabilities: project values override dependencies
+                if (depMod.capabilities) {
+                    mod.capabilities = { ...depMod.capabilities, ...mod.capabilities };
+                }
             }
             catch {
                 // Skip invalid modules
@@ -66,6 +73,8 @@ function scanNodeModules(dir, mod, seen) {
  * Scan node_modules for webda.module.json files and merge their
  * moddas, deployers, and schemas into the local module.
  * Walks up the directory tree to find hoisted packages (yarn workspaces).
+ * @param projectPath - the project root path
+ * @param mod - the module object to merge into
  */
 function mergeDependencyModules(projectPath, mod) {
     const seen = new Set();
@@ -79,9 +88,19 @@ function mergeDependencyModules(projectPath, mod) {
         current = parent;
     }
 }
+/**
+ * Type guard for the "build" CLI command
+ * @param argv - the parsed CLI arguments
+ * @returns true if the command is "build"
+ */
 function isBuildCommand(argv) {
     return argv._[0] === "build";
 }
+/**
+ * Type guard for the "code" CLI command
+ * @param argv - the parsed CLI arguments
+ * @returns true if the command is "code"
+ */
 function isCodeCommand(argv) {
     return argv._[0] === "code";
 }

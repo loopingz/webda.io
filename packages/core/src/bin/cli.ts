@@ -504,6 +504,62 @@ function loadApplication(appPath: string): Application {
 }
 
 /**
+ * Ensure services that declare a command exist in the app configuration.
+ * If a service type is not already configured, it is injected with a generated name.
+ *
+ * @param app - The loaded Application
+ * @param services - Service targets from the command metadata
+ */
+export function ensureCommandServices(
+  app: Application,
+  services: import("../services/servicecommands.js").ServiceCommandTarget[]
+): void {
+  const appConfig = app.getConfiguration();
+  appConfig.services ??= {};
+  for (const svc of services) {
+    const hasProvider =
+      Object.values(appConfig.services).some(
+        (cfg: any) => cfg.type === svc.type || cfg.type === svc.type.split("/").pop()
+      ) || appConfig.services[svc.name];
+    if (!hasProvider) {
+      appConfig.services[svc.name] = { type: svc.type };
+    }
+  }
+}
+
+/**
+ * Resolve required capabilities for a command, auto-injecting default providers
+ * into the app config if not already configured.
+ *
+ * @param app - The loaded Application
+ * @param requires - Capability names required by the command
+ */
+export function resolveCapabilities(app: Application, requires: string[]): void {
+  if (!requires || requires.length === 0) return;
+  const modules = app.getModules();
+  const capabilities: Record<string, string> = modules.capabilities || {};
+  const appConfig = app.getConfiguration();
+  appConfig.services ??= {};
+
+  for (const cap of requires) {
+    const serviceType = capabilities[cap];
+    if (!serviceType) {
+      useLog("WARN", `No provider found for capability '${cap}'`);
+      continue;
+    }
+    // Check if a service with this type is already configured
+    const shortName = serviceType.split("/").pop();
+    const hasProvider =
+      Object.values(appConfig.services).some(
+        (cfg: any) => cfg.type === serviceType || cfg.type === shortName
+      ) || appConfig.services[shortName];
+    if (!hasProvider) {
+      appConfig.services[shortName] = { type: serviceType };
+    }
+  }
+}
+
+/**
  * Run a service command with file watching: compiles first, then restarts on changes.
  *
  * @param appPath - application root path
@@ -752,30 +808,10 @@ if (isMain) {
         const serviceFilter = matchedCommand.args.service?.split(",");
 
         // Ensure services required by this command exist in the configuration
-        // If no configured service provides this command, inject a default one
-        const appConfig = app.getConfiguration();
-        for (const svc of cmdInfo.services) {
-          const hasProvider =
-            Object.values(appConfig.services || {}).some(
-              (cfg: any) => cfg.type === svc.type || cfg.type === svc.type.split("/").pop()
-            ) || appConfig.services?.[svc.name];
-          if (!hasProvider) {
-            appConfig.services ??= {};
-            appConfig.services[svc.name] = { type: svc.type };
-          }
-        }
+        ensureCommandServices(app, cmdInfo.services);
 
-        // Auto-inject Router if the command needs HTTP routing (e.g. serve)
-        if (matchedCommand.name === "serve") {
-          const hasRouter =
-            Object.values(appConfig.services || {}).some(
-              (cfg: any) => cfg.type === "Webda/Router" || cfg.type === "Router"
-            ) || appConfig.services?.Router;
-          if (!hasRouter) {
-            appConfig.services ??= {};
-            appConfig.services.Router = { type: "Webda/Router" };
-          }
-        }
+        // Auto-inject capability providers required by this command
+        resolveCapabilities(app, cmdInfo.requires);
 
         if (matchedCommand.args.watch && hasCompiler) {
           await runWithWatch(appPath, app, matchedCommand.name, cmdInfo, matchedCommand.args, serviceFilter);

@@ -129,7 +129,7 @@ export class HttpServer<
    * @param port - the port number
    * @returns the result
    */
-  @Command("serve", { description: "Start the HTTP server" })
+  @Command("serve", { description: "Start the HTTP server", requires: ["router", "rest-domain"] })
   async serve(bind?: string, port?: number) {
     return this.parameters.with(async params => {
       useLog("INFO", `Starting HTTP server on ${bind ?? "0.0.0.0"}:${port ?? params.port ?? 18080}`);

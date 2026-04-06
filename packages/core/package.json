@@ -131,7 +131,11 @@
     ]
   },
   "webda": {
-    "namespace": "Webda"
+    "namespace": "Webda",
+    "capabilities": {
+      "router": "Webda/Router",
+      "rest-domain": "Webda/RESTDomainService"
+    }
   },
   "type": "module",
   "engines": {

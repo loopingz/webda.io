@@ -905,7 +905,11 @@
             "port": {
               "type": "number"
             }
-          }
+          },
+          "requires": [
+            "router",
+            "rest-domain"
+          ]
         }
       }
     },
@@ -1601,7 +1605,10 @@
               "type": "boolean",
               "description": "Include hidden routes"
             }
-          }
+          },
+          "requires": [
+            "rest-domain"
+          ]
         }
       }
     }
@@ -3321,5 +3328,9 @@
       "type": "object",
       "title": "BinaryFile"
     }
+  },
+  "capabilities": {
+    "router": "Webda/Router",
+    "rest-domain": "Webda/RESTDomainService"
   }
 }

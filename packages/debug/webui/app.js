@@ -47,6 +47,27 @@ function App() {
     fetchApi("/api/info").then(setAppInfo).catch(() => {});
   }, [dataVersion]);
 
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setTab((prev) => {
+          const idx = TABS.findIndex((t) => t.id === prev);
+          return TABS[(idx - 1 + TABS.length) % TABS.length].id;
+        });
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setTab((prev) => {
+          const idx = TABS.findIndex((t) => t.id === prev);
+          return TABS[(idx + 1) % TABS.length].id;
+        });
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const connectWs = useCallback(() => {
     if (wsRef.current && wsRef.current.readyState <= 1) return;
 

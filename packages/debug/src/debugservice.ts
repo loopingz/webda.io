@@ -1,11 +1,14 @@
 import { Service, ServiceParameters, useDynamicService, useCoreEvents, useRouter } from "@webda/core";
 import { Command } from "@webda/core";
 import { createServer, IncomingMessage, ServerResponse, Server } from "node:http";
+import { exec } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
+import { platform } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join, extname } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
 import { RequestLog } from "./requestlog.js";
+import { LogBuffer } from "./logbuffer.js";
 import { getModels, getModel, getServices, getOperations, getRoutes, getConfig } from "./introspection.js";
 import { DebugTui } from "./tui/tui.js";
 
@@ -32,6 +35,8 @@ const MIME_TYPES: Record<string, string> = {
 export class DebugService extends Service {
   /** Ring buffer of recent HTTP requests */
   requestLog: RequestLog = new RequestLog();
+  /** Ring buffer of application log entries */
+  private logBuffer: LogBuffer = new LogBuffer();
   /** HTTP server for the debug API */
   private server?: Server;
   /** WebSocket server for live event push */
@@ -97,6 +102,12 @@ export class DebugService extends Service {
     this.requestLog.onEvent(event => {
       this.broadcast(event);
     });
+
+    // Capture application logs and forward to WebSocket clients
+    this.logBuffer.subscribe();
+    this.logBuffer.onEvent(event => {
+      this.broadcast(event);
+    });
   }
 
   /**
@@ -130,7 +141,18 @@ export class DebugService extends Service {
     if (!web) {
       const tui = new DebugTui(port);
       await tui.start();
+    } else {
+      this.openBrowser(`http://localhost:${port}`);
     }
+  }
+
+  /**
+   * Open a URL in the default browser.
+   * @param url - URL to open
+   */
+  private openBrowser(url: string): void {
+    const cmd = platform() === "darwin" ? "open" : platform() === "win32" ? "start" : "xdg-open";
+    exec(`${cmd} ${url}`);
   }
 
   /**
@@ -196,6 +218,10 @@ export class DebugService extends Service {
         this.sendJson(res, this.getOpenAPISpec());
       } else if (pathname === "/api/requests") {
         this.sendJson(res, this.requestLog.getEntries());
+      } else if (pathname === "/api/logs") {
+        const searchParams = new URL(url, "http://localhost").searchParams;
+        const query = searchParams.get("q") || "";
+        this.sendJson(res, query ? this.logBuffer.search(query) : this.logBuffer.getEntries());
       } else {
         this.serveStaticFile(pathname, res);
       }
@@ -285,11 +311,12 @@ export class DebugService extends Service {
    * Clean up HTTP server and WebSocket connections.
    */
   async stop(): Promise<void> {
-    // Unsubscribe from core events
+    // Unsubscribe from core events and log buffer
     for (const unsub of this.unsubscribers) {
       unsub();
     }
     this.unsubscribers = [];
+    this.logBuffer.unsubscribe();
 
     // Close WebSocket connections
     for (const client of this.clients) {

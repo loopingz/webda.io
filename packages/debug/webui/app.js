@@ -9,6 +9,7 @@ import { RoutesPanel } from "./components/routes.js";
 import { ConfigPanel } from "./components/config.js";
 import { RequestsPanel } from "./components/requests.js";
 import { OpenAPIPanel } from "./components/openapi.js";
+import { LogsPanel } from "./components/logs.js";
 
 const html = htm.bind(h);
 
@@ -19,6 +20,7 @@ const TABS = [
   { id: "routes", label: "Routes" },
   { id: "config", label: "Config" },
   { id: "requests", label: "Requests" },
+  { id: "logs", label: "Logs" },
   { id: "openapi", label: "OpenAPI" }
 ];
 
@@ -63,6 +65,8 @@ function App() {
           setDataVersion((v) => v + 1);
           return;
         }
+        // Dispatch custom event so individual panels can listen
+        window.dispatchEvent(new CustomEvent("debug-ws-event", { detail: data }));
         setWsEvents((prev) => [data, ...prev].slice(0, 500));
       } catch {
         // ignore parse errors
@@ -103,6 +107,8 @@ function App() {
         return html`<${ConfigPanel} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
       case "requests":
         return html`<${RequestsPanel} fetchApi=${fetchApi} dataVersion=${dataVersion} wsEvents=${wsEvents} />`;
+      case "logs":
+        return html`<${LogsPanel} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
       case "openapi":
         return html`<${OpenAPIPanel} />`;
       default:

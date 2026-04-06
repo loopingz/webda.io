@@ -1,4 +1,5 @@
 export { RequestLog, type RequestLogEntry } from "./requestlog.js";
+export { LogBuffer, type LogEntry } from "./logbuffer.js";
 export { getModels, getModel, getServices, getOperations, getRoutes, getConfig } from "./introspection.js";
 export { DebugService } from "./debugservice.js";
 export { DebugClient } from "./tui/client.js";

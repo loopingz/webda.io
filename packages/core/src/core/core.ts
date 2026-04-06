@@ -85,15 +85,6 @@ export class Core implements ICore {
    */
   constructor(application?: Application) {
     useInstanceStorage().core = this;
-    /**
-     * SIGINT handler
-     */
-    process.on("SIGINT", async () => {
-      console.log("Received SIGINT. Cancelling all interuptables.");
-      await Promise.all([...CancelablePromise.promises].map(p => p.cancel()));
-      await this.stop();
-      process.exit(0);
-    });
     this.logger = new Logger(application.getWorkerOutput(), { class: "@webda/core" });
     this.application = application || new UnpackedApplication(".");
 
@@ -313,7 +304,7 @@ export class Core implements ICore {
       await this.initService(service);
     }
     // Auto-discover capability-based filters
-    useInstanceStorage().router?.discoverFilters(Object.values(this.services));
+    useInstanceStorage().router?.discoverFilters(Object.values(this.services).filter(Boolean));
     await emitCoreEvent("Webda.Init.Services", this.services);
   }
 

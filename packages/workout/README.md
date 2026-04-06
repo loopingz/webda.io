@@ -247,6 +247,40 @@ Set the log level via environment variable:
 LOG_LEVEL=DEBUG node your-app.js
 ```
 
+### Scoped Log Level Override
+
+Use `useLogLevel` to temporarily change the effective log level for a block of code. This uses `AsyncLocalStorage` so it propagates through async operations, timers, and event callbacks created within the scope.
+
+```typescript
+import { useLog, useLogLevel } from "@webda/workout";
+
+// Suppress noisy INFO logs from a third-party library
+useLogLevel("WARN", () => {
+  noisyLibrary.initialize(); // Only WARN and ERROR will be logged
+});
+
+// Works with async code too
+await useLogLevel("DEBUG", async () => {
+  useLog("DEBUG", "This will be visible");
+  await fetchData();
+  useLog("DEBUG", "So will this");
+});
+
+// Nest overrides to restore verbosity inside a quiet scope
+useLogLevel("WARN", () => {
+  compiler.startWatch(); // Quiet
+
+  onRecompiled(() => {
+    // Restore INFO level for restart messages
+    useLogLevel("INFO", () => {
+      useLog("INFO", "Restarting server...");
+    });
+  });
+});
+```
+
+All loggers that extend `WorkerLogger` automatically respect `useLogLevel` overrides — no configuration needed.
+
 ## API Documentation
 
 ### WorkerOutput
@@ -264,6 +298,13 @@ Main class for emitting logs and managing progress indicators.
 - `requestInput(title, type?, validators?, waitFor?, timeout?)` - Request user input
 - `setInteractive(interactive)` - Enable/disable interactive mode
 - `getBunyanLogger()` - Get a Bunyan-compatible logger interface
+
+### Global Helpers
+
+- `useLog(level, ...args)` - Log a message using the global WorkerOutput
+- `useWorkerOutput(output?)` - Get or set the global WorkerOutput instance
+- `useLogLevel(level, callback)` - Run a callback with a scoped log level override (works with sync and async)
+- `getLogLevelOverride()` - Return the current async-local log level override, or `undefined`
 
 ### Logger Classes
 

@@ -9,7 +9,8 @@ import { useMetric, type Counter, type Gauge, type Histogram, type MetricConfigu
 import type { Logger } from "../loggers/ilogger.js";
 import type { OperationContext } from "../contexts/operationcontext.js";
 import { ServiceParameters } from "./serviceparameters.js";
-import { useService } from "../core/hooks.js";
+import { useDynamicService, useService } from "../core/hooks.js";
+import { deepmerge } from "deepmerge-ts";
 import type { ServiceName, ServicesMap } from "../core/hooks.js";
 import { useApplication } from "../application/hooks.js";
 import { AbstractService } from "../core/icore.js";
@@ -390,17 +391,18 @@ abstract class Service<
     if (!finalUrl) {
       return;
     }
-    /**
-     * TODO Add route
-    this._webda.addRoute(finalUrl, {
-      // Create bounded function to keep the context
+    const router = useDynamicService<any>("Router");
+    if (!router) {
+      this.log("WARN", `No Router service available, skipping route ${finalUrl}`);
+      return;
+    }
+    router.addRouteToRouter(finalUrl, {
       _method: executer.bind(this),
-      executor: this._name,
-      openapi: deepmerge(openapi, this.parameters.openapi || {}),
+      executor: this.getName(),
+      openapi: deepmerge(openapi, (<any>this.parameters).openapi || {}),
       methods,
       override
     });
-    */
   }
 
   /**

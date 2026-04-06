@@ -1,9 +1,27 @@
 import { Service, ServiceParameters, useDynamicService, useCoreEvents, useRouter } from "@webda/core";
 import { Command } from "@webda/core";
 import { createServer, IncomingMessage, ServerResponse, Server } from "node:http";
+import { readFileSync, existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join, extname } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
 import { RequestLog } from "./requestlog.js";
 import { getModels, getModel, getServices, getOperations, getRoutes, getConfig } from "./introspection.js";
+import { DebugTui } from "./tui/tui.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const WEBUI_DIR = join(__dirname, "..", "..", "webui");
+
+/** Map file extensions to MIME types for static file serving. */
+const MIME_TYPES: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".ico": "image/x-icon"
+};
 
 /**
  * Debug dashboard service that provides an HTTP API for introspection
@@ -107,6 +125,21 @@ export class DebugService extends Service {
   }
 
   /**
+   * Open the terminal debug dashboard, connecting to an already-running
+   * debug server. Run `webda debug` first in another terminal.
+   *
+   * @param port - Debug server port to connect to
+   */
+  @Command("debug tui", { description: "Open terminal debug dashboard" })
+  async debugTui(
+    /** @alias p @description Debug server port to connect to */
+    port: number = 18181
+  ): Promise<void> {
+    const tui = new DebugTui(port);
+    await tui.start();
+  }
+
+  /**
    * Create and start the debug HTTP server with WebSocket support.
    * @param port - Port to listen on
    */
@@ -170,7 +203,7 @@ export class DebugService extends Service {
       } else if (pathname === "/api/requests") {
         this.sendJson(res, this.requestLog.getEntries());
       } else {
-        this.sendJson(res, { error: "Not found" }, 404);
+        this.serveStaticFile(pathname, res);
       }
     } catch (err: any) {
       this.log("ERROR", `Debug API error: ${err.message}`);
@@ -195,6 +228,38 @@ export class DebugService extends Service {
       return doc;
     } catch {
       return { openapi: "3.0.3", info: { title: "Webda Application", version: "1.0.0" }, paths: {} };
+    }
+  }
+
+  /**
+   * Serve a static file from the webui directory.
+   * Falls back to index.html for SPA-style routing.
+   * @param pathname - Request pathname
+   * @param res - Server response
+   */
+  private serveStaticFile(pathname: string, res: ServerResponse): void {
+    // Prevent directory traversal
+    const safePath = pathname.replace(/\.\./g, "").replace(/\/+/g, "/");
+    let filePath = join(WEBUI_DIR, safePath === "/" ? "index.html" : safePath);
+
+    // If the file doesn't exist, serve index.html (SPA fallback)
+    if (!existsSync(filePath)) {
+      filePath = join(WEBUI_DIR, "index.html");
+    }
+
+    if (!existsSync(filePath)) {
+      this.sendJson(res, { error: "Not found" }, 404);
+      return;
+    }
+
+    try {
+      const content = readFileSync(filePath);
+      const ext = extname(filePath);
+      const mime = MIME_TYPES[ext] || "application/octet-stream";
+      res.writeHead(200, { "Content-Type": mime });
+      res.end(content);
+    } catch {
+      this.sendJson(res, { error: "Internal server error" }, 500);
     }
   }
 

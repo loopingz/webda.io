@@ -37,6 +37,18 @@
             "router",
             "rest-domain"
           ]
+        },
+        "debug tui": {
+          "description": "Open terminal debug dashboard",
+          "method": "debugTui",
+          "args": {
+            "port": {
+              "type": "number",
+              "default": 18181,
+              "alias": "p",
+              "description": "Debug server port to connect to"
+            }
+          }
         }
       }
     }

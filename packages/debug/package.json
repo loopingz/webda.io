@@ -21,6 +21,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "terminal-kit": "^3.1.2",
     "ws": "^8.18.0"
   },
   "peerDependencies": {
@@ -39,7 +40,7 @@
     "vite": "^6.0.0",
     "vitest": "^4.1.2"
   },
-  "files": ["lib"],
+  "files": ["lib", "webui"],
   "homepage": "https://webda.io",
   "publishConfig": { "access": "public" },
   "type": "module",

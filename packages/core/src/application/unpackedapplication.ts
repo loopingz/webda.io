@@ -469,8 +469,9 @@ export class UnpackedApplication extends Application {
       .forEach(p => {
         module[SectionEnum[p]] = value[SectionEnum[p]];
       });
-    // Copying schemas
+    // Copying schemas and capabilities
     module.schemas = value.schemas;
+    module.capabilities = value.capabilities;
     this.log("DEBUG", "Merged modules", module);
     await this.loadModule(module);
     return module;

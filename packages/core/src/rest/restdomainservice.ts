@@ -93,7 +93,7 @@ export class RESTDomainService<
   openapiContent: string;
   /**
    * Override to fallback on isDebug for exposeOpenAPI
-   * @returns
+   * @returns the result
    */
   resolve() {
     this.parameters.exposeOpenAPI ??= useCore().isDebug();
@@ -106,10 +106,10 @@ export class RESTDomainService<
 
   /**
    * Handle one model and expose it based on the service
-   * @param model
-   * @param name
-   * @param context
-   * @returns
+   * @param model - the model to use
+   * @param name - the name to use
+   * @param context - the execution context
+   * @returns true if the condition is met
    */
   handleModel(model: ModelClass, name: string, context: any): boolean {
     const depth = context.depth || 0;
@@ -742,7 +742,7 @@ export class RESTDomainService<
 
   /**
    * Serve the openapi with the swagger-ui
-   * @param ctx
+   * @param ctx - the operation context
    */
   async openapi(ctx: WebContext) {
     this.openapiContent ??= SWAGGER_HTML.replace(/\{\{VERSION}}/g, this.parameters.swaggerVersion).replace(

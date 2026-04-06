@@ -71,6 +71,7 @@ export class TypeScriptCompiler {
 
   /**
    * Get the configuration parse result
+   * @returns the parsed tsconfig result
    */
   getConfig(): TsConfigParseResult | undefined {
     return this.configParseResult;

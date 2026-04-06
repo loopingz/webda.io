@@ -36,6 +36,9 @@ export class PerfTracker {
    *
    * When the tracker is disabled the function is called directly — no
    * `performance.now()` calls, no map lookups.
+   * @param name - the operation name
+   * @param fn - the function to measure
+   * @returns the function's return value
    */
   measure<T>(name: string, fn: () => T): T {
     if (!this.enabled) return fn();
@@ -47,7 +50,11 @@ export class PerfTracker {
     }
   }
 
-  /** Record a single timing measurement, logging a warning if it exceeds the threshold. */
+  /**
+   * Record a single timing measurement, logging a warning if it exceeds the threshold.
+   * @param name - the operation name
+   * @param ms - elapsed time in milliseconds
+   */
   private record(name: string, ms: number): void {
     let entry = this.stats.get(name);
     if (!entry) {
@@ -69,6 +76,8 @@ export class PerfTracker {
 
   /**
    * Get stats for a specific operation, or undefined if never measured.
+   * @param name - the operation name
+   * @returns the stats, or undefined
    */
   get(name: string): Readonly<PerfStats> | undefined {
     return this.stats.get(name);
@@ -76,6 +85,7 @@ export class PerfTracker {
 
   /**
    * Get a snapshot of all tracked stats, sorted by total time descending.
+   * @returns a map of all stats
    */
   getAll(): Map<string, Readonly<PerfStats>> {
     return new Map([...this.stats.entries()].sort((a, b) => b[1].totalMs - a[1].totalMs));
@@ -83,6 +93,7 @@ export class PerfTracker {
 
   /**
    * Format a human-readable summary of all tracked operations.
+   * @returns the formatted summary string
    */
   summary(): string {
     if (this.stats.size === 0) return "perf: no data collected";

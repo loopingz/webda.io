@@ -63,12 +63,19 @@ class NodeDocumentation<T extends ts.Node = ts.Node> {
     this.parent = parent;
   }
 
-  /** Get the TypeScript type checker, delegating to the parent node */
+  /**
+   * Get the TypeScript type checker, delegating to the parent node
+   * @returns the type checker
+   */
   getChecker(): ts.TypeChecker {
     return this.parent?.getChecker();
   }
 
-  /** Resolve the npm package name and version for a given source file path */
+  /**
+   * Resolve the npm package name and version for a given source file path
+   * @param filename - source file path
+   * @returns the package name and version string
+   */
   getPackage(filename: string): string {
     // Search for the package.json
     let packageJson;
@@ -83,7 +90,11 @@ class NodeDocumentation<T extends ts.Node = ts.Node> {
     return "unknown";
   }
 
-  /** Extract the body block text from a node, if present */
+  /**
+   * Extract the body block text from a node, if present
+   * @param node - the AST node
+   * @returns the body text or undefined
+   */
   getBody(node: T): string | undefined {
     let body;
     node.forEachChild(b => {
@@ -246,7 +257,10 @@ class ClassInterfaceDocumentation extends NodeDocumentation<ts.ClassDeclaration 
   @nonenumerable
   typeChecker: ts.TypeChecker;
 
-  /** Get the type checker, using the locally stored one or delegating to parent */
+  /**
+   * Get the type checker, using the locally stored one or delegating to parent
+   * @returns the type checker
+   */
   getChecker(): ts.TypeChecker {
     return this.typeChecker || this.parent?.getChecker();
   }
@@ -315,7 +329,11 @@ class InterfaceDocumentation extends ClassInterfaceDocumentation {
   }
 }
 
-/** Filter out declaration files, keeping only project source files */
+/**
+ * Filter out declaration files, keeping only project source files
+ * @param node - the AST node to check
+ * @returns true if the node is from a project source file
+ */
 function projectFileFilter(node: ts.Node) {
   return !node.getSourceFile().isDeclarationFile;
 }
@@ -326,12 +344,20 @@ export class Documenter {
   documentation: NodeDocumentation[] = [];
   checker: ts.TypeChecker;
 
-  /** Run a TSQuery selector on a node, filtering out declaration files */
+  /**
+   * Run a TSQuery selector on a node, filtering out declaration files
+   * @param node - the root AST node
+   * @param query - the TSQuery selector string
+   * @returns matching AST nodes
+   */
   query(node: ts.Node, query: string): ts.Node[] {
     return tsquery(node, query).filter(projectFileFilter);
   }
 
-  /** Process all source files in the program, collecting class and interface documentation */
+  /**
+   * Process all source files in the program, collecting class and interface documentation
+   * @param program - the TypeScript program
+   */
   process(program: ts.Program) {
     this.checker = program.getTypeChecker();
     program.getSourceFiles().forEach((source: ts.SourceFile) => {

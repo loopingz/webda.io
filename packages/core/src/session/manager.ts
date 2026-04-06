@@ -48,7 +48,11 @@ export class CookieSessionParameters extends ServiceParameters {
    */
   cookie?: CookieOptions;
 
-  /** Load parameters and initialize cookie options */
+  /**
+   * Load parameters and initialize cookie options
+   * @param params - the service parameters
+   * @returns this for chaining
+   */
   load(params: any = {}): this {
     super.load(params);
     this.cookie = new CookieOptions(this.cookie || {});

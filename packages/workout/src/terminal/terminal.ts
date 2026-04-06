@@ -272,6 +272,7 @@ export class Terminal {
   /**
    * Route WorkerOutput messages to appropriate handlers
    * @param msg - Message to process
+   * @returns resolves when message is handled
    */
   async router(msg: WorkerMessage): Promise<void> {
     switch (msg.type) {

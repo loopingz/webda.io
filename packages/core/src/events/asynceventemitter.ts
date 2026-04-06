@@ -76,6 +76,9 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
 
   /**
    * @see EventEmitter.addListener
+   * @param eventName - the event name
+   * @param listener - the event listener
+   * @returns this for chaining
    */
   addListener<Key extends keyof E>(eventName: Key, listener: (event: E[Key]) => void | Promise<void>): this {
     this.emitter.addListener(<string>eventName, listener);
@@ -98,6 +101,9 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
 
   /**
    * @see EventEmitter.once
+   * @param eventName - the event name
+   * @param listener - the event listener
+   * @returns this for chaining
    */
   once<Key extends keyof E>(eventName: Key, listener: (event: E[Key]) => void): this {
     this.emitter.once(<string>eventName, listener);
@@ -106,6 +112,9 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
 
   /**
    * @see EventEmitter.once
+   * @param eventName - the event name
+   * @param listener - the event listener
+   * @returns this for chaining
    */
   on<Key extends keyof E>(eventName: Key, listener: (event: E[Key]) => void): this {
     this.emitter.on(<string>eventName, listener);
@@ -114,6 +123,9 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
 
   /**
    * @see EventEmitter.removeListener
+   * @param eventName - the event name
+   * @param listener - the event listener
+   * @returns this for chaining
    */
   removeListener<Key extends keyof E>(eventName: Key, listener: (event: E[Key]) => void): this {
     this.emitter.removeListener(<string>eventName, listener);
@@ -122,6 +134,9 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
 
   /**
    * @see EventEmitter.off
+   * @param eventName - the event name
+   * @param listener - the event listener
+   * @returns this for chaining
    */
   off<Key extends keyof E>(eventName: Key, listener: (event: E[Key]) => void): this {
     return this.removeListener(eventName, listener);
@@ -129,6 +144,8 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
 
   /**
    * @see EventEmitter.removeAllListeners
+   * @param eventName - the event name
+   * @returns this for chaining
    */
   removeAllListeners<Key extends keyof E>(eventName?: Key): this {
     this.emitter.removeAllListeners(<string>eventName);
@@ -142,6 +159,8 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
    * so you can decide to wait for the event to be processed or not
    *
    * @see EventEmitter.emit
+   * @param eventName - the event name
+   * @param event - the event name
    */
   async emit<Key extends keyof E>(eventName: Key, event: E[Key]): Promise<void> {
     let result;
@@ -158,7 +177,8 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
 
   /**
    * Get all listeners for an event
-   * @param eventName
+   * @param eventName - the event name
+   * @returns the list of results
    */
   listeners(eventName: keyof E): Function[] {
     return this.emitter.listeners(<string>eventName);
@@ -176,9 +196,12 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
 export class EventEmitterUtils {
   /**
    * Emit an event and wait for all listeners to finish
-   * @param eventEmitter
-   * @param event
-   * @param data
+   * @param eventEmitter - the event emitter
+   * @param event - the event name
+   * @param data - the data to process
+   * @param log - the logger instance
+   * @param longListenerThreshold - threshold for long listener warnings
+   * @returns the result number
    */
   static async emit(
     eventEmitter: EventEmitter | AsyncEventEmitter,

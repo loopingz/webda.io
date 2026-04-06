@@ -7,7 +7,12 @@ export class WebdaAsyncStorageTest extends WebdaTest {
   pretestState: string;
   instanceStorage: InstanceStorage = {} as any;
 
-  /** Wrap test callbacks inside a shared InstanceStorage context */
+  /**
+   * Wrap test callbacks inside a shared InstanceStorage context
+   * @param type - the type to look up
+   * @param callback - the callback function
+   * @returns the result
+   */
   wrap(type: "beforeAll" | "test" | "afterAll", callback: CallbackOptionallyAsync) {
     // @ts-ignore
     global.it ??= () => {};

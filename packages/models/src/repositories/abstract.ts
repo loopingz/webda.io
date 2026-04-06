@@ -37,8 +37,8 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
 
   /**
    * Return a ref from the uuid
-   * @param uid
-   * @returns
+   * @param uid - the serialized primary key
+   * @returns a model reference with create capability
    */
   fromUID(uid: string): ModelRefWithCreate<InstanceType<T>> {
     return this.ref(this.parseUID(uid));

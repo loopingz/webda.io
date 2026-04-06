@@ -87,7 +87,11 @@ export class OAuthServiceParameters extends ServiceParameters {
    */
   authenticationService: string;
 
-  /** Load parameters with defaults for scopes, auth service, and URI settings */
+  /**
+   * Load parameters with defaults for scopes, auth service, and URI settings
+   * @param params - the service parameters
+   * @returns the result
+   */
   load(params: any) {
     super.load(params);
     this.scope ??= ["email"];
@@ -167,8 +171,8 @@ export abstract class OAuthService<
 
   /**
    * Allow callback referer to access this url no matter what
-   * @param context
-   * @returns
+   * @param context - the execution context
+   * @returns true if the condition is met
    */
   async checkRequest(context: WebContext): Promise<boolean> {
     // Only authorize url from this service
@@ -192,6 +196,7 @@ export abstract class OAuthService<
 
   /**
    * Resolve dynamic dependancy
+   * @returns this for chaining
    */
   resolve(): this {
     super.resolve();
@@ -213,7 +218,7 @@ export abstract class OAuthService<
 
   /**
    * Get OAuth callback query parameters
-   * @returns
+   * @returns the result
    */
   getCallbackQueryParams(): { name: string; required: boolean }[] {
     return [
@@ -320,7 +325,7 @@ export abstract class OAuthService<
 
   /**
    * Expose the scope used by the authentication
-   * @param ctx
+   * @param ctx - the operation context
    */
   _scope(ctx: OperationContext) {
     ctx.write(this.parameters.scope);
@@ -328,7 +333,7 @@ export abstract class OAuthService<
 
   /**
    * Define if this provider allow authentication by tokens
-   * @returns
+   * @returns true if the condition is met
    */
   hasToken(): boolean {
     return false;
@@ -336,9 +341,9 @@ export abstract class OAuthService<
 
   /**
    * Check if the url is authorized
-   * @param redirect
-   * @param context
-   * @returns
+   * @param redirect - the redirect URL
+   * @param context - the execution context
+   * @returns true if the condition is met
    */
   isAuthorizedUri(redirect: string, context: WebContext): boolean {
     return (
@@ -352,7 +357,7 @@ export abstract class OAuthService<
    * Redirect to the OAuth provider
    *
    * The calling url must be and authorized_uris if defined
-   * @param ctx
+   * @param ctx - the operation context
    */
   _redirect(ctx: WebContext) {
     // implement default behavior
@@ -376,7 +381,7 @@ export abstract class OAuthService<
    * Handle a token return
    *
    * This is private to avoid any override
-   * @param context
+   * @param context - the execution context
    */
   private async _token(context: WebContext) {
     const res = await this.handleToken(context);
@@ -394,7 +399,7 @@ export abstract class OAuthService<
    * Handle a standard url callback
    *
    * This is private to avoid any override
-   * @param ctx
+   * @param ctx - the operation context
    */
   private async _callback(ctx: WebContext) {
     const res = await this.handleCallback(ctx);
@@ -410,9 +415,10 @@ export abstract class OAuthService<
 
   /**
    * Once approved by the OAuth provider this will do the common task
-   * @param ctx
-   * @param identId
-   * @param profile
+   * @param ctx - the operation context
+   * @param identId - the identity identifier
+   * @param profile - the user profile
+   * @param _tokens - the authentication tokens
    */
   async handleReturn(ctx: WebContext, identId: string, profile: any, _tokens: any = undefined) {
     // If no identId has been provided error

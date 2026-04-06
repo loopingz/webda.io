@@ -68,7 +68,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
 
   /**
    * Set the session
-   * @param session
+   * @param session - the session object
    */
   setSession(session: Session): void {
     this.session = session;
@@ -89,8 +89,9 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
 
   /**
    * Get one parameter
-   * @param name
-   * @returns
+   * @param name - the name to use
+   * @param defaultValue - the default value
+   * @returns the result
    */
   public parameter(name: string, defaultValue: any = undefined): any {
     return this.getParameters()[name] ?? defaultValue;
@@ -98,7 +99,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
 
   /**
    * Get the parameters
-   * @returns
+   * @returns the result
    */
   public getParameters(): Parameters {
     return this.parameters;
@@ -106,6 +107,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
 
   /**
    * Set the parameters
+   * @param params - the service parameters
    */
   public setParameters(params: Parameters) {
     this.parameters = params;
@@ -115,6 +117,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    *
    * @param name to add
    * @param extension object to store
+   * @returns this for chaining
    */
   public setExtension(name: string, extension: any): this {
     this.extensions[name] = extension;
@@ -123,7 +126,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
 
   /**
    * Register a promise with the context
-   * @param promise
+   * @param promise - the promise to add
    */
   addAsyncRequest(promise) {
     this._promises.push(promise);
@@ -131,7 +134,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
 
   /**
    * Get output as string, if a OutputStream is provided it will returned null
-   * @returns
+   * @returns the result string
    */
   getOutput(): string {
     if (this._stream instanceof WritableStreamBuffer && (<WritableStreamBuffer>this._stream).size()) {
@@ -154,7 +157,11 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
     this._sanitized = {};
   }
 
-  /** Get the sanitized input body, caching the result after the first call */
+  /**
+   * Get the sanitized input body, caching the result after the first call
+   * @param sanitizedOptions - the sanitized options
+   * @returns the result
+   */
   async getInput(
     sanitizedOptions: sanitize.IOptions & { defaultValue?: any; raw?: boolean | string[] } = {
       allowedTags: [],
@@ -199,7 +206,10 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
 
   /**
    * By default empty
-   * @returns
+   * @param limit - the maximum count
+   * @param timeout - the timeout in milliseconds
+   * @param encoding - the encoding to use
+   * @returns the result string
    */
   async getRawInputAsString(
     limit: number = 1024 * 1024 * 10,
@@ -225,7 +235,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
 
   /**
    * Get the HTTP stream to output raw data
-   * @returns {*}
+   * @returns {*} the result
    */
   async getOutputStream() {
     await this.flushHeaders();
@@ -234,13 +244,16 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
 
   /**
    * Get linked session
-   * @returns
+   * @returns the result
    */
   public getSession<K = Session>(): K {
     return <K>(<unknown>this.session);
   }
 
-  /** Create and assign a new empty session */
+  /**
+   * Create and assign a new empty session
+   * @returns the result
+   */
   newSession(): Session {
     this.session = new Session();
     return this.session;
@@ -281,6 +294,9 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    *
    * @param output If it is an object it will be serialized with toPublicJSON, if it is a String it will be appended to the result, if it is a buffer it will replace the result
    * @param ...args any arguments to pass to the toPublicJSON method
+   * @param _encoding - the encoding to use
+   * @param _cb - the callback function
+   * @returns true if the condition is met
    */
   public write(output: Output, _encoding?: string, _cb?: (error: Error) => void): boolean {
     if (!output) {
@@ -299,13 +315,18 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
     return true;
   }
 
-  /** Initialize the operation context */
+  /**
+   * Initialize the operation context
+   * @returns this for chaining
+   */
   async init(): Promise<this> {
     return this;
   }
 
   /**
    * Get the current user from session
+   * @param refresh - whether to refresh
+   * @returns the result
    */
   async getCurrentUser<K extends IUser>(refresh: boolean = false): Promise<K> {
     if (!this.getCurrentUserId()) {
@@ -322,6 +343,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
 
   /**
    * Get the current user id from session
+   * @returns the result
    */
   getCurrentUserId() {
     if (this.session) {

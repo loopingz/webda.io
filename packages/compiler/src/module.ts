@@ -31,7 +31,11 @@ type ReplaceModelWith<T, L> = T extends object
   ? { [K in keyof T]: K extends "model" ? L : ReplaceModelWith<T[K], L> }
   : T;
 
-/** Check whether a property symbol has a @NotEnumerable decorator */
+/**
+ * Check whether a property symbol has a @NotEnumerable decorator
+ * @param symbol - the property symbol
+ * @returns true if decorated with @NotEnumerable
+ */
 function hasNotEnumerableDecorator(symbol: ts.Symbol): boolean {
   const declaration = symbol.valueDeclaration;
 
@@ -63,9 +67,9 @@ export class ModuleGenerator {
 
   /**
    * Return the model schema
-   * @param modelNode
-   * @param title
-   * @returns
+   * @param node - the model AST node
+   * @param title - optional schema title
+   * @returns input, output, and stored schemas
    */
   generateModelSchemas(
     node: ts.Node,
@@ -135,7 +139,9 @@ export class ModuleGenerator {
 
   /**
    * Generate a single schema
-   * @param schemaNode
+   * @param schemaNode - the AST node to generate schema from
+   * @param title - optional schema title
+   * @returns the generated JSON schema
    */
   generateSchema(schemaNode: ts.Node, title?: string): JSONSchema7 {
     let res: JSONSchema7;
@@ -157,8 +163,8 @@ export class ModuleGenerator {
 
   /**
    * Get the class hierarchy
-   * @param type
-   * @returns
+   * @param type - the type to get hierarchy for
+   * @returns array of types from child to parent
    */
   getClassTree(type: ts.Type): ts.Type[] {
     const res = [type];
@@ -182,6 +188,10 @@ export class ModuleGenerator {
    * Check if a type extends a certain subtype (packageName/symbolName)
    *
    * types can be obtained by using this.getClassTree(type: ts.Type)
+   * @param types - the class hierarchy to check
+   * @param packageName - the package to match
+   * @param symbolName - the symbol name to match
+   * @returns true if any type in the hierarchy matches
    */
   extends(types: ts.Type[], packageName: string, symbolName: string) {
     for (const type of types) {
@@ -194,8 +204,8 @@ export class ModuleGenerator {
 
   /**
    * Get the package name for a type
-   * @param type
-   * @returns
+   * @param type - the type to resolve
+   * @returns the npm package name
    */
   getPackageFromType(type: ts.Type): string {
     const fileName = type.symbol.getDeclarations()[0]?.getSourceFile()?.fileName;
@@ -220,10 +230,10 @@ export class ModuleGenerator {
    * Our Service have a generic type ServiceParameters
    * This method will return the schema node for this type
    *
-   * @param classTree
-   * @param typeName
-   * @param packageName
-   * @returns
+   * @param classTree - the class hierarchy
+   * @param typeName - the type name to search for
+   * @param packageName - the package name to match
+   * @returns the matching type node
    */
   getSchemaNode(
     classTree: ts.Type[],
@@ -262,8 +272,8 @@ export class ModuleGenerator {
    *
    * Will also check if it is exported with a `export { MyClass }`
    *
-   * @param node
-   * @returns
+   * @param node - the class or interface declaration
+   * @returns the exported name or undefined
    */
   getExportedName(node: ts.ClassDeclaration | ts.InterfaceDeclaration): string | undefined {
     const exportNodes = tsquery(node, "ExportKeyword");
@@ -291,9 +301,9 @@ export class ModuleGenerator {
 
   /**
    * Get a model name from a library path based on file and classname
-   * @param fileName
-   * @param className
-   * @returns
+   * @param fileName - the source file path
+   * @param className - the class name
+   * @returns the fully qualified model name
    */
   getLibraryModelName(fileName: string, className: string) {
     let mod = dirname(fileName);
@@ -319,7 +329,7 @@ export class ModuleGenerator {
    *
    * If an object have a @WebdaIgnore tag, it will be ignored
    * Every CoreModel object will be added if it is exported and not abstract
-   * @returns
+   * @returns the discovered Webda objects
    */
   searchForWebdaObjects(): WebdaObjects {
     const result: WebdaObjects = {
@@ -455,9 +465,9 @@ export class ModuleGenerator {
 
   /**
    * Return the Javascript target file for a source
-   * @param sourceFile
-   * @param absolutePath
-   * @returns
+   * @param sourceFile - the TypeScript source file
+   * @param absolutePath - if true return absolute path
+   * @returns the JavaScript output file path
    */
   getJSTargetFile(sourceFile: ts.SourceFile, absolutePath: boolean = false) {
     //
@@ -488,7 +498,11 @@ export class ModuleGenerator {
     return relative(this.compiler.project.getAppPath(), filePath);
   }
 
-  /** Resolve a type parameter reference to its constraint or default type string */
+  /**
+   * Resolve a type parameter reference to its constraint or default type string
+   * @param node - the type reference node
+   * @returns the resolved type string or undefined
+   */
   getTypeParameterResolution(node: ts.TypeReferenceNode): string | undefined {
     const checker = this.typeChecker;
     const type = checker.getTypeAtLocation(node);
@@ -518,7 +532,12 @@ export class ModuleGenerator {
     return undefined;
   }
 
-  /** Look up an exported symbol by name from an ambient TypeScript module */
+  /**
+   * Look up an exported symbol by name from an ambient TypeScript module
+   * @param moduleSpecifier - the module specifier string
+   * @param exportName - the exported symbol name
+   * @returns the resolved symbol or undefined
+   */
   getExportedSymbolFromModule(moduleSpecifier: string, exportName: string): ts.Symbol | undefined {
     const checker = this.typeChecker;
 
@@ -539,7 +558,13 @@ export class ModuleGenerator {
     return sym;
   }
 
-  /** True if `propSym` is declared with a computed name `[uniqueKeySym]`. */
+  /**
+   * True if `propSym` is declared with a computed name `[uniqueKeySym]`.
+   * @param propSym - the property symbol
+   * @param packageName - the package containing the key symbol
+   * @param symbolName - the expected key symbol name
+   * @returns true if the property uses the specified symbol key
+   */
   propertyIsKeyedBySymbol(propSym: ts.Symbol, packageName: string, symbolName: string): boolean {
     for (const d of propSym.getDeclarations() ?? []) {
       const name = (d as ts.NamedDeclaration).name;
@@ -556,7 +581,11 @@ export class ModuleGenerator {
     return false;
   }
 
-  /** Follow symbol aliases to their original declaration */
+  /**
+   * Follow symbol aliases to their original declaration
+   * @param sym - the symbol to resolve
+   * @returns the resolved symbol
+   */
   resolveAliases(sym: ts.Symbol | undefined) {
     if (!sym) return sym;
     return sym.flags & ts.SymbolFlags.Alias ? this.typeChecker.getAliasedSymbol(sym) : sym;
@@ -565,7 +594,8 @@ export class ModuleGenerator {
   /**
    * Generate the graph relationship between models
    * And the hierarchy tree
-   * @param models
+   * @param models - the discovered model objects
+   * @returns the processed models metadata
    */
   processModels(models: WebdaSearchResults): WebdaModule["models"] {
     const modelsMetadata: WebdaModule["models"] = {};
@@ -810,6 +840,8 @@ export class ModuleGenerator {
   /**
    * Get the decorator name from a decorator node
    * Handles both @Decorator and @Decorator() forms
+   * @param annotation - the decorator node
+   * @returns the decorator name or undefined
    */
   getDecoratorName(annotation: ts.Decorator): string | undefined {
     const expr = annotation.expression;
@@ -826,6 +858,8 @@ export class ModuleGenerator {
 
   /**
    * Check if a decorator is an @Action or @Operation decorator
+   * @param method - the method declaration
+   * @returns true if decorated with @Action or @Operation
    */
   hasOperationDecorator(method: ts.MethodDeclaration): boolean {
     const decorators = ts.getDecorators(method);
@@ -839,8 +873,8 @@ export class ModuleGenerator {
   /**
    * Explore models for @Action and @Operation decorated methods
    * Handles both instance and static methods
-   * @param models
-   * @param schemas
+   * @param models - the discovered models
+   * @param schemas - schema results to populate
    */
   exploreModelsAction(models: WebdaSearchResults, schemas: WebdaSchemaResults) {
     Object.values(models).forEach(model => {
@@ -875,8 +909,8 @@ export class ModuleGenerator {
 
   /**
    * Explore services or beans for @Operation and @Route methods
-   * @param services
-   * @param schemas
+   * @param services - the discovered services
+   * @param schemas - schema results to populate
    */
   exploreServices(services: WebdaSearchResults, schemas: WebdaSchemaResults) {
     Object.values(services).forEach(service => {
@@ -898,10 +932,9 @@ export class ModuleGenerator {
    * Ensure each method that are supposed to have a context have one
    * And detect their input/output schema
    *
-   * @param rootName
-   * @param method
-   * @param schemas
-   * @returns
+   * @param rootName - the owning class name
+   * @param method - the method declaration
+   * @param schemas - schema results to populate
    */
   checkMethodForContext(rootName: string, method: ts.MethodDeclaration, schemas: WebdaSchemaResults) {
     this.compiler.typeChecker ??= this.compiler.tsProgram.getTypeChecker();
@@ -918,8 +951,8 @@ export class ModuleGenerator {
 
   /**
    * Return the method parameters schema
-   * @param method
-   * @returns
+   * @param method - the method declaration
+   * @returns the parameters JSON schema
    */
   getMethodParametersSchema(method: ts.MethodDeclaration): JSONSchema7 {
     // Get the type of the action method
@@ -962,8 +995,8 @@ export class ModuleGenerator {
    *
    * For async methods (returning Promise<T>), extracts and returns the schema for T.
    * For non-async methods, returns the schema for the return type directly.
-   * @param method
-   * @returns
+   * @param method - the method declaration
+   * @returns the return type JSON schema
    */
   getMethodReturnType(method: ts.MethodDeclaration): JSONSchema7 {
     const actionType = this.compiler.typeChecker.getApparentType(this.compiler.typeChecker.getTypeAtLocation(method));
@@ -986,6 +1019,7 @@ export class ModuleGenerator {
 
   /**
    * Generate the module
+   * @returns the generated Webda module
    */
   generate() {
     this.typeChecker = this.compiler.tsProgram.getTypeChecker();
@@ -1037,7 +1071,7 @@ export class ModuleGenerator {
 
   /**
    * Generate TypeScript library for the module
-   * @param mod
+   * @param mod - the Webda module metadata
    */
   generateTypescriptLibrary(mod: WebdaModule) {
     // Should generate typescript library file: .webda/webda.module.ts
@@ -1081,7 +1115,11 @@ export class ModuleGenerator {
   }
 }
 
-/** Generate the webda.module.json from the compiled TypeScript program */
+/**
+ * Generate the webda.module.json from the compiled TypeScript program
+ * @param compiler - the compiler instance
+ * @returns the generated Webda module
+ */
 export function generateModule(compiler: Compiler) {
   try {
     return new ModuleGenerator(compiler).generate();
@@ -1130,7 +1168,11 @@ class WebdaSchemaResults {
   protected schemas: { [key: string]: JSONSchema7 } = {};
   protected byNode = new Map<ts.Node, string>();
 
-  /** Get the schema name associated with a given AST node */
+  /**
+   * Get the schema name associated with a given AST node
+   * @param node - the AST node
+   * @returns the schema name or undefined
+   */
   get(node: ts.Node) {
     if (this.byNode.has(node)) {
       return this.byNode.get(node);
@@ -1139,7 +1181,8 @@ class WebdaSchemaResults {
 
   /**
    * Generate all schemas
-   * @param info
+   * @param moduleGenerator - the module generator instance
+   * @param results - the module to populate with schemas
    */
   generateSchemas(moduleGenerator: ModuleGenerator, results: WebdaModule) {
     useLog("INFO", "Generating schemas", Object.keys(this.store).length);
@@ -1205,14 +1248,21 @@ class WebdaSchemaResults {
 
   /**
    * Add a schema
-   * @param name
-   * @param schema
+   * @param name - the schema name
+   * @param schema - the JSON schema to add
    */
   addSchema(name: string, schema: JSONSchema7) {
     this.schemas[name] = schema;
   }
 
-  /** Register a schema entry to be generated, linking it to an AST node or external reference */
+  /**
+   * Register a schema entry to be generated, linking it to an AST node or external reference
+   * @param name - the schema name
+   * @param info - AST node or external reference string
+   * @param title - optional schema title
+   * @param addOpenApi - whether to add OpenAPI properties
+   * @param section - the module section this schema belongs to
+   */
   add(
     name: string,
     info?: ts.Node | string,

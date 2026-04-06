@@ -40,16 +40,15 @@ export interface ResolvedCoercion {
 export type CoercibleFieldMap = Map<string, Map<string, ResolvedCoercion>>;
 
 /**
- * Safely get the text of a node, falling back to escapedText for identifiers.
- * getText() can throw when node.getSourceFile() returns undefined (synthetic or
- * cross-file nodes resolved via the type checker).
- */
-/**
  * Resolve a type argument node into a structured representation for constructor codegen.
  *
  * - TypeReference (e.g. TestModel2) → { kind: "identifier", name: "TestModel2" }
  * - LiteralType with string (e.g. "plop") → { kind: "string", value: "plop" }
  * - UnionType of string literals (e.g. "typeA" | "typeB") → { kind: "string-union", values: ["typeA", "typeB"] }
+ * @param tsModule - the TypeScript module
+ * @param arg - the type argument node
+ * @param sourceFile - the containing source file
+ * @returns the resolved type argument
  */
 function resolveTypeArg(tsModule: typeof ts, arg: ts.TypeNode, sourceFile: ts.SourceFile): ResolvedTypeArg {
   // Union type: check if all members are string literals
@@ -82,6 +81,9 @@ function resolveTypeArg(tsModule: typeof ts, arg: ts.TypeNode, sourceFile: ts.So
 
 /**
  * Convert a resolved type argument into an AST expression for constructor call codegen.
+ * @param factory - the AST node factory
+ * @param arg - the resolved type argument
+ * @returns the generated expression node
  */
 function typeArgToExpression(factory: ts.NodeFactory, arg: ResolvedTypeArg): ts.Expression {
   switch (arg.kind) {
@@ -103,6 +105,11 @@ function typeArgToExpression(factory: ts.NodeFactory, arg: ResolvedTypeArg): ts.
  * Follows type aliases (e.g. ManyToOne<T> → ModelLink) to find the actual class.
  * Falls back to the source-level name if no class is found.
  *
+ * @param tsModule - the TypeScript module
+ * @param checker - the type checker
+ * @param typeNode - the type reference node to resolve
+ * @param sourceFile - the containing source file
+ * @param program - the TypeScript program
  * @returns Object with the runtime class name and the module specifier to import it from
  */
 function resolveRuntimeClass(
@@ -132,6 +139,9 @@ function resolveRuntimeClass(
 /**
  * Compute a module specifier to import a symbol from its declaring source file.
  * Returns a relative path (for project files) or the package name (for node_modules).
+ * @param declaringFile - the file declaring the symbol
+ * @param currentFile - the file importing the symbol
+ * @returns the module specifier, or undefined if same file
  */
 function resolveImportSource(
   declaringFile: ts.SourceFile,
@@ -162,7 +172,12 @@ function resolveImportSource(
   return rel;
 }
 
-/** Safely extract the text of a node, falling back to escapedText for synthetic nodes. */
+/**
+ * Safely extract the text of a node, falling back to escapedText for synthetic nodes.
+ * @param node - the AST node
+ * @param sourceFile - optional source file context
+ * @returns the node text
+ */
 function safeGetText(node: ts.Node, sourceFile?: ts.SourceFile): string {
   try {
     return sourceFile ? node.getText(sourceFile) : node.getText();
@@ -178,6 +193,9 @@ function safeGetText(node: ts.Node, sourceFile?: ts.SourceFile): string {
 /**
  * Detect if a type has a `set` method marked with `@WebdaAutoSetter` and return its parameter type(s) as a string.
  * Returns undefined if the set method exists but lacks the JSDoc tag.
+ * @param checker - the type checker
+ * @param typeNode - the type node to inspect
+ * @returns the setter parameter type string, or undefined
  */
 function detectSetMethodType(
   checker: ts.TypeChecker,
@@ -212,6 +230,8 @@ function detectSetMethodType(
 
 /**
  * Check if a symbol's declaration has a `@WebdaAutoSetter` JSDoc tag.
+ * @param symbol - the symbol to check
+ * @returns true if the tag is present
  */
 function hasWebdaAutoSetterTag(symbol: ts.Symbol): boolean {
   const declarations = symbol.getDeclarations();
@@ -225,6 +245,10 @@ function hasWebdaAutoSetterTag(symbol: ts.Symbol): boolean {
 /**
  * Validate that a generic class's constructor has a parameter count matching the number of type parameters.
  * Returns true if the constructor is compatible or the class has no type parameters.
+ * @param tsModule - the TypeScript module
+ * @param checker - the type checker
+ * @param typeNode - the type reference node
+ * @returns true if the constructor is compatible
  */
 function validateConstructorForTypeArgs(
   tsModule: typeof ts,
@@ -265,6 +289,13 @@ function validateConstructorForTypeArgs(
  * for each field (from static registry or `set` method detection).
  *
  * The result is shared between the `before` and `afterDeclarations` transformers.
+ * @param tsModule - the TypeScript module
+ * @param program - the TypeScript program
+ * @param coercions - the coercion registry
+ * @param modelBases - set of known model base class names
+ * @param accessorsForAll - if true, transform all classes
+ * @param perf - optional performance tracker
+ * @returns the coercible field map
  */
 export function computeCoercibleFields(
   tsModule: typeof ts,
@@ -286,7 +317,10 @@ export function computeCoercibleFields(
     }
   }
 
-  /** Visit a node and, if it is a qualifying class, rewrite its property declarations as accessor pairs. */
+  /**
+   * Visit a node and, if it is a qualifying class, rewrite its property declarations as accessor pairs.
+   * @param node - the AST node to visit
+   */
   function visitNode(node: ts.Node) {
     if (tsModule.isClassDeclaration(node) && node.name) {
       if (accessorsForAll || isModelClass(tsModule, node, checker, modelBases) || hasAccessorsMarker(tsModule, node, checker)) {
@@ -375,6 +409,14 @@ export function computeCoercibleFields(
  * Supports:
  * - Static coercions (Date → string | number | Date)
  * - Dynamic coercions (types with a `set` method → OriginalType | SetParamType)
+ * @param tsModule - the TypeScript module
+ * @param program - the TypeScript program
+ * @param coercions - the coercion registry
+ * @param modelBases - set of known model base class names
+ * @param coercibleFields - optional pre-computed field map
+ * @param accessorsForAll - if true, transform all classes
+ * @param perf - optional performance tracker
+ * @returns the transformer factory
  */
 export function createAccessorTransformer(
   tsModule: typeof ts,
@@ -687,6 +729,14 @@ export function createAccessorTransformer(
  *
  * Uses the pre-computed CoercibleFieldMap so it doesn't need to introspect
  * types from declaration file nodes.
+ * @param tsModule - the TypeScript module
+ * @param program - the TypeScript program
+ * @param coercions - the coercion registry
+ * @param modelBases - set of known model base class names
+ * @param coercibleFields - optional pre-computed field map
+ * @param accessorsForAll - if true, transform all classes
+ * @param perf - optional performance tracker
+ * @returns the transformer factory
  */
 export function createDeclarationAccessorTransformer(
   tsModule: typeof ts,
@@ -813,6 +863,11 @@ export function createDeclarationAccessorTransformer(
 
 /**
  * Create the setter body statements based on coercion kind.
+ * @param tsModule - the TypeScript module
+ * @param factory - the AST node factory
+ * @param fieldName - the property field name
+ * @param coercion - the resolved coercion info
+ * @returns the setter body statements
  */
 function createSetterBody(
   tsModule: typeof ts,
@@ -937,6 +992,11 @@ function createSetterBody(
 
 /**
  * Create a builtin coercion expression (Date, etc.)
+ * @param tsModule - the TypeScript module
+ * @param factory - the AST node factory
+ * @param typeName - the type to coerce to
+ * @param valueVar - the value variable name
+ * @returns the coercion expression
  */
 function createBuiltinCoercionExpression(
   tsModule: typeof ts,
@@ -988,6 +1048,9 @@ function createBuiltinCoercionExpression(
  *   return result;
  * }
  * ```
+ * @param tsModule - the TypeScript module
+ * @param factory - the AST node factory
+ * @returns the toJSON method declaration
  */
 function createToJSONMethod(tsModule: typeof ts, factory: ts.NodeFactory): ts.MethodDeclaration {
   const resultId = factory.createIdentifier("result");
@@ -1075,6 +1138,10 @@ function createToJSONMethod(tsModule: typeof ts, factory: ts.NodeFactory): ts.Me
  *
  * Checks if WEBDA_STORAGE is exported from a source file in the same project (relative import)
  * or falls back to "@webda/models".
+ * @param tsModule - the TypeScript module
+ * @param program - the TypeScript program
+ * @param currentFile - the file that needs the import
+ * @returns the import specifier string
  */
 function findStorageImportSource(
   tsModule: typeof ts,
@@ -1111,6 +1178,10 @@ function findStorageImportSource(
 
 /**
  * Check if a class implements the `Accessors` marker interface.
+ * @param tsModule - the TypeScript module
+ * @param classDecl - the class declaration node
+ * @param checker - the type checker
+ * @returns true if the Accessors marker is present
  */
 function hasAccessorsMarker(
   tsModule: typeof ts,
@@ -1135,6 +1206,11 @@ function hasAccessorsMarker(
 
 /**
  * Walk the class hierarchy via the type checker to find model bases.
+ * @param tsModule - the TypeScript module
+ * @param classDecl - the class declaration node
+ * @param checker - the type checker
+ * @param modelBases - set of known model base class names
+ * @returns true if the class is a model class
  */
 function isModelClass(
   tsModule: typeof ts,
@@ -1183,6 +1259,10 @@ function isModelClass(
 
 /**
  * Parse a setter type string like "string | number | Date" into a ts.UnionTypeNode.
+ * @param tsModule - the TypeScript module
+ * @param factory - the AST node factory
+ * @param setterType - the setter type string to parse
+ * @returns the type node
  */
 function createUnionTypeNode(tsModule: typeof ts, factory: ts.NodeFactory, setterType: string): ts.TypeNode {
   const types = setterType.split("|").map(t => t.trim());

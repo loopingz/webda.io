@@ -10,7 +10,11 @@ import { useApplication } from "../application/hooks.js";
  * Throw error if default is set
  */
 export class KubernetesConfigurationParameters extends ConfigurationServiceParameters {
-  /** Load parameters, rejecting any default configuration since Kubernetes sources are required */
+  /**
+   * Load parameters, rejecting any default configuration since Kubernetes sources are required
+   * @param params - the service parameters
+   * @returns the result
+   */
   load(params: any) {
     super.load(params);
     if (
@@ -39,7 +43,11 @@ export class KubernetesConfigurationService<
 > extends ConfigurationService<T> {
   sourcePaths: Record<string, string> = {};
 
-  /** Resolve the Kubernetes-mounted file path for a configuration source */
+  /**
+   * Resolve the Kubernetes-mounted file path for a configuration source
+   * @param id - the identifier
+   * @returns the result string
+   */
   getFilePath(id: string): string {
     this.sourcePaths[id] ??= useApplication().getPath(id);
     if (!fs.existsSync(this.sourcePaths[id])) {
@@ -53,7 +61,9 @@ export class KubernetesConfigurationService<
 
   /**
    * Check if the configuration can be triggered
-   * @returns
+   * @param id - the identifier
+   * @param callback - the callback function
+   * @returns true if the condition is met
    */
   canTriggerConfiguration(id: string, callback: () => void): boolean {
     this.sourcePaths[id] ??= this.getFilePath(id);

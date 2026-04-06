@@ -104,6 +104,7 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
 
   /**
    * Resolve resource folder
+   * @returns the result
    */
   resolve() {
     super.resolve();
@@ -179,7 +180,7 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
   /**
    * Handle / request and redirect to the resources folder
    *
-   * @param ctx
+   * @param ctx - the operation context
    */
   _redirect(ctx: IWebContext) {
     ctx.setHeader("cache-control", this.parameters.cacheControl);
@@ -189,7 +190,8 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
   /**
    * Serve the folder by itself, doing the mime detection
    *
-   * @param ctx
+   * @param ctx - the operation context
+   * @returns the result
    */
   _serve(ctx: IWebContext) {
     let file = this._resolved;

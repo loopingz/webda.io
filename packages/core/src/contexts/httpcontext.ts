@@ -100,6 +100,8 @@ export class HttpContext {
 
   /**
    * Set the client ip
+   * @param ip - the IP address
+   * @returns this for chaining
    */
   setClientIp(ip: string): this {
     this.clientIp = ip;
@@ -108,6 +110,7 @@ export class HttpContext {
 
   /**
    * Get the client ip
+   * @returns the result string
    */
   getClientIp(): string {
     return this.clientIp;
@@ -116,7 +119,7 @@ export class HttpContext {
   /**
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/URL/href
-   * @returns
+   * @returns the result string
    */
   getHref(): string {
     return this.getAbsoluteUrl();
@@ -135,6 +138,7 @@ export class HttpContext {
 
   /**
    * Return Uri without prefix
+   * @returns the result string
    */
   getRelativeUri(): string {
     return this.uri.substring(this.prefix.length);
@@ -142,7 +146,7 @@ export class HttpContext {
 
   /**
    * Get full URI
-   * @returns
+   * @returns the result string
    */
   getUrl(): string {
     return this.uri;
@@ -150,7 +154,7 @@ export class HttpContext {
 
   /**
    * Get cookies
-   * @returns
+   * @returns the result
    */
   getCookies() {
     return this.cookies;
@@ -160,6 +164,7 @@ export class HttpContext {
    * Get port number as string
    *
    * If http on port 80, or https on port 443 will return ""
+   * @returns the result string
    */
   getPort(): string {
     return this.port;
@@ -167,6 +172,7 @@ export class HttpContext {
 
   /**
    * Get the port number
+   * @returns the result number
    */
   getPortNumber(): number {
     if (this.port) {
@@ -181,7 +187,7 @@ export class HttpContext {
 
   /**
    * Return hostname and port
-   * @returns
+   * @returns the result string
    */
   getHost(): string {
     return this.host;
@@ -189,7 +195,7 @@ export class HttpContext {
 
   /**
    * Return protocol, hostname and port
-   * @returns
+   * @returns the result string
    */
   getOrigin(): string {
     return this.origin;
@@ -197,7 +203,7 @@ export class HttpContext {
 
   /**
    * Get the hostname
-   * @returns
+   * @returns the result string
    */
   getHostName(): string {
     return this.hostname;
@@ -205,7 +211,7 @@ export class HttpContext {
 
   /**
    * Get HTTP Method used
-   * @returns
+   * @returns the result
    */
   getMethod(): HttpMethodType {
     return this.method;
@@ -213,7 +219,7 @@ export class HttpContext {
 
   /**
    * Get protocol used
-   * @returns
+   * @returns the result
    */
   getProtocol(): "http:" | "https:" {
     return this.protocol;
@@ -225,7 +231,7 @@ export class HttpContext {
    * @param limit the size of readable request
    * @param timeout the time to read the request
    * @param encoding to analyze
-   * @returns
+   * @returns the result
    */
   async getRawBodyAsString(limit: number = 1024 * 1024 * 10, timeout: number = 60000, encoding?: string) {
     // Get charset from header
@@ -248,7 +254,7 @@ export class HttpContext {
    *
    * @param limit the size of readable request
    * @param timeout the time to read the request
-   * @returns
+   * @returns the result
    */
   async getRawBody(limit: number = 1024 * 1024 * 10, timeout: number = 60000): Promise<Buffer | undefined> {
     if (this.body instanceof Readable) {
@@ -282,6 +288,7 @@ export class HttpContext {
 
   /**
    * Get the body as stream
+   * @returns the result
    */
   getRawStream(): Readable {
     if (this.body instanceof Readable) {
@@ -292,7 +299,7 @@ export class HttpContext {
 
   /**
    * Get HTTP Headers
-   * @returns
+   * @returns the result
    */
   getHeaders(): Readonly<IncomingHttpHeaders> {
     return this.headers;
@@ -300,9 +307,9 @@ export class HttpContext {
 
   /**
    * Get header value
-   * @param name
-   * @param def
-   * @returns
+   * @param name - the name to use
+   * @param def - the default value
+   * @returns the list of results
    */
   getHeader(name: string, def?: string): string | string[] {
     return this.headers[name.toLowerCase()] || def;
@@ -310,6 +317,9 @@ export class HttpContext {
 
   /**
    * Return the last header found with that name
+   * @param name - the name to use
+   * @param def - the default value
+   * @returns the result string
    */
   getUniqueHeader(name: string, def?: string): string {
     const header = this.getHeader(name, def);
@@ -321,7 +331,8 @@ export class HttpContext {
 
   /**
    * Used for test
-   * @param body
+   * @param body - the request body
+   * @returns this for chaining
    */
   setBody(body: Buffer | string | Readable | any): this {
     if (body instanceof Readable || body instanceof Buffer) {
@@ -339,7 +350,7 @@ export class HttpContext {
    * Get request path name
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/URL/pathname
-   * @returns
+   * @returns the result
    */
   getPathName() {
     return this.path;
@@ -349,7 +360,7 @@ export class HttpContext {
    * Get search section
    *
    * @see https://developer.mozilla.org/en-US/docs/Web/API/URL/search
-   * @returns
+   * @returns the result
    */
   getSearch() {
     return this.search;
@@ -358,6 +369,7 @@ export class HttpContext {
   /**
    *
    * @param uri to return absolute url from
+   * @returns the result string
    */
   getAbsoluteUrl(uri: string = this.uri): string {
     if (uri.match(/^\w{1,10}:\/\//)) {

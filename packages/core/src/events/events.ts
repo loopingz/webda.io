@@ -68,8 +68,8 @@ export class EventWithContext<T extends Context = Context> {
 const emitter = new EventEmitter();
 /**
  * Emit a core event
- * @param event
- * @param data
+ * @param event - the event name
+ * @param data - the data to process
  */
 export function emitCoreEvent<K extends keyof CoreEvents>(event: K, data: CoreEvents[K]) {
   emitter.emit(event, data);
@@ -77,8 +77,10 @@ export function emitCoreEvent<K extends keyof CoreEvents>(event: K, data: CoreEv
 
 /**
  * Add a listener to a core event
- * @param event
- * @param listener
+ * @param event - the event name
+ * @param listener - the event listener
+ * @param once - whether to listen once
+ * @returns true if the condition is met
  */
 export function useCoreEvents<K extends keyof CoreEvents>(
   event: K,

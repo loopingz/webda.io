@@ -33,14 +33,14 @@ export class Compiler {
    */
   watchProgram: ts.WatchOfConfigFile<ts.EmitAndSemanticDiagnosticsBuilderProgram>;
   /**
-   *
-   * @param project
+   * Create a new compiler for the given project
+   * @param project - the Webda project to compile
    */
   constructor(public project: WebdaProject) {}
 
   /**
    * Add a system to recompile if needed
-   * @returns
+   * @returns true if compilation is needed
    */
   requireCompilation(): boolean {
     const f = this.project.getAppPath(".webda/cache");
@@ -62,7 +62,8 @@ export class Compiler {
 
   /**
    * This is our main entry point
-   * @param force
+   * @param force - skip cache and force recompilation
+   * @returns true if compilation succeeded
    */
   compile(force: boolean = false): boolean {
     if ((this.compiled || !this.requireCompilation()) && !force) {
@@ -172,7 +173,8 @@ export class Compiler {
 
   /**
    * Launch compiler in watch mode
-   * @param callback
+   * @param callback - called on diagnostic or status messages
+   * @param watchOptions - TypeScript watch options
    */
   watch(callback: (diagnostic: ts.Diagnostic | string) => void, watchOptions: ts.WatchOptions = {}) {
     // Load tsconfig
@@ -273,6 +275,7 @@ export class Compiler {
 
   /**
    * Load the tsconfig.json
+   * @param app - the Webda project
    */
   loadTsconfig(app: WebdaProject) {
     const configFileName = app.getAppPath("tsconfig.json");
@@ -288,8 +291,7 @@ export class Compiler {
 
   /**
    * Generate a program from app
-   * @param app
-   * @returns
+   * @param app - the Webda project to create a program from
    */
   createProgramFromApp(app: WebdaProject = this.project): void {
     this.loadTsconfig(app);
@@ -303,6 +305,14 @@ export class Compiler {
 /**
  * Check if a diagnostic is a false TS2322 error on a coercible property assignment.
  * For example, assigning a string to a Date field that will be coerced at runtime.
+ * @param tsModule - the TypeScript module
+ * @param program - the TypeScript program
+ * @param diag - the diagnostic to check
+ * @param coercions - coercion registry
+ * @param modelBases - set of known model base class names
+ * @param coercibleFields - pre-computed coercible field map
+ * @param accessorsForAll - whether accessors apply to all classes
+ * @returns true if the diagnostic is a false positive
  */
 function isCoercibleAssignmentError(
   tsModule: typeof ts,
@@ -392,9 +402,19 @@ function isCoercibleAssignmentError(
   );
 }
 
-/** Find the most specific AST node at the given character position in a source file */
+/**
+ * Find the most specific AST node at the given character position in a source file
+ * @param tsModule - the TypeScript module
+ * @param sourceFile - the source file to search
+ * @param position - the character position
+ * @returns the deepest node at the position
+ */
 function findNodeAt(tsModule: typeof ts, sourceFile: ts.SourceFile, position: number): ts.Node | undefined {
-  /** Recursively walk children to find the deepest node containing the position */
+  /**
+   * Recursively walk children to find the deepest node containing the position
+   * @param node - current node to check
+   * @returns the deepest matching node
+   */
   function find(node: ts.Node): ts.Node | undefined {
     if (position >= node.getStart(sourceFile) && position < node.getEnd()) {
       return tsModule.forEachChild(node, find) || node;
@@ -404,7 +424,14 @@ function findNodeAt(tsModule: typeof ts, sourceFile: ts.SourceFile, position: nu
   return find(sourceFile);
 }
 
-/** Check whether a class declaration inherits from one of the known model base classes */
+/**
+ * Check whether a class declaration inherits from one of the known model base classes
+ * @param tsModule - the TypeScript module
+ * @param classDecl - the class declaration to check
+ * @param checker - the type checker
+ * @param modelBases - set of known model base class names
+ * @returns true if the class extends a model base
+ */
 function isModelClassForDiag(
   tsModule: typeof ts,
   classDecl: ts.ClassDeclaration,
@@ -449,6 +476,10 @@ function isModelClassForDiag(
 
 /**
  * Check if a class implements the Accessors marker interface.
+ * @param tsModule - the TypeScript module
+ * @param classDecl - the class declaration to check
+ * @param checker - the type checker
+ * @returns true if the class implements Accessors
  */
 function hasAccessorsMarkerForDiag(
   tsModule: typeof ts,

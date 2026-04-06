@@ -19,19 +19,29 @@ export class MemoryQueueParameters extends QueueParameters {
    */
   timeout?: number;
 
-  /** Load parameters with defaults for expiration and timeout */
+  /**
+   * Load parameters with defaults for expiration and timeout
+   * @param params - the service parameters
+   * @returns this for chaining
+   */
   load(params: any = {}): this {
     super.load(params);
     this.expire ??= 30;
     return this;
   }
 
-  /** Get the expiration delay in milliseconds */
+  /**
+   * Get the expiration delay in milliseconds
+   * @returns the result number
+   */
   get expireMs(): number {
     return (this.expire || 30) * 1000;
   }
 
-  /** Get the receive timeout in milliseconds */
+  /**
+   * Get the receive timeout in milliseconds
+   * @returns the result number
+   */
   get timeoutMs(): number {
     return (this.timeout || 0) * 1000;
   }
@@ -51,6 +61,7 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
 
   /**
    * Return queue size
+   * @returns the result number
    */
   async size(): Promise<number> {
     return Object.keys(this._queue).length;

@@ -56,9 +56,9 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   }
 
   /**
-   *
-   * @param query The query to execute
-   * @returns
+   * Query with event emission
+   * @param query - the query to execute
+   * @returns the query results with optional continuation token
    */
   async query(query: string): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
     await this.emit("Query", { query } as any);
@@ -69,8 +69,8 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
 
   /**
    * Iterate through all objects
-   * @param query
-   * @returns
+   * @param query - the query filter
+   * @returns an async generator of objects
    */
   iterate(query: string): AsyncGenerator<InstanceType<T>, any, any> {
     return this.repository.iterate(query);

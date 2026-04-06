@@ -14,6 +14,9 @@ import { WebdaMorpher } from "./morpher/morpher";
 
 /**
  * Scan a single node_modules directory for webda.module.json files
+ * @param dir - the node_modules directory path
+ * @param mod - the module object to merge into
+ * @param seen - set of already-visited directories
  */
 function scanNodeModules(dir: string, mod: any, seen: Set<string>) {
   if (!existsSync(dir)) return;
@@ -60,6 +63,8 @@ function scanNodeModules(dir: string, mod: any, seen: Set<string>) {
  * Scan node_modules for webda.module.json files and merge their
  * moddas, deployers, and schemas into the local module.
  * Walks up the directory tree to find hoisted packages (yarn workspaces).
+ * @param projectPath - the project root path
+ * @param mod - the module object to merge into
  */
 function mergeDependencyModules(projectPath: string, mod: any) {
   const seen = new Set<string>();
@@ -82,7 +87,11 @@ interface BuildArguments extends Arguments {
   watch: boolean;
 }
 
-/** Type guard for the "build" CLI command */
+/**
+ * Type guard for the "build" CLI command
+ * @param argv - the parsed CLI arguments
+ * @returns true if the command is "build"
+ */
 function isBuildCommand(argv: Arguments): argv is BuildArguments {
   return argv._[0] === "build";
 }
@@ -90,7 +99,11 @@ function isBuildCommand(argv: Arguments): argv is BuildArguments {
 interface CodeArguments extends Arguments {
   module: string[];
 }
-/** Type guard for the "code" CLI command */
+/**
+ * Type guard for the "code" CLI command
+ * @param argv - the parsed CLI arguments
+ * @returns true if the command is "code"
+ */
 function isCodeCommand(argv: Arguments): argv is CodeArguments {
   return argv._[0] === "code";
 }

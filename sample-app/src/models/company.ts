@@ -34,7 +34,13 @@ export class Company extends CoreModel {
    */
   permissions: Permission[];
 
-  /** Check whether the given action is allowed (always returns true). */
+  /**
+   * Check whether the given action is allowed (always returns true).
+   *
+   * @param _ctx - the operation context
+   * @param _action - the action to check
+   * @returns true
+   */
   async canAct(_ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
     return true;
   }

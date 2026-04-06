@@ -24,6 +24,7 @@ export abstract class FilterImplementation<T extends Filter> {
    * Option to return an optimized version of the filter
    *
    * For example a LEFT(type, 4) = "com." can be optimized to PREFIX(type, "com.")
+   * @returns the optimized filter implementation
    */
   optimize(): FilterImplementation<Filter> {
     return this;

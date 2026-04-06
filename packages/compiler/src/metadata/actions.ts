@@ -11,7 +11,11 @@ import { MetadataPlugin } from "./plugin";
  * 2. @Operation/@Action decorated methods (decorator approach)
  */
 export class ActionsMetadata extends MetadataPlugin {
-  /** Extract action names from WEBDA_ACTIONS symbols and @Operation/@Action decorators on models */
+  /**
+   * Extract action names from WEBDA_ACTIONS symbols and @Operation/@Action decorators on models
+   * @param module - the module to populate
+   * @param objects - discovered Webda objects
+   */
   getMetadata(module: WebdaModule, objects: WebdaObjects): void {
     Object.keys(objects.models).forEach(name => {
       const model = objects.models[name];

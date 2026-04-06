@@ -58,27 +58,42 @@ export class Ident extends OwnerModel {
    */
   provider?: string;
 
-  /** Get the email for this ident */
+  /**
+   * Get the email for this ident
+   * @returns the result string
+   */
   getEmail(): string {
     return this.email;
   }
 
-  /** Get the provider type */
+  /**
+   * Get the provider type
+   * @returns the result
+   */
   getType() {
     return this._type;
   }
 
-  /** Set the provider type */
+  /**
+   * Set the provider type
+   * @param type - the type to look up
+   */
   setType(type) {
     this._type = type;
   }
 
-  /** Get the user who owns this ident */
+  /**
+   * Get the user who owns this ident
+   * @returns the result
+   */
   getUser() {
     return this.getOwner();
   }
 
-  /** Set the user who owns this ident */
+  /**
+   * Set the user who owns this ident
+   * @param uuid - the unique identifier
+   */
   setUser(uuid: string | User) {
     this.setOwner(typeof uuid === "string" ? uuid : uuid.getPrimaryKey());
   }

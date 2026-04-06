@@ -51,7 +51,11 @@ export class PrometheusParameters extends ServiceParameters {
    */
   prefix?: string;
 
-  /** Load parameters with defaults for metrics URL, labels, and feature flags */
+  /**
+   * Load parameters with defaults for metrics URL, labels, and feature flags
+   * @param params - the service parameters
+   * @returns this for chaining
+   */
   load(params: any = {}): this {
     super.load(params);
     this.url ??= "/metrics";
@@ -156,7 +160,7 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
 
   /**
    *
-   * @returns
+   * @returns the result
    */
   resolve() {
     super.resolve();
@@ -225,7 +229,7 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
 
   /**
    * Serve the metrics in a webda context
-   * @param ctx
+   * @param ctx - the operation context
    */
   async serveMetrics(ctx: WebContext) {
     ctx.write(await register.metrics());

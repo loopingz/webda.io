@@ -128,23 +128,39 @@ export class MFA implements Actionable {
     };
   };
   secret: string;
-  /** Verify a MFA code. */
+  /**
+   * Verify a MFA code.
+   * @param code - the verification code
+   * @returns true if verified
+   */
   async verify(code: string) {
     return true;
   }
-  /** Confirm a MFA code with two factors and a secret. */
+  /**
+   * Confirm a MFA code with two factors and a secret.
+   * @param code - the first factor code
+   * @param code2 - the second factor code
+   * @param secret - the MFA secret
+   * @returns true if confirmed
+   */
   async confirm(code: string, code2: string, secret: string) {
     return true;
   }
 
-  /** Convert to a DTO exposing only whether MFA is enabled. */
+  /**
+   * Convert to a DTO exposing only whether MFA is enabled.
+   * @returns the DTO representation
+   */
   toDTO() {
     return {
       enabled: this.secret !== undefined
     };
   }
 
-  /** Restore state from a DTO (no-op). */
+  /**
+   * Restore state from a DTO (no-op).
+   * @param dto - the data transfer object
+   */
   fromDTO(dto: any): void {}
 }
 
@@ -175,12 +191,19 @@ class User extends UuidModel {
   readonly_mfa: ReadonlyMFA;
   loginCount: number;
 
-  /** Log the user out. */
+  /**
+   * Log the user out.
+   * @returns true on success
+   */
   logout() {
     return true;
   }
 
-  /** Determine whether the given action is permitted for this user. */
+  /**
+   * Determine whether the given action is permitted for this user.
+   * @param action - the action to check
+   * @returns true or a string reason if permitted, false otherwise
+   */
   async canAct(action: ActionsEnum<User>): Promise<boolean | string> {
     if (action === "mfa.confirm") {
       return true;
@@ -219,7 +242,10 @@ class GithubIssue extends Model {
   [WEBDA_PRIMARY_KEY] = ["id"] as const;
   id: number;
 
-  /** Serialize this issue to its JSON representation. */
+  /**
+   * Serialize this issue to its JSON representation.
+   * @returns the JSON representation
+   */
   toJSON(): SelfJSONed<this> {
     return <SelfJSONed<this>>this;
   }

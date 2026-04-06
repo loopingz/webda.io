@@ -124,7 +124,7 @@ export class Core implements ICore {
 
   /**
    * Get the configuration object
-   * @returns {Configuration}
+   * @returns {Configuration} the result
    */
   getConfiguration() {
     return this.configuration;
@@ -132,8 +132,9 @@ export class Core implements ICore {
 
   /**
    * Get the store assigned to this model
-   * @param model
-   * @returns
+   * @param model - the model to use
+   * @param modelOrConstructor - the model or its constructor
+   * @returns the result
    */
   getModelStore<T extends Model>(modelOrConstructor: CustomConstructor<T> | T | string): Store {
     let model: ModelClass<T>;
@@ -154,8 +155,8 @@ export class Core implements ICore {
    * Get the model store for a specific model
    * Leverage the Process cache
    *
-   * @param model
-   * @returns
+   * @param model - the model to use
+   * @returns the result
    */
   @InstanceCache()
   private getModelStoreCached<T extends Model>(model: ModelClass<T>): Store {
@@ -181,9 +182,9 @@ export class Core implements ICore {
 
   /**
    * Get the service that manage a model
-   * @param modelOrConstructor
-   * @param attribute
-   * @returns
+   * @param modelOrConstructor - the model or its constructor
+   * @param attribute - the attribute name
+   * @returns the result
    */
   getBinaryStore<T extends Model>(modelOrConstructor: ModelClass<T> | T | string, attribute: string): AbstractService {
     return this.getBinaryStoreCached(
@@ -192,7 +193,12 @@ export class Core implements ICore {
     );
   }
 
-  /** Find the best matching BinaryService for a given model and attribute, with caching */
+  /**
+   * Find the best matching BinaryService for a given model and attribute, with caching
+   * @param model - the model to use
+   * @param attribute - the attribute name
+   * @returns the result
+   */
   @InstanceCache()
   protected getBinaryStoreCached<T extends Model>(model: string, attribute: string): BinaryService {
     const binaries: { [key: string]: BinaryService } = <any>useApplication().getImplementations(<any>BinaryService);
@@ -218,6 +224,7 @@ export class Core implements ICore {
    * Return Core instance id
    *
    * It is a random generated string
+   * @returns the result string
    */
   getInstanceId(): string {
     this.instanceId ??= getUuid();
@@ -226,7 +233,8 @@ export class Core implements ICore {
 
   /**
    * Get absolute url with subpath
-   * @param subpath
+   * @param subpath - the subpath to append
+   * @returns the result string
    */
   getApiUrl(subpath: string = ""): string {
     if (subpath.length > 0 && !subpath.startsWith("/")) {
@@ -237,7 +245,7 @@ export class Core implements ICore {
 
   /**
    * Init one service
-   * @param service
+   * @param service - the service instance
    */
   protected async initService(service: string) {
     try {
@@ -322,6 +330,7 @@ export class Core implements ICore {
    * To define the locales just add a locales: ['en-GB', 'fr-FR'] in your host global configuration
    *
    * @return The configured locales or "en-GB" if none are defined
+   * @returns the list of results
    */
   getLocales(): string[] {
     if (!this.configuration || !this.configuration.parameters.locales) {
@@ -334,6 +343,7 @@ export class Core implements ICore {
    * Check for a service name and return the wanted singleton or undefined if none found
    *
    * @param {String} name The service name to retrieve
+   * @returns the result
    */
   getService<T = AbstractService>(name: string = ""): T {
     depsDetector.getStore()?.add(name);
@@ -350,13 +360,14 @@ export class Core implements ICore {
 
   /**
    * Return a map of defined services
-   * @returns {{}}
+   * @returns {{}} the map of services
    */
   getServices(): { [key: string]: AbstractService } {
     return this.services;
   }
   /**
    * Return if Webda is in debug mode
+   * @returns true if the condition is met
    */
   public isDebug(): boolean {
     return false;
@@ -364,8 +375,8 @@ export class Core implements ICore {
 
   /**
    * Log a message
-   * @param level
-   * @param args
+   * @param level - the log level
+   * @param args - additional arguments
    */
   log(level: WorkerLogLevel, ...args: any[]) {
     this.logger.log(level, ...args);
@@ -373,7 +384,7 @@ export class Core implements ICore {
 
   /**
    * Update the configuration with new values
-   * @param updates
+   * @param updates - the updates to apply
    */
   updateConfiguration(updates: any) {
     updates.services ??= {};
@@ -426,8 +437,8 @@ export class Core implements ICore {
 
   /**
    * Create a specific service
-   * @param service
-   * @returns
+   * @param service - the service instance
+   * @returns the result
    */
   protected createService(service: string) {
     const serviceConstructor = this.moddas[service];
@@ -449,7 +460,7 @@ export class Core implements ICore {
 
   /**
    * Get application beans
-   * @returns
+   * @returns the result
    */
   getBeans() {
     // @ts-ignore
@@ -478,6 +489,7 @@ export class Core implements ICore {
 
   /**
    * Allow serialization
+   * @returns the result
    */
   toJSON() {
     return {
@@ -486,7 +498,11 @@ export class Core implements ICore {
     };
   }
 
-  /** Deserialize a Core instance from a plain JSON object */
+  /**
+   * Deserialize a Core instance from a plain JSON object
+   * @param json - the JSON data
+   * @returns the result
+   */
   static deserialize(json: any): Core {
     const core = new Core();
     if (json.configuration) {

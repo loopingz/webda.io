@@ -661,6 +661,7 @@ export class WebdaProject {
 
   /**
    * Check if the project is a webda application
+   * @returns true if a webda.config file exists
    */
   isApplication(): boolean {
     try {
@@ -673,7 +674,7 @@ export class WebdaProject {
 
   /**
    * Compute digest of the source files
-   * @returns
+   * @returns the MD5 hex digest of the source
    */
   getDigest(): string {
     const current = createHash("md5");
@@ -698,7 +699,7 @@ export class WebdaProject {
 
   /**
    * Ensure a dependency is declared
-   * @param name
+   * @param name - the package name to check
    */
   ensureDependency(name: string) {
     if (!this.packageDescription.dependencies || !this.packageDescription.dependencies[name]) {
@@ -706,17 +707,29 @@ export class WebdaProject {
     }
   }
 
-  /** Subscribe to output events */
+  /**
+   * Subscribe to output events
+   * @param event - event name
+   * @param listener - callback function
+   */
   on(event: string, listener: (...args: any[]) => void) {
     this.output.on(event, listener);
   }
 
-  /** Emit an output event */
+  /**
+   * Emit an output event
+   * @param event - event name
+   * @param args - event arguments
+   */
   emit(event: string, ...args: any[]) {
     this.output.emit(event, ...args);
   }
 
-  /** Get an absolute path within the project folder, or the project root if no path given */
+  /**
+   * Get an absolute path within the project folder, or the project root if no path given
+   * @param path - relative path within the project
+   * @returns the absolute path
+   */
   getAppPath(path?: string) {
     if (!path) {
       return this.folder;
@@ -724,12 +737,20 @@ export class WebdaProject {
     return join(this.folder, path);
   }
 
-  /** Log a message at the specified level through the worker output */
+  /**
+   * Log a message at the specified level through the worker output
+   * @param level - log level
+   * @param args - log arguments
+   */
   log(level: WorkerLogLevel, ...args: any[]) {
     this.output.log(level, ...args);
   }
 
-  /** Prefix a name with the project namespace if it does not already contain one */
+  /**
+   * Prefix a name with the project namespace if it does not already contain one
+   * @param name - the name to prefix
+   * @returns the namespaced name
+   */
   completeNamespace(name: string) {
     if (!name.includes("/")) {
       return `${this.namespace}/${name}`;

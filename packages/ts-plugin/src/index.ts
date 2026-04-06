@@ -37,11 +37,20 @@ interface PluginConfig {
   perfWarnMs?: number;
 }
 
-/** Initialize the TypeScript language service plugin with coercion and accessor transforms. */
+/**
+ * Initialize the TypeScript language service plugin with coercion and accessor transforms.
+ * @param modules - the TypeScript module container
+ * @param modules.typescript - the TypeScript module instance
+ * @returns the plugin module
+ */
 function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
   const tsModule = modules.typescript;
 
-  /** Create the decorated language service instance with coercion diagnostics. */
+  /**
+   * Create the decorated language service instance with coercion diagnostics.
+   * @param info - the plugin creation info
+   * @returns the decorated language service
+   */
   function create(info: ts.server.PluginCreateInfo): ts.LanguageService {
     const config: PluginConfig = info.config ?? {};
     const log = (msg: string) => info.project.projectService.logger.info(`[@webda/ts-plugin] ${msg}`);
@@ -72,7 +81,10 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     let shouldTransformCache = new Map<ts.ClassDeclaration, boolean>();
     let coerciblePropsCache = new Map<ts.ClassDeclaration, CoercibleProperty[]>();
 
-    /** Invalidate per-program caches when the TypeScript program instance changes. */
+    /**
+     * Invalidate per-program caches when the TypeScript program instance changes.
+     * @param program - the current TypeScript program
+     */
     function getCache(program: ts.Program) {
       if (cachedProgram !== program) {
         cachedProgram = program;
@@ -81,7 +93,12 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
       }
     }
 
-    /** Return whether a class declaration should receive accessor transforms, with caching. */
+    /**
+     * Return whether a class declaration should receive accessor transforms, with caching.
+     * @param classDecl - the class declaration node
+     * @param checker - the type checker
+     * @returns true if the class should be transformed
+     */
     function cachedShouldTransform(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
       let result = shouldTransformCache.get(classDecl);
       if (result === undefined) {
@@ -93,7 +110,12 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
       return result;
     }
 
-    /** Return coercible properties for a class declaration, with caching. */
+    /**
+     * Return coercible properties for a class declaration, with caching.
+     * @param classDecl - the class declaration node
+     * @param checker - the type checker
+     * @returns array of coercible properties
+     */
     function cachedGetCoercibleProps(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): CoercibleProperty[] {
       let result = coerciblePropsCache.get(classDecl);
       if (result === undefined) {
@@ -252,6 +274,8 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
 
 /**
  * Create a proxy that delegates all LanguageService methods to the original.
+ * @param ls - the original language service
+ * @returns a proxy language service
  */
 function createProxy(ls: ts.LanguageService): ts.LanguageService {
   const proxy = Object.create(null) as ts.LanguageService;
@@ -265,9 +289,17 @@ function createProxy(ls: ts.LanguageService): ts.LanguageService {
 
 /**
  * Find the innermost node at a given position in the source file.
+ * @param tsModule - the TypeScript module
+ * @param sourceFile - the source file to search
+ * @param position - the character position
+ * @returns the innermost node, or undefined
  */
 function findNodeAtPosition(tsModule: typeof ts, sourceFile: ts.SourceFile, position: number): ts.Node | undefined {
-  /** Recursively walk the AST to find the deepest node spanning the position. */
+  /**
+   * Recursively walk the AST to find the deepest node spanning the position.
+   * @param node - the node to check
+   * @returns the deepest matching node, or undefined
+   */
   function find(node: ts.Node): ts.Node | undefined {
     if (position >= node.getStart(sourceFile) && position < node.getEnd()) {
       return tsModule.forEachChild(node, find) || node;
@@ -279,6 +311,10 @@ function findNodeAtPosition(tsModule: typeof ts, sourceFile: ts.SourceFile, posi
 
 /**
  * If the node is a property declaration or property name in a class, return info about it.
+ * @param tsModule - the TypeScript module
+ * @param node - the AST node
+ * @param checker - the type checker
+ * @returns property info, or undefined
  */
 function getPropertyInfo(
   tsModule: typeof ts,
@@ -306,6 +342,10 @@ function getPropertyInfo(
 /**
  * If the node is part of an assignment expression targeting a property on a model instance,
  * return the class declaration, property name, and declared property type.
+ * @param tsModule - the TypeScript module
+ * @param node - the AST node
+ * @param checker - the type checker
+ * @returns assignment target info, or undefined
  */
 function getAssignmentTarget(
   tsModule: typeof ts,
@@ -341,6 +381,9 @@ function getAssignmentTarget(
 
 /**
  * Get the right-hand side of an assignment expression containing the given node.
+ * @param tsModule - the TypeScript module
+ * @param node - the AST node
+ * @returns the assigned value node, or undefined
  */
 function getAssignedValue(tsModule: typeof ts, node: ts.Node): ts.Node | undefined {
   let current = node;
@@ -354,6 +397,9 @@ function getAssignedValue(tsModule: typeof ts, node: ts.Node): ts.Node | undefin
 /**
  * Simple check if an actual type name is assignable to an accepted type name.
  * Handles basic cases like "string" assignable to "string", "Date" to "Date".
+ * @param actual - the actual type name
+ * @param accepted - the accepted type name
+ * @returns true if assignable
  */
 function isTypeAssignable(actual: string, accepted: string): boolean {
   if (actual === accepted) return true;

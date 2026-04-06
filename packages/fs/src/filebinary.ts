@@ -35,7 +35,12 @@ export class FileBinaryParameters extends CloudBinaryParameters {
    */
   url?: string;
 
-  /** Load and normalize parameters, ensuring the folder path has a trailing slash. */
+  /**
+   * Load and normalize parameters, ensuring the folder path has a trailing slash.
+   *
+   * @param params - raw parameter values
+   * @returns this instance for chaining
+   */
   load(params: any): this {
     super.load(params);
     if (this.folder && !this.folder.endsWith("/")) {
@@ -73,7 +78,8 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   /**
    * Load parameters
    *
-   * @param params
+   * @param params - raw parameter values
+   * @returns the loaded parameters
    */
   loadParameters(params: any): T {
     return <T>new FileBinaryParameters().load(params);
@@ -141,6 +147,8 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
 
   /**
    * Download a binary with a challenge
+   *
+   * @param ctx - the web context
    */
   async downloadBinaryLink(ctx: WebContext<any, any, { hash: string }>) {
     const { hash } = ctx.getParameters();
@@ -179,6 +187,11 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
 
   /**
    * Get signed url to download an element
+   *
+   * @param map - the binary map
+   * @param expires - expiration time in seconds
+   * @param context - the web context
+   * @returns the signed download URL
    */
   async getSignedUrlFromMap(map: BinaryMap, expires: number, context: WebContext): Promise<string> {
     return `${context
@@ -192,6 +205,10 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
 
   /**
    * Get storage path for a hash
+   *
+   * @param hash - the content hash
+   * @param postfix - optional path suffix
+   * @returns the filesystem path
    */
   _getPath(hash: string, postfix: string = undefined) {
     if (postfix === undefined) {
@@ -200,7 +217,12 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     return this.parameters.folder + hash + "/" + postfix;
   }
 
-  /** Create a file if it does not already exist, using the given permission mode. */
+  /**
+   * Create a file if it does not already exist, using the given permission mode.
+   *
+   * @param filePath - path of the file to create
+   * @param mode - file permission mode
+   */
   _touch(filePath, mode = 0o600) {
     try {
       const fd = fs.openSync(filePath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_RDWR, mode);
@@ -212,6 +234,11 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
 
   /**
    * Get token for action
+   *
+   * @param hash - the content hash
+   * @param method - HTTP method (PUT or GET)
+   * @param expiresIn - token TTL in seconds
+   * @returns the signed JWT token
    */
   async getToken(hash: string, method: "PUT" | "GET", expiresIn: number = 60): Promise<string> {
     return this.cryptoService.jwtSign(
@@ -224,6 +251,9 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
 
   /**
    * Get put URL
+   *
+   * @param ctx - the operation context
+   * @returns the upload URL
    */
   async getPutUrl(ctx: OperationContext<BinaryFile>) {
     const body = await ctx.getInput();
@@ -236,6 +266,12 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
 
   /**
    * Will give you the redirect url
+   *
+   * @param object - the model instance
+   * @param attribute - the binary attribute name
+   * @param info - optional binary file info
+   * @param context - the operation context
+   * @returns the redirect URL and method, or undefined if already stored
    */
   async putRedirectUrl(
     object: CoreModel,
@@ -268,6 +304,8 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
 
   /**
    * Store the binary sent
+   *
+   * @param ctx - the web context
    */
   async storeBinary(ctx: WebContext) {
     const body = await ctx.getHttpContext().getRawBody(this.parameters.maxSize);
@@ -314,6 +352,8 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
 
   /**
    * Delete any usage marker and hash
+   *
+   * @param hash - the content hash to clean
    */
   async _cleanHash(hash: string): Promise<void> {
     const p = this._getPath(hash);
@@ -351,7 +391,13 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     await this._cleanUsage(hash, object.getUUID(), property);
   }
 
-  /** Verify that a binary with the given hash exists and contains the expected challenge marker. */
+  /**
+   * Verify that a binary with the given hash exists and contains the expected challenge marker.
+   *
+   * @param hash - the content hash
+   * @param challenge - the challenge string
+   * @returns true if the challenge marker exists
+   */
   challenge(hash, challenge) {
     const path = this._getPath(hash);
     return fs.existsSync(path) && fs.existsSync(`${path}/_${challenge}`);
@@ -364,7 +410,13 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     return this._cleanUsage(info.hash, uuid);
   }
 
-  /** Write a binary file's stream to the local filesystem under its content-hash directory. */
+  /**
+   * Write a binary file's stream to the local filesystem under its content-hash directory.
+   *
+   * @param file - the binary file to store
+   * @param object - the model instance
+   * @param attribute - the binary attribute name
+   */
   async _store(file: BinaryFile, object: CoreModel, attribute: string) {
     fs.mkdirSync(this._getPath(file.hash));
     const map = await file.get();

@@ -8,6 +8,7 @@ process["webdaContexts"] ??= new AsyncLocalStorage<{ context: Context; previousC
 const storage = process["webdaContexts"];
 /**
  * Get current execution context
+ * @returns the result
  */
 export function useContext<T extends Context>(): T {
   return <T>(storage.getStore()?.context || globalContext);
@@ -15,7 +16,7 @@ export function useContext<T extends Context>(): T {
 
 /**
  * Shortcut to get the current user
- * @returns
+ * @returns the result
  */
 export function useCurrentUser() {
   return useContext().getCurrentUser();
@@ -23,7 +24,7 @@ export function useCurrentUser() {
 
 /**
  * Shortcut to get the current user id
- * @returns
+ * @returns the result
  */
 export function useCurrentUserId() {
   return useContext().getCurrentUserId();
@@ -32,8 +33,8 @@ export function useCurrentUserId() {
 /**
  * Used to update model context
  *
- * @param models
- * @param context
+ * @param models - the models
+ * @param context - the execution context
  */
 function attachModels(models: any[], context: Context) {
   setContextUpdate(true);
@@ -44,17 +45,19 @@ function attachModels(models: any[], context: Context) {
 /**
  * Run this function as system
  *
- * @param run
- * @returns
+ * @param run - the function to run
+ * @param attach - whether to attach to current context
+ * @returns the list of results
  */
 export function runAsSystem<T>(run: () => T, attach: IContextAware[] = []): T {
   return this.runWithContext(globalContext, run, attach);
 }
 /**
  * Run this function as user
- * @param context
- * @param run
- * @returns
+ * @param context - the execution context
+ * @param run - the function to run
+ * @param attach - whether to attach to current context
+ * @returns the list of results
  */
 export function runWithContext<T>(context: Context, run: () => T, attach: IContextAware[] = []): T {
   const previousContext = storage.getStore()?.context;

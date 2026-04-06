@@ -164,7 +164,10 @@ export class WebdaQLParserLexer extends Lexer {
 
   // @Override
   // @NotNull
-  /** Get the vocabulary for this lexer */
+  /**
+   * Get the vocabulary for this lexer
+   * @returns the vocabulary
+   */
   public get vocabulary(): Vocabulary {
     return WebdaQLParserLexer.VOCABULARY;
   }
@@ -177,31 +180,46 @@ export class WebdaQLParserLexer extends Lexer {
   }
 
   // @Override
-  /** Get the grammar file name */
+  /**
+   * Get the grammar file name
+   * @returns the grammar file name
+   */
   public get grammarFileName(): string {
     return "WebdaQLParser.g4";
   }
 
   // @Override
-  /** Get the rule names */
+  /**
+   * Get the rule names
+   * @returns the rule names
+   */
   public get ruleNames(): string[] {
     return WebdaQLParserLexer.ruleNames;
   }
 
   // @Override
-  /** Get the serialized ATN */
+  /**
+   * Get the serialized ATN
+   * @returns the serialized ATN
+   */
   public get serializedATN(): string {
     return WebdaQLParserLexer._serializedATN;
   }
 
   // @Override
-  /** Get the channel names */
+  /**
+   * Get the channel names
+   * @returns the channel names
+   */
   public get channelNames(): string[] {
     return WebdaQLParserLexer.channelNames;
   }
 
   // @Override
-  /** Get the mode names */
+  /**
+   * Get the mode names
+   * @returns the mode names
+   */
   public get modeNames(): string[] {
     return WebdaQLParserLexer.modeNames;
   }
@@ -317,7 +335,10 @@ export class WebdaQLParserLexer extends Lexer {
     "\x02\x02\x02\xFA\xF8\x03\x02\x02\x02\x0F\x02RYacnp{\x8E\xE8\xED\xF2\xF8" +
     "\x03\b\x02\x02";
   public static __ATN: ATN;
-  /** Get the deserialized ATN, lazily initialized */
+  /**
+   * Get the deserialized ATN, lazily initialized
+   * @returns the deserialized ATN
+   */
   public static get _ATN(): ATN {
     if (!WebdaQLParserLexer.__ATN) {
       WebdaQLParserLexer.__ATN = new ATNDeserializer().deserialize(

@@ -14,6 +14,7 @@ export class AbstractDeployer<T extends DeployerResources = DeployerResources> {
    * Return undefined by default to fallback on the guess from ServiceParamaters
    *
    * Using this method should only be exception
+   * @returns the result
    */
   static getSchema(): JSONSchema7 {
     return undefined;

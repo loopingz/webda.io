@@ -40,7 +40,10 @@ export class CookieOptions implements Omit<CookieSerializeOptions, "domain"> {
   set maxAge(value: string | number) {
     this._maxAge = new Duration(value);
   }
-  /** Get the max age in seconds, defaulting to 7 days */
+  /**
+   * Get the max age in seconds, defaulting to 7 days
+   * @returns the result number
+   */
   get maxAge() : number {
     return this._maxAge?.toSeconds() ?? 86400 * 7;
   }
@@ -65,8 +68,8 @@ export class CookieOptions implements Omit<CookieSerializeOptions, "domain"> {
 
   /**
    * Load with default value
-   * @param options
-   * @param httpContext
+   * @param options - the options
+   * @param httpContext - the HTTP context
    */
   constructor(options: Partial<CookieOptions>, httpContext?: HttpContext) {
     Object.assign(this, options);
@@ -106,9 +109,10 @@ export class SecureCookie {
    * It manages the split of the cookie to 4096 if required
    *
    * @param name cookie name
-   * @param options
-   * @param context
-   * @returns
+   * @param options - the options
+   * @param context - the execution context
+   * @param session - the session object
+   * @returns the result
    */
   static async load(name: string, session: object, context: IWebContext, options?: JWTOptions) {
     let cookies = {};
@@ -147,10 +151,11 @@ export class SecureCookie {
   /**
    * Send a cookie, split it if required
    *
-   * @param name
-   * @param context
-   * @param data
-   * @param options
+   * @param name - the name to use
+   * @param context - the execution context
+   * @param data - the data to process
+   * @param options - the options
+   * @param cookieOptions - the cookie options
    */
   static async save(
     name: string,

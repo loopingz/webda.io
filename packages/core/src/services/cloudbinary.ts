@@ -8,7 +8,11 @@ import { BinaryMap, CoreModelWithBinary, BinaryParameters, BinaryService } from 
 export class CloudBinaryParameters extends BinaryParameters {
   prefix?: string;
 
-  /** Load parameters with an empty prefix default */
+  /**
+   * Load parameters with an empty prefix default
+   * @param params - the service parameters
+   * @returns this for chaining
+   */
   load(params: any): this {
     super.load(params);
     this.prefix ??= "";
@@ -23,6 +27,10 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   /**
    * Get a UrlFromObject
    *
+   * @param binaryMap - the binary map definition
+   * @param context - the execution context
+   * @param expires - the expiration time
+   * @returns the result
    */
   async getRedirectUrlFromObject(binaryMap, context, expires: number = 30) {
     return this.getSignedUrlFromMap(binaryMap, expires, context);
@@ -30,9 +38,9 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
 
   /**
    * Return the S3 key
-   * @param hash
-   * @param suffix
-   * @returns
+   * @param hash - the hash value
+   * @param suffix - the suffix to append
+   * @returns the result string
    */
   _getKey(hash: string, suffix: string = "data"): string {
     return join(`${this.parameters.prefix}`, hash, suffix);

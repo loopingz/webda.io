@@ -19,9 +19,9 @@ export interface ConfigSchemaApplication {
  *
  * The regex will ensure the namespace is optional
  *
- * @param app
- * @param type
- * @returns
+ * @param app - the application to resolve namespaces
+ * @param type - the service type name
+ * @returns regex pattern string
  */
 function getServiceTypePattern(app: ConfigSchemaApplication, type: string): string {
   const split = app.completeNamespace(type).split("/");
@@ -35,6 +35,7 @@ function getServiceTypePattern(app: ConfigSchemaApplication, type: string): stri
  * @param filename to save config schema to
  * @param deploymentFilename to save deployment schema to
  * @param full to keep all required
+ * @param configFile - optional config file path to update $schema reference
  */
 export function generateConfigurationSchemas(
   app: ConfigSchemaApplication,
@@ -42,7 +43,7 @@ export function generateConfigurationSchemas(
   deploymentFilename: string = ".webda/deployment.schema.json",
   full: boolean = false,
   configFile?: string
-) {
+): void {
   // Build the base configuration schema structure
   let res: JSONSchema7 = {
     type: "object",

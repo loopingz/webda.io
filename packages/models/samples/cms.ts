@@ -5,7 +5,10 @@ import { PrimaryKeyType, WEBDA_PRIMARY_KEY } from "../src/storable";
 
 /** Date subclass with a `set` method for updating the internal time value. */
 class WebdaDate extends Date {
-  /** Set the date value from a string, Date, or numeric timestamp. */
+  /**
+   * Set the date value from a string, Date, or numeric timestamp.
+   * @param value - the new date value
+   */
   set(value: string | Date | number) {
     if (typeof value === "string") {
       const parsed = Date.parse(value);
@@ -61,6 +64,7 @@ export class User extends UuidModel {
   active: boolean;
   /**
    * One to one relation with profile
+   * @returns the user's profile
    */
   get profile(): Promise<Profile> {
     return Profile.ref((this as User).getPrimaryKey()).get();

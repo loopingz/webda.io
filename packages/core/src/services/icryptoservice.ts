@@ -77,7 +77,11 @@ export class CryptoServiceParameters extends ServiceParameters {
    */
   jwt?: JWTOptions;
 
-  /** Load parameters with defaults for key lengths, ciphers, and JWT options */
+  /**
+   * Load parameters with defaults for key lengths, ciphers, and JWT options
+   * @param params - the service parameters
+   * @returns this for chaining
+   */
   load(params: any = {}): this {
     super.load(params);
     this.symetricKeyLength ??= 256;

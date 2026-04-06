@@ -132,6 +132,7 @@ export class WatchManager {
 
   /**
    * Check if currently watching
+   * @returns true if watch mode is active
    */
   isWatching(): boolean {
     return this.watchProgram !== undefined;

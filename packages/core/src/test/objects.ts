@@ -63,7 +63,12 @@ export class Task extends OwnerModel {
   /** Test action that is never allowed */
   impossible() {}
 
-  /** Check permissions based on action name for testing */
+  /**
+   * Check permissions based on action name for testing
+   * @param context - the execution context
+   * @param actionArg - the action argument
+   * @returns the result
+   */
   async canAct(context: IOperationContext, actionArg: string): Promise<boolean | string> {
     const action: string = actionArg;
     if (action === "actionable") {
@@ -93,27 +98,50 @@ export class Task extends OwnerModel {
  * @WebdaIgnore
  */
 export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boolean; brokenInit?: boolean }> {
-  /** Not implemented */
+  /**
+   * Not implemented
+   * @param _query - the query to execute
+   */
   find(_query: Query): Promise<StoreFindResult<any>> {
     throw new Error("Method not implemented.");
   }
-  /** Not implemented */
+  /**
+   * Not implemented
+   * @param _uid - the unique identifier
+   */
   _exists(_uid: PrimaryKey<any>): Promise<boolean> {
     throw new Error("Method not implemented.");
   }
-  /** Not implemented */
+  /**
+   * Not implemented
+   * @param _list - the list
+   */
   getAll(_list?: PrimaryKey<any>[]): Promise<any[]> {
     throw new Error("Method not implemented.");
   }
-  /** Create default store configuration */
+  /**
+   * Create default store configuration
+   * @param params - the service parameters
+   * @returns the result
+   */
   static createConfiguration(params: any): any {
     return new StoreParameters().load(params);
   }
-  /** Return parameters unchanged */
+  /**
+   * Return parameters unchanged
+   * @param params - the service parameters
+   * @returns the result
+   */
   static filterParameters(params: any): any {
     return params;
   }
-  /** Not implemented */
+  /**
+   * Not implemented
+   * @param _object - the target object
+   * @param _uid - the unique identifier
+   * @param _itemWriteCondition - the write condition value
+   * @param _itemWriteConditionField - the write condition field
+   */
   protected _patch(
     _object: any,
     _uid: string,
@@ -122,7 +150,13 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
   ): Promise<any> {
     throw new Error("Method not implemented.");
   }
-  /** Not implemented */
+  /**
+   * Not implemented
+   * @param _uuid - the unique identifier
+   * @param _attribute - the attribute name
+   * @param _itemWriteCondition - the write condition value
+   * @param _itemWriteConditionField - the write condition field
+   */
   protected _removeAttribute(
     _uuid: PrimaryKey<any>,
     _attribute: string,
@@ -131,7 +165,12 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
   ): Promise<void> {
     throw new Error("Method not implemented.");
   }
-  /** Not implemented */
+  /**
+   * Not implemented
+   * @param _uid - the unique identifier
+   * @param _params - the service parameters
+   * @param _updateDate - the update date
+   */
   protected _incrementAttributes(
     _uid: PrimaryKey<any>,
     _params: { property: string; value: number }[],
@@ -139,7 +178,16 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
   ): Promise<any> {
     throw new Error("Method not implemented.");
   }
-  /** Not implemented */
+  /**
+   * Not implemented
+   * @param _uid - the unique identifier
+   * @param _prop - the property name
+   * @param _item - the item
+   * @param _index - the index
+   * @param _itemWriteCondition - the write condition value
+   * @param _itemWriteConditionField - the write condition field
+   * @param _updateDate - the update date
+   */
   protected _upsertItemToCollection(
     _uid: PrimaryKey<any>,
     _prop: string,
@@ -151,7 +199,15 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
   ): Promise<any> {
     throw new Error("Method not implemented.");
   }
-  /** Not implemented */
+  /**
+   * Not implemented
+   * @param _uid - the unique identifier
+   * @param _prop - the property name
+   * @param _index - the index
+   * @param _itemWriteCondition - the write condition value
+   * @param _itemWriteConditionField - the write condition field
+   * @param _updateDate - the update date
+   */
   protected _deleteItemFromCollection(
     _uid: PrimaryKey<any>,
     _prop: string,
@@ -176,7 +232,11 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
     this.addRoute("/urltemplate/callback{?code}", ["GET"], this._query);
   }
 
-  /** Load store parameters */
+  /**
+   * Load store parameters
+   * @param params - the service parameters
+   * @returns the result
+   */
   loadParameters(params) {
     return new StoreParameters().load(params);
   }
@@ -184,13 +244,22 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
   /** No-op template route handler */
   _template() {}
 
-  /** No-op default route handler */
+  /**
+   * No-op default route handler
+   * @param _ctx - the operation context
+   */
   _default(_ctx) {}
 
-  /** No-op query route handler */
+  /**
+   * No-op query route handler
+   * @param _ctx - the operation context
+   */
   _query(_ctx) {}
 
-  /** Route handler that throws errors based on the type parameter */
+  /**
+   * Route handler that throws errors based on the type parameter
+   * @param ctx - the operation context
+   */
   _brokenRoute(ctx) {
     if (ctx.getParameters().type === "401") {
       throw 401;
@@ -199,37 +268,69 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
     }
   }
 
-  /** Always returns true */
+  /**
+   * Always returns true
+   * @param _uid - the unique identifier
+   * @returns the result
+   */
   exists(_uid) {
     return Promise.resolve(true);
   }
 
-  /** Always returns empty results */
+  /**
+   * Always returns empty results
+   * @param _request - the search request
+   * @param _offset - the offset
+   * @param _limit - the maximum count
+   * @returns the result
+   */
   _find(_request, _offset, _limit) {
     return Promise.resolve([]);
   }
 
-  /** Return the object as-is without persisting */
+  /**
+   * Return the object as-is without persisting
+   * @param _uid - the unique identifier
+   * @param object - the target object
+   * @returns the result
+   */
   async _create(_uid: PrimaryKey<any>, object: any) {
     return object;
   }
 
-  /** No-op delete */
+  /**
+   * No-op delete
+   * @param _uid - the unique identifier
+   * @returns the result
+   */
   _delete(_uid) {
     return Promise.resolve();
   }
 
-  /** Return the object as-is without persisting */
+  /**
+   * Return the object as-is without persisting
+   * @param _uid - the unique identifier
+   * @param object - the target object
+   * @returns the result
+   */
   _update(_uid, object) {
     return Promise.resolve(object);
   }
 
-  /** Return an empty object */
+  /**
+   * Return an empty object
+   * @param _uid - the unique identifier
+   * @returns the result
+   */
   async _get(_uid) {
     return {};
   }
 
-  /** Get an in-memory repository for the model */
+  /**
+   * Get an in-memory repository for the model
+   * @param model - the model to use
+   * @returns the result
+   */
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     return new MemoryRepository(model, ["id"]);
   }
@@ -240,11 +341,19 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
  * @WebdaIgnore
  */
 export class FakeService extends Service {
-  /** Create the default configuration */
+  /**
+   * Create the default configuration
+   * @param params - the service parameters
+   * @returns the result
+   */
   static createConfiguration(params: any): any {
     return new ServiceParameters().load(params);
   }
-  /** Return parameters unchanged */
+  /**
+   * Return parameters unchanged
+   * @param params - the service parameters
+   * @returns the result
+   */
   static filterParameters(params: any): any {
     return params;
   }
@@ -255,7 +364,10 @@ export class FakeService extends Service {
  * @WebdaIgnore
  */
 export class TestIdent extends WebdaIdent {
-  /** Define test actions for this ident model */
+  /**
+   * Define test actions for this ident model
+   * @returns the result
+   */
   static getActions() {
     return <any>{
       plop: {},
@@ -269,22 +381,36 @@ export class TestIdent extends WebdaIdent {
     };
   }
 
-  /** Test action returning a string */
+  /**
+   * Test action returning a string
+   * @returns the result
+   */
   yop() {
     return "youpi";
   }
 
-  /** Always allow actions */
+  /**
+   * Always allow actions
+   * @param action - the action to check
+   * @returns the result
+   */
   async canAct(action) {
     return true;
   }
 
-  /** Global index action */
+  /**
+   * Global index action
+   * @param ctx - the operation context
+   */
   static index(ctx) {
     ctx.write("indexer");
   }
 
-  /** Test action writing to context */
+  /**
+   * Test action writing to context
+   * @param ctx - the operation context
+   * @returns the result
+   */
   plop(ctx) {
     ctx.write({ _plop: true });
     return Promise.resolve();
@@ -302,7 +428,7 @@ export class TestApplication extends UnpackedApplication {
   }
   /**
    * Force the namespace to WebdaDemo
-   * @returns
+   * @returns the result
    */
   getNamespace() {
     return "WebdaDemo";
@@ -343,6 +469,8 @@ export class TestApplication extends UnpackedApplication {
 
   /**
    * Only allow local module and packages/ modules, not sample-apps
+   * @param filename - the filename
+   * @returns true if the condition is met
    */
   filterModule(filename: string): boolean {
     return !filename.includes("/sample-app") && !filename.includes("/sample-apps/");
@@ -353,7 +481,7 @@ export class TestApplication extends UnpackedApplication {
    * Resolve the linked file to current application
    *
    * @param moduleFile to load
-   * @returns
+   * @returns the result
    */
   loadWebdaModule(moduleFile: string): CachedModule {
     // Test are using ts-node so local source should be loaded from .ts with ts-node aswell

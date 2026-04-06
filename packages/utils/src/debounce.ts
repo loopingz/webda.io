@@ -96,6 +96,9 @@ export function debounce<T extends (...args: any[]) => any>(
 
   /**
    * Invoke the function
+   *
+   * @param time - current timestamp
+   * @returns the function result
    */
   function invokeFunc(time: number): ReturnType<T> {
     const args = lastArgs!;
@@ -109,6 +112,9 @@ export function debounce<T extends (...args: any[]) => any>(
 
   /**
    * Start a timer for the leading edge
+   *
+   * @param time - current timestamp
+   * @returns the function result or undefined
    */
   function leadingEdge(time: number): ReturnType<T> | undefined {
     lastInvokeTime = time;
@@ -122,6 +128,9 @@ export function debounce<T extends (...args: any[]) => any>(
 
   /**
    * Calculate remaining wait time
+   *
+   * @param time - current timestamp
+   * @returns milliseconds until next invocation
    */
   function remainingWait(time: number): number {
     const timeSinceLastCall = time - lastCallTime!;
@@ -133,6 +142,9 @@ export function debounce<T extends (...args: any[]) => any>(
 
   /**
    * Check if the function should be invoked
+   *
+   * @param time - current timestamp
+   * @returns true if the function should be invoked
    */
   function shouldInvoke(time: number): boolean {
     const timeSinceLastCall = time - (lastCallTime ?? 0);
@@ -150,6 +162,8 @@ export function debounce<T extends (...args: any[]) => any>(
 
   /**
    * Handle the timer expiration
+   *
+   * @returns void
    */
   function timerExpired(): void {
     const time = Date.now();
@@ -164,6 +178,9 @@ export function debounce<T extends (...args: any[]) => any>(
 
   /**
    * Handle the trailing edge
+   *
+   * @param time - current timestamp
+   * @returns the function result or undefined
    */
   function trailingEdge(time: number): ReturnType<T> | undefined {
     timerId = undefined;
@@ -191,6 +208,8 @@ export function debounce<T extends (...args: any[]) => any>(
 
   /**
    * Immediately invoke any pending function invocation
+   *
+   * @returns the function result or undefined
    */
   function flush(): ReturnType<T> | undefined {
     return timerId === undefined ? result : trailingEdge(Date.now());
@@ -198,6 +217,8 @@ export function debounce<T extends (...args: any[]) => any>(
 
   /**
    * Check if there's a pending invocation
+   *
+   * @returns true if a call is pending
    */
   function pending(): boolean {
     return timerId !== undefined;
@@ -205,6 +226,9 @@ export function debounce<T extends (...args: any[]) => any>(
 
   /**
    * The debounced function
+   *
+   * @param args - arguments to pass to the wrapped function
+   * @returns void
    */
   function debounced(this: any, ...args: Parameters<T>): void {
     const time = Date.now();

@@ -14,8 +14,8 @@ export class OriginFilter implements RequestFilter<IWebContext> {
   }
   /**
    *
-   * @param context
-   * @returns
+   * @param context - the execution context
+   * @returns true if the condition is met
    */
   async checkRequest(context: IWebContext): Promise<boolean> {
     const httpContext = context.getHttpContext();
@@ -40,7 +40,11 @@ export class WebsiteOriginFilter implements RequestFilter<IWebContext> {
     }
   }
 
-  /** Verify that the request origin or host is in the allowed websites list */
+  /**
+   * Verify that the request origin or host is in the allowed websites list
+   * @param context - the execution context
+   * @returns true if the condition is met
+   */
   async checkRequest(context: IWebContext): Promise<boolean> {
     const httpContext = context.getHttpContext();
     if (

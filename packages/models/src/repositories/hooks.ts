@@ -8,8 +8,8 @@ export const Repositories = new WeakMap<ModelClass, Repository<any>>();
 
 /**
  * Return a repository for a model
- * @param arg
- * @returns
+ * @param arg - the model class to look up
+ * @returns the repository for the model
  */
 export function useRepository<T extends ModelClass>(arg: T): Repository<T> {
   let clazz: any = arg;
@@ -24,8 +24,8 @@ export function useRepository<T extends ModelClass>(arg: T): Repository<T> {
 
 /**
  * Register a repository
- * @param this
- * @param repository
+ * @param model - the model class to register for
+ * @param repository - the repository instance
  */
 export function registerRepository<T extends ModelClass>(model: T, repository: Repository<T>): void {
   Repositories.set(model, repository);
@@ -36,19 +36,24 @@ export function registerRepository<T extends ModelClass>(model: T, repository: R
  * to a base class, enabling Model classes to access their repository directly.
  *
  * @param Base - The base class to augment
+ * @returns the augmented class with repository methods
  */
 export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) => object>(Base: TBase) {
   return class extends Base {
-    /** Get the repository registered for this model class. */
+    /**
+     * Get the repository registered for this model class.
+     * @returns the repository
+     */
     static getRepository<T extends ModelClass>(this: T): Repository<T> {
       return useRepository(this);
     }
 
     /**
      * Create the object directly
-     * @param this
-     * @param data
-     * @returns
+     * @param this - the model class constructor
+     * @param data - the initial data
+     * @param save - whether to persist immediately
+     * @returns the created model instance
      */
     static create<T extends ModelClass>(
       this: T,
@@ -60,9 +65,9 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
 
     /**
      * Query the object directly
-     * @param this
-     * @param query
-     * @returns
+     * @param this - the model class constructor
+     * @param query - the query string
+     * @returns the query results
      */
     static query<T extends ModelClass>(
       this: T,
@@ -76,9 +81,9 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
 
     /**
      * Iterate through all objects
-     * @param this
-     * @param query
-     * @returns
+     * @param this - the model class constructor
+     * @param query - the query string
+     * @returns an async generator of model instances
      */
     static async *iterate<T extends ModelClass>(this: T, query: string): AsyncGenerator<InstanceType<T>, any, any> {
       for await (const item of useRepository(this).iterate(query)) {
@@ -88,9 +93,9 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
 
     /**
      * Get a reference to the model
-     * @param this
-     * @param key
-     * @returns
+     * @param this - the model class constructor
+     * @param key - the primary key value
+     * @returns a model reference with create capability
      */
     static ref<T extends ModelClass>(
       this: T,
@@ -101,6 +106,7 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
 
     /**
      * Return the proxied version of this model (identity by default)
+     * @returns this instance
      */
     toProxy() {
       return this;

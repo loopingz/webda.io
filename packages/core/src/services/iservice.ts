@@ -17,6 +17,8 @@ export type ServiceStates =
 
 /**
  * Define the service state for the application
+ * @param options - the options
+ * @returns the result
  */
 export const ServiceState = (options: StateOptions<ServiceStates>) => State({ error: "errored", ...options });
 
@@ -75,6 +77,7 @@ export abstract class AbstractService<
    *   return caps;
    * }
    * ```
+   * @returns the result
    */
   getCapabilities(): Record<string, any> {
     return structuredClone(this._compiledCapabilities);

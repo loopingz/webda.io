@@ -129,6 +129,10 @@ export function afterDeclarations(
  *
  * This is what makes `tspc` stop reporting false type errors.
  * The LS plugin handles the same filtering for the IDE.
+ * @param diagnostics - the diagnostics to filter
+ * @param program - the TypeScript program
+ * @param config - the plugin configuration
+ * @returns the filtered diagnostics
  */
 export function afterDiagnostics(
   diagnostics: readonly ts.Diagnostic[],
@@ -184,9 +188,19 @@ export function afterDiagnostics(
   });
 }
 
-/** Find the innermost AST node at a given character position in the source file. */
+/**
+ * Find the innermost AST node at a given character position in the source file.
+ * @param tsModule - the TypeScript module
+ * @param sourceFile - the source file to search
+ * @param position - the character position
+ * @returns the innermost node, or undefined
+ */
 function findNodeAtPosition(tsModule: typeof ts, sourceFile: ts.SourceFile, position: number): ts.Node | undefined {
-  /** Recursively descend into child nodes to find the deepest match. */
+  /**
+   * Recursively descend into child nodes to find the deepest match.
+   * @param node - the node to check
+   * @returns the deepest matching node, or undefined
+   */
   function find(node: ts.Node): ts.Node | undefined {
     if (position >= node.getStart(sourceFile) && position < node.getEnd()) {
       return tsModule.forEachChild(node, find) || node;
@@ -196,7 +210,12 @@ function findNodeAtPosition(tsModule: typeof ts, sourceFile: ts.SourceFile, posi
   return find(sourceFile);
 }
 
-/** Walk up the AST from a node to find an enclosing assignment expression. */
+/**
+ * Walk up the AST from a node to find an enclosing assignment expression.
+ * @param tsModule - the TypeScript module
+ * @param node - the starting AST node
+ * @returns the enclosing assignment, or undefined
+ */
 function findAssignment(tsModule: typeof ts, node: ts.Node): ts.BinaryExpression | undefined {
   let current: ts.Node | undefined = node;
   while (current) {
@@ -208,7 +227,14 @@ function findAssignment(tsModule: typeof ts, node: ts.Node): ts.BinaryExpression
   return undefined;
 }
 
-/** Check whether a class declaration extends one of the known model base classes. */
+/**
+ * Check whether a class declaration extends one of the known model base classes.
+ * @param tsModule - the TypeScript module
+ * @param classDecl - the class declaration node
+ * @param checker - the type checker
+ * @param modelBases - set of known model base class names
+ * @returns true if the class is a model class
+ */
 function isModelClassCheck(
   tsModule: typeof ts,
   classDecl: ts.ClassDeclaration,
@@ -251,7 +277,12 @@ function isModelClassCheck(
   return false;
 }
 
-/** Return true if the actual type string is assignable to the accepted type (simple literal check). */
+/**
+ * Return true if the actual type string is assignable to the accepted type (simple literal check).
+ * @param actual - the actual type name
+ * @param accepted - the accepted type name
+ * @returns true if compatible
+ */
 function isTypeCompatible(actual: string, accepted: string): boolean {
   if (actual === accepted) return true;
   if (accepted === "string" && actual.startsWith('"')) return true;
@@ -261,6 +292,8 @@ function isTypeCompatible(actual: string, accepted: string): boolean {
 
 /**
  * Build the coercion registry from defaults + user config.
+ * @param config - the plugin configuration
+ * @returns the merged coercion registry
  */
 function buildCoercions(config: TransformConfig): CoercionRegistry {
   const coercions: CoercionRegistry = { ...DEFAULT_COERCIONS };

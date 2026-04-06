@@ -37,7 +37,11 @@ export default [
           },
           checkConstructors: false
         }
-      ]
+      ],
+      "jsdoc/require-param": ["error", { checkConstructors: false }],
+      "jsdoc/require-param-description": "error",
+      "jsdoc/require-returns": ["error", { checkConstructors: false }],
+      "jsdoc/require-returns-description": "error"
     }
   },
   {

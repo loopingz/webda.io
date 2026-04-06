@@ -98,6 +98,8 @@ function schemaToOptions(schema: JSONSchema7, skipRequired?: boolean): Record<st
 
 /**
  * Load .webda/operations.json from an application directory
+ * @param appPath - the application path
+ * @returns the result
  */
 export function loadOperations(appPath: string = "."): OperationsFile {
   const filePath = join(resolve(appPath), ".webda", "operations.json");
@@ -126,6 +128,10 @@ function groupOperations(operations: Record<string, OperationEntry>): Map<string
 
 /**
  * Add parameter and input options to a yargs command
+ * @param y - the yargs instance
+ * @param op - the operation
+ * @param ops - the operations list
+ * @returns the result
  */
 function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): Argv {
   const paramDef = op.parameters ? KNOWN_PARAMS[op.parameters] : undefined;
@@ -231,6 +237,7 @@ function extractInput(args: Record<string, any>, op: OperationEntry, ops: Operat
  * @param ops Loaded operations file
  * @param handler Called when an operation command is invoked
  * @param argv Command-line arguments (defaults to process.argv.slice(2))
+ * @returns the result
  */
 export function buildCli(ops: OperationsFile, handler: OperationHandler, argv?: string[]): Argv {
   const groups = groupOperations(ops.operations);
@@ -301,6 +308,7 @@ export function buildCli(ops: OperationsFile, handler: OperationHandler, argv?: 
  *   await executeServiceCommand(cmdName, cmds[cmdName], args, core.getServices(), args.service?.split(","));
  * });
  * ```
+ * @returns the result
  */
 export function addServiceCommandsToCli(
   cli: Argv,
@@ -356,6 +364,8 @@ export function addServiceCommandsToCli(
 
 /**
  * Add command argument definitions to a yargs builder.
+ * @param y - the yargs instance
+ * @returns the result
  */
 function addCommandArgs(y: Argv, args: { [name: string]: import("@webda/compiler").CommandArgDefinition }): Argv {
   for (const [argName, argDef] of Object.entries(args)) {
@@ -473,6 +483,7 @@ async function ensureServiceInConfig(app: Application, serviceName: string): Pro
 
 /**
  * Default handler: prints the operation call as JSON
+ * @param call - the function to call
  */
 async function defaultHandler(call: OperationCall): Promise<void> {
   console.log(JSON.stringify(call, undefined, 2));

@@ -50,7 +50,12 @@ interface YAMLProxies {
   clone(): any;
 }
 
-/** Convert a yaml.js node (Scalar, Seq, or Map) into a plain value or YAMLProxy wrapper. */
+/**
+ * Convert a yaml.js node (Scalar, Seq, or Map) into a plain value or YAMLProxy wrapper.
+ *
+ * @param item - the yaml.js AST node
+ * @returns the plain value or proxy wrapper
+ */
 function getYAMLNode(item) {
   if (yaml.isScalar(item)) {
     return item.value;
@@ -61,7 +66,12 @@ function getYAMLNode(item) {
   }
 }
 
-/** Convert a plain JS value (or YAMLProxy wrapper) into a yaml.js AST node for insertion. */
+/**
+ * Convert a plain JS value (or YAMLProxy wrapper) into a yaml.js AST node for insertion.
+ *
+ * @param item - the value to convert
+ * @returns the yaml.js AST node
+ */
 function createYAMLNode(item) {
   if (item instanceof YAMLArray || item instanceof YAMLMap) {
     return item.clone();
@@ -81,7 +91,12 @@ function createYAMLNode(item) {
   }
 }
 
-/** Populate `target` object properties from a yaml.js Map node's items. */
+/**
+ * Populate `target` object properties from a yaml.js Map node's items.
+ *
+ * @param target - the object to populate
+ * @param node - the yaml.js Map node
+ */
 function setYAMLNodes(target, node) {
   node?.items.forEach(attr => {
     if (yaml.isScalar(attr.value)) {
@@ -99,7 +114,11 @@ function setYAMLNodes(target, node) {
  * YAML Array Proxy
  */
 class YAMLArray<T> extends Array<T> implements YAMLProxies {
-  /** Return plain Array for derived methods like `map` and `filter`. */
+  /**
+   * Return plain Array for derived methods like `map` and `filter`.
+   *
+   * @returns the Array constructor
+   */
   static get [Symbol.species]() {
     return Array;
   }
@@ -112,47 +131,84 @@ class YAMLArray<T> extends Array<T> implements YAMLProxies {
     });
   }
 
-  /** Append items to both this array and the underlying YAML AST. */
+  /**
+   * Append items to both this array and the underlying YAML AST.
+   *
+   * @param items - items to append
+   * @returns the new array length
+   */
   push(...items: any[]): number {
     nodesMap.get(this).value.items.push(...items.map(createYAMLNode));
     return super.push(...items);
   }
 
-  /** Clone the underlying YAML AST node. */
+  /**
+   * Clone the underlying YAML AST node.
+   *
+   * @returns the cloned node
+   */
   clone() {
     return nodesMap.get(this).value.clone();
   }
 
-  /** Remove the last element from both this array and the YAML AST. */
+  /**
+   * Remove the last element from both this array and the YAML AST.
+   *
+   * @returns the removed element
+   */
   pop(): T {
     nodesMap.get(this).value.items.pop();
     return super.pop();
   }
 
-  /** Remove the first element from both this array and the YAML AST. */
+  /**
+   * Remove the first element from both this array and the YAML AST.
+   *
+   * @returns the removed element
+   */
   shift(): T {
     nodesMap.get(this).value.items.shift();
     return super.shift();
   }
 
-  /** Prepend items to both this array and the underlying YAML AST. */
+  /**
+   * Prepend items to both this array and the underlying YAML AST.
+   *
+   * @param items - items to prepend
+   * @returns the new array length
+   */
   unshift(...items: T[]): number {
     nodesMap.get(this).value.items.unshift(...items.map(createYAMLNode));
     return super.unshift(...items);
   }
 
-  /** Splice elements in both this array and the underlying YAML AST. */
+  /**
+   * Splice elements in both this array and the underlying YAML AST.
+   *
+   * @param start - start index
+   * @param deleteCount - number of elements to remove
+   * @param items - elements to insert
+   * @returns the removed elements
+   */
   splice(start: number, deleteCount?: number, ...items: T[]): T[] {
     nodesMap.get(this).value.items.splice(start, deleteCount, ...items.map(createYAMLNode));
     return super.splice(start, deleteCount, ...items);
   }
 
-  /** Get the proxy representation (returns itself since YAMLArray is already array-like). */
+  /**
+   * Get the proxy representation (returns itself since YAMLArray is already array-like).
+   *
+   * @returns this array
+   */
   getProxy() {
     return this;
   }
 
-  /** Convert to a plain JavaScript value via the underlying YAML node. */
+  /**
+   * Convert to a plain JavaScript value via the underlying YAML node.
+   *
+   * @returns the plain value
+   */
   toJSON() {
     return nodesMap.get(this).toJSON();
   }
@@ -167,23 +223,39 @@ class YAMLMap implements YAMLProxies {
     this.setYAMLNodes(doc);
   }
 
-  /** Populate this object's properties from the given YAML document node. */
+  /**
+   * Populate this object's properties from the given YAML document node.
+   *
+   * @param doc - the yaml.js document node
+   */
   setYAMLNodes(doc) {
     setYAMLNodes(this, doc.value);
   }
 
-  /** Get the underlying yaml.js Map node. */
+  /**
+   * Get the underlying yaml.js Map node.
+   *
+   * @returns the yaml.js Map node
+   */
   getYAMLNodes() {
     return nodesMap.get(this).value;
   }
 
-  /** Clone the underlying YAML AST node. */
+  /**
+   * Clone the underlying YAML AST node.
+   *
+   * @returns the cloned node
+   */
   clone() {
     const source = nodesMap.get(this["$$target"] || this);
     return source.value.clone();
   }
 
-  /** Return a Proxy that behaves like a plain object but writes back to the YAML AST. */
+  /**
+   * Return a Proxy that behaves like a plain object but writes back to the YAML AST.
+   *
+   * @returns the proxy object
+   */
   getProxy(): any {
     return new Proxy(this, {
       get(target, prop) {
@@ -219,7 +291,11 @@ class YAMLMap implements YAMLProxies {
       }
     });
   }
-  /** Convert to a plain JavaScript object via the underlying YAML node. */
+  /**
+   * Convert to a plain JavaScript object via the underlying YAML node.
+   *
+   * @returns the plain object
+   */
   toJSON() {
     return nodesMap.get(this["$$target"] || this).toJSON();
   }
@@ -229,12 +305,20 @@ class YAMLMap implements YAMLProxies {
  * YAML Document Proxy
  */
 class YAMLDocument extends YAMLMap {
-  /** Populate properties from a YAML document's top-level contents. */
+  /**
+   * Populate properties from a YAML document's top-level contents.
+   *
+   * @param doc - the yaml.js document
+   */
   setYAMLNodes(doc) {
     setYAMLNodes(this, doc.contents);
   }
 
-  /** Get the underlying yaml.js document contents node. */
+  /**
+   * Get the underlying yaml.js document contents node.
+   *
+   * @returns the document contents node
+   */
   getYAMLNodes() {
     return nodesMap.get(this).contents;
   }

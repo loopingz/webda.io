@@ -24,8 +24,8 @@ let moduleOutput;
 
 /**
  * Return or set the WorkerOutput
- * @param output
- * @returns
+ * @param output - optional output instance to set
+ * @returns the current WorkerOutput
  */
 export function useWorkerOutput(output?: WorkerOutput): WorkerOutput {
   if (output) {
@@ -265,7 +265,11 @@ class WorkerInputEmitter extends WorkerInput {
   /** Timeout handle that rejects the promise after a configurable delay */
   timeout?: NodeJS.Timeout;
 
-  /** Convert this emitter to a plain WorkerInput message, stripping promise-related fields. */
+  /**
+   * Convert this emitter to a plain WorkerInput message, stripping promise-related fields.
+   *
+   * @returns a plain WorkerInput
+   */
   toMessage(): WorkerInput {
     return new WorkerInput(this.uuid, this.title, this.type, this.validators);
   }
@@ -289,8 +293,8 @@ export type WorkerLogLevel = "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE";
 
 /**
  * Ensure a string is a valid WorkerLogLevel
- * @param level 
- * @returns 
+ * @param level - the string to check
+ * @returns true if the string is a valid log level
  */
 export function isWorkerLogLevel(level: string): level is WorkerLogLevel {
   return ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"].includes(level);
@@ -373,7 +377,7 @@ export function getFileAndLines(): { file: string; line: number; column?: number
 
 /**
  * Get the caller line and filename
- * @returns 
+ * @returns the file and line info of the caller
  */
 export function getFileAndLine(): { file: string; line: number; column?: number, function?: string } {
   return getFileAndLines().find(s => !s.file.includes("/workout/") && !s.function?.includes(".log")) || { file: "unknown", line: 0 };
@@ -473,8 +477,8 @@ export class WorkerOutput extends EventEmitter {
   /**
    * Send an event with default informations
    *
-   * @param event
-   * @param infos
+   * @param event - the message type to emit
+   * @param infos - additional data for the message
    */
   protected emitMessage(event: WorkerMessageType, infos: any = {}): void {
     this.emit("message", new WorkerMessage(event, this, infos));
@@ -492,9 +496,9 @@ export class WorkerOutput extends EventEmitter {
   /**
    * Start a new progress indicator
    *
-   * @param uid
-   * @param total
-   * @param title
+   * @param uid - unique identifier for the progress
+   * @param total - total number of steps
+   * @param title - optional display title
    */
   startProgress(uid: string, total: number, title?: string): void {
     this.currentProgress = uid;
@@ -505,7 +509,8 @@ export class WorkerOutput extends EventEmitter {
 
   /**
    * Start an undetermined activity
-   * @param title
+   * @param title - optional display title
+   * @param uid - unique identifier for the activity
    */
   startActivity(title?: string, uid: string = "activity") {
     if (this.progresses[uid]) {
@@ -517,8 +522,9 @@ export class WorkerOutput extends EventEmitter {
 
   /**
    * Stop an activity
-   * @param status
-   * @param uid
+   * @param status - final status of the activity
+   * @param uid - unique identifier for the activity
+   * @param title - optional display title to set on completion
    */
   stopActivity(status?: "info" | "error" | "success" | "warning", title?: string, uid: string = "activity") {
     if (this.progresses[uid]) {
@@ -531,8 +537,9 @@ export class WorkerOutput extends EventEmitter {
   /**
    * Increment to add to progress
    *
-   * @param inc
-   * @param uid
+   * @param inc - amount to increment
+   * @param uid - progress identifier
+   * @param title - optional title to update
    */
   incrementProgress(inc: number = 1, uid: string = this.currentProgress, title?: string): void {
     if (!this.progresses[uid]) {
@@ -684,12 +691,11 @@ export class WorkerOutput extends EventEmitter {
    * Request a user input
    *
    * @param title of the input
+   * @param type - the input type
    * @param regexp to validate the input
    * @param waitFor call waitFor method
    * @param timeout before giving up on input
-   *
-   * Return the input request uuid if no waitFor or the input value
-   * Reject with "Request input timmeout" if timeout
+   * @returns the input request uuid if no waitFor or the input value
    */
   async requestInput(
     title: string,
@@ -743,6 +749,7 @@ export class WorkerOutput extends EventEmitter {
    * Wait until an answer is provided
    *
    * @param uuid of input to wait for
+   * @returns the user's input value
    */
   async waitForInput(uuid: string): Promise<string> {
     if (!this.interactive) {

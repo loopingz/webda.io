@@ -77,8 +77,8 @@ const FilterImplementations: { [key: string]: FilterImplementationConstructor } 
 export class FiltersHelper {
   /**
    * Get the filter implementation
-   * @param filter
-   * @returns
+   * @param filter - the filter definition
+   * @returns the resolved filter implementation
    */
   static get<T extends Filter>(filter: T): FilterImplementation<Filter> {
     const type = Object.keys(filter).pop();
@@ -90,8 +90,8 @@ export class FiltersHelper {
 
   /**
    * Register a custom filter implementation
-   * @param name
-   * @param clazz
+   * @param name - the filter type name
+   * @param clazz - the filter implementation class
    */
   register(name: string, clazz: FilterImplementationConstructor) {
     FilterImplementations[name] = clazz;

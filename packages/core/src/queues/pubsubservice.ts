@@ -52,9 +52,9 @@ export default abstract class PubSubService<
 
   /**
    * Unserialize into class
-   * @param data
-   * @param proto
-   * @returns
+   * @param data - the data to process
+   * @param proto - the proto
+   * @returns the result
    */
   unserialize<L>(data: string, proto?: { new (): L }): L {
     if (proto) {

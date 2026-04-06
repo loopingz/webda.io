@@ -19,7 +19,12 @@ export class SecretString {
     protected encrypter: string
   ) {}
 
-  /** Extract the plain string value, warning if the string is not encrypted */
+  /**
+   * Extract the plain string value, warning if the string is not encrypted
+   * @param value - the value to set
+   * @param path - the path
+   * @returns the result string
+   */
   static from(value: string | SecretString, path?: string): string {
     if (value instanceof SecretString) {
       return value.getValue();
@@ -29,15 +34,27 @@ export class SecretString {
     return value;
   }
 
-  /** Get the underlying secret value */
+  /**
+   * Get the underlying secret value
+   * @returns the result string
+   */
   getValue(): string {
     return this.str;
   }
-  /** Return a masked representation to prevent secret leakage */
+  /**
+   * Return a masked representation to prevent secret leakage
+   * @returns the result string
+   */
   toString(): string {
     return "********";
   }
-  /** Custom inspect handler to mask the secret in Node.js util.inspect */
+  /**
+   * Custom inspect handler to mask the secret in Node.js util.inspect
+   * @param depth - the depth level
+   * @param options - the options
+   * @param inspect - the inspect function
+   * @returns the result
+   */
   [util.inspect.custom](depth, options, inspect) {
     return "********";
   }
@@ -92,8 +109,10 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * Register an encrypter for configuration
-   * @param name
-   * @param encrypter
+   * @param name - the name to use
+   * @param encrypter - the encrypter implementation
+   * @param encrypter.encrypt - the encrypter.encrypt
+   * @param encrypter.decrypt - the encrypter.decrypt
    */
   static registerEncrypter(
     name: string,
@@ -136,6 +155,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    *
+   * @param context - the execution context
    */
   @Route(".", ["GET"], {
     description: "Serve JWKS keys",
@@ -166,6 +186,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * Load keys from registry
+   * @returns true if the condition is met
    */
   async load(): Promise<boolean> {
     let load;
@@ -188,7 +209,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * Generate asymetric key
-   * @returns
+   * @returns the result
    */
   generateAsymetricKeys(): { publicKey: string; privateKey: string } {
     const { publicKey, privateKey } = generateKeyPairSync(
@@ -201,7 +222,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * Generate symetric key
-   * @returns
+   * @returns the result string
    */
   generateSymetricKey(): string {
     return randomBytes(this.parameters.symetricKeyLength / 8).toString("base64");
@@ -209,6 +230,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * Return current key set
+   * @returns the result
    */
   async getCurrentKeys(): Promise<{ id: string; keys: KeysDefinition }> {
     if (!this.keys || !this.current || !this.keys[this.current]) {
@@ -228,9 +250,9 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * Retrieve a HMAC for a string
-   * @param data
+   * @param data - the data to process
    * @param keyId to use
-   * @returns
+   * @returns the result string
    */
   public async hmac(data: string | any, keyId?: string): Promise<string> {
     if (typeof data !== "string") {
@@ -242,8 +264,9 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * Verify a HMAC for a string
-   * @param data
-   * @returns
+   * @param data - the data to process
+   * @param hmac - the HMAC instance
+   * @returns true if the condition is met
    */
   public async hmacVerify(data: string | any, hmac: string): Promise<boolean> {
     if (typeof data !== "string") {
@@ -258,6 +281,9 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * JWT token generation
+   * @param data - the data to process
+   * @param options - the options
+   * @returns the result string
    */
   public async jwtSign(data: any, options?: JWTOptions): Promise<string> {
     const res = { ...this.parameters.jwt, ...options };
@@ -280,8 +306,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    *
-   * @param keyId
-   * @returns
+   * @param keyId - the key identifier
+   * @returns true if the condition is met
    */
   async checkKey(keyId: string): Promise<boolean> {
     if (!this.keys[keyId]) {
@@ -299,6 +325,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * Get JWT key based on kid
+   * @param header - the JWT header
+   * @param callback - the callback function
    */
   public async getJWTKey(header, callback) {
     if (!header.kid) {
@@ -322,6 +350,9 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * JWT token verification
+   * @param token - the token
+   * @param options - the options
+   * @returns the result
    */
   public async jwtVerify(token: string, options?: JWTOptions): Promise<string | any> {
     return new Promise((resolve, reject) => {
@@ -345,6 +376,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * Encrypt data
+   * @param data - the data to process
+   * @returns the result string
    */
   public async encrypt(data: any): Promise<string> {
     const key = await this.getCurrentKeys();
@@ -365,6 +398,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * Parse the JWT header section
+   * @param token - the token
+   * @returns the result
    */
   getJWTHeader(token: string) {
     return JSON.parse(Buffer.from(token.split(".")[0], "base64").toString());
@@ -372,7 +407,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * Encrypt configuration
-   * @param data
+   * @param data - the data to process
+   * @returns the result
    */
   public static async encryptConfiguration(data: any) {
     if (data instanceof Object) {
@@ -399,7 +435,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    *
-   * @param data
+   * @param data - the data to process
+   * @returns the result
    */
   public static async decryptConfiguration(data: any): Promise<any> {
     if (data instanceof Object) {
@@ -427,6 +464,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * Decrypt data
+   * @param token - the token
+   * @returns the result
    */
   public async decrypt(token: string): Promise<any> {
     const input = Buffer.from(await this.jwtVerify(token), "base64");
@@ -442,6 +481,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 
   /**
    * Get next id
+   * @returns the result
    */
   getNextId(): { id: string; age: number } {
     // Should be good for years as 8char
@@ -511,7 +551,7 @@ export default CryptoService;
  *
  * As it is a service, it can be used with the useService hook
  *
- * @returns
+ * @returns the result
  */
 export function useCrypto() {
   return useService("CryptoService");

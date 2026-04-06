@@ -165,6 +165,7 @@ abstract class Service<
 
   /**
    * Get the current state
+   * @returns the result
    */
   getState(): ServiceStates {
     return State.getCurrentState(this) as ServiceStates;
@@ -201,6 +202,7 @@ abstract class Service<
 
   /**
    * Get the service parameters
+   * @returns the result
    */
   getParameters(): T {
     return this.parameters;
@@ -216,6 +218,7 @@ abstract class Service<
 
   /**
    * Return service representation
+   * @returns the result
    */
   toString() {
     return this.parameters.type + "[" + this.name + "]";
@@ -224,6 +227,7 @@ abstract class Service<
   /**
    * Resolve parameters
    * Call initRoutes and initBeanRoutes
+   * @returns the result
    */
   @ServiceState({ start: "resolving", end: "resolved" })
   resolve(): this {
@@ -287,8 +291,8 @@ abstract class Service<
 
   /**
    * Get a service by name
-   * @param name
-   * @returns
+   * @param name - the name to use
+   * @returns the result map
    * @deprecated Use useService, might reconsider
    */
   getService<T extends ServiceName>(name: T): ServicesMap[T] {
@@ -297,9 +301,9 @@ abstract class Service<
 
   /**
    * Add service name label
-   * @param type
-   * @param configuration
-   * @returns
+   * @param type - the type to look up
+   * @param configuration - the configuration
+   * @returns the result
    */
   getMetric<T = Gauge | Counter | Histogram>(
     type: CustomConstructor<T, [MetricConfiguration<T>]>,
@@ -314,7 +318,7 @@ abstract class Service<
   /**
    * Return the events that an external system can subscribe to
    *
-   * @returns
+   * @returns the list of results
    */
   getClientEvents(): string[] {
     return [];
@@ -322,8 +326,11 @@ abstract class Service<
 
   /**
    * Authorize a public event subscription
-   * @param event
-   * @param context
+   * @param event - the event name
+   * @param context - the execution context
+   * @param _event - the event name
+   * @param _context - the execution context
+   * @returns true if the condition is met
    */
   authorizeClientEvent(_event: string, _context: OperationContext): boolean {
     return false;
@@ -356,8 +363,8 @@ abstract class Service<
 
   /**
    * If undefined is returned it cancel the operation registration
-   * @param id
-   * @returns
+   * @param id - the identifier
+   * @returns the result
    */
   getOperationId(id: string): string | undefined {
     return id;
@@ -367,8 +374,10 @@ abstract class Service<
    * Add a route dynamicaly
    *
    * @param {String} url of the route can contains dynamic part like {uuid}
-   * @param {Array[]} methods
+   * @param {Array[]} methods - the HTTP methods
    * @param {Function} executer Method to execute for this route
+   * @param openapi - the OpenAPI specification
+   * @param override - whether to override existing
    */
   protected addRoute(
     url: string,
@@ -396,7 +405,7 @@ abstract class Service<
 
   /**
    * Return variables for replacement in openapi
-   * @returns
+   * @returns the result
    */
   getOpenApiReplacements(): any {
     return {};
@@ -444,7 +453,7 @@ abstract class Service<
 
   /**
    * Prevent service to be serialized
-   * @returns
+   * @returns the result
    */
   toJSON() {
     return this.toString();
@@ -464,6 +473,8 @@ abstract class Service<
 
   /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
+   * @param event - the event name
+   * @param data - the data to process
    */
   async emit<Key extends keyof E>(event: Key, data: E[Key]): Promise<void> {
     await EventEmitterUtils.emit(this, event, data, (level: WorkerLogLevel, ...args: any[]) =>
@@ -473,6 +484,7 @@ abstract class Service<
 
   /**
    * Get service name
+   * @returns the result string
    */
   getName(): string {
     return this.name;
@@ -493,6 +505,7 @@ abstract class Service<
 
   /**
    * @private
+   * @returns the result
    */
   ___cleanData(): Promise<void> {
     return Promise.resolve();
@@ -501,7 +514,7 @@ abstract class Service<
   /**
    *
    * @param level to log
-   * @param args
+   * @param args - additional arguments
    */
   log(level: WorkerLogLevel, ...args: any[]) {
     // Add the service name to avoid confusion

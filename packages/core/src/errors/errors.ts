@@ -6,8 +6,8 @@ export class CodeError extends Error {
 
   /**
    *
-   * @param code
-   * @param message
+   * @param code - the status code
+   * @param message - the message
    */
   constructor(code: string, message: string) {
     super(message);
@@ -16,6 +16,7 @@ export class CodeError extends Error {
 
   /**
    * Return error code
+   * @returns the result
    */
   getCode() {
     return this.code;
@@ -23,7 +24,7 @@ export class CodeError extends Error {
 
   /**
    * Http response code
-   * @returns
+   * @returns the result
    */
   getResponseCode() {
     return 500;
@@ -40,7 +41,10 @@ export class HttpError extends CodeError {
     this.code = this.constructor.name.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase();
   }
 
-  /** Get the HTTP status code for this error */
+  /**
+   * Get the HTTP status code for this error
+   * @returns the result number
+   */
   getResponseCode(): number {
     return this.statusCode;
   }

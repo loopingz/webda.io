@@ -9,7 +9,13 @@ import { CoreModel, OperationContext, Operation as Action } from "@webda/core";
  * @WebdaIgnore
  */
 class DefaultTestModel extends UuidModel {
-  /** Only allow the "test" user to perform actions. */
+  /**
+   * Only allow the "test" user to perform actions.
+   *
+   * @param ctx - the operation context
+   * @param _action - the action to check
+   * @returns true or an error message
+   */
   async canAct(ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
     if (ctx.getCurrentUserId() !== "test") {
       return "Only test user can access";
@@ -33,6 +39,7 @@ class Student extends DefaultTestModel {
 
   /**
    * @Frontend
+   * @returns the email-based UUID
    */
   getUuid(): string {
     return this.email;
@@ -40,6 +47,7 @@ class Student extends DefaultTestModel {
 
   /**
    * @Frontend
+   * @returns the UUID field name
    */
   static getUuidField(): string {
     // use email for uuid
@@ -74,16 +82,21 @@ class Course extends DefaultTestModel {
     }
   >;
 
-  /** Allow all actions on courses. */
+  /**
+   * Allow all actions on courses.
+   *
+   * @param ctx - the operation context
+   * @param _action - the action to check
+   * @returns true
+   */
   async canAct(ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
     return true;
   }
 
   /**
    * Use for graphql eventing system
-   * @param _client
-   * @param event
-   * @returns
+   *
+   * @returns list of client event definitions
    */
   static getClientEvents(): (string | { name: string; global: boolean })[] {
     return [
@@ -99,9 +112,11 @@ class Course extends DefaultTestModel {
 
   /**
    * Use for graphql eventing system
-   * @param _client
-   * @param event
-   * @returns
+   *
+   * @param event - the event name
+   * @param _context - the operation context
+   * @param _model - the model instance
+   * @returns true if the event is authorized
    */
   static authorizeClientEvent(event: string, _context: OperationContext<any, any>, _model?: CoreModel): boolean {
     return event !== "test3";
@@ -115,7 +130,11 @@ class Classroom extends DefaultTestModel {
   courses: ModelRelated<Course, Classroom, "classroom">;
   hardwares: ModelRelated<Hardware, Classroom, "classroom">;
 
-  /** Test action that writes an empty response after a short delay. */
+  /**
+   * Test action that writes an empty response after a short delay.
+   *
+   * @param context - the operation context
+   */
   @Action()
   async test(context: OperationContext<{ test: string; id: string }>) {
     // Testing action is waited for
@@ -135,7 +154,11 @@ class Hardware extends DefaultTestModel {
   name: string;
   brands: ModelRelated<Brand, Hardware>; //, "name">;
 
-  /** Global static action that writes an empty response after a short delay. */
+  /**
+   * Global static action that writes an empty response after a short delay.
+   *
+   * @param context - the operation context
+   */
   @Action()
   static async globalAction(context: OperationContext) {
     // Testing action is waited for

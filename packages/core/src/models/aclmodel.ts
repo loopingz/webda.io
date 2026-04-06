@@ -12,12 +12,18 @@ export type Ace = {
  *
  */
 export class ResourceAcl extends Array<Ace> {
-  /** Serialize the ACL to a plain array of ACEs */
+  /**
+   * Serialize the ACL to a plain array of ACEs
+   * @returns the list of results
+   */
   toDto(): Ace[] {
     return this;
   }
 
-  /** Replace the ACL entries from a DTO array */
+  /**
+   * Replace the ACL entries from a DTO array
+   * @param dto - the data transfer object
+   */
   fromDto(dto: Ace[]): void {
     this.length = 0;
     for (const ace of dto) {
@@ -27,6 +33,9 @@ export class ResourceAcl extends Array<Ace> {
 
   /**
    * ACLs for the object
+   * @param action - the action to check
+   * @param user - the user object
+   * @returns the result
    */
   async canAct(action: string, user?: any): Promise<string | boolean> {
     for (const ace of this.filter(a => !a.allow)) {

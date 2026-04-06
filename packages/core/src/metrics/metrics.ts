@@ -33,9 +33,9 @@ export type MetricConfiguration<T = Counter | Gauge | Histogram, K extends strin
  * Our hope is that we can adapt them to export to other
  * metrics system if needed
  *
- * @param type
- * @param configuration
- * @returns
+ * @param type - the type to look up
+ * @param configuration - the configuration
+ * @returns the result
  */
 export function useMetric<T = Gauge | Counter | Histogram>(
   type: CustomConstructor<T, [MetricConfiguration<T>]>,

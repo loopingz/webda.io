@@ -10,7 +10,10 @@ export class Container extends Model {
 
   digest: string;
   vulnerabilities: ModelLinksSimpleArray<Vulnerability>;
-  /** Serialize the container to its JSON representation. */
+  /**
+   * Serialize the container to its JSON representation.
+   * @returns the JSON representation
+   */
   toJSON() {
     return this as SelfJSONed<this>;
   }
@@ -38,22 +41,32 @@ export class Vulnerability implements Storable<Vulnerability, "id">, Actionable 
   /**
    * K is inferred as the literal tuple type of `this.keyFields`,
    * so K[number] is the exact union of keys you wrote.
+   * @returns the primary key value
    */
   getPrimaryKey(): PK<Vulnerability, Vulnerability[typeof WEBDA_PRIMARY_KEY][number]> {
     return this.id;
   }
 
-  /** Serialize to JSON representation. */
+  /**
+   * Serialize to JSON representation.
+   * @returns the JSON representation
+   */
   toJSON() {
     return this as SelfJSONed<this>;
   }
 
-  /** Convert to a data-transfer object. */
+  /**
+   * Convert to a data-transfer object.
+   * @returns the DTO representation
+   */
   toDTO() {
     return this as SelfDTOed<this>;
   }
 
-  /** Restore state from a data-transfer object. */
+  /**
+   * Restore state from a data-transfer object.
+   * @param dto - the data transfer object
+   */
   fromDTO(dto: SelfDTOed<this>): void {
     Object.assign(this, dto);
   }

@@ -78,6 +78,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Default result when no expression is matched (empty AND, always true)
+   * @returns an empty AND query
    */
   protected defaultResult(): Query {
     // An empty AND return true
@@ -88,6 +89,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Get parsed OFFSET continuation token
+   * @returns the offset token
    */
   getOffset(): string {
     return this.offset;
@@ -95,6 +97,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Get parsed LIMIT value
+   * @returns the limit value
    */
   getLimit(): number {
     return this.limit;
@@ -102,6 +105,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Visit a LIMIT clause and store the integer value
+   * @param ctx - the limit expression context
    */
   visitLimitExpression(ctx: LimitExpressionContext) {
     this.limit = this.visitIntegerLiteral(ctx.getChild(1) as IntegerLiteralContext);
@@ -109,6 +113,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Visit an OFFSET clause and store the string continuation token
+   * @param ctx - the offset expression context
    */
   visitOffsetExpression(ctx: OffsetExpressionContext) {
     this.offset = this.visitStringLiteral(ctx.getChild(1) as StringLiteralContext);
@@ -116,6 +121,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Visit a order field expression
+   * @param ctx - the order field expression context
+   * @returns the parsed OrderBy
    */
   visitOrderFieldExpression(ctx: OrderFieldExpressionContext): OrderBy {
     return {
@@ -126,6 +133,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Read the order by values
+   * @param ctx - the order expression context
    */
   visitOrderExpression(ctx: OrderExpressionContext): void {
     this.orderBy = ctx.children
@@ -138,6 +146,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    *
    * Parses filter expression, ORDER BY, LIMIT, and OFFSET clauses.
    * Returns an empty AND expression (always true) when no filter is present.
+   * @param ctx - the webdaql parse context
+   * @returns the built Query
    */
   visitWebdaql(ctx: WebdaqlContext): Query {
     if (ctx.childCount === 1) {
@@ -207,6 +217,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    *
    * By default the parser is doing a AND (b AND (c AND d)) creating 3 depth expressions
    * This visitor simplify to a AND b AND c AND d with only one Expression
+   * @param ctx - the AND logic expression context
+   * @returns the flattened AndExpression
    */
   visitAndLogicExpression(ctx: AndLogicExpressionContext): AndExpression {
     return new AndExpression(this.getComparison(ctx).map(c => this.visit(c) as unknown as Expression));
@@ -214,6 +226,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Implement the BinaryComparison with all methods managed
+   * @param ctx - the binary comparison context
+   * @returns the comparison expression
    */
   visitBinaryComparisonExpression(ctx: BinaryComparisonExpressionContext) {
     const [left, op, right] = ctx.children;
@@ -223,6 +237,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Visit each value of the [..., ..., ...] set
+   * @param ctx - the set expression context
+   * @returns the array of values
    */
   visitSetExpression(ctx: SetExpressionContext): value[] {
     return ctx.children.filter((_i, id) => id % 2).map(c => this.visit(c)) as unknown as value[];
@@ -230,6 +246,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Visit a LIKE expression (e.g. `field LIKE '%pattern_'`)
+   * @param ctx - the LIKE expression context
+   * @returns the comparison expression
    */
   visitLikeExpression(ctx: LikeExpressionContext) {
     const [left, _, right] = ctx.children;
@@ -239,6 +257,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Map the a IN ['b','c']
+   * @param ctx - the IN expression context
+   * @returns the comparison expression
    */
   visitInExpression(ctx: InExpressionContext) {
     const [left, _, right] = ctx.children;
@@ -248,6 +268,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Map the a CONTAINS 'b'
+   * @param ctx - the CONTAINS expression context
+   * @returns the comparison expression
    */
   visitContainsExpression(ctx: ContainsExpressionContext) {
     const [left, _, right] = ctx.children;
@@ -260,6 +282,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    *
    * By default the parser is doing a OR (b OR (c OR d)) creating 3 depth expressions
    * This visitor simplify to a OR b OR c OR d with only one Expression
+   * @param ctx - the OR logic expression context
+   * @returns the flattened OrExpression
    */
   visitOrLogicExpression(ctx: OrLogicExpressionContext) {
     return new OrExpression(this.getComparison(ctx).map(c => this.visit(c) as unknown as Expression));
@@ -267,6 +291,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Read a string literal, stripping the surrounding single or double quotes
+   * @param ctx - the string literal context
+   * @returns the unquoted string value
    */
   visitStringLiteral(ctx: StringLiteralContext): string {
     return ctx.text.substring(1, ctx.text.length - 1);
@@ -274,6 +300,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Read the boolean literal
+   * @param ctx - the boolean literal context
+   * @returns the boolean value
    */
   visitBooleanLiteral(ctx: BooleanLiteralContext): boolean {
     return "TRUE" === ctx.text;
@@ -281,6 +309,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
 
   /**
    * Read the number literal
+   * @param ctx - the integer literal context
+   * @returns the parsed integer value
    */
   visitIntegerLiteral(ctx: IntegerLiteralContext): number {
     return parseInt(ctx.text);
@@ -423,7 +453,7 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
    * Set the value of the attribute based on the assignment
    *
    * If used as a Set expression
-   * @param target
+   * @param target - the object to assign to
    */
   setAttributeValue(target: any) {
     // Avoid alteration of prototype for security reason
@@ -478,6 +508,8 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
    * Serialize a value to its WebdaQL string representation
    *
    * Strings are double-quoted, booleans are uppercased, arrays are bracket-wrapped.
+   * @param value - the value to serialize
+   * @returns the serialized string
    */
   toStringValue(value: value | value[]): string {
     if (Array.isArray(value)) {
@@ -494,6 +526,7 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
 
   /**
    * Allow subclass to create different display
+   * @returns the attribute string
    */
   toStringAttribute() {
     return this.attribute.join(".");
@@ -501,6 +534,7 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
 
   /**
    * Allow subclass to create different display
+   * @returns the operator string
    */
   toStringOperator() {
     return this.operator;
@@ -656,6 +690,7 @@ export class QueryValidator {
 
   /**
    * Get parsed OFFSET continuation token, or empty string if none
+   * @returns the offset token
    */
   getOffset(): string {
     return this.builder.getOffset() || "";
@@ -665,6 +700,7 @@ export class QueryValidator {
    * Check whether the query has a non-empty filter condition
    *
    * An empty AND expression (no children) is considered to have no condition.
+   * @returns true if there is a filter condition
    */
   hasCondition() {
     const filter = this.query.filter;
@@ -679,6 +715,7 @@ export class QueryValidator {
    * Reconstruct the query string from the parsed AST
    *
    * Includes filter, ORDER BY, LIMIT, and OFFSET clauses.
+   * @returns the reconstructed query string
    */
   toString() {
     let res = this.query.filter.toString();
@@ -737,6 +774,7 @@ export class QueryValidator {
 
   /**
    * Get parsed LIMIT value, defaulting to 1000
+   * @returns the limit value
    */
   getLimit(): number {
     return this.builder.getLimit() || 1000;
@@ -744,6 +782,7 @@ export class QueryValidator {
 
   /**
    * Get the filter expression (without LIMIT / OFFSET / ORDER BY)
+   * @returns the filter expression
    */
   getExpression(): Expression {
     return this.query.filter;
@@ -751,6 +790,7 @@ export class QueryValidator {
 
   /**
    * Retrieve the full parsed query including filter, limit, offset, and orderBy
+   * @returns the full query object
    */
   getQuery(): Query {
     return {
@@ -762,8 +802,8 @@ export class QueryValidator {
 
   /**
    * Verify if a target fit the expression
-   * @param target
-   * @returns
+   * @param target - the object to evaluate
+   * @returns true if the target matches
    */
   eval(target: any) {
     return this.query.filter.eval(target);
@@ -771,8 +811,8 @@ export class QueryValidator {
 
   /**
    * Display parse tree back as query
-   * @param tree
-   * @returns
+   * @param tree - the parse tree to display
+   * @returns the query string representation
    */
   displayTree(tree: ParseTree = this.tree): string {
     let res = "";
@@ -878,9 +918,9 @@ export class PartialValidator extends QueryValidator {
 
   /**
    * Eval the query
-   * @param target
-   * @param partial
-   * @returns
+   * @param target - the object to evaluate
+   * @param partial - whether to use partial matching
+   * @returns true if the target matches
    */
   eval(target: any, partial: boolean = true): boolean {
     this.builder.setPartial(partial);
@@ -890,7 +930,7 @@ export class PartialValidator extends QueryValidator {
 
   /**
    * Return if the result ignored some fields
-   * @returns
+   * @returns true if some fields were skipped
    */
   wasPartialMatch(): boolean {
     return this.builder.partialMatch;
@@ -927,8 +967,8 @@ export class PartialComparisonExpression<
    * Override the eval to check if the attribute is present
    * if not and we are in partial mode, return true
    *
-   * @param target
-   * @returns
+   * @param target - the object to evaluate
+   * @returns true if the target matches
    */
   eval(target: any): boolean {
     if (this.builder.partial) {
@@ -960,6 +1000,7 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
 
   /**
    * Enable or disable partial evaluation mode
+   * @param partial - whether to enable partial mode
    */
   setPartial(partial: boolean) {
     this.partial = partial;
@@ -967,6 +1008,7 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
 
   /**
    * Set the partial match flag (reset before each evaluation)
+   * @param partial - the partial match flag value
    */
   setPartialMatch(partial: boolean) {
     this.partialMatch = partial;
@@ -974,6 +1016,8 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
 
   /**
    * Visit a LIKE expression, returning a PartialComparisonExpression
+   * @param ctx - the LIKE expression context
+   * @returns the partial comparison expression
    */
   visitLikeExpression(ctx: any) {
     const [left, _, right] = ctx.children;
@@ -983,6 +1027,8 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
 
   /**
    * Visit a binary comparison, returning a PartialComparisonExpression
+   * @param ctx - the binary comparison context
+   * @returns the partial comparison expression
    */
   visitBinaryComparisonExpression(ctx: any) {
     const [left, op, right] = ctx.children;
@@ -992,6 +1038,8 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
 
   /**
    * Visit an IN expression, returning a PartialComparisonExpression
+   * @param ctx - the IN expression context
+   * @returns the partial comparison expression
    */
   visitInExpression(ctx: any) {
     const [left, _, right] = ctx.children;
@@ -1001,6 +1049,8 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
 
   /**
    * Visit a CONTAINS expression, returning a PartialComparisonExpression
+   * @param ctx - the CONTAINS expression context
+   * @returns the partial comparison expression
    */
   visitContainsExpression(ctx: any) {
     const [left, _, right] = ctx.children;
@@ -1011,8 +1061,8 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
 
 /**
  * Remove artifact from sanitize-html inside query
- * @param query
- * @returns
+ * @param query - the query string to unsanitize
+ * @returns the cleaned query string
  */
 export function unsanitize(query: string): string {
   return query.replace(/&lt;/g, "<").replace(/&gt;/g, ">");
@@ -1020,8 +1070,8 @@ export function unsanitize(query: string): string {
 
 /**
  * Parse a query string into a Query object
- * @param query
- * @returns
+ * @param query - the query string to parse
+ * @returns the parsed Query object
  */
 export function parse(query: string): Query {
   return new QueryValidator(query).getQuery();

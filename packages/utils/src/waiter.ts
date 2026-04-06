@@ -272,7 +272,11 @@ export class CancelableLoopPromise extends Promise<void> {
     CancelablePromise.registerInteruptableProcess(this);
   }
 
-  /** Return plain Promise for derived methods like `then` and `catch`. */
+  /**
+   * Return plain Promise for derived methods like `then` and `catch`.
+   *
+   * @returns the Promise constructor
+   */
   static get [Symbol.species]() {
     return Promise;
   }

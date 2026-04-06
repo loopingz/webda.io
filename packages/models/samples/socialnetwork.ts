@@ -8,12 +8,18 @@ class User extends UuidModel {
   comments: ModelRelated<Comment, "user">;
   preferences: ModelRelated<Preferences, "user">;
 
-  /** Get pending friendship requests addressed to this user. */
+  /**
+   * Get pending friendship requests addressed to this user.
+   * @returns pending friendship requests
+   */
   get pendingFriendRequest() {
     return this.friendships.query("status = 'pending' AND invitedBy = ?");
   }
 
-  /** Get accepted friendships for this user. */
+  /**
+   * Get accepted friendships for this user.
+   * @returns accepted friendships
+   */
   get friends() {
     return this.friendships.query("status = 'accepted'");
   }

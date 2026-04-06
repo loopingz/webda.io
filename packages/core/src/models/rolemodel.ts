@@ -7,12 +7,19 @@ import { useContext } from "../contexts/execution.js";
 abstract class RoleModel extends Model {
   abstract getRolesMap(): { [key: string]: string };
 
-  /** Whether actions without an explicit role mapping are allowed */
+  /**
+   * Whether actions without an explicit role mapping are allowed
+   * @returns true if the condition is met
+   */
   isPermissive(): boolean {
     return false;
   }
 
-  /** Get the roles for the current user, caching them in the session */
+  /**
+   * Get the roles for the current user, caching them in the session
+   * @param ctx - the operation context
+   * @returns the result
+   */
   async getRoles(ctx: IOperationContext) {
     if (!ctx.getCurrentUserId()) {
       throw new WebdaError.Forbidden("No user");
@@ -27,7 +34,12 @@ abstract class RoleModel extends Model {
     return ctx.getSession().roles;
   }
 
-  /** Check if the user has the required role for the given action */
+  /**
+   * Check if the user has the required role for the given action
+   * @param context - the execution context
+   * @param action - the action to check
+   * @returns the result
+   */
   async canAct(context: IOperationContext, action: string): Promise<string | boolean> {
     // If this action doesn't require role
     if (!this.getRolesMap()[action]) {

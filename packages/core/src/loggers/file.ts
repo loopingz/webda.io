@@ -18,7 +18,7 @@ export class FileLoggerService<
   workoutLogger: FileLogger;
   /**
    *
-   * @returns
+   * @returns the result
    */
   resolve() {
     if (this.parameters.file === undefined) {

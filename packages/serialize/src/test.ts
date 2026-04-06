@@ -8,15 +8,29 @@ class MFA {
   constructor(secret: string = "") {
     this.secret = secret;
   }
-  /** Convert to a data-transfer object indicating whether MFA is enabled. */
+  /**
+   * Convert to a data-transfer object indicating whether MFA is enabled.
+   *
+   * @returns the DTO with enabled flag
+   */
   toDTO() {
     return {enabled: this.secret !== ""}
   }
-  /** Reconstruct an MFA from a DTO (no-op placeholder). */
+  /**
+   * Reconstruct an MFA from a DTO (no-op placeholder).
+   *
+   * @param dto - the DTO to reconstruct from
+   */
   static fromDTO(dto: never): void {
     
   }
-  /** Reconstruct an MFA instance from serialized data. */
+  /**
+   * Reconstruct an MFA instance from serialized data.
+   *
+   * @param data - the serialized data
+   * @param data.secret - the MFA secret
+   * @returns the reconstructed MFA instance
+   */
   static deserialize(data: {secret: string}): MFA {
     return new MFA(data.secret);
   }
@@ -43,13 +57,23 @@ class AClass {
   date: Date = new Date();
   mfa: MFA = new MFA();
 
-  /** Serialize this instance to a JSON string using the global context. */
+  /**
+   * Serialize this instance to a JSON string using the global context.
+   *
+   * @returns the JSON string
+   */
   serialize() {
     const data = SerializerContext.globalContext.serializeRaw(this);
     return JSON.stringify(data.value);
   }
 
-  /** Deserialize a JSON string or plain object into a class instance, restoring typed fields. */
+  /**
+   * Deserialize a JSON string or plain object into a class instance, restoring typed fields.
+   *
+   * @param value - JSON string or plain object to deserialize
+   * @param instance - optional existing instance to populate
+   * @returns the deserialized class instance
+   */
   static deserialize<T extends WithFields>(this: T, value: string | Record<string, any> = {}, instance?: InstanceType<T>): InstanceType<T> {
     let data: any = value;
     if (typeof value === "string") {

@@ -9,9 +9,9 @@ import { useApplication } from "../application/hooks.js";
  * ```
  * It requires more security checks
  *
- * @param templateString
- * @param replacements
- * @returns
+ * @param templateString - the template string
+ * @param replacements - the replacement values
+ * @returns the result
  */
 function stringParameter(templateString: string, replacements: any = {}) {
   // Optimization if no parameter is found just skip the costy function
@@ -78,6 +78,7 @@ function stringParameter(templateString: string, replacements: any = {}) {
  *
  * @param object a duplicated object with replacement done
  * @param replacements additional replacements to run
+ * @returns the result
  */
 export function templateVariables(object: any, replacements: any = {}): any {
   replacements = { ...replacements, ...useApplication().getProjectInfo(), now: Date.now() };

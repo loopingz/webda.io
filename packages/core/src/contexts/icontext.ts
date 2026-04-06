@@ -36,7 +36,10 @@ export abstract class Context {
    */
   protected flushed: boolean = false;
 
-  /** Whether this is the global (non-request-scoped) context */
+  /**
+   * Whether this is the global (non-request-scoped) context
+   * @returns true if the condition is met
+   */
   isGlobalContext(): boolean {
     return false;
   }
@@ -48,7 +51,7 @@ export abstract class Context {
 
   /**
    * Register a promise with the context
-   * @param promise
+   * @param promise - the promise to add
    */
   registerPromise(promise) {
     this._promises.push(promise);
@@ -65,6 +68,7 @@ export abstract class Context {
    *
    * @param name to add
    * @param extension object to store
+   * @returns this for chaining
    */
   public setExtension(name: string, extension: any): this {
     this.extensions[name] = extension;
@@ -87,13 +91,15 @@ export abstract class Context {
   /**
    * Can be used to init the context if needed
    * Reading from the input or reaching to a db
-   * @returns
+   * @returns this for chaining
    */
   async init(): Promise<this> {
     return this;
   }
   /**
    * Set a header in the response
+   * @param name - the name to use
+   * @param value - the value to set
    */
   setHeader(name: string, value: string | number | string[]) {
     if (this.flushed) {
@@ -105,6 +111,7 @@ export abstract class Context {
   /**
    * For easier compatibility with WebContext
    * On OperationContext this call is simply ignored
+   * @param _code - the status code
    */
   writeHead(_code: number, headers: { [key: string]: string | number | string[] }) {
     // Do nothing
@@ -115,6 +122,7 @@ export abstract class Context {
 
   /**
    * Get current response headers
+   * @returns the result
    */
   getResponseHeaders(): any {
     return this.responseHeaders;
@@ -135,6 +143,8 @@ export abstract class Context {
    * Pipeline streams into the output stream
    *
    * @see https://nodejs.org/api/stream.html#streampipelinestreams-options
+   * @param stream1 - the first stream
+   * @param streams - additional streams
    */
   async pipeline(
     stream1: NodeJS.ReadableStream,
@@ -169,8 +179,9 @@ export abstract class IOperationContext<Input = any, Parameters = any, Output = 
   abstract getRawInput(limit?: number): Promise<any>;
   /**
    * Read one specific parameter
-   * @param name
-   * @returns
+   * @param name - the name to use
+   * @returns the result
+   * @param defaultValue - the default value
    * @deprecated Use getParameters
    */
   parameter(name: string, defaultValue?: any): any {
@@ -248,7 +259,7 @@ let contextUpdate = false;
 
 /**
  * Set the context update
- * @param value
+ * @param value - the value to set
  */
 export function setContextUpdate(value: boolean) {
   contextUpdate = value;
@@ -256,7 +267,7 @@ export function setContextUpdate(value: boolean) {
 
 /**
  * Who can update the context
- * @returns
+ * @returns true if the condition is met
  */
 export function canUpdateContext(): boolean {
   return contextUpdate;
@@ -298,8 +309,8 @@ export type IWebContext = IOperationContext & {
 
 /**
  * Return the gather information from the repository
- * @param obj
- * @returns
+ * @param obj - the target object
+ * @returns the result
  */
 export function isWebContext(obj: any): obj is IWebContext {
   return obj.getHttpContext !== undefined && obj.cookie !== undefined;

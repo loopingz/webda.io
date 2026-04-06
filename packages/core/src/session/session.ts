@@ -26,8 +26,8 @@ export class Session {
 
   /**
    * Login
-   * @param userId
-   * @param identUsed
+   * @param userId - the user identifier
+   * @param identUsed - the identity used
    */
   login(userId: string, identUsed: string) {
     this.userId = userId;
@@ -44,6 +44,7 @@ export class Session {
 
   /**
    * If session is authenticated
+   * @returns true if the condition is met
    */
   isLogged(): boolean {
     return this.userId !== undefined;
@@ -51,7 +52,7 @@ export class Session {
 
   /**
    * Session is dirty and requires save
-   * @returns
+   * @returns true if the condition is met
    */
   isDirty(): boolean {
     return this.changed;
@@ -59,7 +60,7 @@ export class Session {
 
   /**
    * Get the proxy to be able to track modification
-   * @returns
+   * @returns this for chaining
    */
   getProxy(): this {
     const proxyHandler = {

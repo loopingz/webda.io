@@ -8,7 +8,7 @@ import { LoggerServiceParameters } from "./params.js";
 export class LoggerService<T extends LoggerServiceParameters = LoggerServiceParameters> extends Service<T> {
   /**
    * Ensure that if addLogProducerLine is set, we set it on the output
-   * @returns
+   * @returns the result
    */
   resolve() {
     if (this.parameters.addLogProducerLine) {

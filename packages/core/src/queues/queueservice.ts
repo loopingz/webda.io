@@ -85,6 +85,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
 
   /**
    * Create the delayer
+   * @returns this for chaining
    */
   public resolve(): this {
     super.resolve();
@@ -95,7 +96,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
   /**
    * Receive and process message from the queue
    *
-   * @returns
+   * @returns the result
    */
   protected async consumerReceiveMessage(): Promise<{
     speed: number;
@@ -148,7 +149,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
    *
    * SQS for example will return this.parameters.maxConsumers / 10
    *
-   * @returns
+   * @returns the result number
    */
   getMaxConsumers(): number {
     return this.parameters.maxConsumers;
@@ -157,8 +158,9 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
   /**
    * Work a queue calling the callback with every Event received
    * If the callback is called without exception the `deleteMessage` is called
-   * @param callback
-   * @param eventPrototype
+   * @param callback - the callback function
+   * @param eventPrototype - the event prototype
+   * @returns the result
    */
   consume(callback: (event: T) => Promise<void>, eventPrototype?: { new (): T }): CancelablePromise {
     this.failedIterations = 0;

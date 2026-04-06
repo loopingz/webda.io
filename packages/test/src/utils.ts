@@ -2,8 +2,8 @@
  * Consume an async iterator and return an array
  *
  * Useful for testing but should not be used in production
- * @param iterator
- * @returns
+ * @param iterator - the async iterable to consume
+ * @returns array of collected items
  */
 export async function consumeAsyncIterator<T>(iterator: AsyncIterable<T>): Promise<T[]> {
   const res = [];
@@ -18,8 +18,8 @@ export async function consumeAsyncIterator<T>(iterator: AsyncIterable<T>): Promi
  * Consume an iterator and return an array
  *
  * Useful for testing but should not be used in production
- * @param iterator
- * @returns
+ * @param iterator - the iterable to consume
+ * @returns array of collected items
  */
 export function consumeIterator<T>(iterator: Iterable<T>): T[] {
   const res = [];

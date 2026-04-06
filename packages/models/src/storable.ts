@@ -103,8 +103,8 @@ export interface ModelClass<S extends Storable = Storable> {
 
 /**
  * Check if the object is a Model class
- * @param object
- * @returns
+ * @param object - the value to check
+ * @returns true if it is a ModelClass
  */
 export function isModelClass(object: any): object is ModelClass {
   return (
@@ -192,9 +192,9 @@ export type PrimaryKeyAttributes<T extends Storable<any, any>> = keyof PrimaryKe
 
 /**
  * Compare two primary keys for equality
- * @param a
- * @param b
- * @returns
+ * @param a - the first primary key or storable
+ * @param b - the second primary key or storable
+ * @returns true if the keys are equal
  */
 export function PrimaryKeyEquals(a: PrimaryKeyType<any> | Storable, b: PrimaryKeyType<any> | Storable): boolean {
   if (isStorable(a)) {
@@ -216,8 +216,8 @@ export function PrimaryKeyEquals(a: PrimaryKeyType<any> | Storable, b: PrimaryKe
 
 /**
  * Check if the object is a Storable object
- * @param object
- * @returns
+ * @param object - the value to check
+ * @returns true if it is a Storable
  */
 export function isStorable<T = any>(object: any): object is Storable<T> {
   return typeof object.getPrimaryKey === "function" && Array.isArray(object[WEBDA_PRIMARY_KEY]);

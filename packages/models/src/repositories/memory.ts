@@ -141,8 +141,8 @@ export class MemoryRepository<
    *
    * This method is used to allow switching between different serialization methods
    *
-   * @param item
-   * @returns
+   * @param item - the serialized string
+   * @returns the deserialized model instance
    */
   deserialize(item: string): InstanceType<T> {
     return deserialize(item) as InstanceType<T>;
@@ -150,8 +150,8 @@ export class MemoryRepository<
 
   /**
    * Add query support
-   * @param query
-   * @returns
+   * @param query - the query string or parsed query
+   * @returns the query results with optional continuation token
    */
   async query(query: string | Query): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
     if (typeof query === "string") {
@@ -164,10 +164,10 @@ export class MemoryRepository<
   /**
    * Allow to simulate a find on a list of uuids
    * It is static to be reusable by other repository like FileRepository
-   * @param query
-   * @param uuids
-   * @param repository
-   * @returns
+   * @param query - the parsed query
+   * @param uuids - the list of UIDs to search
+   * @param repository - the repository to fetch objects from
+   * @returns the query results with optional continuation token
    */
   static async simulateFind<T extends ModelClass>(
     query: Query,
@@ -235,8 +235,8 @@ export class MemoryRepository<
   }
 
   /**
-   * Add iterater support
-   * @param query
+   * Add iterator support
+   * @param query - the query string
    */
   async *iterate(query: string): AsyncGenerator<InstanceType<T>, any, any> {
     WebdaQL ??= await import("@webda/ql");

@@ -12,7 +12,11 @@ import {
 } from "ts-morph";
 import { upsertMethod } from "./utils";
 
-/** Check whether a type reference points to a class with an explicit constructor or a built-in constructible type */
+/**
+ * Check whether a type reference points to a class with an explicit constructor or a built-in constructible type
+ * @param typeReference - the type reference node
+ * @returns true if the type has a constructor
+ */
 function hasConstructor(typeReference: TypeReferenceNode) {
   const symbol = typeReference.getType().getSymbol();
   const typeName = typeReference.getText();
@@ -23,7 +27,11 @@ function hasConstructor(typeReference: TypeReferenceNode) {
   return isClassWithConstructor || isBuiltInConstructor;
 }
 
-/** Generate or update deserialize() methods on CoreModel subclasses to handle typed property assignments */
+/**
+ * Generate or update deserialize() methods on CoreModel subclasses to handle typed property assignments
+ * @param sourceFile - the source file to process
+ * @param typeChecker - the type checker
+ */
 export function deserializer(sourceFile: SourceFile, typeChecker: TypeChecker) {
   upsertMethod(sourceFile, "CoreModel", "deserialize", (modelClass: ClassDeclaration, method: MethodDeclaration) => {
     const statements = method?.getStatements() || [];

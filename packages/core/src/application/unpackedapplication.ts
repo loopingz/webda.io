@@ -55,7 +55,7 @@ export class UnpackedApplication extends Application {
 
   /**
    * Ensure default configuration after load
-   * @returns
+   * @returns the result
    */
   async load() {
     await super.load();
@@ -73,7 +73,7 @@ export class UnpackedApplication extends Application {
    *
    * Might want to have only this in unpackaged application as Application should
    * have a perfectly valid configuration
-   * @param configuration
+   * @param configuration - the configuration
    */
   ensureDefaultConfiguration(configuration: Configuration) {
     configuration.services ??= {};
@@ -135,8 +135,8 @@ export class UnpackedApplication extends Application {
    *
    * webda.config.json and complete the cachedModule
    *
-   * @param file
-   * @returns
+   * @param file - the file path
+   * @returns the result
    */
   async loadConfiguration(file: string): Promise<void> {
     if (!file && this.baseConfiguration) {
@@ -165,8 +165,8 @@ export class UnpackedApplication extends Application {
    * Add Moddas, Models and Deployers definitions
    * It also add the project metadata
    *
-   * @param configuration
-   * @returns
+   * @param configuration - the configuration
+   * @returns the result
    */
   completeConfiguration(configuration: Configuration): Configuration {
     // Only one level of includes is permitted
@@ -190,6 +190,8 @@ export class UnpackedApplication extends Application {
   }
 
   /**
+   * @param _name - the name to use
+   * @param _version - the version string
    * @returns empty git information
    */
   getGitInformation(_name?: string, _version?: string): GitInformation {
@@ -228,6 +230,7 @@ export class UnpackedApplication extends Application {
 
   /**
    * Check package.json
+   * @returns the result
    */
   loadProjectInformation(): ProjectInformation {
     const info: ProjectInformation = {
@@ -279,8 +282,8 @@ export class UnpackedApplication extends Application {
   /**
    * Search the node_modules structure for webda.module.json files
    *
-   * @param path
-   * @returns
+   * @param path - the path
+   * @returns the result
    */
   @ProcessCache()
   static async findModulesFiles<T>(this: T, path: string): Promise<string[]> {
@@ -350,6 +353,8 @@ export class UnpackedApplication extends Application {
    * It will compile module
    * Generate the current module file
    * Load any imported webda.module.json
+   * @param module - the module to load
+   * @returns the list of results
    */
   async findModules(module: CachedModule): Promise<string[]> {
     const appPath = this.getPath();
@@ -383,6 +388,8 @@ export class UnpackedApplication extends Application {
 
   /**
    * Only allow local and core module and sample-app
+   * @param _filename - the filename
+   * @returns true if the condition is met
    */
   filterModule(_filename: string): boolean {
     return true;
@@ -393,7 +400,7 @@ export class UnpackedApplication extends Application {
    * Resolve the linked file to current application
    *
    * @param moduleFile to load
-   * @returns
+   * @returns the result
    */
   loadWebdaModule(moduleFile: string): CachedModule {
     const module = FileUtils.load(moduleFile);
@@ -430,7 +437,9 @@ export class UnpackedApplication extends Application {
   /**
    * Merge all modules into one cached module
    *
-   * @param module
+   * @param module - the module to load
+   * @param configuration - the configuration
+   * @returns the result
    */
   async mergeModules(configuration: Configuration) {
     const module: CachedModule = configuration.cachedModules;

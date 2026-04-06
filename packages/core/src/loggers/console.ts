@@ -17,7 +17,10 @@ export class ConsoleLoggerService<
   T extends ConsoleLoggerServiceParameters = ConsoleLoggerServiceParameters
 > extends LoggerService<T> {
   workoutLogger: ConsoleLogger;
-  /** Resolve dependencies and create the underlying ConsoleLogger */
+  /**
+   * Resolve dependencies and create the underlying ConsoleLogger
+   * @returns the result
+   */
   resolve() {
     this.workoutLogger = new ConsoleLogger(useWorkerOutput(), this.parameters.logLevel, this.parameters.format);
     return super.resolve();

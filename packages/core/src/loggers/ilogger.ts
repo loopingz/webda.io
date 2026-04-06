@@ -4,7 +4,7 @@ let workerOutput: WorkerOutput;
 
 /**
  * Get the worker output
- * @returns
+ * @returns the result
  */
 export function useWorkerOutput(): WorkerOutput {
   workerOutput ??= new WorkerOutput();
@@ -13,7 +13,7 @@ export function useWorkerOutput(): WorkerOutput {
 
 /**
  * Set the worker output
- * @param output
+ * @param output - the output destination
  */
 export function setWorkerOutput(output: WorkerOutput) {
   workerOutput = output;
@@ -31,7 +31,10 @@ export class Logger implements WorkoutLogger {
     this._output = output;
   }
 
-  /** Get the worker output, falling back to the global output */
+  /**
+   * Get the worker output, falling back to the global output
+   * @returns the result
+   */
   get output(): WorkerOutput {
     return this._output || useWorkerOutput();
   }
@@ -41,12 +44,21 @@ export class Logger implements WorkoutLogger {
     this.context = context;
   }
 
-  /** Log a message at the specified level with the default context */
+  /**
+   * Log a message at the specified level with the default context
+   * @param level - the log level
+   * @param args - additional arguments
+   */
   log(level: WorkerLogLevel, ...args) {
     this.logWithContext(level, this.context, ...args);
   }
 
-  /** Log a message at the specified level with a custom context merged with defaults */
+  /**
+   * Log a message at the specified level with a custom context merged with defaults
+   * @param level - the log level
+   * @param context - the execution context
+   * @param args - additional arguments
+   */
   logWithContext(level: WorkerLogLevel, context: any, ...args) {
     if (!context.class) {
       context.class = this.context.class;
@@ -54,7 +66,10 @@ export class Logger implements WorkoutLogger {
     this.output?.logWithContext(level, { ...this.context, ...context }, ...args);
   }
 
-  /** Open a named log group */
+  /**
+   * Open a named log group
+   * @param name - the name to use
+   */
   logGroupOpen(name: string) {
     this.output.openGroup(name);
   }
@@ -64,21 +79,38 @@ export class Logger implements WorkoutLogger {
     this.output.closeGroup();
   }
 
-  /** Start a new progress tracker */
+  /**
+   * Start a new progress tracker
+   * @param uid - the unique identifier
+   * @param total - the total count
+   * @param title - the title
+   */
   logProgressStart(uid: string, total: number, title: string = undefined) {
     this.output.startProgress(uid, total, title);
   }
 
-  /** Increment the progress tracker by a given amount */
+  /**
+   * Increment the progress tracker by a given amount
+   * @param inc - the increment value
+   * @param uid - the unique identifier
+   */
   logProgressIncrement(inc: number = 1, uid: string = undefined) {
     this.output.incrementProgress(inc, uid);
   }
-  /** Update the progress tracker to a specific value */
+  /**
+   * Update the progress tracker to a specific value
+   * @param current - the current value
+   * @param uid - the unique identifier
+   * @param title - the title
+   */
   logProgressUpdate(current: number, uid: string = undefined, title: string = undefined) {
     this.output.updateProgress(current, uid, title);
   }
 
-  /** Set the current log output title */
+  /**
+   * Set the current log output title
+   * @param title - the title
+   */
   logTitle(title: string) {
     this.output.setTitle(title);
   }

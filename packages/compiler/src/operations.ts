@@ -52,6 +52,10 @@ export function generateOperations(mod: WebdaModule): OperationsExportFormat {
 
 /**
  * Process operations for a single model
+ * @param mod - the Webda module
+ * @param modelKey - the model identifier
+ * @param model - the model metadata
+ * @param result - the result to populate
  */
 function processModelOperations(
   mod: WebdaModule,
@@ -148,6 +152,8 @@ function processModelOperations(
  *
  * Operations on services/beans are detected by schemas following the pattern:
  * {ClassName}.{methodName}.input / {ClassName}.{methodName}.output
+ * @param mod - the Webda module
+ * @param result - the result to populate
  */
 function processServiceOperations(mod: WebdaModule, result: OperationsExportFormat) {
   if (!mod.schemas) {
@@ -207,6 +213,9 @@ function processServiceOperations(mod: WebdaModule, result: OperationsExportForm
 
 /**
  * Add an operation to the result
+ * @param result - the operations result
+ * @param id - the operation identifier
+ * @param entry - the operation entry data
  */
 function addOperation(result: OperationsExportFormat, id: string, entry: Partial<OperationEntry>) {
   result.operations[id] = {
@@ -218,6 +227,9 @@ function addOperation(result: OperationsExportFormat, id: string, entry: Partial
 
 /**
  * Add model schema to the result if available
+ * @param mod - the Webda module
+ * @param modelKey - the model identifier
+ * @param result - the operations result
  */
 function addModelSchema(mod: WebdaModule, modelKey: string, result: OperationsExportFormat) {
   const model = mod.models?.[modelKey];

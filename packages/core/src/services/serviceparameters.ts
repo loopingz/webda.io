@@ -16,7 +16,11 @@ export class ServiceParameters {
     callback: (params: any) => void;
   }[] = [];
 
-  /** Load raw parameters by assigning them onto this instance */
+  /**
+   * Load raw parameters by assigning them onto this instance
+   * @param params - the service parameters
+   * @returns this for chaining
+   */
   load(params: any = {}): this {
     Object.assign(this, params);
     return this;
@@ -24,9 +28,9 @@ export class ServiceParameters {
 
   /**
    * Update parameters and call watchers if a parameter was changed
-   * @param params
-   * @param delta
-   * @returns
+   * @param params - the service parameters
+   * @param delta - the delta
+   * @returns this for chaining
    */
   update(params: any = {}, delta: any): this {
     this.load(params);
@@ -55,8 +59,8 @@ export class ServiceParameters {
 
   /**
    * Watch for changes on the parameters and call watchers when a parameter is changed
-   * @param callback
-   * @returns
+   * @param callback - the callback function
+   * @returns this for chaining
    */
   with(callback: (params: this) => void): this {
     const watchers = [];

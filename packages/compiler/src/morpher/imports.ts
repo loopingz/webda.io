@@ -2,7 +2,8 @@ import { SourceFile, ts } from "ts-morph";
 
 /**
  * Replace all packages according to the constant replacePackages
- * @param sourceFile
+ * @param sourceFile - the source file to update
+ * @param replacePackages - map of package import replacements
  */
 export function updateImports(sourceFile: SourceFile, replacePackages: { [key: string]: string }) {
   const moveImports = {};

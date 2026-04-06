@@ -58,6 +58,9 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
 
   /**
    * Return file
+   *
+   * @param uid - the message unique identifier
+   * @returns the file path
    */
   getFile(uid: string): string {
     return join(this.parameters.folder, `${uid}.json`);

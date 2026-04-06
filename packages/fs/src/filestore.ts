@@ -39,30 +39,56 @@ class FileBackedMap extends Map<string, string> {
     super();
   }
 
-  /** Build the full filesystem path for a given key. */
+  /**
+   * Build the full filesystem path for a given key.
+   *
+   * @param key - the storage key
+   * @returns the full file path
+   */
   private filePath(key: string): string {
     return path.join(this.folder, `${key}${this.extension}`);
   }
 
-  /** Check whether a JSON file exists for the given key. */
+  /**
+   * Check whether a JSON file exists for the given key.
+   *
+   * @param key - the storage key
+   * @returns true if the file exists
+   */
   has(key: string): boolean {
     return fs.existsSync(this.filePath(key));
   }
 
-  /** Read and return the JSON content for a key, or undefined if missing. */
+  /**
+   * Read and return the JSON content for a key, or undefined if missing.
+   *
+   * @param key - the storage key
+   * @returns the JSON content or undefined
+   */
   get(key: string): string | undefined {
     const p = this.filePath(key);
     if (!fs.existsSync(p)) return undefined;
     return fs.readFileSync(p, "utf-8");
   }
 
-  /** Write a JSON string value to the file for the given key. */
+  /**
+   * Write a JSON string value to the file for the given key.
+   *
+   * @param key - the storage key
+   * @param value - the JSON string to write
+   * @returns this map for chaining
+   */
   set(key: string, value: string): this {
     fs.writeFileSync(this.filePath(key), value, "utf-8");
     return this;
   }
 
-  /** Remove the JSON file for the given key, returning true if it existed. */
+  /**
+   * Remove the JSON file for the given key, returning true if it existed.
+   *
+   * @param key - the storage key
+   * @returns true if the file was deleted
+   */
   delete(key: string): boolean {
     const p = this.filePath(key);
     if (!fs.existsSync(p)) return false;
@@ -81,7 +107,11 @@ class FileBackedMap extends Map<string, string> {
     }
   }
 
-  /** Iterate over all stored keys by listing JSON files in the folder. */
+  /**
+   * Iterate over all stored keys by listing JSON files in the folder.
+   *
+   * @returns an iterator of storage keys
+   */
   keys(): MapIterator<string> {
     if (!fs.existsSync(this.folder)) return [].values();
     const ext = this.extension;
@@ -92,7 +122,11 @@ class FileBackedMap extends Map<string, string> {
     return files.values();
   }
 
-  /** Iterate over all key-value pairs stored in the folder. */
+  /**
+   * Iterate over all key-value pairs stored in the folder.
+   *
+   * @returns an iterator of key-value pairs
+   */
   [Symbol.iterator](): MapIterator<[string, string]> {
     const entries = [...this.keys()].map(key => [key, this.get(key)!] as [string, string]);
     return entries.values();
@@ -116,6 +150,9 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
 
   /**
    * Load the parameters for a service
+   *
+   * @param params - raw parameter values
+   * @returns the loaded parameters
    */
   loadParameters(params: any): K {
     return <K>new FileStoreParameters().load(params);
@@ -133,6 +170,9 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
 
   /**
    * Get the file path of an object
+   *
+   * @param uid - the object unique identifier
+   * @returns the file path
    */
   file(uid) {
     return `${this.parameters.folder}/${uid}${FileStore.EXTENSION}`;
@@ -174,6 +214,10 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
 
   /**
    * Store in file the object
+   *
+   * @param uuid - the object unique identifier
+   * @param object - the object to persist
+   * @returns the persisted object
    */
   protected async persist(uuid: string, object: any) {
     fs.writeFileSync(this.file(uuid), JSON.stringify(object, undefined, this.parameters.beautify));
@@ -182,6 +226,11 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
 
   /**
    * Verify optimistic locking update condition
+   *
+   * @param uuid - the object unique identifier
+   * @param stored - the currently stored object
+   * @param writeConditionField - field to check for condition
+   * @param writeCondition - expected value of the field
    */
   protected checkUpdateCondition(uuid: string, stored: any, writeConditionField?: string, writeCondition?: any) {
     if (writeConditionField && stored[writeConditionField] !== writeCondition) {
@@ -191,6 +240,12 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
 
   /**
    * Verify collection item update condition
+   *
+   * @param stored - the currently stored object
+   * @param prop - the collection property name
+   * @param itemWriteConditionField - field to check on the item
+   * @param itemWriteCondition - expected value of the field
+   * @param index - index of the item in the collection
    */
   protected checkCollectionUpdateCondition(
     stored: any,

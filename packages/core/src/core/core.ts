@@ -403,7 +403,7 @@ export class Core implements ICore {
         this.log("WARN", `Cannot update type for service ${key}`);
         continue;
       }
-      newConfiguration[key] = (this.moddas[key].filterParameters || (p => p))(
+      newConfiguration[key] = (this.moddas[key]?.filterParameters || (p => p))(
         deepmerge(configuration.parameters, updates.parameters, configuration[key], updates.services[key])
       );
     }

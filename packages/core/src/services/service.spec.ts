@@ -12,6 +12,7 @@ import {
   useRouter,
   WebdaError
 } from "../index.js";
+import { existsSync, readFileSync, unlinkSync } from "node:fs";
 // Updated to use barrel index from test folder
 import { WebdaApplicationTest } from "../test/index.js";
 import { TestApplication } from "../test/objects.js";
@@ -428,5 +429,63 @@ class DiscoverFiltersTest extends WebdaApplicationTest {
     router.discoverFilters([service]);
     assert.strictEqual(router["_requestFilters"].length, reqBefore);
     assert.strictEqual(router["_requestCORSFilters"].length, corsBefore);
+  }
+}
+
+@suite
+class OpenAPICommandTest extends WebdaApplicationTest {
+  @test
+  async openapiToStdout() {
+    const router = useRouter();
+    const logs: string[] = [];
+    const origLog = console.log;
+    console.log = (...args: any[]) => logs.push(args.join(" "));
+    try {
+      router.openapi();
+    } finally {
+      console.log = origLog;
+    }
+    assert.strictEqual(logs.length, 1);
+    const doc = JSON.parse(logs[0]);
+    assert.strictEqual(doc.openapi, "3.0.3");
+    assert.ok(doc.paths);
+    assert.ok(doc.info);
+  }
+
+  @test
+  async openapiToFile() {
+    const router = useRouter();
+    const tmpFile = "/tmp/webda-openapi-test.json";
+    try {
+      router.openapi(tmpFile);
+      assert.ok(existsSync(tmpFile));
+      const doc = JSON.parse(readFileSync(tmpFile, "utf-8"));
+      assert.strictEqual(doc.openapi, "3.0.3");
+    } finally {
+      if (existsSync(tmpFile)) unlinkSync(tmpFile);
+    }
+  }
+
+  @test
+  async openapiIncludeHidden() {
+    const router = useRouter();
+    const logs: string[] = [];
+    const origLog = console.log;
+    console.log = (...args: any[]) => logs.push(args.join(" "));
+    try {
+      // Default: skip hidden
+      router.openapi();
+      const docDefault = JSON.parse(logs[0]);
+
+      logs.length = 0;
+      // Include hidden
+      router.openapi(undefined, true);
+      const docWithHidden = JSON.parse(logs[0]);
+
+      // With hidden should have at least as many paths
+      assert.ok(Object.keys(docWithHidden.paths).length >= Object.keys(docDefault.paths).length);
+    } finally {
+      console.log = origLog;
+    }
   }
 }

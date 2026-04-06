@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { resolveCapabilities } from "../bin/cli.js";
+import { ensureCommandServices, resolveCapabilities } from "../bin/cli.js";
 import { collectServiceCommands, executeServiceCommand } from "./servicecommands.js";
 
 @suite
@@ -381,5 +381,48 @@ class ResolveCapabilitiesTest {
     // Should not throw, just warn
     resolveCapabilities(app, ["unknown-cap"]);
     assert.deepStrictEqual(config.services, {});
+  }
+}
+
+@suite
+class EnsureCommandServicesTest {
+  @test
+  injectsMissingServices() {
+    const config = { services: {} as any };
+    const app = { getConfiguration: () => config } as any;
+    ensureCommandServices(app, [
+      { name: "Webda/HttpServer", method: "serve", type: "Webda/HttpServer" }
+    ]);
+    assert.strictEqual(config.services["Webda/HttpServer"].type, "Webda/HttpServer");
+  }
+
+  @test
+  skipsAlreadyConfigured() {
+    const config = { services: { MyServer: { type: "Webda/HttpServer" } } as any };
+    const app = { getConfiguration: () => config } as any;
+    ensureCommandServices(app, [
+      { name: "Webda/HttpServer", method: "serve", type: "Webda/HttpServer" }
+    ]);
+    assert.strictEqual(Object.keys(config.services).length, 1);
+  }
+
+  @test
+  skipsWhenShortNameMatches() {
+    const config = { services: { MyServer: { type: "HttpServer" } } as any };
+    const app = { getConfiguration: () => config } as any;
+    ensureCommandServices(app, [
+      { name: "Webda/HttpServer", method: "serve", type: "Webda/HttpServer" }
+    ]);
+    assert.strictEqual(Object.keys(config.services).length, 1);
+  }
+
+  @test
+  initializesServicesIfUndefined() {
+    const config = {} as any;
+    const app = { getConfiguration: () => config } as any;
+    ensureCommandServices(app, [
+      { name: "Webda/Router", method: "openapi", type: "Webda/Router" }
+    ]);
+    assert.strictEqual(config.services["Webda/Router"].type, "Webda/Router");
   }
 }

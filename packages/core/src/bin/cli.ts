@@ -504,6 +504,30 @@ function loadApplication(appPath: string): Application {
 }
 
 /**
+ * Ensure services that declare a command exist in the app configuration.
+ * If a service type is not already configured, it is injected with a generated name.
+ *
+ * @param app - The loaded Application
+ * @param services - Service targets from the command metadata
+ */
+export function ensureCommandServices(
+  app: Application,
+  services: import("../services/servicecommands.js").ServiceCommandTarget[]
+): void {
+  const appConfig = app.getConfiguration();
+  appConfig.services ??= {};
+  for (const svc of services) {
+    const hasProvider =
+      Object.values(appConfig.services).some(
+        (cfg: any) => cfg.type === svc.type || cfg.type === svc.type.split("/").pop()
+      ) || appConfig.services[svc.name];
+    if (!hasProvider) {
+      appConfig.services[svc.name] = { type: svc.type };
+    }
+  }
+}
+
+/**
  * Resolve required capabilities for a command, auto-injecting default providers
  * into the app config if not already configured.
  *
@@ -784,17 +808,7 @@ if (isMain) {
         const serviceFilter = matchedCommand.args.service?.split(",");
 
         // Ensure services required by this command exist in the configuration
-        const appConfig = app.getConfiguration();
-        appConfig.services ??= {};
-        for (const svc of cmdInfo.services) {
-          const hasProvider =
-            Object.values(appConfig.services).some(
-              (cfg: any) => cfg.type === svc.type || cfg.type === svc.type.split("/").pop()
-            ) || appConfig.services[svc.name];
-          if (!hasProvider) {
-            appConfig.services[svc.name] = { type: svc.type };
-          }
-        }
+        ensureCommandServices(app, cmdInfo.services);
 
         // Auto-inject capability providers required by this command
         resolveCapabilities(app, cmdInfo.requires);

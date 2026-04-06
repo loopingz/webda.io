@@ -1,12 +1,9 @@
 import { Service, ServiceParameters, useDynamicService, useCoreEvents, useRouter } from "@webda/core";
 import { Command } from "@webda/core";
-import { useLog } from "@webda/workout";
 import { createServer, IncomingMessage, ServerResponse, Server } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { RequestLog } from "./requestlog.js";
 import { getModels, getModel, getServices, getOperations, getRoutes, getConfig } from "./introspection.js";
-
-const log = useLog("DebugService");
 
 /**
  * Debug dashboard service that provides an HTTP API for introspection
@@ -32,8 +29,8 @@ export class DebugService extends Service {
    * Subscribe to core events to populate the request log.
    * @returns this for chaining
    */
-  async resolve(): Promise<this> {
-    await super.resolve();
+  resolve() {
+    super.resolve();
     this.subscribeToEvents();
     return this;
   }
@@ -63,7 +60,7 @@ export class DebugService extends Service {
         const start = this.timings.get(id);
         const duration = start ? Date.now() - start : 0;
         this.timings.delete(id);
-        const statusCode = ctx.getResponseCode?.() ?? 200;
+        const statusCode = ctx.statusCode ?? 200;
         this.requestLog.completeRequest(id, statusCode, duration);
       })
     );
@@ -101,12 +98,12 @@ export class DebugService extends Service {
     const httpServer = useDynamicService<any>("HttpServer");
     if (httpServer?.serve) {
       await httpServer.serve(undefined, servePort);
-      log("INFO", `Application server started on port ${servePort}`);
+      this.log("INFO", `Application server started on port ${servePort}`);
     }
 
     // Start the debug HTTP + WebSocket server
     await this.startDebugServer(port);
-    log("INFO", `Debug dashboard API listening on port ${port}`);
+    this.log("INFO", `Debug dashboard API listening on port ${port}`);
   }
 
   /**
@@ -176,7 +173,7 @@ export class DebugService extends Service {
         this.sendJson(res, { error: "Not found" }, 404);
       }
     } catch (err: any) {
-      log("ERROR", `Debug API error: ${err.message}`);
+      this.log("ERROR", `Debug API error: ${err.message}`);
       this.sendJson(res, { error: err.message || "Internal server error" }, 500);
     }
   }

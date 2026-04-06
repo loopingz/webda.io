@@ -1,4 +1,4 @@
-"use strict";
+
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getModels, getModel, getServices, getOperations, getRoutes, getConfig } from "./introspection.js";
@@ -25,13 +25,13 @@ const mockServices = {
   Router: {
     getName: () => "Router",
     getState: () => "running",
-    getParameters: () => ({ type: "Webda/Router" }),
+    parameters: { type: "Webda/Router" },
     getCapabilities: () => ({ router: {} })
   },
   Store: {
     getName: () => "Store",
     getState: () => "running",
-    getParameters: () => ({ type: "MemoryStore" }),
+    parameters: { type: "MemoryStore" },
     getCapabilities: () => ({})
   }
 };

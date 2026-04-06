@@ -1,4 +1,4 @@
-"use strict";
+
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RequestLog, type RequestLogEntry, type RequestLogEvent } from "./requestlog.js";

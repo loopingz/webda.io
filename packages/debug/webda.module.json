@@ -1,0 +1,89 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/DebugService": {
+      "Import": "lib/debugservice:DebugService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "DebugService",
+        "properties": {
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "commands": {
+        "debug": {
+          "description": "Start dev server with debug dashboard",
+          "method": "debug",
+          "args": {
+            "port": {
+              "type": "number",
+              "default": 18181,
+              "alias": "p",
+              "description": "Debug dashboard port"
+            },
+            "servePort": {
+              "type": "number",
+              "default": 18080,
+              "alias": "s",
+              "description": "Application server port"
+            }
+          },
+          "requires": [
+            "router",
+            "rest-domain"
+          ]
+        }
+      }
+    }
+  },
+  "models": {},
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "challenge": {
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
+        },
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    }
+  }
+}

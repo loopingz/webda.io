@@ -5,6 +5,7 @@ import { Queue, QueueParameters } from "@webda/core";
 import { JSONUtils } from "@webda/utils";
 import type { MessageReceipt } from "@webda/core";
 
+/** Configuration parameters for the filesystem-backed FIFO queue. */
 export class FileQueueParameters extends QueueParameters {
   /**
    * Number of seconds before dropping message
@@ -17,6 +18,7 @@ export class FileQueueParameters extends QueueParameters {
    */
   folder: string;
 
+  /** Set default expiration to 30 seconds and convert to milliseconds. */
   default() {
     this.expire = this.expire ?? 30;
     this.expire *= 1000;

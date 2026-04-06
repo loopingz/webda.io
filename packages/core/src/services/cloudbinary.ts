@@ -8,6 +8,7 @@ import { BinaryMap, CoreModelWithBinary, BinaryParameters, BinaryService } from 
 export class CloudBinaryParameters extends BinaryParameters {
   prefix?: string;
 
+  /** Load parameters with an empty prefix default */
   load(params: any): this {
     super.load(params);
     this.prefix ??= "";

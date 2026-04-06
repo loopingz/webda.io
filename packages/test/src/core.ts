@@ -87,12 +87,11 @@ type TestFramework = {
   }>;
 };
 
-/**
- * Detect the test framework in use
- * We support mocha, jest, vitest, bun
- *
- */
 /* v8 ignore start */
+/**
+ * Detect the test framework in use.
+ * We support mocha, jest, vitest, bun.
+ */
 export function detectFramework(): TestFramework {
   if (process.env.VITEST) {
     return {

@@ -192,6 +192,7 @@ export class Core implements ICore {
     );
   }
 
+  /** Find the best matching BinaryService for a given model and attribute, with caching */
   @InstanceCache()
   protected getBinaryStoreCached<T extends Model>(model: string, attribute: string): BinaryService {
     const binaries: { [key: string]: BinaryService } = <any>useApplication().getImplementations(<any>BinaryService);
@@ -485,6 +486,7 @@ export class Core implements ICore {
     };
   }
 
+  /** Deserialize a Core instance from a plain JSON object */
   static deserialize(json: any): Core {
     const core = new Core();
     if (json.configuration) {

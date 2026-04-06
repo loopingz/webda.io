@@ -7,6 +7,7 @@ import type { WebdaModule } from "../definition";
  * Primary key metadata plugin
  */
 export class PrimaryKeyMetadata extends MetadataPlugin {
+  /** Extract primary key field names from WEBDA_PRIMARY_KEY symbol on each model */
   getMetadata(module: WebdaModule, objects: WebdaObjects): void {
     Object.keys(objects.models).forEach(name => {
       const { type } = objects.models[name];

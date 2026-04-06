@@ -31,6 +31,7 @@ const nonenumerable: {
  * https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API
  */
 
+/** Base documentation node that extracts positional and JSDoc metadata from a TS AST node */
 class NodeDocumentation<T extends ts.Node = ts.Node> {
   filename: string;
   name: string;
@@ -62,10 +63,12 @@ class NodeDocumentation<T extends ts.Node = ts.Node> {
     this.parent = parent;
   }
 
+  /** Get the TypeScript type checker, delegating to the parent node */
   getChecker(): ts.TypeChecker {
     return this.parent?.getChecker();
   }
 
+  /** Resolve the npm package name and version for a given source file path */
   getPackage(filename: string): string {
     // Search for the package.json
     let packageJson;
@@ -80,6 +83,7 @@ class NodeDocumentation<T extends ts.Node = ts.Node> {
     return "unknown";
   }
 
+  /** Extract the body block text from a node, if present */
   getBody(node: T): string | undefined {
     let body;
     node.forEachChild(b => {
@@ -95,6 +99,7 @@ class NodeDocumentation<T extends ts.Node = ts.Node> {
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface DocumentationNode {}
 
+/** Documentation wrapper for a TypeScript type node */
 class TypeDocumentation extends NodeDocumentation<ts.TypeNode> {
   name: string;
   constructor(node: ts.TypeNode, parent?: NodeDocumentation) {
@@ -102,6 +107,7 @@ class TypeDocumentation extends NodeDocumentation<ts.TypeNode> {
   }
 }
 
+/** Documentation for a parameter or property, including type, optionality, and default value */
 class ParameterOrPropertyDocumentation extends NodeDocumentation<
   ts.ParameterDeclaration | ts.PropertySignature | ts.PropertyDeclaration
 > {
@@ -140,12 +146,14 @@ class ParameterOrPropertyDocumentation extends NodeDocumentation<
   }
 }
 
+/** Documentation for a function/method parameter */
 class ParameterDocumentation extends ParameterOrPropertyDocumentation {
   constructor(node: ts.ParameterDeclaration, parent?: NodeDocumentation) {
     super(node, parent);
   }
 }
 
+/** Documentation for a class or interface property, including its resolved string type */
 class PropertyDocumentation extends ParameterOrPropertyDocumentation {
   type: TypeDocumentation;
   name: string;
@@ -166,6 +174,7 @@ class PropertyDocumentation extends ParameterOrPropertyDocumentation {
   }
 }
 
+/** Documentation for a method, including parameters, return type, scope, and JSDoc tags */
 class MethodDocumentation extends NodeDocumentation<ts.MethodDeclaration | ts.MethodSignature> {
   name: string;
   returnType: TypeDocumentation;
@@ -229,6 +238,7 @@ class MethodDocumentation extends NodeDocumentation<ts.MethodDeclaration | ts.Me
   }
 }
 
+/** Shared documentation base for classes and interfaces, resolving package and JSDoc info */
 class ClassInterfaceDocumentation extends NodeDocumentation<ts.ClassDeclaration | ts.InterfaceDeclaration> {
   package: string;
   stringType: string;
@@ -236,6 +246,7 @@ class ClassInterfaceDocumentation extends NodeDocumentation<ts.ClassDeclaration 
   @nonenumerable
   typeChecker: ts.TypeChecker;
 
+  /** Get the type checker, using the locally stored one or delegating to parent */
   getChecker(): ts.TypeChecker {
     return this.typeChecker || this.parent?.getChecker();
   }
@@ -257,6 +268,7 @@ class ClassInterfaceDocumentation extends NodeDocumentation<ts.ClassDeclaration 
   }
 }
 
+/** Documentation for a class declaration, including methods, properties, and constructor */
 class ClassDocumentation extends ClassInterfaceDocumentation {
   methods: MethodDocumentation[];
   properties: PropertyDocumentation[];
@@ -288,6 +300,7 @@ class ClassDocumentation extends ClassInterfaceDocumentation {
   }
 }
 
+/** Documentation for an interface declaration, including its property signatures */
 class InterfaceDocumentation extends ClassInterfaceDocumentation {
   name: string;
   methods: MethodDocumentation[];
@@ -302,19 +315,23 @@ class InterfaceDocumentation extends ClassInterfaceDocumentation {
   }
 }
 
+/** Filter out declaration files, keeping only project source files */
 function projectFileFilter(node: ts.Node) {
   return !node.getSourceFile().isDeclarationFile;
 }
 
+/** Extracts structured documentation (classes, interfaces, methods, properties) from a TypeScript program */
 export class Documenter {
   types: { [key: string]: DocumentationNode };
   documentation: NodeDocumentation[] = [];
   checker: ts.TypeChecker;
 
+  /** Run a TSQuery selector on a node, filtering out declaration files */
   query(node: ts.Node, query: string): ts.Node[] {
     return tsquery(node, query).filter(projectFileFilter);
   }
 
+  /** Process all source files in the program, collecting class and interface documentation */
   process(program: ts.Program) {
     this.checker = program.getTypeChecker();
     program.getSourceFiles().forEach((source: ts.SourceFile) => {
@@ -333,6 +350,7 @@ export class Documenter {
     });
   }
 
+  /** Print collected documentation to the console and save as JSON */
   print() {
     console.log(
       util.inspect(

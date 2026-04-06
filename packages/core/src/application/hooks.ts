@@ -44,6 +44,7 @@ export function useModelId(object: any): string | undefined {
   return useApplication().getModelId(object);
 }
 
+/** Get the current application parameters from the active configuration */
 export function useParameters(): Configuration["parameters"] {
   return useApplication().getConfiguration().parameters;
 }

@@ -458,6 +458,7 @@ export class Application {
     return instance;
   }
 
+  /** Serialize the application state to a plain object */
   toJSON() {
     return {
       baseConfiguration: this.baseConfiguration,

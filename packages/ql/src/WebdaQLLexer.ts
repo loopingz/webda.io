@@ -10,6 +10,7 @@ import { VocabularyImpl } from "antlr4ts/VocabularyImpl.js";
 
 import * as Utils from "antlr4ts/misc/Utils.js";
 
+/** ANTLR-generated lexer for the WebdaQL query language */
 export class WebdaQLLexer extends Lexer {
   public static readonly SPACE = 1;
   public static readonly LR_BRACKET = 2;
@@ -163,37 +164,44 @@ export class WebdaQLLexer extends Lexer {
 
   // @Override
   // @NotNull
+  /** Get the vocabulary for this lexer */
   public get vocabulary(): Vocabulary {
     return WebdaQLLexer.VOCABULARY;
   }
   // tslint:enable:no-trailing-whitespace
 
+  /** Create a new WebdaQLLexer for the given character stream */
   constructor(input: CharStream) {
     super(input);
     this._interp = new LexerATNSimulator(WebdaQLLexer._ATN, this);
   }
 
   // @Override
+  /** Get the grammar file name */
   public get grammarFileName(): string {
     return "WebdaQLLexer.g4";
   }
 
   // @Override
+  /** Get the rule names */
   public get ruleNames(): string[] {
     return WebdaQLLexer.ruleNames;
   }
 
   // @Override
+  /** Get the serialized ATN */
   public get serializedATN(): string {
     return WebdaQLLexer._serializedATN;
   }
 
   // @Override
+  /** Get the channel names */
   public get channelNames(): string[] {
     return WebdaQLLexer.channelNames;
   }
 
   // @Override
+  /** Get the mode names */
   public get modeNames(): string[] {
     return WebdaQLLexer.modeNames;
   }
@@ -309,6 +317,7 @@ export class WebdaQLLexer extends Lexer {
     "\x02\x02\x02\xFA\xF8\x03\x02\x02\x02\x0F\x02RYacnp{\x8E\xE8\xED\xF2\xF8" +
     "\x03\b\x02\x02";
   public static __ATN: ATN;
+  /** Get the deserialized ATN, lazily initialized */
   public static get _ATN(): ATN {
     if (!WebdaQLLexer.__ATN) {
       WebdaQLLexer.__ATN = new ATNDeserializer().deserialize(Utils.toCharArray(WebdaQLLexer._serializedATN));

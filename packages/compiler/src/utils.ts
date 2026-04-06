@@ -117,6 +117,7 @@ export function displayItem(node: ts.Node, log?: (...args) => void, level: numbe
 
 type KeyKind = "string" | "number" | "symbol" | "other-computed";
 
+/** Determine whether a declaration's property key is a string, number, symbol, or other computed kind */
 export function getKeyKind(
   decl: ts.NamedDeclaration,
   checker: ts.TypeChecker

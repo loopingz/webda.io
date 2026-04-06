@@ -113,6 +113,7 @@ interface LoginBody {
   password?: string;
 }
 
+/** Parameters for the Authentication service including identity, email, and password settings */
 export class AuthenticationParameters extends ServiceParameters {
   /**
    * Idents store for authentication identifiers
@@ -187,6 +188,7 @@ export class AuthenticationParameters extends ServiceParameters {
    */
   registerRedirect: string;
 
+  /** Load parameters with defaults for authentication URLs, models, and password policy */
   load(params: any = {}): this {
     super.load(params);
     this.identModel ??= "Webda/Ident";
@@ -237,6 +239,7 @@ export type AuthenticationEvents = {
  * @WebdaModda
  */
 
+/** Core authentication service handling login, registration, password recovery, and email validation */
 class Authentication<
   T extends AuthenticationParameters = AuthenticationParameters,
   E extends AuthenticationEvents = AuthenticationEvents
@@ -543,6 +546,7 @@ class Authentication<
     ctx.write(Array.from(this.providers));
   }
 
+  /** Handle login via an identity provider, creating or linking the ident to a user */
   async onIdentLogin(ctx: WebContext, provider: string, identId: string, profile: any, tokens: any = undefined) {
     // Auto postifx with provider name
     const postfix = `_${provider}`;
@@ -619,6 +623,7 @@ class Authentication<
   }
     */
 
+  /** Create and register a new user, emitting a registration event */
   async registerUser(ctx: WebContext, data: any, identId: string, user?: User): Promise<User> {
     user ??= await this.userModel.create(
       {
@@ -639,6 +644,7 @@ class Authentication<
     return user;
   }
 
+  /** Generate password recovery info (token and expiry) for a user */
   async getPasswordRecoveryInfos(
     uuid: string | User,
     interval = this.parameters.email.delay
@@ -683,6 +689,7 @@ class Authentication<
     await this.sendRecoveryEmail(ctx, user, email);
   }
 
+  /** Verify that a password meets the configured policy or custom verifier */
   async _verifyPassword(password: string, user?: User) {
     if (this._passwordVerifier) {
       if (!(await this._passwordVerifier.validate(password, user))) {
@@ -696,6 +703,7 @@ class Authentication<
     }
   }
 
+  /** Handle password recovery: verify token and update the user's password */
   async _passwordRecovery(ctx: WebContext<PasswordRecoveryBody>) {
     const body = await ctx.getRequestBody();
     const user: User = await this.userModel.ref(body.login.toLowerCase()).get();
@@ -1050,6 +1058,7 @@ class Authentication<
     throw new WebdaError.NotFound("");
   }
 
+  /** Generate an HMAC-based token for email address validation */
   async generateEmailValidationToken(user: string, email: string): Promise<string> {
     return this.cryptoService.hmac(email + "_" + user);
   }

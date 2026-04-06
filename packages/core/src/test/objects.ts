@@ -57,10 +57,13 @@ export class Task extends OwnerModel {
 
   _gotContext: boolean;
 
+  /** Test action that is always allowed */
   actionable() {}
 
+  /** Test action that is never allowed */
   impossible() {}
 
+  /** Check permissions based on action name for testing */
   async canAct(context: IOperationContext, actionArg: string): Promise<boolean | string> {
     const action: string = actionArg;
     if (action === "actionable") {
@@ -72,10 +75,12 @@ export class Task extends OwnerModel {
     return super.canAct(context, actionArg);
   }
 
+  /** Test hook: set listener flag on save */
   async _onSave() {
     this._autoListener = 1;
   }
 
+  /** Test hook: set listener flag after save */
   async _onSaved() {
     this._autoListener = 2;
   }
@@ -88,21 +93,27 @@ export class Task extends OwnerModel {
  * @WebdaIgnore
  */
 export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boolean; brokenInit?: boolean }> {
+  /** Not implemented */
   find(_query: Query): Promise<StoreFindResult<any>> {
     throw new Error("Method not implemented.");
   }
+  /** Not implemented */
   _exists(_uid: PrimaryKey<any>): Promise<boolean> {
     throw new Error("Method not implemented.");
   }
+  /** Not implemented */
   getAll(_list?: PrimaryKey<any>[]): Promise<any[]> {
     throw new Error("Method not implemented.");
   }
+  /** Create default store configuration */
   static createConfiguration(params: any): any {
     return new StoreParameters().load(params);
   }
+  /** Return parameters unchanged */
   static filterParameters(params: any): any {
     return params;
   }
+  /** Not implemented */
   protected _patch(
     _object: any,
     _uid: string,
@@ -111,6 +122,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
   ): Promise<any> {
     throw new Error("Method not implemented.");
   }
+  /** Not implemented */
   protected _removeAttribute(
     _uuid: PrimaryKey<any>,
     _attribute: string,
@@ -119,6 +131,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
   ): Promise<void> {
     throw new Error("Method not implemented.");
   }
+  /** Not implemented */
   protected _incrementAttributes(
     _uid: PrimaryKey<any>,
     _params: { property: string; value: number }[],
@@ -126,6 +139,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
   ): Promise<any> {
     throw new Error("Method not implemented.");
   }
+  /** Not implemented */
   protected _upsertItemToCollection(
     _uid: PrimaryKey<any>,
     _prop: string,
@@ -137,6 +151,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
   ): Promise<any> {
     throw new Error("Method not implemented.");
   }
+  /** Not implemented */
   protected _deleteItemFromCollection(
     _uid: PrimaryKey<any>,
     _prop: string,
@@ -152,6 +167,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
     if (this.parameters.brokenConstructor) throw Error();
   }
 
+  /** Register test routes for simulating errors and templates */
   initRoutes() {
     if (this.parameters.brokenInit) throw Error();
     this.addRoute("/broken/{type}", ["GET"], this._brokenRoute);
@@ -160,16 +176,21 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
     this.addRoute("/urltemplate/callback{?code}", ["GET"], this._query);
   }
 
+  /** Load store parameters */
   loadParameters(params) {
     return new StoreParameters().load(params);
   }
 
+  /** No-op template route handler */
   _template() {}
 
+  /** No-op default route handler */
   _default(_ctx) {}
 
+  /** No-op query route handler */
   _query(_ctx) {}
 
+  /** Route handler that throws errors based on the type parameter */
   _brokenRoute(ctx) {
     if (ctx.getParameters().type === "401") {
       throw 401;
@@ -178,30 +199,37 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
     }
   }
 
+  /** Always returns true */
   exists(_uid) {
     return Promise.resolve(true);
   }
 
+  /** Always returns empty results */
   _find(_request, _offset, _limit) {
     return Promise.resolve([]);
   }
 
+  /** Return the object as-is without persisting */
   async _create(_uid: PrimaryKey<any>, object: any) {
     return object;
   }
 
+  /** No-op delete */
   _delete(_uid) {
     return Promise.resolve();
   }
 
+  /** Return the object as-is without persisting */
   _update(_uid, object) {
     return Promise.resolve(object);
   }
 
+  /** Return an empty object */
   async _get(_uid) {
     return {};
   }
 
+  /** Get an in-memory repository for the model */
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     return new MemoryRepository(model, ["id"]);
   }
@@ -212,9 +240,11 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
  * @WebdaIgnore
  */
 export class FakeService extends Service {
+  /** Create the default configuration */
   static createConfiguration(params: any): any {
     return new ServiceParameters().load(params);
   }
+  /** Return parameters unchanged */
   static filterParameters(params: any): any {
     return params;
   }
@@ -225,6 +255,7 @@ export class FakeService extends Service {
  * @WebdaIgnore
  */
 export class TestIdent extends WebdaIdent {
+  /** Define test actions for this ident model */
   static getActions() {
     return <any>{
       plop: {},
@@ -238,18 +269,22 @@ export class TestIdent extends WebdaIdent {
     };
   }
 
+  /** Test action returning a string */
   yop() {
     return "youpi";
   }
 
+  /** Always allow actions */
   async canAct(action) {
     return true;
   }
 
+  /** Global index action */
   static index(ctx) {
     ctx.write("indexer");
   }
 
+  /** Test action writing to context */
   plop(ctx) {
     ctx.write({ _plop: true });
     return Promise.resolve();

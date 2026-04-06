@@ -70,6 +70,7 @@ export interface AsyncEventEmitter<E extends AsyncEventUnknown = AsyncEventUnkno
   getMaxListeners(): number;
 }
 
+/** Concrete implementation of AsyncEventEmitter that wraps Node.js EventEmitter with async support */
 export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnknown> implements AsyncEventEmitter<E> {
   private emitter: EventEmitter;
 
@@ -171,6 +172,7 @@ export class AsyncEventEmitterImpl<E extends AsyncEventUnknown = AsyncEventUnkno
   }
 }
 
+/** Utility class for emitting events and awaiting all listeners */
 export class EventEmitterUtils {
   /**
    * Emit an event and wait for all listeners to finish

@@ -89,6 +89,7 @@ export function printHelp() {
   console.log(`schema-gen - Generate JSON Schema from a TypeScript type\n\nUsage:\n  schema-gen --type <TypeName> [--file <relative/or/absolute/path>] [--project <tsconfigDirOrFile>] [--out schema.json] [--pretty]\n\nExamples:\n  schema-gen --type User --file src/models.ts\n  schema-gen --type ApiResponse --project ./\n\nOptions:\n  --type     Name of interface/class/type alias (required)\n  --file     Restrict search to a specific file (optional)\n  --project  Directory containing tsconfig.json or path to tsconfig.json (defaults CWD)\n  --out      Write schema JSON to file instead of stdout\n  --pretty   Pretty-print JSON output\n`);
 }
 
+/* c8 ignore start -- CLI orchestration; tested via subprocess in CI */
 /**
  * CLI entry-point.
  *
@@ -98,7 +99,6 @@ export function printHelp() {
  * @param argv - The argument vector to parse (defaults to `process.argv`)
  * @returns The exit code (0 for success, 1 for error)
  */
-/* c8 ignore start -- CLI orchestration; tested via subprocess in CI */
 export async function main(argv: string[] = process.argv): Promise<number> {
   const args = parseArgs(argv);
   if (argv.includes('-h') || argv.includes('--help')) {

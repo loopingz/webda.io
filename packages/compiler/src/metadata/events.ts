@@ -6,6 +6,7 @@ import { MetadataPlugin } from "./plugin";
  * Events metadata plugin
  */
 export class EventsMetadata extends MetadataPlugin {
+    /** Extract event names from the WEBDA_EVENTS symbol property on each model */
     getMetadata(module: WebdaModule, objects: WebdaObjects): void {
         Object.keys(objects.models).forEach(name => {
             const { type } = objects.models[name];

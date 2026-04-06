@@ -154,6 +154,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
     this._sanitized = {};
   }
 
+  /** Get the sanitized input body, caching the result after the first call */
   async getInput(
     sanitizedOptions: sanitize.IOptions & { defaultValue?: any; raw?: boolean | string[] } = {
       allowedTags: [],
@@ -239,6 +240,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
     return <K>(<unknown>this.session);
   }
 
+  /** Create and assign a new empty session */
   newSession(): Session {
     this.session = new Session();
     return this.session;
@@ -297,6 +299,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
     return true;
   }
 
+  /** Initialize the operation context */
   async init(): Promise<this> {
     return this;
   }

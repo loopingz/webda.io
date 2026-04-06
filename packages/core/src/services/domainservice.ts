@@ -19,6 +19,7 @@ import { registerOperation } from "../core/operations.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
 
+/** Parameters for DomainService, controlling model exposure, URL naming, and query methods */
 export class DomainServiceParameters extends ServiceParameters {
   /**
    * Expose objects as operations too
@@ -53,6 +54,7 @@ export class DomainServiceParameters extends ServiceParameters {
    */
   private excludedModels: string[];
 
+  /** Load parameters with defaults for operations, naming, and query method */
   load(params: any = {}): this {
     super.load(params);
     // Init default here
@@ -271,6 +273,7 @@ export abstract class DomainService<
     return this;
   }
 
+  /** Get all top-level models (those without a parent relation) to expose as REST roots */
   getRootExposedModels() {
     // By default any models that have no parent
     return Object.values(this.app.getModels()).filter(m => m?.Metadata && !m.Metadata.Relations.parent);
@@ -537,6 +540,7 @@ export abstract class DomainService<
     }
   }
 
+  /** Register upload, download, delete, and metadata operations for binary attributes */
   addBinaryOperations(model: ModelClass<Model>, Metadata: any, name: string) {
     (Metadata.Relations.binaries || []).forEach(binary => {
       const webda = useCore();
@@ -723,6 +727,7 @@ export abstract class DomainService<
     }
   }
 
+  /** Execute a binary operation (create, delete, or metadata update) on a model's binary attribute */
   async binaryAction(context: OperationContext) {
     const { model, binaryStore, binary, action } = context.getExtension<{
       binaryStore: BinaryService;

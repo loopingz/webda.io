@@ -76,7 +76,9 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     return result;
   }
 
+  /** Get the primary key value for an object as a scalar or string. */
   getPrimaryKey(object: any, forceObject?: false): PrimaryKeyType<InstanceType<T>>;
+  /** Get the primary key value for an object as a structured key object. */
   getPrimaryKey(object: any, forceObject: true): PrimaryKey<InstanceType<T>>;
   /**
    * @inheritdoc

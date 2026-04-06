@@ -12,6 +12,7 @@ let workerOutput: WorkerOutput;
 
 export { useLog };
 
+/** Set the global log output target for all loggers */
 export function setLogContext(object: { log: (level, ...args) => void }) {
   output = object;
   if (output instanceof WorkerOutput) {

@@ -23,10 +23,12 @@ export class User extends WebdaUser {
    */
   contacts: ModelRelated<Contact, User, "owner">;
 
+  /** Filter attribute access, returning the value unchanged. */
   attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext) {
     return value;
   }
 
+  /** Check whether the given action is allowed (always returns true). */
   async canAct(_ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
     return true;
   }

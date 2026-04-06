@@ -32,6 +32,7 @@ export class TestCommandService extends Service implements RequestFilter {
     // Deploy command implementation
   }
 
+  /** Check whether the incoming request should be accepted (always returns true). */
   async checkRequest(): Promise<boolean> {
     return true;
   }

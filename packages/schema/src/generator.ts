@@ -111,13 +111,13 @@ export interface GenerateSchemaOptions {
   transformer?: (options: SchemaPropertyArguments) => SchemaPropertyArguments;
 }
 
+/* c8 ignore next 7 -- trivial utility; exercised indirectly by schema generation */
 /**
  * Check whether a TypeScript type's symbol carries the `Optional` flag.
  *
  * @param type - The type to inspect
  * @returns `true` when the underlying symbol is marked optional
  */
-/* c8 ignore next 4 -- trivial utility; exercised indirectly by schema generation */
 export function isOptional(type: ts.Type): boolean {
   const symbol = type.getSymbol();
   return !!symbol && (symbol.getFlags() & ts.SymbolFlags.Optional) !== 0;
@@ -550,6 +550,7 @@ export class SchemaGenerator {
     const parsed = ts.parseJsonConfigFileContent(configFile.config, parseConfigHost, sys.getCurrentDirectory());
     const files = new Map<string, { version: number; text: string }>();
 
+    /** Register a source file in the in-memory file map if not already present. */
     function ensureFile(fileName: string) {
       if (!files.has(fileName)) {
         const text = sys.readFile(fileName) || "";
@@ -810,6 +811,7 @@ export class SchemaGenerator {
     return type;
   }
 
+  /** Process a class or interface type into a JSON Schema definition, resolving properties and inheritance. */
   processClassOrInterface(
     type: ts.Type,
     definition: JSONSchema7,
@@ -993,6 +995,7 @@ export class SchemaGenerator {
     }
   }
 
+  /* c8 ignore next 12 -- fallback for TS < 4.8 without skipOuterExpressions */
   /**
    * Manually peel parenthesised expressions, `as` casts, and type assertions
    * to reach the inner expression.
@@ -1003,7 +1006,6 @@ export class SchemaGenerator {
    * @param expr - The expression to unwrap
    * @returns The innermost non-wrapper expression
    */
-  /* c8 ignore next 6 -- fallback for TS < 4.8 without skipOuterExpressions */
   skipOuterExpressionsManual(expr: ts.Expression): ts.Expression {
     while (ts.isParenthesizedExpression(expr) || ts.isAsExpression(expr) || ts.isTypeAssertionExpression(expr)) {
       expr = (expr as ts.ParenthesizedExpression | ts.AsExpression | ts.TypeAssertion).expression;

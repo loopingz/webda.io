@@ -12,6 +12,7 @@ type SchemaValidResult = true;
 
 let ajvInstance: (Ajv & { rawSchema: Record<string, JSONSchema7> }) | null = null;
 
+/** Get or lazily create the singleton Ajv validator instance */
 function getAjv(): Ajv & { rawSchema: Record<string, JSONSchema7> } {
   if (!ajvInstance) {
     ajvInstance = new Ajv({ allErrors: true, strict: false, allowUnionTypes: true }) as any;
@@ -107,6 +108,7 @@ export function validateSchema(
   throw new ValidationError(ajv.errors);
 }
 
+/** Check whether a JSON schema is registered for the given model or schema key */
 export function hasSchema(webdaObject: Model | string): boolean {
   let key: string;
   if (typeof webdaObject === "string") {

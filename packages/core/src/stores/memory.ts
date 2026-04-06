@@ -48,6 +48,7 @@ export class MemoryStoreParameters extends StoreParameters {
     compressionLevel?: number;
   };
 
+  /** Load parameters with persistence defaults and force noCache for memory stores */
   load(params: any = {}): this {
     super.load(params);
     if (this.persistence) {
@@ -61,6 +62,7 @@ export class MemoryStoreParameters extends StoreParameters {
   }
 }
 
+/** Readable stream that serializes a MemoryModelMap to line-delimited JSON */
 class LDJSONMemoryStreamWriter extends Readable {
   private data: any[];
   private index: number = 0;
@@ -70,6 +72,7 @@ class LDJSONMemoryStreamWriter extends Readable {
     this.data = [...storage.keys()];
   }
 
+  /** Push the next key-value line or signal end of stream */
   _read() {
     if (this.index >= this.data.length) {
       this.push(null);
@@ -80,6 +83,7 @@ class LDJSONMemoryStreamWriter extends Readable {
   }
 }
 
+/** Writable stream that parses line-delimited JSON or legacy JSON format into a Map */
 class LDJSONMemoryStreamReader extends Writable {
   current: string = "";
   oldFormat: string = undefined;
@@ -121,6 +125,7 @@ class LDJSONMemoryStreamReader extends Writable {
     callback();
   }
 
+  /** Finalize parsing, handling legacy JSON format conversion */
   _final(callback: (error?: Error) => void): void {
     // Parse the content if old format
     if (this.oldFormat !== undefined) {
@@ -133,8 +138,10 @@ class LDJSONMemoryStreamReader extends Writable {
   }
 }
 
+/** Map subclass that triggers persistence on every write */
 class MemoryModelMap extends Map<string, string> {
   persistence: () => void;
+  /** Set a value and trigger persistence callback */
   set(key: string, object: string) {
     super.set(key, object);
     this.persistence?.();
@@ -298,6 +305,7 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
     }
   }
 
+  /** Get or create a MemoryRepository for the given model, using the shared storage map */
   @InstanceCache()
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     // Use our own storage to allow persistence

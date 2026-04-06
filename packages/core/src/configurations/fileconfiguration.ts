@@ -13,6 +13,7 @@ export class FileConfigurationService<
 > extends ConfigurationService<T> {
   sourcePaths: Record<string, string> = {};
 
+  /** Resolve the file path for a given configuration source id, creating from defaults if missing */
   getFilePath(id: string): string {
     // Allow .jsonc, .yaml, .yml, .json
     if (/\.(jsonc?|ya?ml)$/.test(id)) {
@@ -41,6 +42,7 @@ export class FileConfigurationService<
     return this.sourcePaths[id];
   }
 
+  /** Watch the configuration file for changes and trigger the callback when modified */
   canTriggerConfiguration(id: string, callback: () => void, defaultValue?: any): boolean {
     this.sourcePaths[id] ??= this.getFilePath(id);
     watchFile(this.sourcePaths[id], callback);

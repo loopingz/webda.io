@@ -5,6 +5,7 @@ type Callback = (
   node: ClassDeclaration,
   method?: MethodDeclaration
 ) => Omit<MethodDeclarationStructure, "kind" | "name" | "statements"> & { statements: string | WriterFunction };
+/** Add a method to a class or overwrite it unless it has an @IgnoreCodemod JSDoc tag */
 function addOrUpdateMethod(serviceClass: ClassDeclaration, methodName: string, callback: Callback) {
   // Check if a loadParameters method already exists
   const existingMethod = serviceClass.getMethod(methodName);
@@ -43,6 +44,7 @@ function addOrUpdateMethod(serviceClass: ClassDeclaration, methodName: string, c
   }
 }
 
+/** Find all classes extending the given base class in a source file and add or update the specified method */
 export function upsertMethod(sourceFile: SourceFile, className: string, methodName: string, updateCallback?: Callback) {
   // Find all classes that extend 'Service' (you might need to adjust this based on your actual base class)
   const serviceClasses = sourceFile.getClasses().filter(c => c.getBaseClass()?.getName() === className);

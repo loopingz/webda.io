@@ -28,6 +28,7 @@ interface ConfigurationProvider {
   canTriggerConfiguration(id: string, callback: () => void, defaultValue?: any): boolean;
 }
 
+/** Parameters for the ConfigurationService, defining how configuration sources are loaded and refreshed */
 export class ConfigurationServiceParameters extends ServiceParameters {
   /**
    * Check configuration every {checkInterval} seconds
@@ -55,6 +56,7 @@ export class ConfigurationServiceParameters extends ServiceParameters {
    */
   default?: any;
 
+  /** Load and apply defaults to configuration parameters */
   load(params: any) {
     super.load(params);
     this.default ??= {

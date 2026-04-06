@@ -10,6 +10,7 @@ class AuditService extends Service {
   auditStore: Store;
   test: string;
 
+  /** Subscribe to operation success and failure events for audit logging */
   resolve() {
     super.resolve();
     useCoreEvents("Webda.OperationFailure", async (evt) => {
@@ -21,6 +22,7 @@ class AuditService extends Service {
     return this;
   }
 
+  /** Create and store an audit entry for the given context and optional error */
   async addAuditEntry(ctx, err?: Error) {
       if (!this.auditStore) {
         return;    

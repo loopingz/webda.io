@@ -3,12 +3,14 @@ import { Model, ModelEvents } from "../src/model";
 import { ModelLinksSimpleArray } from "../src/relations";
 import { PK, SelfDTOed, SelfJSONed, Storable, WEBDA_EVENTS, WEBDA_PLURAL, WEBDA_PRIMARY_KEY } from "../src/storable";
 
+/** Container image identified by its digest, with linked vulnerabilities. */
 export class Container extends Model {
   [WEBDA_PRIMARY_KEY] = ["digest"] as const;
   [WEBDA_EVENTS]: ModelEvents<this> & { Test: { digest: string } };
 
   digest: string;
   vulnerabilities: ModelLinksSimpleArray<Vulnerability>;
+  /** Serialize the container to its JSON representation. */
   toJSON() {
     return this as SelfJSONed<this>;
   }
@@ -41,14 +43,17 @@ export class Vulnerability implements Storable<Vulnerability, "id">, Actionable 
     return this.id;
   }
 
+  /** Serialize to JSON representation. */
   toJSON() {
     return this as SelfJSONed<this>;
   }
 
+  /** Convert to a data-transfer object. */
   toDTO() {
     return this as SelfDTOed<this>;
   }
 
+  /** Restore state from a data-transfer object. */
   fromDTO(dto: SelfDTOed<this>): void {
     Object.assign(this, dto);
   }

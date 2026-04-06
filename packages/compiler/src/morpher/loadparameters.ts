@@ -1,6 +1,7 @@
 import { ClassDeclaration, Scope, SourceFile, StructureKind, SyntaxKind } from "ts-morph";
 import { upsertMethod } from "./utils";
 
+/** Resolve the parameters type name for a Service subclass by walking its type argument chain */
 function getTypeArgumentName(serviceClass: ClassDeclaration): string {
   // 1. Check if the class has explicit type arguments for Service
   const typeArgument = serviceClass
@@ -38,6 +39,7 @@ function getTypeArgumentName(serviceClass: ClassDeclaration): string {
   return typeArgument.getText();
 }
 
+/** Generate or update loadParameters() methods on Service subclasses to return typed parameter instances */
 export function setLoadParameters(sourceFile: SourceFile) {
   upsertMethod(sourceFile, "Service", "loadParameters", serviceClass => {
     const typeArgumentName = getTypeArgumentName(serviceClass);

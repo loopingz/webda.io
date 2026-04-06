@@ -17,6 +17,7 @@ import type { Storable } from "@webda/models";
 import { templateVariables } from "../templates/templates.js";
 import { useCoreEvents } from "../events/events.js";
 
+/** Parameters for the Router service */
 export class RouterParameters extends ServiceParameters {
   /**
    * Display a WARNING if a route is overriden
@@ -58,6 +59,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     this.models.set(model, url);
   }
 
+  /** Resolve dependencies and register route remapping on core init */
   resolve() {
     // Remap route
     useCoreEvents("Webda.Init", () => {
@@ -197,6 +199,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     this.pathMap.sort(this.comparePath);
   }
 
+  /** Compare two route paths for sorting, prioritizing literal segments over parameters */
   protected comparePath(a, b): number {
     // Normal node works with localeCompare but not Lambda...
     // Local compare { to a return: 26 on Lambda
@@ -344,6 +347,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     }
   }
 
+  /** Convert a schema name or object to an OpenAPI $ref or inline schema */
   protected getOpenAPISchema(schema) {
     if (!schema) {
       return {
@@ -478,6 +482,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     }
   }
 
+  /** Execute the matched route handler for a web context */
   async execute(ctx: WebContext<any, any, any>) {
     const info = this.getRouteFromUrl(ctx, ctx.getHttpContext().getMethod(), ctx.getHttpContext().getUrl());
   }

@@ -5,6 +5,7 @@ export interface DeployerResources {
   type?: string;
 }
 
+/** Base class for deployers that manage deployment resources */
 export class AbstractDeployer<T extends DeployerResources = DeployerResources> {
   resources: T;
   /**

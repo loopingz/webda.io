@@ -162,6 +162,7 @@ function resolveImportSource(
   return rel;
 }
 
+/** Safely extract the text of a node, falling back to escapedText for synthetic nodes. */
 function safeGetText(node: ts.Node, sourceFile?: ts.SourceFile): string {
   try {
     return sourceFile ? node.getText(sourceFile) : node.getText();
@@ -285,6 +286,7 @@ export function computeCoercibleFields(
     }
   }
 
+  /** Visit a node and, if it is a qualifying class, rewrite its property declarations as accessor pairs. */
   function visitNode(node: ts.Node) {
     if (tsModule.isClassDeclaration(node) && node.name) {
       if (accessorsForAll || isModelClass(tsModule, node, checker, modelBases) || hasAccessorsMarker(tsModule, node, checker)) {

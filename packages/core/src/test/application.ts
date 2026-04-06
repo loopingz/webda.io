@@ -112,10 +112,12 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     }
   }
 
+  /** Reset the webda reference from the current instance storage */
   async beforeEach(): Promise<void> {
     this.webda = <Core>useCore();
   }
 
+  /** Stop the Core instance after all tests */
   async afterAll() {
     //
     await useCore()?.stop();
@@ -230,6 +232,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     return await this.execute(params.context, "test.webda.io", params.method, params.url, params.body, params.headers);
   }
 
+  /** Execute an HTTP request through the Webda core and return the context */
   async execute(
     context: WebContext = undefined,
     host: string = "test.webda.io",

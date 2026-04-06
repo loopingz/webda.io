@@ -1,5 +1,6 @@
 import { ServiceParameters } from "./serviceparameters.js";
 
+/** Parameters for the CryptoService including key lifecycle, rotation, and algorithm settings */
 export class CryptoServiceParameters extends ServiceParameters {
   /**
    * Number of hours a key should be used for encryption
@@ -76,6 +77,7 @@ export class CryptoServiceParameters extends ServiceParameters {
    */
   jwt?: JWTOptions;
 
+  /** Load parameters with defaults for key lengths, ciphers, and JWT options */
   load(params: any = {}): this {
     super.load(params);
     this.symetricKeyLength ??= 256;

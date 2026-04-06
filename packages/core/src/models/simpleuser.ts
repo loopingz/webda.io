@@ -56,6 +56,7 @@ export class SimpleUser extends User {
     return this._groups.includes(group);
   }
 
+  /** Remove a group from this user */
   removeGroup(group: string) {
     const ind = this._groups.indexOf(group);
     if (ind < 0) {
@@ -64,14 +65,17 @@ export class SimpleUser extends User {
     this._groups.splice(ind, 1);
   }
 
+  /** Get all groups this user belongs to */
   getGroups(): string[] {
     return this._groups;
   }
 
+  /** Get all roles assigned to this user */
   getRoles(): string[] {
     return this._roles;
   }
 
+  /** Add a role to this user if not already present */
   addRole(role: string) {
     if (this.hasRole(role)) {
       return;
@@ -79,10 +83,12 @@ export class SimpleUser extends User {
     this._roles.push(role);
   }
 
+  /** Check if this user has the given role */
   hasRole(role: string) {
     return this._roles.indexOf(role) >= 0;
   }
 
+  /** Remove a role from this user */
   removeRole(role: string) {
     const ind = this._roles.indexOf(role);
     if (ind < 0) {

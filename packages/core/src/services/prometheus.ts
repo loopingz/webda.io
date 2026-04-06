@@ -9,6 +9,7 @@ interface PrometheusExtension {
   timer: (labels?: Partial<Record<string, string | number>> | undefined) => number;
 }
 
+/** Parameters for the Prometheus metrics endpoint service */
 export class PrometheusParameters extends ServiceParameters {
   /**
    * If defined will launch another http server to serve the scaper
@@ -50,6 +51,7 @@ export class PrometheusParameters extends ServiceParameters {
    */
   prefix?: string;
 
+  /** Load parameters with defaults for metrics URL, labels, and feature flags */
   load(params: any = {}): this {
     super.load(params);
     this.url ??= "/metrics";

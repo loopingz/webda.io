@@ -19,6 +19,7 @@ import {
 } from "@webda/core";
 import { useModelId } from "@webda/core";
 
+/** Configuration parameters for the filesystem-backed binary storage service. */
 export class FileBinaryParameters extends CloudBinaryParameters {
   /**
    * Define the folder to store objects in
@@ -34,6 +35,7 @@ export class FileBinaryParameters extends CloudBinaryParameters {
    */
   url?: string;
 
+  /** Load and normalize parameters, ensuring the folder path has a trailing slash. */
   load(params: any): this {
     super.load(params);
     if (this.folder && !this.folder.endsWith("/")) {
@@ -87,6 +89,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     }
   }
 
+  /** Register download routes if a public URL is configured. */
   initRoutes(): void {
     super.initRoutes();
     // We do not want to expose by default
@@ -197,6 +200,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     return this.parameters.folder + hash + "/" + postfix;
   }
 
+  /** Create a file if it does not already exist, using the given permission mode. */
   _touch(filePath, mode = 0o600) {
     try {
       const fd = fs.openSync(filePath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_RDWR, mode);
@@ -347,6 +351,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     await this._cleanUsage(hash, object.getUUID(), property);
   }
 
+  /** Verify that a binary with the given hash exists and contains the expected challenge marker. */
   challenge(hash, challenge) {
     const path = this._getPath(hash);
     return fs.existsSync(path) && fs.existsSync(`${path}/_${challenge}`);
@@ -359,6 +364,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     return this._cleanUsage(info.hash, uuid);
   }
 
+  /** Write a binary file's stream to the local filesystem under its content-hash directory. */
   async _store(file: BinaryFile, object: CoreModel, attribute: string) {
     fs.mkdirSync(this._getPath(file.hash));
     const map = await file.get();

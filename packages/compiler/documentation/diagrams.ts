@@ -32,6 +32,7 @@ export abstract class Diagram {
 
   constructor(protected name: string) {}
 
+  /** Update the diagram section in the given file using live Webda core metadata */
   update(file: string, webda: Core) {
     this.file = file;
     if (existsSync(file)) {
@@ -61,6 +62,7 @@ export class StorageDiagram extends Diagram {
     super("StorageDiagram");
   }
 
+  /** Generate a Mermaid flowchart showing models grouped by their backing Store */
   generate(webda: Core): string {
     let diagram = "```mermaid\nflowchart BT\n";
     const tree = webda.getApplication().getModelHierarchy("CoreModel");
@@ -95,6 +97,7 @@ export class ModelDiagram extends Diagram {
     super("ClassDiagram");
   }
 
+  /** Generate a Mermaid class body with properties and actions from a JSON schema */
   generateClassDefinition(
     schema: JSONSchema7,
     actions: {
@@ -124,6 +127,7 @@ export class ModelDiagram extends Diagram {
     return definition;
   }
 
+  /** Generate a Mermaid class diagram with properties and actions for each model */
   generate(webda: Core<CoreEvents>): string {
     const models = webda.getApplication().getModels();
     let diagram = "```mermaid\nclassDiagram\n";
@@ -147,6 +151,7 @@ export class ServiceDiagram extends Diagram {
     super("ServiceDiagram");
   }
 
+  /** Generate a Mermaid flowchart showing service-to-service dependencies */
   generate(webda: Core<CoreEvents>): string {
     const services = Object.values(webda.getServices()).filter(service => service.getName);
     let diagram = "```mermaid\nflowchart TD\n";

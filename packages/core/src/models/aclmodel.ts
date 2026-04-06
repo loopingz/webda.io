@@ -12,10 +12,12 @@ export type Ace = {
  *
  */
 export class ResourceAcl extends Array<Ace> {
+  /** Serialize the ACL to a plain array of ACEs */
   toDto(): Ace[] {
     return this;
   }
 
+  /** Replace the ACL entries from a DTO array */
   fromDto(dto: Ace[]): void {
     this.length = 0;
     for (const ace of dto) {

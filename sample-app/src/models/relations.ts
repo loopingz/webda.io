@@ -9,6 +9,7 @@ import { CoreModel, OperationContext, Operation as Action } from "@webda/core";
  * @WebdaIgnore
  */
 class DefaultTestModel extends UuidModel {
+  /** Only allow the "test" user to perform actions. */
   async canAct(ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
     if (ctx.getCurrentUserId() !== "test") {
       return "Only test user can access";
@@ -18,6 +19,7 @@ class DefaultTestModel extends UuidModel {
 }
 
 // @Expose()
+/** Student with email-based UUID, linked to teachers and courses. */
 class Student extends DefaultTestModel {
   email: string;
   firstName: string;
@@ -45,6 +47,7 @@ class Student extends DefaultTestModel {
   }
 }
 
+/** Teacher with courses and student relations. */
 class Teacher extends DefaultTestModel {
   uuid: string;
   courses: ModelRelated<Course, Teacher, "teacher">;
@@ -57,6 +60,7 @@ class Teacher extends DefaultTestModel {
   anyArray: any[];
 }
 
+/** Course linking a teacher, students, and a classroom. */
 class Course extends DefaultTestModel {
   uuid: string;
   name: string;
@@ -70,6 +74,7 @@ class Course extends DefaultTestModel {
     }
   >;
 
+  /** Allow all actions on courses. */
   async canAct(ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
     return true;
   }
@@ -103,12 +108,14 @@ class Course extends DefaultTestModel {
   }
 }
 
+/** Physical classroom with courses and hardware inventory. */
 class Classroom extends DefaultTestModel {
   uuid: string;
   name: string;
   courses: ModelRelated<Course, Classroom, "classroom">;
   hardwares: ModelRelated<Hardware, Classroom, "classroom">;
 
+  /** Test action that writes an empty response after a short delay. */
   @Action()
   async test(context: OperationContext<{ test: string; id: string }>) {
     // Testing action is waited for
@@ -122,11 +129,13 @@ class Classroom extends DefaultTestModel {
 }
 
 // @Expose({ root: true })
+/** Hardware item belonging to a classroom, with associated brands. */
 class Hardware extends DefaultTestModel {
   classroom: ModelParent<Classroom>;
   name: string;
   brands: ModelRelated<Brand, Hardware>; //, "name">;
 
+  /** Global static action that writes an empty response after a short delay. */
   @Action()
   static async globalAction(context: OperationContext) {
     // Testing action is waited for
@@ -140,6 +149,7 @@ class Hardware extends DefaultTestModel {
   }
 }
 
+/** Computer screen hardware with model and serial number. */
 export class ComputerScreen extends Hardware {
   modelId: string;
   serialNumber: string;

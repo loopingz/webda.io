@@ -19,6 +19,7 @@ export class WebdaTest {
    */
   stubs: { restore: () => void }[] = [];
 
+  /** Override point for wrapping test callbacks (e.g., with async storage) */
   async wrap(type: "beforeAll" | "test" | "afterAll", callback: CallbackOptionallyAsync) {
     return callback();
   }
@@ -110,6 +111,7 @@ export class WebdaTest {
   }
 
   // Optional: keep no-op private hooks for parity (not used by the TS5 decorator wiring)
+  /** Clean up temporary files and restore stubs after each test */
   async afterEach() {
     try {
       this.cleanFiles.filter(existsSync).forEach(unlinkSync);
@@ -130,7 +132,9 @@ export class WebdaTest {
     obj: T,
     method: K
   ): T[K] extends (...args: infer TArgs) => infer TReturnValue ? SinonStub<TArgs, TReturnValue> : SinonStub;
+  /** Wrap an entire object with a stub */
   stub<T>(obj: T): SinonStub;
+  /** Create a sinon stub and auto-register it for cleanup */
   stub(obj: any, method?: any): SinonStub {
     const stub = sinon.stub(obj, method);
     this.stubs.push(stub);

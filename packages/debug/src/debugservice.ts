@@ -9,7 +9,7 @@ import { dirname, join, extname } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
 import { RequestLog } from "./requestlog.js";
 import { LogBuffer } from "./logbuffer.js";
-import { getModels, getModel, getServices, getOperations, getRoutes, getConfig } from "./introspection.js";
+import { getModels, getModel, getServices, getOperations, getRoutes, getConfig, getAppInfo } from "./introspection.js";
 import { DebugTui } from "./tui/tui.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -196,7 +196,9 @@ export class DebugService extends Service {
 
     try {
       // Route to handlers
-      if (pathname === "/api/models") {
+      if (pathname === "/api/info") {
+        this.sendJson(res, getAppInfo());
+      } else if (pathname === "/api/models") {
         this.sendJson(res, getModels());
       } else if (pathname.startsWith("/api/models/")) {
         const id = decodeURIComponent(pathname.slice("/api/models/".length));

@@ -73,6 +73,21 @@ code, pre, .mono {
   color: var(--focus-color);
 }
 
+.header-app-info {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-left: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--border);
+  font-family: "SF Mono", "Fira Code", Consolas, monospace;
+}
+
+.header-cwd {
+  color: var(--text-muted);
+  opacity: 0.6;
+  margin-left: 0.5rem;
+}
+
 .header {
   animation: focus-rotate 9s ease-in-out infinite;
 }

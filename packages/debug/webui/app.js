@@ -39,8 +39,13 @@ function App() {
   const [wsConnected, setWsConnected] = useState(false);
   const [wsEvents, setWsEvents] = useState([]);
   const [dataVersion, setDataVersion] = useState(0);
+  const [appInfo, setAppInfo] = useState(null);
   const wsRef = useRef(null);
   const reconnectTimer = useRef(null);
+
+  useEffect(() => {
+    fetchApi("/api/info").then(setAppInfo).catch(() => {});
+  }, [dataVersion]);
 
   const connectWs = useCallback(() => {
     if (wsRef.current && wsRef.current.readyState <= 1) return;
@@ -121,6 +126,7 @@ function App() {
       <div class="header-logo">
         <img src="/logo.svg" alt="Webda" />
         <div class="header-title">web<span>da</span> debug</div>
+        ${appInfo && html`<div class="header-app-info">${appInfo.package?.name || "unknown"}@${appInfo.package?.version || "0.0.0"} <span class="header-cwd">${appInfo.workingDirectory}</span></div>`}
       </div>
       <nav class="nav-tabs">
         ${TABS.map(

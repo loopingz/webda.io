@@ -157,3 +157,24 @@ export function getRoutes(): RouteInfoEntry[] {
 export function getConfig(): Record<string, any> {
   return useApplication().getConfiguration();
 }
+
+/**
+ * Returns project information including package.json data, git info, and deployment details.
+ *
+ * Adds the current working directory to the result.
+ *
+ * @returns Project information or a minimal fallback from package.json.
+ */
+export function getAppInfo(): Record<string, any> {
+  const app = useApplication();
+  const projectInfo = app.getProjectInfo?.();
+  if (projectInfo) {
+    return { ...projectInfo, workingDirectory: process.cwd() };
+  }
+  // Fallback for unpacked apps without full project info
+  const pkg = app.getPackageDescription();
+  return {
+    package: pkg,
+    workingDirectory: process.cwd()
+  };
+}

@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["es2019", "DOM"],
+    "module": "preserve",
+    "outDir": "./lib",
+    "rootDir": "./src",
+    "strict": true,
+    "declaration": true,
+    "sourceMap": true,
+    "experimentalDecorators": false,
+    "esModuleInterop": true,
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["**/node_modules", "src/**/*.spec.ts"]
+}

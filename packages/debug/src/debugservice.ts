@@ -13,7 +13,7 @@ import { getModels, getModel, getServices, getOperations, getRoutes, getConfig }
 import { DebugTui } from "./tui/tui.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const WEBUI_DIR = join(__dirname, "..", "..", "webui");
+const WEBUI_DIR = join(__dirname, "..", "webui");
 
 /** Map file extensions to MIME types for static file serving. */
 const MIME_TYPES: Record<string, string> = {

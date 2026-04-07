@@ -309,4 +309,34 @@ class DebugClientWebSocketReconnectionTest {
       client.disconnect();
     }
   }
+
+  @test
+  async doConnectCatchSchedulesReconnectWhenConstructorThrows() {
+    // Test lines 194-195: when WebSocket constructor throws, scheduleReconnect is called.
+    // We monkey-patch doConnect to make the WebSocket constructor throw.
+    const client = new DebugClient("http://localhost:1");
+    try {
+      // Save the original doConnect
+      const origDoConnect = (client as any).doConnect.bind(client);
+
+      // Patch doConnect to replace WebSocket temporarily
+      let reconnectScheduled = false;
+      const origScheduleReconnect = (client as any).scheduleReconnect.bind(client);
+      (client as any).scheduleReconnect = function scheduleReconnect() {
+        reconnectScheduled = true;
+        // Don't actually schedule to avoid timer leaks
+      };
+
+      // Call connectWebSocket with a URL that causes the constructor to throw
+      // by temporarily overriding the baseUrl to something truly invalid
+      (client as any).baseUrl = "not-a-valid-protocol://[invalid";
+      (client as any).shouldReconnect = true;
+      (client as any).doConnect();
+
+      // The catch block should have called scheduleReconnect
+      assert.strictEqual(reconnectScheduled, true, "scheduleReconnect should be called when WebSocket constructor throws");
+    } finally {
+      client.disconnect();
+    }
+  }
 }

@@ -19,6 +19,9 @@
     "build": "webdac build",
     "dev": "npm run build && tsx src/index.ts",
     "webda": "webda",
+    "test": "vitest run test/",
+    "test:api": "vitest run test/api-test.ts",
+    "test:cli": "vitest run test/cli-test.ts",
     "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts"
   },
   "engines": {
@@ -34,6 +37,7 @@
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:^",
     "@webda/debug": "workspace:^",
+    "@webda/test": "workspace:*",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "vitest": "^4.1.2",

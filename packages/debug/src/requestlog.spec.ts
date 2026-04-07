@@ -1,144 +1,155 @@
+import { suite, test } from "@webda/test";
+import * as assert from "assert";
+import { RequestLog, type RequestLogEvent } from "./requestlog.js";
 
+@suite
+class RequestLogTest {
+  log: RequestLog;
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { RequestLog, type RequestLogEntry, type RequestLogEvent } from "./requestlog.js";
+  beforeEach() {
+    this.log = new RequestLog();
+  }
 
-describe("RequestLog", () => {
-  let log: RequestLog;
+  @test
+  startsEmpty() {
+    assert.strictEqual(this.log.getEntries().length, 0);
+  }
 
-  beforeEach(() => {
-    log = new RequestLog();
-  });
-
-  it("starts empty", () => {
-    expect(log.getEntries()).toHaveLength(0);
-  });
-
-  it("records a request with id, method, url, and timestamp", () => {
+  @test
+  recordsARequestWithIdMethodUrlAndTimestamp() {
     const before = Date.now();
-    log.startRequest("req-1", "GET", "/api/foo");
+    this.log.startRequest("req-1", "GET", "/api/foo");
     const after = Date.now();
 
-    const entries = log.getEntries();
-    expect(entries).toHaveLength(1);
+    const entries = this.log.getEntries();
+    assert.strictEqual(entries.length, 1);
 
     const entry = entries[0];
-    expect(entry.id).toBe("req-1");
-    expect(entry.method).toBe("GET");
-    expect(entry.url).toBe("/api/foo");
-    expect(entry.timestamp).toBeGreaterThanOrEqual(before);
-    expect(entry.timestamp).toBeLessThanOrEqual(after);
-    expect(entry.statusCode).toBeUndefined();
-    expect(entry.duration).toBeUndefined();
-  });
+    assert.strictEqual(entry.id, "req-1");
+    assert.strictEqual(entry.method, "GET");
+    assert.strictEqual(entry.url, "/api/foo");
+    assert.ok(entry.timestamp >= before);
+    assert.ok(entry.timestamp <= after);
+    assert.strictEqual(entry.statusCode, undefined);
+    assert.strictEqual(entry.duration, undefined);
+  }
 
-  it("completes a request with statusCode and duration", () => {
-    log.startRequest("req-2", "POST", "/api/bar");
-    log.completeRequest("req-2", 201, 42);
+  @test
+  completesARequestWithStatusCodeAndDuration() {
+    this.log.startRequest("req-2", "POST", "/api/bar");
+    this.log.completeRequest("req-2", 201, 42);
 
-    const entry = log.getEntries()[0];
-    expect(entry.statusCode).toBe(201);
-    expect(entry.duration).toBe(42);
-  });
+    const entry = this.log.getEntries()[0];
+    assert.strictEqual(entry.statusCode, 201);
+    assert.strictEqual(entry.duration, 42);
+  }
 
-  it("marks a request as 404", () => {
-    log.startRequest("req-3", "DELETE", "/api/baz");
-    log.markNotFound("req-3");
+  @test
+  marksARequestAs404() {
+    this.log.startRequest("req-3", "DELETE", "/api/baz");
+    this.log.markNotFound("req-3");
 
-    const entry = log.getEntries()[0];
-    expect(entry.statusCode).toBe(404);
-  });
+    const entry = this.log.getEntries()[0];
+    assert.strictEqual(entry.statusCode, 404);
+  }
 
-  it("ring buffer: evicts oldest entries when maxSize is exceeded", () => {
+  @test
+  ringBufferEvictsOldestEntriesWhenMaxSizeIsExceeded() {
     const small = new RequestLog(5);
     for (let i = 1; i <= 7; i++) {
       small.startRequest(`req-${i}`, "GET", `/path/${i}`);
     }
 
     const entries = small.getEntries();
-    expect(entries).toHaveLength(5);
-    expect(entries[0].id).toBe("req-3");
-    expect(entries[4].id).toBe("req-7");
-  });
+    assert.strictEqual(entries.length, 5);
+    assert.strictEqual(entries[0].id, "req-3");
+    assert.strictEqual(entries[4].id, "req-7");
+  }
 
-  it("notifies subscribers on startRequest", () => {
+  @test
+  notifiesSubscribersOnStartRequest() {
     const events: RequestLogEvent[] = [];
-    log.onEvent(e => events.push(e));
+    this.log.onEvent(e => events.push(e));
 
-    log.startRequest("req-4", "PUT", "/things");
+    this.log.startRequest("req-4", "PUT", "/things");
 
-    expect(events).toHaveLength(1);
-    expect(events[0].type).toBe("request");
+    assert.strictEqual(events.length, 1);
+    assert.strictEqual(events[0].type, "request");
     if (events[0].type === "request") {
-      expect(events[0].id).toBe("req-4");
-      expect(events[0].method).toBe("PUT");
-      expect(events[0].url).toBe("/things");
+      assert.strictEqual(events[0].id, "req-4");
+      assert.strictEqual(events[0].method, "PUT");
+      assert.strictEqual(events[0].url, "/things");
     }
-  });
+  }
 
-  it("notifies subscribers on completeRequest", () => {
+  @test
+  notifiesSubscribersOnCompleteRequest() {
     const events: RequestLogEvent[] = [];
-    log.onEvent(e => events.push(e));
+    this.log.onEvent(e => events.push(e));
 
-    log.startRequest("req-5", "GET", "/done");
-    log.completeRequest("req-5", 200, 15);
+    this.log.startRequest("req-5", "GET", "/done");
+    this.log.completeRequest("req-5", 200, 15);
 
-    expect(events).toHaveLength(2);
+    assert.strictEqual(events.length, 2);
     const result = events[1];
-    expect(result.type).toBe("result");
+    assert.strictEqual(result.type, "result");
     if (result.type === "result") {
-      expect(result.id).toBe("req-5");
-      expect(result.statusCode).toBe(200);
-      expect(result.duration).toBe(15);
+      assert.strictEqual(result.id, "req-5");
+      assert.strictEqual(result.statusCode, 200);
+      assert.strictEqual(result.duration, 15);
     }
-  });
+  }
 
-  it("notifies subscribers on markNotFound", () => {
+  @test
+  notifiesSubscribersOnMarkNotFound() {
     const events: RequestLogEvent[] = [];
-    log.onEvent(e => events.push(e));
+    this.log.onEvent(e => events.push(e));
 
-    log.startRequest("req-6", "PATCH", "/missing");
-    log.markNotFound("req-6");
+    this.log.startRequest("req-6", "PATCH", "/missing");
+    this.log.markNotFound("req-6");
 
-    expect(events).toHaveLength(2);
+    assert.strictEqual(events.length, 2);
     const notFound = events[1];
-    expect(notFound.type).toBe("404");
+    assert.strictEqual(notFound.type, "404");
     if (notFound.type === "404") {
-      expect(notFound.id).toBe("req-6");
-      expect(notFound.method).toBe("PATCH");
-      expect(notFound.url).toBe("/missing");
+      assert.strictEqual(notFound.id, "req-6");
+      assert.strictEqual(notFound.method, "PATCH");
+      assert.strictEqual(notFound.url, "/missing");
     }
-  });
+  }
 
-  it("ignores completeRequest for unknown id", () => {
+  @test
+  ignoresCompleteRequestForUnknownId() {
     const events: RequestLogEvent[] = [];
-    log.onEvent(e => events.push(e));
+    this.log.onEvent(e => events.push(e));
 
-    log.completeRequest("unknown-id", 200, 10);
+    this.log.completeRequest("unknown-id", 200, 10);
 
-    expect(events).toHaveLength(0);
-    expect(log.getEntries()).toHaveLength(0);
-  });
+    assert.strictEqual(events.length, 0);
+    assert.strictEqual(this.log.getEntries().length, 0);
+  }
 
-  it("ignores markNotFound for unknown id", () => {
+  @test
+  ignoresMarkNotFoundForUnknownId() {
     const events: RequestLogEvent[] = [];
-    log.onEvent(e => events.push(e));
+    this.log.onEvent(e => events.push(e));
 
-    log.markNotFound("unknown-id");
+    this.log.markNotFound("unknown-id");
 
-    expect(events).toHaveLength(0);
-    expect(log.getEntries()).toHaveLength(0);
-  });
+    assert.strictEqual(events.length, 0);
+    assert.strictEqual(this.log.getEntries().length, 0);
+  }
 
-  it("unsubscribe function stops receiving events", () => {
+  @test
+  unsubscribeFunctionStopsReceivingEvents() {
     const events: RequestLogEvent[] = [];
-    const unsubscribe = log.onEvent(e => events.push(e));
+    const unsubscribe = this.log.onEvent(e => events.push(e));
 
-    log.startRequest("req-7", "GET", "/first");
+    this.log.startRequest("req-7", "GET", "/first");
     unsubscribe();
-    log.startRequest("req-8", "GET", "/second");
+    this.log.startRequest("req-8", "GET", "/second");
 
-    expect(events).toHaveLength(1);
-    expect((events[0] as { id: string }).id).toBe("req-7");
-  });
-});
+    assert.strictEqual(events.length, 1);
+    assert.strictEqual((events[0] as { id: string }).id, "req-7");
+  }
+}

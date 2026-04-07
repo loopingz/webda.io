@@ -1,6 +1,6 @@
-
-
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { suite, test } from "@webda/test";
+import * as assert from "assert";
+import { vi } from "vitest";
 import { getModels, getModel, getServices, getOperations, getRoutes, getConfig, getAppInfo } from "./introspection.js";
 
 // ---------------------------------------------------------------------------
@@ -53,7 +53,11 @@ const mockConfig = {
 
 const mockPackageDescription = { name: "@webda/test", version: "1.0.0" };
 
-let mockProjectInfo: Record<string, any> | undefined = { name: "@webda/test", version: "1.0.0", git: { branch: "main" } };
+let mockProjectInfo: Record<string, any> | undefined = {
+  name: "@webda/test",
+  version: "1.0.0",
+  git: { branch: "main" }
+};
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -80,162 +84,197 @@ vi.mock("@webda/core", () => ({
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("getModels", () => {
-  it("returns an array with one entry per registered model", () => {
+@suite
+class GetModelsTest {
+  @test
+  returnsAnArrayWithOneEntryPerRegisteredModel() {
     const models = getModels();
-    expect(models).toHaveLength(1);
-  });
+    assert.strictEqual(models.length, 1);
+  }
 
-  it("maps identifier from metadata", () => {
+  @test
+  mapsIdentifierFromMetadata() {
     const [task] = getModels();
-    expect(task.id).toBe("MyApp/Task");
-  });
+    assert.strictEqual(task.id, "MyApp/Task");
+  }
 
-  it("maps plural from metadata", () => {
+  @test
+  mapsPluralFromMetadata() {
     const [task] = getModels();
-    expect(task.plural).toBe("Tasks");
-  });
+    assert.strictEqual(task.plural, "Tasks");
+  }
 
-  it("maps action names from metadata", () => {
+  @test
+  mapsActionNamesFromMetadata() {
     const [task] = getModels();
-    expect(task.actions).toEqual(expect.arrayContaining(["create", "get", "delete"]));
-    expect(task.actions).toHaveLength(3);
-  });
+    assert.ok(task.actions.includes("create"));
+    assert.ok(task.actions.includes("get"));
+    assert.ok(task.actions.includes("delete"));
+    assert.strictEqual(task.actions.length, 3);
+  }
 
-  it("maps relations from metadata", () => {
+  @test
+  mapsRelationsFromMetadata() {
     const [task] = getModels();
-    expect(task.relations).toEqual({ links: [], queries: [], maps: [], binaries: [] });
-  });
+    assert.deepStrictEqual(task.relations, { links: [], queries: [], maps: [], binaries: [] });
+  }
 
-  it("includes the raw metadata object", () => {
+  @test
+  includesTheRawMetadataObject() {
     const [task] = getModels();
-    expect(task.metadata).toBe(mockModelClass.Metadata);
-  });
-});
+    assert.strictEqual(task.metadata, mockModelClass.Metadata);
+  }
+}
 
-describe("getModel", () => {
-  it("returns the matching model by identifier", () => {
+@suite
+class GetModelTest {
+  @test
+  returnsTheMatchingModelByIdentifier() {
     const model = getModel("MyApp/Task");
-    expect(model).toBeDefined();
-    expect(model!.id).toBe("MyApp/Task");
-  });
+    assert.ok(model !== undefined);
+    assert.strictEqual(model!.id, "MyApp/Task");
+  }
 
-  it("returns undefined for an unknown identifier", () => {
-    expect(getModel("Unknown")).toBeUndefined();
-  });
-});
+  @test
+  returnsUndefinedForAnUnknownIdentifier() {
+    assert.strictEqual(getModel("Unknown"), undefined);
+  }
+}
 
-describe("getServices", () => {
-  it("returns an entry for each non-null service", () => {
+@suite
+class GetServicesTest {
+  @test
+  returnsAnEntryForEachNonNullService() {
     const services = getServices();
-    expect(services).toHaveLength(2);
-  });
+    assert.strictEqual(services.length, 2);
+  }
 
-  it("includes service name", () => {
+  @test
+  includesServiceName() {
     const names = getServices().map(s => s.name);
-    expect(names).toContain("Router");
-    expect(names).toContain("Store");
-  });
+    assert.ok(names.includes("Router"));
+    assert.ok(names.includes("Store"));
+  }
 
-  it("includes service type from parameters", () => {
+  @test
+  includesServiceTypeFromParameters() {
     const router = getServices().find(s => s.name === "Router");
-    expect(router!.type).toBe("Webda/Router");
-  });
+    assert.strictEqual(router!.type, "Webda/Router");
+  }
 
-  it("includes service state", () => {
+  @test
+  includesServiceState() {
     const services = getServices();
-    services.forEach(s => expect(s.state).toBe("running"));
-  });
+    services.forEach(s => assert.strictEqual(s.state, "running"));
+  }
 
-  it("includes service capabilities", () => {
+  @test
+  includesServiceCapabilities() {
     const router = getServices().find(s => s.name === "Router");
-    expect(router!.capabilities).toEqual({ router: {} });
+    assert.deepStrictEqual(router!.capabilities, { router: {} });
 
     const store = getServices().find(s => s.name === "Store");
-    expect(store!.capabilities).toEqual({});
-  });
-});
+    assert.deepStrictEqual(store!.capabilities, {});
+  }
+}
 
-describe("getOperations", () => {
-  it("returns an entry for each operation", () => {
+@suite
+class GetOperationsTest {
+  @test
+  returnsAnEntryForEachOperation() {
     const ops = getOperations();
-    expect(ops).toHaveLength(2);
-  });
+    assert.strictEqual(ops.length, 2);
+  }
 
-  it("each operation has an id field", () => {
+  @test
+  eachOperationHasAnIdField() {
     const ops = getOperations();
     const ids = ops.map(o => o.id);
-    expect(ids).toContain("Task.Create");
-    expect(ids).toContain("Task.Get");
-  });
+    assert.ok(ids.includes("Task.Create"));
+    assert.ok(ids.includes("Task.Get"));
+  }
 
-  it("preserves input and output fields", () => {
+  @test
+  preservesInputAndOutputFields() {
     const create = getOperations().find(o => o.id === "Task.Create");
-    expect(create!.input).toBe("MyApp/Task");
-    expect(create!.output).toBe("MyApp/Task");
-  });
+    assert.strictEqual(create!.input, "MyApp/Task");
+    assert.strictEqual(create!.output, "MyApp/Task");
+  }
 
-  it("preserves parameters field when present", () => {
+  @test
+  preservesParametersFieldWhenPresent() {
     const get = getOperations().find(o => o.id === "Task.Get");
-    expect(get!.parameters).toBe("uuidRequest");
-  });
-});
+    assert.strictEqual(get!.parameters, "uuidRequest");
+  }
+}
 
-describe("getRoutes", () => {
-  it("returns one entry per route info object", () => {
+@suite
+class GetRoutesTest {
+  @test
+  returnsOneEntryPerRouteInfoObject() {
     const routes = getRoutes();
-    expect(routes).toHaveLength(2);
-  });
+    assert.strictEqual(routes.length, 2);
+  }
 
-  it("includes path for each entry", () => {
+  @test
+  includesPathForEachEntry() {
     const paths = getRoutes().map(r => r.path);
-    expect(paths).toContain("/tasks");
-    expect(paths).toContain("/tasks/{uuid}");
-  });
+    assert.ok(paths.includes("/tasks"));
+    assert.ok(paths.includes("/tasks/{uuid}"));
+  }
 
-  it("includes methods array", () => {
+  @test
+  includesMethodsArray() {
     const tasks = getRoutes().find(r => r.path === "/tasks");
-    expect(tasks!.methods).toEqual(["GET", "POST"]);
-  });
+    assert.deepStrictEqual(tasks!.methods, ["GET", "POST"]);
+  }
 
-  it("includes executor name", () => {
+  @test
+  includesExecutorName() {
     const routes = getRoutes();
-    routes.forEach(r => expect(r.executor).toBe("RESTDomainService"));
-  });
-});
+    routes.forEach(r => assert.strictEqual(r.executor, "RESTDomainService"));
+  }
+}
 
-describe("getConfig", () => {
-  it("returns the application configuration", () => {
+@suite
+class GetConfigTest {
+  @test
+  returnsTheApplicationConfiguration() {
     const config = getConfig();
-    expect(config).toBe(mockConfig);
-  });
+    assert.strictEqual(config, mockConfig);
+  }
 
-  it("contains services and parameters keys", () => {
+  @test
+  containsServicesAndParametersKeys() {
     const config = getConfig();
-    expect(config.services).toBeDefined();
-    expect(config.parameters).toBeDefined();
-  });
+    assert.ok(config.services !== undefined);
+    assert.ok(config.parameters !== undefined);
+  }
 
-  it("returns correct parameter values", () => {
+  @test
+  returnsCorrectParameterValues() {
     const config = getConfig();
-    expect(config.parameters.apiUrl).toBe("http://localhost:18080");
-  });
-});
+    assert.strictEqual(config.parameters.apiUrl, "http://localhost:18080");
+  }
+}
 
-describe("getAppInfo", () => {
-  it("returns project info with workingDirectory when getProjectInfo returns data", () => {
+@suite
+class GetAppInfoTest {
+  @test
+  returnsProjectInfoWithWorkingDirectoryWhenGetProjectInfoReturnsData() {
     mockProjectInfo = { name: "@webda/test", version: "1.0.0", git: { branch: "main" } };
     const info = getAppInfo();
-    expect(info.name).toBe("@webda/test");
-    expect(info.version).toBe("1.0.0");
-    expect(info.git).toEqual({ branch: "main" });
-    expect(info.workingDirectory).toBe(process.cwd());
-  });
+    assert.strictEqual(info.name, "@webda/test");
+    assert.strictEqual(info.version, "1.0.0");
+    assert.deepStrictEqual(info.git, { branch: "main" });
+    assert.strictEqual(info.workingDirectory, process.cwd());
+  }
 
-  it("falls back to getPackageDescription when getProjectInfo returns undefined", () => {
+  @test
+  fallsBackToGetPackageDescriptionWhenGetProjectInfoReturnsUndefined() {
     mockProjectInfo = undefined;
     const info = getAppInfo();
-    expect(info.package).toEqual(mockPackageDescription);
-    expect(info.workingDirectory).toBe(process.cwd());
-  });
-});
+    assert.deepStrictEqual(info.package, mockPackageDescription);
+    assert.strictEqual(info.workingDirectory, process.cwd());
+  }
+}

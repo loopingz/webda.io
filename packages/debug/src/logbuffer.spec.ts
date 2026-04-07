@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { suite, test } from "@webda/test";
+import * as assert from "assert";
+import { vi } from "vitest";
 import { LogBuffer } from "./logbuffer.js";
 
 // Mock @webda/workout to test subscribe/unsubscribe
@@ -15,100 +17,113 @@ vi.mock("@webda/workout", () => ({
   })
 }));
 
-describe("LogBuffer", () => {
-  let buffer: LogBuffer;
+@suite
+class LogBufferTest {
+  buffer: LogBuffer;
 
-  beforeEach(() => {
-    buffer = new LogBuffer(5);
+  beforeEach() {
+    this.buffer = new LogBuffer(5);
     mockListeners.clear();
-  });
+  }
 
-  it("starts empty", () => {
-    expect(buffer.getEntries()).toEqual([]);
-  });
+  @test
+  startsEmpty() {
+    assert.deepStrictEqual(this.buffer.getEntries(), []);
+  }
 
-  it("captures log entries via listener", () => {
+  @test
+  capturesLogEntriesViaListener() {
     const msg = { type: "log", timestamp: Date.now(), log: { level: "INFO", args: ["Hello", "world"] } };
-    (buffer as any).listener(msg);
-    const entries = buffer.getEntries();
-    expect(entries).toHaveLength(1);
-    expect(entries[0].level).toBe("INFO");
-    expect(entries[0].message).toBe("Hello world");
-  });
+    (this.buffer as any).listener(msg);
+    const entries = this.buffer.getEntries();
+    assert.strictEqual(entries.length, 1);
+    assert.strictEqual(entries[0].level, "INFO");
+    assert.strictEqual(entries[0].message, "Hello world");
+  }
 
-  it("respects max size", () => {
+  @test
+  respectsMaxSize() {
     for (let i = 0; i < 7; i++) {
-      (buffer as any).listener({ type: "log", timestamp: i, log: { level: "INFO", args: [`msg${i}`] } });
+      (this.buffer as any).listener({ type: "log", timestamp: i, log: { level: "INFO", args: [`msg${i}`] } });
     }
-    expect(buffer.getEntries()).toHaveLength(5);
-    expect(buffer.getEntries()[0].message).toBe("msg2");
-  });
+    assert.strictEqual(this.buffer.getEntries().length, 5);
+    assert.strictEqual(this.buffer.getEntries()[0].message, "msg2");
+  }
 
-  it("ignores non-log messages", () => {
-    (buffer as any).listener({ type: "progress", timestamp: Date.now() });
-    expect(buffer.getEntries()).toHaveLength(0);
-  });
+  @test
+  ignoresNonLogMessages() {
+    (this.buffer as any).listener({ type: "progress", timestamp: Date.now() });
+    assert.strictEqual(this.buffer.getEntries().length, 0);
+  }
 
-  it("notifies subscribers", () => {
+  @test
+  notifiesSubscribers() {
     const events: any[] = [];
-    buffer.onEvent(e => events.push(e));
-    (buffer as any).listener({ type: "log", timestamp: Date.now(), log: { level: "WARN", args: ["test"] } });
-    expect(events).toHaveLength(1);
-    expect(events[0].type).toBe("log");
-    expect(events[0].level).toBe("WARN");
-  });
+    this.buffer.onEvent(e => events.push(e));
+    (this.buffer as any).listener({ type: "log", timestamp: Date.now(), log: { level: "WARN", args: ["test"] } });
+    assert.strictEqual(events.length, 1);
+    assert.strictEqual(events[0].type, "log");
+    assert.strictEqual(events[0].level, "WARN");
+  }
 
-  it("unsubscribes", () => {
+  @test
+  unsubscribes() {
     const events: any[] = [];
-    const unsub = buffer.onEvent(e => events.push(e));
-    (buffer as any).listener({ type: "log", timestamp: 1, log: { level: "INFO", args: ["a"] } });
+    const unsub = this.buffer.onEvent(e => events.push(e));
+    (this.buffer as any).listener({ type: "log", timestamp: 1, log: { level: "INFO", args: ["a"] } });
     unsub();
-    (buffer as any).listener({ type: "log", timestamp: 2, log: { level: "INFO", args: ["b"] } });
-    expect(events).toHaveLength(1);
-  });
+    (this.buffer as any).listener({ type: "log", timestamp: 2, log: { level: "INFO", args: ["b"] } });
+    assert.strictEqual(events.length, 1);
+  }
 
-  it("searches by message content", () => {
-    (buffer as any).listener({ type: "log", timestamp: 1, log: { level: "INFO", args: ["Starting server"] } });
-    (buffer as any).listener({
+  @test
+  searchesByMessageContent() {
+    (this.buffer as any).listener({ type: "log", timestamp: 1, log: { level: "INFO", args: ["Starting server"] } });
+    (this.buffer as any).listener({
       type: "log",
       timestamp: 2,
       log: { level: "ERROR", args: ["Connection failed"] }
     });
-    expect(buffer.search("server")).toHaveLength(1);
-    expect(buffer.search("server")[0].message).toBe("Starting server");
-  });
+    assert.strictEqual(this.buffer.search("server").length, 1);
+    assert.strictEqual(this.buffer.search("server")[0].message, "Starting server");
+  }
 
-  it("searches by level", () => {
-    (buffer as any).listener({ type: "log", timestamp: 1, log: { level: "INFO", args: ["ok"] } });
-    (buffer as any).listener({ type: "log", timestamp: 2, log: { level: "ERROR", args: ["fail"] } });
-    expect(buffer.search("error")).toHaveLength(1);
-  });
+  @test
+  searchesByLevel() {
+    (this.buffer as any).listener({ type: "log", timestamp: 1, log: { level: "INFO", args: ["ok"] } });
+    (this.buffer as any).listener({ type: "log", timestamp: 2, log: { level: "ERROR", args: ["fail"] } });
+    assert.strictEqual(this.buffer.search("error").length, 1);
+  }
 
-  it("handles object args", () => {
-    (buffer as any).listener({ type: "log", timestamp: 1, log: { level: "INFO", args: [{ key: "val" }] } });
-    expect(buffer.getEntries()[0].message).toBe('{"key":"val"}');
-  });
+  @test
+  handlesObjectArgs() {
+    (this.buffer as any).listener({ type: "log", timestamp: 1, log: { level: "INFO", args: [{ key: "val" }] } });
+    assert.strictEqual(this.buffer.getEntries()[0].message, '{"key":"val"}');
+  }
 
-  it("subscribe adds listener to WorkerOutput", () => {
-    buffer.subscribe();
+  @test
+  subscribeAddsListenerToWorkerOutput() {
+    this.buffer.subscribe();
     const listeners = mockListeners.get("message");
-    expect(listeners).toBeDefined();
-    expect(listeners!.size).toBe(1);
-    expect(listeners!.has((buffer as any).listener)).toBe(true);
-  });
+    assert.ok(listeners !== undefined);
+    assert.strictEqual(listeners!.size, 1);
+    assert.strictEqual(listeners!.has((this.buffer as any).listener), true);
+  }
 
-  it("unsubscribe removes listener from WorkerOutput", () => {
-    buffer.subscribe();
-    expect(mockListeners.get("message")!.size).toBe(1);
-    buffer.unsubscribe();
-    expect(mockListeners.get("message")!.size).toBe(0);
-  });
+  @test
+  unsubscribeRemovesListenerFromWorkerOutput() {
+    this.buffer.subscribe();
+    assert.strictEqual(mockListeners.get("message")!.size, 1);
+    this.buffer.unsubscribe();
+    assert.strictEqual(mockListeners.get("message")!.size, 0);
+  }
 
-  it("subscribe then unsubscribe round-trip works", () => {
-    buffer.subscribe();
-    buffer.unsubscribe();
+  @test
+  subscribeThenUnsubscribeRoundTripWorks() {
+    this.buffer.subscribe();
+    this.buffer.unsubscribe();
     // Calling unsubscribe again should not throw
-    buffer.unsubscribe();
-    expect(mockListeners.get("message")?.size ?? 0).toBe(0);
-  });
-});
+    this.buffer.unsubscribe();
+    assert.strictEqual(mockListeners.get("message")?.size ?? 0, 0);
+  }
+}

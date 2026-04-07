@@ -1,169 +1,312 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { createServer, Server } from "node:http";
+import { suite, test } from "@webda/test";
+import * as assert from "assert";
+import { createServer, Server, IncomingMessage, ServerResponse } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { AddressInfo } from "node:net";
 import { DebugClient } from "./client.js";
 
-describe("DebugClient WebSocket reconnection", () => {
-  let server: Server;
-  let wss: WebSocketServer;
-  let port: number;
-  let client: DebugClient;
+@suite
+class DebugClientHTTPMethodsTest {
+  server: Server;
+  port: number;
+  client: DebugClient;
+  mockData: Record<string, any> = {
+    "/api/models": [{ id: "MyApp/Task" }],
+    "/api/models/MyApp%2FTask": { id: "MyApp/Task", plural: "Tasks" },
+    "/api/services": [{ name: "Router" }],
+    "/api/operations": [{ id: "Task.Create" }],
+    "/api/routes": [{ path: "/tasks", methods: ["GET"] }],
+    "/api/config": { parameters: {} },
+    "/api/openapi": { openapi: "3.0.3" },
+    "/api/requests": [{ id: "r1" }],
+    "/api/logs": [{ id: "l1", level: "INFO" }],
+    "/api/info": { package: { name: "test" } }
+  };
 
-  afterEach(async () => {
-    client?.disconnect();
-    if (wss) wss.close();
-    if (server) await new Promise<void>(resolve => server.close(() => resolve()));
-  });
-
-  it("sets connected to true on open and false on close", async () => {
-    server = createServer();
-    wss = new WebSocketServer({ server });
-    await new Promise<void>(resolve => server.listen(0, () => resolve()));
-    port = (server.address() as AddressInfo).port;
-
-    client = new DebugClient(`http://localhost:${port}`);
-    expect(client.connected).toBe(false);
-
-    client.connectWebSocket();
-
-    // Wait for connection
-    await new Promise<void>(resolve => {
-      const interval = setInterval(() => {
-        if (client.connected) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 10);
+  async beforeEach() {
+    this.server = createServer((req: IncomingMessage, res: ServerResponse) => {
+      const data = this.mockData[req.url || ""];
+      if (data) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(data));
+      } else {
+        res.writeHead(404);
+        res.end();
+      }
     });
+    await new Promise<void>(resolve => this.server.listen(0, () => resolve()));
+    this.port = (this.server.address() as AddressInfo).port;
+    this.client = new DebugClient(`http://localhost:${this.port}`);
+  }
 
-    expect(client.connected).toBe(true);
+  async afterEach() {
+    this.client?.disconnect();
+    await new Promise<void>(resolve => this.server.close(() => resolve()));
+  }
 
-    // Disconnect and verify
-    client.disconnect();
-    expect(client.connected).toBe(false);
-  });
+  @test
+  async getModels() {
+    const result = await this.client.getModels();
+    assert.deepStrictEqual(result, [{ id: "MyApp/Task" }]);
+  }
 
-  it("receives events via onEvent callback", async () => {
-    server = createServer();
-    wss = new WebSocketServer({ server });
+  @test
+  async getModel() {
+    const result = await this.client.getModel("MyApp/Task");
+    assert.strictEqual(result.id, "MyApp/Task");
+  }
+
+  @test
+  async getServices() {
+    const result = await this.client.getServices();
+    assert.strictEqual(result[0].name, "Router");
+  }
+
+  @test
+  async getOperations() {
+    const result = await this.client.getOperations();
+    assert.strictEqual(result[0].id, "Task.Create");
+  }
+
+  @test
+  async getRoutes() {
+    const result = await this.client.getRoutes();
+    assert.strictEqual(result[0].path, "/tasks");
+  }
+
+  @test
+  async getConfig() {
+    const result = await this.client.getConfig();
+    assert.ok("parameters" in result);
+  }
+
+  @test
+  async getOpenAPI() {
+    const result = await this.client.getOpenAPI();
+    assert.strictEqual(result.openapi, "3.0.3");
+  }
+
+  @test
+  async getRequests() {
+    const result = await this.client.getRequests();
+    assert.strictEqual(result[0].id, "r1");
+  }
+
+  @test
+  async getLogs() {
+    const result = await this.client.getLogs();
+    assert.strictEqual(result[0].level, "INFO");
+  }
+
+  @test
+  async getAppInfo() {
+    const result = await this.client.getAppInfo();
+    assert.strictEqual(result.package.name, "test");
+  }
+
+  @test
+  async searchLogs() {
+    this.mockData["/api/logs?q=error"] = [{ id: "l2", level: "ERROR" }];
+    const result = await this.client.searchLogs("error");
+    assert.strictEqual(result[0].level, "ERROR");
+  }
+
+  @test
+  async throwsOnHTTPError() {
+    await assert.rejects(async () => this.client.getModel("nonexistent"), /HTTP 404/);
+  }
+
+  @test
+  async handlesTrailingSlashInBaseURL() {
+    const c = new DebugClient(`http://localhost:${this.port}/`);
+    try {
+      const result = await c.getModels();
+      assert.deepStrictEqual(result, [{ id: "MyApp/Task" }]);
+    } finally {
+      c.disconnect();
+    }
+  }
+}
+
+@suite
+class DebugClientWebSocketReconnectionTest {
+  @test
+  async setsConnectedToTrueOnOpenAndFalseOnClose() {
+    const server = createServer();
+    const wss = new WebSocketServer({ server });
     await new Promise<void>(resolve => server.listen(0, () => resolve()));
-    port = (server.address() as AddressInfo).port;
+    const port = (server.address() as AddressInfo).port;
+
+    const client = new DebugClient(`http://localhost:${port}`);
+    try {
+      assert.strictEqual(client.connected, false);
+
+      client.connectWebSocket();
+
+      // Wait for connection
+      await new Promise<void>(resolve => {
+        const interval = setInterval(() => {
+          if (client.connected) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 10);
+      });
+
+      assert.strictEqual(client.connected, true);
+
+      // Disconnect and verify
+      client.disconnect();
+      assert.strictEqual(client.connected, false);
+    } finally {
+      client.disconnect();
+      wss.close();
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  }
+
+  @test
+  async receivesEventsViaOnEventCallback() {
+    const server = createServer();
+    const wss = new WebSocketServer({ server });
+    await new Promise<void>(resolve => server.listen(0, () => resolve()));
+    const port = (server.address() as AddressInfo).port;
 
     const serverClients = new Set<WebSocket>();
     wss.on("connection", ws => serverClients.add(ws));
 
-    client = new DebugClient(`http://localhost:${port}`);
-    const events: any[] = [];
-    client.onEvent(e => events.push(e));
-    client.connectWebSocket();
+    const client = new DebugClient(`http://localhost:${port}`);
+    try {
+      const events: any[] = [];
+      client.onEvent(e => events.push(e));
+      client.connectWebSocket();
 
-    // Wait for connection
-    await new Promise<void>(resolve => {
-      const interval = setInterval(() => {
-        if (client.connected) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 10);
-    });
+      // Wait for connection
+      await new Promise<void>(resolve => {
+        const interval = setInterval(() => {
+          if (client.connected) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 10);
+      });
 
-    // Send a message from server
-    for (const ws of serverClients) {
-      ws.send(JSON.stringify({ type: "restart" }));
+      // Send a message from server
+      for (const ws of serverClients) {
+        ws.send(JSON.stringify({ type: "restart" }));
+      }
+
+      // Wait for message
+      await new Promise<void>(resolve => {
+        const interval = setInterval(() => {
+          if (events.length > 0) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 10);
+      });
+
+      assert.strictEqual(events.length, 1);
+      assert.strictEqual(events[0].type, "restart");
+    } finally {
+      client.disconnect();
+      wss.close();
+      await new Promise<void>(resolve => server.close(() => resolve()));
     }
+  }
 
-    // Wait for message
-    await new Promise<void>(resolve => {
-      const interval = setInterval(() => {
-        if (events.length > 0) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 10);
-    });
-
-    expect(events).toHaveLength(1);
-    expect(events[0].type).toBe("restart");
-  });
-
-  it("WebSocket close triggers reconnect attempt", async () => {
-    server = createServer();
-    wss = new WebSocketServer({ server });
+  @test
+  async webSocketCloseTriggersReconnectAttempt() {
+    const server = createServer();
+    const wss = new WebSocketServer({ server });
     await new Promise<void>(resolve => server.listen(0, () => resolve()));
-    port = (server.address() as AddressInfo).port;
+    const port = (server.address() as AddressInfo).port;
 
-    client = new DebugClient(`http://localhost:${port}`);
-    client.connectWebSocket();
+    const client = new DebugClient(`http://localhost:${port}`);
+    try {
+      client.connectWebSocket();
 
-    // Wait for initial connection
-    await new Promise<void>(resolve => {
-      const interval = setInterval(() => {
-        if (client.connected) {
+      // Wait for initial connection
+      await new Promise<void>(resolve => {
+        const interval = setInterval(() => {
+          if (client.connected) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 10);
+      });
+
+      // Force close all server-side connections
+      for (const ws of wss.clients) {
+        ws.close();
+      }
+
+      // Wait for disconnection
+      await new Promise<void>(resolve => {
+        const interval = setInterval(() => {
+          if (!client.connected) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 10);
+      });
+
+      assert.strictEqual(client.connected, false);
+
+      // Wait for reconnect (reconnectDelay starts at 1000ms)
+      await new Promise<void>(resolve => {
+        const interval = setInterval(() => {
+          if (client.connected) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 50);
+        // Timeout safety
+        setTimeout(() => {
           clearInterval(interval);
           resolve();
-        }
-      }, 10);
-    });
+        }, 3000);
+      });
 
-    // Force close all server-side connections
-    for (const ws of wss.clients) {
-      ws.close();
+      // Should have reconnected
+      assert.strictEqual(client.connected, true);
+    } finally {
+      client.disconnect();
+      wss.close();
+      await new Promise<void>(resolve => server.close(() => resolve()));
     }
+  }
 
-    // Wait for disconnection
-    await new Promise<void>(resolve => {
-      const interval = setInterval(() => {
-        if (!client.connected) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 10);
-    });
-
-    expect(client.connected).toBe(false);
-
-    // Wait for reconnect (reconnectDelay starts at 1000ms)
-    await new Promise<void>(resolve => {
-      const interval = setInterval(() => {
-        if (client.connected) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 50);
-      // Timeout safety
-      setTimeout(() => {
-        clearInterval(interval);
-        resolve();
-      }, 3000);
-    });
-
-    // Should have reconnected
-    expect(client.connected).toBe(true);
-  });
-
-  it("WebSocket error sets connected to false", async () => {
+  @test
+  async webSocketErrorSetsConnectedToFalse() {
     // Connect to a port that will immediately refuse
-    client = new DebugClient("http://localhost:1");
-    client.connectWebSocket();
+    const client = new DebugClient("http://localhost:1");
+    try {
+      client.connectWebSocket();
 
-    // The connection should fail and connected should stay false
-    expect(client.connected).toBe(false);
+      // The connection should fail and connected should stay false
+      assert.strictEqual(client.connected, false);
 
-    // Wait a bit to ensure error handler fired
-    await new Promise(resolve => setTimeout(resolve, 200));
-    expect(client.connected).toBe(false);
+      // Wait a bit to ensure error handler fired
+      await new Promise(resolve => setTimeout(resolve, 200));
+      assert.strictEqual(client.connected, false);
+    } finally {
+      client.disconnect();
+    }
+  }
 
-    client.disconnect();
-  });
+  @test
+  onEventUnsubscribeFunctionWorks() {
+    const client = new DebugClient("http://localhost:1");
+    try {
+      const events: any[] = [];
+      const unsub = client.onEvent(e => events.push(e));
 
-  it("onEvent unsubscribe function works", () => {
-    client = new DebugClient("http://localhost:1");
-    const events: any[] = [];
-    const unsub = client.onEvent(e => events.push(e));
-
-    // Verify the unsubscribe removes the callback
-    unsub();
-    expect((client as any).subscribers.size).toBe(0);
-  });
-});
+      // Verify the unsubscribe removes the callback
+      unsub();
+      assert.strictEqual((client as any).subscribers.size, 0);
+    } finally {
+      client.disconnect();
+    }
+  }
+}

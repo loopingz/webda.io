@@ -1,4 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { suite, test } from "@webda/test";
+import * as assert from "assert";
+import { vi } from "vitest";
 import { createServer, Server, IncomingMessage, ServerResponse } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { AddressInfo } from "node:net";
@@ -23,7 +25,7 @@ vi.mock("./introspection.js", () => ({
   getAppInfo: () => mockAppInfo
 }));
 
-let mockRouterCompleteOpenAPI = vi.fn(function completeOpenAPI(doc: any) {
+const mockRouterCompleteOpenAPI = vi.fn(function completeOpenAPI(doc: any) {
   doc.paths = { "/test": {} };
 });
 let mockRouterThrows = false;
@@ -32,8 +34,12 @@ vi.mock("@webda/core", () => ({
   Service: class {
     parameters: any = {};
     log() {}
-    resolve() { return this; }
-    init() { return this; }
+    resolve() {
+      return this;
+    }
+    init() {
+      return this;
+    }
     async stop() {}
   },
   ServiceParameters: class {},
@@ -136,119 +142,137 @@ function createTestWsServer(): Promise<{
 // Dynamic import so mocks are set up first
 const { DebugService } = await import("./debugservice.js");
 
-describe("DebugService.handleRequest (real class)", () => {
-  let service: InstanceType<typeof DebugService>;
-  let port: number;
+@suite
+class DebugServiceHandleRequestTest {
+  service: InstanceType<typeof DebugService>;
+  port: number;
 
-  beforeEach(async () => {
-    service = new DebugService();
-    // Resolve won't fail because useCoreEvents is mocked
-    service.resolve();
-    await service.startDebugServer(0);
-    port = ((service as any).server as Server).address().port;
-  });
+  async beforeEach() {
+    this.service = new DebugService();
+    this.service.resolve();
+    await this.service.startDebugServer(0);
+    this.port = ((this.service as any).server as Server).address().port;
+  }
 
-  afterEach(async () => {
-    await service.stop();
-  });
+  async afterEach() {
+    await this.service.stop();
+  }
 
-  it("GET /api/services returns services", async () => {
-    const res = await fetch(`http://localhost:${port}/api/services`);
-    expect(res.status).toBe(200);
+  @test
+  async getApiServicesReturnsServices() {
+    const res = await fetch(`http://localhost:${this.port}/api/services`);
+    assert.strictEqual(res.status, 200);
     const body = await res.json();
-    expect(body).toEqual(mockServices);
-  });
+    assert.deepStrictEqual(body, mockServices);
+  }
 
-  it("GET /api/operations returns operations", async () => {
-    const res = await fetch(`http://localhost:${port}/api/operations`);
-    expect(res.status).toBe(200);
+  @test
+  async getApiOperationsReturnsOperations() {
+    const res = await fetch(`http://localhost:${this.port}/api/operations`);
+    assert.strictEqual(res.status, 200);
     const body = await res.json();
-    expect(body).toEqual(mockOperations);
-  });
+    assert.deepStrictEqual(body, mockOperations);
+  }
 
-  it("GET /api/routes returns routes", async () => {
-    const res = await fetch(`http://localhost:${port}/api/routes`);
-    expect(res.status).toBe(200);
+  @test
+  async getApiRoutesReturnsRoutes() {
+    const res = await fetch(`http://localhost:${this.port}/api/routes`);
+    assert.strictEqual(res.status, 200);
     const body = await res.json();
-    expect(body).toEqual(mockRoutes);
-  });
+    assert.deepStrictEqual(body, mockRoutes);
+  }
 
-  it("GET /api/config returns config", async () => {
-    const res = await fetch(`http://localhost:${port}/api/config`);
-    expect(res.status).toBe(200);
+  @test
+  async getApiConfigReturnsConfig() {
+    const res = await fetch(`http://localhost:${this.port}/api/config`);
+    assert.strictEqual(res.status, 200);
     const body = await res.json();
-    expect(body).toEqual(mockConfig);
-  });
+    assert.deepStrictEqual(body, mockConfig);
+  }
 
-  it("GET /api/info returns app info", async () => {
-    const res = await fetch(`http://localhost:${port}/api/info`);
-    expect(res.status).toBe(200);
+  @test
+  async getApiInfoReturnsAppInfo() {
+    const res = await fetch(`http://localhost:${this.port}/api/info`);
+    assert.strictEqual(res.status, 200);
     const body = await res.json();
-    expect(body).toEqual(mockAppInfo);
-  });
+    assert.deepStrictEqual(body, mockAppInfo);
+  }
 
-  it("GET /api/openapi returns OpenAPI spec", async () => {
+  @test
+  async getApiOpenapiReturnsOpenAPISpec() {
     mockRouterThrows = false;
-    const res = await fetch(`http://localhost:${port}/api/openapi`);
-    expect(res.status).toBe(200);
+    const res = await fetch(`http://localhost:${this.port}/api/openapi`);
+    assert.strictEqual(res.status, 200);
     const body = await res.json();
-    expect(body.openapi).toBe("3.0.3");
-    expect(body.paths).toEqual({ "/test": {} });
-  });
+    assert.strictEqual(body.openapi, "3.0.3");
+    assert.deepStrictEqual(body.paths, { "/test": {} });
+  }
 
-  it("GET /api/openapi returns stub when router unavailable", async () => {
+  @test
+  async getApiOpenapiReturnsStubWhenRouterUnavailable() {
     mockRouterThrows = true;
-    const res = await fetch(`http://localhost:${port}/api/openapi`);
-    expect(res.status).toBe(200);
+    try {
+      const res = await fetch(`http://localhost:${this.port}/api/openapi`);
+      assert.strictEqual(res.status, 200);
+      const body = await res.json();
+      assert.strictEqual(body.openapi, "3.0.3");
+      assert.deepStrictEqual(body.paths, {});
+    } finally {
+      mockRouterThrows = false;
+    }
+  }
+
+  @test
+  async getApiLogsReturnsLogEntries() {
+    const res = await fetch(`http://localhost:${this.port}/api/logs`);
+    assert.strictEqual(res.status, 200);
     const body = await res.json();
-    expect(body.openapi).toBe("3.0.3");
-    expect(body.paths).toEqual({});
-    mockRouterThrows = false;
-  });
+    assert.ok(Array.isArray(body));
+  }
 
-  it("GET /api/logs returns log entries", async () => {
-    const res = await fetch(`http://localhost:${port}/api/logs`);
-    expect(res.status).toBe(200);
+  @test
+  async getApiLogsWithQueryFiltersLogs() {
+    const res = await fetch(`http://localhost:${this.port}/api/logs?q=test`);
+    assert.strictEqual(res.status, 200);
     const body = await res.json();
-    expect(Array.isArray(body)).toBe(true);
-  });
+    assert.ok(Array.isArray(body));
+  }
 
-  it("GET /api/logs?q=search filters logs", async () => {
-    const res = await fetch(`http://localhost:${port}/api/logs?q=test`);
-    expect(res.status).toBe(200);
+  @test
+  async getApiModelsIdReturns404ForUnknownModel() {
+    const res = await fetch(`http://localhost:${this.port}/api/models/Unknown`);
+    assert.strictEqual(res.status, 404);
     const body = await res.json();
-    expect(Array.isArray(body)).toBe(true);
-  });
+    assert.strictEqual(body.error, "Model not found");
+  }
 
-  it("GET /api/models/:id returns 404 for unknown model", async () => {
-    const res = await fetch(`http://localhost:${port}/api/models/Unknown`);
-    expect(res.status).toBe(404);
+  @test
+  async getApiModelsIdReturnsModelForKnownId() {
+    const res = await fetch(`http://localhost:${this.port}/api/models/Test%2FModel`);
+    assert.strictEqual(res.status, 200);
     const body = await res.json();
-    expect(body.error).toBe("Model not found");
-  });
+    assert.strictEqual(body.id, "Test/Model");
+  }
 
-  it("GET /api/models/:id returns model for known id", async () => {
-    const res = await fetch(`http://localhost:${port}/api/models/Test%2FModel`);
-    expect(res.status).toBe(200);
+  @test
+  async optionsRequestReturns204() {
+    const res = await fetch(`http://localhost:${this.port}/api/services`, { method: "OPTIONS" });
+    assert.strictEqual(res.status, 204);
+  }
+
+  @test
+  async getApiRequestsReturnsRequestLogEntries() {
+    const res = await fetch(`http://localhost:${this.port}/api/requests`);
+    assert.strictEqual(res.status, 200);
     const body = await res.json();
-    expect(body.id).toBe("Test/Model");
-  });
+    assert.ok(Array.isArray(body));
+  }
+}
 
-  it("OPTIONS request returns 204", async () => {
-    const res = await fetch(`http://localhost:${port}/api/services`, { method: "OPTIONS" });
-    expect(res.status).toBe(204);
-  });
-
-  it("GET /api/requests returns request log entries", async () => {
-    const res = await fetch(`http://localhost:${port}/api/requests`);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(Array.isArray(body)).toBe(true);
-  });
-});
-
-describe("DebugService.stop cleans up resources", () => {
-  it("closes server and wss on stop", async () => {
+@suite
+class DebugServiceStopTest {
+  @test
+  async closesServerAndWssOnStop() {
     const service = new DebugService();
     service.resolve();
     await service.startDebugServer(0);
@@ -258,24 +282,27 @@ describe("DebugService.stop cleans up resources", () => {
     const client = new WebSocket(`ws://localhost:${port}`);
     await new Promise<void>(resolve => client.on("open", resolve));
 
-    expect((service as any).clients.size).toBe(1);
+    assert.strictEqual((service as any).clients.size, 1);
 
     await service.stop();
 
-    expect((service as any).server).toBeUndefined();
-    expect((service as any).wss).toBeUndefined();
-    expect((service as any).clients.size).toBe(0);
-  });
+    assert.strictEqual((service as any).server, undefined);
+    assert.strictEqual((service as any).wss, undefined);
+    assert.strictEqual((service as any).clients.size, 0);
+  }
 
-  it("stop is safe to call without starting server", async () => {
+  @test
+  async stopIsSafeToCallWithoutStartingServer() {
     const service = new DebugService();
     // No startDebugServer called - stop should not throw
     await service.stop();
-  });
-});
+  }
+}
 
-describe("DebugService.broadcast", () => {
-  it("sends JSON to connected WebSocket clients", async () => {
+@suite
+class DebugServiceBroadcastTest {
+  @test
+  async sendsJsonToConnectedWebSocketClients() {
     const service = new DebugService();
     service.resolve();
     await service.startDebugServer(0);
@@ -295,200 +322,230 @@ describe("DebugService.broadcast", () => {
     service.broadcast({ type: "restart" });
     await msgPromise;
 
-    expect(received).toHaveLength(1);
-    expect(received[0].type).toBe("restart");
+    assert.strictEqual(received.length, 1);
+    assert.strictEqual(received[0].type, "restart");
 
     client.close();
     await service.stop();
-  });
-});
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Original pattern-based tests (unchanged)
 // ---------------------------------------------------------------------------
 
-describe("DebugService HTTP routing pattern", () => {
-  let server: Server;
-  let port: number;
-  let requestLog: RequestLog;
-
-  afterEach(async () => {
-    if (server) {
-      await new Promise<void>(resolve => server.close(() => resolve()));
-    }
-  });
-
-  it("GET /api/requests returns logged entries", async () => {
-    requestLog = new RequestLog();
+@suite
+class DebugServiceHTTPRoutingPatternTest {
+  @test
+  async getApiRequestsReturnsLoggedEntries() {
+    const requestLog = new RequestLog();
     requestLog.startRequest("r1", "GET", "/foo");
     requestLog.completeRequest("r1", 200, 10);
-    ({ server, port } = await createTestHttpServer(requestLog));
+    const { server, port } = await createTestHttpServer(requestLog);
 
-    const res = await fetch(`http://localhost:${port}/api/requests`);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toHaveLength(1);
-    expect(body[0].id).toBe("r1");
-    expect(body[0].statusCode).toBe(200);
-    expect(body[0].duration).toBe(10);
-  });
+    try {
+      const res = await fetch(`http://localhost:${port}/api/requests`);
+      assert.strictEqual(res.status, 200);
+      const body = await res.json();
+      assert.strictEqual(body.length, 1);
+      assert.strictEqual(body[0].id, "r1");
+      assert.strictEqual(body[0].statusCode, 200);
+      assert.strictEqual(body[0].duration, 10);
+    } finally {
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  }
 
-  it("GET /api/models returns model list", async () => {
-    requestLog = new RequestLog();
-    ({ server, port } = await createTestHttpServer(requestLog));
-
-    const res = await fetch(`http://localhost:${port}/api/models`);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toHaveLength(1);
-    expect(body[0].id).toBe("Test/Model");
-  });
-
-  it("GET /api/models/:id returns a specific model", async () => {
-    requestLog = new RequestLog();
-    ({ server, port } = await createTestHttpServer(requestLog));
-
-    const res = await fetch(`http://localhost:${port}/api/models/Test%2FModel`);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.id).toBe("Test/Model");
-  });
-
-  it("GET /api/models/:id returns 404 for unknown model", async () => {
-    requestLog = new RequestLog();
-    ({ server, port } = await createTestHttpServer(requestLog));
-
-    const res = await fetch(`http://localhost:${port}/api/models/Unknown`);
-    expect(res.status).toBe(404);
-    const body = await res.json();
-    expect(body.error).toBe("Model not found");
-  });
-
-  it("unknown paths return 404", async () => {
-    requestLog = new RequestLog();
-    ({ server, port } = await createTestHttpServer(requestLog));
-
-    const res = await fetch(`http://localhost:${port}/api/unknown`);
-    expect(res.status).toBe(404);
-    const body = await res.json();
-    expect(body.error).toBe("Not found");
-  });
-
-  it("sets CORS header on responses", async () => {
-    requestLog = new RequestLog();
-    ({ server, port } = await createTestHttpServer(requestLog));
-
-    const res = await fetch(`http://localhost:${port}/api/requests`);
-    expect(res.headers.get("access-control-allow-origin")).toBe("*");
-  });
-});
-
-describe("DebugService WebSocket broadcast pattern", () => {
-  let server: Server;
-  let wss: WebSocketServer;
-  let port: number;
-  let clients: Set<WebSocket>;
-  let broadcast: (data: unknown) => void;
-
-  afterEach(async () => {
-    for (const c of clients) c.close();
-    wss.close();
-    await new Promise<void>(resolve => server.close(() => resolve()));
-  });
-
-  it("broadcasts request log events to connected clients", async () => {
-    ({ server, wss, port, clients, broadcast } = await createTestWsServer());
-
-    const received: any[] = [];
-    const client = new WebSocket(`ws://localhost:${port}`);
-
-    await new Promise<void>(resolve => client.on("open", resolve));
-
-    const messagePromise = new Promise<void>(resolve => {
-      client.on("message", (data: Buffer) => {
-        received.push(JSON.parse(data.toString()));
-        if (received.length === 2) resolve();
-      });
-    });
-
-    // Simulate a request log event being broadcast
+  @test
+  async getApiModelsReturnsModelList() {
     const requestLog = new RequestLog();
-    requestLog.onEvent(event => broadcast(event));
-    requestLog.startRequest("ws-1", "GET", "/test");
-    requestLog.completeRequest("ws-1", 200, 5);
+    const { server, port } = await createTestHttpServer(requestLog);
 
-    await messagePromise;
+    try {
+      const res = await fetch(`http://localhost:${port}/api/models`);
+      assert.strictEqual(res.status, 200);
+      const body = await res.json();
+      assert.strictEqual(body.length, 1);
+      assert.strictEqual(body[0].id, "Test/Model");
+    } finally {
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  }
 
-    expect(received).toHaveLength(2);
-    expect(received[0].type).toBe("request");
-    expect(received[0].id).toBe("ws-1");
-    expect(received[1].type).toBe("result");
-    expect(received[1].statusCode).toBe(200);
+  @test
+  async getApiModelsIdReturnsASpecificModel() {
+    const requestLog = new RequestLog();
+    const { server, port } = await createTestHttpServer(requestLog);
 
-    client.close();
-  });
+    try {
+      const res = await fetch(`http://localhost:${port}/api/models/Test%2FModel`);
+      assert.strictEqual(res.status, 200);
+      const body = await res.json();
+      assert.strictEqual(body.id, "Test/Model");
+    } finally {
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  }
 
-  it("broadcasts a restart event to all clients", async () => {
-    ({ server, wss, port, clients, broadcast } = await createTestWsServer());
+  @test
+  async getApiModelsIdReturns404ForUnknownModel() {
+    const requestLog = new RequestLog();
+    const { server, port } = await createTestHttpServer(requestLog);
 
-    const client1 = new WebSocket(`ws://localhost:${port}`);
-    const client2 = new WebSocket(`ws://localhost:${port}`);
+    try {
+      const res = await fetch(`http://localhost:${port}/api/models/Unknown`);
+      assert.strictEqual(res.status, 404);
+      const body = await res.json();
+      assert.strictEqual(body.error, "Model not found");
+    } finally {
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  }
 
-    await Promise.all([
-      new Promise<void>(resolve => client1.on("open", resolve)),
-      new Promise<void>(resolve => client2.on("open", resolve))
-    ]);
+  @test
+  async unknownPathsReturn404() {
+    const requestLog = new RequestLog();
+    const { server, port } = await createTestHttpServer(requestLog);
 
-    const messages1: any[] = [];
-    const messages2: any[] = [];
+    try {
+      const res = await fetch(`http://localhost:${port}/api/unknown`);
+      assert.strictEqual(res.status, 404);
+      const body = await res.json();
+      assert.strictEqual(body.error, "Not found");
+    } finally {
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  }
 
-    const p1 = new Promise<void>(resolve => {
-      client1.on("message", (data: Buffer) => {
-        messages1.push(JSON.parse(data.toString()));
-        resolve();
+  @test
+  async setsCorsHeaderOnResponses() {
+    const requestLog = new RequestLog();
+    const { server, port } = await createTestHttpServer(requestLog);
+
+    try {
+      const res = await fetch(`http://localhost:${port}/api/requests`);
+      assert.strictEqual(res.headers.get("access-control-allow-origin"), "*");
+    } finally {
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  }
+}
+
+@suite
+class DebugServiceWebSocketBroadcastPatternTest {
+  @test
+  async broadcastsRequestLogEventsToConnectedClients() {
+    const { server, wss, port, clients, broadcast } = await createTestWsServer();
+
+    try {
+      const received: any[] = [];
+      const client = new WebSocket(`ws://localhost:${port}`);
+
+      await new Promise<void>(resolve => client.on("open", resolve));
+
+      const messagePromise = new Promise<void>(resolve => {
+        client.on("message", (data: Buffer) => {
+          received.push(JSON.parse(data.toString()));
+          if (received.length === 2) resolve();
+        });
       });
-    });
-    const p2 = new Promise<void>(resolve => {
-      client2.on("message", (data: Buffer) => {
-        messages2.push(JSON.parse(data.toString()));
-        resolve();
-      });
-    });
 
-    broadcast({ type: "restart" });
+      // Simulate a request log event being broadcast
+      const requestLog = new RequestLog();
+      requestLog.onEvent(event => broadcast(event));
+      requestLog.startRequest("ws-1", "GET", "/test");
+      requestLog.completeRequest("ws-1", 200, 5);
 
-    await Promise.all([p1, p2]);
+      await messagePromise;
 
-    expect(messages1).toHaveLength(1);
-    expect(messages1[0].type).toBe("restart");
-    expect(messages2).toHaveLength(1);
-    expect(messages2[0].type).toBe("restart");
+      assert.strictEqual(received.length, 2);
+      assert.strictEqual(received[0].type, "request");
+      assert.strictEqual(received[0].id, "ws-1");
+      assert.strictEqual(received[1].type, "result");
+      assert.strictEqual(received[1].statusCode, 200);
 
-    client1.close();
-    client2.close();
-  });
+      client.close();
+    } finally {
+      for (const c of clients) c.close();
+      wss.close();
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  }
 
-  it("removes clients that disconnect", async () => {
-    ({ server, wss, port, clients, broadcast } = await createTestWsServer());
+  @test
+  async broadcastsARestartEventToAllClients() {
+    const { server, wss, port, clients, broadcast } = await createTestWsServer();
 
-    const client = new WebSocket(`ws://localhost:${port}`);
-    await new Promise<void>(resolve => client.on("open", resolve));
+    try {
+      const client1 = new WebSocket(`ws://localhost:${port}`);
+      const client2 = new WebSocket(`ws://localhost:${port}`);
 
-    expect(clients.size).toBe(1);
+      await Promise.all([
+        new Promise<void>(resolve => client1.on("open", resolve)),
+        new Promise<void>(resolve => client2.on("open", resolve))
+      ]);
 
-    const closePromise = new Promise<void>(resolve => {
-      // Wait for the server-side close event
-      const interval = setInterval(() => {
-        if (clients.size === 0) {
-          clearInterval(interval);
+      const messages1: any[] = [];
+      const messages2: any[] = [];
+
+      const p1 = new Promise<void>(resolve => {
+        client1.on("message", (data: Buffer) => {
+          messages1.push(JSON.parse(data.toString()));
           resolve();
-        }
-      }, 10);
-    });
+        });
+      });
+      const p2 = new Promise<void>(resolve => {
+        client2.on("message", (data: Buffer) => {
+          messages2.push(JSON.parse(data.toString()));
+          resolve();
+        });
+      });
 
-    client.close();
-    await closePromise;
+      broadcast({ type: "restart" });
 
-    expect(clients.size).toBe(0);
-  });
-});
+      await Promise.all([p1, p2]);
+
+      assert.strictEqual(messages1.length, 1);
+      assert.strictEqual(messages1[0].type, "restart");
+      assert.strictEqual(messages2.length, 1);
+      assert.strictEqual(messages2[0].type, "restart");
+
+      client1.close();
+      client2.close();
+    } finally {
+      for (const c of clients) c.close();
+      wss.close();
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  }
+
+  @test
+  async removesClientsThatDisconnect() {
+    const { server, wss, port, clients, broadcast } = await createTestWsServer();
+
+    try {
+      const client = new WebSocket(`ws://localhost:${port}`);
+      await new Promise<void>(resolve => client.on("open", resolve));
+
+      assert.strictEqual(clients.size, 1);
+
+      const closePromise = new Promise<void>(resolve => {
+        const interval = setInterval(() => {
+          if (clients.size === 0) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 10);
+      });
+
+      client.close();
+      await closePromise;
+
+      assert.strictEqual(clients.size, 0);
+    } finally {
+      for (const c of clients) c.close();
+      wss.close();
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  }
+}

@@ -1,7 +1,7 @@
 
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getModels, getModel, getServices, getOperations, getRoutes, getConfig } from "./introspection.js";
+import { getModels, getModel, getServices, getOperations, getRoutes, getConfig, getAppInfo } from "./introspection.js";
 
 // ---------------------------------------------------------------------------
 // Mock data
@@ -51,6 +51,10 @@ const mockConfig = {
   parameters: { apiUrl: "http://localhost:18080" }
 };
 
+const mockPackageDescription = { name: "@webda/test", version: "1.0.0" };
+
+let mockProjectInfo: Record<string, any> | undefined = { name: "@webda/test", version: "1.0.0", git: { branch: "main" } };
+
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
@@ -58,7 +62,9 @@ const mockConfig = {
 vi.mock("@webda/core", () => ({
   useApplication: () => ({
     getModels: () => mockModels,
-    getConfiguration: () => mockConfig
+    getConfiguration: () => mockConfig,
+    getProjectInfo: () => mockProjectInfo,
+    getPackageDescription: () => mockPackageDescription
   }),
   useCore: () => ({
     getServices: () => mockServices
@@ -213,5 +219,23 @@ describe("getConfig", () => {
   it("returns correct parameter values", () => {
     const config = getConfig();
     expect(config.parameters.apiUrl).toBe("http://localhost:18080");
+  });
+});
+
+describe("getAppInfo", () => {
+  it("returns project info with workingDirectory when getProjectInfo returns data", () => {
+    mockProjectInfo = { name: "@webda/test", version: "1.0.0", git: { branch: "main" } };
+    const info = getAppInfo();
+    expect(info.name).toBe("@webda/test");
+    expect(info.version).toBe("1.0.0");
+    expect(info.git).toEqual({ branch: "main" });
+    expect(info.workingDirectory).toBe(process.cwd());
+  });
+
+  it("falls back to getPackageDescription when getProjectInfo returns undefined", () => {
+    mockProjectInfo = undefined;
+    const info = getAppInfo();
+    expect(info.package).toEqual(mockPackageDescription);
+    expect(info.workingDirectory).toBe(process.cwd());
   });
 });

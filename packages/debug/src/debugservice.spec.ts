@@ -1,8 +1,56 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createServer, Server, IncomingMessage, ServerResponse } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { AddressInfo } from "node:net";
 import { RequestLog } from "./requestlog.js";
+
+// Mocks for the actual DebugService tests
+const mockModels = [{ id: "Test/Model", plural: "Models", actions: [], relations: {}, metadata: {} }];
+const mockServices = [{ name: "Router", type: "Webda/Router", state: "running", capabilities: {} }];
+const mockOperations = [{ id: "Test.Op", input: "Test/Model" }];
+const mockRoutes = [{ path: "/test", methods: ["GET"], executor: "TestService" }];
+const mockConfig = { services: {}, parameters: {} };
+const mockAppInfo = { name: "test-app", workingDirectory: "/tmp" };
+const mockLogEntries = [{ id: "l1", timestamp: 1, level: "INFO", message: "hello", args: ["hello"] }];
+
+vi.mock("./introspection.js", () => ({
+  getModels: () => mockModels,
+  getModel: (id: string) => (id === "Test/Model" ? mockModels[0] : undefined),
+  getServices: () => mockServices,
+  getOperations: () => mockOperations,
+  getRoutes: () => mockRoutes,
+  getConfig: () => mockConfig,
+  getAppInfo: () => mockAppInfo
+}));
+
+let mockRouterCompleteOpenAPI = vi.fn(function completeOpenAPI(doc: any) {
+  doc.paths = { "/test": {} };
+});
+let mockRouterThrows = false;
+
+vi.mock("@webda/core", () => ({
+  Service: class {
+    parameters: any = {};
+    log() {}
+    resolve() { return this; }
+    init() { return this; }
+    async stop() {}
+  },
+  ServiceParameters: class {},
+  useDynamicService: () => undefined,
+  useCoreEvents: () => () => {},
+  useRouter: () => {
+    if (mockRouterThrows) throw new Error("No router");
+    return { completeOpenAPI: mockRouterCompleteOpenAPI };
+  },
+  Command: () => () => {}
+}));
+
+vi.mock("./tui/tui.js", () => ({
+  DebugTui: class {
+    async start() {}
+  }
+}));
 
 /**
  * Helper: create a minimal HTTP server that mirrors the DebugService routing pattern.
@@ -80,6 +128,184 @@ function createTestWsServer(): Promise<{
     });
   });
 }
+
+// ---------------------------------------------------------------------------
+// Tests for the actual DebugService class
+// ---------------------------------------------------------------------------
+
+// Dynamic import so mocks are set up first
+const { DebugService } = await import("./debugservice.js");
+
+describe("DebugService.handleRequest (real class)", () => {
+  let service: InstanceType<typeof DebugService>;
+  let port: number;
+
+  beforeEach(async () => {
+    service = new DebugService();
+    // Resolve won't fail because useCoreEvents is mocked
+    service.resolve();
+    await service.startDebugServer(0);
+    port = ((service as any).server as Server).address().port;
+  });
+
+  afterEach(async () => {
+    await service.stop();
+  });
+
+  it("GET /api/services returns services", async () => {
+    const res = await fetch(`http://localhost:${port}/api/services`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual(mockServices);
+  });
+
+  it("GET /api/operations returns operations", async () => {
+    const res = await fetch(`http://localhost:${port}/api/operations`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual(mockOperations);
+  });
+
+  it("GET /api/routes returns routes", async () => {
+    const res = await fetch(`http://localhost:${port}/api/routes`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual(mockRoutes);
+  });
+
+  it("GET /api/config returns config", async () => {
+    const res = await fetch(`http://localhost:${port}/api/config`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual(mockConfig);
+  });
+
+  it("GET /api/info returns app info", async () => {
+    const res = await fetch(`http://localhost:${port}/api/info`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual(mockAppInfo);
+  });
+
+  it("GET /api/openapi returns OpenAPI spec", async () => {
+    mockRouterThrows = false;
+    const res = await fetch(`http://localhost:${port}/api/openapi`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.openapi).toBe("3.0.3");
+    expect(body.paths).toEqual({ "/test": {} });
+  });
+
+  it("GET /api/openapi returns stub when router unavailable", async () => {
+    mockRouterThrows = true;
+    const res = await fetch(`http://localhost:${port}/api/openapi`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.openapi).toBe("3.0.3");
+    expect(body.paths).toEqual({});
+    mockRouterThrows = false;
+  });
+
+  it("GET /api/logs returns log entries", async () => {
+    const res = await fetch(`http://localhost:${port}/api/logs`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(Array.isArray(body)).toBe(true);
+  });
+
+  it("GET /api/logs?q=search filters logs", async () => {
+    const res = await fetch(`http://localhost:${port}/api/logs?q=test`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(Array.isArray(body)).toBe(true);
+  });
+
+  it("GET /api/models/:id returns 404 for unknown model", async () => {
+    const res = await fetch(`http://localhost:${port}/api/models/Unknown`);
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe("Model not found");
+  });
+
+  it("GET /api/models/:id returns model for known id", async () => {
+    const res = await fetch(`http://localhost:${port}/api/models/Test%2FModel`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.id).toBe("Test/Model");
+  });
+
+  it("OPTIONS request returns 204", async () => {
+    const res = await fetch(`http://localhost:${port}/api/services`, { method: "OPTIONS" });
+    expect(res.status).toBe(204);
+  });
+
+  it("GET /api/requests returns request log entries", async () => {
+    const res = await fetch(`http://localhost:${port}/api/requests`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(Array.isArray(body)).toBe(true);
+  });
+});
+
+describe("DebugService.stop cleans up resources", () => {
+  it("closes server and wss on stop", async () => {
+    const service = new DebugService();
+    service.resolve();
+    await service.startDebugServer(0);
+    const port = ((service as any).server as Server).address().port;
+
+    // Connect a WS client
+    const client = new WebSocket(`ws://localhost:${port}`);
+    await new Promise<void>(resolve => client.on("open", resolve));
+
+    expect((service as any).clients.size).toBe(1);
+
+    await service.stop();
+
+    expect((service as any).server).toBeUndefined();
+    expect((service as any).wss).toBeUndefined();
+    expect((service as any).clients.size).toBe(0);
+  });
+
+  it("stop is safe to call without starting server", async () => {
+    const service = new DebugService();
+    // No startDebugServer called - stop should not throw
+    await service.stop();
+  });
+});
+
+describe("DebugService.broadcast", () => {
+  it("sends JSON to connected WebSocket clients", async () => {
+    const service = new DebugService();
+    service.resolve();
+    await service.startDebugServer(0);
+    const port = ((service as any).server as Server).address().port;
+
+    const client = new WebSocket(`ws://localhost:${port}`);
+    await new Promise<void>(resolve => client.on("open", resolve));
+
+    const received: any[] = [];
+    const msgPromise = new Promise<void>(resolve => {
+      client.on("message", (data: Buffer) => {
+        received.push(JSON.parse(data.toString()));
+        resolve();
+      });
+    });
+
+    service.broadcast({ type: "restart" });
+    await msgPromise;
+
+    expect(received).toHaveLength(1);
+    expect(received[0].type).toBe("restart");
+
+    client.close();
+    await service.stop();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Original pattern-based tests (unchanged)
+// ---------------------------------------------------------------------------
 
 describe("DebugService HTTP routing pattern", () => {
   let server: Server;

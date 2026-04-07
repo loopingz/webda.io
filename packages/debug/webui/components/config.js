@@ -18,8 +18,8 @@ export function ConfigPanel({ data }) {
   `;
 }
 
-function JsonNode({ keyName, value, depth, defaultOpen }) {
-  const [open, setOpen] = useState(defaultOpen || depth < 1);
+function JsonNode({ keyName, value, depth }) {
+  const [open, setOpen] = useState(true);
 
   const toggle = useCallback(() => setOpen((o) => !o), []);
 

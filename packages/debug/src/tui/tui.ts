@@ -8,12 +8,7 @@ import { ConfigPanel } from "./panels/config.js";
 import { RequestsPanel } from "./panels/requests.js";
 import { LogsPanel } from "./panels/logs.js";
 import type { Panel } from "./panels/panel.js";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-
 const { terminal: term } = termkit;
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const LOGO_PATH = join(__dirname, "..", "..", "webui", "webda.png");
 
 /**
  * Terminal UI dashboard for the Webda debug server.
@@ -32,8 +27,6 @@ export class DebugTui {
   private lastRefresh = "";
   private wsUnsubscribe?: () => void;
   private appInfo: any = null;
-  private logoDrawn = false;
-  private logoHeight = 0;
 
   /**
    * Create a new TUI instance.
@@ -64,9 +57,6 @@ export class DebugTui {
     term.fullscreen(true);
     term.hideCursor();
     term.grabInput(true);
-
-    // Try to draw logo image (works in iTerm2, Kitty, etc.)
-    await this.tryDrawLogo();
 
     // Handle input
     term.on("key", (key: string) => this.handleKey(key));
@@ -169,58 +159,27 @@ export class DebugTui {
     const width = term.width;
     const height = term.height;
 
-    const headerStart = this.logoHeight + 1;
+    // Header bar (row 1)
+    this.renderHeader(width);
 
-    // Header bar
-    this.renderHeader(width, headerStart);
-
-    // Content area
-    const contentStart = headerStart + 2;
+    // Content area (row 3 to height - 1)
     const panel = this.panels[this.activeTab];
-    for (let row = contentStart; row < height; row++) {
+    for (let row = 3; row < height; row++) {
       term.moveTo(1, row);
       term.eraseLine();
     }
-    panel.render(term, contentStart, height - 1, width);
+    panel.render(term, 3, height - 1, width);
 
     // Status bar (last row)
     this.renderStatusBar(width, height);
   }
 
   /**
-   * Try to draw the logo image in the terminal.
-   * Works in iTerm2, Kitty, and other image-capable terminals.
-   * Falls back silently if not supported.
-   */
-  private async tryDrawLogo(): Promise<void> {
-    try {
-      const { existsSync } = await import("node:fs");
-      if (!existsSync(LOGO_PATH)) return;
-      await new Promise<void>((resolve, reject) => {
-        term.drawImage(LOGO_PATH, { shrink: { width: 20, height: 6 } }, (err: any) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          this.logoDrawn = true;
-          this.logoHeight = 6;
-          resolve();
-        });
-      });
-    } catch {
-      // Terminal doesn't support images — keep text-only header
-      this.logoDrawn = false;
-      this.logoHeight = 0;
-    }
-  }
-
-  /**
    * Render the header/tab bar.
    * @param width - terminal width in columns
-   * @param row - starting row number
    */
-  private renderHeader(width: number, row: number = 1): void {
-    term.moveTo(1, row);
+  private renderHeader(width: number): void {
+    term.moveTo(1, 1);
     term.eraseLine();
     term.white("web");
     term.yellow("da");
@@ -244,7 +203,7 @@ export class DebugTui {
     }
 
     // Separator line
-    term.moveTo(1, row + 1);
+    term.moveTo(1, 2);
     term.eraseLine();
     term.dim("-".repeat(width));
   }

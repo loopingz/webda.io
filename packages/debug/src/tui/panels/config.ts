@@ -55,14 +55,6 @@ export class ConfigPanel implements Panel {
       this.collapsed = new Set();
       this.buildTree(config, 0, "root");
 
-      // Collapse everything deeper than level 1 by default
-      for (const node of this.nodes) {
-        if (node.hasChildren && node.depth >= 1) {
-          this.collapsed.add(node.path);
-          node.collapsed = true;
-        }
-      }
-
       this.cursor = Math.min(this.cursor, Math.max(0, this.getVisibleNodes().length - 1));
     } catch {
       this.nodes = [];

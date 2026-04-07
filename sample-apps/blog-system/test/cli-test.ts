@@ -5,12 +5,13 @@ import { resolve } from "node:path";
 import { existsSync, unlinkSync } from "node:fs";
 
 const appDir = resolve(import.meta.dirname, "..");
+const webdaBin = resolve(appDir, "node_modules", ".bin", "webda");
 
 /**
  * Run a webda CLI command and return stdout as a string
  */
 function runWebda(args: string, options?: { timeout?: number }): string {
-  return execSync(`npx webda ${args}`, {
+  return execSync(`${webdaBin} ${args}`, {
     cwd: appDir,
     timeout: options?.timeout ?? 15000,
     encoding: "utf-8",

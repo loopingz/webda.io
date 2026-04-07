@@ -586,6 +586,7 @@ class DebugServiceDebugCommandTest {
     };
 
     const service = new DebugService();
+    (service as any).openBrowser = () => {};
     service.resolve();
 
     try {
@@ -610,6 +611,7 @@ class DebugServiceDebugCommandTest {
     mockHttpServer = undefined;
 
     const service = new DebugService();
+    (service as any).openBrowser = () => {};
     service.resolve();
 
     try {

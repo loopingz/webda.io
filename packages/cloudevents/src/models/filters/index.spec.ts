@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { CloudEvent } from "cloudevents";
-import { FiltersHelper } from ".";
+import { FiltersHelper, FilterImplementation } from ".";
 
 test("PrefixFilter", () => {
   const event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
@@ -206,4 +206,28 @@ test("Common errors", () => {
       }
     }).match(event)
   ).toBe(false);
+});
+
+test("FiltersHelper.register", () => {
+  const event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
+
+  // Create a custom filter implementation
+  class CustomFilter extends FilterImplementation<any> {
+    match(): boolean {
+      return true;
+    }
+  }
+
+  // Register the custom filter
+  const helper = new FiltersHelper();
+  helper.register("custom", CustomFilter);
+
+  // Now the custom filter should be usable
+  expect(
+    FiltersHelper.get(<any>{
+      custom: {
+        type: "com.test"
+      }
+    }).match(event)
+  ).toBe(true);
 });

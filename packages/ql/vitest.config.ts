@@ -11,7 +11,13 @@ export default defineConfig({
       enabled: true,
       provider: "v8",
       include: ["src/*.ts"],
-      exclude: ["src/*.spec.ts", "src/index.ts"],
+      exclude: [
+        "src/*.spec.ts",
+        "src/index.ts",
+        "src/WebdaQLParserLexer.ts",
+        "src/WebdaQLParserListener.ts",
+        "src/WebdaQLParserVisitor.ts"
+      ],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",

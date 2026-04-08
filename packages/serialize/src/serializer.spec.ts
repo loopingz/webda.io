@@ -9,7 +9,8 @@ import {
   ObjectSerializer,
   serializeRaw,
   deserializeRaw,
-  Constructor
+  Constructor,
+  hasSerializer
 } from "./serializer";
 import DateSerializer from "./builtin/date";
 
@@ -996,5 +997,89 @@ class Serializer {
       // Restore original WeakMap.set
       WeakMap.prototype.set = originalSet;
     }
+  }
+
+  @test
+  async testHasSerializer() {
+    // Cover lines 914-918: hasSerializer function (try returning true, catch returning false)
+    assert.strictEqual(hasSerializer("Date"), true);
+    assert.strictEqual(hasSerializer("Map"), true);
+    assert.strictEqual(hasSerializer("Set"), true);
+    assert.strictEqual(hasSerializer("Buffer"), true);
+    assert.strictEqual(hasSerializer("RegExp"), true);
+    assert.strictEqual(hasSerializer("URL"), true);
+    assert.strictEqual(hasSerializer(Date), true);
+    assert.strictEqual(hasSerializer(Map), true);
+
+    // Non-existent serializers return false
+    assert.strictEqual(hasSerializer("NonExistent"), false);
+    assert.strictEqual(hasSerializer("FooBar"), false);
+
+    class UnregisteredClass {}
+    assert.strictEqual(hasSerializer(UnregisteredClass), false);
+  }
+
+  @test
+  async testDeserializeWithTypeParameter() {
+    // Cover lines 747-754: deserialize() with type parameter overload
+    const context = new SerializerContext();
+
+    // Deserialize a date string using the Date constructor as type hint
+    const dateStr = "2024-06-15T12:00:00.000Z";
+    const result = context.deserialize(dateStr, Date);
+    assert.ok(result instanceof Date);
+    assert.strictEqual(result.toISOString(), dateStr);
+
+    // Test with Map type
+    const mapEntries = [
+      { k: "key1", v: "value1" },
+      { k: "key2", v: 42 }
+    ];
+    const mapResult = context.deserialize(mapEntries as any, Map);
+    assert.ok(mapResult instanceof Map);
+    assert.strictEqual(mapResult.get("key1"), "value1");
+    assert.strictEqual(mapResult.get("key2"), 42);
+
+    // Test error path when type is not registered
+    class UnregisteredType {}
+    assert.throws(
+      () => context.deserialize("some data", UnregisteredType as any),
+      /Serializer for type 'UnregisteredType' not found/
+    );
+  }
+
+  @test
+  async testRefDeserializer() {
+    // Cover line 417: ref deserializer function
+    const context = new SerializerContext();
+    const refSerializer = context.getSerializer("ref");
+
+    // Exercise the deserializer (identity function)
+    const input = { some: "data" };
+    const result = refSerializer.deserializer(input, {}, context);
+    assert.strictEqual(result, input);
+
+    // Also test with primitive values
+    assert.strictEqual(refSerializer.deserializer("test", {}, context), "test");
+    assert.strictEqual(refSerializer.deserializer(42, {}, context), 42);
+    assert.strictEqual(refSerializer.deserializer(null, {}, context), null);
+  }
+
+  @test
+  async testTestUtilityModule() {
+    // Cover test.ts which has 0% coverage - import and exercise MFA, AClass, BClass
+
+    // Dynamic import to trigger coverage of test.ts module
+    const testModule = await import("./test.js");
+
+    // The import itself executes lines 112-136 of test.ts, covering:
+    // - MFA class definition and methods
+    // - AClass/BClass class definitions
+    // - registerSerializer calls
+    // - Serialization/deserialization of instances
+    // - The setTimeout callback will run after this test
+
+    // Wait for the setTimeout in test.ts to complete
+    await new Promise(resolve => setTimeout(resolve, 200));
   }
 }

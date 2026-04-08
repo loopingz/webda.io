@@ -24,14 +24,7 @@ export default defineConfig({
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",
-    include: [
-      // Store, binary, and queue tests depend on base test classes
-      // from @webda/core that are currently disabled (see core vitest.config.ts)
-      // Re-enable when core store/binary/queue tests are working
-      //"src/filestore.spec.ts",
-      //"src/filebinary.spec.ts",
-      //"src/filequeue.spec.ts"
-    ],
+    include: ["src/*-unit.spec.ts"],
     testTimeout: 30000,
     hookTimeout: 30000
   }

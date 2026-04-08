@@ -1,17 +1,20 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { execSync } from "node:child_process";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
 import { existsSync, unlinkSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const appDir = resolve(import.meta.dirname, "..");
-const webdaBin = resolve(appDir, "node_modules", ".bin", "webda");
+// Resolve cli.js from @webda/core using ESM resolution
+const coreIndex = fileURLToPath(import.meta.resolve("@webda/core"));
+const cliJs = resolve(dirname(coreIndex), "bin", "cli.js");
 
 /**
  * Run a webda CLI command and return stdout as a string
  */
 function runWebda(args: string, options?: { timeout?: number }): string {
-  return execSync(`${webdaBin} ${args}`, {
+  return execSync(`node ${cliJs} ${args}`, {
     cwd: appDir,
     timeout: options?.timeout ?? 15000,
     encoding: "utf-8",

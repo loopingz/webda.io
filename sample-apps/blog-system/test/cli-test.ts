@@ -1,14 +1,15 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { execSync } from "node:child_process";
-import { resolve, dirname } from "node:path";
+import { resolve, dirname, join } from "node:path";
 import { existsSync, unlinkSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 const appDir = resolve(import.meta.dirname, "..");
-// Resolve cli.js from @webda/core using ESM resolution
-const coreIndex = fileURLToPath(import.meta.resolve("@webda/core"));
-const cliJs = resolve(dirname(coreIndex), "bin", "cli.js");
+// Resolve cli.js from @webda/core — can't use import.meta.resolve in Vitest
+const require = createRequire(join(appDir, "package.json"));
+const corePkg = dirname(require.resolve("@webda/core/package.json"));
+const cliJs = join(corePkg, "lib", "bin", "cli.js");
 
 /**
  * Run a webda CLI command and return stdout as a string

@@ -18,6 +18,8 @@ import { WebdaApplicationTest } from "../test/index.js";
 import { TestApplication } from "../test/objects.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { MemoryLogger } from "@webda/workout";
+import { WebContext } from "../contexts/webcontext.js";
+import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 
 class FakeServiceParameters extends ServiceParameters {
   bean!: string;
@@ -429,6 +431,325 @@ class DiscoverFiltersTest extends WebdaApplicationTest {
     router.discoverFilters([service]);
     assert.strictEqual(router["_requestFilters"].length, reqBefore);
     assert.strictEqual(router["_requestCORSFilters"].length, corsBefore);
+  }
+}
+
+@suite
+class RouterTest extends WebdaApplicationTest {
+  getTestConfiguration() {
+    return {
+      services: {
+        TestRoute: {
+          type: "RouterTestService"
+        }
+      }
+    };
+  }
+
+  async tweakApp(app: TestApplication): Promise<void> {
+    app.addModda("Webda/RouterTestService", RouterTestService);
+  }
+
+  @test
+  async executeReturns404ForUnknownRoute() {
+    const router = useRouter();
+    const httpContext = new HttpContext("test.webda.io", "GET", "/nonexistent/route");
+    const ctx = new WebContext(httpContext);
+    await router.execute(ctx);
+    assert.strictEqual(ctx.statusCode, 404);
+  }
+
+  @test
+  async executeHandlesOptionsMethod() {
+    const router = useRouter();
+    // Register a route first
+    router.addRouteToRouter("/test-options", {
+      methods: ["GET"],
+      executor: "TestRoute",
+      _method: async (ctx) => ctx.write("ok")
+    });
+    // OPTIONS without CORS filter should return 404
+    const httpContext = new HttpContext("test.webda.io", "OPTIONS", "/test-options");
+    const ctx = new WebContext(httpContext);
+    await router.execute(ctx);
+    // Without any CORS filters registered, checkCORSRequest returns false from .some()
+    assert.strictEqual(ctx.statusCode, 404);
+  }
+
+  @test
+  async executeHandlesOptionsMethodWithCORSFilter() {
+    const router = useRouter();
+    router.addRouteToRouter("/test-cors-options", {
+      methods: ["GET", "POST"],
+      executor: "TestRoute",
+      _method: async (ctx) => ctx.write("ok")
+    });
+    // Register a CORS filter that allows everything
+    router.registerCORSFilter({
+      async checkRequest(_ctx, _type) {
+        return true;
+      }
+    });
+    const httpContext = new HttpContext("test.webda.io", "OPTIONS", "/test-cors-options");
+    const ctx = new WebContext(httpContext);
+    await router.execute(ctx);
+    assert.strictEqual(ctx.statusCode, 204);
+    const allowMethods = ctx.getResponseHeaders()["Access-Control-Allow-Methods"];
+    assert.ok(allowMethods);
+    assert.ok(allowMethods.includes("GET"));
+    assert.ok(allowMethods.includes("POST"));
+  }
+
+  @test
+  async executeRunsFunctionMethod() {
+    const router = useRouter();
+    let called = false;
+    router.addRouteToRouter("/test-func", {
+      methods: ["GET"],
+      executor: "TestRoute",
+      _method: async (_ctx) => {
+        called = true;
+      }
+    });
+    const httpContext = new HttpContext("test.webda.io", "GET", "/test-func");
+    const ctx = new WebContext(httpContext);
+    await router.execute(ctx);
+    assert.ok(called, "Function method should have been called");
+  }
+
+  @test
+  async checkRequestWithNoFilters() {
+    const router = useRouter();
+    // With no request filters, checkRequest should return true
+    const httpContext = new HttpContext("test.webda.io", "GET", "/");
+    const ctx = new WebContext(httpContext);
+    const result = await router["checkRequest"](ctx);
+    assert.strictEqual(result, true);
+  }
+
+  @test
+  async checkRequestWithFilterDenying() {
+    const router = useRouter();
+    // Register a filter that denies everything
+    router.registerRequestFilter({
+      async checkRequest(_ctx, _type) {
+        return false;
+      }
+    });
+    // Register a route
+    router.addRouteToRouter("/test-denied", {
+      methods: ["GET"],
+      executor: "TestRoute",
+      _method: async (ctx) => ctx.write("should not reach")
+    });
+    const httpContext = new HttpContext("test.webda.io", "GET", "/test-denied");
+    const ctx = new WebContext(httpContext);
+    await router.execute(ctx);
+    // Should get 403
+    assert.strictEqual(ctx.statusCode, 403);
+  }
+
+  @test
+  async getRouteFromUrlExactMatch() {
+    const router = useRouter();
+    router.addRouteToRouter("/exact/match", {
+      methods: ["GET"],
+      executor: "TestRoute",
+      _method: "handleExact"
+    });
+    const httpContext = new HttpContext("test.webda.io", "GET", "/exact/match");
+    const ctx = new WebContext(httpContext);
+    const route = router.getRouteFromUrl(ctx, "GET", "/exact/match");
+    assert.ok(route, "Should find exact match route");
+    assert.strictEqual(route._method, "handleExact");
+  }
+
+  @test
+  async getRouteFromUrlNoMatch() {
+    const router = useRouter();
+    const httpContext = new HttpContext("test.webda.io", "GET", "/no/such/path");
+    const ctx = new WebContext(httpContext);
+    const route = router.getRouteFromUrl(ctx, "GET", "/no/such/path");
+    assert.strictEqual(route, undefined);
+  }
+
+  @test
+  async getRouteFromUrlWrongMethod() {
+    const router = useRouter();
+    router.addRouteToRouter("/method/test", {
+      methods: ["POST"],
+      executor: "TestRoute",
+      _method: "handlePost"
+    });
+    const httpContext = new HttpContext("test.webda.io", "GET", "/method/test");
+    const ctx = new WebContext(httpContext);
+    const route = router.getRouteFromUrl(ctx, "GET", "/method/test");
+    assert.strictEqual(route, undefined, "Should not match GET when only POST is registered");
+  }
+
+  @test
+  async getRouteMethodsFromUrl() {
+    const router = useRouter();
+    router.addRouteToRouter("/methods/test", {
+      methods: ["GET", "POST"],
+      executor: "TestRoute",
+      _method: "handle"
+    });
+    const methods = router.getRouteMethodsFromUrl("/methods/test");
+    assert.ok(methods.includes("GET"));
+    assert.ok(methods.includes("POST"));
+  }
+
+  @test
+  async getRouteMethodsFromUrlNoMatch() {
+    const router = useRouter();
+    const methods = router.getRouteMethodsFromUrl("/nonexistent/methods");
+    assert.strictEqual(methods.length, 0);
+  }
+
+  @test
+  async addRouteToRouterDuplicate() {
+    const router = useRouter();
+    const routeInfo = {
+      methods: ["GET"] as HttpMethodType[],
+      executor: "TestRoute",
+      _method: "handle"
+    };
+    router.addRouteToRouter("/dup/test", routeInfo);
+    // Add same route info again - should not duplicate
+    router.addRouteToRouter("/dup/test", routeInfo);
+    const routes = router.getRoutes();
+    assert.strictEqual(routes["/dup/test"].length, 1);
+  }
+
+  @test
+  async removeRoute() {
+    const router = useRouter();
+    const routeInfo = {
+      methods: ["GET"] as HttpMethodType[],
+      executor: "TestRoute",
+      _method: "handle"
+    };
+    router.addRouteToRouter("/remove/test", routeInfo);
+    assert.ok(router.getRoutes()["/remove/test"]);
+    router.removeRoute("/remove/test");
+    assert.strictEqual(router.getRoutes()["/remove/test"], undefined);
+  }
+
+  @test
+  async removeRouteSpecificInfo() {
+    const router = useRouter();
+    const routeInfo1 = {
+      methods: ["GET"] as HttpMethodType[],
+      executor: "TestRoute",
+      _method: "handle1"
+    };
+    const routeInfo2 = {
+      methods: ["POST"] as HttpMethodType[],
+      executor: "TestRoute",
+      _method: "handle2"
+    };
+    router.addRouteToRouter("/remove/specific", routeInfo1);
+    router.addRouteToRouter("/remove/specific", routeInfo2);
+    assert.strictEqual(router.getRoutes()["/remove/specific"].length, 2);
+    router.removeRoute("/remove/specific", routeInfo1);
+    assert.strictEqual(router.getRoutes()["/remove/specific"].length, 1);
+  }
+
+  @test
+  async checkCORSRequestNoCorsFilters() {
+    const router = useRouter();
+    const httpContext = new HttpContext("test.webda.io", "GET", "/");
+    const ctx = new WebContext(httpContext);
+    const result = await router["checkCORSRequest"](ctx);
+    assert.strictEqual(typeof result, "boolean");
+  }
+
+  @test
+  async getRouteFromUrlWithUriTemplate() {
+    const router = useRouter();
+    router.addRouteToRouter("/items/{uuid}", {
+      methods: ["GET"],
+      executor: "TestRoute",
+      _method: "getItem"
+    });
+    const httpContext = new HttpContext("test.webda.io", "GET", "/items/abc-123");
+    const ctx = new WebContext(httpContext);
+    const route = router.getRouteFromUrl(ctx, "GET", "/items/abc-123");
+    assert.ok(route, "Should match URI template route");
+    assert.strictEqual(ctx.getParameters().uuid, "abc-123");
+  }
+
+  @test
+  async getRouteMethodsFromUrlWithTemplate() {
+    const router = useRouter();
+    router.addRouteToRouter("/res/{id}", {
+      methods: ["GET", "DELETE"],
+      executor: "TestRoute",
+      _method: "handle"
+    });
+    const methods = router.getRouteMethodsFromUrl("/res/some-id");
+    assert.ok(methods.includes("GET"));
+    assert.ok(methods.includes("DELETE"));
+  }
+
+  @test
+  async executeWithStringMethod() {
+    const router = useRouter();
+    router.addRouteToRouter("/test-string-method", {
+      methods: ["GET"],
+      executor: "TestRoute",
+      _method: "getOpenApiReplacements"
+    });
+    const httpContext = new HttpContext("test.webda.io", "GET", "/test-string-method");
+    const ctx = new WebContext(httpContext);
+    // Execute should call the service method by name
+    await router.execute(ctx);
+    // Should not get 404 since route exists
+    assert.notStrictEqual(ctx.statusCode, 404);
+  }
+
+  @test
+  async getFinalUrl() {
+    const router = useRouter();
+    // Test @ replacement
+    assert.ok(router.getFinalUrl("/test/@user").includes("%40"));
+    // Test / in query string replacement
+    const url = router.getFinalUrl("/test?path=/foo/bar");
+    assert.ok(url.includes("%2F"));
+    // Test // prefix
+    assert.strictEqual(router.getFinalUrl("//double"), "/double");
+  }
+
+  @test
+  async comparePath() {
+    const router = useRouter();
+    // Literal path should come before parameterized path
+    const literal = { url: "/users/me", config: {} };
+    const parameterized = { url: "/users/{id}", config: {} };
+    const result = router["comparePath"](literal, parameterized);
+    assert.ok(result < 0, "Literal should sort before parameterized");
+  }
+
+  @test
+  async registerModelUrl() {
+    const router = useRouter();
+    router.registerModelUrl("TestModel", "/testmodels");
+    assert.strictEqual(router.getModelUrl("TestModel"), "/testmodels");
+  }
+}
+
+class RouterTestService extends Service {
+  static createConfiguration(params: any) {
+    return new ServiceParameters().load(params);
+  }
+
+  static filterParameters(params: any) {
+    return params;
+  }
+
+  getOpenApiReplacements() {
+    return {};
   }
 }
 

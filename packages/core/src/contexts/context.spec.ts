@@ -6,11 +6,16 @@ import { WebContext } from "./webcontext";
 import { OperationContext } from "./operationcontext";
 import { HttpContext } from "./httpcontext";
 import { Session } from "../session/session";
-import { UnpackedConfiguration } from "../application/iapplication";
+import { UnpackedConfiguration } from "../application/iconfiguration";
 import { SimpleOperationContext } from "./simplecontext";
 import { WebdaAsyncStorageTest } from "../test/asyncstorage";
 import { setApplication } from "../application/hooks";
 import { setCore } from "../core/hooks";
+import { setContextUpdate, canUpdateContext, isWebContext } from "./icontext";
+import { UnknownSession } from "../session/session";
+import { CookieOptions } from "../session/cookie";
+import { runWithContext, useContext } from "./execution";
+import { GlobalContext } from "./globalcontext";
 
 export class WebContextMock extends WebContext {
   constructor(httpContext: HttpContext) {
@@ -327,5 +332,379 @@ class ContextAppTest extends WebdaAsyncStorageTest {
     ctx = new WebContextMock(http);
     await ctx.getRawInput();
     ctx.getRawStream();
+  }
+
+  @test
+  async operationContextParameterDeprecated() {
+    const ctx = new OperationContextMock();
+    ctx.setParameters({ foo: "bar", num: 42 });
+    // Test deprecated parameter() method
+    assert.strictEqual(ctx.parameter("foo"), "bar");
+    assert.strictEqual(ctx.parameter("num"), 42);
+    assert.strictEqual(ctx.parameter("missing"), undefined);
+    assert.strictEqual(ctx.parameter("missing", "default"), "default");
+  }
+
+  @test
+  async operationContextWrite() {
+    const ctx = new OperationContextMock();
+    // Write with undefined/null returns false
+    assert.strictEqual(ctx.write(undefined), false);
+    assert.strictEqual(ctx.write(null), false);
+    // Write an object
+    assert.strictEqual(ctx.write({ key: "value" }), true);
+    assert.ok(ctx.getOutput().includes("key"));
+    // Write a string
+    ctx.resetResponse();
+    ctx.write("hello");
+    assert.strictEqual(ctx.getOutput(), "hello");
+    // Write appends strings
+    ctx.write(" world");
+    assert.strictEqual(ctx.getOutput(), "hello world");
+    // Write a buffer
+    ctx.resetResponse();
+    ctx.write(Buffer.from("buf"));
+    assert.strictEqual(ctx.getOutput(), "buf");
+  }
+
+  @test
+  async operationContextClearInput() {
+    const ctx = new OperationContextMock();
+    ctx.clearInput();
+    const input = await ctx.getInput();
+    assert.deepStrictEqual(input, {});
+  }
+
+  @test
+  async operationContextReinit() {
+    const ctx = new OperationContextMock();
+    // reinit clears _sanitized and recreates the stream
+    ctx["_sanitized"] = { cached: true };
+    ctx.reinit();
+    assert.strictEqual(ctx["_sanitized"], undefined);
+  }
+
+  @test
+  async operationContextNewSession() {
+    const ctx = new OperationContextMock();
+    const session = ctx.newSession();
+    assert.ok(session instanceof Session);
+    assert.strictEqual(ctx.getSession(), session);
+  }
+
+  @test
+  async operationContextSetSession() {
+    const ctx = new OperationContextMock();
+    const session = new Session();
+    session.userId = "test-user";
+    ctx.setSession(session);
+    assert.strictEqual(ctx.getCurrentUserId(), "test-user");
+  }
+
+  @test
+  async operationContextAddAsyncRequest() {
+    const ctx = new OperationContextMock();
+    assert.strictEqual(ctx._promises.length, 0);
+    ctx.addAsyncRequest(Promise.resolve());
+    assert.strictEqual(ctx._promises.length, 1);
+  }
+
+  @test
+  contextUpdateFunctions() {
+    // Test setContextUpdate and canUpdateContext
+    assert.strictEqual(canUpdateContext(), false);
+    setContextUpdate(true);
+    assert.strictEqual(canUpdateContext(), true);
+    setContextUpdate(false);
+    assert.strictEqual(canUpdateContext(), false);
+  }
+
+  @test
+  isWebContextFunction() {
+    // Test isWebContext with a proper WebContext
+    const http = new HttpContext("test.webda.io", "GET", "/");
+    const webCtx = new WebContextMock(http);
+    assert.strictEqual(isWebContext(webCtx), true);
+
+    // Test with an OperationContext (not a web context)
+    const opCtx = new OperationContextMock();
+    assert.strictEqual(isWebContext(opCtx), false);
+  }
+
+  @test
+  async contextFlushHeaders() {
+    // Use a WebContext which has hasFlushedHeaders
+    const http = new HttpContext("test.webda.io", "GET", "/");
+    const ctx = new WebContextMock(http);
+    assert.strictEqual(ctx["flushed"], false);
+    await ctx.flushHeaders();
+    assert.strictEqual(ctx["flushed"], true);
+    // Calling again should be a no-op
+    await ctx.flushHeaders();
+    assert.strictEqual(ctx["flushed"], true);
+  }
+
+  @test
+  async contextSetHeaderAfterFlush() {
+    const ctx = new OperationContextMock();
+    ctx.setHeader("X-Test", "value");
+    assert.strictEqual(ctx.getResponseHeaders()["X-Test"], "value");
+    await ctx.flushHeaders();
+    assert.throws(() => ctx.setHeader("X-After", "fail"), /Headers have been sent already/);
+  }
+
+  @test
+  async contextWriteHead() {
+    const ctx = new OperationContextMock();
+    ctx.writeHead(200, { "Content-Type": "application/json", "X-Custom": "val" });
+    assert.strictEqual(ctx.getResponseHeaders()["Content-Type"], "application/json");
+    assert.strictEqual(ctx.getResponseHeaders()["X-Custom"], "val");
+  }
+
+  @test
+  async contextEnd() {
+    const ctx = new OperationContextMock();
+    let resolved = false;
+    ctx.addAsyncRequest(
+      new Promise(resolve =>
+        setTimeout(() => {
+          resolved = true;
+          resolve(undefined);
+        }, 10)
+      )
+    );
+    await ctx.end();
+    assert.ok(resolved, "Should wait for all promises");
+  }
+
+  @test
+  isGlobalContext() {
+    const ctx = new OperationContextMock();
+    assert.strictEqual(ctx.isGlobalContext(), false);
+  }
+
+  @test
+  async pipelineWithoutOptions() {
+    const ctx = new OperationContextMock();
+    ctx.createStream();
+    const readable = Readable.from(Buffer.from("pipeline-test"));
+    await ctx.pipeline(readable);
+    assert.ok(ctx.getOutput().includes("pipeline-test"));
+  }
+
+  @test
+  async registerPromise() {
+    const ctx = new OperationContextMock();
+    let called = false;
+    ctx.registerPromise(
+      new Promise<void>(resolve => {
+        called = true;
+        resolve();
+      })
+    );
+    assert.strictEqual(ctx._promises.length, 1);
+    await ctx.end();
+    assert.ok(called);
+  }
+}
+
+@suite
+class SessionTest {
+  @test
+  sessionBasic() {
+    const session = new UnknownSession();
+    assert.strictEqual(session.isDirty(), false);
+    assert.strictEqual(session.isLogged(), false);
+  }
+
+  @test
+  sessionLogin() {
+    const session = new UnknownSession();
+    session.login("user1", "ident1");
+    assert.strictEqual(session.isLogged(), true);
+    assert.strictEqual(session.userId, "user1");
+    assert.strictEqual(session.identUsed, "ident1");
+  }
+
+  @test
+  sessionLogout() {
+    const session = new UnknownSession();
+    session.login("user1", "ident1");
+    session.roles = ["admin"];
+    session.logout();
+    assert.strictEqual(session.isLogged(), false);
+    assert.strictEqual(session.userId, undefined);
+    assert.strictEqual(session.identUsed, undefined);
+    assert.strictEqual(session.roles, undefined);
+  }
+
+  @test
+  sessionProxy() {
+    const session = new UnknownSession().getProxy();
+    assert.strictEqual(session.isDirty(), false);
+    session.customField = "value";
+    assert.strictEqual(session.isDirty(), true);
+    assert.strictEqual(session.customField, "value");
+  }
+
+  @test
+  sessionProxyTracksObjectAccess() {
+    const session = new UnknownSession().getProxy();
+    session.nested = { key: "val" };
+    assert.strictEqual(session.isDirty(), true);
+    // Accessing an object property returns a proxy
+    const nested = session.nested;
+    assert.strictEqual(nested.key, "val");
+  }
+
+  @test
+  sessionProxyLoginLogout() {
+    const session = new UnknownSession().getProxy();
+    session.login("u1", "i1");
+    assert.ok(session.isLogged());
+    assert.ok(session.isDirty());
+    session.logout();
+    assert.ok(!session.isLogged());
+  }
+}
+
+@suite
+class CookieOptionsTest {
+  @test
+  defaults() {
+    const opts = new CookieOptions({});
+    assert.strictEqual(opts.httpOnly, true);
+    assert.strictEqual(opts.path, "/");
+    assert.strictEqual(opts.sameSite, "lax");
+    assert.strictEqual(opts.name, "webda");
+    assert.strictEqual(opts.maxAge, 86400 * 7);
+  }
+
+  @test
+  customValues() {
+    const opts = new CookieOptions({
+      httpOnly: false,
+      path: "/api",
+      sameSite: "strict",
+      name: "mysession",
+      maxAge: 3600
+    });
+    assert.strictEqual(opts.httpOnly, false);
+    assert.strictEqual(opts.path, "/api");
+    assert.strictEqual(opts.sameSite, "strict");
+    assert.strictEqual(opts.name, "mysession");
+    assert.strictEqual(opts.maxAge, 3600);
+  }
+
+  @test
+  withHttpContext() {
+    const httpCtx = new HttpContext("test.webda.io", "GET", "/", "https", 443);
+    const opts = new CookieOptions({}, httpCtx);
+    // secure should be true for https
+    assert.strictEqual(opts.secure, true);
+  }
+
+  @test
+  withHttpContextHttp() {
+    const httpCtx = new HttpContext("test.webda.io", "GET", "/", "http", 80);
+    const opts = new CookieOptions({}, httpCtx);
+    assert.strictEqual(opts.secure, false);
+  }
+
+  @test
+  domainTrue() {
+    const httpCtx = new HttpContext("test.webda.io", "GET", "/", "https", 443);
+    const opts = new CookieOptions({ domain: true }, httpCtx);
+    assert.strictEqual(opts.domain, "test.webda.io");
+  }
+
+  @test
+  domainString() {
+    const httpCtx = new HttpContext("test.webda.io", "GET", "/", "https", 443);
+    const opts = new CookieOptions({ domain: "example.com" }, httpCtx);
+    assert.strictEqual(opts.domain, "example.com");
+  }
+
+  @test
+  domainUndefined() {
+    const opts = new CookieOptions({});
+    assert.strictEqual(opts.domain, undefined);
+  }
+
+  @test
+  maxAgeString() {
+    const opts = new CookieOptions({ maxAge: "1h" as any });
+    assert.strictEqual(opts.maxAge, 3600);
+  }
+
+  @test
+  secureExplicitOverride() {
+    const httpCtx = new HttpContext("test.webda.io", "GET", "/", "http", 80);
+    const opts = new CookieOptions({ secure: true }, httpCtx);
+    assert.strictEqual(opts.secure, true);
+  }
+}
+
+@suite
+class ExecutionContextTest {
+  @test
+  runWithContextSync() {
+    const ctx = new OperationContextMock();
+    const result = runWithContext(ctx, () => {
+      const current = useContext();
+      return current === ctx;
+    });
+    assert.strictEqual(result, true);
+  }
+
+  @test
+  async runWithContextAsync() {
+    const ctx = new OperationContextMock();
+    const result = await runWithContext(ctx, async () => {
+      const current = useContext();
+      return current === ctx;
+    });
+    assert.strictEqual(result, true);
+  }
+
+  @test
+  useContextReturnsGlobalWhenNotInScope() {
+    // Outside runWithContext, useContext returns the global context
+    const ctx = useContext();
+    assert.ok(ctx);
+    assert.strictEqual(ctx.isGlobalContext(), true);
+  }
+}
+
+@suite
+class GlobalContextTest {
+  @test
+  isGlobalContext() {
+    const ctx = new GlobalContext();
+    assert.strictEqual(ctx.isGlobalContext(), true);
+  }
+
+  @test
+  getCurrentUserId() {
+    const ctx = new GlobalContext();
+    assert.strictEqual(ctx.getCurrentUserId(), "system");
+  }
+
+  @test
+  getCurrentUser() {
+    const ctx = new GlobalContext();
+    assert.strictEqual(ctx.getCurrentUser(), undefined);
+  }
+
+  @test
+  getSession() {
+    const ctx = new GlobalContext();
+    assert.deepStrictEqual(ctx.getSession(), {});
+  }
+
+  @test
+  getOutputStream() {
+    const ctx = new GlobalContext();
+    assert.throws(() => ctx.getOutputStream(), /You cannot write to a global context/);
   }
 }

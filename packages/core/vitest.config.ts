@@ -41,7 +41,7 @@ export default defineConfig({
       "src/services/cron.spec.ts",
       "src/services/cryptoservice.spec.ts",
       "src/services/debugmailer.spec.ts",
-      //"src/services/domainservice.spec.ts", // Need refactor
+      "src/services/domainservice.spec.ts",
       //"src/services/httpserver.spec.ts",
       "src/services/mailer.spec.ts",
       "src/services/notificationservice.spec.ts",

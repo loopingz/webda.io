@@ -3,7 +3,6 @@ import { TransformCase, TransformCaseType } from "@webda/utils";
 import { Service } from "./service.js";
 import { Application } from "../application/application.js";
 import type { ModelAction } from "../models/types.js";
-import { JSONUtils } from "@webda/utils";
 import { OperationContext } from "../contexts/operationcontext.js";
 import type { Model, ModelClass } from "@webda/models";
 import { runWithContext } from "../contexts/execution.js";
@@ -11,7 +10,7 @@ import { runWithContext } from "../contexts/execution.js";
 import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary.js";
 import * as WebdaError from "../errors/errors.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
-import { useApplication, useModel } from "../application/hooks.js";
+import { useApplication } from "../application/hooks.js";
 import { OperationDefinition } from "../core/icore.js";
 import { ModelGraphBinaryDefinition } from "@webda/compiler";
 import { useCore, useModelMetadata } from "../core/hooks.js";
@@ -97,7 +96,7 @@ export type DomainServiceEvents = {
   "Store.WebNotFound": { context: OperationContext; uuid: string };
 };
 /**
- * Domain Service expose all the models as Route and Operations
+ * Domain Service expose all the models as Operations
  *
  * Model are exposed if they have a Expose decorator
  *
@@ -105,8 +104,10 @@ export type DomainServiceEvents = {
  *
  * Other relations (ModelLinks, ModelParent) should only display their information but not be exposed
  * ModelRelated should be ignored
+ *
+ * @WebdaModda
  */
-export abstract class DomainService<
+export class DomainService<
   T extends DomainServiceParameters = DomainServiceParameters,
   E extends DomainServiceEvents = DomainServiceEvents
 > extends Service<T, E> {
@@ -201,11 +202,13 @@ export abstract class DomainService<
   };
 
   /**
-   * Load the paremeters for your service
-   * @param params
-   * @param name
+   * Load the parameters for your service
+   * @param params - the service parameters
+   * @returns the loaded parameters
    */
-  abstract loadParameters(params: DeepPartial<T>): T;
+  loadParameters(params: DeepPartial<DomainServiceParameters>): T {
+    return <T>new DomainServiceParameters().load(params);
+  }
 
   /**
    * Return the model name for this service
@@ -219,85 +222,19 @@ export abstract class DomainService<
   }
 
   /**
-   * Handle one model and expose it based on the service
-   * @param model
-   * @param name
-   * @param context
-   * @returns
-   */
-  abstract handleModel(model: ModelClass, name: string, context: any): boolean;
-
-  /**
-   * Explore the models
-   * @param model - the model to use
-   * @param name - the name to use
-   * @param depth - the depth level
-   * @param modelContext - the model context
-   * @returns the result
-   */
-  walkModel(model: ModelClass, name?: string, depth: number = 0, modelContext: any = {}) {
-    const { Identifier: identifier, Relations: relations, Plural: plural } = useModelMetadata(model);
-    name ??= plural;
-    // If not expose or not in the list of models
-    if (!this.parameters.isIncluded(identifier)) {
-      return;
-    }
-    // Overlap object are hidden by design
-    if (!this.app.isFinalModel(identifier)) {
-      return;
-    }
-    const context = JSONUtils.duplicate(modelContext);
-    context.depth = depth;
-    if (!this.handleModel(model, name, context)) {
-      return;
-    }
-
-    const queries = relations.queries || [];
-    // Get the children now
-    (relations.children || []).forEach(name => {
-      const childModel = useModel(name);
-      const { Identifier: childIdentifier, Relations: childRelations } = useModelMetadata(childModel);
-      const parentAttribute = childRelations?.parent?.attribute;
-      const segment = queries.find(q => q.model === name && q.targetAttribute === parentAttribute)?.attribute;
-      this.walkModel(childModel, segment, depth + 1, context);
-    });
-  }
-
-  /**
-   * Your service is now created as all the other services
-   * @returns this for chaining
-   */
-  resolve(): this {
-    super.resolve();
-    this.app = <Application>(<any>useApplication());
-    // Add all routes per model
-    this.getRootExposedModels().forEach(model => {
-      this.walkModel(model);
-    });
-
-    return this;
-  }
-
-  /**
-   * Get all top-level models (those without a parent relation) to expose as REST roots
-   * @returns the result
-   */
-  getRootExposedModels() {
-    // By default any models that have no parent
-    return Object.values(this.app.getModels()).filter(m => m?.Metadata && !m.Metadata.Relations.parent);
-  }
-
-  /**
-   *
-   * @param model - the model to use
-   * @param uuid - the unique identifier
+   * Retrieve a model instance by uuid from the operation context
    * @param context - the execution context
-   * @returns the result
+   * @returns the model instance
    */
   private async getModel(context: OperationContext): Promise<Model> {
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
     const { uuid } = context.getParameters();
-    const object = await model.ref(uuid).get();
+    let object: Model | undefined;
+    try {
+      object = await model.ref(uuid).get();
+    } catch {
+      // Repository may throw when the object does not exist
+    }
     if (object === undefined || object.isDeleted()) {
       await this.emit("Store.WebNotFound", {
         context,
@@ -435,11 +372,11 @@ export abstract class DomainService<
     const app = (this.app = <Application>(<any>useApplication()));
 
     // Add default schemas - used for operation parameters
-    for (const i in ModelsOperationsService.schemas) {
+    for (const i in DomainService.schemas) {
       if (hasSchema(i)) {
         continue;
       }
-      registerSchema(i, ModelsOperationsService.schemas[i]);
+      registerSchema(i, DomainService.schemas[i]);
     }
 
     const models = app.getModels();
@@ -449,7 +386,7 @@ export abstract class DomainService<
         continue;
       }
       const Metadata = useModelMetadata(model);
-      if (!model) {
+      if (!Metadata) {
         continue;
       }
       // Skip if not exposed or not included
@@ -467,7 +404,7 @@ export abstract class DomainService<
       const actionsName = Object.keys(Metadata.Actions);
 
       ["create", "update"]
-        .filter(k => actionsName.includes(k))
+        .filter(k => !actionsName.includes(k))
         .forEach(k => {
           k = k.substring(0, 1).toUpperCase() + k.substring(1);
           const id = `${shortId}.${k}`;
@@ -477,13 +414,16 @@ export abstract class DomainService<
             input: modelSchema,
             output: modelSchema,
             parameters: k === "Create" ? undefined : "uuidRequest",
+            summary: k === "Create" ? `Create a new ${shortId}` : `Update a ${shortId}`,
+            tags: [shortId],
+            rest: { method: k === "Create" ? "post" : "put", path: k === "Create" ? "" : "{uuid}" },
             context: {
               model
             }
           });
         });
       ["delete", "get"]
-        .filter(k => actionsName.includes(k))
+        .filter(k => !actionsName.includes(k))
         .forEach(k => {
           k = k.substring(0, 1).toUpperCase() + k.substring(1);
           const id = `${shortId}.${k}`;
@@ -492,6 +432,9 @@ export abstract class DomainService<
             method: `model${k}`,
             id,
             parameters: "uuidRequest",
+            summary: `${k === "Delete" ? "Delete" : "Retrieve"} a ${shortId}`,
+            tags: [shortId],
+            rest: { method: k === "Delete" ? "delete" : "get", path: "{uuid}" },
             context: {
               model
             }
@@ -501,25 +444,31 @@ export abstract class DomainService<
           }
           registerOperation(id, info);
         });
-      if (actionsName.includes("query")) {
+      if (!actionsName.includes("query")) {
         const id = `${plural}.Query`;
         registerOperation(id, {
           service: this.getName(),
           method: "modelQuery",
           parameters: "searchRequest",
+          summary: `Query ${plural}`,
+          tags: [shortId],
+          rest: { method: this.parameters.queryMethod.toLowerCase() as "put" | "get", path: "" },
           context: {
             model
           }
         });
       }
       // Add patch
-      if (actionsName.includes("update")) {
+      if (!actionsName.includes("update")) {
         const id = `${shortId}.Patch`;
         registerOperation(id, {
           service: this.getName(),
           method: "modelPatch",
           input: modelSchema + "?",
           parameters: "uuidRequest",
+          summary: `Patch a ${shortId}`,
+          tags: [shortId],
+          rest: { method: "patch", path: "{uuid}" },
           context: {
             model
           }
@@ -543,6 +492,12 @@ export abstract class DomainService<
             model,
             action: { ...actions[name], name }
           };
+          info.summary = `${name.substring(0, 1).toUpperCase() + name.substring(1)} on ${shortId}`;
+          info.tags = [shortId];
+          info.rest = {
+            method: (actions[name].methods?.[0] || "PUT").toLowerCase(),
+            path: actions[name].global ? name : `{uuid}/${name}`
+          };
           registerOperation(id, info);
         });
 
@@ -558,21 +513,24 @@ export abstract class DomainService<
    */
   addBinaryOperations(model: ModelClass<Model>, Metadata: any, name: string) {
     (Metadata.Relations.binaries || []).forEach(binary => {
-      const webda = useCore();
       const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
+      // Do not resolve binaryStore eagerly - it may not exist yet during resolve()
+      const baseContext = {
+        model,
+        binary
+      };
       const info = {
         service: this.getName(),
-        context: {
-          model,
-          binary,
-          binaryStore: webda.getBinaryStore(model as any, binary.attribute)
-        },
+        context: baseContext,
         parameters: "uuidRequest"
       };
       registerOperation(`${name}.${attribute}.AttachChallenge`, {
         ...info,
         method: "binaryChallenge",
-        input: "binaryChallengeRequest"
+        input: "binaryChallengeRequest",
+        summary: `Upload ${binary.attribute} of ${name} after challenge`,
+        tags: [name],
+        rest: { method: "put", path: `{uuid}/${binary.attribute}` }
       });
       registerOperation(`${name}.${attribute}.Attach`, {
         ...info,
@@ -581,12 +539,22 @@ export abstract class DomainService<
           action: "create"
         },
         method: "binaryPut",
-        parameters: "binaryAttachParameters"
+        parameters: "binaryAttachParameters",
+        summary: `Upload ${binary.attribute} of ${name} directly`,
+        tags: [name],
+        rest: { method: "post", path: `{uuid}/${binary.attribute}` }
       });
       registerOperation(`${name}.${attribute}.Get`, {
         ...info,
         method: "binaryGet",
-        parameters: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest"
+        parameters: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest",
+        summary: `Download ${binary.attribute} of ${name}`,
+        tags: [name],
+        rest: {
+          method: "get",
+          path:
+            binary.cardinality === "ONE" ? `{uuid}/${binary.attribute}` : `{uuid}/${binary.attribute}/{index}`
+        }
       });
       registerOperation(`${name}.${attribute}.Delete`, {
         ...info,
@@ -595,7 +563,16 @@ export abstract class DomainService<
           action: "delete"
         },
         method: "binaryAction",
-        parameters: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest"
+        parameters: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest",
+        summary: `Delete ${binary.attribute} of ${name}`,
+        tags: [name],
+        rest: {
+          method: "delete",
+          path:
+            binary.cardinality === "ONE"
+              ? `{uuid}/${binary.attribute}/{hash}`
+              : `{uuid}/${binary.attribute}/{index}/{hash}`
+        }
       });
       registerOperation(`${name}.${attribute}.SetMetadata`, {
         ...info,
@@ -604,7 +581,16 @@ export abstract class DomainService<
           action: "metadata"
         },
         method: "binaryAction",
-        parameters: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest"
+        parameters: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest",
+        summary: `Update metadata of ${binary.attribute} of ${name}`,
+        tags: [name],
+        rest: {
+          method: "put",
+          path:
+            binary.cardinality === "ONE"
+              ? `{uuid}/${binary.attribute}/{hash}`
+              : `{uuid}/${binary.attribute}/{index}/{hash}`
+        }
       });
       registerOperation(`${name}.${attribute}.GetUrl`, {
         ...info,
@@ -613,9 +599,35 @@ export abstract class DomainService<
           returnUrl: true
         },
         method: "binaryGet",
-        parameters: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest"
+        parameters: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest",
+        summary: `Get signed URL for ${binary.attribute} of ${name}`,
+        tags: [name],
+        rest: {
+          method: "get",
+          path:
+            binary.cardinality === "ONE"
+              ? `{uuid}/${binary.attribute}/url`
+              : `{uuid}/${binary.attribute}/{index}/url`
+        }
       });
     });
+  }
+
+  /**
+   * Resolve the binary store for a given context, looking it up lazily if not already set
+   * @param context - the execution context
+   * @returns the binary store, model, and binary definition
+   */
+  private resolveBinaryContext(context: OperationContext) {
+    const ext = context.getExtension<{
+      binaryStore?: BinaryService;
+      model: ModelClass<Model>;
+      binary: any;
+    }>("operationContext");
+    if (!ext.binaryStore) {
+      ext.binaryStore = <BinaryService>useCore().getBinaryStore(ext.model as any, ext.binary.attribute);
+    }
+    return ext as { binaryStore: BinaryService; model: ModelClass<Model>; binary: any } & Record<string, any>;
   }
 
   /**
@@ -624,11 +636,7 @@ export abstract class DomainService<
    */
   async binaryChallenge(context: OperationContext<BinaryFileInfo & { hash: string; challenge: string }>) {
     const body = await context.getInput();
-    const { model, binaryStore, binary } = context.getExtension<{
-      binaryStore: BinaryService;
-      model: ModelClass<Model>;
-      binary: any;
-    }>("operationContext");
+    const { model, binaryStore, binary } = this.resolveBinaryContext(context);
     // First verify if map exist
     const object = await model.ref(context.parameter("uuid")).get();
     if (object === undefined || object.isDeleted()) {
@@ -665,11 +673,7 @@ export abstract class DomainService<
    * @param context - the execution context
    */
   async binaryPut(context: OperationContext) {
-    const { model, binaryStore, binary } = context.getExtension<{
-      binaryStore: BinaryService;
-      model: ModelClass<Model>;
-      binary: any;
-    }>("operationContext");
+    const { model, binaryStore, binary } = this.resolveBinaryContext(context);
     // First verify if map exist
     const object = await model.ref(context.parameter("uuid")).get();
     if (object === undefined || object.isDeleted()) {
@@ -689,12 +693,9 @@ export abstract class DomainService<
    * @param context - the execution context
    */
   async binaryGet(context: OperationContext) {
-    const { model, returnUrl, binaryStore, binary } = context.getExtension<{
-      binaryStore: BinaryService;
-      model: ModelClass<Model>;
-      binary: ModelGraphBinaryDefinition;
-      returnUrl: boolean;
-    }>("operationContext");
+    const ext = this.resolveBinaryContext(context);
+    const { model, binaryStore, binary } = ext;
+    const returnUrl = ext.returnUrl as boolean;
     const { index, uuid } = context.getParameters();
     // First verify if map exist
     const object = await model.ref(uuid).get();
@@ -747,12 +748,9 @@ export abstract class DomainService<
    * @param context - the execution context
    */
   async binaryAction(context: OperationContext) {
-    const { model, binaryStore, binary, action } = context.getExtension<{
-      binaryStore: BinaryService;
-      model: ModelClass<Model>;
-      binary: ModelGraphBinaryDefinition;
-      action: "delete" | "metadata" | "create";
-    }>("operationContext");
+    const ext = this.resolveBinaryContext(context);
+    const { model, binaryStore, binary } = ext;
+    const action = ext.action as "delete" | "metadata" | "create";
     const { index, uuid, hash } = context.getParameters();
     // First verify if map exist
     const object = await model.ref(uuid).get();
@@ -785,30 +783,5 @@ export abstract class DomainService<
         [binary.attribute]: object[binary.attribute]
       });
     }
-  }
-}
-
-/**
- * @WebdaModda
- */
-export class ModelsOperationsService<T extends DomainServiceParameters> extends DomainService<T> {
-  /**
-   * Default domain
-   * @param params - the service parameters
-   * @returns the result
-   */
-  loadParameters(params: DeepPartial<DomainServiceParameters>): T {
-    return <T>new DomainServiceParameters().load(params);
-  }
-
-  /**
-   * Do nothing here
-   * @param model - the model to use
-   * @param name - the name to use
-   * @param context - the execution context
-   * @returns true if the condition is met
-   */
-  handleModel(model: ModelClass, name: string, context: any): boolean {
-    return true;
   }
 }

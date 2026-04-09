@@ -2,7 +2,7 @@ import { QueryValidator } from "@webda/ql";
 import { OperationDefinition, OperationDefinitionInfo } from "./icore.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import * as WebdaError from "../errors/errors.js";
-import { ValidationError } from "../schemas/hooks.js";
+import { validateSchema, ValidationError } from "../schemas/hooks.js";
 import { useInstanceStorage } from "./instancestorage.js";
 import { useApplication, useModel } from "../application/hooks.js";
 import { useDynamicService, useService } from "./hooks.js";
@@ -53,7 +53,7 @@ async function checkOperation(context: OperationContext, operationId: string) {
   try {
     if (operations[operationId].input) {
       const input = await context.getInput();
-      if (input === undefined || this.validateSchema(operations[operationId].input, input) !== true) {
+      if (input === undefined || validateSchema(operations[operationId].input, input) !== true) {
         throw new WebdaError.BadRequest(`${operationId} InvalidInput Empty input`);
       }
     }
@@ -65,7 +65,7 @@ async function checkOperation(context: OperationContext, operationId: string) {
   }
   try {
     if (operations[operationId].parameters) {
-      this.validateSchema(operations[operationId].parameters, context.getParameters());
+      validateSchema(operations[operationId].parameters, context.getParameters());
     }
   } catch (err) {
     if (err instanceof ValidationError) {
@@ -92,9 +92,9 @@ export async function callOperation(context: OperationContext, operationId: stri
       //emitCoreEvent(`${operationId}.Before`, <any>context.getExtension("event") || {})
     ]);
     if (operations[operationId].service) {
-      await this.getService(operations[operationId].service)[operations[operationId].method](context);
+      await useService(operations[operationId].service)[operations[operationId].method](context);
     } else if (operations[operationId].model) {
-      await this.application.getModel(operations[operationId].model)[operations[operationId].method](context);
+      await useModel(operations[operationId].model)[operations[operationId].method](context);
     } else {
       throw new Error(`${operationId} NoServiceOrModel`);
     }

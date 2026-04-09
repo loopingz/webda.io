@@ -1,6 +1,6 @@
 import { QueryValidator } from "@webda/ql";
 import type { ModelAction } from "../models/types.js";
-import { DomainServiceParameters, ModelsOperationsService } from "../services/domainservice.js";
+import { DomainService, DomainServiceParameters } from "../services/domainservice.js";
 import { OpenAPIWebdaDefinition } from "./irest.js";
 import * as WebdaError from "../errors/errors.js";
 import { useRouter } from "./hooks.js";
@@ -86,7 +86,7 @@ export class RESTDomainServiceParameters extends DomainServiceParameters {
  */
 export class RESTDomainService<
   T extends RESTDomainServiceParameters = RESTDomainServiceParameters
-> extends ModelsOperationsService<T> {
+> extends DomainService<T> {
   /**
    * OpenAPI cache
    */

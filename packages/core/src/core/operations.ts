@@ -1,5 +1,5 @@
 import { QueryValidator } from "@webda/ql";
-import { OperationDefinition } from "./icore.js";
+import { OperationDefinition, OperationDefinitionInfo } from "./icore.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { ValidationError } from "../schemas/hooks.js";
@@ -158,7 +158,7 @@ export function registerOperation(operationId: string, definition: Omit<Operatio
   const operations = useInstanceStorage().operations;
   // Add the operation
   // We will want to cache operations for faster startup
-  operations[operationId] = { ...definition, id: operationId };
+  operations[operationId] = { ...definition, id: operationId } as OperationDefinitionInfo;
   ["input", "output"]
     .filter(key => operations[operationId][key])
     .forEach(key => {
@@ -168,38 +168,6 @@ export function registerOperation(operationId: string, definition: Omit<Operatio
     });
 }
 
-export interface RestParameters {
-  rest?:
-    | false
-    | {
-        method: "get" | "post" | "put" | "delete" | "patch";
-        path: string;
-        responses?: {
-          [statusCode: string]: {
-            description?: string;
-            content?: {
-              [mediaType: string]: any;
-            };
-          };
-        };
-      };
-}
-export interface GrpcParameters {
-  grpc?:
-    | false
-    | {
-        streaming?: "none" | "client" | "server" | "bidi";
-      };
-}
-export interface GraphQLParameters {
-  graphql?:
-    | false
-    | {
-        query?: string;
-        mutation?: string;
-        subscription?: string;
-      };
-}
 
 /**
  * Wrapper concept for an operation
@@ -220,15 +188,42 @@ interface OperationParameters {
    * If no . is present the operation will be prefixed with the Service name or the Model name
    */
   id?: string;
+  /**
+   * Short summary of the operation
+   */
   summary?: string;
+  /**
+   * Full description of the operation
+   */
   description?: string;
+  /**
+   * Categorization tags for the operation
+   */
   tags?: string[];
+  /**
+   * Hide the operation from transport exposure
+   */
   hidden?: boolean;
+  /**
+   * Mark the operation as deprecated
+   */
   deprecated?: boolean;
   /**
    * Permission query to check before executing the operation
    */
   permissionQuery?: string;
+  /**
+   * REST transport hints
+   */
+  rest?: OperationDefinition["rest"];
+  /**
+   * GraphQL transport hints
+   */
+  graphql?: OperationDefinition["graphql"];
+  /**
+   * gRPC transport hints
+   */
+  grpc?: OperationDefinition["grpc"];
 }
 
 function Operation<T = {}>(

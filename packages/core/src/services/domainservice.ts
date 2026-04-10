@@ -495,7 +495,7 @@ export class DomainService<
           info.summary = `${name.substring(0, 1).toUpperCase() + name.substring(1)} on ${shortId}`;
           info.tags = [shortId];
           info.rest = {
-            method: (actions[name].methods?.[0] || "PUT").toLowerCase(),
+            method: (actions[name].method || "PUT").toLowerCase(),
             path: actions[name].global ? name : `{uuid}/${name}`
           };
           registerOperation(id, info);

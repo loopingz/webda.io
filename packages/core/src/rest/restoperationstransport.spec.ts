@@ -16,9 +16,9 @@ const SWAGGER_HTML_TEST = `<html><div id="swagger-ui"></div><script>SwaggerUIBun
 /**
  * Main test suite: uses sample-app.
  *
- * The RESTDomainService is kept as "rest" to register operations.
+ * DomainService registers operations into the global registry.
  * After Core.init(), we manually add RESTOperationsTransport which
- * re-registers routes via the operation registry at a custom URL prefix.
+ * walks the model tree and registers REST routes at a custom URL prefix.
  */
 @suite
 class RESTOperationsTransportTest extends WebdaApplicationTest {
@@ -91,7 +91,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
 
   @test
   async routesRegistered() {
-    // Operations are registered by the RESTDomainService (which extends DomainService)
+    // Operations are registered by DomainService during init()
     const operations = listOperations();
     assert.ok(operations["Company.Create"], "Company.Create should be registered");
     assert.ok(operations["Company.Get"], "Company.Get should be registered");

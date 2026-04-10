@@ -1,4 +1,4 @@
-"use strict";
+
 
 import { useCoreEvents } from "../events/events.js";
 import { Service } from "../services/service.js";
@@ -213,7 +213,7 @@ export class AuditService extends Service<AuditServiceParameters> {
     }
     this.entries.push(entry);
     if (this.auditStore) {
-      await this.auditStore.save(entry as any);
+      await (this.auditStore as any).save(entry);
     }
   }
 }

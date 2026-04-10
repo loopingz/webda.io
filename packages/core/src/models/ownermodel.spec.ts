@@ -3,7 +3,7 @@ import * as assert from "assert";
 import {
   HttpContext,
   OwnerModel,
-  RESTDomainService,
+  RESTOperationsTransport,
   runAsSystem,
   runWithContext,
   Session,
@@ -70,7 +70,7 @@ class OwnerModelTest extends WebdaApplicationTest {
     this.context.getCurrentUser = async () => {
       return this.user;
     };
-    await this.addService(RESTDomainService, {});
+    await this.addService(RESTOperationsTransport, {});
 
     await TestTask.create({
       _user: "fake_user",

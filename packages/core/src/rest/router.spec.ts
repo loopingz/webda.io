@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { RouteInfo } from "./router.js";
 import { TestApplication, WebdaTest } from "../test/index.js";
 import { HttpContext } from "../contexts/httpcontext.js";
-import { RESTDomainService } from "./restdomainservice.js";
+import { RESTOperationsTransport } from "./restoperationstransport.js";
 import { ImageUser } from "../services/binary.spec.js";
 
 /**
@@ -229,7 +229,7 @@ class RouterTest extends WebdaTest {
    */
   @test
   async getModelUrl() {
-    await this.addService(RESTDomainService, {});
+    await this.addService(RESTOperationsTransport, {});
     const url = this.webda.getRouter().getModelUrl(new ImageUser());
     assert.strictEqual(url, "/imageUsers");
   }

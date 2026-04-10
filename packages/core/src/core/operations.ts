@@ -92,7 +92,7 @@ export async function callOperation(context: OperationContext, operationId: stri
       //emitCoreEvent(`${operationId}.Before`, <any>context.getExtension("event") || {})
     ]);
     if (operations[operationId].service) {
-      await useService(operations[operationId].service)[operations[operationId].method](context);
+      await useService(operations[operationId].service as any)[operations[operationId].method](context);
     } else if (operations[operationId].model) {
       await useModel(operations[operationId].model)[operations[operationId].method](context);
     } else {

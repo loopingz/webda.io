@@ -43,6 +43,7 @@ export default defineConfig({
       "src/services/cryptoservice.spec.ts",
       "src/services/debugmailer.spec.ts",
       "src/services/domainservice.spec.ts",
+      "src/services/audit.spec.ts",
       "src/services/operationstransport.spec.ts",
       //"src/services/httpserver.spec.ts",
       "src/services/mailer.spec.ts",

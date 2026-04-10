@@ -42,8 +42,8 @@ const mockOperations = {
 };
 
 const mockRoutes = {
-  "/tasks": [{ methods: ["GET", "POST"], executor: "RESTDomainService" }],
-  "/tasks/{uuid}": [{ methods: ["GET", "PUT", "DELETE"], executor: "RESTDomainService" }]
+  "/tasks": [{ methods: ["GET", "POST"], executor: "RESTOperationsTransport" }],
+  "/tasks/{uuid}": [{ methods: ["GET", "PUT", "DELETE"], executor: "RESTOperationsTransport" }]
 };
 
 const mockConfig = {
@@ -232,7 +232,7 @@ class GetRoutesTest {
   @test
   includesExecutorName() {
     const routes = getRoutes();
-    routes.forEach(r => assert.strictEqual(r.executor, "RESTDomainService"));
+    routes.forEach(r => assert.strictEqual(r.executor, "RESTOperationsTransport"));
   }
 }
 

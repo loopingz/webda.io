@@ -1,5 +1,5 @@
 import { Storage as GCS } from "@google-cloud/storage";
-import { BinaryService, RESTDomainService } from "@webda/core";
+import { BinaryService, RESTOperationsTransport } from "@webda/core";
 import { suite, test } from "@webda/test";
 import { getCommonJS } from "@webda/utils";
 import * as assert from "assert";
@@ -94,7 +94,7 @@ class StorageTest extends BinaryTest<Storage> {
   @test
   async redirectUrl() {
     const { user1, ctx } = await this.setupDefault();
-    await this.addService(RESTDomainService, {});
+    await this.addService(RESTOperationsTransport, {});
     // Making sure we are redirected on GET
     const executor = this.getExecutor(
       ctx,
@@ -110,7 +110,7 @@ class StorageTest extends BinaryTest<Storage> {
   @test
   async redirectUrlInfo() {
     const { user1, ctx } = await this.setupDefault();
-    await this.addService(RESTDomainService, {});
+    await this.addService(RESTOperationsTransport, {});
     // Making sure we are redirected on GET
     const executor = this.getExecutor(
       ctx,

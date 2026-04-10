@@ -1,4 +1,4 @@
-import { Binaries, Expose, FileBinary, OperationContext, RESTDomainService } from "@webda/core";
+import { Binaries, Expose, FileBinary, OperationContext, RESTOperationsTransport } from "@webda/core";
 import { WebdaSimpleTest } from "@webda/core/lib/test";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
@@ -29,7 +29,7 @@ class ModelTest extends WebdaSimpleTest {
     await this.registerService(new FileBinary(this.webda, "file", { folder: "/tmp", models: { "*": ["*"] } }))
       .resolve()
       .init();
-    await this.registerService(new RESTDomainService(this.webda, "rest")).resolve().init();
+    await this.registerService(new RESTOperationsTransport(this.webda, "rest")).resolve().init();
   }
 
   @test

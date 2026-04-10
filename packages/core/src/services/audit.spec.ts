@@ -78,8 +78,10 @@ class AuditServiceTest extends WebdaApplicationTest {
    * Create and register an AuditService with the given parameters
    */
   async setupAudit(params: Partial<AuditServiceParameters> = {}): Promise<AuditService> {
-    const svcParams = new AuditServiceParameters().load(params);
-    const audit = this.registerService(new AuditService("AuditSvc", svcParams));
+    // Pass raw params so that the application's createConfiguration (which processes
+    // negation patterns like "!Other.Create") runs on the original input rather than
+    // on a pre-loaded instance where excludedOperations has already been separated out.
+    const audit = this.registerService(new AuditService("AuditSvc", params as any));
     audit.resolve();
     await audit.init();
     this.auditService = audit;
@@ -267,8 +269,11 @@ class AuditServiceTest extends WebdaApplicationTest {
     assert.ok(params instanceof AuditServiceParameters);
     assert.strictEqual(params.level, "write");
 
-    const raw = { foo: "bar" };
-    assert.strictEqual(AuditService.filterParameters(raw), raw);
+    // When loaded via the application module, filterParameters is schema-based and strips
+    // unknown properties. Verify that known schema fields pass through and unknown ones are dropped.
+    const filtered = AuditService.filterParameters({ level: "write", foo: "bar" });
+    assert.strictEqual(filtered.level, "write");
+    assert.ok(!("foo" in filtered), "unknown fields should be stripped by schema filter");
   }
 
   @test

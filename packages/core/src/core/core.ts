@@ -105,26 +105,22 @@ export class Core implements ICore {
       );
     }
     // Auto-register application beans as services if not already configured
-    const beans = this.applicationConfiguration.cachedModules?.beans || {};
-    for (const beanName in beans) {
+    const appBeans = (this.application as any).beans || {};
+    for (const beanName in appBeans) {
       // Skip if a service with this bean type is already configured
       if (Object.values(this.applicationConfiguration.services).some((s: any) => s.type === beanName)) {
         continue;
       }
       const serviceName = `Beans/${beanName.split("/").pop()}`;
       if (this.configuration[serviceName]) continue;
-      try {
-        const modda = this.application.getModda(beanName);
-        if (!modda) continue;
-        this.moddas[serviceName] = modda;
-        this.configuration[serviceName] = Object.freeze(
-          (this.moddas[serviceName]?.filterParameters || (p => p))({
-            ...this.applicationConfiguration.parameters
-          })
-        );
-      } catch {
-        // Bean modda not available — skip silently
-      }
+      const beanClass = appBeans[beanName];
+      if (!beanClass) continue;
+      this.moddas[serviceName] = beanClass;
+      this.configuration[serviceName] = Object.freeze(
+        (beanClass.filterParameters || (p => p))({
+          ...this.applicationConfiguration.parameters
+        })
+      );
     }
     if (
       this.applicationConfiguration.application?.configurationService &&

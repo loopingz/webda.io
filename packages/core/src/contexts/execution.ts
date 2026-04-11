@@ -65,7 +65,10 @@ export function runWithContext<T>(context: Context, run: () => T, attach: IConte
   const res = storage.run({ context, previousContext }, run);
   // Manage both promise and normal
   if (res instanceof Promise) {
-    res.finally(() => attachModels(attach, undefined));
+    // Return the .finally() promise so the rejection is not left dangling.
+    // Without this, .finally() creates a derived promise that rejects
+    // (when `run` rejects) with no handler, causing unhandled rejections.
+    return res.finally(() => attachModels(attach, undefined)) as T;
   } else {
     attachModels(attach, undefined);
   }

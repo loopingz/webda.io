@@ -1,4 +1,4 @@
-import { Bean, Operation, Service, ServiceName, useLog, useService } from "@webda/core";
+import { Bean, InstanceCache, Operation, RestParameters, Service, ServiceName, useApplication, useLog } from "@webda/core";
 import { User } from "../models/User";
 import { Post } from "../models/Post";
 import { Comment } from "../models/Comment";
@@ -13,6 +13,21 @@ export class TestBeanParameters extends Service.Parameters {
 
 @Bean
 export class TestBean<T extends TestBeanParameters = TestBeanParameters> extends Service<T> {
+
+  @InstanceCache
+  getVersion(): string {
+    return useApplication().getPackageDescription().name;
+  }
+
+  /**
+   * Get the version of the application
+   * @returns version of the application
+   */
+  @Operation<RestParameters>({ id: "Version.Get", rest: { method: "get", path: "/version" } })
+  async version() : Promise<string> {
+    return this.getVersion();
+  }
+
   /**
    * Scenario 1: Creating Users and Building a Network
    */

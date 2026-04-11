@@ -190,7 +190,7 @@ export class AuditService extends Service<AuditServiceParameters> {
     }
     this.entries.push(entry);
     if (this.auditStore) {
-      await this.auditStore.create(entry.getUUID(), entry);
+      await entry.save();
     }
   }
 }

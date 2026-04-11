@@ -268,29 +268,33 @@ class AuditServiceTest extends WebdaApplicationTest {
   async persistsToStore() {
     this.registerTestOps();
 
-    // Create a mock store with a tracked create method
+    // Track save calls by patching AuditEntry prototype
     const savedEntries: any[] = [];
-    const mockStore = {
-      create: async (_uuid: any, entry: any) => {
-        savedEntries.push(entry);
-      }
+    const originalSave = AuditEntry.prototype.save;
+    AuditEntry.prototype.save = async function mockSave() {
+      savedEntries.push(this);
+      return this;
     };
 
-    const svcParams = new AuditServiceParameters().load({});
-    const audit = this.registerService(new AuditService("AuditSvcStore", svcParams));
-    audit.resolve();
-    await audit.init();
-    // Inject the mock store after resolve (so the Injector doesn't overwrite it)
-    (audit as any).auditStore = mockStore;
+    try {
+      const svcParams = new AuditServiceParameters().load({});
+      const audit = this.registerService(new AuditService("AuditSvcStore", svcParams));
+      audit.resolve();
+      await audit.init();
+      // Set auditStore truthy to enable persistence path
+      (audit as any).auditStore = true;
 
-    await this.runOp("Audit.Create");
+      await this.runOp("Audit.Create");
 
-    // The in-memory list should also have it
-    const entries = audit.getEntries();
-    assert.strictEqual(entries.length, 1);
-    // The store should have received the save call
-    assert.strictEqual(savedEntries.length, 1);
-    assert.strictEqual(savedEntries[0].operationId, "Audit.Create");
-    assert.strictEqual(savedEntries[0].success, true);
+      // The in-memory list should also have it
+      const entries = audit.getEntries();
+      assert.strictEqual(entries.length, 1);
+      // The save should have been called
+      assert.strictEqual(savedEntries.length, 1);
+      assert.strictEqual(savedEntries[0].operationId, "Audit.Create");
+      assert.strictEqual(savedEntries[0].success, true);
+    } finally {
+      AuditEntry.prototype.save = originalSave;
+    }
   }
 }

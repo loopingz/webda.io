@@ -13,6 +13,9 @@
     },
     "rest": {
       "type": "Webda/RESTOperationsTransport"
+    },
+    "testBean": {
+      "type": "WebdaSample/TestBean"
     }
   }
 }

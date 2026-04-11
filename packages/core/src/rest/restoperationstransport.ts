@@ -104,6 +104,10 @@ export class RESTOperationsTransportParameters extends OperationsTransportParame
     super.load(params);
     this.nameTransformer ??= "camelCase";
     this.queryMethod ??= "PUT";
+    // Ensure url ends with /
+    if (this.url && !this.url.endsWith("/")) {
+      this.url += "/";
+    }
     return this;
   }
 }
@@ -125,23 +129,6 @@ export class RESTOperationsTransport<
    */
   openapiContent: string;
 
-  /**
-   * Create configuration for the service (used by Core during service creation)
-   * @param params - the raw service parameters
-   * @returns the loaded parameters
-   */
-  static createConfiguration(params: any = {}): RESTOperationsTransportParameters {
-    return new RESTOperationsTransportParameters().load(params);
-  }
-
-  /**
-   * Filter parameters to only include known fields
-   * @param params - the raw service parameters
-   * @returns the filtered parameters
-   */
-  static filterParameters(params: any = {}): any {
-    return params;
-  }
 
   /**
    * Transform name using configured casing
@@ -197,8 +184,7 @@ export class RESTOperationsTransport<
       if (childModels.has(metadata.Identifier)) continue;
 
       // This is a root model - walk it
-      const basePrefix = this.parameters.url.endsWith("/") ? this.parameters.url : this.parameters.url + "/";
-      this.walkModel(model, metadata, operations, basePrefix, 0);
+      this.walkModel(model, metadata, operations, this.parameters.url, 0);
     }
   }
 

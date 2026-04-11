@@ -32,7 +32,7 @@ export class AuditServiceParameters extends ServiceParameters {
   /**
    * Audit level filter:
    *  - "all"     — audit everything (default)
-   *  - "write"   — only operations ending in Create, Update, Patch, Delete
+   *  - "write"   — everything except read operations (Get, List, Query)
    *  - "failure" — only failed operations
    * @default "all"
    */
@@ -97,7 +97,10 @@ export class AuditServiceParameters extends ServiceParameters {
   }
 }
 
-const WRITE_SUFFIXES = ["Create", "Update", "Patch", "Delete"];
+/**
+ * Read-only operation suffixes excluded from "write" level auditing
+ */
+const READ_SUFFIXES = ["Get", "List", "Query"];
 
 /**
  * @WebdaModda AuditService
@@ -118,23 +121,6 @@ export class AuditService extends Service<AuditServiceParameters> {
    */
   protected entries: AuditEntry[] = [];
 
-  /**
-   * Static factory method for creating parameters
-   * @param params - the service parameters
-   * @returns the loaded parameters
-   */
-  static createConfiguration(params: any): AuditServiceParameters {
-    return new AuditServiceParameters().load(params);
-  }
-
-  /**
-   * Filter parameters
-   * @param params - the service parameters
-   * @returns the parameters
-   */
-  static filterParameters(params: any) {
-    return params;
-  }
 
   /**
    * Subscribe to operation success and failure events for audit logging
@@ -178,7 +164,7 @@ export class AuditService extends Service<AuditServiceParameters> {
     }
     if (level === "write") {
       const suffix = operationId.split(".").pop() ?? "";
-      return WRITE_SUFFIXES.includes(suffix);
+      return !READ_SUFFIXES.includes(suffix);
     }
     return true;
   }

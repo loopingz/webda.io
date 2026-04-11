@@ -263,17 +263,6 @@ class AuditServiceTest extends WebdaApplicationTest {
     assert.ok(filteredAudit.shouldAudit("Audit.Create", true));
   }
 
-  @test
-  async staticMethods() {
-    // Cover createConfiguration and filterParameters static methods
-    const params = AuditService.createConfiguration({ level: "write", operations: ["Audit.*"] });
-    assert.ok(params instanceof AuditServiceParameters);
-    assert.strictEqual(params.level, "write");
-
-    // filterParameters is a passthrough; schema-based filtering is handled by the module loader
-    const filtered = AuditService.filterParameters({ level: "write", foo: "bar" });
-    assert.strictEqual(filtered.level, "write");
-  }
 
   @test
   async persistsToStore() {

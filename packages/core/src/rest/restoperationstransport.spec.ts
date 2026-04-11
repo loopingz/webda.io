@@ -117,7 +117,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     // Now add our transport and verify it can walk the model tree
     const transport = new RESTOperationsTransport(
       "testTransport",
-      RESTOperationsTransport.createConfiguration({ url: "/api/", exposeOpenAPI: false })
+      new RESTOperationsTransportParameters().load({ url: "/api/", exposeOpenAPI: false })
     );
     this.registerService(transport);
     transport.resolve();
@@ -147,7 +147,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     });
     assert.strictEqual(custom.nameTransformer, "snake_case");
     assert.strictEqual(custom.queryMethod, "GET");
-    assert.strictEqual(custom.url, "/api/v1");
+    assert.strictEqual(custom.url, "/api/v1/");
     assert.strictEqual(custom.swaggerVersion, "4.0.0");
     assert.strictEqual(custom.exposeOpenAPI, false);
 
@@ -199,7 +199,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
   async loadParameters() {
     const transport = new RESTOperationsTransport(
       "test-load",
-      RESTOperationsTransport.createConfiguration({ url: "/test/", queryMethod: "GET" })
+      new RESTOperationsTransportParameters().load({ url: "/test/", queryMethod: "GET" })
     );
     assert.strictEqual(transport.getParameters().url, "/test/");
     assert.strictEqual(transport.getParameters().queryMethod, "GET");
@@ -210,7 +210,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     // Test that operations filter is applied during getOperations
     const transport = new RESTOperationsTransport(
       "testFiltered",
-      RESTOperationsTransport.createConfiguration({
+      new RESTOperationsTransportParameters().load({
         url: "/filtered/",
         exposeOpenAPI: false,
         operations: ["Company.*", "Companies.*"]
@@ -232,7 +232,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     // Create a transport at a unique prefix
     const transport = new RESTOperationsTransport(
       "testRoutes",
-      RESTOperationsTransport.createConfiguration({ url: "/v2/", exposeOpenAPI: false })
+      new RESTOperationsTransportParameters().load({ url: "/v2/", exposeOpenAPI: false })
     );
     this.registerService(transport);
     transport.resolve();
@@ -253,7 +253,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     // Test the Swagger HTML generation using a stub router
     const transport = new RESTOperationsTransport(
       "testOpenApi",
-      RESTOperationsTransport.createConfiguration({ url: "/openapi-test/", exposeOpenAPI: false })
+      new RESTOperationsTransportParameters().load({ url: "/openapi-test/", exposeOpenAPI: false })
     );
 
     // Manually set the openapi content to test the write path
@@ -275,7 +275,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     // Verify openapiContent is cached after first generation
     const transport = new RESTOperationsTransport(
       "testCaching",
-      RESTOperationsTransport.createConfiguration({ swaggerVersion: "5.31.0" })
+      new RESTOperationsTransportParameters().load({ swaggerVersion: "5.31.0" })
     );
     // Pre-set the cache
     const cached = "<html>cached</html>";
@@ -295,7 +295,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     // Register transport at a unique prefix
     const transport = new RESTOperationsTransport(
       "TestRESTTransportQuery",
-      RESTOperationsTransport.createConfiguration({ url: "/tq/", exposeOpenAPI: false })
+      new RESTOperationsTransportParameters().load({ url: "/tq/", exposeOpenAPI: false })
     );
     this.registerService(transport);
     transport.resolve();
@@ -331,7 +331,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     // Test nested query which injects parent attribute
     const transport = new RESTOperationsTransport(
       "TestRESTTransportNestedQ",
-      RESTOperationsTransport.createConfiguration({ url: "/nq/", exposeOpenAPI: false })
+      new RESTOperationsTransportParameters().load({ url: "/nq/", exposeOpenAPI: false })
     );
     this.registerService(transport);
     transport.resolve();
@@ -356,7 +356,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
   async queryInvalidQueryHTTP() {
     const transport = new RESTOperationsTransport(
       "TestRESTTransportInvalidQ",
-      RESTOperationsTransport.createConfiguration({ url: "/iq/", exposeOpenAPI: false })
+      new RESTOperationsTransportParameters().load({ url: "/iq/", exposeOpenAPI: false })
     );
     this.registerService(transport);
     transport.resolve();
@@ -378,7 +378,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
   async crudRoutesHTTP() {
     const transport = new RESTOperationsTransport(
       "TestRESTTransportCRUD",
-      RESTOperationsTransport.createConfiguration({ url: "/tc/", exposeOpenAPI: false })
+      new RESTOperationsTransportParameters().load({ url: "/tc/", exposeOpenAPI: false })
     );
     this.registerService(transport);
     transport.resolve();
@@ -451,7 +451,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
   async modelActionsHTTP() {
     const transport = new RESTOperationsTransport(
       "TestRESTTransportActions",
-      RESTOperationsTransport.createConfiguration({ url: "/ta/", exposeOpenAPI: false })
+      new RESTOperationsTransportParameters().load({ url: "/ta/", exposeOpenAPI: false })
     );
     this.registerService(transport);
     transport.resolve();
@@ -512,7 +512,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
   async binaryRouteHTTP() {
     const transport = new RESTOperationsTransport(
       "TestRESTTransportBinary",
-      RESTOperationsTransport.createConfiguration({ url: "/tb/", exposeOpenAPI: false })
+      new RESTOperationsTransportParameters().load({ url: "/tb/", exposeOpenAPI: false })
     );
     this.registerService(transport);
     transport.resolve();
@@ -611,7 +611,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     // Test with exposeOpenAPI enabled so the route is registered
     const transport = new RESTOperationsTransport(
       "TestRESTTransportOpenAPI",
-      RESTOperationsTransport.createConfiguration({ url: "/oapi/", exposeOpenAPI: true })
+      new RESTOperationsTransportParameters().load({ url: "/oapi/", exposeOpenAPI: true })
     );
     this.registerService(transport);
     transport.resolve();

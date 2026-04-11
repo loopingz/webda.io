@@ -7,6 +7,12 @@
   "services": {
     "Mailer": {
       "type": "Webda/Mailer"
+    },
+    "domain": {
+      "type": "Webda/DomainService"
+    },
+    "rest": {
+      "type": "Webda/RESTOperationsTransport"
     }
   }
 }

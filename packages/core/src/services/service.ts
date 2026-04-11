@@ -10,6 +10,7 @@ import type { Logger } from "../loggers/ilogger.js";
 import type { OperationContext } from "../contexts/operationcontext.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { useDynamicService, useService } from "../core/hooks.js";
+import { registerOperation } from "../core/operations.js";
 import { deepmerge } from "deepmerge-ts";
 import type { ServiceName, ServicesMap } from "../core/hooks.js";
 import { useApplication } from "../application/hooks.js";
@@ -429,7 +430,7 @@ abstract class Service<
   }
 
   /**
-   * Init the operations
+   * Init the operations from @Operation decorators on this service
    */
   initOperations() {
     // @ts-ignore
@@ -440,16 +441,14 @@ abstract class Service<
       this.log("TRACE", "Adding operation", id, "for bean", this.getName());
       let name = this.getName();
       name = name.substring(0, 1).toUpperCase() + name.substring(1);
-      /*
-      TODO Fix this
-      this._webda.registerOperation(j.includes(".") ? j : `${name}.${j}`, {
+      const operationId = j.includes(".") ? j : `${name}.${j}`;
+      registerOperation(operationId, {
         ...operations[j],
         service: this.getName(),
         input: `${this.getName()}.${operations[j].method}.input`,
         output: `${this.getName()}.${operations[j].method}.output`,
-        id
+        id: operationId
       });
-      */
     }
   }
 

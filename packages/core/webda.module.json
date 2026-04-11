@@ -12,7 +12,7 @@
         "properties": {
           "level": {
             "default": "all",
-            "description": "Audit level filter:\n - \"all\"     — audit everything (default)\n - \"write\"   — only operations ending in Create, Update, Patch, Delete\n - \"failure\" — only failed operations",
+            "description": "Audit level filter:\n - \"all\"     — audit everything (default)\n - \"write\"   — everything except read operations (Get, List, Query)\n - \"failure\" — only failed operations",
             "enum": [
               "all",
               "write",

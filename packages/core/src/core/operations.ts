@@ -248,6 +248,7 @@ function Operation(...args: any[]) {
     (context.metadata!["webda.operations"] as any[]).push({
       id: context.name,
       ...options,
+      _methodName: context.name,
       static: context.static,
       generator: isGeneratorFunction(target)
     });

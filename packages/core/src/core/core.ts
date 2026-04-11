@@ -104,24 +104,6 @@ export class Core implements ICore {
         })
       );
     }
-    // Auto-register application beans as services if not already configured
-    const appBeans = (this.application as any).beans || {};
-    for (const beanName in appBeans) {
-      // Skip if a service with this bean type is already configured
-      if (Object.values(this.applicationConfiguration.services).some((s: any) => s.type === beanName)) {
-        continue;
-      }
-      const serviceName = `Beans/${beanName.split("/").pop()}`;
-      if (this.configuration[serviceName]) continue;
-      const beanClass = appBeans[beanName];
-      if (!beanClass) continue;
-      this.moddas[serviceName] = beanClass;
-      this.configuration[serviceName] = Object.freeze(
-        (beanClass.filterParameters || (p => p))({
-          ...this.applicationConfiguration.parameters
-        })
-      );
-    }
     if (
       this.applicationConfiguration.application?.configurationService &&
       this.configuration[this.applicationConfiguration.application.configurationService]
@@ -307,6 +289,8 @@ export class Core implements ICore {
     for (const service in this.configuration) {
       this.getService(service);
     }
+    // Auto-register application beans as services
+    this.registerBeans();
     this.initOrders = this.initOrders.filter(s => !initOrders.includes(s) && this.services[s]);
     // Ensure stores are initialized first
     this.initOrders.sort((a, b) => {
@@ -466,6 +450,32 @@ export class Core implements ICore {
       this.log("ERROR", "Cannot create service", service, err.message || err);
     }
     return this.services[service];
+  }
+
+  /**
+   * Auto-register application beans as services if not already configured.
+   * Tests can disable by overriding getBeans() to return empty/undefined.
+   */
+  registerBeans() {
+    const appBeans = (this.application as any).beans || {};
+    if (Object.keys(appBeans).length === 0) return;
+    for (const beanName in appBeans) {
+      // Skip if a service with this bean type is already configured
+      if (Object.values(this.applicationConfiguration.services).some((s: any) => s.type === beanName)) {
+        continue;
+      }
+      const serviceName = beanName.split("/").pop();
+      if (this.services[serviceName]) continue;
+      const beanClass = appBeans[beanName];
+      if (!beanClass) continue;
+      this.moddas[serviceName] = beanClass;
+      this.configuration[serviceName] = Object.freeze(
+        (beanClass.filterParameters || (p => p))({
+          ...this.applicationConfiguration.parameters
+        })
+      );
+      this.getService(serviceName);
+    }
   }
 
   /**

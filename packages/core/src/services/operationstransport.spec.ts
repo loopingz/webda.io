@@ -52,6 +52,7 @@ class OperationsTransportTest extends WebdaApplicationTest {
     const core = await super.buildWebda();
     // Remove beans so nothing auto-registers
     core.getBeans = () => {};
+    core.registerBeans = () => {};
     return core;
   }
 

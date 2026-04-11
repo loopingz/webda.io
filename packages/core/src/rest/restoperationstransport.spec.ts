@@ -29,6 +29,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
   protected async buildWebda() {
     const core = await super.buildWebda();
     core.getBeans = () => {};
+    core.registerBeans = () => {};
     // Manually create and register a Router so HTTP tests can route requests
     const router = new Router("Router", new RouterParameters().load({}));
     this.registerService(router);

@@ -19,6 +19,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     const core = await super.buildWebda();
     // Remove beans
     core.getBeans = () => {};
+    core.registerBeans = () => {};
     return core;
   }
 

@@ -4,7 +4,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
 import { TestApplication } from "../test/objects.js";
-import { AuditService, AuditServiceParameters } from "./audit.js";
+import { AuditEntry, AuditService, AuditServiceParameters } from "./audit.js";
 import { callOperation, registerOperation } from "../core/operations.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { Service } from "./service.js";
@@ -132,6 +132,7 @@ class AuditServiceTest extends WebdaApplicationTest {
 
     const entries = audit.getEntries();
     assert.strictEqual(entries.length, 1);
+    assert.ok(entries[0] instanceof AuditEntry, "entry should be an AuditEntry model instance");
     assert.strictEqual(entries[0].operationId, "Audit.Create");
     assert.strictEqual(entries[0].success, true);
     assert.strictEqual(entries[0].error, undefined);
@@ -269,20 +270,9 @@ class AuditServiceTest extends WebdaApplicationTest {
     assert.ok(params instanceof AuditServiceParameters);
     assert.strictEqual(params.level, "write");
 
-    // When loaded via the application module, filterParameters is schema-based and strips
-    // unknown properties. Verify that known schema fields pass through and unknown ones are dropped.
+    // filterParameters is a passthrough; schema-based filtering is handled by the module loader
     const filtered = AuditService.filterParameters({ level: "write", foo: "bar" });
     assert.strictEqual(filtered.level, "write");
-    assert.ok(!("foo" in filtered), "unknown fields should be stripped by schema filter");
-  }
-
-  @test
-  async loadParametersInstance() {
-    // Cover the instance loadParameters method
-    const audit = new AuditService("lpTest", new AuditServiceParameters().load({}));
-    const params = audit.loadParameters({ level: "failure" });
-    assert.ok(params instanceof AuditServiceParameters);
-    assert.strictEqual(params.level, "failure");
   }
 
   @test

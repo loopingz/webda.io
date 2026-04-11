@@ -1,4 +1,3 @@
-import type { DeepPartial } from "@webda/tsc-esm";
 import { TransformCase, TransformCaseType } from "@webda/utils";
 import { Service } from "./service.js";
 import { Application } from "../application/application.js";
@@ -200,15 +199,6 @@ export class DomainService<
       }
     }
   };
-
-  /**
-   * Load the parameters for your service
-   * @param params - the service parameters
-   * @returns the loaded parameters
-   */
-  loadParameters(params: DeepPartial<DomainServiceParameters>): T {
-    return <T>new DomainServiceParameters().load(params);
-  }
 
   /**
    * Return the model name for this service

@@ -5,11 +5,12 @@ import { Service } from "../services/service.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { Inject } from "../services/service.js";
 import { Store } from "../stores/store.js";
+import { CoreModel } from "../models/coremodel.js";
 
 /**
  * Represents a single audit log entry
  */
-export interface AuditEntry {
+export class AuditEntry extends CoreModel {
   operationId: string;
   success: boolean;
   error?: string;
@@ -118,15 +119,6 @@ export class AuditService extends Service<AuditServiceParameters> {
   protected entries: AuditEntry[] = [];
 
   /**
-   * Load the service parameters
-   * @param params - the service parameters
-   * @returns the loaded parameters
-   */
-  loadParameters(params: any): AuditServiceParameters {
-    return new AuditServiceParameters().load(params);
-  }
-
-  /**
    * Static factory method for creating parameters
    * @param params - the service parameters
    * @returns the loaded parameters
@@ -202,18 +194,17 @@ export class AuditService extends Service<AuditServiceParameters> {
     if (!this.shouldAudit(operationId, success)) {
       return;
     }
-    const entry: AuditEntry = {
-      operationId,
-      success,
-      userId,
-      timestamp: new Date()
-    };
+    const entry = new AuditEntry();
+    entry.operationId = operationId;
+    entry.success = success;
+    entry.userId = userId;
+    entry.timestamp = new Date();
     if (err) {
       entry.error = err.message;
     }
     this.entries.push(entry);
     if (this.auditStore) {
-      await (this.auditStore as any).save(entry);
+      await this.auditStore.save(entry);
     }
   }
 }

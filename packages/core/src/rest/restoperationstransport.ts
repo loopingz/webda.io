@@ -1,6 +1,5 @@
 import { QueryValidator } from "@webda/ql";
 import { TransformCase, TransformCaseType } from "@webda/utils";
-import { DeepPartial } from "@webda/tsc-esm";
 import { OperationsTransport, OperationsTransportParameters } from "../services/operationstransport.js";
 import { OperationDefinition } from "../core/icore.js";
 import { OpenAPIWebdaDefinition } from "./irest.js";
@@ -142,15 +141,6 @@ export class RESTOperationsTransport<
    */
   static filterParameters(params: any = {}): any {
     return params;
-  }
-
-  /**
-   * Load parameters
-   * @param params - the service parameters
-   * @returns the loaded parameters
-   */
-  loadParameters(params: DeepPartial<RESTOperationsTransportParameters>): T {
-    return <T>new RESTOperationsTransportParameters().load(params);
   }
 
   /**

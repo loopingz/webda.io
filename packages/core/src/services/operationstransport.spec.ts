@@ -22,10 +22,6 @@ class TestTransport extends OperationsTransport {
     return params;
   }
 
-  loadParameters(params: any): OperationsTransportParameters {
-    return new OperationsTransportParameters().load(params);
-  }
-
   exposeOperation(operationId: string, definition: OperationDefinition): void {
     this.exposed.push({ id: operationId, definition });
   }

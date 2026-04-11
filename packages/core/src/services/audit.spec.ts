@@ -279,10 +279,10 @@ class AuditServiceTest extends WebdaApplicationTest {
   async persistsToStore() {
     this.registerTestOps();
 
-    // Create a mock store with a tracked save method
+    // Create a mock store with a tracked create method
     const savedEntries: any[] = [];
     const mockStore = {
-      save: async (entry: any) => {
+      create: async (_uuid: any, entry: any) => {
         savedEntries.push(entry);
       }
     };

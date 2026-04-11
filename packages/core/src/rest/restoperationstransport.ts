@@ -186,6 +186,42 @@ export class RESTOperationsTransport<
       // This is a root model - walk it
       this.walkModel(model, metadata, operations, this.parameters.url, 0);
     }
+
+    // Expose non-model operations (e.g., bean @Operation methods) that have REST hints
+    this.exposeServiceOperations(operations);
+  }
+
+  /**
+   * Expose service/bean operations that have rest hints but aren't tied to model CRUD.
+   * These are operations registered by Service.initOperations() from @Operation decorators.
+   * @param operations - the filtered operations map
+   */
+  protected exposeServiceOperations(operations: Record<string, OperationDefinition>): void {
+    for (const [opId, op] of Object.entries(operations)) {
+      if (op.hidden) continue;
+      if (!op.rest || op.rest === false) continue;
+      // Skip if this operation was already handled by model tree walk
+      // Model operations have a context with model property
+      if (op.context?.model) continue;
+      const rest = op.rest;
+      const path = rest.path.startsWith("/") ? rest.path : `${this.parameters.url}${rest.path}`;
+      const methods = [rest.method.toUpperCase() as any];
+      const openapi: OpenAPIWebdaDefinition = {
+        [rest.method]: {
+          tags: op.tags || [],
+          summary: op.summary || opId,
+          operationId: opId
+        }
+      };
+      this.addRoute(
+        path,
+        methods,
+        async (context: WebContext) => {
+          await callOperation(context, opId);
+        },
+        openapi
+      );
+    }
   }
 
   /**

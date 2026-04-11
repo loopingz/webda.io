@@ -30,9 +30,12 @@ class BlogSystemAppTest extends WebdaApplicationTest {
     app.getCurrentConfiguration().services.Registry = {
       type: "Webda/MemoryStore"
     };
-    // Add RESTDomainService for route registration
-    app.getCurrentConfiguration().services.RESTDomainService = {
-      type: "Webda/RESTDomainService"
+    // Add DomainService for operation registration and RESTOperationsTransport for route registration
+    app.getCurrentConfiguration().services.DomainService = {
+      type: "Webda/DomainService"
+    };
+    app.getCurrentConfiguration().services.RESTOperationsTransport = {
+      type: "Webda/RESTOperationsTransport"
     };
   }
 
@@ -55,7 +58,8 @@ class BlogSystemAppTest extends WebdaApplicationTest {
     const serviceNames = Object.keys(services);
     assert.ok(serviceNames.includes("Router"), "Router service should be initialized");
     assert.ok(serviceNames.includes("Registry"), "Registry service should be initialized");
-    assert.ok(serviceNames.includes("RESTDomainService"), "RESTDomainService should be initialized");
+    assert.ok(serviceNames.includes("DomainService"), "DomainService should be initialized");
+    assert.ok(serviceNames.includes("RESTOperationsTransport"), "RESTOperationsTransport should be initialized");
     assert.ok(serviceNames.includes("SessionManager"), "SessionManager service should be initialized");
     assert.ok(serviceNames.includes("CryptoService"), "CryptoService service should be initialized");
   }
@@ -203,7 +207,7 @@ class BlogSystemAppTest extends WebdaApplicationTest {
   async openApiRoute() {
     const router = useRouter();
     router.remapRoutes();
-    // The OpenAPI endpoint is at "/" (registered by RESTDomainService)
+    // The OpenAPI endpoint is at "/" (registered by RESTOperationsTransport)
     const rootRoutes = router.routes["/"];
     assert.ok(rootRoutes, "Root route should exist (OpenAPI)");
     const getMethods = rootRoutes.filter(r => r.methods.includes("GET"));

@@ -167,6 +167,9 @@ export class DomainService<
     binaryAttachParameters: {
       type: "object",
       properties: {
+        uuid: {
+          type: "string"
+        },
         filename: {
           type: "string"
         },
@@ -174,9 +177,6 @@ export class DomainService<
           type: "number"
         },
         mimetype: {
-          type: "string"
-        },
-        uuid: {
           type: "string"
         }
       },
@@ -397,11 +397,9 @@ export class DomainService<
       }
       registerSchema(i, DomainService.schemas[i]);
     }
-    // Register CRUD-relevant schemas in application schema registry so that
+    // Register schemas in application schema registry so that
     // resolveArguments can find them for typed parameter extraction.
-    // Binary schemas are intentionally NOT registered here — binary methods
-    // still use the context-based calling convention.
-    for (const name of ["uuidRequest", "searchRequest", "emptyParameters"]) {
+    for (const name of Object.keys(DomainService.schemas)) {
       appSchemas[name] ??= DomainService.schemas[name];
     }
 
@@ -658,13 +656,15 @@ export class DomainService<
 
   /**
    * Implement the binary challenge operation
-   * @param context - the execution context
+   * @param uuid - the model primary key
+   * @param body - the challenge request body containing hash, challenge, and optional file info
+   * @returns the challenge result with redirect url or done flag
    */
-  async binaryChallenge(context: OperationContext<BinaryFileInfo & { hash: string; challenge: string }>) {
-    const body = await context.getInput();
+  async binaryChallenge(uuid: string, body: BinaryFileInfo & { hash: string; challenge: string }): Promise<any> {
+    const context = useContext<OperationContext>();
     const { model, binaryStore, binary } = this.resolveBinaryContext(context);
     // First verify if map exist
-    const object = await model.ref(context.parameter("uuid")).get();
+    const object = await model.ref(uuid).get();
     if (object === undefined || object.isDeleted()) {
       throw new WebdaError.NotFound("Object does not exist");
     }
@@ -674,11 +674,11 @@ export class DomainService<
     //await object.checkAct(context, "attach_binary" as ActionsEnum<Model>);
     const url = await binaryStore.putRedirectUrl(object, binary.attribute, body, context);
     const base64String = Buffer.from(body.hash, "hex").toString("base64");
-    context.write({
+    return {
       ...url,
       done: url === undefined,
       md5: base64String
-    });
+    };
   }
 
   /**
@@ -696,12 +696,16 @@ export class DomainService<
 
   /**
    * Set the binary content
-   * @param context - the execution context
+   * @param uuid - the model primary key
+   * @param _filename - the optional filename (from headers)
+   * @param _size - the optional file size (from headers)
+   * @param _mimetype - the optional mime type (from headers)
    */
-  async binaryPut(context: OperationContext) {
+  async binaryPut(uuid: string, _filename?: string, _size?: number, _mimetype?: string): Promise<void> {
+    const context = useContext<OperationContext>();
     const { model, binaryStore, binary } = this.resolveBinaryContext(context);
     // First verify if map exist
-    const object = await model.ref(context.parameter("uuid")).get();
+    const object = await model.ref(uuid).get();
     if (object === undefined || object.isDeleted()) {
       throw new WebdaError.NotFound("Object does not exist");
     }
@@ -715,14 +719,15 @@ export class DomainService<
   }
 
   /**
-   * Get the binary content
-   * @param context - the execution context
+   * Get the binary content — handles streaming/redirects directly via context
+   * @param uuid - the model primary key
+   * @param index - the binary index (for MANY cardinality)
    */
-  async binaryGet(context: OperationContext) {
+  async binaryGet(uuid: string, index?: number): Promise<void> {
+    const context = useContext<OperationContext>();
     const ext = this.resolveBinaryContext(context);
     const { model, binaryStore, binary } = ext;
     const returnUrl = ext.returnUrl as boolean;
-    const { index, uuid } = context.getParameters();
     // First verify if map exist
     const object = await model.ref(uuid).get();
     if (object === undefined || object.isDeleted()) {
@@ -770,28 +775,38 @@ export class DomainService<
   }
 
   /**
-   * Execute a binary operation (create, delete, or metadata update) on a model's binary attribute
-   * @param context - the execution context
+   * Execute a binary operation (delete or metadata update) on a model's binary attribute.
+   *
+   * Called with `(uuid, hash)` for ONE cardinality or `(uuid, index, hash)` for MANY cardinality.
+   * @param uuid - the model primary key
+   * @param indexOrHash - the binary index (MANY) or hash (ONE)
+   * @param hash - the hash (only for MANY cardinality)
    */
-  async binaryAction(context: OperationContext) {
+  async binaryAction(uuid: string, indexOrHash: number | string, hash?: string): Promise<void> {
+    const context = useContext<OperationContext>();
     const ext = this.resolveBinaryContext(context);
     const { model, binaryStore, binary } = ext;
-    const action = ext.action as "delete" | "metadata" | "create";
-    const { index, uuid, hash } = context.getParameters();
+    const action = ext.action as "delete" | "metadata";
+    // Normalize: for ONE cardinality hash comes as second arg, index is undefined
+    let index: number | undefined;
+    let resolvedHash: string;
+    if (hash !== undefined) {
+      // MANY cardinality: (uuid, index, hash)
+      index = indexOrHash as number;
+      resolvedHash = hash;
+    } else {
+      // ONE cardinality: (uuid, hash)
+      resolvedHash = indexOrHash as string;
+    }
     // First verify if map exist
     const object = await model.ref(uuid).get();
     if (object === undefined || object.isDeleted()) {
       throw new WebdaError.NotFound("Object does not exist");
     }
-    if (action === "create") {
-      //await object.checkAct(context, "attach_binary" as ActionsEnum<Model>);
-      await binaryStore.store(object, binary.attribute, await binaryStore.getFile(context));
-      return;
-    }
 
     // Current file - would be empty on creation
     const file = Array.isArray(object[binary.attribute]) ? object[binary.attribute][index] : object[binary.attribute];
-    if (!file || file?.hash !== hash) {
+    if (!file || file?.hash !== resolvedHash) {
       throw new WebdaError.BadRequest("Hash does not match");
     }
     if (action === "delete") {

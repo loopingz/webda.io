@@ -117,7 +117,7 @@ export class DebugService extends Service {
    * @param servePort - Port for the application HTTP server
    * @param web - Disable TUI and only serve the web dashboard
    */
-  @Command("debug", { description: "Start dev server with debug dashboard", requires: ["router", "rest-domain"] })
+  @Command("debug", { description: "Start dev server with debug dashboard", requires: ["router", "rest-domain", "http-server"] })
   async debug(
     /** @alias p @description Debug dashboard port */
     port: number = 18181,

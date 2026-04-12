@@ -184,9 +184,24 @@ export async function callOperation(context: OperationContext, operationId: stri
         useService(operations[operationId].service as any)[operations[operationId].method](...callArgs)
       );
     } else if (operations[operationId].model) {
-      result = await runWithContext(context, () =>
-        useModel(operations[operationId].model)[operations[operationId].method](...callArgs)
-      );
+      const modelClass = useModel(operations[operationId].model);
+      if (operations[operationId].static === false) {
+        // Instance method — load the model instance and call the method on it
+        // The first argument should be the primary key (uuid)
+        const uuid = callArgs[0];
+        result = await runWithContext(context, async () => {
+          const instance = await modelClass.ref(uuid).get();
+          if (!instance || (instance as any).isDeleted?.()) {
+            throw new WebdaError.NotFound("Object not found");
+          }
+          return instance[operations[operationId].method](...callArgs.slice(1));
+        });
+      } else {
+        // Static/class method — call on the model class directly
+        result = await runWithContext(context, () =>
+          modelClass[operations[operationId].method](...callArgs)
+        );
+      }
     } else {
       throw new Error(`${operationId} NoServiceOrModel`);
     }

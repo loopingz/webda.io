@@ -30,6 +30,8 @@ export interface ServiceInfo {
   state: string;
   /** Capabilities advertised by the service */
   capabilities: Record<string, any>;
+  /** Service configuration parameters */
+  configuration: Record<string, any>;
 }
 
 /**
@@ -70,14 +72,29 @@ export interface RouteInfoEntry {
  */
 export function getModels(): ModelInfo[] {
   const app = useApplication();
+  const core = useCore();
   const models = app.getModels();
   return Object.entries(models).map(([key, model]) => {
     const metadata = useModelMetadata(model);
+    let storeName: string | undefined;
+    let storeType: string | undefined;
+    try {
+      const store = core.getModelStore(model);
+      if (store) {
+        storeName = store.getName();
+        storeType = store.constructor?.name;
+      }
+    } catch {
+      // No store assigned
+    }
     return {
       id: metadata?.Identifier || key,
       plural: metadata?.Plural || key,
       actions: Object.keys(metadata?.Actions || {}),
       relations: metadata?.Relations || {},
+      store: storeName,
+      storeType,
+      schemas: metadata?.Schemas,
       metadata
     };
   });
@@ -103,13 +120,15 @@ export function getModel(id: string): ModelInfo | undefined {
 export function getServices(): ServiceInfo[] {
   const core = useCore();
   const services = core.getServices();
+  const config = core.getConfiguration?.() || {};
   return Object.entries(services)
     .filter(([, svc]) => svc != null)
     .map(([name, svc]) => ({
       name,
       type: (svc.parameters as any)?.type || "unknown",
       state: svc.getState(),
-      capabilities: svc.getCapabilities()
+      capabilities: svc.getCapabilities(),
+      configuration: config[name] || {}
     }));
 }
 

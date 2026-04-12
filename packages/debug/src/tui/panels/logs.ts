@@ -28,6 +28,8 @@ export class LogsPanel implements Panel {
   private visibleRows = 0;
   private searchQuery = "";
   private searchMode = false;
+  /** Current minimum log level filter */
+  private levelFilter = 2; // Index into LOG_LEVELS, default INFO
   /** Maximum entries to keep in memory */
   private maxEntries = 2000;
 
@@ -104,27 +106,42 @@ export class LogsPanel implements Panel {
   private static readonly LOG_LEVELS = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"];
 
   /**
-   * Get entries filtered by the current search query.
-   * If the query is a log level name, filter by severity (>= that level).
-   * Otherwise, do a text search on message and level.
+   * Get entries filtered by the current log level and optional search query.
+   * Level filter is always applied. Text search is additional.
    *
    * @returns filtered log entries
    */
   private getFilteredEntries(): LogEntry[] {
-    if (!this.searchQuery) return this.entries;
-    const q = this.searchQuery.toUpperCase();
-    const levelIndex = LogsPanel.LOG_LEVELS.indexOf(q);
-    if (levelIndex >= 0) {
-      // Filter by severity: show entries at this level or above
-      return this.entries.filter(
-        entry => LogsPanel.LOG_LEVELS.indexOf(entry.level) >= levelIndex
+    // Always filter by minimum level
+    let result = this.entries.filter(
+      entry => LogsPanel.LOG_LEVELS.indexOf(entry.level) >= this.levelFilter
+    );
+    // Apply text search if active
+    if (this.searchQuery) {
+      const lq = this.searchQuery.toLowerCase();
+      result = result.filter(
+        entry => entry.message.toLowerCase().includes(lq) || entry.level.toLowerCase().includes(lq)
       );
     }
-    // Text search fallback
-    const lq = this.searchQuery.toLowerCase();
-    return this.entries.filter(
-      entry => entry.message.toLowerCase().includes(lq) || entry.level.toLowerCase().includes(lq)
-    );
+    return result;
+  }
+
+  /**
+   * Cycle the log level filter to the next level.
+   */
+  private cycleLevelUp(): void {
+    this.levelFilter = Math.min(LogsPanel.LOG_LEVELS.length - 1, this.levelFilter + 1);
+    this.cursor = 0;
+    this.scrollOffset = 0;
+  }
+
+  /**
+   * Cycle the log level filter to the previous level.
+   */
+  private cycleLevelDown(): void {
+    this.levelFilter = Math.max(0, this.levelFilter - 1);
+    this.cursor = 0;
+    this.scrollOffset = 0;
   }
 
   /**
@@ -136,6 +153,16 @@ export class LogsPanel implements Panel {
     if (key === "/") {
       this.searchMode = true;
       this.searchQuery = "";
+      return;
+    }
+
+    // Level filter: l/+ to increase severity, L/- to decrease
+    if (key === "l" || key === "+") {
+      this.cycleLevelUp();
+      return;
+    }
+    if (key === "L" || key === "-") {
+      this.cycleLevelDown();
       return;
     }
 
@@ -198,10 +225,29 @@ export class LogsPanel implements Panel {
    * @param width - terminal width in columns
    */
   render(term: any, startRow: number, endRow: number, width: number): void {
+    // Level filter bar (always visible, first row)
+    term.moveTo(1, startRow);
+    term.eraseLine();
+    term.dim("  Level: ");
+    for (let i = 0; i < LogsPanel.LOG_LEVELS.length; i++) {
+      const lvl = LogsPanel.LOG_LEVELS[i];
+      if (i === this.levelFilter) {
+        term.bgCyan.black.bold(` ${lvl} `);
+      } else if (i < this.levelFilter) {
+        term.dim.strikethrough(` ${lvl} `);
+        term.styleReset();
+      } else {
+        this.renderLevel(term, lvl);
+      }
+      term(" ");
+    }
+    term.dim("  (l/+ more, L/- less)");
+
+    const contentStart = startRow + 1;
     // Reserve one row for search bar when in search mode
     const searchBarRow = this.searchMode ? endRow - 1 : -1;
     const contentEnd = this.searchMode ? endRow - 1 : endRow;
-    this.visibleRows = contentEnd - startRow;
+    this.visibleRows = contentEnd - contentStart;
 
     const filtered = this.getFilteredEntries();
 
@@ -211,7 +257,7 @@ export class LogsPanel implements Panel {
     }
 
     if (filtered.length === 0) {
-      term.moveTo(1, startRow);
+      term.moveTo(1, contentStart);
       term.eraseLine();
       if (this.searchQuery) {
         term(`  No logs matching "${this.searchQuery}"`);
@@ -221,7 +267,7 @@ export class LogsPanel implements Panel {
     } else {
       for (let i = 0; i < this.visibleRows; i++) {
         const idx = this.scrollOffset + i;
-        const row = startRow + i;
+        const row = contentStart + i;
         term.moveTo(1, row);
         term.eraseLine();
 

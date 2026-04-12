@@ -23,7 +23,7 @@ export function LogsPanel({ data }) {
   const [liveEntries, setLiveEntries] = useState([]);
   const [search, setSearch] = useState("");
   const [autoScroll, setAutoScroll] = useState(true);
-  const [levelFilter, setLevelFilter] = useState("ALL");
+  const [levelFilter, setLevelFilter] = useState(() => localStorage.getItem("webda-log-level") || "INFO");
   const listRef = useRef(null);
 
 
@@ -62,7 +62,7 @@ export function LogsPanel({ data }) {
   }, [entries, autoScroll]);
 
   const minLevel = LEVEL_ORDER.indexOf(levelFilter);
-  const filtered = levelFilter === "ALL" ? entries : entries.filter((e) => LEVEL_ORDER.indexOf(e.level) >= minLevel);
+  const filtered = minLevel <= 0 ? entries : entries.filter((e) => LEVEL_ORDER.indexOf(e.level) >= minLevel);
 
   return html`
     <div>
@@ -76,15 +76,14 @@ export function LogsPanel({ data }) {
         />
         <select
           value=${levelFilter}
-          onChange=${(e) => setLevelFilter(e.target.value)}
+          onChange=${(e) => { setLevelFilter(e.target.value); localStorage.setItem("webda-log-level", e.target.value); }}
           style="padding:6px;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-primary);border-radius:4px"
         >
-          <option value="ALL">All levels</option>
-          <option value="ERROR">ERROR only</option>
+          <option value="ERROR">ERROR</option>
           <option value="WARN">WARN+</option>
           <option value="INFO">INFO+</option>
           <option value="DEBUG">DEBUG+</option>
-          <option value="TRACE">TRACE (all)</option>
+          <option value="TRACE">TRACE+</option>
         </select>
         <label style="display:flex;align-items:center;gap:4px;color:var(--text-muted);font-size:12px">
           <input type="checkbox" checked=${autoScroll} onChange=${(e) => setAutoScroll(e.target.checked)} />

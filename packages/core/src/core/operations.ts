@@ -9,7 +9,7 @@ import { useDynamicService, useService } from "./hooks.js";
 import { emitCoreEvent } from "../events/events.js";
 import { isGeneratorFunction } from "node:util/types";
 import { AnyMethod } from "@webda/decorators";
-import { Service } from "../services/service.js";
+import type { Service } from "../services/service.js";
 import type { Model } from "@webda/models";
 import { useContext } from "../contexts/execution.js";
 

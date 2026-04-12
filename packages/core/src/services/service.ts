@@ -436,6 +436,7 @@ abstract class Service<
     // Read @Operation decorator metadata from Symbol.metadata
     const metadata = getMetadata(this.constructor as any);
     const operations: any[] = metadata?.["webda.operations"] || [];
+    if (operations.length === 0) return;
     let serviceName = this.getName();
     serviceName = serviceName.substring(0, 1).toUpperCase() + serviceName.substring(1);
     for (const op of operations) {

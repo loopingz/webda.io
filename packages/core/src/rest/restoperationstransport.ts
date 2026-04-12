@@ -9,6 +9,7 @@ import { useApplication } from "../application/hooks.js";
 import { useCore, useModelMetadata } from "../core/hooks.js";
 import { callOperation } from "../core/operations.js";
 import { WebContext } from "../contexts/webcontext.js";
+import type { HttpMethodType } from "../contexts/httpcontext.js";
 import { hasSchema } from "../schemas/hooks.js";
 import type { ModelClass } from "@webda/models";
 import type { ModelAction } from "../models/types.js";

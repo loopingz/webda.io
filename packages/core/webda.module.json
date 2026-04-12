@@ -1010,6 +1010,7 @@
         "type": "object",
         "title": "HttpServer"
       },
+      "Configuration": "lib/services/httpserver:HttpServerParameters",
       "commands": {
         "serve": {
           "description": "Start the HTTP server",

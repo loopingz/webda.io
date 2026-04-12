@@ -3,6 +3,70 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.1...core-v4.0.0-beta.2) (2026-04-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* use AsyncLocalStorage for Context
+* remove node 18 support
+* remove expose for Store
+
+### Features
+
+* add @webda/debug package — introspection API + WebSocket live events ([#750](https://github.com/loopingz/webda.io/issues/750)) ([307b2f2](https://github.com/loopingz/webda.io/commit/307b2f2267f2eacd1be8ec4a44f47999e0c61931))
+* add AbstractRepository and Store2Repository concept ([241595d](https://github.com/loopingz/webda.io/commit/241595d42e41590b582f7ee2ac6340f3b767750b))
+* add codemod system ([bbc3086](https://github.com/loopingz/webda.io/commit/bbc3086c1bd4e5c9a7ec9a2ed14772cd8edbf477))
+* add formatting for context ([54dee1e](https://github.com/loopingz/webda.io/commit/54dee1e09da052c5daba778bc45bccff15d033f4))
+* add metadata plugins ([ffcd62c](https://github.com/loopingz/webda.io/commit/ffcd62caf2990e958682319166a684823609637e))
+* add openapi CLI command to export OpenAPI definition ([#748](https://github.com/loopingz/webda.io/issues/748)) ([a3a09bf](https://github.com/loopingz/webda.io/commit/a3a09bffd850cf7286354385c5f9c975a4cb5712))
+* add rest domain service ([bfc72e6](https://github.com/loopingz/webda.io/commit/bfc72e64728c3f1e1348322156f1b04835d6db37))
+* allow webda serve from @webda/core package ([69a6f01](https://github.com/loopingz/webda.io/commit/69a6f01cda754b68d3c8fb0694b47deaf8065159))
+* capability-based auto-injection for CLI commands ([#749](https://github.com/loopingz/webda.io/issues/749)) ([027f098](https://github.com/loopingz/webda.io/commit/027f098afb83796afab28d59cc04339f29bfad60))
+* improve caching module ([08b2db5](https://github.com/loopingz/webda.io/commit/08b2db5d96cc4553d5ff2919cbf00287192b4ff6))
+* move to node 22 ([21daf46](https://github.com/loopingz/webda.io/commit/21daf46c54d4e3912ad1b545e1ce89b9a6a84c35))
+* move to pnpm and disable many modules for now ([ea953b7](https://github.com/loopingz/webda.io/commit/ea953b7faaa47d70bc8136b39e9a3d3336655214))
+* move to ServiceName ([a545a03](https://github.com/loopingz/webda.io/commit/a545a03f166b3f27088ef2d8e3fc40c56f5813b8))
+* operations system — decouple operations from transport ([#753](https://github.com/loopingz/webda.io/issues/753)) ([54f3151](https://github.com/loopingz/webda.io/commit/54f3151686b9115221790e90c3ee723fb0b8c873))
+* remove expose for Store ([c8a36b1](https://github.com/loopingz/webda.io/commit/c8a36b19c81b830e9c03195388b402e53f987e6e))
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+* **rest:** add 201 - Created http code for creation ([#680](https://github.com/loopingz/webda.io/issues/680)) ([5db4dda](https://github.com/loopingz/webda.io/commit/5db4ddab838a25dc49bddd1705357187e2049a6c))
+* router auto-instantiation, request routing, and --watch mode ([#747](https://github.com/loopingz/webda.io/issues/747)) ([5cc4a19](https://github.com/loopingz/webda.io/commit/5cc4a1913355a856362e6c58755f37e4d2d5229c))
+* service capabilities and CLI commands system ([#743](https://github.com/loopingz/webda.io/issues/743)) ([ae2897c](https://github.com/loopingz/webda.io/commit/ae2897c85894bfa3f28c20f8341e13ee95b82cbc))
+* test allow dynamic configuration in TestApplication ([3af8187](https://github.com/loopingz/webda.io/commit/3af8187ba6179e19c9db261f81075a86d09e0cc9))
+* update watchers on service parameter on update ([f3417d7](https://github.com/loopingz/webda.io/commit/f3417d7004babaa6718012a68383bf19301a85fa))
+* use AsyncLocalStorage for Context ([0df77c8](https://github.com/loopingz/webda.io/commit/0df77c86e366afedd92da51fea52d2f122cd69b8))
+
+
+### Bug Fixes
+
+* add cli in core ([814a599](https://github.com/loopingz/webda.io/commit/814a599ee263fa85e2b8c38a2c6cd5563a1fa995))
+* add index.ts for @webda/models ([a2ed938](https://github.com/loopingz/webda.io/commit/a2ed938e67beb841fa2a7e1a95b85f9d901bb374))
+* add missing types for Mailer service ([bcdb6fc](https://github.com/loopingz/webda.io/commit/bcdb6fc93a56c69e14cfd4d432e68d70cb503cdf))
+* auto generated uuid ([25a7a28](https://github.com/loopingz/webda.io/commit/25a7a2849ae381e4e7538a1d5b14b5e9d3397ffe))
+* buffer types ([1d4fb31](https://github.com/loopingz/webda.io/commit/1d4fb318ff491713cda15f3bf7d302602d16b5d9))
+* **core:** resolve type error in setModelMetadata for Ancestors/Subclasses ([152d044](https://github.com/loopingz/webda.io/commit/152d0441a6bde2cbc4c6ef29b19c58a8a03bc54c))
+* enforce strict mode on @webda/models ([8a6f2c4](https://github.com/loopingz/webda.io/commit/8a6f2c40244c76829d0f277e05400a4b56792029))
+* interactive logger ([8c30ee9](https://github.com/loopingz/webda.io/commit/8c30ee9f9dd5c40fba149fa0cadba54e1239db81))
+* MemoryQueue wait if no message available ([57d4bd8](https://github.com/loopingz/webda.io/commit/57d4bd834a8dcaa6f33f052c5e315079a58ffcce))
+* move to nodenext module and update Inject annotation ([d7d85e4](https://github.com/loopingz/webda.io/commit/d7d85e4dc2a73fce5e63429c02663d980515b667))
+* non passing application ([7cd75e5](https://github.com/loopingz/webda.io/commit/7cd75e5a95824a4eab1f3ac73e5fe0f56778b0e3))
+* **ResourceService:** ensure we do not serve . files ([#678](https://github.com/loopingz/webda.io/issues/678)) ([8abbcda](https://github.com/loopingz/webda.io/commit/8abbcdae988f0ca3d6ecc1f70b4c6dee7f17002a))
+* state and method override ([90b7725](https://github.com/loopingz/webda.io/commit/90b7725bf62d95b456e1ab850ca08069efd4c40e))
+* unit test models relations ([2d160f1](https://github.com/loopingz/webda.io/commit/2d160f18d2139b362e8a12f935e15eaad27a808a))
+* update Binary service ([282fcb1](https://github.com/loopingz/webda.io/commit/282fcb12d20428d1bca36b410ee78c6a6b6f2a80))
+* update repository to use StorableClass ([f79fc19](https://github.com/loopingz/webda.io/commit/f79fc198bf176ca5baa224ad1c3aab83b5cf9144))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/ql bumped to 4.0.0-beta.2
+    * @webda/workout bumped to 4.0.0-beta.2
+  * devDependencies
+    * @webda/tsc-esm bumped to 4.0.0-beta.2
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/core-v3.16.0...core-v4.0.0-beta.1) (2024-08-14)
 
 

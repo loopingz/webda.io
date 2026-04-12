@@ -61,6 +61,45 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.13.2 to ^3.14.0
     * @webda/kubernetes bumped from ^3.3.3 to ^3.3.4
 
+## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/shell-v4.0.0-beta.1...shell-v4.0.0-beta.2) (2026-04-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* use AsyncLocalStorage for Context
+* remove node 18 support
+* remove expose for Store
+
+### Features
+
+* add codemod system ([bbc3086](https://github.com/loopingz/webda.io/commit/bbc3086c1bd4e5c9a7ec9a2ed14772cd8edbf477))
+* add formatting for context ([54dee1e](https://github.com/loopingz/webda.io/commit/54dee1e09da052c5daba778bc45bccff15d033f4))
+* add shell events ([145728e](https://github.com/loopingz/webda.io/commit/145728ef990a933e226f3b5dcb3d20604f4182b3))
+* improve caching module ([08b2db5](https://github.com/loopingz/webda.io/commit/08b2db5d96cc4553d5ff2919cbf00287192b4ff6))
+* move to node 22 ([21daf46](https://github.com/loopingz/webda.io/commit/21daf46c54d4e3912ad1b545e1ce89b9a6a84c35))
+* move to pnpm and disable many modules for now ([ea953b7](https://github.com/loopingz/webda.io/commit/ea953b7faaa47d70bc8136b39e9a3d3336655214))
+* remove expose for Store ([c8a36b1](https://github.com/loopingz/webda.io/commit/c8a36b19c81b830e9c03195388b402e53f987e6e))
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+* service capabilities and CLI commands system ([#743](https://github.com/loopingz/webda.io/issues/743)) ([ae2897c](https://github.com/loopingz/webda.io/commit/ae2897c85894bfa3f28c20f8341e13ee95b82cbc))
+* use AsyncLocalStorage for Context ([0df77c8](https://github.com/loopingz/webda.io/commit/0df77c86e366afedd92da51fea52d2f122cd69b8))
+
+
+### Bug Fixes
+
+* add cli in core ([814a599](https://github.com/loopingz/webda.io/commit/814a599ee263fa85e2b8c38a2c6cd5563a1fa995))
+* add schema generation on build ([e63880c](https://github.com/loopingz/webda.io/commit/e63880c0e0f275bdf37e022f28e3430c4498cea2))
+* importing ModelLink ([808ab14](https://github.com/loopingz/webda.io/commit/808ab148d90ce81279cb50c18d2aa3aa48dc555c))
+* unit test models relations ([2d160f1](https://github.com/loopingz/webda.io/commit/2d160f18d2139b362e8a12f935e15eaad27a808a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.2
+    * @webda/kubernetes bumped to 4.0.0-beta.2
+    * @webda/workout bumped to 4.0.0-beta.2
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/shell-v3.11.0...shell-v4.0.0-beta.1) (2024-08-14)
 
 

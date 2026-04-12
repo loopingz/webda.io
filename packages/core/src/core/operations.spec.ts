@@ -4,6 +4,7 @@ import {
   registerOperation,
   listOperations,
   callOperation,
+  resolveArguments,
   Operation,
   RestParameters,
   GrpcParameters,
@@ -15,6 +16,9 @@ import { TestApplication } from "../test/objects.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { Service } from "../services/service.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
+import { useApplication } from "../application/hooks.js";
+import { Application } from "../application/application.js";
+import { registerSchema } from "../schemas/hooks.js";
 
 /**
  * Fake operation context that allows setting custom input
@@ -659,5 +663,376 @@ class OperationMetadataTest extends WebdaApplicationTest {
     assert.strictEqual(def.grpc.streaming, "none");
     assert.ok(def.graphql !== false && typeof def.graphql === "object");
     assert.strictEqual(def.graphql.query, "testQuery");
+  }
+}
+
+/**
+ * Service with typed methods (not taking context) for testing the new callOperation behavior
+ */
+class ReturnValueService extends Service {
+  static createConfiguration(params: any) {
+    return new ServiceParameters().load(params);
+  }
+
+  static filterParameters(params: any) {
+    return params;
+  }
+
+  /**
+   * Return a string value
+   */
+  async getString(): Promise<string> {
+    return "hello world";
+  }
+
+  /**
+   * Return an object value
+   */
+  async getObject(): Promise<{ name: string; count: number }> {
+    return { name: "test", count: 42 };
+  }
+
+  /**
+   * Return void (no value)
+   */
+  async doNothing(): Promise<void> {
+    // intentionally empty
+  }
+
+  /**
+   * Return an AsyncGenerator that yields chunks
+   */
+  async *streamChunks(): AsyncGenerator<string> {
+    yield "chunk1";
+    yield "chunk2";
+    yield "chunk3";
+  }
+
+  /**
+   * Takes typed parameters (name, age) - not a context
+   */
+  async greet(name: string, age: number): Promise<string> {
+    return `Hello ${name}, you are ${age} years old`;
+  }
+
+  /**
+   * Takes a single typed parameter
+   */
+  async echo(message: string): Promise<string> {
+    return `echo: ${message}`;
+  }
+
+  /**
+   * Method that throws
+   */
+  async throwError(): Promise<string> {
+    throw new Error("intentional error");
+  }
+}
+
+@suite
+class CallOperationReturnValueTest extends WebdaApplicationTest {
+  getTestConfiguration() {
+    return {
+      services: {
+        ReturnSvc: {
+          type: "ReturnValueService"
+        }
+      }
+    };
+  }
+
+  async tweakApp(app: TestApplication): Promise<void> {
+    app.addModda("Webda/ReturnValueService", ReturnValueService);
+  }
+
+  @test
+  async callOperationReturnsString() {
+    registerOperation("ReturnSvc.GetString", {
+      service: "ReturnSvc",
+      method: "getString"
+    });
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    await callOperation(ctx, "ReturnSvc.GetString");
+    assert.strictEqual(ctx.getOutput(), "hello world");
+  }
+
+  @test
+  async callOperationReturnsObject() {
+    registerOperation("ReturnSvc.GetObject", {
+      service: "ReturnSvc",
+      method: "getObject"
+    });
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    await callOperation(ctx, "ReturnSvc.GetObject");
+    const output = ctx.getOutput();
+    assert.ok(output);
+    const parsed = JSON.parse(output);
+    assert.strictEqual(parsed.name, "test");
+    assert.strictEqual(parsed.count, 42);
+  }
+
+  @test
+  async callOperationReturnsVoid() {
+    registerOperation("ReturnSvc.DoNothing", {
+      service: "ReturnSvc",
+      method: "doNothing"
+    });
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    await callOperation(ctx, "ReturnSvc.DoNothing");
+    // No output should be written for void
+    const output = ctx.getOutput();
+    assert.strictEqual(output, undefined);
+  }
+
+  @test
+  async callOperationStreamsAsyncGenerator() {
+    registerOperation("ReturnSvc.StreamChunks", {
+      service: "ReturnSvc",
+      method: "streamChunks"
+    });
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    await callOperation(ctx, "ReturnSvc.StreamChunks");
+    const output = ctx.getOutput();
+    // Each chunk is written as a string, concatenated
+    assert.strictEqual(output, "chunk1chunk2chunk3");
+  }
+
+  @test
+  async callOperationWithSchemaArgs() {
+    // Register a schema with two properties for greet(name, age)
+    const greetSchema = {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        age: { type: "number" }
+      },
+      required: ["name", "age"]
+    };
+    const app = useApplication<Application>();
+    app.getSchemas()["ReturnSvc.Greet"] = greetSchema;
+    registerSchema("ReturnSvc.Greet", greetSchema);
+
+    registerOperation("ReturnSvc.Greet", {
+      service: "ReturnSvc",
+      method: "greet",
+      input: "ReturnSvc.Greet"
+    });
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setInput(JSON.stringify({ name: "Alice", age: 30 }));
+    await callOperation(ctx, "ReturnSvc.Greet");
+    assert.strictEqual(ctx.getOutput(), "Hello Alice, you are 30 years old");
+  }
+
+  @test
+  async callOperationWithSingleSchemaArg() {
+    // Register a schema with one property for echo(message)
+    const echoSchema = {
+      type: "object",
+      properties: {
+        message: { type: "string" }
+      },
+      required: ["message"]
+    };
+    const app = useApplication<Application>();
+    app.getSchemas()["ReturnSvc.Echo"] = echoSchema;
+    registerSchema("ReturnSvc.Echo", echoSchema);
+
+    registerOperation("ReturnSvc.Echo", {
+      service: "ReturnSvc",
+      method: "echo",
+      input: "ReturnSvc.Echo"
+    });
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setInput(JSON.stringify({ message: "test123" }));
+    await callOperation(ctx, "ReturnSvc.Echo");
+    assert.strictEqual(ctx.getOutput(), "echo: test123");
+  }
+
+  @test
+  async callOperationThrowsError() {
+    registerOperation("ReturnSvc.ThrowError", {
+      service: "ReturnSvc",
+      method: "throwError"
+    });
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    await assert.rejects(() => callOperation(ctx, "ReturnSvc.ThrowError"), /intentional error/);
+  }
+
+  @test
+  async callOperationWithInputNoSchema() {
+    // When there is no input schema but context has input, pass as single arg
+    registerOperation("ReturnSvc.EchoNoSchema", {
+      service: "ReturnSvc",
+      method: "echo"
+    });
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setInput(JSON.stringify("directString"));
+    await callOperation(ctx, "ReturnSvc.EchoNoSchema");
+    assert.strictEqual(ctx.getOutput(), "echo: directString");
+  }
+}
+
+@suite
+class ResolveArgumentsTest extends WebdaApplicationTest {
+  getTestConfiguration() {
+    return {
+      services: {
+        ArgSvc: {
+          type: "ReturnValueService"
+        }
+      }
+    };
+  }
+
+  async tweakApp(app: TestApplication): Promise<void> {
+    app.addModda("Webda/ReturnValueService", ReturnValueService);
+  }
+
+  @test
+  async resolveArgsNoSchemaNoInput() {
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test" });
+    assert.deepStrictEqual(args, []);
+  }
+
+  @test
+  async resolveArgsNoSchemaWithInput() {
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setInput(JSON.stringify({ key: "value" }));
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test" });
+    assert.deepStrictEqual(args, [{ key: "value" }]);
+  }
+
+  @test
+  async resolveArgsNoSchemaWithParams() {
+    // Without an input schema, params alone are not passed as arguments
+    // (they are only merged when a schema defines the expected properties)
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters({ uuid: "abc123" });
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test" });
+    assert.deepStrictEqual(args, []);
+  }
+
+  @test
+  async resolveArgsWithMultiPropertySchema() {
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.MultiProp"] = {
+      type: "object",
+      properties: {
+        firstName: { type: "string" },
+        lastName: { type: "string" },
+        age: { type: "number" }
+      }
+    };
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setInput(JSON.stringify({ firstName: "John", lastName: "Doe", age: 25 }));
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.MultiProp" });
+    // Should return values in schema property order
+    assert.deepStrictEqual(args, ["John", "Doe", 25]);
+  }
+
+  @test
+  async resolveArgsSinglePropertySchema() {
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.SingleProp"] = {
+      type: "object",
+      properties: {
+        data: { type: "object" }
+      }
+    };
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setInput(JSON.stringify({ data: { nested: true } }));
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.SingleProp" });
+    // Single property: extract the value directly
+    assert.deepStrictEqual(args, [{ nested: true }]);
+  }
+
+  @test
+  async resolveArgsMergesParamsAndInput() {
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.Merge"] = {
+      type: "object",
+      properties: {
+        uuid: { type: "string" },
+        name: { type: "string" }
+      }
+    };
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters({ uuid: "abc" });
+    ctx.setInput(JSON.stringify({ name: "Alice" }));
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Merge" });
+    // Should merge params and input, in schema property order
+    assert.deepStrictEqual(args, ["abc", "Alice"]);
+  }
+
+  @test
+  async resolveArgsInputOverridesParams() {
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.Override"] = {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        value: { type: "number" }
+      }
+    };
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters({ name: "fromParams", value: 1 });
+    ctx.setInput(JSON.stringify({ name: "fromBody" }));
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Override" });
+    // Body overrides params for "name", params supplies "value"
+    assert.deepStrictEqual(args, ["fromBody", 1]);
+  }
+
+  @test
+  async resolveArgsSchemaWithNoProperties() {
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.Empty"] = {
+      type: "object"
+      // No properties
+    };
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setInput(JSON.stringify({ foo: "bar" }));
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Empty" });
+    // Falls through to the no-schema path since schema has no properties
+    assert.deepStrictEqual(args, [{ foo: "bar" }]);
+  }
+
+  @test
+  async resolveArgsSchemaNotFound() {
+    // Schema reference that doesn't exist in the application
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setInput(JSON.stringify({ key: "value" }));
+    const args = await resolveArguments(ctx, {
+      id: "Test.Op",
+      method: "test",
+      input: "NonExistent.Schema"
+    });
+    // When schema not found, getSchema returns undefined, falls to no-schema path
+    assert.deepStrictEqual(args, [{ key: "value" }]);
   }
 }

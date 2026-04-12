@@ -76,6 +76,53 @@ async function checkOperation(context: OperationContext, operationId: string) {
 }
 
 /**
+ * Resolve method arguments from the OperationContext using the operation's input schema metadata.
+ *
+ * Merges URL/query parameters with the request body (body overrides params for same keys),
+ * then uses the input schema's property names to determine argument order.
+ *
+ * @param context - the execution context
+ * @param operation - the operation definition
+ * @returns an array of resolved arguments to pass to the operation method
+ */
+export async function resolveArguments(context: OperationContext, operation: OperationDefinition): Promise<any[]> {
+  const params = context.getParameters() || {};
+  let input: any;
+  try {
+    input = await context.getInput();
+  } catch {
+    // No input (e.g., GET request)
+  }
+
+  // Merge: params + body (body overrides params for same keys)
+  const merged = { ...params, ...(typeof input === "object" && input !== null ? input : {}) };
+
+  // Use input schema properties to determine argument order
+  if (operation.input) {
+    const schema = useApplication().getSchema(operation.input);
+    if (schema?.properties) {
+      const propNames = Object.keys(schema.properties);
+      if (propNames.length === 1) {
+        const key = propNames[0];
+        // Single param: extract if key matches, otherwise pass whole input
+        if (key in merged && Object.keys(merged).length <= Object.keys(params).length + 1) {
+          return [merged[key]];
+        }
+        return [typeof input === "object" && input !== null ? input : merged];
+      }
+      // Multiple params: extract by name in schema order
+      return propNames.map(name => merged[name]);
+    }
+  }
+
+  // No schema: pass input as single arg if present
+  if (input !== undefined && input !== null) {
+    return [input];
+  }
+  return [];
+}
+
+/**
  * Call an operation within the framework
  * @param context - the execution context
  * @param operationId - the operation identifier
@@ -91,13 +138,38 @@ export async function callOperation(context: OperationContext, operationId: stri
       emitCoreEvent("Webda.BeforeOperation", { context, operationId })
       //emitCoreEvent(`${operationId}.Before`, <any>context.getExtension("event") || {})
     ]);
+
+    // Resolve arguments from context using the operation's input schema
+    const args = await resolveArguments(context, operations[operationId]);
+
+    // When resolveArguments returns no typed arguments (no input schema),
+    // fall back to passing the context for backward compatibility with
+    // methods that still use the context-based calling convention.
+    const callArgs = args.length > 0 ? args : [context];
+
+    // Call the method with resolved arguments
+    let result: any;
     if (operations[operationId].service) {
-      await useService(operations[operationId].service as any)[operations[operationId].method](context);
+      result = await useService(operations[operationId].service as any)[operations[operationId].method](...callArgs);
     } else if (operations[operationId].model) {
-      await useModel(operations[operationId].model)[operations[operationId].method](context);
+      result = await useModel(operations[operationId].model)[operations[operationId].method](...callArgs);
     } else {
       throw new Error(`${operationId} NoServiceOrModel`);
     }
+
+    // Handle return value
+    if (result !== undefined && result !== null) {
+      if (typeof result[Symbol.asyncIterator] === "function") {
+        // AsyncGenerator — stream each yielded value
+        for await (const chunk of result) {
+          context.write(chunk);
+        }
+      } else {
+        // Normal return — write to context
+        context.write(result);
+      }
+    }
+
     await Promise.all([
       emitCoreEvent("Webda.OperationSuccess", { context, operationId })
       //emitCoreEvent(operationId, <any>context.getExtension("event") || {})

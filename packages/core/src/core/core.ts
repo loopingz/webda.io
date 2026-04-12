@@ -442,10 +442,10 @@ export class Core implements ICore {
     }
     try {
       this.log("TRACE", "Constructing service", service);
-      this.services[service] = new serviceConstructor(
-        service,
-        serviceConstructor.createConfiguration(this.configuration[service])
-      );
+      const params = serviceConstructor.createConfiguration
+        ? serviceConstructor.createConfiguration(this.configuration[service])
+        : this.configuration[service];
+      this.services[service] = new serviceConstructor(service, params);
     } catch (err) {
       this.log("ERROR", "Cannot create service", service, err.message || err);
     }

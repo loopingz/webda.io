@@ -234,8 +234,7 @@ export class LogsPanel implements Panel {
       if (i === this.levelFilter) {
         term.bgCyan.black.bold(` ${lvl} `);
       } else if (i < this.levelFilter) {
-        term.dim.strikethrough(` ${lvl} `);
-        term.styleReset();
+        term.dim(` ${lvl} `);
       } else {
         this.renderLevel(term, lvl);
       }

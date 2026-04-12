@@ -95,12 +95,24 @@ export class LogBuffer {
     return [...this.entries];
   }
 
+  /** Log level severity order — higher index means more severe. */
+  private static readonly LOG_LEVELS: WorkerLogLevel[] = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"];
+
   /**
-   * Filter entries whose message or level contains the query (case-insensitive).
-   * @param query - search string
+   * Filter entries by query. If the query matches a log level name,
+   * filter by severity (>= that level). Otherwise, do a text search
+   * on message and level.
+   * @param query - search string or log level name
    * @returns matching entries
    */
   search(query: string): LogEntry[] {
+    const upper = query.toUpperCase() as WorkerLogLevel;
+    const levelIndex = LogBuffer.LOG_LEVELS.indexOf(upper);
+    if (levelIndex >= 0) {
+      return this.entries.filter(
+        e => LogBuffer.LOG_LEVELS.indexOf(e.level) >= levelIndex
+      );
+    }
     const lower = query.toLowerCase();
     return this.entries.filter(
       e => e.message.toLowerCase().includes(lower) || e.level.toLowerCase().includes(lower)

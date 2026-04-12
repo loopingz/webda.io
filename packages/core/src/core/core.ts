@@ -469,9 +469,11 @@ export class Core implements ICore {
       const beanClass = appBeans[beanName];
       if (!beanClass) continue;
       this.moddas[serviceName] = beanClass;
+      this.moddas[beanName] = beanClass;
       this.configuration[serviceName] = Object.freeze(
         (beanClass.filterParameters || (p => p))({
-          ...this.applicationConfiguration.parameters
+          ...this.applicationConfiguration.parameters,
+          type: beanName
         })
       );
       this.getService(serviceName);

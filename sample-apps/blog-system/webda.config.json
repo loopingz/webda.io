@@ -8,10 +8,10 @@
     "Mailer": {
       "type": "Webda/Mailer"
     },
-    "domain": {
+    "DomainService": {
       "type": "Webda/DomainService"
     },
-    "rest": {
+    "RESTService": {
       "type": "Webda/RESTOperationsTransport"
     }
   }

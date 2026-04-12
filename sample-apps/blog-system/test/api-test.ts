@@ -34,7 +34,7 @@ class BlogSystemAppTest extends WebdaApplicationTest {
     app.getCurrentConfiguration().services.DomainService = {
       type: "Webda/DomainService"
     };
-    app.getCurrentConfiguration().services.RESTOperationsTransport = {
+    app.getCurrentConfiguration().services.RESTService = {
       type: "Webda/RESTOperationsTransport"
     };
   }
@@ -59,7 +59,7 @@ class BlogSystemAppTest extends WebdaApplicationTest {
     assert.ok(serviceNames.includes("Router"), "Router service should be initialized");
     assert.ok(serviceNames.includes("Registry"), "Registry service should be initialized");
     assert.ok(serviceNames.includes("DomainService"), "DomainService should be initialized");
-    assert.ok(serviceNames.includes("RESTOperationsTransport"), "RESTOperationsTransport should be initialized");
+    assert.ok(serviceNames.includes("RESTService"), "RESTService should be initialized");
     assert.ok(serviceNames.includes("SessionManager"), "SessionManager service should be initialized");
     assert.ok(serviceNames.includes("CryptoService"), "CryptoService service should be initialized");
   }

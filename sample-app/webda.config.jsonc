@@ -26,10 +26,10 @@
       "type": "MemoryStore",
       "table": "local-table"
     },
-    "domain": {
+    "DomainService": {
       "type": "DomainService"
     },
-    "rest": {
+    "RESTService": {
       "type": "RESTOperationsTransport"
     },
     "CryptoService": {

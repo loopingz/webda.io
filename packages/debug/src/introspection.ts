@@ -120,7 +120,7 @@ export function getModel(id: string): ModelInfo | undefined {
 export function getServices(): ServiceInfo[] {
   const core = useCore();
   const services = core.getServices();
-  const config = core.getConfiguration();
+  const config = core.getConfiguration?.() || {};
   return Object.entries(services)
     .filter(([, svc]) => svc != null)
     .map(([name, svc]) => ({

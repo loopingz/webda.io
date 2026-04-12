@@ -30,6 +30,8 @@ export interface ServiceInfo {
   state: string;
   /** Capabilities advertised by the service */
   capabilities: Record<string, any>;
+  /** Service configuration parameters */
+  configuration: Record<string, any>;
 }
 
 /**
@@ -118,13 +120,15 @@ export function getModel(id: string): ModelInfo | undefined {
 export function getServices(): ServiceInfo[] {
   const core = useCore();
   const services = core.getServices();
+  const config = core.getConfiguration();
   return Object.entries(services)
     .filter(([, svc]) => svc != null)
     .map(([name, svc]) => ({
       name,
       type: (svc.parameters as any)?.type || "unknown",
       state: svc.getState(),
-      capabilities: svc.getCapabilities()
+      capabilities: svc.getCapabilities(),
+      configuration: config[name] || {}
     }));
 }
 

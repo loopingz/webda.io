@@ -153,14 +153,25 @@ export abstract class Context {
     const isPipelineOptions = (arg: NodeJS.ReadWriteStream | PipelineOptions): arg is PipelineOptions =>
       (arg as NodeJS.ReadWriteStream).writable === undefined;
     const item = streams.pop();
-    if (item !== undefined && isPipelineOptions(item)) {
-      await pipeline([stream1, ...(<Array<NodeJS.ReadWriteStream>>streams), await this.getOutputStream()], item);
-    } else {
-      if (item !== undefined) {
-        streams.push(item);
+    const output = await this.getOutputStream();
+    // Use pipe() instead of stream/promises.pipeline() to avoid
+    // ERR_STREAM_PREMATURE_CLOSE unhandled rejections with ServerResponse
+    const allStreams: NodeJS.ReadWriteStream[] = item !== undefined && !isPipelineOptions(item)
+      ? [...(<Array<NodeJS.ReadWriteStream>>streams), item as NodeJS.ReadWriteStream]
+      : <Array<NodeJS.ReadWriteStream>>streams;
+    return new Promise<void>((resolve, reject) => {
+      let current: NodeJS.ReadableStream = stream1;
+      for (const transform of allStreams) {
+        current = (current as any).pipe(transform);
       }
-      await pipeline([stream1, ...(<Array<NodeJS.ReadWriteStream>>streams), await this.getOutputStream()]);
-    }
+      (current as any).pipe(output, { end: true });
+      stream1.on("error", reject);
+      output.on("error", (err: any) => {
+        if (err?.code === "ERR_STREAM_PREMATURE_CLOSE") resolve();
+        else reject(err);
+      });
+      output.on("finish", resolve);
+    });
   }
 
   abstract getOutputStream(): Promise<Writable>;

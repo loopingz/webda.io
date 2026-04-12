@@ -197,12 +197,10 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
   async save(): Promise<this> {
     const repo = this.getRepository();
     const concreteThis: this & Storable & { dirty?: DirtyState } = this as any;
-    console.log("Saving model with dirty state:", concreteThis, concreteThis.dirty);
     if (!concreteThis["dirty"]?.valueOf()) {
       await repo.upsert(concreteThis as Helpers<this>);
     } else {
       const patch = concreteThis["dirty"].getPatch() as Partial<this>;
-      console.log("Saving with patch:", patch);
       await repo.patch(this.getPrimaryKey(), patch);
       concreteThis["dirty"].clear();
     }

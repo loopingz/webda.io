@@ -76,31 +76,59 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   getPrimaryKey(object: any, forceObject: true): PrimaryKey<InstanceType<T>>;
   /** @override */
   getPrimaryKey(object: any, forceObject?: boolean): PrimaryKeyType<InstanceType<T>> | PrimaryKey<InstanceType<T>> {
+    if (object === undefined || object === null) {
+      throw new Error("Cannot get primary key of undefined/null");
+    }
     const pkFields = (object[WEBDA_PRIMARY_KEY] || this.pks || []) as Array<keyof InstanceType<T>>;
     if (pkFields.length === 0) {
-      throw new Error("No primary key defined on model " + this.model.name);
+      throw new Error("No primary key defined on model " + this.model?.name);
     }
-    // If non-composed it
-    if (pkFields.length === 1) {
-      if (forceObject) {
-        return typeof object === "object"
-          ? object
-          : ({ [pkFields[0]]: object, toString: () => object.toString() } as PK<T, any>);
-      } else {
-        return typeof object === "object" ? (new this.model(object) as any)[pkFields[0]] : object;
+    // Scalar value (string or number) — treat as the PK value directly
+    if (typeof object === "string" || typeof object === "number") {
+      if (pkFields.length === 1) {
+        if (forceObject) {
+          return { [pkFields[0]]: object, toString: () => object.toString() } as PK<T, any>;
+        }
+        return object as any;
       }
+      // Composite key passed as string — parse it
+      object = this.parseUID(object as string);
     }
-    if (typeof object === "string") {
-      object = this.parseUID(object);
+    // Single PK field
+    if (pkFields.length === 1) {
+      const field = pkFields[0];
+      const value = object[field];
+      if (value !== undefined) {
+        if (forceObject) {
+          return { [field]: value, toString: () => value.toString() } as PK<T, any>;
+        }
+        return value as any;
+      }
+      // Value not found — try constructing the model to extract it
+      if (this.model) {
+        const instance = new this.model(object) as any;
+        instance.load?.(object);
+        const extracted = instance[field];
+        if (extracted !== undefined) {
+          if (forceObject) {
+            return { [field]: extracted, toString: () => extracted.toString() } as PK<T, any>;
+          }
+          return extracted as any;
+        }
+      }
+      throw new Error(`Missing primary key field '${String(field)}' on object`);
     }
-    if (pkFields.some(f => object[f] === undefined)) {
-      object = new this.model(object) as InstanceType<T>;
+    // Composite key — extract each field
+    if (pkFields.some(f => object[f] === undefined) && this.model) {
+      const instance = new this.model(object) as InstanceType<T>;
+      (instance as any).load?.(object);
+      object = instance;
     }
     if (pkFields.some(f => object[f] === undefined)) {
       throw new Error(`Missing primary key fields: ${pkFields.filter(f => object[f] === undefined).join(", ")}`);
     }
 
-    // composite key
+    // Build composite key object
     const key = pkFields.reduce((acc, field) => {
       (acc as any)[field] = object[field];
       return acc;

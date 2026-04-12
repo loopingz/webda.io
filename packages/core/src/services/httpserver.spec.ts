@@ -3,7 +3,7 @@ import * as assert from "assert";
 import * as http from "node:http";
 import { PassThrough } from "node:stream";
 import { WebdaApplicationTest } from "../test/index.js";
-import { HttpServer } from "./httpserver.js";
+import { HttpServer, HttpServerParameters } from "./httpserver.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { ContextProvider, ContextProviderInfo } from "../contexts/icontext.js";
 import { OperationContext } from "../contexts/operationcontext.js";
@@ -641,5 +641,33 @@ class HttpServerTest extends WebdaApplicationTest {
     } catch {
       // Connection error is also acceptable
     }
+  }
+
+  @test
+  async httpServerParametersDefaults() {
+    const params = new HttpServerParameters().load({});
+    assert.strictEqual(params.requestLimit, 10 * 1024 * 1024);
+    assert.strictEqual(params.requestTimeout, 60000);
+    assert.deepStrictEqual(params.trustedProxies, []);
+  }
+
+  @test
+  async httpServerParametersStringProxies() {
+    const params = new HttpServerParameters().load({ trustedProxies: "10.0.0.0/8, 192.168.0.0/16" });
+    assert.deepStrictEqual(params.trustedProxies, ["10.0.0.0/8", "192.168.0.0/16"]);
+  }
+
+  @test
+  async httpServerParametersArrayProxies() {
+    const params = new HttpServerParameters().load({ trustedProxies: ["10.0.0.0/8"] } as any);
+    assert.deepStrictEqual(params.trustedProxies, ["10.0.0.0/8"]);
+  }
+
+  @test
+  async httpServerParametersCustomValues() {
+    const params = new HttpServerParameters().load({ requestLimit: 1024, requestTimeout: 5000, port: 9090 });
+    assert.strictEqual(params.requestLimit, 1024);
+    assert.strictEqual(params.requestTimeout, 5000);
+    assert.strictEqual(params.port, 9090);
   }
 }

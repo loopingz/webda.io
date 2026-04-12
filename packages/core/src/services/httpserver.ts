@@ -16,7 +16,7 @@ import { useRouter } from "../rest/hooks.js";
 import { runWithContext } from "../contexts/execution.js";
 
 /** Parameters for the HTTP server including request limits, timeouts, and trusted proxy settings */
-class HttpServerParameters extends ServiceParameters {
+export class HttpServerParameters extends ServiceParameters {
   /**
    * Will not try to parse request bigger than this
    *

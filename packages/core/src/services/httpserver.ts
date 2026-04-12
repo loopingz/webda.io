@@ -158,9 +158,9 @@ export class HttpServer<
           const webCtx = ctx as WebContext;
           await runWithContext(webCtx, async () => {
             try {
-              await emitCoreEvent("Webda.Request", { context: webCtx });
+              try { emitCoreEvent("Webda.Request", { context: webCtx }); } catch { /* event listener error */ }
               await useRouter().execute(webCtx);
-              await emitCoreEvent("Webda.Result", { context: webCtx });
+              try { emitCoreEvent("Webda.Result", { context: webCtx }); } catch { /* event listener error */ }
             } catch (err) {
               webCtx.statusCode = err?.getResponseCode?.() || 500;
             }

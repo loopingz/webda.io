@@ -199,7 +199,7 @@ export class RESTOperationsTransport<
   protected exposeServiceOperations(operations: Record<string, OperationDefinition>): void {
     for (const [opId, op] of Object.entries(operations)) {
       if (op.hidden) continue;
-      if (!op.rest || op.rest === false) continue;
+      if (!op.rest) continue;
       // Skip if this operation was already handled by model tree walk
       // Model operations have a context with model property
       if (op.context?.model) continue;

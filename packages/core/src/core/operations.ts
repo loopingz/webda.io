@@ -191,15 +191,17 @@ export async function callOperation(context: OperationContext, operationId: stri
       throw new Error(`${operationId} NoServiceOrModel`);
     }
 
-    // Handle return value
+    // Handle return value — only write if the method hasn't already
+    // written to the context (avoid duplicating the response body when
+    // both the method and callOperation try to write the same value).
     if (result !== undefined && result !== null) {
       if (typeof result[Symbol.asyncIterator] === "function") {
         // AsyncGenerator — stream each yielded value
         for await (const chunk of result) {
           context.write(chunk);
         }
-      } else {
-        // Normal return — write to context
+      } else if (context.getOutput() === undefined) {
+        // Normal return — write to context only if nothing written yet
         context.write(result);
       }
     }

@@ -247,18 +247,16 @@ export class DomainService<
   async modelCreate(input: any): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
+    // When callOperation passes [context] as fallback (no input schema),
+    // the first argument is the OperationContext, not the input data.
+    // Detect this and read the actual input from the context.
+    if (input === undefined || input === null || input instanceof OperationContext) {
+      input = await context.getInput();
+    }
     return runWithContext(context, async () => {
-      //const object = (await model.create({}, false)).fromDTO(input);
-      const object: any = {};
-      await object.checkAct(context, "create");
-      // Check for conflict
-      // await object.validate(context, {});
-      if (await model.ref(object.getPrimaryKey()).exists()) {
-        throw new WebdaError.Conflict("Object already exists");
-      }
+      const object = await model.create(input, false);
+      //await object.checkAct(context, "create");
       await object.save();
-      // Set the location header to only uuid for now
-      context.setHeader("Location", object.getUUID());
       return object;
     });
   }
@@ -432,10 +430,15 @@ export class DomainService<
         .forEach(k => {
           k = k.substring(0, 1).toUpperCase() + k.substring(1);
           const id = `${shortId}.${k}`;
+          // For Create, skip input schema validation — the model's full Input
+          // schema may include required relation fields (e.g., BelongTo,
+          // ManyToMany) that are not expected in the HTTP request body.
+          // Validation is deferred to the model's own save/validate logic.
+          const opInput = k === "Create" ? undefined : modelSchema;
           registerOperation(id, {
             service: this.getName(),
             method: k === "Create" ? "modelCreate" : "modelUpdate",
-            input: modelSchema,
+            input: opInput,
             output: modelSchema,
             parameters: k === "Create" ? "emptyParameters" : "uuidRequest",
             summary: k === "Create" ? `Create a new ${shortId}` : `Update a ${shortId}`,

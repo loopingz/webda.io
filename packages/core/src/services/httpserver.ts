@@ -138,6 +138,15 @@ export class HttpServer<
       if (this.server) {
         await new Promise(resolve => this.server.close(resolve));
       }
+      // Suppress stream pipeline close errors (client disconnect mid-stream)
+      if (!process.listeners("unhandledRejection").find((l: any) => l._webdaHttpServer)) {
+        const handler = function _webdaHandler(err: any) {
+          if (err?.code === "ERR_STREAM_PREMATURE_CLOSE") return;
+          throw err;
+        };
+        (handler as any)._webdaHttpServer = true;
+        process.on("unhandledRejection", handler);
+      }
       this.server = createServer(async (req, res) => {
         try {
           const ctx = await this.getContextFromRequest(req, res);
@@ -156,22 +165,14 @@ export class HttpServer<
               webCtx.statusCode = err?.getResponseCode?.() || 500;
             }
           });
-          // Flush headers and body to the HTTP response
-          if (!res.headersSent) {
-            res.writeHead(webCtx.statusCode || 200, webCtx.getResponseHeaders());
-          }
-          const body = webCtx.getOutput();
-          if (body) {
-            res.end(body);
-          } else {
-            res.end();
-          }
+          // WebContext.end() flushes headers + body to the ServerResponse
+          await webCtx.end();
         } catch (err) {
           // Ensure the response is always closed
-          if (!res.headersSent) {
-            res.writeHead(500);
+          if (!res.writableEnded) {
+            if (!res.headersSent) res.writeHead(500);
+            res.end();
           }
-          res.end();
         }
       });
       // Ensure routes are mapped before accepting requests

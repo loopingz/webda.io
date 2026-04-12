@@ -472,10 +472,21 @@ export class RESTOperationsTransport<
         }
         await callOperation(context, operationId);
         // https://www.rfc-editor.org/rfc/rfc9110#status.201
-        if (context.getResponseHeaders().Location) {
-          context.writeHead(201, {
-            Location: `${context.getHttpContext().getAbsoluteUrl()}/${context.getResponseHeaders().Location}`
-          });
+        if (context.statusCode < 300 || context.statusCode === 204) {
+          const output = context.getOutput();
+          if (output) {
+            try {
+              const parsed = typeof output === "string" ? JSON.parse(output) : output;
+              const uuid = parsed?.uuid || parsed?.getUUID?.();
+              if (uuid) {
+                context.writeHead(201, {
+                  Location: `${context.getHttpContext().getAbsoluteUrl()}/${uuid}`
+                });
+              }
+            } catch {
+              // Not JSON, skip Location
+            }
+          }
         }
       },
       openapi
@@ -521,7 +532,13 @@ export class RESTOperationsTransport<
     this.addRoute(
       `${prefix}/{uuid}`,
       ["DELETE"],
-      (context: WebContext) => callOperation(context, operationId),
+      async (context: WebContext) => {
+        await callOperation(context, operationId);
+        // Convention: 204 No Content
+        if (context.statusCode < 300 || context.statusCode === 204) {
+          context.writeHead(204);
+        }
+      },
       openapi
     );
   }

@@ -11,7 +11,7 @@ import { isGeneratorFunction } from "node:util/types";
 import { AnyMethod } from "@webda/decorators";
 import type { Service } from "../services/service.js";
 import type { Model } from "@webda/models";
-import { useContext } from "../contexts/execution.js";
+import { useContext, runWithContext } from "../contexts/execution.js";
 
 type OperationTarget = Service | Model | typeof Service | typeof Model;
 import { useLog } from "@webda/workout";
@@ -76,10 +76,16 @@ async function checkOperation(context: OperationContext, operationId: string) {
 }
 
 /**
- * Resolve method arguments from the OperationContext using the operation's input schema metadata.
+ * Resolve method arguments from the OperationContext using the operation's input/parameters schema metadata.
  *
- * Merges URL/query parameters with the request body (body overrides params for same keys),
- * then uses the input schema's property names to determine argument order.
+ * When both `parameters` and `input` schemas are resolvable via the application schema registry,
+ * the parameters schema properties are extracted from URL/query params first, then the request
+ * body is appended as the next argument. This supports signatures like `method(uuid: string, body: any)`.
+ *
+ * When only an `input` schema exists, properties are merged from params and body, then
+ * extracted in schema property order.
+ *
+ * When only a `parameters` schema exists, its properties are extracted from URL/query params.
  *
  * @param context - the execution context
  * @param operation - the operation definition
@@ -94,12 +100,35 @@ export async function resolveArguments(context: OperationContext, operation: Ope
     // No input (e.g., GET request)
   }
 
+  const app = useApplication();
+
+  // When both parameters and input schemas are resolvable, extract params then append body.
+  // This supports methods like modelUpdate(uuid: string, body: any).
+  if (operation.parameters && operation.input) {
+    const paramsSchema = app.getSchema(operation.parameters);
+    const inputSchema = app.getSchema(operation.input);
+    if (paramsSchema?.properties && inputSchema) {
+      const paramArgs = Object.keys(paramsSchema.properties).map(name => params[name]);
+      // Append the whole body as the next argument
+      return [...paramArgs, input];
+    }
+  }
+
+  // When only parameters schema is resolvable (no input), extract params by schema property names.
+  // This supports methods like modelGet(uuid: string) and modelQuery(query: string).
+  if (operation.parameters && !operation.input) {
+    const paramsSchema = app.getSchema(operation.parameters);
+    if (paramsSchema?.properties) {
+      return Object.keys(paramsSchema.properties).map(name => params[name]);
+    }
+  }
+
   // Merge: params + body (body overrides params for same keys)
   const merged = { ...params, ...(typeof input === "object" && input !== null ? input : {}) };
 
   // Use input schema properties to determine argument order
   if (operation.input) {
-    const schema = useApplication().getSchema(operation.input);
+    const schema = app.getSchema(operation.input);
     if (schema?.properties) {
       const propNames = Object.keys(schema.properties);
       if (propNames.length === 1) {
@@ -147,12 +176,17 @@ export async function callOperation(context: OperationContext, operationId: stri
     // methods that still use the context-based calling convention.
     const callArgs = args.length > 0 ? args : [context];
 
-    // Call the method with resolved arguments
+    // Call the method with resolved arguments, wrapped in runWithContext
+    // so that useContext() returns the operation context inside the method.
     let result: any;
     if (operations[operationId].service) {
-      result = await useService(operations[operationId].service as any)[operations[operationId].method](...callArgs);
+      result = await runWithContext(context, () =>
+        useService(operations[operationId].service as any)[operations[operationId].method](...callArgs)
+      );
     } else if (operations[operationId].model) {
-      result = await useModel(operations[operationId].model)[operations[operationId].method](...callArgs);
+      result = await runWithContext(context, () =>
+        useModel(operations[operationId].model)[operations[operationId].method](...callArgs)
+      );
     } else {
       throw new Error(`${operationId} NoServiceOrModel`);
     }

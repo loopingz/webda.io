@@ -4,7 +4,7 @@ import { Application } from "../application/application.js";
 import type { ModelAction } from "../models/types.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import type { Model, ModelClass } from "@webda/models";
-import { runWithContext } from "../contexts/execution.js";
+import { runWithContext, useContext } from "../contexts/execution.js";
 
 import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary.js";
 import * as WebdaError from "../errors/errors.js";
@@ -112,6 +112,10 @@ export class DomainService<
 > extends Service<T, E> {
   app: Application;
   static schemas = {
+    emptyParameters: {
+      type: "object",
+      properties: {}
+    },
     uuidRequest: {
       type: "object",
       properties: {
@@ -212,13 +216,12 @@ export class DomainService<
   }
 
   /**
-   * Retrieve a model instance by uuid from the operation context
-   * @param context - the execution context
+   * Retrieve a model instance by uuid, throwing NotFound if missing or deleted
+   * @param model - the model class to query
+   * @param uuid - the primary key
    * @returns the model instance
    */
-  private async getModel(context: OperationContext): Promise<Model> {
-    const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
-    const { uuid } = context.getParameters();
+  private async loadModel(model: ModelClass<Model>, uuid: string): Promise<Model> {
     let object: Model | undefined;
     try {
       object = await model.ref(uuid).get();
@@ -226,6 +229,7 @@ export class DomainService<
       // Repository may throw when the object does not exist
     }
     if (object === undefined || object.isDeleted()) {
+      const context = useContext<OperationContext>();
       await this.emit("Store.WebNotFound", {
         context,
         uuid
@@ -237,13 +241,15 @@ export class DomainService<
 
   /**
    * Create a model operation implementation
-   * @param context - the execution context
+   * @param input - the model data to create
+   * @returns the created model instance
    */
-  async modelCreate(context: OperationContext) {
+  async modelCreate(input: any): Promise<Model> {
+    const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
-    await runWithContext(context, async () => {
-      //const object = (await model.create({}, false)).fromDTO(await context.getInput());
-      const object : any = {};
+    return runWithContext(context, async () => {
+      //const object = (await model.create({}, false)).fromDTO(input);
+      const object: any = {};
       await object.checkAct(context, "create");
       // Check for conflict
       // await object.validate(context, {});
@@ -253,42 +259,52 @@ export class DomainService<
       await object.save();
       // Set the location header to only uuid for now
       context.setHeader("Location", object.getUUID());
-      context.write(object);
+      return object;
     });
   }
 
   /**
    * Update a model operation implementation
-   * @param context - the execution context
+   * @param uuid - the model primary key
+   * @param input - the update data (may be undefined if schema was not resolvable)
+   * @returns the updated model instance
    */
-  async modelUpdate(context: OperationContext) {
-    const object = await this.getModel(context);
-    const input = await context.getInput();
+  async modelUpdate(uuid: string, input?: any): Promise<Model> {
+    const context = useContext<OperationContext>();
+    const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
+    const object = await this.loadModel(model, uuid);
+    // Fall back to context input when resolveArguments couldn't extract body
+    if (input === undefined) {
+      input = await context.getInput();
+    }
     //await object.checkAct(context, "update");
     // By pass load for now
     object["load"](input);
-    //context.write((await object.save()).toDTO());
+    //return (await object.save()).toDTO();
+    return object;
   }
 
   /**
    * Get a model operation implementation
-   * @param context - the execution context
+   * @param uuid - the model primary key
+   * @returns the model instance
    */
-  async modelGet(context: OperationContext) {
-    const object = await this.getModel(context);
+  async modelGet(uuid: string): Promise<Model> {
+    const context = useContext<OperationContext>();
+    const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
+    const object = await this.loadModel(model, uuid);
     //await object.checkAct(context, "get");
-    //context.write(object.toDTO());
+    return object;
   }
 
   /**
    * Delete a model operation implementation
-   * @param context - the execution context
+   * @param uuid - the model primary key
    */
-  async modelDelete(context: OperationContext) {
-    const object = await this.getModel(context);
-    if (!object) {
-      throw new WebdaError.NotFound("Object not found");
-    }
+  async modelDelete(uuid: string): Promise<void> {
+    const context = useContext<OperationContext>();
+    const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
+    const object = await this.loadModel(model, uuid);
     //await object.checkAct(context, "delete");
     // Object can decide to not delete but mark as deleted
     await object.delete();
@@ -296,14 +312,15 @@ export class DomainService<
 
   /**
    * Query models
-   * @param context - the execution context
+   * @param query - the query string
+   * @returns the query results
    */
-  async modelQuery(context: OperationContext) {
+  async modelQuery(query: string): Promise<any> {
+    const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass }>("operationContext");
-    const { query } = context.getParameters();
-    await runWithContext(context, async () => {
+    return runWithContext(context, async () => {
       try {
-        context.write(await model.query(query));
+        return await model.query(query);
       } catch (err) {
         if (err instanceof SyntaxError) {
           this.log("INFO", "Query syntax error");
@@ -316,35 +333,46 @@ export class DomainService<
 
   /**
    * Patch a model
-   * @param context - the execution context
+   * @param uuid - the model primary key
+   * @param input - the partial update data (may be undefined if schema was not resolvable)
+   * @returns the patched model instance
    */
-  async modelPatch(context: OperationContext) {
-    const object = await this.getModel(context);
-    const input = await context.getInput();
+  async modelPatch(uuid: string, input?: any): Promise<Model> {
+    const context = useContext<OperationContext>();
+    const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
+    const object = await this.loadModel(model, uuid);
+    // Fall back to context input when resolveArguments couldn't extract body
+    // (e.g., partial model schema not in application registry)
+    if (input === undefined) {
+      input = await context.getInput();
+    }
     //await object.checkAct(context, "update");
     await object.patch(input);
-    context.write(object);
+    return object;
   }
 
   /**
    * Action on a model
-   * @param context - the execution context
+   * @param args - arguments forwarded to the action method
+   * @returns the action result
    */
-  async modelAction(context: OperationContext) {
+  async modelAction(...args: any[]): Promise<any> {
+    const context = useContext<OperationContext>();
     const { model, action } = context.getExtension<{
       model: ModelClass<Model>;
       action: ModelAction & { name: string };
     }>("operationContext");
     if (!action.global) {
-      const object = await model.ref(context.getParameters().uuid).get();
+      // First arg is uuid when the action is instance-level
+      const uuid = args[0];
+      const object = await model.ref(uuid).get();
       if (!object || object.isDeleted()) {
         throw new WebdaError.NotFound("Object not found");
       }
       //await object.checkAct(context, action.name as ActionsEnum<Model>);
-      const output = await object[action.name](context);
-      context.write(output);
+      return object[action.name](context);
     } else {
-      model[action.name](context);
+      return model[action.name](context);
     }
   }
 
@@ -361,12 +389,20 @@ export class DomainService<
 
     const app = (this.app = <Application>(<any>useApplication()));
 
-    // Add default schemas - used for operation parameters
+    // Add default schemas - used for operation parameters validation
+    const appSchemas = app.getSchemas();
     for (const i in DomainService.schemas) {
       if (hasSchema(i)) {
         continue;
       }
       registerSchema(i, DomainService.schemas[i]);
+    }
+    // Register CRUD-relevant schemas in application schema registry so that
+    // resolveArguments can find them for typed parameter extraction.
+    // Binary schemas are intentionally NOT registered here — binary methods
+    // still use the context-based calling convention.
+    for (const name of ["uuidRequest", "searchRequest", "emptyParameters"]) {
+      appSchemas[name] ??= DomainService.schemas[name];
     }
 
     const models = app.getModels();
@@ -403,7 +439,7 @@ export class DomainService<
             method: k === "Create" ? "modelCreate" : "modelUpdate",
             input: modelSchema,
             output: modelSchema,
-            parameters: k === "Create" ? undefined : "uuidRequest",
+            parameters: k === "Create" ? "emptyParameters" : "uuidRequest",
             summary: k === "Create" ? `Create a new ${shortId}` : `Update a ${shortId}`,
             tags: [shortId],
             rest: { method: k === "Create" ? "post" : "put", path: k === "Create" ? "" : "{uuid}" },

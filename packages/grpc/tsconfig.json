@@ -1,11 +1,33 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "lib",
-    "rootDir": "src",
+    "target": "ES2022",
+    "module": "nodenext",
+    "outDir": "./lib",
+    "rootDir": "./src",
+    "strict": false,
     "declaration": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "isolatedModules": true,
+    "experimentalDecorators": false,
+    "esModuleInterop": true,
+    "moduleResolution": "nodenext",
+    "skipLibCheck": true,
+    "declarationMap": true,
+    "useDefineForClassFields": true,
+    "strictPropertyInitialization": false,
+    "lib": [
+      "ES2022",
+      "ESNext.Decorators"
+    ],
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.spec.ts", "node_modules", "lib"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "src/**/*.spec.ts"
+  ]
 }

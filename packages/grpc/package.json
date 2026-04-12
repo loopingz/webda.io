@@ -12,12 +12,18 @@
     "lint:fix": "eslint --fix src/"
   },
   "dependencies": {
-    "@webda/core": "^4.0.0-beta.1",
-    "@webda/workout": "^4.0.0-beta.1",
+    "@webda/workout": "workspace:*",
     "@grpc/proto-loader": "^0.7.0"
   },
+  "peerDependencies": {
+    "@webda/core": "^4.0.0-beta.1"
+  },
   "devDependencies": {
-    "@webda/test": "^4.0.0-beta.1",
+    "@webda/compiler": "workspace:^",
+    "@webda/core": "workspace:^",
+    "@webda/test": "workspace:^",
+    "@vitest/coverage-v8": "^4.1.2",
+    "vite": "^6.0.0",
     "vitest": "^4.0.0"
   },
   "webda": {

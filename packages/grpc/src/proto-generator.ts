@@ -38,7 +38,7 @@ export function generateProto(
     if (!serviceGroups.has(prefix)) {
       serviceGroups.set(prefix, []);
     }
-    serviceGroups.get(prefix).push({ opId, op, rpcName });
+    serviceGroups.get(prefix)!.push({ opId, op, rpcName });
   }
 
   // Generate messages for all referenced schemas
@@ -100,7 +100,7 @@ export function generateProto(
  * @returns the PascalCase protobuf message name derived from the reference
  */
 function schemaToMessageName(schemaRef: string): string {
-  const name = schemaRef.includes("/") ? schemaRef.split("/").pop() : schemaRef;
+  const name = (schemaRef.includes("/") ? schemaRef.split("/").pop() : schemaRef) ?? schemaRef;
   // Remove dots and capitalize
   return name
     .split(".")

@@ -4,6 +4,7 @@ import {
   OperationDefinition,
   callOperation,
   OperationContext,
+  SimpleOperationContext,
   WebContext,
   useCoreEvents,
   useApplication,
@@ -129,7 +130,7 @@ export class GrpcService<
         });
         this.buildRpcMap();
         this.log("INFO", `Loaded gRPC definitions from ${this.parameters.protoFile}`);
-      } catch (err) {
+      } catch (err: any) {
         this.log("WARN", `Failed to load proto file: ${err.message}`);
       }
     } else {
@@ -158,7 +159,7 @@ export class GrpcService<
     for (const [servicePath, def] of Object.entries(this.definitions)) {
       // servicePath looks like "webda.PostService" or just the method def
       if (typeof def !== "object" || !def) continue;
-      const methodDef = def as protoLoader.MethodDefinition<any, any>;
+      const methodDef = def as unknown as protoLoader.MethodDefinition<any, any>;
       if (methodDef.path) {
         // This is a method definition — path is like "/webda.PostService/Create"
         const grpcPath = methodDef.path;
@@ -204,7 +205,8 @@ export class GrpcService<
 
     const stream = new GrpcStream(req, res, methodDef);
     const operation = this.getOperations()[opId];
-    const streaming = operation?.grpc?.streaming || "none";
+    const grpc = operation?.grpc;
+    const streaming = (typeof grpc === "object" && grpc ? grpc.streaming : undefined) || "none";
 
     try {
       if (streaming === "bidi" || streaming === "client") {
@@ -238,7 +240,7 @@ export class GrpcService<
     return new Promise<void>((resolve, reject) => {
       stream.onMessage(async message => {
         try {
-          const ctx = new OperationContext();
+          const ctx = new SimpleOperationContext();
           await ctx.init();
           ctx.setInput(Buffer.from(JSON.stringify(message)));
           await callOperation(ctx, opId);
@@ -246,7 +248,7 @@ export class GrpcService<
           const response = output ? JSON.parse(output) : {};
           stream.sendUnary(response);
           resolve();
-        } catch (err) {
+        } catch (err: any) {
           const status = this.errorToGrpcStatus(err);
           stream.sendError(status, err.message);
           resolve(); // Don't reject — error was sent via gRPC status
@@ -271,7 +273,7 @@ export class GrpcService<
     return new Promise<void>((resolve, reject) => {
       stream.onMessage(async message => {
         try {
-          const ctx = new OperationContext();
+          const ctx = new SimpleOperationContext();
           await ctx.init();
           ctx.setInput(Buffer.from(JSON.stringify(message)));
           await callOperation(ctx, opId);
@@ -291,7 +293,7 @@ export class GrpcService<
           }
           stream.end(GrpcStatus.OK);
           resolve();
-        } catch (err) {
+        } catch (err: any) {
           const status = this.errorToGrpcStatus(err);
           stream.sendError(status, err.message);
           resolve();
@@ -322,7 +324,7 @@ export class GrpcService<
       stream.onEnd(async () => {
         try {
           // For client streaming: process all collected messages
-          const ctx = new OperationContext();
+          const ctx = new SimpleOperationContext();
           await ctx.init();
           ctx.setInput(Buffer.from(JSON.stringify(messages)));
           await callOperation(ctx, opId);
@@ -337,7 +339,7 @@ export class GrpcService<
             stream.sendUnary(response);
           }
           resolve();
-        } catch (err) {
+        } catch (err: any) {
           const status = this.errorToGrpcStatus(err);
           stream.sendError(status, err.message);
           resolve();

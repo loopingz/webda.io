@@ -1,0 +1,115 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/GrpcService": {
+      "Import": "lib/grpcservice:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Parameters for the gRPC service",
+        "properties": {
+          "operations": {
+            "default": [
+              "*"
+            ],
+            "description": "List of operations to include/exclude\nSupports wildcards and negation: [\"*\", \"!User.Delete\"]",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "packageName": {
+            "default": "webda",
+            "description": "Protobuf package name",
+            "type": "string"
+          },
+          "protoFile": {
+            "default": ".webda/app.proto",
+            "description": "Path to the generated .proto file",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "GrpcService"
+      },
+      "Configuration": "lib/grpcservice:GrpcServiceParameters",
+      "commands": {
+        "generate-proto": {
+          "description": "Generate protobuf definition from operations",
+          "method": "generateProto",
+          "args": {
+            "output": {
+              "type": "string",
+              "alias": "o",
+              "description": "Output file path"
+            }
+          },
+          "requires": [
+            "rest-domain"
+          ]
+        }
+      }
+    }
+  },
+  "models": {},
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "challenge": {
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
+        },
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    }
+  },
+  "capabilities": {
+    "grpc": "Webda/GrpcService"
+  }
+}

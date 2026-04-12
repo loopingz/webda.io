@@ -12,6 +12,8 @@ const LEVEL_COLORS = {
   TRACE: "#4b5563"
 };
 
+const LEVEL_ORDER = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"];
+
 function formatTime(ts) {
   if (!ts) return "-";
   return new Date(ts).toISOString().substring(11, 23);
@@ -59,7 +61,8 @@ export function LogsPanel({ data }) {
     }
   }, [entries, autoScroll]);
 
-  const filtered = levelFilter === "ALL" ? entries : entries.filter((e) => e.level === levelFilter);
+  const minLevel = LEVEL_ORDER.indexOf(levelFilter);
+  const filtered = levelFilter === "ALL" ? entries : entries.filter((e) => LEVEL_ORDER.indexOf(e.level) >= minLevel);
 
   return html`
     <div>
@@ -77,11 +80,11 @@ export function LogsPanel({ data }) {
           style="padding:6px;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-primary);border-radius:4px"
         >
           <option value="ALL">All levels</option>
-          <option value="ERROR">ERROR</option>
-          <option value="WARN">WARN</option>
-          <option value="INFO">INFO</option>
-          <option value="DEBUG">DEBUG</option>
-          <option value="TRACE">TRACE</option>
+          <option value="ERROR">ERROR only</option>
+          <option value="WARN">WARN+</option>
+          <option value="INFO">INFO+</option>
+          <option value="DEBUG">DEBUG+</option>
+          <option value="TRACE">TRACE (all)</option>
         </select>
         <label style="display:flex;align-items:center;gap:4px;color:var(--text-muted);font-size:12px">
           <input type="checkbox" checked=${autoScroll} onChange=${(e) => setAutoScroll(e.target.checked)} />

@@ -70,14 +70,29 @@ export interface RouteInfoEntry {
  */
 export function getModels(): ModelInfo[] {
   const app = useApplication();
+  const core = useCore();
   const models = app.getModels();
   return Object.entries(models).map(([key, model]) => {
     const metadata = useModelMetadata(model);
+    let storeName: string | undefined;
+    let storeType: string | undefined;
+    try {
+      const store = core.getModelStore(model);
+      if (store) {
+        storeName = store.getName();
+        storeType = store.constructor?.name;
+      }
+    } catch {
+      // No store assigned
+    }
     return {
       id: metadata?.Identifier || key,
       plural: metadata?.Plural || key,
       actions: Object.keys(metadata?.Actions || {}),
       relations: metadata?.Relations || {},
+      store: storeName,
+      storeType,
+      schemas: metadata?.Schemas,
       metadata
     };
   });

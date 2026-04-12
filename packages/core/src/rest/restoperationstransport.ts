@@ -243,7 +243,7 @@ export class RESTOperationsTransport<
     const { Relations: relations, Identifier, Plural: plural, Actions: actions } = metadata;
     const injectAttribute = relations?.parent?.attribute;
     const shortId = Identifier.split("/").pop();
-    const name = shortId;
+    const name = plural;
 
     // Build prefix for this model
     const prefix = basePrefix + this.transformName(name);

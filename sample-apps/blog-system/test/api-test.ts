@@ -35,7 +35,8 @@ class BlogSystemAppTest extends WebdaApplicationTest {
       type: "Webda/DomainService"
     };
     app.getCurrentConfiguration().services.RESTService = {
-      type: "Webda/RESTOperationsTransport"
+      type: "Webda/RESTOperationsTransport",
+      exposeOpenAPI: true
     };
   }
 

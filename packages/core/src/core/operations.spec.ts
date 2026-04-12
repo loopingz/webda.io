@@ -1035,4 +1035,375 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     // When schema not found, getSchema returns undefined, falls to no-schema path
     assert.deepStrictEqual(args, [{ key: "value" }]);
   }
+
+  @test
+  async resolveArgsParametersOnlySchema() {
+    // When only parameters schema is defined (no input), extract params by schema property names
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.ParamsOnly"] = {
+      type: "object",
+      properties: {
+        uuid: { type: "string" }
+      }
+    };
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters({ uuid: "my-uuid-123" });
+    const args = await resolveArguments(ctx, {
+      id: "Test.Op",
+      method: "test",
+      parameters: "Test.ParamsOnly"
+    });
+    assert.deepStrictEqual(args, ["my-uuid-123"]);
+  }
+
+  @test
+  async resolveArgsParametersOnlyMultipleProps() {
+    // Parameters-only schema with multiple properties
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.ParamsOnlyMulti"] = {
+      type: "object",
+      properties: {
+        uuid: { type: "string" },
+        index: { type: "number" }
+      }
+    };
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters({ uuid: "abc", index: 3 });
+    const args = await resolveArguments(ctx, {
+      id: "Test.Op",
+      method: "test",
+      parameters: "Test.ParamsOnlyMulti"
+    });
+    assert.deepStrictEqual(args, ["abc", 3]);
+  }
+
+  @test
+  async resolveArgsBothParametersAndInput() {
+    // When both parameters and input schemas are resolvable, extract params then append body
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.BothParams"] = {
+      type: "object",
+      properties: {
+        uuid: { type: "string" }
+      }
+    };
+    app.getSchemas()["Test.BothInput"] = {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        value: { type: "number" }
+      }
+    };
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters({ uuid: "update-uuid" });
+    ctx.setInput(JSON.stringify({ name: "updated", value: 42 }));
+    const args = await resolveArguments(ctx, {
+      id: "Test.Op",
+      method: "test",
+      parameters: "Test.BothParams",
+      input: "Test.BothInput"
+    });
+    // Should be [uuid, {body}]
+    assert.strictEqual(args.length, 2);
+    assert.strictEqual(args[0], "update-uuid");
+    assert.deepStrictEqual(args[1], { name: "updated", value: 42 });
+  }
+
+  @test
+  async resolveArgsBothSchemasNotResolvable() {
+    // When both parameters and input are set but schemas are not resolvable,
+    // should fall through to the merge path
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters({ uuid: "fallback-uuid" });
+    ctx.setInput(JSON.stringify({ name: "fallback" }));
+    const args = await resolveArguments(ctx, {
+      id: "Test.Op",
+      method: "test",
+      parameters: "NonExistent.Params",
+      input: "NonExistent.Input"
+    });
+    // Falls through to no-schema path — input is returned as single arg
+    assert.deepStrictEqual(args, [{ name: "fallback" }]);
+  }
+
+  @test
+  async resolveArgsSinglePropertySchemaWholeInput() {
+    // Single property schema where the key does not match anything in merged
+    // Should pass whole input as the argument
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.SingleWhole"] = {
+      type: "object",
+      properties: {
+        body: { type: "object" }
+      }
+    };
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    // Input has a different key than "body"
+    ctx.setInput(JSON.stringify({ nested: { deep: true } }));
+    const args = await resolveArguments(ctx, {
+      id: "Test.Op",
+      method: "test",
+      input: "Test.SingleWhole"
+    });
+    // Since "body" is not in merged and input is an object, returns [input]
+    assert.deepStrictEqual(args, [{ nested: { deep: true } }]);
+  }
+}
+
+/**
+ * Service that records the uuid used to call a model instance method
+ */
+class ModelInstanceService extends Service {
+  static createConfiguration(params: any) {
+    return new ServiceParameters().load(params);
+  }
+
+  static filterParameters(params: any) {
+    return params;
+  }
+
+  async doSomething(_ctx: OperationContext) {
+    // no-op
+  }
+}
+
+@suite
+class CallOperationModelPathTest extends WebdaApplicationTest {
+  getTestConfiguration() {
+    return process.cwd() + "/../../sample-app";
+  }
+
+  protected async buildWebda() {
+    const core = await super.buildWebda();
+    core.getBeans = () => {};
+    core.registerBeans = () => {};
+    return core;
+  }
+
+  @test
+  async callOperationNoServiceOrModel() {
+    // An operation with neither service nor model should throw
+    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
+    const storage = getStorage();
+    storage.operations["Fake.NoTarget"] = {
+      id: "Fake.NoTarget",
+      method: "doSomething"
+    } as any;
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    await assert.rejects(() => callOperation(ctx, "Fake.NoTarget"), /NoServiceOrModel/);
+    // Clean up
+    delete storage.operations["Fake.NoTarget"];
+  }
+
+  @test
+  async registerOperationWithModel() {
+    // Register an operation with model= instead of service=
+    // Brand has static query method from the mixin
+    registerOperation("Brand.StaticQuery", {
+      model: "Brand",
+      method: "query"
+    });
+    const ops = listOperations();
+    assert.ok(ops["Brand.StaticQuery"]);
+    // listOperations strips service and method, but model is preserved
+    assert.strictEqual(ops["Brand.StaticQuery"]["method"], undefined);
+    assert.strictEqual(ops["Brand.StaticQuery"]["service"], undefined);
+  }
+
+  @test
+  async registerOperationWithModelBadMethod() {
+    // Model exists but method doesn't
+    assert.throws(
+      () =>
+        registerOperation("Brand.BadMethod", {
+          model: "Brand",
+          method: "nonExistentMethod"
+        }),
+      /method nonExistentMethod not found/
+    );
+  }
+
+  @test
+  async callOperationModelStaticMethod() {
+    // Test the static model method path in callOperation (lines 200-204)
+    // Register a model-based operation calling a static method
+    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
+    const { MemoryRepository, registerRepository } = await import("@webda/models");
+    const { useModel } = await import("../application/hooks.js");
+
+    const Brand = useModel("Brand");
+    const repo = new MemoryRepository(Brand, ["uuid"]);
+    registerRepository(Brand, repo);
+
+    // Manually insert the operation as model-based with static=true (or not false)
+    getStorage().operations["Brand.StaticQueryOp"] = {
+      id: "Brand.StaticQueryOp",
+      model: "Brand",
+      method: "query",
+      parameters: "searchRequest"
+    } as any;
+
+    try {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.setParameters({ query: "" });
+      await callOperation(ctx, "Brand.StaticQueryOp");
+      const output = ctx.getOutput();
+      assert.ok(output, "Static model method should produce output");
+    } finally {
+      delete getStorage().operations["Brand.StaticQueryOp"];
+    }
+  }
+
+  @test
+  async callOperationModelInstanceMethod() {
+    // Test the instance model method path in callOperation (lines 188-198)
+    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
+    const { MemoryRepository, registerRepository } = await import("@webda/models");
+    const { useModel } = await import("../application/hooks.js");
+
+    const Brand = useModel("Brand");
+    const repo = new MemoryRepository(Brand, ["uuid"]);
+    registerRepository(Brand, repo);
+
+    const uuid = "instance-method-test";
+    await Brand.create({ uuid, name: "TestBrand" } as any);
+
+    // Register a model-based instance operation (static=false)
+    // Use "delete" which is an instance method
+    getStorage().operations["Brand.InstanceDelete"] = {
+      id: "Brand.InstanceDelete",
+      model: "Brand",
+      method: "delete",
+      static: false,
+      parameters: "uuidRequest"
+    } as any;
+
+    try {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.setParameters({ uuid });
+      await callOperation(ctx, "Brand.InstanceDelete");
+      // Verify the object was deleted
+      let found = false;
+      try {
+        const obj = await repo.get(uuid);
+        found = obj !== undefined && !obj.isDeleted();
+      } catch {
+        // Not found means deleted
+      }
+      assert.ok(!found, "Object should be deleted after instance method call");
+    } finally {
+      delete getStorage().operations["Brand.InstanceDelete"];
+    }
+  }
+
+  @test
+  async callOperationModelInstanceNotFound() {
+    // Test the instance model method path when object not found (lines 194-196)
+    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
+    const { MemoryRepository, registerRepository } = await import("@webda/models");
+    const { useModel } = await import("../application/hooks.js");
+
+    const Brand = useModel("Brand");
+    const repo = new MemoryRepository(Brand, ["uuid"]);
+    registerRepository(Brand, repo);
+
+    getStorage().operations["Brand.InstanceGetMissing"] = {
+      id: "Brand.InstanceGetMissing",
+      model: "Brand",
+      method: "delete",
+      static: false,
+      parameters: "uuidRequest"
+    } as any;
+
+    try {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.setParameters({ uuid: "nonexistent" });
+      await assert.rejects(() => callOperation(ctx, "Brand.InstanceGetMissing"), /not found|Not found/i);
+    } finally {
+      delete getStorage().operations["Brand.InstanceGetMissing"];
+    }
+  }
+
+  @test
+  async callOperationModelInstanceDeleted() {
+    // Test the instance model path when object exists but isDeleted() returns true (line 195)
+    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
+    const { MemoryRepository, registerRepository } = await import("@webda/models");
+    const { useModel } = await import("../application/hooks.js");
+
+    const Brand = useModel("Brand");
+    const repo = new MemoryRepository(Brand, ["uuid"]);
+    registerRepository(Brand, repo);
+
+    const uuid = "deleted-instance-test";
+    const obj = await Brand.create({ uuid, name: "WillBeDeleted" } as any);
+    // Soft-delete the object so isDeleted() returns true
+    await repo.delete(uuid);
+
+    getStorage().operations["Brand.InstanceOnDeleted"] = {
+      id: "Brand.InstanceOnDeleted",
+      model: "Brand",
+      method: "delete",
+      static: false,
+      parameters: "uuidRequest"
+    } as any;
+
+    try {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.setParameters({ uuid });
+      await assert.rejects(() => callOperation(ctx, "Brand.InstanceOnDeleted"), /not found|Not found/i);
+    } finally {
+      delete getStorage().operations["Brand.InstanceOnDeleted"];
+    }
+  }
+
+  @test
+  async callOperationParameterValidationError() {
+    // Test the parameter validation error path (lines 71-74)
+    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
+
+    // Register a schema that requires specific parameters
+    registerSchema("strict.params.schema", {
+      type: "object",
+      properties: {
+        uuid: { type: "string", minLength: 1 }
+      },
+      required: ["uuid"]
+    });
+
+    getStorage().operations["Brand.StrictParams"] = {
+      id: "Brand.StrictParams",
+      model: "Brand",
+      method: "query",
+      parameters: "strict.params.schema"
+    } as any;
+
+    try {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      // Provide empty parameters - should fail validation
+      ctx.setParameters({});
+      await assert.rejects(
+        () => callOperation(ctx, "Brand.StrictParams"),
+        (err: any) => err.message.includes("InvalidParameters")
+      );
+    } finally {
+      delete getStorage().operations["Brand.StrictParams"];
+    }
+  }
 }

@@ -12,6 +12,8 @@ import { createChecker } from "is-in-subnet";
 import { useLog } from "@webda/workout";
 import type { JSONed } from "@webda/models";
 import { Writable } from "node:stream";
+import { useRouter } from "../rest/hooks.js";
+import { runWithContext } from "../contexts/execution.js";
 
 /** Parameters for the HTTP server including request limits, timeouts, and trusted proxy settings */
 class HttpServerParameters extends ServiceParameters {
@@ -137,12 +139,43 @@ export class HttpServer<
         await new Promise(resolve => this.server.close(resolve));
       }
       this.server = createServer(async (req, res) => {
-        // TODO Initiate the httpContext
-        const context = await this.getContextFromRequest(req, res);
-        await emitCoreEvent("Webda.Request", { context: context as WebContext });
-        res.on("close", async () => {});
-        await emitCoreEvent("Webda.Result", { context: context as WebContext });
+        try {
+          const ctx = await this.getContextFromRequest(req, res);
+          if (!ctx) {
+            res.writeHead(500);
+            res.end();
+            return;
+          }
+          const webCtx = ctx as WebContext;
+          await runWithContext(webCtx, async () => {
+            try {
+              await emitCoreEvent("Webda.Request", { context: webCtx });
+              await useRouter().execute(webCtx);
+              await emitCoreEvent("Webda.Result", { context: webCtx });
+            } catch (err) {
+              webCtx.statusCode = err?.getResponseCode?.() || 500;
+            }
+          });
+          // Flush headers and body to the HTTP response
+          if (!res.headersSent) {
+            res.writeHead(webCtx.statusCode || 200, webCtx.getResponseHeaders());
+          }
+          const body = webCtx.getOutput();
+          if (body) {
+            res.end(body);
+          } else {
+            res.end();
+          }
+        } catch (err) {
+          // Ensure the response is always closed
+          if (!res.headersSent) {
+            res.writeHead(500);
+          }
+          res.end();
+        }
       });
+      // Ensure routes are mapped before accepting requests
+      useRouter().remapRoutes();
       this.server.listen(port || params.port || 18080);
     });
     // We do not want to stop server if other params are changed

@@ -82,6 +82,11 @@ export class Application {
   protected models: { [key: string /* LongId */]: ModelDefinition } = {};
 
   /**
+   * Beans registry
+   */
+  protected beans: { [key: string]: Modda } = {};
+
+  /**
    * Class Logger
    */
   protected logger: WorkerOutput;
@@ -671,28 +676,17 @@ export class Application {
         }
       }
     };
+    // Filter beans based on ignoreBeans configuration
+    if (info.beans) {
+      const ignoreBeans = this.baseConfiguration?.parameters?.ignoreBeans;
+      for (const f of Object.keys(info.beans)) {
+        if (ignoreBeans === true) continue;
+        if (Array.isArray(ignoreBeans) && ignoreBeans.includes(f)) continue;
+        this.baseConfiguration.cachedModules.beans[f] = info.beans[f];
+      }
+    }
     // TODO Merging tree from different modules
-    await Promise.all([
-      sectionLoader("moddas"),
-      sectionLoader("models"),
-      ...Object.keys(info.beans || {})
-        .filter(f => {
-          if (this.baseConfiguration?.parameters?.ignoreBeans === true) {
-            return false;
-          }
-          if (
-            this.baseConfiguration?.parameters?.ignoreBeans &&
-            Array.isArray(this.baseConfiguration.parameters.ignoreBeans)
-          ) {
-            return !this.baseConfiguration.parameters.ignoreBeans.includes(f);
-          }
-          return true;
-        })
-        .map(f => {
-          this.baseConfiguration.cachedModules.beans[f] = info.beans[f];
-          return this.importFile(join(parent, info.beans[f].Import), false).catch(this.log.bind(this, "WARN"));
-        })
-    ]);
+    await Promise.all([sectionLoader("moddas"), sectionLoader("models"), sectionLoader("beans")]);
     // Set metadata on models - need to be done after all models are loaded
     this.setModelMetadata(info.models);
   }

@@ -35,13 +35,16 @@ export default defineConfig({
       "src/models/user.spec.ts",
       "src/queues/*.spec.ts",
       //"src/rest/*.spec.ts",
+      "src/rest/restoperationstransport.spec.ts",
       "src/schemas/*.spec.ts",
       //"src/services/authentication.spec.ts", // Need refactor
       "src/services/cloudbinary.spec.ts",
       "src/services/cron.spec.ts",
       "src/services/cryptoservice.spec.ts",
       "src/services/debugmailer.spec.ts",
-      //"src/services/domainservice.spec.ts", // Need refactor
+      "src/services/domainservice.spec.ts",
+      "src/services/audit.spec.ts",
+      "src/services/operationstransport.spec.ts",
       //"src/services/httpserver.spec.ts",
       "src/services/mailer.spec.ts",
       "src/services/notificationservice.spec.ts",

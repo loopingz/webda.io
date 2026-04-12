@@ -1,39 +1,196 @@
+
+
 import { useCoreEvents } from "../events/events.js";
-import { Inject, Service } from "../services/service.js";
+import { Service } from "../services/service.js";
+import { ServiceParameters } from "./serviceparameters.js";
+import { Inject } from "../services/service.js";
 import { Store } from "../stores/store.js";
+import { CoreModel } from "../models/coremodel.js";
 
 /**
- * Define audit entry
+ * Represents a single audit log entry
  */
-class AuditService extends Service {
-  @Inject("auditStore", "auditStore")
+export class AuditEntry extends CoreModel {
+  operationId: string;
+  success: boolean;
+  error?: string;
+  userId?: string;
+  timestamp: Date;
+}
+
+/**
+ * Parameters for the AuditService
+ */
+export class AuditServiceParameters extends ServiceParameters {
+  /**
+   * List of operations to include/exclude.
+   * Supports wildcards and negation: ["*", "!User.Delete"]
+   * @default ["*"]
+   */
+  operations?: string[];
+
+  /**
+   * Audit level filter:
+   *  - "all"     — audit everything (default)
+   *  - "write"   — everything except read operations (Get, List, Query)
+   *  - "failure" — only failed operations
+   * @default "all"
+   */
+  level?: "all" | "write" | "failure";
+
+  /**
+   * Service name of the store used for persistence (optional).
+   * @default "auditStore"
+   */
+  store?: string;
+
+  /**
+   * Parsed exclude list
+   * @SchemaIgnore
+   */
+  private excludedOperations: string[];
+
+  /**
+   * Load parameters and parse include/exclude lists
+   * @param params - the service parameters
+   * @returns this for chaining
+   */
+  load(params: any = {}): this {
+    super.load(params);
+    this.level ??= "all";
+    this.operations ??= ["*"];
+    if (this.operations.some(i => i.startsWith("!"))) {
+      this.excludedOperations = this.operations.filter(i => i.startsWith("!")).map(i => i.substring(1));
+      this.operations = this.operations.filter(i => !i.startsWith("!"));
+      if (this.operations.length === 0) {
+        this.operations = ["*"];
+      }
+    }
+    this.excludedOperations ??= [];
+    return this;
+  }
+
+  /**
+   * Check if an operation matches a pattern (supports trailing wildcard)
+   * @param operationId - the operation identifier
+   * @param pattern - the pattern to match against
+   * @returns true if the operation matches the pattern
+   */
+  private matchesPattern(operationId: string, pattern: string): boolean {
+    if (pattern === "*") return true;
+    if (pattern.endsWith(".*")) {
+      return operationId.startsWith(pattern.slice(0, -1));
+    }
+    return operationId === pattern;
+  }
+
+  /**
+   * Check if an operation is included by this configuration
+   * @param operationId - the operation identifier
+   * @returns true if the operation is included
+   */
+  isIncluded(operationId: string): boolean {
+    if (this.excludedOperations.some(p => this.matchesPattern(operationId, p))) {
+      return false;
+    }
+    return this.operations.some(p => this.matchesPattern(operationId, p));
+  }
+}
+
+/**
+ * Read-only operation suffixes excluded from "write" level auditing
+ */
+const READ_SUFFIXES = ["Get", "List", "Query"];
+
+/**
+ * @WebdaModda AuditService
+ *
+ * Service that listens to operation success/failure events and records audit entries.
+ * Entries are stored in memory (accessible via getEntries()) and optionally
+ * persisted to a store configured via the `store` parameter.
+ */
+export class AuditService extends Service<AuditServiceParameters> {
+  /**
+   * Optional persistence store
+   */
+  @Inject("params:store", "auditStore", true)
   auditStore: Store;
-  test: string;
+
+  /**
+   * In-memory log of audit entries
+   */
+  protected entries: AuditEntry[] = [];
+
 
   /**
    * Subscribe to operation success and failure events for audit logging
-   * @returns the result
+   * @returns this for chaining
    */
-  resolve() {
+  resolve(): this {
     super.resolve();
-    useCoreEvents("Webda.OperationFailure", async (evt) => {
-      await this.addAuditEntry(evt.context, evt.error);
+    useCoreEvents("Webda.OperationFailure", async evt => {
+      await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), evt.error);
     });
-    useCoreEvents("Webda.OperationSuccess", async (evt) => {
-      await this.addAuditEntry(evt.context);
+    useCoreEvents("Webda.OperationSuccess", async evt => {
+      await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId());
     });
     return this;
   }
 
   /**
-   * Create and store an audit entry for the given context and optional error
-   * @param ctx - the operation context
-   * @param err - the err
+   * Get all in-memory audit entries
+   * @returns the list of audit entries
    */
-  async addAuditEntry(ctx, err?: Error) {
-      if (!this.auditStore) {
-        return;    
-    }
+  getEntries(): AuditEntry[] {
+    return this.entries;
   }
 
+  /**
+   * Determine whether the given operation should be audited
+   * based on include/exclude filters and level configuration.
+   * @param operationId - the operation identifier
+   * @param success - whether the operation succeeded
+   * @returns true if this operation should be audited
+   */
+  shouldAudit(operationId: string, success: boolean): boolean {
+    // Check include/exclude filter
+    if (!this.parameters.isIncluded(operationId)) {
+      return false;
+    }
+    // Check level filter
+    const level = this.parameters.level ?? "all";
+    if (level === "failure") {
+      return !success;
+    }
+    if (level === "write") {
+      const suffix = operationId.split(".").pop() ?? "";
+      return !READ_SUFFIXES.includes(suffix);
+    }
+    return true;
+  }
+
+  /**
+   * Create and store an audit entry for the given operation context and optional error
+   * @param operationId - the operation identifier
+   * @param userId - the user identifier (may be undefined for anonymous)
+   * @param err - the error if the operation failed
+   */
+  async addAuditEntry(operationId: string, userId?: string, err?: Error): Promise<void> {
+    const success = err === undefined;
+    if (!this.shouldAudit(operationId, success)) {
+      return;
+    }
+    const entry = new AuditEntry();
+    entry.operationId = operationId;
+    entry.success = success;
+    entry.userId = userId;
+    entry.timestamp = new Date();
+    if (err) {
+      entry.error = err.message;
+    }
+    this.entries.push(entry);
+    if (this.auditStore) {
+      await entry.save();
+    }
+  }
 }

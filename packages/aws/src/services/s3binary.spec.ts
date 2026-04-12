@@ -1,5 +1,5 @@
 import { DeleteObjectsCommandInput, HeadObjectCommand, ListObjectsV2Command, S3 } from "@aws-sdk/client-s3";
-import { BinaryService, RESTDomainService } from "@webda/core";
+import { BinaryService, RESTOperationsTransport } from "@webda/core";
 import { BinaryTest } from "@webda/core/lib/services/binary.spec";
 import { TestApplication } from "@webda/core/lib/test";
 import { suite, test } from "@webda/test";
@@ -242,7 +242,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   @test
   async redirectUrl() {
     const { user1, ctx } = await this.setupDefault();
-    await this.addService(RESTDomainService, {}, "test");
+    await this.addService(RESTOperationsTransport, {}, "test");
     // Making sure we are redirected on GET
     const executor = this.getExecutor(
       ctx,
@@ -258,7 +258,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   @test
   async redirectUrlInfo() {
     const { user1, ctx } = await this.setupDefault();
-    await this.addService(RESTDomainService, {}, "test");
+    await this.addService(RESTOperationsTransport, {}, "test");
     // Making sure we are redirected on GET
     const executor = this.getExecutor(
       ctx,

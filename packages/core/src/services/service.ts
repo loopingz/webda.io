@@ -10,6 +10,7 @@ import type { Logger } from "../loggers/ilogger.js";
 import type { OperationContext } from "../contexts/operationcontext.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { useDynamicService, useService } from "../core/hooks.js";
+import { registerOperation } from "../core/operations.js";
 import { deepmerge } from "deepmerge-ts";
 import type { ServiceName, ServicesMap } from "../core/hooks.js";
 import { useApplication } from "../application/hooks.js";
@@ -429,27 +430,33 @@ abstract class Service<
   }
 
   /**
-   * Init the operations
+   * Init the operations from @Operation decorators on this service
    */
   initOperations() {
-    // @ts-ignore
-    const operations = this.constructor.operations || {};
-    for (const j in operations) {
-      const id = this.getOperationId(j);
-      if (!id) continue;
-      this.log("TRACE", "Adding operation", id, "for bean", this.getName());
-      let name = this.getName();
-      name = name.substring(0, 1).toUpperCase() + name.substring(1);
-      /*
-      TODO Fix this
-      this._webda.registerOperation(j.includes(".") ? j : `${name}.${j}`, {
-        ...operations[j],
+    // Read @Operation decorator metadata from Symbol.metadata
+    const metadata = getMetadata(this.constructor as any);
+    const operations: any[] = metadata?.["webda.operations"] || [];
+    if (operations.length === 0) return;
+    let serviceName = this.getName();
+    serviceName = serviceName.substring(0, 1).toUpperCase() + serviceName.substring(1);
+    for (const op of operations) {
+      // The decorator stores context.name first, then spreads options which may override id
+      // We need the actual method name (context.name) for execution
+      const actualMethod = op._methodName as string;
+      const opName = op.id as string;
+      const opId = opName.includes(".")
+        ? opName
+        : `${serviceName}.${opName.substring(0, 1).toUpperCase() + opName.substring(1)}`;
+      if (!this.getOperationId(opId)) continue;
+      this.log("TRACE", "Adding operation", opId, "for service", this.getName());
+      registerOperation(opId, {
+        ...op,
         service: this.getName(),
-        input: `${this.getName()}.${operations[j].method}.input`,
-        output: `${this.getName()}.${operations[j].method}.output`,
-        id
+        method: actualMethod,
+        input: `${this.getName()}.${actualMethod}.input`,
+        output: `${this.getName()}.${actualMethod}.output`,
+        id: opId
       });
-      */
     }
   }
 

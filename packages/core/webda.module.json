@@ -3,6 +3,55 @@
   "beans": {},
   "deployers": {},
   "moddas": {
+    "Webda/AuditService": {
+      "Import": "lib/services/audit:AuditService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Parameters for the AuditService",
+        "properties": {
+          "level": {
+            "default": "all",
+            "description": "Audit level filter:\n - \"all\"     — audit everything (default)\n - \"write\"   — everything except read operations (Get, List, Query)\n - \"failure\" — only failed operations",
+            "enum": [
+              "all",
+              "write",
+              "failure"
+            ],
+            "type": "string"
+          },
+          "operations": {
+            "default": [
+              "*"
+            ],
+            "description": "List of operations to include/exclude.\nSupports wildcards and negation: [\"*\", \"!User.Delete\"]",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "store": {
+            "default": "auditStore",
+            "description": "Service name of the store used for persistence (optional).",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "AuditService"
+      },
+      "Configuration": "lib/services/audit:AuditServiceParameters"
+    },
     "Webda/Authentication": {
       "Import": "lib/services/authentication:Authentication",
       "Schema": {
@@ -722,6 +771,73 @@
       },
       "Configuration": "lib/services/serviceparameters:ServiceParameters"
     },
+    "Webda/DomainService": {
+      "Import": "lib/services/domainservice:DomainService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Parameters for DomainService, controlling model exposure, URL naming, and query methods",
+        "properties": {
+          "models": {
+            "default": [
+              "*"
+            ],
+            "description": "List of models to include\n\nIf model is prefixed with a ! it will be excluded",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "nameTransfomer": {
+            "default": "camelCase",
+            "description": "Transform the name of the model to be used in the URL",
+            "enum": [
+              "none",
+              "camelCase",
+              "ENV_VAR",
+              "snake_case",
+              "PascalCase",
+              "kebab-case",
+              "UPPERCASE",
+              "lowercase"
+            ],
+            "see": [
+              "https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go",
+              "https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go"
+            ],
+            "type": "string"
+          },
+          "operations": {
+            "default": true,
+            "description": "Expose objects as operations too",
+            "type": "boolean"
+          },
+          "queryMethod": {
+            "default": "PUT",
+            "description": "Method used for query objects",
+            "enum": [
+              "PUT",
+              "GET"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "DomainService"
+      },
+      "Configuration": "lib/services/domainservice:DomainServiceParameters"
+    },
     "Webda/FileConfiguration": {
       "Import": "lib/configurations/fileconfiguration:FileConfigurationService",
       "Schema": {
@@ -1241,73 +1357,6 @@
       },
       "Configuration": "lib/stores/memory:MemoryStoreParameters"
     },
-    "Webda/ModelsOperationsService": {
-      "Import": "lib/services/domainservice:ModelsOperationsService",
-      "Schema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "additionalProperties": false,
-        "description": "Parameters for DomainService, controlling model exposure, URL naming, and query methods",
-        "properties": {
-          "models": {
-            "default": [
-              "*"
-            ],
-            "description": "List of models to include\n\nIf model is prefixed with a ! it will be excluded",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "nameTransfomer": {
-            "default": "camelCase",
-            "description": "Transform the name of the model to be used in the URL",
-            "enum": [
-              "none",
-              "camelCase",
-              "ENV_VAR",
-              "snake_case",
-              "PascalCase",
-              "kebab-case",
-              "UPPERCASE",
-              "lowercase"
-            ],
-            "see": [
-              "https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go",
-              "https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go"
-            ],
-            "type": "string"
-          },
-          "operations": {
-            "default": true,
-            "description": "Expose objects as operations too",
-            "type": "boolean"
-          },
-          "queryMethod": {
-            "default": "PUT",
-            "description": "Method used for query objects",
-            "enum": [
-              "PUT",
-              "GET"
-            ],
-            "type": "string"
-          },
-          "type": {
-            "description": "Type of the service",
-            "type": "string"
-          },
-          "openapi": {
-            "type": "object",
-            "additionalProperties": true
-          }
-        },
-        "required": [
-          "type"
-        ],
-        "type": "object",
-        "title": "ModelsOperationsService"
-      },
-      "Configuration": "lib/services/domainservice:DomainServiceParameters"
-    },
     "Webda/MultiNotificationService": {
       "Import": "lib/services/notificationservice:default",
       "Schema": {
@@ -1418,28 +1467,19 @@
       },
       "Configuration": "lib/services/prometheus:PrometheusParameters"
     },
-    "Webda/RESTDomainService": {
-      "Import": "lib/rest/restdomainservice:RESTDomainService",
+    "Webda/RESTOperationsTransport": {
+      "Import": "lib/rest/restoperationstransport:RESTOperationsTransport",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "description": "Parameters for RESTOperationsTransport",
         "properties": {
           "exposeOpenAPI": {
-            "default": true,
+            "default": "true if debug false otherwise",
             "description": "Expose the OpenAPI",
             "type": "boolean"
           },
-          "models": {
-            "default": [
-              "*"
-            ],
-            "description": "List of models to include\n\nIf model is prefixed with a ! it will be excluded",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "nameTransfomer": {
+          "nameTransformer": {
             "default": "camelCase",
             "description": "Transform the name of the model to be used in the URL",
             "enum": [
@@ -1454,14 +1494,19 @@
             ],
             "see": [
               "https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go",
-              "https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go"
+              "https://blog.boot.dev/clean-code/casings-in-coding/"
             ],
             "type": "string"
           },
           "operations": {
-            "default": true,
-            "description": "Expose objects as operations too",
-            "type": "boolean"
+            "default": [
+              "*"
+            ],
+            "description": "List of operations to include/exclude\nSupports wildcards and negation: [\"*\", \"!User.Delete\"]",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "queryMethod": {
             "default": "PUT",
@@ -1483,7 +1528,7 @@
           },
           "url": {
             "default": "/",
-            "description": "When to query",
+            "description": "Base URL for the REST API",
             "type": "string"
           },
           "openapi": {
@@ -1495,9 +1540,9 @@
           "type"
         ],
         "type": "object",
-        "title": "RESTDomainService"
+        "title": "RESTOperationsTransport"
       },
-      "Configuration": "lib/rest/restdomainservice:RESTDomainServiceParameters"
+      "Configuration": "lib/rest/restoperationstransport:RESTOperationsTransportParameters"
     },
     "Webda/ResourceService": {
       "Import": "lib/services/resource:ResourceService",
@@ -3331,6 +3376,6 @@
   },
   "capabilities": {
     "router": "Webda/Router",
-    "rest-domain": "Webda/RESTDomainService"
+    "rest-domain": "Webda/RESTOperationsTransport"
   }
 }

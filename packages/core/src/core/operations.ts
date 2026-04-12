@@ -1,15 +1,15 @@
 import { QueryValidator } from "@webda/ql";
-import { OperationDefinition } from "./icore.js";
+import { OperationDefinition, OperationDefinitionInfo } from "./icore.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import * as WebdaError from "../errors/errors.js";
-import { ValidationError } from "../schemas/hooks.js";
+import { validateSchema, ValidationError } from "../schemas/hooks.js";
 import { useInstanceStorage } from "./instancestorage.js";
 import { useApplication, useModel } from "../application/hooks.js";
 import { useDynamicService, useService } from "./hooks.js";
 import { emitCoreEvent } from "../events/events.js";
 import { isGeneratorFunction } from "node:util/types";
 import { AnyMethod } from "@webda/decorators";
-import { Service } from "../services/service.js";
+import type { Service } from "../services/service.js";
 import type { Model } from "@webda/models";
 import { useContext } from "../contexts/execution.js";
 
@@ -53,7 +53,7 @@ async function checkOperation(context: OperationContext, operationId: string) {
   try {
     if (operations[operationId].input) {
       const input = await context.getInput();
-      if (input === undefined || this.validateSchema(operations[operationId].input, input) !== true) {
+      if (input === undefined || validateSchema(operations[operationId].input, input) !== true) {
         throw new WebdaError.BadRequest(`${operationId} InvalidInput Empty input`);
       }
     }
@@ -65,7 +65,7 @@ async function checkOperation(context: OperationContext, operationId: string) {
   }
   try {
     if (operations[operationId].parameters) {
-      this.validateSchema(operations[operationId].parameters, context.getParameters());
+      validateSchema(operations[operationId].parameters, context.getParameters());
     }
   } catch (err) {
     if (err instanceof ValidationError) {
@@ -92,9 +92,9 @@ export async function callOperation(context: OperationContext, operationId: stri
       //emitCoreEvent(`${operationId}.Before`, <any>context.getExtension("event") || {})
     ]);
     if (operations[operationId].service) {
-      await this.getService(operations[operationId].service)[operations[operationId].method](context);
+      await useService(operations[operationId].service as any)[operations[operationId].method](context);
     } else if (operations[operationId].model) {
-      await this.application.getModel(operations[operationId].model)[operations[operationId].method](context);
+      await useModel(operations[operationId].model)[operations[operationId].method](context);
     } else {
       throw new Error(`${operationId} NoServiceOrModel`);
     }
@@ -158,7 +158,7 @@ export function registerOperation(operationId: string, definition: Omit<Operatio
   const operations = useInstanceStorage().operations;
   // Add the operation
   // We will want to cache operations for faster startup
-  operations[operationId] = { ...definition, id: operationId };
+  operations[operationId] = { ...definition, id: operationId } as OperationDefinitionInfo;
   ["input", "output"]
     .filter(key => operations[operationId][key])
     .forEach(key => {
@@ -168,38 +168,6 @@ export function registerOperation(operationId: string, definition: Omit<Operatio
     });
 }
 
-export interface RestParameters {
-  rest?:
-    | false
-    | {
-        method: "get" | "post" | "put" | "delete" | "patch";
-        path: string;
-        responses?: {
-          [statusCode: string]: {
-            description?: string;
-            content?: {
-              [mediaType: string]: any;
-            };
-          };
-        };
-      };
-}
-export interface GrpcParameters {
-  grpc?:
-    | false
-    | {
-        streaming?: "none" | "client" | "server" | "bidi";
-      };
-}
-export interface GraphQLParameters {
-  graphql?:
-    | false
-    | {
-        query?: string;
-        mutation?: string;
-        subscription?: string;
-      };
-}
 
 /**
  * Wrapper concept for an operation
@@ -220,15 +188,42 @@ interface OperationParameters {
    * If no . is present the operation will be prefixed with the Service name or the Model name
    */
   id?: string;
+  /**
+   * Short summary of the operation
+   */
   summary?: string;
+  /**
+   * Full description of the operation
+   */
   description?: string;
+  /**
+   * Categorization tags for the operation
+   */
   tags?: string[];
+  /**
+   * Hide the operation from transport exposure
+   */
   hidden?: boolean;
+  /**
+   * Mark the operation as deprecated
+   */
   deprecated?: boolean;
   /**
    * Permission query to check before executing the operation
    */
   permissionQuery?: string;
+  /**
+   * REST transport hints
+   */
+  rest?: OperationDefinition["rest"];
+  /**
+   * GraphQL transport hints
+   */
+  graphql?: OperationDefinition["graphql"];
+  /**
+   * gRPC transport hints
+   */
+  grpc?: OperationDefinition["grpc"];
 }
 
 function Operation<T = {}>(
@@ -253,6 +248,7 @@ function Operation(...args: any[]) {
     (context.metadata!["webda.operations"] as any[]).push({
       id: context.name,
       ...options,
+      _methodName: context.name,
       static: context.static,
       generator: isGeneratorFunction(target)
     });

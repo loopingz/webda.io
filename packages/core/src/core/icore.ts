@@ -7,6 +7,50 @@ import type CryptoService from "../services/cryptoservice.js";
 import { CustomConstructor } from "@webda/tsc-esm";
 export { AbstractService };
 /**
+ * REST transport parameters for use with `@Operation<RestParameters>()`
+ */
+export interface RestParameters {
+  rest?:
+    | false
+    | {
+        method: "get" | "post" | "put" | "delete" | "patch";
+        path: string;
+        responses?: {
+          [statusCode: string]: {
+            description?: string;
+            content?: {
+              [mediaType: string]: any;
+            };
+          };
+        };
+      };
+}
+
+/**
+ * gRPC transport parameters for use with `@Operation<GrpcParameters>()`
+ */
+export interface GrpcParameters {
+  grpc?:
+    | false
+    | {
+        streaming?: "none" | "client" | "server" | "bidi";
+      };
+}
+
+/**
+ * GraphQL transport parameters for use with `@Operation<GraphQLParameters>()`
+ */
+export interface GraphQLParameters {
+  graphql?:
+    | false
+    | {
+        query?: string;
+        mutation?: string;
+        subscription?: string;
+      };
+}
+
+/**
  * Define an operation within webda app
  */
 export interface OperationDefinition {
@@ -53,6 +97,51 @@ export interface OperationDefinition {
    * Useful to define a specific context for the operation
    */
   context?: any;
+  /**
+   * Short summary of the operation
+   */
+  summary?: string;
+  /**
+   * Full description of the operation
+   */
+  description?: string;
+  /**
+   * Categorization tags for the operation
+   */
+  tags?: string[];
+  /**
+   * Mark the operation as deprecated
+   */
+  deprecated?: boolean;
+  /**
+   * Hide the operation from transport exposure
+   */
+  hidden?: boolean;
+  /**
+   * REST transport hints
+   *
+   * Set to `false` to explicitly exclude from REST transport.
+   * Provide an object to specify REST method, path, and response definitions.
+   */
+  rest?: RestParameters["rest"];
+  /**
+   * gRPC transport hints
+   *
+   * Set to `false` to explicitly exclude from gRPC transport.
+   * Provide an object to specify streaming mode.
+   */
+  grpc?: GrpcParameters["grpc"];
+  /**
+   * GraphQL transport hints
+   *
+   * Set to `false` to explicitly exclude from GraphQL transport.
+   * Provide an object to specify query, mutation, or subscription mappings.
+   */
+  graphql?: GraphQLParameters["graphql"];
+  /**
+   * Additional transport hints for future extensibility
+   */
+  extensions?: Record<string, unknown>;
 }
 
 /**

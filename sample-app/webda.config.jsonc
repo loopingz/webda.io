@@ -26,8 +26,11 @@
       "type": "MemoryStore",
       "table": "local-table"
     },
-    "rest": {
-      "type": "RESTDomainService"
+    "DomainService": {
+      "type": "DomainService"
+    },
+    "RESTService": {
+      "type": "RESTOperationsTransport"
     },
     "CryptoService": {
       "type": "Webda/CryptoService",

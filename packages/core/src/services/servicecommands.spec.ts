@@ -346,14 +346,14 @@ class ResolveCapabilitiesTest {
       getModules: () => ({
         capabilities: {
           router: "Webda/Router",
-          "rest-domain": "Webda/RESTDomainService"
+          "rest-domain": "Webda/RESTOperationsTransport"
         }
       }),
       getConfiguration: () => config
     } as any;
     resolveCapabilities(app, ["router", "rest-domain"]);
     assert.strictEqual(config.services.Router.type, "Webda/Router");
-    assert.strictEqual(config.services.RESTDomainService.type, "Webda/RESTDomainService");
+    assert.strictEqual(config.services.RESTOperationsTransport.type, "Webda/RESTOperationsTransport");
   }
 
   @test

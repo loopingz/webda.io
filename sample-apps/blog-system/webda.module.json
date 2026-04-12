@@ -13,6 +13,8 @@
               "CryptoService",
               "SessionManager",
               "Mailer",
+              "domain",
+              "rest",
               "TestBean"
             ],
             "type": "string"
@@ -1733,6 +1735,14 @@
         "status"
       ],
       "type": "object"
+    },
+    "TestBean.version.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "TestBean.version.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "string"
     },
     "TestBean.testOperation.input": {
       "type": "object",

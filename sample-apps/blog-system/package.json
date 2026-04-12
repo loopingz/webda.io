@@ -18,6 +18,7 @@
   "scripts": {
     "build": "webdac build",
     "dev": "npm run build && tsx src/index.ts",
+    "debug": "webda debug",
     "webda": "webda",
     "test": "vitest run test/",
     "test:api": "vitest run test/api-test.ts",

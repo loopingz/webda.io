@@ -39,7 +39,8 @@
           },
           "requires": [
             "router",
-            "rest-domain"
+            "rest-domain",
+            "http-server"
           ]
         }
       }

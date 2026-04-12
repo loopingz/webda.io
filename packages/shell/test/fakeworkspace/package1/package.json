@@ -1,7 +1,0 @@
-{
-    "name": "myLibrary",
-    "files": ["fake.js"],
-    "dependencies": {
-        "@webda/core": "1.1.1"
-    }
-}

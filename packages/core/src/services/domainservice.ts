@@ -254,8 +254,8 @@ export class DomainService<
       input = await context.getInput();
     }
     return runWithContext(context, async () => {
-      const object = await model.create(input, false);
-      //await object.checkAct(context, "create");
+      // Instantiate the model from raw input, then save
+      const object = new (model as any)(input) as Model;
       await object.save();
       return object;
     });

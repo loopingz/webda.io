@@ -99,15 +99,31 @@ export class LogsPanel implements Panel {
   }
 
   /**
+   * Log level severity order — higher index means more severe.
+   */
+  private static readonly LOG_LEVELS = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"];
+
+  /**
    * Get entries filtered by the current search query.
+   * If the query is a log level name, filter by severity (>= that level).
+   * Otherwise, do a text search on message and level.
    *
    * @returns filtered log entries
    */
   private getFilteredEntries(): LogEntry[] {
     if (!this.searchQuery) return this.entries;
-    const q = this.searchQuery.toLowerCase();
+    const q = this.searchQuery.toUpperCase();
+    const levelIndex = LogsPanel.LOG_LEVELS.indexOf(q);
+    if (levelIndex >= 0) {
+      // Filter by severity: show entries at this level or above
+      return this.entries.filter(
+        entry => LogsPanel.LOG_LEVELS.indexOf(entry.level) >= levelIndex
+      );
+    }
+    // Text search fallback
+    const lq = this.searchQuery.toLowerCase();
     return this.entries.filter(
-      entry => entry.message.toLowerCase().includes(q) || entry.level.toLowerCase().includes(q)
+      entry => entry.message.toLowerCase().includes(lq) || entry.level.toLowerCase().includes(lq)
     );
   }
 

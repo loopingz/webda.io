@@ -199,15 +199,24 @@ export class RESTOperationsTransport<
   protected exposeServiceOperations(operations: Record<string, OperationDefinition>): void {
     for (const [opId, op] of Object.entries(operations)) {
       if (op.hidden) continue;
-      if (!op.rest) continue;
       // Skip if this operation was already handled by model tree walk
-      // Model operations have a context with model property
       if (op.context?.model) continue;
-      const rest = op.rest;
-      const path = rest.path.startsWith("/") ? rest.path : `${this.parameters.url}${rest.path}`;
-      const methods = [rest.method.toUpperCase() as any];
+
+      let path: string;
+      let methods: HttpMethodType[];
+
+      if (op.rest) {
+        const rest = op.rest;
+        path = rest.path.startsWith("/") ? rest.path : `${this.parameters.url}${rest.path}`;
+        methods = [rest.method.toUpperCase() as HttpMethodType];
+      } else {
+        // Default: expose as operationId.toLowerCase().replace(".", "/")
+        path = `${this.parameters.url}${opId.toLowerCase().replace(/\./g, "/")}`;
+        methods = ["PUT"];
+      }
+
       const openapi: OpenAPIWebdaDefinition = {
-        [rest.method]: {
+        [methods[0].toLowerCase()]: {
           tags: op.tags || [],
           summary: op.summary || opId,
           operationId: opId

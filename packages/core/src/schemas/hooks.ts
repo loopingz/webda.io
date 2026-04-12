@@ -108,6 +108,26 @@ export function validateSchema(
     schema += "?";
   }
   if (!ajv.rawSchema[schema]) {
+    // Lazily register from the application schema registry
+    const baseSchema = schema.endsWith("?") ? schema.slice(0, -1) : schema;
+    try {
+      const appSchema = useApplication()?.getSchema(baseSchema);
+      if (appSchema) {
+        ajv.addSchema(appSchema, baseSchema);
+        ajv.rawSchema[baseSchema] = appSchema;
+        // If ignoreRequired variant was requested, also create it
+        if (schema.endsWith("?")) {
+          const noReqSchema = JSONUtils.duplicate(appSchema);
+          noReqSchema.required = [];
+          ajv.addSchema(noReqSchema, schema);
+          ajv.rawSchema[schema] = noReqSchema;
+        }
+      }
+    } catch {
+      // Application may not be available
+    }
+  }
+  if (!ajv.rawSchema[schema]) {
     throw new Error(`Schema not found: ${schema}`);
   }
   if (ajv.validate(schema, object)) {

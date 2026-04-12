@@ -118,6 +118,11 @@ export interface OperationDefinition {
    */
   hidden?: boolean;
   /**
+   * Whether this is a static (class-level) or instance method
+   * Used by callOperation to determine if model instance needs to be loaded
+   */
+  static?: boolean;
+  /**
    * REST transport hints
    *
    * Set to `false` to explicitly exclude from REST transport.

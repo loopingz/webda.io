@@ -11,7 +11,7 @@ import { isGeneratorFunction } from "node:util/types";
 import { AnyMethod } from "@webda/decorators";
 import type { Service } from "../services/service.js";
 import type { Model } from "@webda/models";
-import { useContext } from "../contexts/execution.js";
+import { runWithContext } from "../contexts/execution.js";
 
 type OperationTarget = Service | Model | typeof Service | typeof Model;
 import { useLog } from "@webda/workout";
@@ -76,6 +76,82 @@ async function checkOperation(context: OperationContext, operationId: string) {
 }
 
 /**
+ * Resolve method arguments from the OperationContext using the operation's input/parameters schema metadata.
+ *
+ * When both `parameters` and `input` schemas are resolvable via the application schema registry,
+ * the parameters schema properties are extracted from URL/query params first, then the request
+ * body is appended as the next argument. This supports signatures like `method(uuid: string, body: any)`.
+ *
+ * When only an `input` schema exists, properties are merged from params and body, then
+ * extracted in schema property order.
+ *
+ * When only a `parameters` schema exists, its properties are extracted from URL/query params.
+ *
+ * @param context - the execution context
+ * @param operation - the operation definition
+ * @returns an array of resolved arguments to pass to the operation method
+ */
+export async function resolveArguments(context: OperationContext, operation: OperationDefinition): Promise<any[]> {
+  const params = context.getParameters() || {};
+  let input: any;
+  try {
+    input = await context.getInput();
+  } catch {
+    // No input (e.g., GET request)
+  }
+
+  const app = useApplication();
+
+  // When both parameters and input schemas are resolvable, extract params then append body.
+  // This supports methods like modelUpdate(uuid: string, body: any).
+  if (operation.parameters && operation.input) {
+    const paramsSchema = app.getSchema(operation.parameters);
+    const inputSchema = app.getSchema(operation.input);
+    if (paramsSchema?.properties && inputSchema) {
+      const paramArgs = Object.keys(paramsSchema.properties).map(name => params[name]);
+      // Append the whole body as the next argument
+      return [...paramArgs, input];
+    }
+  }
+
+  // When only parameters schema is resolvable (no input), extract params by schema property names.
+  // This supports methods like modelGet(uuid: string) and modelQuery(query: string).
+  if (operation.parameters && !operation.input) {
+    const paramsSchema = app.getSchema(operation.parameters);
+    if (paramsSchema?.properties) {
+      return Object.keys(paramsSchema.properties).map(name => params[name]);
+    }
+  }
+
+  // Merge: params + body (body overrides params for same keys)
+  const merged = { ...params, ...(typeof input === "object" && input !== null ? input : {}) };
+
+  // Use input schema properties to determine argument order
+  if (operation.input) {
+    const schema = app.getSchema(operation.input);
+    if (schema?.properties) {
+      const propNames = Object.keys(schema.properties);
+      if (propNames.length === 1) {
+        const key = propNames[0];
+        // Single param: extract if key matches, otherwise pass whole input
+        if (key in merged && Object.keys(merged).length <= Object.keys(params).length + 1) {
+          return [merged[key]];
+        }
+        return [typeof input === "object" && input !== null ? input : merged];
+      }
+      // Multiple params: extract by name in schema order
+      return propNames.map(name => merged[name]);
+    }
+  }
+
+  // No schema: pass input as single arg if present
+  if (input !== undefined && input !== null) {
+    return [input];
+  }
+  return [];
+}
+
+/**
  * Call an operation within the framework
  * @param context - the execution context
  * @param operationId - the operation identifier
@@ -91,13 +167,60 @@ export async function callOperation(context: OperationContext, operationId: stri
       emitCoreEvent("Webda.BeforeOperation", { context, operationId })
       //emitCoreEvent(`${operationId}.Before`, <any>context.getExtension("event") || {})
     ]);
+
+    // Resolve arguments from context using the operation's input schema
+    const args = await resolveArguments(context, operations[operationId]);
+
+    // When resolveArguments returns no typed arguments (no input schema),
+    // fall back to passing the context for backward compatibility with
+    // methods that still use the context-based calling convention.
+    const callArgs = args.length > 0 ? args : [context];
+
+    // Call the method with resolved arguments, wrapped in runWithContext
+    // so that useContext() returns the operation context inside the method.
+    let result: any;
     if (operations[operationId].service) {
-      await useService(operations[operationId].service as any)[operations[operationId].method](context);
+      result = await runWithContext(context, () =>
+        useService(operations[operationId].service as any)[operations[operationId].method](...callArgs)
+      );
     } else if (operations[operationId].model) {
-      await useModel(operations[operationId].model)[operations[operationId].method](context);
+      const modelClass = useModel(operations[operationId].model);
+      if (operations[operationId].static === false) {
+        // Instance method — load the model instance and call the method on it
+        // The first argument should be the primary key (uuid)
+        const uuid = callArgs[0];
+        result = await runWithContext(context, async () => {
+          const instance = await modelClass.ref(uuid).get();
+          if (!instance || (instance as any).isDeleted?.()) {
+            throw new WebdaError.NotFound("Object not found");
+          }
+          return instance[operations[operationId].method](...callArgs.slice(1));
+        });
+      } else {
+        // Static/class method — call on the model class directly
+        result = await runWithContext(context, () =>
+          modelClass[operations[operationId].method](...callArgs)
+        );
+      }
     } else {
       throw new Error(`${operationId} NoServiceOrModel`);
     }
+
+    // Handle return value — only write if the method hasn't already
+    // written to the context (avoid duplicating the response body when
+    // both the method and callOperation try to write the same value).
+    if (result !== undefined && result !== null) {
+      if (typeof result[Symbol.asyncIterator] === "function") {
+        // AsyncGenerator — stream each yielded value
+        for await (const chunk of result) {
+          context.write(chunk);
+        }
+      } else if (context.getOutput() === undefined) {
+        // Normal return — write to context only if nothing written yet
+        context.write(result);
+      }
+    }
+
     await Promise.all([
       emitCoreEvent("Webda.OperationSuccess", { context, operationId })
       //emitCoreEvent(operationId, <any>context.getExtension("event") || {})
@@ -253,20 +376,7 @@ function Operation(...args: any[]) {
       generator: isGeneratorFunction(target)
     });
     return function operationWrapper(this: any, ...args) {
-      // TODO Make sure if an Operation is called we launch it with Core to get listeners
-      // it would also enforce permission checks and audit logs
-      try {
-        const executionContext = useContext() as OperationContext;
-        const currentOperation = executionContext?.getExtension?.("operation");
-        if (!currentOperation) {
-          // How to get the operation name here ?
-          callOperation(executionContext, `Unknown.${context.name as string}`);
-        }
-      } catch {
-        // No execution context (e.g. direct CLI call) — skip operation framework
-      }
-      const res = target.call(this, ...args);
-      return res;
+      return target.call(this, ...args);
     };
   };
   if (args.length === 2 && args[1] instanceof Object && args[1].kind === "method") {

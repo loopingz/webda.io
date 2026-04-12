@@ -6,6 +6,11 @@ import { TestApplication } from "@webda/core/lib/test/objects.js";
 import { listOperations } from "@webda/core/lib/core/operations.js";
 import { useRouter } from "@webda/core/lib/rest/hooks.js";
 import { useApplication } from "@webda/core/lib/application/hooks.js";
+import { WebContext } from "@webda/core/lib/contexts/webcontext.js";
+import { HttpContext } from "@webda/core/lib/contexts/httpcontext.js";
+import { runWithContext } from "@webda/core/lib/contexts/execution.js";
+import { Router, RouterParameters } from "@webda/core/lib/rest/router.js";
+import * as WebdaError from "@webda/core/lib/errors/errors.js";
 
 const appDir = resolve(import.meta.dirname, "..");
 
@@ -213,6 +218,132 @@ class BlogSystemAppTest extends WebdaApplicationTest {
     assert.ok(rootRoutes, "Root route should exist (OpenAPI)");
     const getMethods = rootRoutes.filter(r => r.methods.includes("GET"));
     assert.ok(getMethods.length > 0, "Root route should support GET (OpenAPI)");
+  }
+}
+
+/**
+ * HTTP integration tests.
+ *
+ * Verifies the three specific issues:
+ * 1. GET /version should not duplicate the response body
+ * 2. PUT /posts (query) should not return 500
+ * 3. POST /posts (create) should not return 400 for valid input
+ */
+@suite
+class BlogSystemHTTPTest extends WebdaApplicationTest {
+  getTestConfiguration(): string {
+    return appDir;
+  }
+
+  getApplication() {
+    return new BlogTestApplication(this.getTestConfiguration());
+  }
+
+  async tweakApp(app: any) {
+    app.getCurrentConfiguration().services.Registry = {
+      type: "Webda/MemoryStore"
+    };
+    app.getCurrentConfiguration().services.DomainService = {
+      type: "Webda/DomainService"
+    };
+    app.getCurrentConfiguration().services.RESTService = {
+      type: "Webda/RESTOperationsTransport",
+      exposeOpenAPI: false
+    };
+  }
+
+  protected async buildWebda() {
+    const core = await super.buildWebda();
+    const router = new Router("Router", new RouterParameters().load({}));
+    this.registerService(router);
+    router.resolve();
+    await router.init();
+    return core;
+  }
+
+  async routerHttp<T = any>(options: {
+    method: "GET" | "PUT" | "POST" | "PATCH" | "DELETE";
+    url: string;
+    body?: any;
+    headers?: { [key: string]: string };
+  }): Promise<{ statusCode: number; body: string | undefined; parsed?: T }> {
+    const httpContext = new HttpContext("test.webda.io", options.method, options.url, "http", 80, options.headers || {});
+    if (options.body !== undefined) {
+      httpContext.setBody(options.body);
+    }
+    httpContext.setClientIp("127.0.0.1");
+    const ctx = new WebContext(httpContext);
+    ctx.newSession();
+    let routeError: Error | undefined;
+    await runWithContext(ctx, async () => {
+      try {
+        await useRouter().execute(ctx);
+      } catch (err) {
+        routeError = err instanceof Error ? err : new Error(String(err));
+      }
+    });
+    if (routeError) {
+      if (routeError instanceof WebdaError.HttpError) {
+        return { statusCode: (routeError as any).code || 500, body: routeError.message };
+      }
+      return { statusCode: 500, body: routeError.message };
+    }
+    const body = ctx.getResponseBody() as string;
+    let parsed: T | undefined;
+    if (body) {
+      try {
+        parsed = JSON.parse(body);
+      } catch {
+        // Not JSON
+      }
+    }
+    return { statusCode: ctx.statusCode || 200, body, parsed };
+  }
+
+  @test
+  async getVersionNoDuplicate() {
+    // Issue 1: GET /version should return the package name ONCE, not doubled
+    const res = await this.routerHttp({ method: "GET", url: "/version" });
+    assert.ok(res.body, "GET /version should return a body");
+    const expected = "@webda/sample-blog-system";
+    assert.strictEqual(
+      res.body,
+      expected,
+      `GET /version should return "${expected}" exactly once, got: "${res.body}"`
+    );
+  }
+
+  @test
+  async putPostsQueryNoError() {
+    // Issue 2: PUT /posts with query body should NOT return 500
+    const res = await this.routerHttp({
+      method: "PUT",
+      url: "/posts",
+      body: { q: "" }
+    });
+    assert.ok(res.statusCode < 500, `PUT /posts should not return 500, got ${res.statusCode}: ${res.body}`);
+  }
+
+  @test
+  async postPostsCreateNoSchemaReject() {
+    // Issue 3: POST /posts with valid data should NOT return 400
+    const res = await this.routerHttp({
+      method: "POST",
+      url: "/posts",
+      body: {
+        title: "Hello World Post",
+        slug: "hello-world-post",
+        content: "This is a test post with enough content to meet the minimum length.",
+        status: "draft",
+        viewCount: 0
+      }
+    });
+    // The operation should not fail with schema validation (400)
+    // It may fail with 500 if no repository exists, but not with 400 (BadRequest)
+    assert.ok(
+      res.statusCode !== 400,
+      `POST /posts should not return 400, got ${res.statusCode}: ${res.body}`
+    );
   }
 }
 

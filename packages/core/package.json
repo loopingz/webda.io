@@ -134,7 +134,8 @@
     "namespace": "Webda",
     "capabilities": {
       "router": "Webda/Router",
-      "rest-domain": "Webda/RESTOperationsTransport"
+      "rest-domain": "Webda/RESTOperationsTransport",
+      "http-server": "Webda/HttpServer"
     }
   },
   "type": "module",

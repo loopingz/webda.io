@@ -12,9 +12,9 @@
               "Registry",
               "CryptoService",
               "SessionManager",
+              "DomainService",
               "Mailer",
-              "domain",
-              "rest",
+              "RESTService",
               "TestBean"
             ],
             "type": "string"

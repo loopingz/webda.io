@@ -199,15 +199,24 @@ export class RESTOperationsTransport<
   protected exposeServiceOperations(operations: Record<string, OperationDefinition>): void {
     for (const [opId, op] of Object.entries(operations)) {
       if (op.hidden) continue;
-      if (!op.rest) continue;
       // Skip if this operation was already handled by model tree walk
-      // Model operations have a context with model property
       if (op.context?.model) continue;
-      const rest = op.rest;
-      const path = rest.path.startsWith("/") ? rest.path : `${this.parameters.url}${rest.path}`;
-      const methods = [rest.method.toUpperCase() as any];
+
+      let path: string;
+      let methods: HttpMethodType[];
+
+      if (op.rest) {
+        const rest = op.rest;
+        path = rest.path.startsWith("/") ? rest.path : `${this.parameters.url}${rest.path}`;
+        methods = [rest.method.toUpperCase() as HttpMethodType];
+      } else {
+        // Default: expose as operationId.toLowerCase().replace(".", "/")
+        path = `${this.parameters.url}${opId.toLowerCase().replace(/\./g, "/")}`;
+        methods = ["PUT"];
+      }
+
       const openapi: OpenAPIWebdaDefinition = {
-        [rest.method]: {
+        [methods[0].toLowerCase()]: {
           tags: op.tags || [],
           summary: op.summary || opId,
           operationId: opId
@@ -472,10 +481,21 @@ export class RESTOperationsTransport<
         }
         await callOperation(context, operationId);
         // https://www.rfc-editor.org/rfc/rfc9110#status.201
-        if (context.getResponseHeaders().Location) {
-          context.writeHead(201, {
-            Location: `${context.getHttpContext().getAbsoluteUrl()}/${context.getResponseHeaders().Location}`
-          });
+        if (context.statusCode < 300 || context.statusCode === 204) {
+          const output = context.getOutput();
+          if (output) {
+            try {
+              const parsed = typeof output === "string" ? JSON.parse(output) : output;
+              const uuid = parsed?.uuid || parsed?.getUUID?.();
+              if (uuid) {
+                context.writeHead(201, {
+                  Location: `${context.getHttpContext().getAbsoluteUrl()}/${uuid}`
+                });
+              }
+            } catch {
+              // Not JSON, skip Location
+            }
+          }
         }
       },
       openapi
@@ -521,7 +541,13 @@ export class RESTOperationsTransport<
     this.addRoute(
       `${prefix}/{uuid}`,
       ["DELETE"],
-      (context: WebContext) => callOperation(context, operationId),
+      async (context: WebContext) => {
+        await callOperation(context, operationId);
+        // Convention: 204 No Content
+        if (context.statusCode < 300 || context.statusCode === 204) {
+          context.writeHead(204);
+        }
+      },
       openapi
     );
   }

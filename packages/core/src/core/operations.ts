@@ -11,7 +11,7 @@ import { isGeneratorFunction } from "node:util/types";
 import { AnyMethod } from "@webda/decorators";
 import type { Service } from "../services/service.js";
 import type { Model } from "@webda/models";
-import { useContext, runWithContext } from "../contexts/execution.js";
+import { runWithContext } from "../contexts/execution.js";
 
 type OperationTarget = Service | Model | typeof Service | typeof Model;
 import { useLog } from "@webda/workout";
@@ -359,20 +359,7 @@ function Operation(...args: any[]) {
       generator: isGeneratorFunction(target)
     });
     return function operationWrapper(this: any, ...args) {
-      // TODO Make sure if an Operation is called we launch it with Core to get listeners
-      // it would also enforce permission checks and audit logs
-      try {
-        const executionContext = useContext() as OperationContext;
-        const currentOperation = executionContext?.getExtension?.("operation");
-        if (!currentOperation) {
-          // How to get the operation name here ?
-          callOperation(executionContext, `Unknown.${context.name as string}`);
-        }
-      } catch {
-        // No execution context (e.g. direct CLI call) — skip operation framework
-      }
-      const res = target.call(this, ...args);
-      return res;
+      return target.call(this, ...args);
     };
   };
   if (args.length === 2 && args[1] instanceof Object && args[1].kind === "method") {

@@ -63,8 +63,8 @@ class OperationsTransportTest extends WebdaApplicationTest {
     await dummy.resolve();
 
     // Register two visible operations
-    registerOperation("Transport.OpA", { service: "DummyAll", method: "doSomething" });
-    registerOperation("Transport.OpB", { service: "DummyAll", method: "doSomething" });
+    registerOperation("Transport.OpA", { service: "DummyAll", method: "doSomething", input: "void", output: "void" });
+    registerOperation("Transport.OpB", { service: "DummyAll", method: "doSomething", input: "void", output: "void" });
 
     const transport = this.registerService(new TestTransport("testTransport", new OperationsTransportParameters().load({})));
     await transport.resolve();
@@ -80,9 +80,9 @@ class OperationsTransportTest extends WebdaApplicationTest {
     const dummy = this.registerService(new DummyService("DummyFilter", new ServiceParameters().load({})));
     await dummy.resolve();
 
-    registerOperation("User.Create", { service: "DummyFilter", method: "doSomething" });
-    registerOperation("Users.Query", { service: "DummyFilter", method: "doSomething" });
-    registerOperation("Other.Op", { service: "DummyFilter", method: "doSomething" });
+    registerOperation("User.Create", { service: "DummyFilter", method: "doSomething", input: "void", output: "void" });
+    registerOperation("Users.Query", { service: "DummyFilter", method: "doSomething", input: "void", output: "void" });
+    registerOperation("Other.Op", { service: "DummyFilter", method: "doSomething", input: "void", output: "void" });
 
     const transport = this.registerService(
       new TestTransport("filterTransport", new OperationsTransportParameters().load({ operations: ["User.*", "Users.*"] }))
@@ -101,8 +101,8 @@ class OperationsTransportTest extends WebdaApplicationTest {
     const dummy = this.registerService(new DummyService("DummyExclude", new ServiceParameters().load({})));
     await dummy.resolve();
 
-    registerOperation("UserExcl.Create", { service: "DummyExclude", method: "doSomething" });
-    registerOperation("UserExcl.Delete", { service: "DummyExclude", method: "doSomething" });
+    registerOperation("UserExcl.Create", { service: "DummyExclude", method: "doSomething", input: "void", output: "void" });
+    registerOperation("UserExcl.Delete", { service: "DummyExclude", method: "doSomething", input: "void", output: "void" });
 
     const transport = this.registerService(
       new TestTransport("excludeTransport", new OperationsTransportParameters().load({ operations: ["*", "!UserExcl.Delete"] }))
@@ -120,7 +120,7 @@ class OperationsTransportTest extends WebdaApplicationTest {
     const dummy = this.registerService(new DummyService("DummyHidden", new ServiceParameters().load({})));
     await dummy.resolve();
 
-    registerOperation("Hidden.Visible", { service: "DummyHidden", method: "doSomething" });
+    registerOperation("Hidden.Visible", { service: "DummyHidden", method: "doSomething", input: "void", output: "void" });
     registerOperation("Hidden.Secret", { service: "DummyHidden", method: "doSomething", hidden: true });
 
     const transport = this.registerService(
@@ -170,8 +170,8 @@ class OperationsTransportTest extends WebdaApplicationTest {
     const dummy = this.registerService(new DummyService("DummyGetOps", new ServiceParameters().load({})));
     await dummy.resolve();
 
-    registerOperation("GetOps.Alpha", { service: "DummyGetOps", method: "doSomething" });
-    registerOperation("GetOps.Beta", { service: "DummyGetOps", method: "doSomething" });
+    registerOperation("GetOps.Alpha", { service: "DummyGetOps", method: "doSomething", input: "void", output: "void" });
+    registerOperation("GetOps.Beta", { service: "DummyGetOps", method: "doSomething", input: "void", output: "void" });
 
     const transport = this.registerService(
       new TestTransport("getOpsTransport", new OperationsTransportParameters().load({ operations: ["GetOps.Alpha"] }))

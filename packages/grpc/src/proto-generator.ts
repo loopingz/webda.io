@@ -44,13 +44,13 @@ export function generateProto(
   // Generate messages for all referenced schemas
   for (const [opId, op] of Object.entries(operations)) {
     if (op.hidden) continue;
-    if (op.input && schemas[op.input]) {
+    if (op.input && op.input !== "void" && schemas[op.input]) {
       const msgName = schemaToMessageName(op.input);
       if (!messages.has(msgName)) {
         messages.set(msgName, jsonSchemaToMessage(msgName, schemas[op.input], schemas, messages));
       }
     }
-    if (op.output && schemas[op.output]) {
+    if (op.output && op.output !== "void" && schemas[op.output]) {
       const msgName = schemaToMessageName(op.output);
       if (!messages.has(msgName)) {
         messages.set(msgName, jsonSchemaToMessage(msgName, schemas[op.output], schemas, messages));
@@ -115,7 +115,7 @@ function getInputType(
   schemas: Record<string, JSONSchema7>,
   messages: Map<string, string>
 ): string {
-  if (op.input && schemas[op.input]) {
+  if (op.input && op.input !== "void" && schemas[op.input]) {
     return schemaToMessageName(op.input);
   }
   return "google.protobuf.Empty";
@@ -133,7 +133,7 @@ function getOutputType(
   schemas: Record<string, JSONSchema7>,
   messages: Map<string, string>
 ): string {
-  if (op.output && schemas[op.output]) {
+  if (op.output && op.output !== "void" && schemas[op.output]) {
     return schemaToMessageName(op.output);
   }
   return "google.protobuf.Empty";

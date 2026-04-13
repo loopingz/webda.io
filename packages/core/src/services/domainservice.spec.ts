@@ -379,7 +379,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
     const op = getStorage().operations["Hardware.GlobalAction"];
     const savedInput = op.input;
-    delete op.input;
+    op.input = "void";
     try {
       const ctx = new FakeOpContext();
       await ctx.init();
@@ -480,9 +480,9 @@ class DomainServiceTest extends WebdaApplicationTest {
     const { Brand } = this.setupBrandRepo();
     const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
     const op = getStorage().operations["Brand.Create"];
-    // Temporarily remove input schema to force context fallback
+    // Temporarily set input to "void" to force context fallback
     const savedInput = op.input;
-    delete op.input;
+    op.input = "void";
     try {
       const ctx = new FakeOpContext();
       await ctx.init();
@@ -503,9 +503,9 @@ class DomainServiceTest extends WebdaApplicationTest {
     await Brand.create({ uuid, name: "BeforeFallback" } as any);
     const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
     const op = getStorage().operations["Brand.Update"];
-    // Remove the input schema so resolveArguments can't extract the body
+    // Set input to "void" so resolveArguments can't extract the body
     const savedInput = op.input;
-    delete op.input;
+    op.input = "void";
     try {
       const ctx = new FakeOpContext();
       await ctx.init();

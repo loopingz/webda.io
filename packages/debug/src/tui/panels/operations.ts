@@ -88,8 +88,8 @@ export class OperationsPanel extends ScrollablePanel {
       const isSelected = idx === this.cursor;
 
       const id = (op.id || "unknown").substring(0, 33);
-      const input = (op.input || "-").substring(0, 18);
-      const output = (op.output || "-").substring(0, 18);
+      const input = (op.input && op.input !== "void" ? op.input : "-").substring(0, 18);
+      const output = (op.output && op.output !== "void" ? op.output : "-").substring(0, 18);
 
       const line = `  ${id.padEnd(33)}  ${input.padEnd(18)}  ${output.padEnd(18)}`;
 

@@ -434,7 +434,7 @@ export class DomainService<
           registerOperation(id, {
             service: this.getName(),
             method: k === "Create" ? "modelCreate" : "modelUpdate",
-            input: k === "Create" ? undefined : "uuidRequest",
+            input: k === "Create" ? "void" : "uuidRequest",
             output: modelSchema,
             summary: k === "Create" ? `Create a new ${shortId}` : `Update a ${shortId}`,
             tags: [shortId],
@@ -454,6 +454,7 @@ export class DomainService<
             method: `model${k}`,
             id,
             input: "uuidRequest",
+            output: k === "Get" ? modelSchema : "void",
             summary: `${k === "Delete" ? "Delete" : "Retrieve"} a ${shortId}`,
             tags: [shortId],
             rest: { method: k === "Delete" ? "delete" : "get", path: "{uuid}" },
@@ -461,9 +462,6 @@ export class DomainService<
               model
             }
           };
-          if (k === "Get") {
-            info.output = modelSchema;
-          }
           registerOperation(id, info);
         });
       if (!actionsName.includes("query")) {
@@ -472,6 +470,7 @@ export class DomainService<
           service: this.getName(),
           method: "modelQuery",
           input: "searchRequest",
+          output: "void",
           summary: `Query ${plural}`,
           tags: [shortId],
           rest: { method: this.parameters.queryMethod.toLowerCase() as "put" | "get", path: "" },
@@ -487,6 +486,7 @@ export class DomainService<
           service: this.getName(),
           method: "modelPatch",
           input: "uuidRequest",
+          output: "void",
           summary: `Patch a ${shortId}`,
           tags: [shortId],
           rest: { method: "patch", path: "{uuid}" },
@@ -542,7 +542,8 @@ export class DomainService<
       const info = {
         service: this.getName(),
         context: baseContext,
-        input: "uuidRequest"
+        input: "uuidRequest",
+        output: "void" as string
       };
       registerOperation(`${name}.${attribute}.AttachChallenge`, {
         ...info,

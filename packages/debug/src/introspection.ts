@@ -40,10 +40,10 @@ export interface ServiceInfo {
 export interface OperationInfo {
   /** Operation identifier, e.g. "Task.Create" */
   id: string;
-  /** Input schema identifier, if any */
-  input?: string;
-  /** Output schema identifier, if any */
-  output?: string;
+  /** Input schema identifier. "void" means no input. */
+  input: string;
+  /** Output schema identifier. "void" means no output. */
+  output: string;
   /** Parameters schema identifier, if any */
   parameters?: string;
   /** Additional fields from the operation definition */

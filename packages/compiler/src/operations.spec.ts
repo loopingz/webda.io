@@ -48,7 +48,7 @@ class OperationsTest {
 
     // CRUD operations
     assert.notStrictEqual(result.operations["Task.Create"], undefined, "Create operation should exist");
-    assert.strictEqual(result.operations["Task.Create"].input, undefined);
+    assert.strictEqual(result.operations["Task.Create"].input, "void");
     assert.strictEqual(result.operations["Task.Create"].output, "MyApp/Task");
 
     assert.notStrictEqual(result.operations["Task.Update"], undefined, "Update operation should exist");

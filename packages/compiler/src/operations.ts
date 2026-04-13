@@ -12,8 +12,8 @@ export interface OperationsExportFormat {
 
 export interface OperationEntry {
   id: string;
-  input?: string;
-  output?: string;
+  input: string;
+  output: string;
 }
 
 /**
@@ -202,6 +202,7 @@ function processServiceOperations(mod: WebdaModule, result: OperationsExportForm
       entry.output = schemas.output;
       result.schemas[schemas.output] = mod.schemas[schemas.output];
     }
+    // addOperation defaults missing input/output to "void"
     addOperation(result, opId, entry);
   }
 }
@@ -215,8 +216,10 @@ function processServiceOperations(mod: WebdaModule, result: OperationsExportForm
 function addOperation(result: OperationsExportFormat, id: string, entry: Partial<OperationEntry>) {
   result.operations[id] = {
     id,
+    input: "void",
+    output: "void",
     ...entry
-  } as OperationEntry;
+  };
   useLog("DEBUG", `Registered operation: ${id}`);
 }
 

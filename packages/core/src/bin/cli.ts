@@ -19,8 +19,8 @@ import { createRequire } from "node:module";
  */
 export interface OperationEntry {
   id: string;
-  input?: string;
-  output?: string;
+  input: string;
+  output: string;
 }
 
 /**
@@ -134,7 +134,8 @@ function groupOperations(operations: Record<string, OperationEntry>): Map<string
  * @returns the result
  */
 function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): Argv {
-  const paramDef = op.input ? KNOWN_PARAMS[op.input] : undefined;
+  const hasInput = op.input && op.input !== "void";
+  const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
 
   // Add well-known parameter options (e.g., uuidRequest -> positional uuid)
   if (paramDef?.options) {
@@ -144,7 +145,7 @@ function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): 
   }
 
   // Add custom input options from schema
-  if (op.input && !paramDef && ops.schemas[op.input]) {
+  if (hasInput && !paramDef && ops.schemas[op.input]) {
     // Offer both raw JSON/file and per-property CLI options
     y.option("json", { type: "string", describe: "JSON input (inline)" });
     y.option("file", { type: "string", alias: "f", describe: "JSON input from file" });
@@ -166,7 +167,8 @@ function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): 
  */
 function extractParameters(args: Record<string, any>, op: OperationEntry, ops: OperationsFile): Record<string, any> {
   const params: Record<string, any> = {};
-  const paramDef = op.input ? KNOWN_PARAMS[op.input] : undefined;
+  const hasInput = op.input && op.input !== "void";
+  const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
 
   if (paramDef?.positional && args[paramDef.positional] !== undefined) {
     params[paramDef.positional] = args[paramDef.positional];
@@ -189,9 +191,10 @@ function extractParameters(args: Record<string, any>, op: OperationEntry, ops: O
  * @returns Parsed input object, or undefined if no input was provided
  */
 function extractInput(args: Record<string, any>, op: OperationEntry, ops: OperationsFile): any | undefined {
+  const hasInput = op.input && op.input !== "void";
   // When input is a well-known param schema (e.g., uuidRequest), it is handled
   // via extractParameters and positional args, not as body input.
-  if (op.input && KNOWN_PARAMS[op.input]) {
+  if (hasInput && KNOWN_PARAMS[op.input]) {
     return undefined;
   }
   if (args.json) {
@@ -201,7 +204,7 @@ function extractInput(args: Record<string, any>, op: OperationEntry, ops: Operat
     return JSON.parse(readFileSync(args.file as string, "utf-8"));
   }
   // Build input from individual CLI options matching the input schema properties
-  if (op.input && ops.schemas[op.input]?.properties) {
+  if (hasInput && ops.schemas[op.input]?.properties) {
     const input: Record<string, any> = {};
     for (const name of Object.keys(ops.schemas[op.input].properties)) {
       if (args[name] !== undefined) input[name] = args[name];
@@ -248,7 +251,8 @@ export function buildCli(ops: OperationsFile, handler: OperationHandler, argv?: 
     cli.command(group.toLowerCase(), `${group} operations`, groupY => {
       for (const op of operations) {
         const action = op.id.substring(op.id.indexOf(".") + 1).toLowerCase();
-        const paramDef = op.input ? KNOWN_PARAMS[op.input] : undefined;
+        const hasInput = op.input && op.input !== "void";
+        const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
 
         // Build command string with positional if needed
         const cmd = paramDef?.positional ? `${action} <${paramDef.positional}>` : action;
@@ -261,7 +265,7 @@ export function buildCli(ops: OperationsFile, handler: OperationHandler, argv?: 
             await handler({
               id: op.id,
               parameters: extractParameters(args, op, ops),
-              input: op.input ? extractInput(args, op, ops!) : undefined
+              input: hasInput ? extractInput(args, op, ops!) : undefined
             });
           }
         );
@@ -699,7 +703,8 @@ if (isMain) {
           cli.command(group.toLowerCase(), `${group} operations`, groupY => {
             for (const op of operations) {
               const action = op.id.substring(op.id.indexOf(".") + 1).toLowerCase();
-              const paramDef = op.input ? KNOWN_PARAMS[op.input] : undefined;
+              const hasInput = op.input && op.input !== "void";
+              const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
               const cmd = paramDef?.positional ? `${action} <${paramDef.positional}>` : action;
               groupY.command(
                 cmd,
@@ -711,7 +716,7 @@ if (isMain) {
                     call: {
                       id: op.id,
                       parameters: extractParameters(args, op, ops!),
-                      input: op.input ? extractInput(args, op, ops!) : undefined
+                      input: hasInput ? extractInput(args, op, ops!) : undefined
                     }
                   };
                 }

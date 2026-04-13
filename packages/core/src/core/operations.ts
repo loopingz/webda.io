@@ -51,7 +51,7 @@ async function checkOperation(context: OperationContext, operationId: string) {
     throw new WebdaError.Forbidden(`${operationId} PermissionDenied`);
   }
   try {
-    if (operations[operationId].input) {
+    if (operations[operationId].input && operations[operationId].input !== "void") {
       // Merge path/query params with body input (body overrides params)
       // so that URL-derived values (e.g., {uuid}) are included in validation
       const params = context.getParameters() || {};
@@ -100,7 +100,7 @@ export async function resolveArguments(context: OperationContext, operation: Ope
   const merged = { ...params, ...(typeof input === "object" && input !== null ? input : {}) };
 
   // Use input schema properties to determine argument order
-  if (operation.input) {
+  if (operation.input && operation.input !== "void") {
     const app = useApplication();
     const schema = app.getSchema(operation.input);
     if (schema?.properties) {
@@ -224,7 +224,7 @@ export function listOperations(): { [key: string]: Omit<OperationDefinition, "se
  * @param operationId - the operation identifier
  * @param definition - the definition object
  */
-export function registerOperation(operationId: string, definition: Omit<OperationDefinition, "id">) {
+export function registerOperation(operationId: string, definition: Omit<OperationDefinition, "id" | "input" | "output"> & { input?: string; output?: string }) {
   // Check operation naming convention
   if (!operationId.match(/^([A-Z][A-Za-z0-9]*\.)*([A-Z][a-zA-Z0-9]*)$/)) {
     throw new Error(`OperationId ${operationId} must match ^([A-Z][A-Za-z0-9]*.)*([A-Z][a-zA-Z0-9]*)$`);
@@ -245,14 +245,18 @@ export function registerOperation(operationId: string, definition: Omit<Operatio
     throw new Error(`Operation ${operationId} must have a service or a model`);
   }
   const operations = useInstanceStorage().operations;
-  // Add the operation
-  // We will want to cache operations for faster startup
-  operations[operationId] = { ...definition, id: operationId } as OperationDefinitionInfo;
+  // Add the operation, defaulting input/output to "void" if not provided
+  operations[operationId] = {
+    ...definition,
+    id: operationId,
+    input: definition.input ?? "void",
+    output: definition.output ?? "void"
+  } as OperationDefinitionInfo;
   ["input", "output"]
-    .filter(key => operations[operationId][key])
+    .filter(key => operations[operationId][key] && operations[operationId][key] !== "void")
     .forEach(key => {
       if (!useApplication().getSchema(operations[operationId][key])) {
-        delete operations[operationId][key];
+        operations[operationId][key] = "void";
       }
     });
 }

@@ -23,7 +23,7 @@ export class TestBean<T extends TestBeanParameters = TestBeanParameters> extends
    * Get the version of the application
    * @returns version of the application
    */
-  @Operation<RestParameters>({ id: "Version.Get", rest: { method: "get", path: "/version" } })
+  @Operation<RestParameters>({ id: "Version.Get", rest: { method: "get", path: "/version" }, description: "Get the version of the application" })
   async version() : Promise<string> {
     return this.getVersion();
   }

@@ -1,13 +1,12 @@
 import { suite, test, timeout } from "@webda/test";
 import * as assert from "assert";
-import { mkdirSync, unlinkSync } from "fs";
+import { mkdirSync, unlinkSync, symlinkSync } from "fs";
 import pkg from "fs-extra";
 import * as path from "path";
 import { Authentication, useCoreEvents, useService } from "../index.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { getCommonJS } from "@webda/utils";
-import { randomUUID } from "crypto";
-const { emptyDirSync, ensureSymlinkSync, outputFileSync } = pkg;
+const { emptyDirSync, outputFileSync } = pkg;
 const { __dirname } = getCommonJS(import.meta.url);
 
 class AbstractKubernetesConfigurationServiceTest extends WebdaApplicationTest {
@@ -78,12 +77,12 @@ class AbstractKubernetesConfigurationServiceTest extends WebdaApplicationTest {
    * Create the configMap in the right folder
    */
   createConfigMap() {
-    this.dataFolder = `..${Date.now()}`;
+    this.dataFolder = "..configmap-v1";
     mkdirSync(path.join(this.folder, this.dataFolder));
-    ensureSymlinkSync(path.join(this.folder, this.dataFolder), path.join(this.folder, "..data"));
+    symlinkSync(this.dataFolder, path.join(this.folder, "..data"));
     Object.keys(this.content).forEach(f => {
       outputFileSync(path.join(this.folder, this.dataFolder, f), this.content[f]);
-      ensureSymlinkSync(path.join(this.folder, "..data", f), path.join(this.folder, f));
+      symlinkSync(path.join("..data", f), path.join(this.folder, f));
     });
   }
 
@@ -91,14 +90,14 @@ class AbstractKubernetesConfigurationServiceTest extends WebdaApplicationTest {
    * Update the config map
    */
   updateConfigMap(content: any) {
-    this.dataFolder = `..${randomUUID().toString()}`;
+    this.dataFolder = "..configmap-v2";
     this.content = content;
-    mkdirSync(path.join(this.folder, this.dataFolder));
+    mkdirSync(path.join(this.folder, this.dataFolder), { recursive: true });
     Object.keys(this.content).forEach(f => {
       outputFileSync(path.join(this.folder, this.dataFolder, f), this.content[f]);
     });
     unlinkSync(path.join(this.folder, "..data"));
-    ensureSymlinkSync(path.join(this.folder, this.dataFolder), path.join(this.folder, "..data"));
+    symlinkSync(this.dataFolder, path.join(this.folder, "..data"));
   }
 }
 

@@ -398,20 +398,13 @@ class DomainServiceTest extends WebdaApplicationTest {
     const { Classroom } = this.setupClassroomRepos();
     const uuid = "550e8400-e29b-41d4-a716-446655440001";
     await Classroom.create({ uuid, name: "Room101" } as any);
-    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
-    const op = getStorage().operations["Classroom.Test"];
-    const savedInput = op.input;
-    delete op.input;
-    try {
-      const ctx = new FakeOpContext();
-      await ctx.init();
-      ctx.setParameters({ uuid });
-      await callOperation(ctx, "Classroom.Test");
-      const output = ctx.getOutput();
-      assert.ok(output !== undefined);
-    } finally {
-      op.input = savedInput;
-    }
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters({ uuid });
+    await callOperation(ctx, "Classroom.Test");
+    const output = ctx.getOutput();
+    assert.ok(output !== undefined);
   }
 
   @test
@@ -420,18 +413,11 @@ class DomainServiceTest extends WebdaApplicationTest {
     // The modelAction method catches the repository error and throws NotFound,
     // but if the repo throws first (MemoryRepository), that error propagates
     this.setupClassroomRepos();
-    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
-    const op = getStorage().operations["Classroom.Test"];
-    const savedInput = op.input;
-    delete op.input;
-    try {
-      const ctx = new FakeOpContext();
-      await ctx.init();
-      ctx.setParameters({ uuid: "nonexistent-uuid" });
-      await assert.rejects(() => callOperation(ctx, "Classroom.Test"), /not found|Not found|Object not found/i);
-    } finally {
-      op.input = savedInput;
-    }
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters({ uuid: "nonexistent-uuid" });
+    await assert.rejects(() => callOperation(ctx, "Classroom.Test"), /not found|Not found|Object not found/i);
   }
 
   @test
@@ -494,9 +480,9 @@ class DomainServiceTest extends WebdaApplicationTest {
     const { Brand } = this.setupBrandRepo();
     const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
     const op = getStorage().operations["Brand.Create"];
-    // Temporarily remove input/parameters schemas to force context fallback
-    const savedParams = op.parameters;
-    delete op.parameters;
+    // Temporarily remove input schema to force context fallback
+    const savedInput = op.input;
+    delete op.input;
     try {
       const ctx = new FakeOpContext();
       await ctx.init();
@@ -505,7 +491,7 @@ class DomainServiceTest extends WebdaApplicationTest {
       const output = ctx.getOutput();
       assert.ok(output, "Create with context fallback should produce output");
     } finally {
-      op.parameters = savedParams;
+      op.input = savedInput;
     }
   }
 
@@ -536,27 +522,21 @@ class DomainServiceTest extends WebdaApplicationTest {
   @test
   async modelPatchWithInputFallback() {
     // Test modelPatch when input argument is undefined (falls back to context.getInput)
+    // With input="uuidRequest", resolveArguments extracts [uuid], so modelPatch gets (uuid, undefined)
+    // and falls back to context.getInput() for the body
     const { Brand, repo } = this.setupBrandRepo();
     const uuid = "patch-fallback-uuid";
     await Brand.create({ uuid, name: "BeforePatchFallback" } as any);
-    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
-    const op = getStorage().operations["Brand.Patch"];
-    // Remove the input schema so resolveArguments can't extract the body
-    const savedInput = op.input;
-    delete op.input;
-    try {
-      const ctx = new FakeOpContext();
-      await ctx.init();
-      ctx.setParameters({ uuid });
-      ctx.setInput(JSON.stringify({ name: "PatchedFallback" }));
-      await callOperation(ctx, "Brand.Patch");
-      const output = ctx.getOutput();
-      assert.ok(output, "Patch with fallback should produce output");
-      const patched = await repo.get(uuid);
-      assert.strictEqual((patched as any).name, "PatchedFallback");
-    } finally {
-      op.input = savedInput;
-    }
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters({ uuid });
+    ctx.setInput(JSON.stringify({ name: "PatchedFallback" }));
+    await callOperation(ctx, "Brand.Patch");
+    const output = ctx.getOutput();
+    assert.ok(output, "Patch with fallback should produce output");
+    const patched = await repo.get(uuid);
+    assert.strictEqual((patched as any).name, "PatchedFallback");
   }
 
   @test

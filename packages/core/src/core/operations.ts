@@ -52,10 +52,20 @@ async function checkOperation(context: OperationContext, operationId: string) {
   }
   try {
     if (operations[operationId].input) {
-      const input = await context.getInput();
-      if (input === undefined || validateSchema(operations[operationId].input, input) !== true) {
+      // Merge path/query params with body input (body overrides params)
+      // so that URL-derived values (e.g., {uuid}) are included in validation
+      const params = context.getParameters() || {};
+      let body: any;
+      try {
+        body = await context.getInput();
+      } catch {
+        // No body (e.g., GET request)
+      }
+      const merged = { ...params, ...(typeof body === "object" && body !== null ? body : {}) };
+      if (Object.keys(merged).length === 0 && body === undefined) {
         throw new WebdaError.BadRequest(`${operationId} InvalidInput Empty input`);
       }
+      validateSchema(operations[operationId].input, merged);
     }
   } catch (err) {
     if (err instanceof ValidationError) {
@@ -63,29 +73,15 @@ async function checkOperation(context: OperationContext, operationId: string) {
     }
     throw err;
   }
-  try {
-    if (operations[operationId].parameters) {
-      validateSchema(operations[operationId].parameters, context.getParameters());
-    }
-  } catch (err) {
-    if (err instanceof ValidationError) {
-      throw new WebdaError.BadRequest(`${operationId} InvalidParameters ${err.errors.map(e => e.message).join("; ")}`);
-    }
-    throw err;
-  }
 }
 
 /**
- * Resolve method arguments from the OperationContext using the operation's input/parameters schema metadata.
+ * Resolve method arguments from the OperationContext using the operation's input schema metadata.
  *
- * When both `parameters` and `input` schemas are resolvable via the application schema registry,
- * the parameters schema properties are extracted from URL/query params first, then the request
- * body is appended as the next argument. This supports signatures like `method(uuid: string, body: any)`.
- *
- * When only an `input` schema exists, properties are merged from params and body, then
- * extracted in schema property order.
- *
- * When only a `parameters` schema exists, its properties are extracted from URL/query params.
+ * The REST transport merges path/query params into the context so that `context.getParameters()`
+ * contains URL-derived values (e.g., `{uuid}`) while `context.getInput()` contains the request
+ * body. This function merges both sources (body overrides params) and extracts arguments based
+ * on the `input` schema property names and order.
  *
  * @param context - the execution context
  * @param operation - the operation definition
@@ -100,46 +96,16 @@ export async function resolveArguments(context: OperationContext, operation: Ope
     // No input (e.g., GET request)
   }
 
-  const app = useApplication();
-
-  // When both parameters and input schemas are resolvable, extract params then append body.
-  // This supports methods like modelUpdate(uuid: string, body: any).
-  if (operation.parameters && operation.input) {
-    const paramsSchema = app.getSchema(operation.parameters);
-    const inputSchema = app.getSchema(operation.input);
-    if (paramsSchema?.properties && inputSchema) {
-      const paramArgs = Object.keys(paramsSchema.properties).map(name => params[name]);
-      // Append the whole body as the next argument
-      return [...paramArgs, input];
-    }
-  }
-
-  // When only parameters schema is resolvable (no input), extract params by schema property names.
-  // This supports methods like modelGet(uuid: string) and modelQuery(query: string).
-  if (operation.parameters && !operation.input) {
-    const paramsSchema = app.getSchema(operation.parameters);
-    if (paramsSchema?.properties) {
-      return Object.keys(paramsSchema.properties).map(name => params[name]);
-    }
-  }
-
   // Merge: params + body (body overrides params for same keys)
   const merged = { ...params, ...(typeof input === "object" && input !== null ? input : {}) };
 
   // Use input schema properties to determine argument order
   if (operation.input) {
+    const app = useApplication();
     const schema = app.getSchema(operation.input);
     if (schema?.properties) {
       const propNames = Object.keys(schema.properties);
-      if (propNames.length === 1) {
-        const key = propNames[0];
-        // Single param: extract if key matches, otherwise pass whole input
-        if (key in merged && Object.keys(merged).length <= Object.keys(params).length + 1) {
-          return [merged[key]];
-        }
-        return [typeof input === "object" && input !== null ? input : merged];
-      }
-      // Multiple params: extract by name in schema order
+      // Extract values by schema property names from the merged params + body
       return propNames.map(name => merged[name]);
     }
   }

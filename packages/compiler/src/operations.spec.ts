@@ -48,40 +48,39 @@ class OperationsTest {
 
     // CRUD operations
     assert.notStrictEqual(result.operations["Task.Create"], undefined, "Create operation should exist");
-    assert.strictEqual(result.operations["Task.Create"].input, "MyApp/Task");
+    assert.strictEqual(result.operations["Task.Create"].input, undefined);
     assert.strictEqual(result.operations["Task.Create"].output, "MyApp/Task");
 
     assert.notStrictEqual(result.operations["Task.Update"], undefined, "Update operation should exist");
-    assert.strictEqual(result.operations["Task.Update"].input, "MyApp/Task");
-    assert.strictEqual(result.operations["Task.Update"].parameters, "uuidRequest");
+    assert.strictEqual(result.operations["Task.Update"].input, "uuidRequest");
+    assert.strictEqual(result.operations["Task.Update"].output, "MyApp/Task");
 
     assert.notStrictEqual(result.operations["Task.Patch"], undefined, "Patch operation should exist");
-    assert.strictEqual(result.operations["Task.Patch"].input, "MyApp/Task?");
+    assert.strictEqual(result.operations["Task.Patch"].input, "uuidRequest");
 
     assert.notStrictEqual(result.operations["Task.Delete"], undefined, "Delete operation should exist");
-    assert.strictEqual(result.operations["Task.Delete"].parameters, "uuidRequest");
-    assert.strictEqual(result.operations["Task.Delete"].input, undefined);
+    assert.strictEqual(result.operations["Task.Delete"].input, "uuidRequest");
 
     assert.notStrictEqual(result.operations["Task.Get"], undefined, "Get operation should exist");
+    assert.strictEqual(result.operations["Task.Get"].input, "uuidRequest");
     assert.strictEqual(result.operations["Task.Get"].output, "MyApp/Task");
 
     assert.notStrictEqual(result.operations["Tasks.Query"], undefined, "Query operation should exist");
-    assert.strictEqual(result.operations["Tasks.Query"].parameters, "searchRequest");
+    assert.strictEqual(result.operations["Tasks.Query"].input, "searchRequest");
 
     // Custom action (instance)
     assert.notStrictEqual(result.operations["Task.Archive"], undefined, "Archive operation should exist");
-    assert.strictEqual(result.operations["Task.Archive"].input, "MyApp/Task.archive.input");
+    assert.strictEqual(result.operations["Task.Archive"].input, "uuidRequest");
     assert.strictEqual(result.operations["Task.Archive"].output, "MyApp/Task.archive.output");
-    assert.strictEqual(result.operations["Task.Archive"].parameters, "uuidRequest");
 
     // Custom action (global/static)
     assert.notStrictEqual(result.operations["Task.Publish"], undefined, "Publish operation should exist");
     assert.strictEqual(result.operations["Task.Publish"].input, "MyApp/Task.publish.input");
     assert.strictEqual(result.operations["Task.Publish"].output, "MyApp/Task.publish.output");
-    assert.strictEqual(result.operations["Task.Publish"].parameters, undefined);
 
     // Schemas should include referenced schemas
-    assert.notStrictEqual(result.schemas["MyApp/Task.archive.input"], undefined);
+    // Instance action schemas are not referenced (input is "uuidRequest"), so they are not included
+    assert.strictEqual(result.schemas["MyApp/Task.archive.input"], undefined, "Instance action input schema not referenced");
     assert.notStrictEqual(result.schemas["MyApp/Task.archive.output"], undefined);
     assert.notStrictEqual(result.schemas["MyApp/Task.publish.input"], undefined);
     assert.notStrictEqual(result.schemas["MyApp/Task"], undefined, "Model input schema should be included");
@@ -195,7 +194,7 @@ class OperationsTest {
 
     // Model custom action (global)
     assert.notStrictEqual(result.operations["User.Login"], undefined);
-    assert.strictEqual(result.operations["User.Login"].parameters, undefined, "Global action should not have uuid");
+    assert.strictEqual(result.operations["User.Login"].input, "MyApp/User.login.input", "Global action should use its own input schema");
 
     // Bean operation
     assert.notStrictEqual(result.operations["Mailer.Send"], undefined);

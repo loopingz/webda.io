@@ -56,12 +56,6 @@ export function generateProto(
         messages.set(msgName, jsonSchemaToMessage(msgName, schemas[op.output], schemas, messages));
       }
     }
-    if (op.parameters && schemas[op.parameters]) {
-      const msgName = schemaToMessageName(op.parameters);
-      if (!messages.has(msgName)) {
-        messages.set(msgName, jsonSchemaToMessage(msgName, schemas[op.parameters], schemas, messages));
-      }
-    }
   }
 
   // Write all messages
@@ -123,9 +117,6 @@ function getInputType(
 ): string {
   if (op.input && schemas[op.input]) {
     return schemaToMessageName(op.input);
-  }
-  if (op.parameters && schemas[op.parameters]) {
-    return schemaToMessageName(op.parameters);
   }
   return "google.protobuf.Empty";
 }

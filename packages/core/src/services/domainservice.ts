@@ -112,10 +112,6 @@ export class DomainService<
 > extends Service<T, E> {
   app: Application;
   static schemas = {
-    emptyParameters: {
-      type: "object",
-      properties: {}
-    },
     uuidRequest: {
       type: "object",
       properties: {
@@ -435,13 +431,11 @@ export class DomainService<
           // schema may include required relation fields (e.g., BelongTo,
           // ManyToMany) that are not expected in the HTTP request body.
           // Validation is deferred to the model's own save/validate logic.
-          const opInput = k === "Create" ? undefined : modelSchema;
           registerOperation(id, {
             service: this.getName(),
             method: k === "Create" ? "modelCreate" : "modelUpdate",
-            input: opInput,
+            input: k === "Create" ? undefined : "uuidRequest",
             output: modelSchema,
-            parameters: k === "Create" ? "emptyParameters" : "uuidRequest",
             summary: k === "Create" ? `Create a new ${shortId}` : `Update a ${shortId}`,
             tags: [shortId],
             rest: { method: k === "Create" ? "post" : "put", path: k === "Create" ? "" : "{uuid}" },
@@ -459,7 +453,7 @@ export class DomainService<
             service: this.getName(),
             method: `model${k}`,
             id,
-            parameters: "uuidRequest",
+            input: "uuidRequest",
             summary: `${k === "Delete" ? "Delete" : "Retrieve"} a ${shortId}`,
             tags: [shortId],
             rest: { method: k === "Delete" ? "delete" : "get", path: "{uuid}" },
@@ -477,7 +471,7 @@ export class DomainService<
         registerOperation(id, {
           service: this.getName(),
           method: "modelQuery",
-          parameters: "searchRequest",
+          input: "searchRequest",
           summary: `Query ${plural}`,
           tags: [shortId],
           rest: { method: this.parameters.queryMethod.toLowerCase() as "put" | "get", path: "" },
@@ -492,8 +486,7 @@ export class DomainService<
         registerOperation(id, {
           service: this.getName(),
           method: "modelPatch",
-          input: modelSchema + "?",
-          parameters: "uuidRequest",
+          input: "uuidRequest",
           summary: `Patch a ${shortId}`,
           tags: [shortId],
           rest: { method: "patch", path: "{uuid}" },
@@ -513,9 +506,8 @@ export class DomainService<
             method: `modelAction`,
             id
           };
-          info.input = `${modelKey}.${name}.input`;
+          info.input = actions[name].global ? `${modelKey}.${name}.input` : "uuidRequest";
           info.output = `${modelKey}.${name}.output`;
-          info.parameters = actions[name].global ? undefined : "uuidRequest";
           info.context = {
             model,
             action: { ...actions[name], name }
@@ -550,12 +542,11 @@ export class DomainService<
       const info = {
         service: this.getName(),
         context: baseContext,
-        parameters: "uuidRequest"
+        input: "uuidRequest"
       };
       registerOperation(`${name}.${attribute}.AttachChallenge`, {
         ...info,
         method: "binaryChallenge",
-        input: "binaryChallengeRequest",
         summary: `Upload ${binary.attribute} of ${name} after challenge`,
         tags: [name],
         rest: { method: "put", path: `{uuid}/${binary.attribute}` }
@@ -567,7 +558,7 @@ export class DomainService<
           action: "create"
         },
         method: "binaryPut",
-        parameters: "binaryAttachParameters",
+        input: "binaryAttachParameters",
         summary: `Upload ${binary.attribute} of ${name} directly`,
         tags: [name],
         rest: { method: "post", path: `{uuid}/${binary.attribute}` }
@@ -575,7 +566,7 @@ export class DomainService<
       registerOperation(`${name}.${attribute}.Get`, {
         ...info,
         method: "binaryGet",
-        parameters: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest",
+        input: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest",
         summary: `Download ${binary.attribute} of ${name}`,
         tags: [name],
         rest: {
@@ -591,7 +582,7 @@ export class DomainService<
           action: "delete"
         },
         method: "binaryAction",
-        parameters: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest",
+        input: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest",
         summary: `Delete ${binary.attribute} of ${name}`,
         tags: [name],
         rest: {
@@ -609,7 +600,7 @@ export class DomainService<
           action: "metadata"
         },
         method: "binaryAction",
-        parameters: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest",
+        input: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest",
         summary: `Update metadata of ${binary.attribute} of ${name}`,
         tags: [name],
         rest: {
@@ -627,7 +618,7 @@ export class DomainService<
           returnUrl: true
         },
         method: "binaryGet",
-        parameters: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest",
+        input: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest",
         summary: `Get signed URL for ${binary.attribute} of ${name}`,
         tags: [name],
         rest: {
@@ -664,9 +655,13 @@ export class DomainService<
    * @param body - the challenge request body containing hash, challenge, and optional file info
    * @returns the challenge result with redirect url or done flag
    */
-  async binaryChallenge(uuid: string, body: BinaryFileInfo & { hash: string; challenge: string }): Promise<any> {
+  async binaryChallenge(uuid: string, body?: BinaryFileInfo & { hash: string; challenge: string }): Promise<any> {
     const context = useContext<OperationContext>();
     const { model, binaryStore, binary } = this.resolveBinaryContext(context);
+    // Fall back to context input when resolveArguments couldn't extract body
+    if (body === undefined) {
+      body = await context.getInput();
+    }
     // First verify if map exist
     const object = await model.ref(uuid).get();
     if (object === undefined || object.isDeleted()) {

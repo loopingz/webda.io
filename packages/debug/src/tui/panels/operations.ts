@@ -3,7 +3,7 @@ import { DebugClient } from "../client.js";
 
 /**
  * Operations panel: displays all registered operations in a table
- * with ID, input schema, output schema, and parameters.
+ * with ID, input schema, and output schema.
  */
 export class OperationsPanel extends ScrollablePanel {
   name = "Operations";
@@ -71,9 +71,7 @@ export class OperationsPanel extends ScrollablePanel {
         " ".repeat(Math.max(1, 35 - 2)) +
         "Input" +
         " ".repeat(Math.max(1, 20 - 5)) +
-        "Output" +
-        " ".repeat(Math.max(1, 20 - 6)) +
-        "Parameters"
+        "Output"
     );
 
     const dataStart = startRow + 1;
@@ -92,9 +90,8 @@ export class OperationsPanel extends ScrollablePanel {
       const id = (op.id || "unknown").substring(0, 33);
       const input = (op.input || "-").substring(0, 18);
       const output = (op.output || "-").substring(0, 18);
-      const params = (op.parameters || "-").substring(0, 18);
 
-      const line = `  ${id.padEnd(33)}  ${input.padEnd(18)}  ${output.padEnd(18)}  ${params}`;
+      const line = `  ${id.padEnd(33)}  ${input.padEnd(18)}  ${output.padEnd(18)}`;
 
       if (isSelected) {
         term.inverse(line.padEnd(width));

@@ -924,6 +924,7 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     await ctx.init();
     ctx.setParameters({ uuid: "abc123" });
     const args = await resolveArguments(ctx, { id: "Test.Op", method: "test" });
+    // No input schema and no body input, so no args
     assert.deepStrictEqual(args, []);
   }
 
@@ -1037,8 +1038,9 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
   }
 
   @test
-  async resolveArgsParametersOnlySchema() {
-    // When only parameters schema is defined (no input), extract params by schema property names
+  async resolveArgsInputSchemaFromParams() {
+    // When input schema is defined and params carry the values (e.g., from REST path params),
+    // extract args by schema property names from merged params + body
     const app = useApplication<Application>();
     app.getSchemas()["Test.ParamsOnly"] = {
       type: "object",
@@ -1053,14 +1055,14 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     const args = await resolveArguments(ctx, {
       id: "Test.Op",
       method: "test",
-      parameters: "Test.ParamsOnly"
+      input: "Test.ParamsOnly"
     });
     assert.deepStrictEqual(args, ["my-uuid-123"]);
   }
 
   @test
-  async resolveArgsParametersOnlyMultipleProps() {
-    // Parameters-only schema with multiple properties
+  async resolveArgsInputSchemaMultiplePropsFromParams() {
+    // Input schema with multiple properties, values from params
     const app = useApplication<Application>();
     app.getSchemas()["Test.ParamsOnlyMulti"] = {
       type: "object",
@@ -1076,49 +1078,14 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     const args = await resolveArguments(ctx, {
       id: "Test.Op",
       method: "test",
-      parameters: "Test.ParamsOnlyMulti"
+      input: "Test.ParamsOnlyMulti"
     });
     assert.deepStrictEqual(args, ["abc", 3]);
   }
 
   @test
-  async resolveArgsBothParametersAndInput() {
-    // When both parameters and input schemas are resolvable, extract params then append body
-    const app = useApplication<Application>();
-    app.getSchemas()["Test.BothParams"] = {
-      type: "object",
-      properties: {
-        uuid: { type: "string" }
-      }
-    };
-    app.getSchemas()["Test.BothInput"] = {
-      type: "object",
-      properties: {
-        name: { type: "string" },
-        value: { type: "number" }
-      }
-    };
-
-    const ctx = new FakeOpContext();
-    await ctx.init();
-    ctx.setParameters({ uuid: "update-uuid" });
-    ctx.setInput(JSON.stringify({ name: "updated", value: 42 }));
-    const args = await resolveArguments(ctx, {
-      id: "Test.Op",
-      method: "test",
-      parameters: "Test.BothParams",
-      input: "Test.BothInput"
-    });
-    // Should be [uuid, {body}]
-    assert.strictEqual(args.length, 2);
-    assert.strictEqual(args[0], "update-uuid");
-    assert.deepStrictEqual(args[1], { name: "updated", value: 42 });
-  }
-
-  @test
-  async resolveArgsBothSchemasNotResolvable() {
-    // When both parameters and input are set but schemas are not resolvable,
-    // should fall through to the merge path
+  async resolveArgsInputSchemaNotResolvable() {
+    // When input schema is not resolvable, fall through to no-schema path
     const ctx = new FakeOpContext();
     await ctx.init();
     ctx.setParameters({ uuid: "fallback-uuid" });
@@ -1126,7 +1093,6 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     const args = await resolveArguments(ctx, {
       id: "Test.Op",
       method: "test",
-      parameters: "NonExistent.Params",
       input: "NonExistent.Input"
     });
     // Falls through to no-schema path — input is returned as single arg
@@ -1134,9 +1100,8 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
   }
 
   @test
-  async resolveArgsSinglePropertySchemaWholeInput() {
-    // Single property schema where the key does not match anything in merged
-    // Should pass whole input as the argument
+  async resolveArgsSinglePropertySchemaKeyPresent() {
+    // Single property schema where the key matches merged data
     const app = useApplication<Application>();
     app.getSchemas()["Test.SingleWhole"] = {
       type: "object",
@@ -1147,15 +1112,15 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
 
     const ctx = new FakeOpContext();
     await ctx.init();
-    // Input has a different key than "body"
-    ctx.setInput(JSON.stringify({ nested: { deep: true } }));
+    // Input has the expected "body" key
+    ctx.setInput(JSON.stringify({ body: { nested: true } }));
     const args = await resolveArguments(ctx, {
       id: "Test.Op",
       method: "test",
       input: "Test.SingleWhole"
     });
-    // Since "body" is not in merged and input is an object, returns [input]
-    assert.deepStrictEqual(args, [{ nested: { deep: true } }]);
+    // Extracts the "body" property from merged
+    assert.deepStrictEqual(args, [{ nested: true }]);
   }
 }
 
@@ -1251,7 +1216,7 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
       id: "Brand.StaticQueryOp",
       model: "Brand",
       method: "query",
-      parameters: "searchRequest"
+      input: "searchRequest"
     } as any;
 
     try {
@@ -1287,7 +1252,7 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
       model: "Brand",
       method: "delete",
       static: false,
-      parameters: "uuidRequest"
+      input: "uuidRequest"
     } as any;
 
     try {
@@ -1325,7 +1290,7 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
       model: "Brand",
       method: "delete",
       static: false,
-      parameters: "uuidRequest"
+      input: "uuidRequest"
     } as any;
 
     try {
@@ -1359,7 +1324,7 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
       model: "Brand",
       method: "delete",
       static: false,
-      parameters: "uuidRequest"
+      input: "uuidRequest"
     } as any;
 
     try {
@@ -1373,12 +1338,12 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
   }
 
   @test
-  async callOperationParameterValidationError() {
-    // Test the parameter validation error path (lines 71-74)
+  async callOperationInputValidationError() {
+    // Test the input validation error path
     const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
 
-    // Register a schema that requires specific parameters
-    registerSchema("strict.params.schema", {
+    // Register a schema that requires specific input fields
+    registerSchema("strict.input.schema", {
       type: "object",
       properties: {
         uuid: { type: "string", minLength: 1 }
@@ -1386,24 +1351,24 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
       required: ["uuid"]
     });
 
-    getStorage().operations["Brand.StrictParams"] = {
-      id: "Brand.StrictParams",
+    getStorage().operations["Brand.StrictInput"] = {
+      id: "Brand.StrictInput",
       model: "Brand",
       method: "query",
-      parameters: "strict.params.schema"
+      input: "strict.input.schema"
     } as any;
 
     try {
       const ctx = new FakeOpContext();
       await ctx.init();
-      // Provide empty parameters - should fail validation
-      ctx.setParameters({});
+      // Provide empty input - should fail validation
+      ctx.setInput(JSON.stringify({}));
       await assert.rejects(
-        () => callOperation(ctx, "Brand.StrictParams"),
-        (err: any) => err.message.includes("InvalidParameters")
+        () => callOperation(ctx, "Brand.StrictInput"),
+        (err: any) => err.message.includes("InvalidInput")
       );
     } finally {
-      delete getStorage().operations["Brand.StrictParams"];
+      delete getStorage().operations["Brand.StrictInput"];
     }
   }
 }

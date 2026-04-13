@@ -378,7 +378,7 @@ class ProtoGeneratorTest {
   }
 
   @test
-  operationWithParametersSchema() {
+  operationWithInputSchema() {
     const schemas: Record<string, JSONSchema7> = {
       uuidRequest: {
         type: "object",
@@ -390,7 +390,7 @@ class ProtoGeneratorTest {
 
     const operations = {
       "Post.Get": {
-        parameters: "uuidRequest",
+        input: "uuidRequest",
         output: "MyApp/PostResponse"
       }
     };
@@ -407,35 +407,30 @@ class ProtoGeneratorTest {
 
     const result = generateProto(operations, schemasWithOutput);
 
-    // Parameters should become the input type when no explicit input
-    assert.ok(result.includes("message UuidRequest {"), "Should create message from parameters schema");
-    assert.ok(result.includes("rpc Get(UuidRequest) returns (PostResponse);"), "Should use parameters as input type");
+    // Input schema should become the input type
+    assert.ok(result.includes("message UuidRequest {"), "Should create message from input schema");
+    assert.ok(result.includes("rpc Get(UuidRequest) returns (PostResponse);"), "Should use input as input type");
   }
 
   @test
-  inputTakesPriorityOverParameters() {
+  inputUsedAsRpcInputType() {
     const schemas: Record<string, JSONSchema7> = {
       "MyApp/CreateInput": {
         type: "object",
         properties: { title: { type: "string" } }
-      },
-      uuidParams: {
-        type: "object",
-        properties: { uuid: { type: "string" } }
       }
     };
 
     const operations = {
       "Post.Create": {
-        input: "MyApp/CreateInput",
-        parameters: "uuidParams"
+        input: "MyApp/CreateInput"
       }
     };
 
     const result = generateProto(operations, schemas);
 
-    // input should win over parameters
-    assert.ok(result.includes("rpc Create(CreateInput)"), "Input should take priority over parameters");
+    // input should be used as the RPC input type
+    assert.ok(result.includes("rpc Create(CreateInput)"), "Input should be used as RPC input type");
   }
 
   @test

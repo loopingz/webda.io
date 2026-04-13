@@ -67,10 +67,6 @@ export interface OperationDefinition {
    */
   output?: string;
   /**
-   * Name of the schema that defines parameters
-   */
-  parameters?: string;
-  /**
    * WebdaQL to execute on session to know if
    * operation is available to user
    */

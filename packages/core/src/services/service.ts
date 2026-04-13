@@ -453,6 +453,8 @@ abstract class Service<
         ...op,
         service: this.getName(),
         method: actualMethod,
+        input: op.input || `${this.getName()}.${actualMethod}.input`,
+        output: op.output || `${this.getName()}.${actualMethod}.output`,
         id: opId
       });
     }

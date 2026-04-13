@@ -52,19 +52,19 @@ async function checkOperation(context: OperationContext, operationId: string) {
   }
   try {
     if (operations[operationId].input && operations[operationId].input !== "void") {
-      // Merge path/query params with body input (body overrides params)
-      // so that URL-derived values (e.g., {uuid}) are included in validation
+      // Validate the merged (path params + request body) against the input schema.
+      // Path params (e.g., {uuid}, {hash}) are provided via context.getParameters()
+      // and must be merged with the body before validation because schemas like
+      // uuidRequest and binaryHashRequest declare them as required properties.
       const params = context.getParameters() || {};
       let body: any;
       try {
         body = await context.getInput();
       } catch {
-        // No body (e.g., GET request)
+        // No body (e.g., GET request) — skip validation
       }
+      // Merge path params with body (body overrides params for same keys)
       const merged = { ...params, ...(typeof body === "object" && body !== null ? body : {}) };
-      if (Object.keys(merged).length === 0 && body === undefined) {
-        throw new WebdaError.BadRequest(`${operationId} InvalidInput Empty input`);
-      }
       validateSchema(operations[operationId].input, merged);
     }
   } catch (err) {

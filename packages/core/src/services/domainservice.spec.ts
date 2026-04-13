@@ -521,9 +521,9 @@ class DomainServiceTest extends WebdaApplicationTest {
 
   @test
   async modelPatchWithInputFallback() {
-    // Test modelPatch when input argument is undefined (falls back to context.getInput)
-    // With input="uuidRequest", resolveArguments extracts [uuid], so modelPatch gets (uuid, undefined)
-    // and falls back to context.getInput() for the body
+    // Test modelPatch when resolveArguments passes the body as the first arg
+    // (because the "ModelKey?" schema isn't in the registry with the ? suffix).
+    // modelPatch detects this case and reads uuid from context params instead.
     const { Brand, repo } = this.setupBrandRepo();
     const uuid = "patch-fallback-uuid";
     await Brand.create({ uuid, name: "BeforePatchFallback" } as any);

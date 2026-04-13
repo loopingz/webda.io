@@ -335,6 +335,13 @@ export class DomainService<
   async modelPatch(uuid: string, input?: any): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
+    // When resolveArguments cannot find the schema (e.g., "ModelKey?" suffix not in registry),
+    // it falls back to passing the body as the first argument. Detect this case: if uuid is not
+    // a string (or is an object), it's actually the patch body; read uuid from path params instead.
+    if (typeof uuid !== "string") {
+      input = uuid;
+      uuid = context.getParameters()?.uuid;
+    }
     const object = await this.loadModel(model, uuid);
     // Fall back to context input when resolveArguments couldn't extract body
     // (e.g., partial model schema not in application registry)
@@ -422,19 +429,43 @@ export class DomainService<
       const modelSchema = modelKey;
       const actionsName = Object.keys(Metadata.Actions);
 
+      // Build primary key schema for this model
+      const pkSchemaName = `${modelKey}.primaryKey`;
+      const pkFields = Metadata.PrimaryKey || ["uuid"];
+      if (!hasSchema(pkSchemaName)) {
+        const pkSchema: any = { type: "object", properties: {}, required: pkFields };
+        for (const field of pkFields) {
+          pkSchema.properties[field] = { type: "string" };
+        }
+        registerSchema(pkSchemaName, pkSchema);
+        // Also register in the app schema registry so getSchema() finds it
+        appSchemas[pkSchemaName] = pkSchema;
+      }
+
+      // Build query result schema for this model
+      const queryResultSchemaName = `${modelKey}.queryResult`;
+      if (!hasSchema(queryResultSchemaName)) {
+        const queryResultSchema = {
+          type: "object",
+          properties: {
+            continuationToken: { type: "string" },
+            results: { type: "array", items: { $ref: `#/definitions/${modelKey}` } }
+          }
+        };
+        registerSchema(queryResultSchemaName, queryResultSchema);
+        appSchemas[queryResultSchemaName] = queryResultSchema;
+      }
+
+      // CRUD operations
       ["create", "update"]
         .filter(k => !actionsName.includes(k))
         .forEach(k => {
           k = k.substring(0, 1).toUpperCase() + k.substring(1);
           const id = `${shortId}.${k}`;
-          // For Create, skip input schema validation — the model's full Input
-          // schema may include required relation fields (e.g., BelongTo,
-          // ManyToMany) that are not expected in the HTTP request body.
-          // Validation is deferred to the model's own save/validate logic.
           registerOperation(id, {
             service: this.getName(),
             method: k === "Create" ? "modelCreate" : "modelUpdate",
-            input: k === "Create" ? "void" : "uuidRequest",
+            input: modelSchema + "?",
             output: modelSchema,
             summary: k === "Create" ? `Create a new ${shortId}` : `Update a ${shortId}`,
             tags: [shortId],
@@ -449,11 +480,11 @@ export class DomainService<
         .forEach(k => {
           k = k.substring(0, 1).toUpperCase() + k.substring(1);
           const id = `${shortId}.${k}`;
-          const info: OperationDefinition = {
+          registerOperation(id, {
             service: this.getName(),
             method: `model${k}`,
             id,
-            input: "uuidRequest",
+            input: pkSchemaName,
             output: k === "Get" ? modelSchema : "void",
             summary: `${k === "Delete" ? "Delete" : "Retrieve"} a ${shortId}`,
             tags: [shortId],
@@ -461,8 +492,7 @@ export class DomainService<
             context: {
               model
             }
-          };
-          registerOperation(id, info);
+          });
         });
       if (!actionsName.includes("query")) {
         const id = `${plural}.Query`;
@@ -470,7 +500,7 @@ export class DomainService<
           service: this.getName(),
           method: "modelQuery",
           input: "searchRequest",
-          output: "void",
+          output: queryResultSchemaName,
           summary: `Query ${plural}`,
           tags: [shortId],
           rest: { method: this.parameters.queryMethod.toLowerCase() as "put" | "get", path: "" },
@@ -485,8 +515,8 @@ export class DomainService<
         registerOperation(id, {
           service: this.getName(),
           method: "modelPatch",
-          input: "uuidRequest",
-          output: "void",
+          input: modelSchema + "?",
+          output: modelSchema,
           summary: `Patch a ${shortId}`,
           tags: [shortId],
           rest: { method: "patch", path: "{uuid}" },

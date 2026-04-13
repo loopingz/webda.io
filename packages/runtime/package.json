@@ -8,8 +8,8 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "webda build",
-    "build:watch": "webda build --watch",
+    "build": "webdac build",
+    "build:watch": "webdac build --watch",
     "pretest": "npm run build",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
@@ -59,7 +59,6 @@
   "devDependencies": {
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:^",
-    "@webda/shell": "workspace:*",
     "@webda/test": "workspace:*",
     "c8": "^11.0.0",
     "fs-extra": "^11.3.4",

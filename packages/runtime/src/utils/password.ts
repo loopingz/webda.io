@@ -15,6 +15,9 @@ function getKey(password: string): Buffer {
   return scryptSync(password, "Webda", 64).subarray(0, 32);
 }
 
+/**
+ *
+ */
 async function requestPassword(): Promise<string> {
   /* c8 ignore next 5 */
   if (!Core.get().getWorkerOutput().interactive) {
@@ -80,6 +83,7 @@ export class PasswordEncryptionService extends Service {
   /**
    * Decrypt a data previously encrypted with this service
    * @param data
+   * @param key
    * @returns
    */
   decrypt(data: string, key?: string): Promise<string> {

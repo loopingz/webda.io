@@ -59,13 +59,13 @@ export interface OperationDefinition {
    */
   id: string;
   /**
-   * Name of the schema that defines operation input
+   * Schema name for operation input. Use "void" for no input.
    */
-  input?: string;
+  input: string;
   /**
-   * Name of the schema that defines operation output
+   * Schema name for operation output. Use "void" for no output.
    */
-  output?: string;
+  output: string;
   /**
    * WebdaQL to execute on session to know if
    * operation is available to user

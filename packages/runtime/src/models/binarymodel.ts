@@ -13,6 +13,9 @@ export class BinaryModel<T = any> extends CoreModel {
   @NotEnumerable
   __dataUpdated: boolean = false;
 
+  /**
+   *
+   */
   public get data(): T {
     const subProxier = prop => {
       return {
@@ -55,15 +58,25 @@ export class BinaryModel<T = any> extends CoreModel {
     return new Proxy(this.__data, proxier);
   }
 
+  /**
+   *
+   */
   public set data(data: T) {
     this.__data = data;
     this.__dataUpdated = true;
   }
 
+  /**
+   *
+   */
   needsUpload(): boolean {
     return this.__dataUpdated;
   }
 
+  /**
+   *
+   * @param force
+   */
   async loadData(force: boolean = false) {
     if (this.__data && !force) {
       return;
@@ -71,12 +84,18 @@ export class BinaryModel<T = any> extends CoreModel {
     this.__data = JSON.parse(gunzipSync(await this.__binary.getAsBuffer()).toString());
   }
 
+  /**
+   *
+   */
   async save() {
     await super.save();
     await this.updateBinary();
     return this;
   }
 
+  /**
+   *
+   */
   async updateBinary() {
     if (!this.__dataUpdated) {
       return;

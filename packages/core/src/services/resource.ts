@@ -123,6 +123,7 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
    */
   initRoutes() {
     this.addRoute(this.parameters.url, ["GET"], this._serve, {
+      hidden: true,
       get: {
         description: "Get resources",
         summary: "Get file",
@@ -145,6 +146,7 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
       ["GET"],
       this._serve,
       {
+        hidden: true,
         get: {
           description: "Get resources",
           summary: "Get file",
@@ -166,6 +168,7 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
     );
     if (this.parameters.rootRedirect) {
       this.addRoute("/", ["GET"], this._redirect, {
+        hidden: true,
         get: {
           description: "Redirect / to the exposed url",
           summary: "Serve resource",

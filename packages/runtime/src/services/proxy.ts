@@ -12,6 +12,11 @@ import {
 import * as http from "http";
 import * as https from "https";
 
+/**
+ *
+ * @param line
+ * @param headers
+ */
 export function createHttpHeader(line, headers) {
   return (
     Object.keys(headers)
@@ -58,6 +63,10 @@ export class ProxyParameters extends ServiceParameters {
    */
   proxyHeaders: boolean;
 
+  /**
+   *
+   * @param params
+   */
   constructor(params: any) {
     super(params);
     if (this.backend?.endsWith("/")) {
@@ -114,6 +123,9 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
     return new ProxyParameters(params);
   }
 
+  /**
+   *
+   */
   resolve() {
     // Register the proxy on the 'upgrade' event of http socket
     this.getWebda().on("Webda.Init.Http", (evt: any) => {
@@ -130,6 +142,8 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @param method
    * @param headers
    * @param callback
+   * @param options
+   * @param options.timeout
    * @returns
    */
   createRequest(
@@ -227,6 +241,9 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
 
   /**
    * Proxy WebService
+   * @param req
+   * @param socket
+   * @param head
    */
   async proxyWS(req, socket, head) {
     if (!req.url.startsWith(this.parameters.url)) {
@@ -327,7 +344,9 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   /**
    * Proxy an url to the response directly
    * @param ctx
+   * @param host
    * @param url
+   * @param headers
    */
   async rawProxy(ctx: WebContext, host: string, url: string = "/", headers: any = {}) {
     if (!url.startsWith("/")) {

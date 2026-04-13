@@ -30,6 +30,9 @@ export class ModelMapper extends Service {
   mappers: {
     [key: string]: ModelMapperInfo[];
   } = {};
+  /**
+   *
+   */
   resolve() {
     super.resolve();
     const app = useApplication();

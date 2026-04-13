@@ -1,5 +1,8 @@
 import { Service, ServiceParameters, WebContext } from "@webda/core";
 
+/**
+ *
+ */
 export class EchoServiceParameters extends ServiceParameters {
   /**
    * Mime of the result

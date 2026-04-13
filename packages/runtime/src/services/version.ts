@@ -44,6 +44,7 @@ export class VersionService<T extends VersionServiceParameters = VersionServiceP
   }
 
   /**
+   * @param params
    * @inheritdoc
    */
   loadParameters(params: any) {

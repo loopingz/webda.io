@@ -163,6 +163,9 @@ export class InvitationParameters extends ServiceParameters {
    */
   url?: string;
 
+  /**
+   *
+   */
   default() {
     this.authenticationService ??= "Authentication";
     if (typeof this.mapFields === "string") {
@@ -215,6 +218,7 @@ export class InvitationService<
   model: Repository<User>;
 
   /**
+   * @param params
    * @inheritdoc
    */
   loadParameters(params: ServicePartialParameters<T>) {
@@ -487,6 +491,7 @@ export class InvitationService<
   /**
    * Remove a model invitation from user
    * @param user
+   * @param model
    */
   protected async removeInvitationFromUser(user: string, model: string): Promise<void> {
     const userModel = await this.authenticationService.getUserModel().get(user);
@@ -638,6 +643,14 @@ export class InvitationService<
     });
   }
 
+  /**
+   *
+   * @param model
+   * @param user
+   * @param inviter
+   * @param metadata
+   * @param notification
+   */
   async addInvitationToUser(model: CoreModel, user: User, inviter: User, metadata: any, notification: any = {}) {
     if ((user[this.parameters.mapAttribute] || []).filter(p => p.model === model.getUUID()).length) {
       return;
@@ -662,6 +675,11 @@ export class InvitationService<
     });
   }
 
+  /**
+   *
+   * @param user
+   * @param replacements
+   */
   async sendNotification(user: User | Ident, replacements: any) {
     if (!this.parameters.notification) {
       return;

@@ -19,6 +19,13 @@ export class EventIterator {
   resolve: () => void;
   running: boolean;
 
+  /**
+   *
+   * @param eventEmitter
+   * @param events
+   * @param prefix
+   * @param initValue
+   */
   constructor(
     protected eventEmitter: EventEmitter | AsyncEventEmitter,
     events: { [key: string]: true | ((data: any) => any) } | string,
@@ -39,6 +46,11 @@ export class EventIterator {
     this.resolve = () => {};
   }
 
+  /**
+   *
+   * @param event
+   * @param data
+   */
   async push(event: string, data: any) {
     const tdata = await this.events[event](data);
     if (tdata === undefined) {
@@ -56,6 +68,9 @@ export class EventIterator {
     this.resolve();
   }
 
+  /**
+   *
+   */
   async *iterate() {
     this.running = true;
     // using a queue and not the once method in case 2 events are sent successively
@@ -103,6 +118,10 @@ export class EventIterator {
   }
 }
 
+/**
+ *
+ * @param it
+ */
 function isAsyncGenerator(it: any): it is AsyncGenerator {
   return (
     typeof it[Symbol.asyncIterator] == "function" && typeof it["next"] == "function" && typeof it["throw"] == "function"
@@ -113,6 +132,12 @@ function isAsyncGenerator(it: any): it is AsyncGenerator {
  * Assemble to event iterator into one
  */
 export class MergedIterator {
+  /**
+   *
+   * @param data
+   * @param ignoreUndefined
+   * @param transformer
+   */
   static async *iterate(data: any, ignoreUndefined = false, transformer: (data: any) => any = a => a) {
     const res = {};
     let available = false;

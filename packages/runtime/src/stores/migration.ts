@@ -1,6 +1,9 @@
 import { CoreModel, Inject, Store, StoreFindResult, StoreParameters } from "@webda/core";
 import * as WebdaQL from "@webda/ql";
 
+/**
+ *
+ */
 export class MigrationStoreParameters extends StoreParameters {
   /**
    * From store
@@ -56,14 +59,30 @@ export class MigrationStore<
     ]);
   }
 
+  /**
+   *
+   * @param uid
+   * @param raiseIfNotFound
+   */
   protected _get(uid: string, raiseIfNotFound?: boolean | undefined): Promise<T> {
     return this.fromStore["_get"](uid, raiseIfNotFound);
   }
 
+  /**
+   *
+   * @param list
+   */
   getAll(list?: string[] | undefined): Promise<T[]> {
     return this.fromStore.getAll(list);
   }
 
+  /**
+   *
+   * @param object
+   * @param uid
+   * @param itemWriteCondition
+   * @param itemWriteConditionField
+   */
   protected async _update(
     object: any,
     uid: string,
@@ -77,6 +96,13 @@ export class MigrationStore<
       ])
     )[0];
   }
+  /**
+   *
+   * @param object
+   * @param uid
+   * @param itemWriteCondition
+   * @param itemWriteConditionField
+   */
   protected async _patch(
     object: any,
     uid: string,
@@ -91,6 +117,13 @@ export class MigrationStore<
     )[0];
   }
 
+  /**
+   *
+   * @param uuid
+   * @param attribute
+   * @param itemWriteCondition
+   * @param itemWriteConditionField
+   */
   protected async _removeAttribute(
     uuid: string,
     attribute: string,
@@ -103,6 +136,10 @@ export class MigrationStore<
     ]);
   }
 
+  /**
+   *
+   * @param object
+   */
   protected async _save(object: T): Promise<any> {
     return (
       await Promise.all([
@@ -112,6 +149,12 @@ export class MigrationStore<
     )[0];
   }
 
+  /**
+   *
+   * @param uid
+   * @param params
+   * @param updateDate
+   */
   protected async _incrementAttributes(
     uid: string,
     params: { property: string; value: number }[],
@@ -124,6 +167,16 @@ export class MigrationStore<
       ])
     )[0];
   }
+  /**
+   *
+   * @param uid
+   * @param prop
+   * @param item
+   * @param index
+   * @param itemWriteCondition
+   * @param itemWriteConditionField
+   * @param updateDate
+   */
   protected async _upsertItemToCollection(
     uid: string,
     prop: string,
@@ -154,6 +207,15 @@ export class MigrationStore<
       ).catch(_ => {}) // Ignore failure
     ]);
   }
+  /**
+   *
+   * @param uid
+   * @param prop
+   * @param index
+   * @param itemWriteCondition
+   * @param itemWriteConditionField
+   * @param updateDate
+   */
   protected async _deleteItemFromCollection(
     uid: string,
     prop: string,

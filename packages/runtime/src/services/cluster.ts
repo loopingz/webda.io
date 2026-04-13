@@ -44,6 +44,9 @@ export interface ClusterMessage {
 
 const storeEvents = ["Store.PartialUpdated", "Store.Saved", "Store.PatchUpdated", "Store.Updated", "Store.Deleted"];
 
+/**
+ *
+ */
 export class ClusterServiceParameters extends ServiceParameters {
   /**
    * @default PubSub
@@ -70,6 +73,10 @@ export class ClusterServiceParameters extends ServiceParameters {
    */
   unsyncCodeAlert?: boolean;
 
+  /**
+   *
+   * @param params
+   */
   constructor(params: any) {
     super(params);
     this.keepAlive ??= 30000;
@@ -288,6 +295,7 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
 
   /**
    *
+   * @param ctx
    * @returns
    */
   @Route(".")
@@ -311,6 +319,7 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   /**
    * Send message to the pub/sub
    * @param message
+   * @param force
    * @returns
    */
   async sendMessage(message: Partial<ClusterMessage>, force?: boolean): Promise<void> {
@@ -327,6 +336,9 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
     await this.pubSub.sendMessage(<ClusterMessage>{ ...message, emitterId: this.emitterId, time: Date.now() });
   }
 
+  /**
+   *
+   */
   resolve(): this {
     super.resolve();
     const packageInfo = this.getWebda().getApplication().getPackageDescription();

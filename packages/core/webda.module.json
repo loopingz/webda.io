@@ -959,8 +959,12 @@
             "type": "object"
           }
         },
-        "description": "Parameters for the HTTP server including request limits, timeouts, and trusted proxy settings",
+        "description": "Parameters for the HTTP server including request limits, timeouts, TLS, and proxy settings",
         "properties": {
+          "cert": {
+            "description": "TLS certificate file path",
+            "type": "string"
+          },
           "csrfOrigins": {
             "description": "Allowed origin for referer that match\nany of this regexp\n\n{@link OriginFilter }",
             "items": {
@@ -971,6 +975,15 @@
           "defaultHeaders": {
             "$ref": "#/definitions/defaultHeaders",
             "description": "Default headers to send to the client\n\nHaving a Cache-Control: private will prevent caching for API\nIf you overwrite this parameter, you will need to add it back"
+          },
+          "http2": {
+            "default": false,
+            "description": "Enable HTTP/2 (default: true when key+cert provided)\nSet to false for HTTPS without HTTP/2",
+            "type": "boolean"
+          },
+          "key": {
+            "description": "TLS key file path — enables HTTPS or HTTP/2",
+            "type": "string"
           },
           "port": {
             "default": 18080,

@@ -13,6 +13,11 @@
     },
     "RESTService": {
       "type": "Webda/RESTOperationsTransport"
+    },
+    "WebUI": {
+      "type": "Webda/ResourceService",
+      "folder": "./webui",
+      "url": "/admin"
     }
   }
 }

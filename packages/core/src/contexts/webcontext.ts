@@ -4,7 +4,7 @@ import * as http from "http";
 import { HttpContext } from "./httpcontext.js";
 import { Readable, Writable } from "node:stream";
 import { WritableStreamBuffer } from "stream-buffers";
-import { useCore, useService } from "../core/hooks.js";
+import { useCore, useDynamicService, useService } from "../core/hooks.js";
 
 /**
  * @category CoreFeatures
@@ -231,15 +231,28 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
       return this._ended;
     }
     this._ended = (async () => {
-      if (this.getExtension("http")) {
-        await useService("SessionManager").save(this, this.session);
+      if (this.getExtension("http") && this.session) {
+        try {
+          const sm = useDynamicService("SessionManager");
+          if (sm) await (sm as any).save(this, this.session);
+        } catch {
+          // SessionManager may not be available
+        }
       }
       await super.end();
       if (this._stream instanceof WritableStreamBuffer && (<WritableStreamBuffer>this._stream).size()) {
         this._body = (<WritableStreamBuffer>this._stream).getContents().toString();
         this.statusCode = this.statusCode < 300 ? 200 : this.statusCode;
       }
-      // TODO Handle the case where the headers were not flushed
+      // Flush headers and body to the HTTP response stream
+      await this.flushHeaders();
+      if (this._stream && !(this._stream instanceof WritableStreamBuffer) && !(this._stream as any).writableEnded) {
+        if (this._body) {
+          (this._stream as any).end(this._body);
+        } else {
+          (this._stream as any).end();
+        }
+      }
     })();
     return this._ended;
   }
@@ -325,6 +338,24 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    */
   setFlushedHeaders(status: boolean = true) {
     this.headersFlushed = status;
+  }
+
+  /**
+   * Flush stored headers and status code to the underlying stream.
+   * For HTTP ServerResponse, writes via res.writeHead().
+   * Called automatically by getOutputStream() before pipeline() and by end().
+   */
+  async flushHeaders(): Promise<void> {
+    if (this.flushed) return;
+    // Merge both header maps — responseHeaders (from setHeader) + _outputHeaders (from constructor defaults)
+    const headers = { ...this._outputHeaders, ...this.getResponseHeaders() };
+    await super.flushHeaders();
+    // Write to ServerResponse if the stream supports writeHead (not a WritableStreamBuffer)
+    if (this._stream && !(this._stream instanceof WritableStreamBuffer) && typeof (this._stream as any).writeHead === "function") {
+      this.headersFlushed = true;
+      (this._stream as any).writeHead(this.statusCode || 200, headers);
+    }
+    this._outputHeaders = {};
   }
 
   /**

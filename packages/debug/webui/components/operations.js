@@ -116,6 +116,7 @@ function OperationDetail({ op, activeTab, setActiveTab, formValues, setFormValue
   if (op.inputSchema) tabs.push("form");
   tabs.push("input-schema", "output-schema");
   if (exampleOutput !== null) tabs.push("example");
+  if (op.implementor?.code) tabs.push("code");
 
   const currentTab = tabs.includes(activeTab) ? activeTab : tabs[0];
 
@@ -139,6 +140,13 @@ function OperationDetail({ op, activeTab, setActiveTab, formValues, setFormValue
           <span style="color:var(--text-muted)">Output: </span>
           <span class="mono">${hasOutput ? op.output : "void"}</span>
         </div>
+        ${op.implementor && html`
+          <div style="background:var(--bg-tertiary);padding:0.375rem 0.625rem;border-radius:4px;font-size:0.8125rem">
+            <span style="color:var(--text-muted)">${op.implementor.type === "model" ? "Model" : "Service"}: </span>
+            <span class="mono">${op.implementor.name}</span>
+            ${op.implementor.method && html`<span class="mono" style="color:var(--text-muted)">.${op.implementor.method}()</span>`}
+          </div>
+        `}
         ${op.tags?.length > 0 && op.tags.map(t => html`
           <span key=${t} class="badge badge-purple">${t}</span>
         `)}
@@ -151,7 +159,7 @@ function OperationDetail({ op, activeTab, setActiveTab, formValues, setFormValue
       <!-- Tabs -->
       <div style="display:flex;gap:0;margin-bottom:0.75rem;border-bottom:1px solid var(--border)">
         ${tabs.map(tab => {
-          const label = tab === "form" ? "Try It" : tab === "input-schema" ? "Input Schema" : tab === "output-schema" ? "Output Schema" : "Example Output";
+          const label = tab === "form" ? "Try It" : tab === "input-schema" ? "Input Schema" : tab === "output-schema" ? "Output Schema" : tab === "code" ? "Code" : "Example Output";
           return html`
             <button key=${tab} onClick=${() => setActiveTab(tab)} style="
               padding:6px 16px;
@@ -219,6 +227,19 @@ function OperationDetail({ op, activeTab, setActiveTab, formValues, setFormValue
             background:var(--bg-secondary);padding:1rem;border-radius:4px;
             overflow:auto;max-height:400px;font-size:0.8125rem;line-height:1.5;
           ">${JSON.stringify(exampleOutput, null, 2)}</pre>
+        </div>
+      `}
+
+      ${currentTab === "code" && op.implementor?.code && html`
+        <div>
+          <div style="margin-bottom:0.5rem;font-size:0.8125rem;color:var(--text-muted)">
+            <span class="mono">${op.implementor.name}.${op.implementor.method}()</span>
+          </div>
+          <pre class="mono" style="
+            background:var(--bg-secondary);padding:1rem;border-radius:4px;
+            overflow:auto;max-height:500px;font-size:0.8125rem;line-height:1.5;
+            tab-size:2;
+          ">${op.implementor.code}</pre>
         </div>
       `}
     </div>

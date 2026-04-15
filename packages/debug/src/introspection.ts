@@ -1,6 +1,6 @@
 
 
-import { useApplication, useCore, useRouter, listOperations, useModelMetadata } from "@webda/core";
+import { useApplication, useCore, useRouter, listFullOperations, useModelMetadata } from "@webda/core";
 
 /**
  * Information about a registered model.
@@ -146,8 +146,9 @@ export function getServices(): ServiceInfo[] {
  * @returns Array of {@link OperationInfo} objects.
  */
 export function getOperations(): OperationInfo[] {
-  const ops = listOperations();
+  const ops = listFullOperations();
   const app = useApplication();
+  const core = useCore();
   // Build a map of operation ID → full route URL by scanning the router's openapi metadata
   const operationRoutes: Record<string, { url: string; method: string }> = {};
   try {
@@ -180,6 +181,31 @@ export function getOperations(): OperationInfo[] {
     if (route) {
       entry.rest = { ...(typeof entry.rest === "object" ? entry.rest : {}), url: route.url, method: entry.rest?.method || route.method };
     }
+    // Resolve implementor info
+    try {
+      let impl: any;
+      if (def.service) {
+        impl = core.getService(def.service);
+        entry.implementor = { type: "service", name: def.service };
+      } else if (def.model) {
+        entry.implementor = { type: "model", name: def.model };
+        impl = app.getModel(def.model);
+      }
+      if (impl && def.method && typeof impl[def.method] === "function") {
+        entry.implementor.method = def.method;
+        // Prefer the original unwrapped method if the @Operation decorator stored it
+        const fn = impl[def.method];
+        entry.implementor.code = (fn.__original || fn).toString();
+      }
+    } catch {
+      // Service/model may not be resolvable
+    }
+    // Strip internal fields not useful for the UI
+    delete entry.service;
+    delete entry.model;
+    delete entry.method;
+    delete entry.context;
+    delete entry.permissionQuery;
     return entry;
   });
 }

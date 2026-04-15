@@ -220,6 +220,15 @@ export function listOperations(): { [key: string]: Omit<OperationDefinition, "se
 }
 
 /**
+ * Get available operations with full details including service/method.
+ * Intended for debug/introspection only.
+ * @returns operations map with all fields
+ */
+export function listFullOperations(): { [key: string]: OperationDefinition } {
+  return { ...useInstanceStorage().operations };
+}
+
+/**
  * Register a new operation within the app
  * @param operationId - the operation identifier
  * @param definition - the definition object
@@ -345,9 +354,11 @@ function Operation(...args: any[]) {
       static: context.static,
       generator: isGeneratorFunction(target)
     });
-    return function operationWrapper(this: any, ...args) {
+    const wrapper = function operationWrapper(this: any, ...args) {
       return target.call(this, ...args);
     };
+    (wrapper as any).__original = target;
+    return wrapper;
   };
   if (args.length === 2 && args[1] instanceof Object && args[1].kind === "method") {
     return annotate(args[0], args[1]);

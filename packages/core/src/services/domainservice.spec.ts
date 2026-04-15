@@ -319,12 +319,12 @@ class DomainServiceTest extends WebdaApplicationTest {
   @test
   async modelPatchWithUuidAndInput() {
     const { Brand, repo } = this.setupBrandRepo();
-    const uuid = "patch-test-uuid";
+    const uuid = "550e8400-e29b-41d4-a716-446655440001";
     await Brand.create({ uuid, name: "Original" } as any);
     const ctx = new FakeOpContext();
     await ctx.init();
     ctx.setParameters({ uuid });
-    ctx.setInput(JSON.stringify({ name: "Patched" }));
+    ctx.setInput(JSON.stringify({ uuid, name: "Patched" }));
     await callOperation(ctx, "Brand.Patch");
     const output = ctx.getOutput();
     assert.ok(output, "Output should have been written for Patch");
@@ -458,8 +458,9 @@ class DomainServiceTest extends WebdaApplicationTest {
     this.setupBrandRepo();
     const ctx = new FakeOpContext();
     await ctx.init();
-    ctx.setParameters({ uuid: "does-not-exist" });
-    ctx.setInput(JSON.stringify({ name: "Nope" }));
+    const uuid = "550e8400-e29b-41d4-a716-446655440099";
+    ctx.setParameters({ uuid });
+    ctx.setInput(JSON.stringify({ uuid, name: "Nope" }));
     await assert.rejects(() => callOperation(ctx, "Brand.Patch"), WebdaError.NotFound);
   }
 
@@ -525,13 +526,13 @@ class DomainServiceTest extends WebdaApplicationTest {
     // (because the "ModelKey?" schema isn't in the registry with the ? suffix).
     // modelPatch detects this case and reads uuid from context params instead.
     const { Brand, repo } = this.setupBrandRepo();
-    const uuid = "patch-fallback-uuid";
+    const uuid = "550e8400-e29b-41d4-a716-446655440002";
     await Brand.create({ uuid, name: "BeforePatchFallback" } as any);
 
     const ctx = new FakeOpContext();
     await ctx.init();
     ctx.setParameters({ uuid });
-    ctx.setInput(JSON.stringify({ name: "PatchedFallback" }));
+    ctx.setInput(JSON.stringify({ uuid, name: "PatchedFallback" }));
     await callOperation(ctx, "Brand.Patch");
     const output = ctx.getOutput();
     assert.ok(output, "Patch with fallback should produce output");

@@ -75,7 +75,7 @@ export class KubernetesConfigurationService<
       );
     }
     console.log("Watch", path.join(this.sourcePaths[id], "..data"));
-    fs.watchFile(path.join(this.sourcePaths[id], "..data"), () => {
+    fs.watchFile(path.join(this.sourcePaths[id], "..data"), { interval: 500 }, () => {
       console.log("Configuration source changed", id, this.sourcePaths[id], Date.now());
       callback();
     });

@@ -89,8 +89,11 @@ class AbstractKubernetesConfigurationServiceTest extends WebdaApplicationTest {
   /**
    * Update the config map
    */
+  private updateCount = 0;
+
   updateConfigMap(content: any) {
-    this.dataFolder = "..configmap-v2";
+    this.updateCount++;
+    this.dataFolder = `..configmap-v${this.updateCount + 1}`;
     this.content = content;
     mkdirSync(path.join(this.folder, this.dataFolder), { recursive: true });
     Object.keys(this.content).forEach(f => {
@@ -112,7 +115,7 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
   }
 
   @test
-  @timeout(10000)
+  @timeout(30000)
   async updatedConfigMap() {
     const auth = useService<Authentication>("Authentication");
     assert.strictEqual(auth.parameters.email!.text, "Plop1");

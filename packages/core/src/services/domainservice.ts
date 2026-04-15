@@ -264,18 +264,18 @@ export class DomainService<
    * @param input - the update data (may be undefined if schema was not resolvable)
    * @returns the updated model instance
    */
-  async modelUpdate(uuid: string, input?: any): Promise<Model> {
+  async modelUpdate(input?: any): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
-    const object = await this.loadModel(model, uuid);
-    // Fall back to context input when resolveArguments couldn't extract body
-    if (input === undefined) {
+    // resolveArguments spreads all model schema properties as positional args.
+    // The first arg becomes the first property value (often uuid).
+    // Fall back to context for both uuid and input when needed.
+    if (typeof input !== "object" || input === null) {
       input = await context.getInput();
     }
-    //await object.checkAct(context, "update");
-    // By pass load for now
+    const uuid = input?.uuid || context.getParameters()?.uuid;
+    const object = await this.loadModel(model, uuid);
     object["load"](input);
-    //return (await object.save()).toDTO();
     return object;
   }
 
@@ -332,23 +332,14 @@ export class DomainService<
    * @param input - the partial update data (may be undefined if schema was not resolvable)
    * @returns the patched model instance
    */
-  async modelPatch(uuid: string, input?: any): Promise<Model> {
+  async modelPatch(input?: any): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
-    // When resolveArguments cannot find the schema (e.g., "ModelKey?" suffix not in registry),
-    // it falls back to passing the body as the first argument. Detect this case: if uuid is not
-    // a string (or is an object), it's actually the patch body; read uuid from path params instead.
-    if (typeof uuid !== "string") {
-      input = uuid;
-      uuid = context.getParameters()?.uuid;
-    }
-    const object = await this.loadModel(model, uuid);
-    // Fall back to context input when resolveArguments couldn't extract body
-    // (e.g., partial model schema not in application registry)
-    if (input === undefined) {
+    if (typeof input !== "object" || input === null) {
       input = await context.getInput();
     }
-    //await object.checkAct(context, "update");
+    const uuid = input?.uuid || context.getParameters()?.uuid;
+    const object = await this.loadModel(model, uuid);
     await object.patch(input);
     return object;
   }

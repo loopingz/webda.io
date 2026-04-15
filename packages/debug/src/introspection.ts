@@ -122,21 +122,17 @@ export function getServices(): ServiceInfo[] {
   const app = useApplication();
   const services = core.getServices();
   const config = core.getConfiguration?.() || {};
-  const moddas = (app as any).baseConfiguration?.cachedModules?.moddas || {};
   return Object.entries(services)
     .filter(([, svc]) => svc != null)
     .map(([name, svc]) => {
       const type = (svc.parameters as any)?.type || "unknown";
-      // Resolve the modda's JSON Schema for this service type
-      const fullType = app.completeNamespace(type);
-      const schema = moddas[fullType]?.Schema || moddas[type]?.Schema || undefined;
       return {
         name,
         type,
         state: svc.getState(),
         capabilities: svc.getCapabilities(),
         configuration: config[name] || {},
-        schema
+        schema: (app as any).getServiceTypeSchema?.(type) || undefined
       };
     });
 }

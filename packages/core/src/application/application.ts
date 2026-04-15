@@ -372,6 +372,21 @@ export class Application {
   }
 
   /**
+   * Get the JSON Schema for a service type (modda or bean)
+   * @param type - fully-qualified or short service type name
+   * @returns the JSON Schema from the webda.module.json, or undefined
+   */
+  getServiceTypeSchema(type: string): JSONSchema7 | undefined {
+    const fullType = this.completeNamespace(type);
+    // Schema is stored on the constructor during loadModule
+    for (const registry of [this.moddas, this.beans]) {
+      const entry: any = registry[fullType] || registry[type];
+      if (entry?.schema) return entry.schema;
+    }
+    return undefined;
+  }
+
+  /**
    * Retrieve the model implementation
    *
    * @param name model to retrieve
@@ -664,6 +679,10 @@ export class Application {
               `Cannot load configuration for ${section.substring(0, section.length - 1)} ${key} from ${join(parent, info[section][key].Configuration)}`
             );
             continue;
+          }
+          // Store the schema on the constructor for runtime introspection
+          if (info[section][key].Schema) {
+            (this[section][key] as any).schema = info[section][key].Schema;
           }
           this[section][key].filterParameters = (params: any = {}) => {
             if (!info[section][key].Schema) {

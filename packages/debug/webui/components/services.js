@@ -30,48 +30,77 @@ export function ServicesPanel({ data, config }) {
 
   return html`
     <div class="split-panel">
-      <div class="split-left" style="display:flex;flex-direction:column">
+      <div class="split-left">
         <input
           class="search-input"
           placeholder="Filter services..."
           value=${filter}
           onInput=${(e) => setFilter(e.target.value)}
         />
-        <div style="flex:1;overflow-y:auto">
-          ${filtered.map(
-            (s) => html`
-              <div
-                key=${s.name}
-                class="list-item ${selected === s.name ? "active" : ""}"
-                onClick=${() => setSelected(s.name)}
-                style="display: flex; justify-content: space-between; align-items: center;"
-              >
-                <span>${s.name}</span>
-                ${stateBadge(s.state)}
-              </div>
-            `
-          )}
-          ${filtered.length === 0 && html`<div style="color: var(--text-muted); padding: 0.5rem;">No services found</div>`}
-        </div>
         ${paramKeys.length > 0 && html`
-          <div style="border-top:1px solid var(--border);padding-top:0.75rem;margin-top:0.75rem;flex-shrink:0">
-            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;font-weight:500">Global Parameters</div>
-            ${paramKeys.map(key => html`
-              <div key=${key} style="font-size:0.75rem;margin-bottom:0.375rem;padding:0 0.25rem">
-                <span class="mono" style="color:var(--accent)">${key}</span>
-                <span style="color:var(--text-muted)"> = </span>
-                <span class="mono" style="color:var(--text);word-break:break-all">${typeof globalParams[key] === "object" ? JSON.stringify(globalParams[key]) : String(globalParams[key])}</span>
-              </div>
-            `)}
+          <div
+            class="list-item ${selected === "__globalParams" ? "active" : ""}"
+            onClick=${() => setSelected("__globalParams")}
+            style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);margin-bottom:0.5rem;padding-bottom:0.625rem"
+          >
+            <span style="font-weight:500">Global Parameters</span>
+            <span class="badge badge-muted">${paramKeys.length}</span>
           </div>
         `}
+        ${filtered.map(
+          (s) => html`
+            <div
+              key=${s.name}
+              class="list-item ${selected === s.name ? "active" : ""}"
+              onClick=${() => setSelected(s.name)}
+              style="display: flex; justify-content: space-between; align-items: center;"
+            >
+              <span>${s.name}</span>
+              ${stateBadge(s.state)}
+            </div>
+          `
+        )}
+        ${filtered.length === 0 && html`<div style="color: var(--text-muted); padding: 0.5rem;">No services found</div>`}
       </div>
       <div class="split-right">
-        ${detail ? html`<${ServiceDetail} service=${detail} />` : html`
+        ${selected === "__globalParams" ? html`<${GlobalParamsDetail} params=${globalParams} />`
+        : detail ? html`<${ServiceDetail} service=${detail} />`
+        : html`
           <div style="color: var(--text-muted); padding: 2rem; text-align: center;">
             Select a service to view details
           </div>
         `}
+      </div>
+    </div>
+  `;
+}
+
+function GlobalParamsDetail({ params }) {
+  const keys = Object.keys(params);
+  return html`
+    <div>
+      <h2 style="margin-bottom:1rem;color:var(--accent)">Global Parameters</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:200px">Parameter</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${keys.map(key => html`
+              <tr key=${key}>
+                <td class="mono" style="font-weight:500">${key}</td>
+                <td class="mono" style="font-size:0.8125rem;word-break:break-all">
+                  ${typeof params[key] === "object"
+                    ? html`<pre style="margin:0;white-space:pre-wrap;font-size:0.8125rem">${JSON.stringify(params[key], null, 2)}</pre>`
+                    : String(params[key])}
+                </td>
+              </tr>
+            `)}
+          </tbody>
+        </table>
       </div>
     </div>
   `;

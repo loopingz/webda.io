@@ -445,7 +445,7 @@ export class DomainService<
       // Build query result schema for this model
       const queryResultSchemaName = `${modelKey}.queryResult`;
       if (!hasSchema(queryResultSchemaName)) {
-        const queryResultSchema = {
+        const queryResultSchema: any = {
           type: "object",
           properties: {
             continuationToken: { type: "string" },
@@ -483,7 +483,6 @@ export class DomainService<
           registerOperation(id, {
             service: this.getName(),
             method: `model${k}`,
-            id,
             input: pkSchemaName,
             output: k === "Get" ? modelSchema : "void",
             summary: `${k === "Delete" ? "Delete" : "Retrieve"} a ${shortId}`,

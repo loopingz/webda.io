@@ -68,15 +68,18 @@ vi.mock("@webda/core", () => ({
     getModels: () => mockModels,
     getConfiguration: () => mockConfig,
     getProjectInfo: () => mockProjectInfo,
-    getPackageDescription: () => mockPackageDescription
+    getPackageDescription: () => mockPackageDescription,
+    getSchema: () => undefined,
+    completeNamespace: (name: string) => (name.includes("/") ? name : `Webda/${name}`)
   }),
   useCore: () => ({
-    getServices: () => mockServices
+    getServices: () => mockServices,
+    getService: () => undefined
   }),
   useRouter: () => ({
     getRoutes: () => mockRoutes
   }),
-  listOperations: () => mockOperations,
+  listFullOperations: () => mockOperations,
   useModelMetadata: (model: any) => model?.Metadata
 }));
 

@@ -14,6 +14,12 @@
     "RESTService": {
       "type": "Webda/RESTOperationsTransport"
     },
+    "GRPCService": {
+      "type": "Webda/GrpcService"
+    },
+    "GraphQLService": {
+      "type": "Webda/GraphQLService"
+    },
     "WebUI": {
       "type": "Webda/ResourceService",
       "folder": "./webui",

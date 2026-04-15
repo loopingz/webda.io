@@ -1,6 +1,7 @@
-import { h } from "https://esm.sh/preact@10.25.4";
-import { useState } from "https://esm.sh/preact@10.25.4/hooks";
-import htm from "https://esm.sh/htm@3.1.1";
+import { h } from "preact";
+import { useState } from "preact/hooks";
+import htm from "htm";
+import { SchemaForm } from "./schema-form.js";
 
 const html = htm.bind(h);
 
@@ -13,11 +14,13 @@ function stateBadge(state) {
   return html`<span class="badge badge-muted">${state}</span>`;
 }
 
-export function ServicesPanel({ data }) {
+export function ServicesPanel({ data, config }) {
   const [selected, setSelected] = useState(null);
   const [filter, setFilter] = useState("");
   const services = data || [];
   const detail = selected ? services.find((s) => s.name === selected) || null : null;
+  const globalParams = config?.parameters || {};
+  const paramKeys = Object.keys(globalParams);
 
   const filtered = services.filter(
     (s) =>
@@ -34,6 +37,16 @@ export function ServicesPanel({ data }) {
           value=${filter}
           onInput=${(e) => setFilter(e.target.value)}
         />
+        ${paramKeys.length > 0 && html`
+          <div
+            class="list-item ${selected === "__globalParams" ? "active" : ""}"
+            onClick=${() => setSelected("__globalParams")}
+            style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);margin-bottom:0.5rem;padding-bottom:0.625rem"
+          >
+            <span style="font-weight:500">Global Parameters</span>
+            <span class="badge badge-muted">${paramKeys.length}</span>
+          </div>
+        `}
         ${filtered.map(
           (s) => html`
             <div
@@ -50,7 +63,9 @@ export function ServicesPanel({ data }) {
         ${filtered.length === 0 && html`<div style="color: var(--text-muted); padding: 0.5rem;">No services found</div>`}
       </div>
       <div class="split-right">
-        ${detail ? html`<${ServiceDetail} service=${detail} />` : html`
+        ${selected === "__globalParams" ? html`<${GlobalParamsDetail} params=${globalParams} />`
+        : detail ? html`<${ServiceDetail} service=${detail} />`
+        : html`
           <div style="color: var(--text-muted); padding: 2rem; text-align: center;">
             Select a service to view details
           </div>
@@ -60,10 +75,50 @@ export function ServicesPanel({ data }) {
   `;
 }
 
+function GlobalParamsDetail({ params }) {
+  const keys = Object.keys(params);
+  return html`
+    <div>
+      <h2 style="margin-bottom:1rem;color:var(--accent)">Global Parameters</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:200px">Parameter</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${keys.map(key => html`
+              <tr key=${key}>
+                <td class="mono" style="font-weight:500">${key}</td>
+                <td class="mono" style="font-size:0.8125rem;word-break:break-all">
+                  ${typeof params[key] === "object"
+                    ? html`<pre style="margin:0;white-space:pre-wrap;font-size:0.8125rem">${JSON.stringify(params[key], null, 2)}</pre>`
+                    : String(params[key])}
+                </td>
+              </tr>
+            `)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
 function ServiceDetail({ service }) {
-  // Filter out internal/noise keys from configuration
+  const [activeTab, setActiveTab] = useState("config");
+  const [formValues, setFormValues] = useState({});
+
   const config = service.configuration || {};
   const configKeys = Object.keys(config).filter((k) => !k.startsWith("_"));
+  const schema = service.schema;
+
+  const tabs = ["config"];
+  if (schema) tabs.push("schema-form", "schema-json");
+  if (service.metrics?.length) tabs.push("metrics");
+
+  const currentTab = tabs.includes(activeTab) ? activeTab : tabs[0];
 
   return html`
     <div>
@@ -81,50 +136,111 @@ function ServiceDetail({ service }) {
       </div>
 
       ${Object.keys(service.capabilities || {}).length > 0 && html`
-        <div class="detail-section">
-          <h3>Capabilities</h3>
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            ${Object.keys(service.capabilities).map(
-              (c) => html`<span key=${c} class="badge badge-purple">${c}</span>`
-            )}
-          </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+          ${Object.keys(service.capabilities).map(
+            (c) => html`<span key=${c} class="badge badge-purple">${c}</span>`
+          )}
         </div>
       `}
 
-      ${configKeys.length > 0 && html`
-        <div class="detail-section">
-          <h3>Configuration</h3>
+      <!-- Tabs -->
+      <div style="display:flex;gap:0;margin-bottom:0.75rem;border-bottom:1px solid var(--border)">
+        ${tabs.map(tab => {
+          const label = tab === "config" ? "Configuration" : tab === "schema-form" ? "Schema Form" : tab === "schema-json" ? "Schema JSON" : tab === "metrics" ? "Metrics" : tab;
+          return html`
+            <button key=${tab} onClick=${() => { setActiveTab(tab); if (tab === "schema-form") setFormValues({...config}); }} style="
+              padding:6px 16px;
+              background:${currentTab === tab ? "var(--bg-tertiary)" : "transparent"};
+              color:${currentTab === tab ? "var(--accent)" : "var(--text-muted)"};
+              border:none;
+              border-bottom:2px solid ${currentTab === tab ? "var(--accent)" : "transparent"};
+              cursor:pointer;font-size:0.875rem;
+              font-weight:${currentTab === tab ? "600" : "400"};
+            ">${label}</button>
+          `;
+        })}
+      </div>
+
+      <!-- Tab Content -->
+      ${currentTab === "config" && html`
+        <div>
+          ${configKeys.length > 0 ? html`
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 200px;">Parameter</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${configKeys.map(
+                    (key) => html`
+                      <tr key=${key}>
+                        <td class="mono" style="font-weight: 500;">${key}</td>
+                        <td class="mono" style="font-size: 0.8125rem; word-break: break-all;">
+                          ${typeof config[key] === "object"
+                            ? html`<pre style="margin: 0; white-space: pre-wrap; font-size: 0.8125rem;">${JSON.stringify(config[key], null, 2)}</pre>`
+                            : String(config[key])}
+                        </td>
+                      </tr>
+                    `
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ` : html`<div style="color: var(--text-muted); padding: 0.5rem;">No configuration parameters</div>`}
+        </div>
+      `}
+
+      ${currentTab === "schema-form" && schema && html`
+        <div>
+          <${SchemaForm} schema=${schema} values=${formValues} onChange=${setFormValues} />
+          ${Object.keys(formValues).length > 0 && html`
+            <div style="margin-top:0.75rem">
+              <strong style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase">Configuration Preview</strong>
+              <pre class="mono" style="
+                background:var(--bg-secondary);padding:0.75rem;border-radius:4px;
+                margin-top:0.25rem;font-size:0.8125rem;overflow:auto;max-height:300px;
+              ">${JSON.stringify(formValues, null, 2)}</pre>
+            </div>
+          `}
+        </div>
+      `}
+
+      ${currentTab === "schema-json" && schema && html`
+        <div>
+          <pre class="mono" style="
+            background:var(--bg-secondary);padding:1rem;border-radius:4px;
+            overflow:auto;max-height:500px;font-size:0.8125rem;line-height:1.5;
+          ">${JSON.stringify(schema, null, 2)}</pre>
+        </div>
+      `}
+
+      ${currentTab === "metrics" && service.metrics && html`
+        <div>
           <div class="table-container">
             <table>
               <thead>
                 <tr>
-                  <th style="width: 200px;">Parameter</th>
-                  <th>Value</th>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Help</th>
+                  <th style="text-align:right">Value</th>
                 </tr>
               </thead>
               <tbody>
-                ${configKeys.map(
-                  (key) => html`
-                    <tr key=${key}>
-                      <td class="mono" style="font-weight: 500;">${key}</td>
-                      <td class="mono" style="font-size: 0.8125rem; word-break: break-all;">
-                        ${typeof config[key] === "object"
-                          ? html`<pre style="margin: 0; white-space: pre-wrap; font-size: 0.8125rem;">${JSON.stringify(config[key], null, 2)}</pre>`
-                          : String(config[key])}
-                      </td>
-                    </tr>
-                  `
-                )}
+                ${service.metrics.map(m => html`
+                  <tr key=${m.name}>
+                    <td class="mono" style="font-weight:500">${m.name}</td>
+                    <td><span class="badge ${m.type === "counter" ? "badge-blue" : m.type === "gauge" ? "badge-green" : m.type === "histogram" ? "badge-purple" : "badge-muted"}">${m.type}</span></td>
+                    <td style="color:var(--text-muted);font-size:0.8125rem">${m.help || "-"}</td>
+                    <td class="mono" style="text-align:right;font-weight:500">${m.values?.length ? m.values.map(v => v.value).reduce((a, b) => a + b, 0).toLocaleString() : "0"}</td>
+                  </tr>
+                `)}
               </tbody>
             </table>
           </div>
-        </div>
-      `}
-
-      ${configKeys.length === 0 && html`
-        <div class="detail-section">
-          <h3>Configuration</h3>
-          <div style="color: var(--text-muted); padding: 0.5rem;">No configuration parameters</div>
         </div>
       `}
     </div>

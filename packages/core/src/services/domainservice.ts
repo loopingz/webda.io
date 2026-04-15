@@ -112,10 +112,6 @@ export class DomainService<
 > extends Service<T, E> {
   app: Application;
   static schemas = {
-    emptyParameters: {
-      type: "object",
-      properties: {}
-    },
     uuidRequest: {
       type: "object",
       properties: {
@@ -268,18 +264,18 @@ export class DomainService<
    * @param input - the update data (may be undefined if schema was not resolvable)
    * @returns the updated model instance
    */
-  async modelUpdate(uuid: string, input?: any): Promise<Model> {
+  async modelUpdate(input?: any): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
-    const object = await this.loadModel(model, uuid);
-    // Fall back to context input when resolveArguments couldn't extract body
-    if (input === undefined) {
+    // resolveArguments spreads all model schema properties as positional args.
+    // The first arg becomes the first property value (often uuid).
+    // Fall back to context for both uuid and input when needed.
+    if (typeof input !== "object" || input === null) {
       input = await context.getInput();
     }
-    //await object.checkAct(context, "update");
-    // By pass load for now
+    const uuid = input?.uuid || context.getParameters()?.uuid;
+    const object = await this.loadModel(model, uuid);
     object["load"](input);
-    //return (await object.save()).toDTO();
     return object;
   }
 
@@ -336,16 +332,14 @@ export class DomainService<
    * @param input - the partial update data (may be undefined if schema was not resolvable)
    * @returns the patched model instance
    */
-  async modelPatch(uuid: string, input?: any): Promise<Model> {
+  async modelPatch(input?: any): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
-    const object = await this.loadModel(model, uuid);
-    // Fall back to context input when resolveArguments couldn't extract body
-    // (e.g., partial model schema not in application registry)
-    if (input === undefined) {
+    if (typeof input !== "object" || input === null) {
       input = await context.getInput();
     }
-    //await object.checkAct(context, "update");
+    const uuid = input?.uuid || context.getParameters()?.uuid;
+    const object = await this.loadModel(model, uuid);
     await object.patch(input);
     return object;
   }
@@ -426,22 +420,44 @@ export class DomainService<
       const modelSchema = modelKey;
       const actionsName = Object.keys(Metadata.Actions);
 
+      // Build primary key schema for this model
+      const pkSchemaName = `${modelKey}.primaryKey`;
+      const pkFields = Metadata.PrimaryKey || ["uuid"];
+      if (!hasSchema(pkSchemaName)) {
+        const pkSchema: any = { type: "object", properties: {}, required: pkFields };
+        for (const field of pkFields) {
+          pkSchema.properties[field] = { type: "string" };
+        }
+        registerSchema(pkSchemaName, pkSchema);
+        // Also register in the app schema registry so getSchema() finds it
+        appSchemas[pkSchemaName] = pkSchema;
+      }
+
+      // Build query result schema for this model
+      const queryResultSchemaName = `${modelKey}.queryResult`;
+      if (!hasSchema(queryResultSchemaName)) {
+        const queryResultSchema: any = {
+          type: "object",
+          properties: {
+            continuationToken: { type: "string" },
+            results: { type: "array", items: { $ref: `#/definitions/${modelKey}` } }
+          }
+        };
+        registerSchema(queryResultSchemaName, queryResultSchema);
+        appSchemas[queryResultSchemaName] = queryResultSchema;
+      }
+
+      // CRUD operations
       ["create", "update"]
         .filter(k => !actionsName.includes(k))
         .forEach(k => {
           k = k.substring(0, 1).toUpperCase() + k.substring(1);
           const id = `${shortId}.${k}`;
-          // For Create, skip input schema validation — the model's full Input
-          // schema may include required relation fields (e.g., BelongTo,
-          // ManyToMany) that are not expected in the HTTP request body.
-          // Validation is deferred to the model's own save/validate logic.
-          const opInput = k === "Create" ? undefined : modelSchema;
           registerOperation(id, {
             service: this.getName(),
             method: k === "Create" ? "modelCreate" : "modelUpdate",
-            input: opInput,
+            input: modelSchema + "?",
             output: modelSchema,
-            parameters: k === "Create" ? "emptyParameters" : "uuidRequest",
             summary: k === "Create" ? `Create a new ${shortId}` : `Update a ${shortId}`,
             tags: [shortId],
             rest: { method: k === "Create" ? "post" : "put", path: k === "Create" ? "" : "{uuid}" },
@@ -455,29 +471,26 @@ export class DomainService<
         .forEach(k => {
           k = k.substring(0, 1).toUpperCase() + k.substring(1);
           const id = `${shortId}.${k}`;
-          const info: OperationDefinition = {
+          registerOperation(id, {
             service: this.getName(),
             method: `model${k}`,
-            id,
-            parameters: "uuidRequest",
+            input: pkSchemaName,
+            output: k === "Get" ? modelSchema : "void",
             summary: `${k === "Delete" ? "Delete" : "Retrieve"} a ${shortId}`,
             tags: [shortId],
             rest: { method: k === "Delete" ? "delete" : "get", path: "{uuid}" },
             context: {
               model
             }
-          };
-          if (k === "Get") {
-            info.output = modelSchema;
-          }
-          registerOperation(id, info);
+          });
         });
       if (!actionsName.includes("query")) {
         const id = `${plural}.Query`;
         registerOperation(id, {
           service: this.getName(),
           method: "modelQuery",
-          parameters: "searchRequest",
+          input: "searchRequest",
+          output: queryResultSchemaName,
           summary: `Query ${plural}`,
           tags: [shortId],
           rest: { method: this.parameters.queryMethod.toLowerCase() as "put" | "get", path: "" },
@@ -493,7 +506,7 @@ export class DomainService<
           service: this.getName(),
           method: "modelPatch",
           input: modelSchema + "?",
-          parameters: "uuidRequest",
+          output: modelSchema,
           summary: `Patch a ${shortId}`,
           tags: [shortId],
           rest: { method: "patch", path: "{uuid}" },
@@ -513,9 +526,8 @@ export class DomainService<
             method: `modelAction`,
             id
           };
-          info.input = `${modelKey}.${name}.input`;
+          info.input = actions[name].global ? `${modelKey}.${name}.input` : "uuidRequest";
           info.output = `${modelKey}.${name}.output`;
-          info.parameters = actions[name].global ? undefined : "uuidRequest";
           info.context = {
             model,
             action: { ...actions[name], name }
@@ -550,12 +562,12 @@ export class DomainService<
       const info = {
         service: this.getName(),
         context: baseContext,
-        parameters: "uuidRequest"
+        input: "uuidRequest",
+        output: "void" as string
       };
       registerOperation(`${name}.${attribute}.AttachChallenge`, {
         ...info,
         method: "binaryChallenge",
-        input: "binaryChallengeRequest",
         summary: `Upload ${binary.attribute} of ${name} after challenge`,
         tags: [name],
         rest: { method: "put", path: `{uuid}/${binary.attribute}` }
@@ -567,7 +579,7 @@ export class DomainService<
           action: "create"
         },
         method: "binaryPut",
-        parameters: "binaryAttachParameters",
+        input: "binaryAttachParameters",
         summary: `Upload ${binary.attribute} of ${name} directly`,
         tags: [name],
         rest: { method: "post", path: `{uuid}/${binary.attribute}` }
@@ -575,7 +587,7 @@ export class DomainService<
       registerOperation(`${name}.${attribute}.Get`, {
         ...info,
         method: "binaryGet",
-        parameters: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest",
+        input: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest",
         summary: `Download ${binary.attribute} of ${name}`,
         tags: [name],
         rest: {
@@ -591,7 +603,7 @@ export class DomainService<
           action: "delete"
         },
         method: "binaryAction",
-        parameters: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest",
+        input: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest",
         summary: `Delete ${binary.attribute} of ${name}`,
         tags: [name],
         rest: {
@@ -609,7 +621,7 @@ export class DomainService<
           action: "metadata"
         },
         method: "binaryAction",
-        parameters: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest",
+        input: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest",
         summary: `Update metadata of ${binary.attribute} of ${name}`,
         tags: [name],
         rest: {
@@ -627,7 +639,7 @@ export class DomainService<
           returnUrl: true
         },
         method: "binaryGet",
-        parameters: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest",
+        input: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest",
         summary: `Get signed URL for ${binary.attribute} of ${name}`,
         tags: [name],
         rest: {
@@ -664,9 +676,13 @@ export class DomainService<
    * @param body - the challenge request body containing hash, challenge, and optional file info
    * @returns the challenge result with redirect url or done flag
    */
-  async binaryChallenge(uuid: string, body: BinaryFileInfo & { hash: string; challenge: string }): Promise<any> {
+  async binaryChallenge(uuid: string, body?: BinaryFileInfo & { hash: string; challenge: string }): Promise<any> {
     const context = useContext<OperationContext>();
     const { model, binaryStore, binary } = this.resolveBinaryContext(context);
+    // Fall back to context input when resolveArguments couldn't extract body
+    if (body === undefined) {
+      body = await context.getInput();
+    }
     // First verify if map exist
     const object = await model.ref(uuid).get();
     if (object === undefined || object.isDeleted()) {

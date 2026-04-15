@@ -294,23 +294,19 @@ class CompilerTest {
     assert.notStrictEqual(operations.operations["TestModel.DoSomething"], undefined, "DoSomething operation");
     assert.strictEqual(
       operations.operations["TestModel.DoSomething"].input,
-      "TestCompilerOperations/TestModel.doSomething.input"
+      "uuidRequest",
+      "Instance action should require uuid"
     );
     assert.strictEqual(
       operations.operations["TestModel.DoSomething"].output,
       "TestCompilerOperations/TestModel.doSomething.output"
     );
-    assert.strictEqual(
-      operations.operations["TestModel.DoSomething"].parameters,
-      "uuidRequest",
-      "Instance action should require uuid"
-    );
 
     // Static/global action should not require uuid
     assert.notStrictEqual(operations.operations["TestModel.GlobalAction"], undefined, "GlobalAction operation");
-    assert.strictEqual(
-      operations.operations["TestModel.GlobalAction"].parameters,
-      undefined,
+    assert.notStrictEqual(
+      operations.operations["TestModel.GlobalAction"].input,
+      "uuidRequest",
       "Global action should not require uuid"
     );
 
@@ -337,11 +333,11 @@ class CompilerTest {
       "Bean primitive operation should exist"
     );
 
-    // Referenced schemas should be included
-    assert.notStrictEqual(
+    // Instance action input schemas are not referenced (input is "uuidRequest"), so not included
+    assert.strictEqual(
       operations.schemas["TestCompilerOperations/TestModel.doSomething.input"],
       undefined,
-      "Operation input schema should be in export"
+      "Instance action input schema should not be in export"
     );
     assert.notStrictEqual(
       operations.schemas["TestBean.asyncWithObject.output"],

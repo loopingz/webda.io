@@ -1,6 +1,6 @@
 
 
-import { useApplication, useCore, useRouter, listOperations, useModelMetadata } from "@webda/core";
+import { useApplication, useCore, useRouter, listFullOperations, useModelMetadata } from "@webda/core";
 
 /**
  * Information about a registered model.
@@ -40,10 +40,10 @@ export interface ServiceInfo {
 export interface OperationInfo {
   /** Operation identifier, e.g. "Task.Create" */
   id: string;
-  /** Input schema identifier, if any */
-  input?: string;
-  /** Output schema identifier, if any */
-  output?: string;
+  /** Input schema identifier. "void" means no input. */
+  input: string;
+  /** Output schema identifier. "void" means no output. */
+  output: string;
   /** Parameters schema identifier, if any */
   parameters?: string;
   /** Additional fields from the operation definition */
@@ -119,17 +119,48 @@ export function getModel(id: string): ModelInfo | undefined {
  */
 export function getServices(): ServiceInfo[] {
   const core = useCore();
+  const app = useApplication();
   const services = core.getServices();
   const config = core.getConfiguration?.() || {};
   return Object.entries(services)
     .filter(([, svc]) => svc != null)
-    .map(([name, svc]) => ({
-      name,
-      type: (svc.parameters as any)?.type || "unknown",
-      state: svc.getState(),
-      capabilities: svc.getCapabilities(),
-      configuration: config[name] || {}
-    }));
+    .map(([name, svc]) => {
+      const type = (svc.parameters as any)?.type || "unknown";
+      // Collect metric definitions and current values from the service's metrics object
+      const metricsInfo: any[] = [];
+      const metricsObj = (svc as any).metrics;
+      if (metricsObj && typeof metricsObj === "object") {
+        for (const [key, metric] of Object.entries(metricsObj)) {
+          if (!metric || typeof metric !== "object") continue;
+          const m = metric as any;
+          try {
+            const values = m.hashMap ? Object.values(m.hashMap).map((v: any) => ({
+              value: v.value,
+              labels: v.labels
+            })) : [];
+            metricsInfo.push({
+              name: key,
+              fullName: m.name,
+              help: m.help,
+              type: m.constructor?.name?.toLowerCase() || "unknown",
+              labelNames: m.labelNames || [],
+              values
+            });
+          } catch {
+            // Skip unreadable metrics
+          }
+        }
+      }
+      return {
+        name,
+        type,
+        state: svc.getState(),
+        capabilities: svc.getCapabilities(),
+        configuration: config[name] || {},
+        schema: app.getSchema?.(app.completeNamespace(type)) || undefined,
+        metrics: metricsInfo.length > 0 ? metricsInfo : undefined
+      };
+    });
 }
 
 /**
@@ -141,8 +172,95 @@ export function getServices(): ServiceInfo[] {
  * @returns Array of {@link OperationInfo} objects.
  */
 export function getOperations(): OperationInfo[] {
-  const ops = listOperations();
-  return Object.entries(ops).map(([opId, def]) => ({ ...def, id: opId }));
+  const ops = listFullOperations();
+  const app = useApplication();
+  const core = useCore();
+  // Build a map of operation ID → full route URL by scanning the router's openapi metadata
+  const operationRoutes: Record<string, { url: string; method: string }> = {};
+  try {
+    const router = useRouter();
+    const routes = router.getRoutes();
+    for (const [path, infos] of Object.entries(routes)) {
+      for (const info of infos as any[]) {
+        if (!info.openapi) continue;
+        for (const methodDef of Object.values(info.openapi) as any[]) {
+          if (methodDef?.operationId) {
+            const method = info.methods?.[0]?.toLowerCase() || "get";
+            operationRoutes[methodDef.operationId] = { url: path, method };
+          }
+        }
+      }
+    }
+  } catch {
+    // Router may not be available
+  }
+  return Object.entries(ops).map(([opId, def]) => {
+    const entry: any = { ...def, id: opId };
+    // Resolve input/output schema refs to actual JSON Schema objects
+    for (const key of ["input", "output"] as const) {
+      if (entry[key] && entry[key] !== "void") {
+        entry[`${key}Schema`] = app.getSchema?.(entry[key]) || undefined;
+      }
+    }
+    // Enrich rest with full URL from router
+    const route = operationRoutes[opId];
+    if (route) {
+      entry.rest = { ...(typeof entry.rest === "object" ? entry.rest : {}), url: route.url, method: entry.rest?.method || route.method };
+    }
+    // Dedent: find the smallest leading whitespace (skipping the first line which
+    // Function.toString() always returns at column 0) and strip it from all lines
+    const dedent = (code: string): string => {
+      const lines = code.split("\n");
+      if (lines.length <= 1) return code;
+      // Compute min indent from lines 1+ (skip first line and empty lines)
+      const indents = lines.slice(1).filter(l => l.trim().length > 0).map(l => (l.match(/^(\s*)/) || ["", ""])[1].length);
+      if (indents.length === 0) return code;
+      const min = Math.min(...indents);
+      if (min === 0) return code;
+      return [lines[0], ...lines.slice(1).map(l => l.slice(min))].join("\n");
+    };
+    // Resolve implementor info
+    try {
+      if (def.service) {
+        const svc: any = core.getService(def.service);
+        entry.implementor = { type: "service", name: def.service };
+        if (svc && def.method) {
+          // For model actions, the real code is on the model prototype
+          const actionName = def.context?.action?.name;
+          const modelClass: any = def.context?.model;
+          if (actionName && modelClass?.prototype?.[actionName]) {
+            const fn = modelClass.prototype[actionName];
+            const modelId = modelClass.getIdentifier?.() || modelClass.name || def.service;
+            entry.implementor = { type: "model", name: modelId, method: actionName };
+            entry.implementor.code = dedent((fn.__original || fn).toString());
+          } else if (typeof svc[def.method] === "function") {
+            entry.implementor.method = def.method;
+            const fn = svc[def.method];
+            entry.implementor.code = dedent((fn.__original || fn).toString());
+          }
+        }
+      } else if (def.model) {
+        const modelClass: any = app.getModel(def.model);
+        entry.implementor = { type: "model", name: def.model };
+        if (modelClass && def.method) {
+          const fn = modelClass.prototype?.[def.method] || modelClass[def.method];
+          if (typeof fn === "function") {
+            entry.implementor.method = def.method;
+            entry.implementor.code = dedent((fn.__original || fn).toString());
+          }
+        }
+      }
+    } catch {
+      // Service/model may not be resolvable
+    }
+    // Strip internal fields not useful for the UI
+    delete entry.service;
+    delete entry.model;
+    delete entry.method;
+    delete entry.context;
+    delete entry.permissionQuery;
+    return entry;
+  });
 }
 
 /**

@@ -407,10 +407,10 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     }
     const schemas = [];
     Object.values(filtered.operations).forEach((operation: any) => {
-      if (operation.input) {
+      if (operation.input && operation.input !== "void") {
         schemas.push(operation.input);
       }
-      if (operation.output) {
+      if (operation.output && operation.output !== "void") {
         schemas.push(operation.output);
       }
     });

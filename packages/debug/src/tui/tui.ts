@@ -3,8 +3,6 @@ import { DebugClient } from "./client.js";
 import { ModelsPanel } from "./panels/models.js";
 import { ServicesPanel } from "./panels/services.js";
 import { OperationsPanel } from "./panels/operations.js";
-import { RoutesPanel } from "./panels/routes.js";
-import { ConfigPanel } from "./panels/config.js";
 import { RequestsPanel } from "./panels/requests.js";
 import { LogsPanel } from "./panels/logs.js";
 import type { Panel } from "./panels/panel.js";
@@ -41,8 +39,6 @@ export class DebugTui {
       new ModelsPanel(this.client),
       new ServicesPanel(this.client),
       new OperationsPanel(this.client),
-      new RoutesPanel(this.client),
-      new ConfigPanel(this.client),
       new RequestsPanel(this.client)
     ];
   }

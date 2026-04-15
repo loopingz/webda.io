@@ -1,17 +1,20 @@
-import { EventWithContext } from "../events/events";
-import * as WebdaError from "../errors/errors";
-import type { CoreModel } from "../models/coremodel";
-import type { ModelClass, ServicePartialParameters } from "../internal/iapplication";
-import { Ident } from "../models/ident";
-import type { User } from "../models/user";
-import type { Store } from "../stores/store";
-import type { Authentication, EventAuthenticationRegister } from "./authentication";
-import type { NotificationService } from "./notificationservice";
-import { Inject, Service } from "./service";
-import { ServiceParameters } from "../interfaces";
-import { useModel, useModelMetadata } from "../application/hook";
-import { WebContext } from "../contexts/webcontext";
-import { OperationContext } from "../contexts/operationcontext";
+import {
+  EventWithContext,
+  WebdaError,
+  CoreModel,
+  Ident,
+  Inject,
+  Service,
+  ServiceParameters,
+  Store,
+  useModel,
+  useModelMetadata,
+  WebContext,
+  OperationContext
+} from "@webda/core";
+import type { User } from "@webda/core";
+import type { Authentication, EventAuthenticationRegister } from "@webda/core";
+import type { NotificationService } from "@webda/core";
 import { ModelRef, ModelRefWithCreate, Repository } from "@webda/models";
 
 interface InvitationAnswerBody {
@@ -100,7 +103,7 @@ export interface EventInvitationAnswered extends EventWithContext {
 }
 
 /**
- *
+ * Configuration for the InvitationService — model, storage, and behavior settings
  */
 export class InvitationParameters extends ServiceParameters {
   /**
@@ -163,6 +166,9 @@ export class InvitationParameters extends ServiceParameters {
    */
   url?: string;
 
+  /**
+   * Apply defaults and validate attribute naming constraints
+   */
   default() {
     this.authenticationService ??= "Authentication";
     if (typeof this.mapFields === "string") {
@@ -204,25 +210,29 @@ export class InvitationService<
   authenticationService: Authentication;
 
   // Optional service
-  @Inject("params:notificationService", true)
+  // @ts-ignore - Optional inject
+  @Inject("params:notificationService", undefined, true)
   notificationService: NotificationService;
 
   @Inject("params:invitationStore")
-  invitationStore: Store;
+  invitationStore: any;
   /**
    * CoreModel to manage invitation on
    */
-  model: Repository<User>;
+  model: any;
 
   /**
-   * @inheritdoc
+   * Load and validate invitation service parameters
+   * @param params - raw partial configuration
+   * @returns initialized InvitationParameters instance
    */
-  loadParameters(params: ServicePartialParameters<T>) {
+  loadParameters(params: any) {
     return <T>new InvitationParameters().load(params);
   }
 
   /**
-   * @inheritdoc
+   * Register invitation routes and event listeners on the authentication service
+   * @returns this instance for chaining
    */
   resolve(): this {
     super.resolve();
@@ -364,7 +374,8 @@ export class InvitationService<
   }
 
   /**
-   * @inheritdoc
+   * Validate the notification template exists if configured
+   * @returns this instance for chaining
    */
   async init(): Promise<this> {
     await super.init();
@@ -378,9 +389,9 @@ export class InvitationService<
   }
 
   /**
-   * Accept or refuse for an invitation
-   * @param ctx
-   * @param model
+   * Accept or refuse an invitation on behalf of the current user
+   * @param ctx - web context containing the accept/refuse body
+   * @param model - target model the invitation is for (may be undefined if deleted)
    */
   async answerInvitation(ctx: WebContext<InvitationAnswerBody>, model: CoreModel) {
     const body = await ctx.getInput();
@@ -391,7 +402,7 @@ export class InvitationService<
     }
     const user = await ctx.getCurrentUser<User>();
     let metadata = undefined;
-    user.getIdents().forEach(i => {
+    ((user as any).getIdents?.() || []).forEach((i: any) => {
       if (model[this.parameters.pendingAttribute][`ident_${i.uuid}`]) {
         metadata = model[this.parameters.pendingAttribute][`ident_${i.uuid}`];
         delete model[this.parameters.pendingAttribute][`ident_${i.uuid}`];
@@ -414,9 +425,9 @@ export class InvitationService<
   }
 
   /**
-   * Update Model with pending and attribute
+   * Persist the model's invitation and pending-invitation attributes
    *
-   * @param model
+   * @param model - the model instance to patch
    */
   protected async updateModel(model: CoreModel) {
     await model.patch({
@@ -426,9 +437,9 @@ export class InvitationService<
   }
 
   /**
-   * Uninvite from previous invitations
-   * @param ctx
-   * @param model
+   * Remove existing invitations for specified users and idents
+   * @param ctx - operation context containing the uninvite payload
+   * @param model - target model to remove invitations from
    */
   async uninvite(ctx: OperationContext<Invitation>, model: CoreModel) {
     const body: Invitation = await ctx.getInput();
@@ -453,7 +464,7 @@ export class InvitationService<
         // Remove user
         promises.push(
           (async () => {
-            const id = await this.authenticationService.getIdentModel().get(ident);
+            const id: any = await this.authenticationService.getIdentModel().get(ident);
             if (id && id.getUser()) {
               delete model[this.parameters.attribute][id.getUser()];
               await this.removeInvitationFromUser(id.getUser().toString(), model.getUUID());
@@ -485,8 +496,9 @@ export class InvitationService<
   }
 
   /**
-   * Remove a model invitation from user
-   * @param user
+   * Remove a model invitation from a user's invitation list
+   * @param user - UUID of the user to remove the invitation from
+   * @param model - UUID of the model whose invitation should be removed
    */
   protected async removeInvitationFromUser(user: string, model: string): Promise<void> {
     const userModel = await this.authenticationService.getUserModel().get(user);
@@ -505,13 +517,13 @@ export class InvitationService<
   }
 
   /**
-   * Handle invitations all methods
+   * Route handler dispatching GET/POST/PUT/DELETE invitation requests
    *
-   * @param ctx
-   * @returns
+   * @param ctx - incoming web context
+   * @returns promise resolving when the request is handled
    */
   async invite(ctx: WebContext) {
-    const model = <GenericModel>await this.model.ref(ctx.getParameters().uuid).get();
+    const model = <any>await this.model.ref(ctx.getParameters().uuid).get();
     if (ctx.getHttpContext().getMethod() === "PUT") {
       return this.answerInvitation(ctx, model);
     }
@@ -535,7 +547,7 @@ export class InvitationService<
     // For each ident
     const identsStore = this.authenticationService.getIdentModel();
     // Load all idents with orignal
-    const invitations: { invitation: string; ident: Ident }[] = await Promise.all(
+    const invitations: { invitation: string; ident: any }[] = await Promise.all(
       (body.idents || []).map(async i => ({
         ident: await identsStore.get(i),
         invitation: i
@@ -543,7 +555,7 @@ export class InvitationService<
     );
 
     const invitedIdents: string[] = [];
-    const invitedUsers: User[] = [];
+    const invitedUsers: any[] = [];
     const promises = [];
     const metadata = {};
     this.parameters.mapFields.forEach(f => (metadata[f] = model[f]));
@@ -591,7 +603,7 @@ export class InvitationService<
       const ident = invitation.invitation.split("_");
       await this.sendNotification(
         await Ident.create(
-          {
+          <any>{
             _type: ident.pop(),
             uuid: ident.join("_")
           },
@@ -638,14 +650,22 @@ export class InvitationService<
     });
   }
 
-  async addInvitationToUser(model: CoreModel, user: User, inviter: User, metadata: any, notification: any = {}) {
+  /**
+   * Record an invitation on the user's profile and send a notification
+   * @param model - target model the user is being invited to
+   * @param user - the user receiving the invitation
+   * @param inviter - the user who sent the invitation
+   * @param metadata - mapped fields copied from the model
+   * @param notification - notification payload to pass to the notification service
+   */
+  async addInvitationToUser(model: CoreModel, user: any, inviter: any, metadata: any, notification: any = {}) {
     if ((user[this.parameters.mapAttribute] || []).filter(p => p.model === model.getUUID()).length) {
       return;
     }
-    await this.authenticationService
+    await (this.authenticationService
       .getUserModel()
-      .ref(user.getUUID())
-      .upsertItemToCollection(<any>this.parameters.mapAttribute, {
+      .ref(user.getUUID()) as any)
+      .upsertItemToCollection(this.parameters.mapAttribute, {
         model: model.getUUID(),
         metadata,
         inviter: inviter.toPublicEntry(),
@@ -662,6 +682,11 @@ export class InvitationService<
     });
   }
 
+  /**
+   * Send a notification to a user or ident if a notification template is configured
+   * @param user - the user or ident to notify
+   * @param replacements - template variables for the notification
+   */
   async sendNotification(user: User | Ident, replacements: any) {
     if (!this.parameters.notification) {
       return;
@@ -671,18 +696,17 @@ export class InvitationService<
 
   /**
    * Return which attribute would be used to store the invitation on ident invitation object
-   * @param uuid
-   * @returns
+   * @param uuid - model UUID the invitation targets
+   * @returns attribute key prefixed with "invit_"
    */
   getInvitationAttribute(uuid: string) {
     return `invit_${uuid}`;
   }
 
   /**
-   * When a user register with an invited idents, managed the whole invitation process
+   * When a user registers with an invited ident, resolve all pending invitations for that ident
    *
-   * @param evt
-   * @returns
+   * @param evt - authentication registration event containing the new user and ident
    */
   async registrationListener(evt: EventAuthenticationRegister) {
     const uuid = `${evt.identId}_${this.getName()}`;

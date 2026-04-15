@@ -403,6 +403,270 @@ tr:hover td {
   background: var(--text-muted);
 }
 
+/* Code block */
+.code-block {
+  margin: 0;
+  background: var(--bg-secondary);
+  padding: 1rem;
+  border-radius: 4px;
+  overflow: auto;
+  max-height: 500px;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  tab-size: 2;
+}
+
+.code-block code {
+  font-family: "SF Mono", "Fira Code", "JetBrains Mono", Consolas, monospace;
+}
+
+.hl-keyword { color: #ff7b72; }
+.hl-string { color: #a5d6ff; }
+.hl-number { color: #79c0ff; }
+.hl-comment { color: #8b949e; font-style: italic; }
+
+/* Schema Form */
+.sf-root {
+  font-size: 0.875rem;
+}
+
+.sf-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 0.25rem;
+}
+
+.sf-schema-desc {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  margin-bottom: 1rem;
+  line-height: 1.4;
+}
+
+.sf-empty {
+  color: var(--text-muted);
+  padding: 1rem 0;
+}
+
+.sf-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sf-field {
+  padding: 0.5rem 0.625rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+
+.sf-field:hover {
+  border-color: var(--border);
+}
+
+.sf-field.sf-has-value {
+  border-left: 2px solid var(--accent);
+}
+
+.sf-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.125rem;
+}
+
+.sf-label {
+  font-weight: 500;
+  color: var(--text);
+  font-size: 0.8125rem;
+}
+
+.sf-required {
+  color: var(--red);
+  margin-left: 0.125rem;
+}
+
+.sf-type {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 0.0625rem 0.375rem;
+  border-radius: 3px;
+}
+
+.sf-description {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-bottom: 0.375rem;
+  line-height: 1.4;
+}
+
+.sf-default {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.sf-default code {
+  color: var(--accent);
+  background: var(--bg-secondary);
+  padding: 0 0.25rem;
+  border-radius: 2px;
+  font-size: 0.6875rem;
+}
+
+.sf-input {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.sf-input:focus {
+  border-color: var(--accent);
+}
+
+.sf-input:read-only,
+.sf-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sf-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+select.sf-input {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238892a4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  padding-right: 1.5rem;
+}
+
+.sf-textarea {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace;
+  font-size: 0.75rem;
+  resize: vertical;
+  min-height: 2.5rem;
+}
+
+/* Collapsible sections */
+.sf-collapsible {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.sf-collapsible-header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.5rem;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.8125rem;
+}
+
+.sf-collapsible-header:hover {
+  background: var(--bg-tertiary);
+}
+
+.sf-chevron {
+  font-size: 0.5rem;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+
+.sf-chevron.sf-open {
+  transform: rotate(90deg);
+}
+
+.sf-collapsible-title {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.sf-badge {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 0.0625rem 0.3rem;
+  border-radius: 3px;
+  margin-left: auto;
+}
+
+.sf-collapsible-body {
+  padding: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+/* Array fields */
+.sf-array {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.sf-array-item {
+  display: flex;
+  gap: 0.375rem;
+  align-items: flex-start;
+}
+
+.sf-array-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sf-btn {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.1s, color 0.1s;
+}
+
+.sf-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text);
+}
+
+.sf-btn-remove {
+  color: var(--red);
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.sf-btn-remove:hover {
+  background: rgba(239,68,68,0.15);
+  color: var(--red);
+}
+
+.sf-btn-add {
+  align-self: flex-start;
+  margin-top: 0.125rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .split-panel {

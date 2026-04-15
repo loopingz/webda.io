@@ -1,79 +1,650 @@
 {
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/ClusterService": "lib/services/cluster:ClusterService",
-    "Webda/EchoService": "lib/services/echo:EchoService",
-    "Webda/MigrationStore": "lib/stores/migration:MigrationStore",
-    "Webda/PasswordEncryptionService": "lib/utils/password:PasswordEncryptionService",
-    "Webda/ProxyService": "lib/services/proxy:ProxyService",
-    "Webda/VersionService": "lib/services/version:VersionService"
+    "Webda/ClusterService": {
+      "Import": "lib/services/cluster:ClusterService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "keepAlive": {
+            "default": 30000,
+            "type": "number"
+          },
+          "pubsub": {
+            "default": "PubSub",
+            "type": "string"
+          },
+          "ttl": {
+            "default": "twice keepAlive",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "unsyncCodeAlert": {
+            "default": false,
+            "description": "Display code alert when code is out of sync\n\nCan be disabled by setting it to false - in case different code is subscribing to\nthe same pubsub\n\nIf undefined it will display the alert only once\n\ntrue will force it to display every time",
+            "type": "boolean"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "ClusterService"
+      },
+      "Configuration": "lib/services/cluster:ClusterServiceParameters"
+    },
+    "Webda/EchoService": {
+      "Import": "lib/services/echo:EchoService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Configuration for EchoService — static content served on a fixed route",
+        "properties": {
+          "mime": {
+            "description": "Mime of the result",
+            "type": "string"
+          },
+          "result": {
+            "description": "result to write on the url"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "description": "Url to expose the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "result",
+          "type",
+          "url"
+        ],
+        "type": "object",
+        "title": "EchoService"
+      },
+      "Configuration": "lib/services/echo:EchoServiceParameters"
+    },
+    "Webda/InvitationService": {
+      "Import": "lib/services/invitationservice:InvitationService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Configuration for the InvitationService — model, storage, and behavior settings",
+        "properties": {
+          "attribute": {
+            "description": "Attribute where to store once the invitation is accepted\n\nIf attribute is __acls, the multiple will be ignored and the storage\nwill be compatible with AclModel\n\nWhere to store within the model User",
+            "type": "string"
+          },
+          "authenticationService": {
+            "default": "Authentication",
+            "description": "Name of the bean to use for Authentication",
+            "type": "string"
+          },
+          "autoAccept": {
+            "default": false,
+            "description": "Do not require a validation by the invitee",
+            "type": "boolean"
+          },
+          "invitationStore": {
+            "description": "Used to store pending invitation",
+            "type": "string"
+          },
+          "mapAttribute": {
+            "description": "Attribute to use for the mapping",
+            "type": "string"
+          },
+          "mapFields": {
+            "description": "Fields to duplicate",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "model": {
+            "description": "Model to use",
+            "type": "string"
+          },
+          "multiple": {
+            "default": true,
+            "description": "Define if several invitation can be accepted or just one",
+            "type": "boolean"
+          },
+          "notification": {
+            "description": "Email template to send to the user",
+            "type": "string"
+          },
+          "notificationService": {
+            "default": "Mailer",
+            "description": "Notification service",
+            "type": "string"
+          },
+          "pendingAttribute": {
+            "description": "Attribute where to store once the invitation is created and pending\n\nWhere to store within the model Ident and User",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "attribute",
+          "invitationStore",
+          "mapAttribute",
+          "mapFields",
+          "model",
+          "pendingAttribute",
+          "type"
+        ],
+        "type": "object",
+        "title": "InvitationService"
+      },
+      "Configuration": "lib/services/invitationservice:InvitationParameters"
+    },
+    "Webda/MigrationStore": {
+      "Import": "lib/stores/migration:MigrationStore",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "modelAliases": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Model Aliases to allow easier rename of Model",
+            "type": "object"
+          }
+        },
+        "description": "Configuration for MigrationStore — specifies the source and destination stores",
+        "properties": {
+          "additionalModels": {
+            "default": [],
+            "description": "Additional models\n\nAllow this store to manage other models",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "defaultModel": {
+            "default": true,
+            "description": "When __type model not found, use the model\nIf strict is setup this parameter is not used",
+            "type": "boolean"
+          },
+          "forceModel": {
+            "default": false,
+            "description": "If set, Store will ignore the __type",
+            "type": "boolean"
+          },
+          "from": {
+            "description": "From store",
+            "type": "string"
+          },
+          "model": {
+            "default": "Webda/CoreModel",
+            "description": "Webda model to use within the Store",
+            "type": "string"
+          },
+          "modelAliases": {
+            "$ref": "#/definitions/modelAliases",
+            "description": "Model Aliases to allow easier rename of Model"
+          },
+          "noCache": {
+            "default": false,
+            "description": "Disable default memory cache",
+            "type": "boolean"
+          },
+          "slowQueryThreshold": {
+            "default": 30000,
+            "description": "Slow query threshold",
+            "type": "number"
+          },
+          "strict": {
+            "default": false,
+            "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no\nmodel extending this one",
+            "type": "boolean"
+          },
+          "to": {
+            "description": "To store",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "type"
+        ],
+        "type": "object",
+        "title": "MigrationStore"
+      },
+      "Configuration": "lib/stores/migration:MigrationStoreParameters"
+    },
+    "Webda/PasswordEncryptionService": {
+      "Import": "lib/utils/password:PasswordEncryptionService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "PasswordEncryptionService",
+        "properties": {
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "Configuration": "node_modules/@webda/core/lib/services/serviceparameters:ServiceParameters"
+    },
+    "Webda/ProxyService": {
+      "Import": "lib/services/proxy:ProxyService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Proxy to a backend service",
+        "properties": {
+          "backend": {
+            "description": "URL to proxy to",
+            "type": "string"
+          },
+          "proxyHeaders": {
+            "default": true,
+            "description": "Add X-Forwarded-* headers",
+            "type": "boolean"
+          },
+          "requireAuthentication": {
+            "default": false,
+            "description": "Helper to refuse any request if user is not auth",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "description": "URL to expose",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "backend",
+          "type"
+        ],
+        "type": "object",
+        "title": "ProxyService"
+      },
+      "Configuration": "lib/services/proxy:ProxyParameters"
+    },
+    "Webda/VersionService": {
+      "Import": "lib/services/version:VersionService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Version parameters",
+        "properties": {
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "default": "/version",
+            "type": "string"
+          },
+          "version": {
+            "description": "To force version otherwise would read from package.json",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "VersionService"
+      },
+      "Configuration": "lib/services/version:VersionServiceParameters"
+    }
   },
   "models": {
-    "graph": {
-      "Webda/BinaryModel": {
+    "Webda/BinaryModel": {
+      "Plural": "BinaryModels",
+      "Import": "lib/models/binarymodel:BinaryModel",
+      "Relations": {
         "binaries": [
           {
             "attribute": "__binary",
             "cardinality": "ONE"
           }
         ]
-      }
-    },
-    "tree": {
-      "Webda/BinaryModel": {}
-    },
-    "plurals": {},
-    "list": {
-      "Webda/BinaryModel": "lib/models/binarymodel:BinaryModel"
-    },
-    "reflections": {
-      "Webda/BinaryModel": {
-        "__data": "T",
-        "__binary": "Binary",
-        "__dataUpdated": "boolean",
-        "__class": "CoreModelDefinition<this>",
-        "__type": "string",
-        "__types": "string[]",
-        "__ctx": "OperationContext",
-        "__store": "Store<this>",
-        "__dirty": "Set<string | symbol>",
-        "_creationDate": "Date",
-        "_lastUpdate": "Date",
-        "__deleted": "boolean"
-      }
+      },
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "__binary": {
+          "type": "Binary"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "definitions": {
+            "BinaryFileInfo<{}>": {
+              "additionalProperties": false,
+              "description": "One Binary instance",
+              "dtoIn": "skip",
+              "properties": {
+                "challenge": {
+                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+                  "type": "string"
+                },
+                "hash": {
+                  "description": "Hash of the binary",
+                  "type": "string"
+                },
+                "metadata": {
+                  "$ref": "#/definitions/__binary%24metadata",
+                  "description": "Metadatas stored along with the binary"
+                },
+                "mimetype": {
+                  "description": "Mimetype",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Name of the file",
+                  "type": "string"
+                },
+                "size": {
+                  "description": "Size of the file",
+                  "type": "number"
+                }
+              },
+              "readOnly": true,
+              "required": [
+                "mimetype",
+                "name",
+                "size"
+              ],
+              "type": "object"
+            },
+            "__binary$metadata": {
+              "additionalProperties": false,
+              "type": "object"
+            }
+          },
+          "description": "Binary Model is a model that store its data in a binary file",
+          "properties": {
+            "__binary": {
+              "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E"
+            },
+            "__data": {},
+            "__dataUpdated": {
+              "default": false,
+              "type": "boolean"
+            },
+            "data": {
+              "description": "Proxied accessor that marks the model as dirty on any mutation\nReplace the underlying data and mark it for upload",
+              "returns": "a Proxy wrapping the underlying data that tracks writes"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__binary",
+            "__data",
+            "data",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "definitions": {
+            "BinaryFileInfo<{}>": {
+              "additionalProperties": false,
+              "description": "One Binary instance",
+              "dtoIn": "skip",
+              "properties": {
+                "challenge": {
+                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+                  "type": "string"
+                },
+                "hash": {
+                  "description": "Hash of the binary",
+                  "type": "string"
+                },
+                "metadata": {
+                  "$ref": "#/definitions/__binary%24metadata",
+                  "description": "Metadatas stored along with the binary"
+                },
+                "mimetype": {
+                  "description": "Mimetype",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Name of the file",
+                  "type": "string"
+                },
+                "size": {
+                  "description": "Size of the file",
+                  "type": "number"
+                }
+              },
+              "readOnly": true,
+              "required": [
+                "mimetype",
+                "name",
+                "size"
+              ],
+              "type": "object"
+            },
+            "__binary$metadata": {
+              "additionalProperties": false,
+              "type": "object"
+            }
+          },
+          "description": "Binary Model is a model that store its data in a binary file",
+          "properties": {
+            "__binary": {
+              "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E"
+            },
+            "__data": {},
+            "__dataUpdated": {
+              "default": false,
+              "type": "boolean"
+            },
+            "data": {
+              "description": "Proxied accessor that marks the model as dirty on any mutation\nReplace the underlying data and mark it for upload",
+              "returns": "a Proxy wrapping the underlying data that tracks writes"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__binary",
+            "__data",
+            "data",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "definitions": {
+            "BinaryFileInfo<{}>": {
+              "additionalProperties": false,
+              "description": "One Binary instance",
+              "dtoIn": "skip",
+              "properties": {
+                "challenge": {
+                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+                  "type": "string"
+                },
+                "hash": {
+                  "description": "Hash of the binary",
+                  "type": "string"
+                },
+                "metadata": {
+                  "$ref": "#/definitions/__binary%24metadata",
+                  "description": "Metadatas stored along with the binary"
+                },
+                "mimetype": {
+                  "description": "Mimetype",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Name of the file",
+                  "type": "string"
+                },
+                "size": {
+                  "description": "Size of the file",
+                  "type": "number"
+                }
+              },
+              "readOnly": true,
+              "required": [
+                "mimetype",
+                "name",
+                "size"
+              ],
+              "type": "object"
+            },
+            "__binary$metadata": {
+              "additionalProperties": false,
+              "type": "object"
+            }
+          },
+          "description": "Binary Model is a model that store its data in a binary file",
+          "properties": {
+            "__binary": {
+              "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E"
+            },
+            "__data": {},
+            "__dataUpdated": {
+              "default": false,
+              "type": "boolean"
+            },
+            "data": {
+              "description": "Proxied accessor that marks the model as dirty on any mutation\nReplace the underlying data and mark it for upload",
+              "returns": "a Proxy wrapping the underlying data that tracks writes"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__binary",
+            "__data",
+            "data",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/BinaryModel"
     }
   },
   "schemas": {
     "Webda/BinaryFile": {
-      "type": "object",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
       "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
         "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
         },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
         },
         "metadata": {
           "description": "Metadatas stored along with the binary"
         },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
         "originalname": {
-          "type": "string",
-          "description": "Original name"
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
         }
       },
       "required": [
@@ -81,274 +652,8 @@
         "name",
         "size"
       ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
       "title": "BinaryFile"
-    },
-    "Webda/BinaryModel": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        }
-      },
-      "description": "Binary Model is a model that store its data in a binary file",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BinaryModel"
-    },
-    "Webda/ClusterService": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "pubsub": {
-          "type": "string",
-          "default": "PubSub"
-        },
-        "ttl": {
-          "type": "number",
-          "default": "twice keepAlive"
-        },
-        "keepAlive": {
-          "type": "number",
-          "default": 30000
-        },
-        "unsyncCodeAlert": {
-          "type": "boolean",
-          "description": "Display code alert when code is out of sync\n\nCan be disabled by setting it to false - in case different code is subscribing to the same pubsub\n\nIf undefined it will display the alert only once\n\ntrue will force it to display every time"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "keepAlive",
-        "pubsub",
-        "ttl",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ClusterService"
-    },
-    "Webda/EchoService": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "Url to expose the service"
-        },
-        "mime": {
-          "type": "string",
-          "description": "Mime of the result"
-        },
-        "result": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {}
-          ],
-          "description": "result to write on the url"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "result",
-        "type",
-        "url"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "EchoService"
-    },
-    "Webda/MigrationStore": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "model": {
-          "type": "string",
-          "description": "Webda model to use within the Store",
-          "default": "Webda/CoreModel"
-        },
-        "additionalModels": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Additional models\n\nAllow this store to manage other models",
-          "default": []
-        },
-        "strict": {
-          "type": "boolean",
-          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
-          "default": false
-        },
-        "defaultModel": {
-          "type": "boolean",
-          "description": "When __type model not found, use the model If strict is setup this parameter is not used",
-          "default": true
-        },
-        "forceModel": {
-          "type": "boolean",
-          "description": "If set, Store will ignore the __type",
-          "default": false
-        },
-        "slowQueryThreshold": {
-          "type": "number",
-          "description": "Slow query threshold",
-          "default": 30000
-        },
-        "modelAliases": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Model Aliases to allow easier rename of Model"
-        },
-        "noCache": {
-          "type": "boolean",
-          "description": "Disable default memory cache"
-        },
-        "from": {
-          "type": "string",
-          "description": "From store"
-        },
-        "to": {
-          "type": "string",
-          "description": "To store"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "from",
-        "slowQueryThreshold",
-        "to",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "MigrationStore"
-    },
-    "Webda/PasswordEncryptionService": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "description": "Interface to specify the Service parameters",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "PasswordEncryptionService"
-    },
-    "Webda/ProxyService": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL to expose"
-        },
-        "backend": {
-          "type": "string",
-          "description": "URL to proxy to"
-        },
-        "requireAuthentication": {
-          "type": "boolean",
-          "description": "Helper to refuse any request if user is not auth"
-        },
-        "proxyHeaders": {
-          "type": "boolean",
-          "description": "Add X-Forwarded-* headers",
-          "default": true
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "backend",
-        "proxyHeaders",
-        "requireAuthentication",
-        "type"
-      ],
-      "description": "Proxy to a backend service",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ProxyService"
-    },
-    "Webda/VersionService": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content",
-          "default": "/version"
-        },
-        "version": {
-          "type": "string",
-          "description": "To force version otherwise would read from package.json"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "description": "Version parameters",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "VersionService"
     }
   }
 }

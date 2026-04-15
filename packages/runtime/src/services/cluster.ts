@@ -1,14 +1,16 @@
 import {
   Core,
-  CoreModelDefinition,
-  DeepPartial,
   Gauge,
+  getMachineId,
   Inject,
   PubSubService,
   Route,
   Service,
   ServiceParameters,
   Store,
+  useApplication,
+  useCore,
+  useCoreEvents,
   WebContext
 } from "@webda/core";
 
@@ -44,6 +46,9 @@ export interface ClusterMessage {
 
 const storeEvents = ["Store.PartialUpdated", "Store.Saved", "Store.PatchUpdated", "Store.Updated", "Store.Deleted"];
 
+/**
+ *
+ */
 export class ClusterServiceParameters extends ServiceParameters {
   /**
    * @default PubSub
@@ -70,8 +75,13 @@ export class ClusterServiceParameters extends ServiceParameters {
    */
   unsyncCodeAlert?: boolean;
 
-  constructor(params: any) {
-    super(params);
+  /**
+   * Initialize cluster parameters with defaults
+   * @param params - raw configuration values
+   */
+  constructor(params?: any) {
+    super();
+    this.load(params);
     this.keepAlive ??= 30000;
     this.ttl ??= this.keepAlive * 2;
     this.pubsub ??= "PubSub";
@@ -119,12 +129,12 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
    * Models defined in the app
    */
   models: {
-    [key: string]: CoreModelDefinition;
+    [key: string]: any;
   };
   /**
    * Services defined in the app
    */
-  services: { [key: string]: Service };
+  services: { [key: string]: any };
 
   /**
    * Stores defined in the app
@@ -146,8 +156,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   nodeData: any = {};
 
   /**
-   * Return cluster members
-   * @returns
+   * Return cluster members including this node
+   * @returns map of member IDs to their metadata and lastSeen timestamps
    */
   getMembers() {
     return { ...this.members, [this.emitterId]: { lastSeen: Date.now(), ...this.nodeData } };
@@ -156,8 +166,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   /**
    * @override
    */
-  loadParameters(params: DeepPartial<T>): ServiceParameters {
-    this.emitterId = Core.getMachineId();
+  loadParameters(params: any): ServiceParameters {
+    this.emitterId = getMachineId();
     this.log("DEBUG", `Cluster emitterId ${this.emitterId}`);
     return new ClusterServiceParameters(params);
   }
@@ -172,13 +182,13 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   }
 
   /**
-   *
-   * @returns
+   * Subscribe to model, service, and store events for cross-instance replication
+   * @returns this instance for chaining
    */
   async init() {
     await super.init();
 
-    this.models = this.getWebda().getModels();
+    this.models = useApplication().getModels();
     for (const i in this.models) {
       for (const event of this.models[i].getClientEvents()) {
         this.models[i].on(<any>event, data => {
@@ -191,13 +201,13 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
         });
       }
     }
-    this.services = this.getWebda().getServices();
+    this.services = useCore().getServices();
     for (const i in this.services) {
       for (const event of this.services[i].getClientEvents()) {
         if (storeEvents.includes(event)) {
           continue;
         }
-        this.services[i].on(event, (data: any) => {
+        this.services[i].on(<any>event, (data: any) => {
           this.sendMessage({
             event,
             data,
@@ -209,7 +219,9 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
     }
     // Store could have been treated like a normal service with emitter/listener
     // Kept the specific because stores are probably quite chatty
-    this.stores = this.getWebda().getStores();
+    this.stores = Object.fromEntries(
+      Object.entries(useCore().getServices()).filter(([, s]) => s instanceof Store)
+    ) as { [key: string]: Store };
     for (const i in this.stores) {
       for (const event of storeEvents) {
         this.stores[i].on(<any>event, (data: any) => {
@@ -223,7 +235,7 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
       }
     }
     // Once all services are initialized start using the pub/sub
-    this.getWebda().on("Webda.Init.Services", async () => {
+    useCoreEvents("Webda.Init.Services", async () => {
       this.pubSub.consume(this.handleMessage.bind(this));
       await this.updateCluster();
       setInterval(() => {
@@ -236,8 +248,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
 
   /**
    * Allow to set some data on the member
-   * @param data
-   * @param erase will remove any other data
+   * @param data - key-value pairs to attach to this node's member info
+   * @param erase - if true, replaces all existing data instead of merging
    */
   setMemberInfo(data: any = {}, erase?: boolean) {
     this.nodeData = erase ? data : { ...this.nodeData, ...data };
@@ -248,7 +260,7 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
    *
    * Useful to override to add some dynamic data
    * If the data is static you can use setMemberInfo
-   * @returns
+   * @returns partial cluster message to broadcast as keep-alive
    */
   async getKeepAliveMessage(): Promise<Partial<ClusterMessage>> {
     return {
@@ -287,8 +299,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   }
 
   /**
-   *
-   * @returns
+   * Health-check endpoint returning 503 until the cluster is ready
+   * @param ctx - incoming web context
    */
   @Route(".")
   readyEndpoint(ctx: WebContext) {
@@ -300,8 +312,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   }
 
   /**
-   * If service is ready
-   * @returns
+   * Whether this cluster node has completed initialization and sent its welcome
+   * @returns true if the service has joined the cluster
    */
   ready(): boolean {
     // Could have some state sync
@@ -309,9 +321,9 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   }
 
   /**
-   * Send message to the pub/sub
-   * @param message
-   * @returns
+   * Broadcast a message to other cluster members via pub/sub
+   * @param message - partial cluster message to send
+   * @param force - send even if no other members are known
    */
   async sendMessage(message: Partial<ClusterMessage>, force?: boolean): Promise<void> {
     // If no other member no point to use the pub/sub
@@ -327,9 +339,13 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
     await this.pubSub.sendMessage(<ClusterMessage>{ ...message, emitterId: this.emitterId, time: Date.now() });
   }
 
+  /**
+   * Populate node metadata from package.json and CLUSTER_* environment variables
+   * @returns this instance for chaining
+   */
   resolve(): this {
     super.resolve();
-    const packageInfo = this.getWebda().getApplication().getPackageDescription();
+    const packageInfo = useApplication().getPackageDescription();
     // By default we will send the package name and version and any CLUSTER_* variables
     this.nodeData = {
       version: packageInfo.version,
@@ -347,9 +363,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   }
 
   /**
-   * Handle message received by the pub/sub
-   * @param message
-   * @returns
+   * Dispatch a message received from the pub/sub to the appropriate local emitter
+   * @param message - incoming cluster message with type, emitter, and event data
    */
   protected async handleMessage(message: ClusterMessage) {
     // Skip if we are the emitter
@@ -402,7 +417,7 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
         return;
       }
       // Store will emit the event but manage the cache first
-      await this.stores[message.emitter]?.emitStoreEvent(<any>message.event, data);
+      await this.stores[message.emitter]?.emit(<any>message.event, data);
     } else if (message.type === "service") {
       const shouldAlert =
         !this.services[message.emitter] &&
@@ -413,7 +428,7 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
         this.log("WARN", `Service not found ${message.emitter} - code is probably out of sync`);
         return;
       }
-      this.services[message.emitter].emit(message.event, data);
+      this.services[message.emitter].emit(<any>message.event, data);
     } else if (message.type === "cluster") {
       if (message.event === "ClusterService.MemberRemoved" && message.data.emitterId === this.emitterId) {
         this.log("WARN", "Received a ClusterService.MemberRemoved for myself - sending a KeepAlive");

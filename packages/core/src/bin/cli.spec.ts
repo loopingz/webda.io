@@ -28,8 +28,8 @@ class CliSchemaToOptionsTest {
   async buildCliGroupsOperationsByPrefix() {
     const ops = makeOps({
       "Task.Create": { id: "Task.Create", input: "Task.Create.input" },
-      "Task.Get": { id: "Task.Get", parameters: "uuidRequest" },
-      "Task.Delete": { id: "Task.Delete", parameters: "uuidRequest" }
+      "Task.Get": { id: "Task.Get", input: "uuidRequest" },
+      "Task.Delete": { id: "Task.Delete", input: "uuidRequest" }
     });
 
     const calls: OperationCall[] = [];
@@ -47,7 +47,7 @@ class CliSchemaToOptionsTest {
   @test
   async buildCliExtractsUuidParameter() {
     const ops = makeOps({
-      "Task.Get": { id: "Task.Get", parameters: "uuidRequest", output: "Task" }
+      "Task.Get": { id: "Task.Get", input: "uuidRequest", output: "Task" }
     });
 
     const calls: OperationCall[] = [];
@@ -170,7 +170,7 @@ class CliSchemaToOptionsTest {
   async buildCliCustomParameterSchema() {
     const ops = makeOps(
       {
-        "Svc.Run": { id: "Svc.Run", parameters: "customParams" }
+        "Svc.Run": { id: "Svc.Run", input: "customParams" }
       },
       {
         customParams: {
@@ -191,14 +191,13 @@ class CliSchemaToOptionsTest {
 
     await cli.parseAsync(["svc", "run", "--region", "us-east-1", "--limit", "10"]);
     assert.strictEqual(calls.length, 1);
-    assert.strictEqual(calls[0].parameters.region, "us-east-1");
-    assert.strictEqual(calls[0].parameters.limit, 10);
+    assert.deepStrictEqual(calls[0].input, { region: "us-east-1", limit: 10 });
   }
 
   @test
   async buildCliSearchRequestParameter() {
     const ops = makeOps({
-      "Tasks.Query": { id: "Tasks.Query", parameters: "searchRequest" }
+      "Tasks.Query": { id: "Tasks.Query", input: "searchRequest" }
     });
 
     const calls: OperationCall[] = [];
@@ -215,7 +214,7 @@ class CliSchemaToOptionsTest {
   async buildCliMultipleGroups() {
     const ops = makeOps({
       "Task.Create": { id: "Task.Create" },
-      "Task.Get": { id: "Task.Get", parameters: "uuidRequest" },
+      "Task.Get": { id: "Task.Get", input: "uuidRequest" },
       "User.Login": { id: "User.Login", input: "User.Login.input" }
     });
 

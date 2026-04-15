@@ -91,7 +91,9 @@ class RegisterOperationTest extends WebdaApplicationTest {
     // Register a valid operation
     registerOperation("OpService.DoSomething", {
       service: "OpService",
-      method: "doSomething"
+      method: "doSomething",
+      input: "void",
+      output: "void"
     });
 
     // Verify it appears in listOperations
@@ -110,7 +112,9 @@ class RegisterOperationTest extends WebdaApplicationTest {
       () =>
         registerOperation("lowercase", {
           service: "OpService",
-          method: "doSomething"
+          method: "doSomething",
+          input: "void",
+          output: "void"
         }),
       /OperationId lowercase must match/
     );
@@ -118,7 +122,9 @@ class RegisterOperationTest extends WebdaApplicationTest {
       () =>
         registerOperation("has-dash.Op", {
           service: "OpService",
-          method: "doSomething"
+          method: "doSomething",
+          input: "void",
+          output: "void"
         }),
       /OperationId has-dash.Op must match/
     );
@@ -130,7 +136,9 @@ class RegisterOperationTest extends WebdaApplicationTest {
     assert.throws(
       () =>
         registerOperation("Op.NoTarget", {
-          method: "doSomething"
+          method: "doSomething",
+          input: "void",
+          output: "void"
         } as any),
       /must have a service or a model/
     );
@@ -143,7 +151,9 @@ class RegisterOperationTest extends WebdaApplicationTest {
       () =>
         registerOperation("Op.BadMethod", {
           service: "OpService",
-          method: "nonExistentMethod"
+          method: "nonExistentMethod",
+          input: "void",
+          output: "void"
         }),
       /method nonExistentMethod not found/
     );
@@ -156,7 +166,9 @@ class RegisterOperationTest extends WebdaApplicationTest {
       () =>
         registerOperation("Op.Unknown", {
           service: "NonExistentService",
-          method: "doSomething"
+          method: "doSomething",
+          input: "void",
+          output: "void"
         }),
       /method doSomething not found/
     );
@@ -164,15 +176,16 @@ class RegisterOperationTest extends WebdaApplicationTest {
 
   @test
   async registerOperationWithInputSchema() {
-    // Register with an input schema that doesn't exist - should be deleted
+    // Register with an input schema that doesn't exist - should be reset to "void"
     registerOperation("OpService.WithBadInput", {
       service: "OpService",
       method: "doSomething",
-      input: "nonexistent.schema"
+      input: "nonexistent.schema",
+      output: "void"
     });
     const ops = listOperations();
-    // The input should have been removed since the schema doesn't exist
-    assert.strictEqual(ops["OpService.WithBadInput"].input, undefined);
+    // The input should have been reset to "void" since the schema doesn't exist
+    assert.strictEqual(ops["OpService.WithBadInput"].input, "void");
   }
 
   @test
@@ -186,11 +199,15 @@ class RegisterOperationTest extends WebdaApplicationTest {
   async listOperationsMultiple() {
     registerOperation("OpService.First", {
       service: "OpService",
-      method: "doSomething"
+      method: "doSomething",
+      input: "void",
+      output: "void"
     });
     registerOperation("OpService.Second", {
       service: "OpService",
-      method: "doSomething"
+      method: "doSomething",
+      input: "void",
+      output: "void"
     });
     const ops = listOperations();
     assert.ok(ops["OpService.First"]);
@@ -199,14 +216,15 @@ class RegisterOperationTest extends WebdaApplicationTest {
 
   @test
   async registerOperationWithOutputSchema() {
-    // Register with an output schema that doesn't exist - should be deleted
+    // Register with an output schema that doesn't exist - should be reset to "void"
     registerOperation("OpService.WithBadOutput", {
       service: "OpService",
       method: "doSomething",
+      input: "void",
       output: "nonexistent.output.schema"
     });
     const ops = listOperations();
-    assert.strictEqual(ops["OpService.WithBadOutput"].output, undefined);
+    assert.strictEqual(ops["OpService.WithBadOutput"].output, "void");
   }
 
   @test
@@ -214,11 +232,15 @@ class RegisterOperationTest extends WebdaApplicationTest {
     // Register same operation ID twice - should overwrite
     registerOperation("OpService.Overwrite", {
       service: "OpService",
-      method: "doSomething"
+      method: "doSomething",
+      input: "void",
+      output: "void"
     });
     registerOperation("OpService.Overwrite", {
       service: "OpService",
-      method: "doFail"
+      method: "doFail",
+      input: "void",
+      output: "void"
     });
     const ops = listOperations();
     assert.ok(ops["OpService.Overwrite"]);
@@ -238,7 +260,9 @@ class RegisterOperationTest extends WebdaApplicationTest {
     // Register a valid operation so checkOperationPermission passes
     registerOperation("OpService.TestExt", {
       service: "OpService",
-      method: "doSomething"
+      method: "doSomething",
+      input: "void",
+      output: "void"
     });
     const ctx = new FakeOpContext();
     await ctx.init();
@@ -402,6 +426,8 @@ class OperationMetadataTest extends WebdaApplicationTest {
     registerOperation("TransportSvc.WithMeta", {
       service: "TransportSvc",
       method: "doSomething",
+      input: "void",
+      output: "void",
       summary: "A short summary",
       description: "A full description of this operation",
       tags: ["admin", "tasks"],
@@ -424,6 +450,8 @@ class OperationMetadataTest extends WebdaApplicationTest {
     registerOperation("TransportSvc.RestHint", {
       service: "TransportSvc",
       method: "doSomething",
+      input: "void",
+      output: "void",
       rest: {
         method: "post",
         path: "/api/tasks",
@@ -449,6 +477,8 @@ class OperationMetadataTest extends WebdaApplicationTest {
     registerOperation("TransportSvc.NoRest", {
       service: "TransportSvc",
       method: "doSomething",
+      input: "void",
+      output: "void",
       rest: false
     });
 
@@ -463,6 +493,8 @@ class OperationMetadataTest extends WebdaApplicationTest {
     registerOperation("TransportSvc.GrpcHint", {
       service: "TransportSvc",
       method: "doSomething",
+      input: "void",
+      output: "void",
       grpc: { streaming: "bidi" }
     });
 
@@ -478,6 +510,8 @@ class OperationMetadataTest extends WebdaApplicationTest {
     registerOperation("TransportSvc.GqlHint", {
       service: "TransportSvc",
       method: "doSomething",
+      input: "void",
+      output: "void",
       graphql: {
         query: "getTasks",
         mutation: "createTask",
@@ -499,6 +533,8 @@ class OperationMetadataTest extends WebdaApplicationTest {
     registerOperation("TransportSvc.AllHints", {
       service: "TransportSvc",
       method: "doSomething",
+      input: "void",
+      output: "void",
       summary: "Full operation",
       description: "An operation with all transport hints",
       tags: ["complete"],
@@ -535,6 +571,8 @@ class OperationMetadataTest extends WebdaApplicationTest {
     registerOperation("TransportSvc.CustomTransport", {
       service: "TransportSvc",
       method: "doSomething",
+      input: "void",
+      output: "void",
       extensions: { websocket: { event: "taskUpdate" } }
     });
 
@@ -617,6 +655,8 @@ class OperationMetadataTest extends WebdaApplicationTest {
     registerOperation("TransportSvc.PreservedMeta", {
       service: "TransportSvc",
       method: "doSomething",
+      input: "void",
+      output: "void",
       summary: "Preserved",
       tags: ["test"],
       rest: { method: "get", path: "/preserved" }
@@ -642,6 +682,8 @@ class OperationMetadataTest extends WebdaApplicationTest {
       id: "Test.TypeCheck",
       method: "test",
       service: "svc",
+      input: "void",
+      output: "void",
       summary: "sum",
       description: "desc",
       tags: ["a"],
@@ -750,7 +792,9 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
   async callOperationReturnsString() {
     registerOperation("ReturnSvc.GetString", {
       service: "ReturnSvc",
-      method: "getString"
+      method: "getString",
+      input: "void",
+      output: "void"
     });
     const ctx = new FakeOpContext();
     await ctx.init();
@@ -762,7 +806,9 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
   async callOperationReturnsObject() {
     registerOperation("ReturnSvc.GetObject", {
       service: "ReturnSvc",
-      method: "getObject"
+      method: "getObject",
+      input: "void",
+      output: "void"
     });
     const ctx = new FakeOpContext();
     await ctx.init();
@@ -778,7 +824,9 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
   async callOperationReturnsVoid() {
     registerOperation("ReturnSvc.DoNothing", {
       service: "ReturnSvc",
-      method: "doNothing"
+      method: "doNothing",
+      input: "void",
+      output: "void"
     });
     const ctx = new FakeOpContext();
     await ctx.init();
@@ -792,7 +840,9 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
   async callOperationStreamsAsyncGenerator() {
     registerOperation("ReturnSvc.StreamChunks", {
       service: "ReturnSvc",
-      method: "streamChunks"
+      method: "streamChunks",
+      input: "void",
+      output: "void"
     });
     const ctx = new FakeOpContext();
     await ctx.init();
@@ -820,7 +870,8 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
     registerOperation("ReturnSvc.Greet", {
       service: "ReturnSvc",
       method: "greet",
-      input: "ReturnSvc.Greet"
+      input: "ReturnSvc.Greet",
+      output: "void"
     });
 
     const ctx = new FakeOpContext();
@@ -847,7 +898,8 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
     registerOperation("ReturnSvc.Echo", {
       service: "ReturnSvc",
       method: "echo",
-      input: "ReturnSvc.Echo"
+      input: "ReturnSvc.Echo",
+      output: "void"
     });
 
     const ctx = new FakeOpContext();
@@ -861,7 +913,9 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
   async callOperationThrowsError() {
     registerOperation("ReturnSvc.ThrowError", {
       service: "ReturnSvc",
-      method: "throwError"
+      method: "throwError",
+      input: "void",
+      output: "void"
     });
     const ctx = new FakeOpContext();
     await ctx.init();
@@ -873,7 +927,9 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
     // When there is no input schema but context has input, pass as single arg
     registerOperation("ReturnSvc.EchoNoSchema", {
       service: "ReturnSvc",
-      method: "echo"
+      method: "echo",
+      input: "void",
+      output: "void"
     });
     const ctx = new FakeOpContext();
     await ctx.init();
@@ -903,7 +959,7 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
   async resolveArgsNoSchemaNoInput() {
     const ctx = new FakeOpContext();
     await ctx.init();
-    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test" });
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "void", output: "void" });
     assert.deepStrictEqual(args, []);
   }
 
@@ -912,7 +968,7 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     const ctx = new FakeOpContext();
     await ctx.init();
     ctx.setInput(JSON.stringify({ key: "value" }));
-    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test" });
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "void", output: "void" });
     assert.deepStrictEqual(args, [{ key: "value" }]);
   }
 
@@ -923,7 +979,8 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     const ctx = new FakeOpContext();
     await ctx.init();
     ctx.setParameters({ uuid: "abc123" });
-    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test" });
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "void", output: "void" });
+    // No input schema and no body input, so no args
     assert.deepStrictEqual(args, []);
   }
 
@@ -942,7 +999,7 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     const ctx = new FakeOpContext();
     await ctx.init();
     ctx.setInput(JSON.stringify({ firstName: "John", lastName: "Doe", age: 25 }));
-    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.MultiProp" });
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.MultiProp", output: "void" });
     // Should return values in schema property order
     assert.deepStrictEqual(args, ["John", "Doe", 25]);
   }
@@ -960,7 +1017,7 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     const ctx = new FakeOpContext();
     await ctx.init();
     ctx.setInput(JSON.stringify({ data: { nested: true } }));
-    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.SingleProp" });
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.SingleProp", output: "void" });
     // Single property: extract the value directly
     assert.deepStrictEqual(args, [{ nested: true }]);
   }
@@ -980,7 +1037,7 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     await ctx.init();
     ctx.setParameters({ uuid: "abc" });
     ctx.setInput(JSON.stringify({ name: "Alice" }));
-    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Merge" });
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Merge", output: "void" });
     // Should merge params and input, in schema property order
     assert.deepStrictEqual(args, ["abc", "Alice"]);
   }
@@ -1000,7 +1057,7 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     await ctx.init();
     ctx.setParameters({ name: "fromParams", value: 1 });
     ctx.setInput(JSON.stringify({ name: "fromBody" }));
-    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Override" });
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Override", output: "void" });
     // Body overrides params for "name", params supplies "value"
     assert.deepStrictEqual(args, ["fromBody", 1]);
   }
@@ -1016,7 +1073,7 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     const ctx = new FakeOpContext();
     await ctx.init();
     ctx.setInput(JSON.stringify({ foo: "bar" }));
-    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Empty" });
+    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.Empty", output: "void" });
     // Falls through to the no-schema path since schema has no properties
     assert.deepStrictEqual(args, [{ foo: "bar" }]);
   }
@@ -1030,15 +1087,17 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     const args = await resolveArguments(ctx, {
       id: "Test.Op",
       method: "test",
-      input: "NonExistent.Schema"
+      input: "NonExistent.Schema",
+      output: "void"
     });
     // When schema not found, getSchema returns undefined, falls to no-schema path
     assert.deepStrictEqual(args, [{ key: "value" }]);
   }
 
   @test
-  async resolveArgsParametersOnlySchema() {
-    // When only parameters schema is defined (no input), extract params by schema property names
+  async resolveArgsInputSchemaFromParams() {
+    // When input schema is defined and params carry the values (e.g., from REST path params),
+    // extract args by schema property names from merged params + body
     const app = useApplication<Application>();
     app.getSchemas()["Test.ParamsOnly"] = {
       type: "object",
@@ -1053,14 +1112,15 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     const args = await resolveArguments(ctx, {
       id: "Test.Op",
       method: "test",
-      parameters: "Test.ParamsOnly"
+      input: "Test.ParamsOnly",
+      output: "void"
     });
     assert.deepStrictEqual(args, ["my-uuid-123"]);
   }
 
   @test
-  async resolveArgsParametersOnlyMultipleProps() {
-    // Parameters-only schema with multiple properties
+  async resolveArgsInputSchemaMultiplePropsFromParams() {
+    // Input schema with multiple properties, values from params
     const app = useApplication<Application>();
     app.getSchemas()["Test.ParamsOnlyMulti"] = {
       type: "object",
@@ -1076,49 +1136,15 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     const args = await resolveArguments(ctx, {
       id: "Test.Op",
       method: "test",
-      parameters: "Test.ParamsOnlyMulti"
+      input: "Test.ParamsOnlyMulti",
+      output: "void"
     });
     assert.deepStrictEqual(args, ["abc", 3]);
   }
 
   @test
-  async resolveArgsBothParametersAndInput() {
-    // When both parameters and input schemas are resolvable, extract params then append body
-    const app = useApplication<Application>();
-    app.getSchemas()["Test.BothParams"] = {
-      type: "object",
-      properties: {
-        uuid: { type: "string" }
-      }
-    };
-    app.getSchemas()["Test.BothInput"] = {
-      type: "object",
-      properties: {
-        name: { type: "string" },
-        value: { type: "number" }
-      }
-    };
-
-    const ctx = new FakeOpContext();
-    await ctx.init();
-    ctx.setParameters({ uuid: "update-uuid" });
-    ctx.setInput(JSON.stringify({ name: "updated", value: 42 }));
-    const args = await resolveArguments(ctx, {
-      id: "Test.Op",
-      method: "test",
-      parameters: "Test.BothParams",
-      input: "Test.BothInput"
-    });
-    // Should be [uuid, {body}]
-    assert.strictEqual(args.length, 2);
-    assert.strictEqual(args[0], "update-uuid");
-    assert.deepStrictEqual(args[1], { name: "updated", value: 42 });
-  }
-
-  @test
-  async resolveArgsBothSchemasNotResolvable() {
-    // When both parameters and input are set but schemas are not resolvable,
-    // should fall through to the merge path
+  async resolveArgsInputSchemaNotResolvable() {
+    // When input schema is not resolvable, fall through to no-schema path
     const ctx = new FakeOpContext();
     await ctx.init();
     ctx.setParameters({ uuid: "fallback-uuid" });
@@ -1126,17 +1152,16 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     const args = await resolveArguments(ctx, {
       id: "Test.Op",
       method: "test",
-      parameters: "NonExistent.Params",
-      input: "NonExistent.Input"
+      input: "NonExistent.Input",
+      output: "void"
     });
     // Falls through to no-schema path — input is returned as single arg
     assert.deepStrictEqual(args, [{ name: "fallback" }]);
   }
 
   @test
-  async resolveArgsSinglePropertySchemaWholeInput() {
-    // Single property schema where the key does not match anything in merged
-    // Should pass whole input as the argument
+  async resolveArgsSinglePropertySchemaKeyPresent() {
+    // Single property schema where the key matches merged data
     const app = useApplication<Application>();
     app.getSchemas()["Test.SingleWhole"] = {
       type: "object",
@@ -1147,15 +1172,16 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
 
     const ctx = new FakeOpContext();
     await ctx.init();
-    // Input has a different key than "body"
-    ctx.setInput(JSON.stringify({ nested: { deep: true } }));
+    // Input has the expected "body" key
+    ctx.setInput(JSON.stringify({ body: { nested: true } }));
     const args = await resolveArguments(ctx, {
       id: "Test.Op",
       method: "test",
-      input: "Test.SingleWhole"
+      input: "Test.SingleWhole",
+      output: "void"
     });
-    // Since "body" is not in merged and input is an object, returns [input]
-    assert.deepStrictEqual(args, [{ nested: { deep: true } }]);
+    // Extracts the "body" property from merged
+    assert.deepStrictEqual(args, [{ nested: true }]);
   }
 }
 
@@ -1196,7 +1222,9 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
     const storage = getStorage();
     storage.operations["Fake.NoTarget"] = {
       id: "Fake.NoTarget",
-      method: "doSomething"
+      method: "doSomething",
+      input: "void",
+      output: "void"
     } as any;
 
     const ctx = new FakeOpContext();
@@ -1212,7 +1240,9 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
     // Brand has static query method from the mixin
     registerOperation("Brand.StaticQuery", {
       model: "Brand",
-      method: "query"
+      method: "query",
+      input: "void",
+      output: "void"
     });
     const ops = listOperations();
     assert.ok(ops["Brand.StaticQuery"]);
@@ -1228,7 +1258,9 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
       () =>
         registerOperation("Brand.BadMethod", {
           model: "Brand",
-          method: "nonExistentMethod"
+          method: "nonExistentMethod",
+          input: "void",
+          output: "void"
         }),
       /method nonExistentMethod not found/
     );
@@ -1251,7 +1283,8 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
       id: "Brand.StaticQueryOp",
       model: "Brand",
       method: "query",
-      parameters: "searchRequest"
+      input: "searchRequest",
+      output: "void"
     } as any;
 
     try {
@@ -1287,7 +1320,8 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
       model: "Brand",
       method: "delete",
       static: false,
-      parameters: "uuidRequest"
+      input: "uuidRequest",
+      output: "void"
     } as any;
 
     try {
@@ -1325,7 +1359,8 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
       model: "Brand",
       method: "delete",
       static: false,
-      parameters: "uuidRequest"
+      input: "uuidRequest",
+      output: "void"
     } as any;
 
     try {
@@ -1359,7 +1394,8 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
       model: "Brand",
       method: "delete",
       static: false,
-      parameters: "uuidRequest"
+      input: "uuidRequest",
+      output: "void"
     } as any;
 
     try {
@@ -1373,12 +1409,12 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
   }
 
   @test
-  async callOperationParameterValidationError() {
-    // Test the parameter validation error path (lines 71-74)
+  async callOperationInputValidationError() {
+    // Test the input validation error path
     const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
 
-    // Register a schema that requires specific parameters
-    registerSchema("strict.params.schema", {
+    // Register a schema that requires specific input fields
+    registerSchema("strict.input.schema", {
       type: "object",
       properties: {
         uuid: { type: "string", minLength: 1 }
@@ -1386,24 +1422,25 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
       required: ["uuid"]
     });
 
-    getStorage().operations["Brand.StrictParams"] = {
-      id: "Brand.StrictParams",
+    getStorage().operations["Brand.StrictInput"] = {
+      id: "Brand.StrictInput",
       model: "Brand",
       method: "query",
-      parameters: "strict.params.schema"
+      input: "strict.input.schema",
+      output: "void"
     } as any;
 
     try {
       const ctx = new FakeOpContext();
       await ctx.init();
-      // Provide empty parameters - should fail validation
-      ctx.setParameters({});
+      // Provide empty input - should fail validation
+      ctx.setInput(JSON.stringify({}));
       await assert.rejects(
-        () => callOperation(ctx, "Brand.StrictParams"),
-        (err: any) => err.message.includes("InvalidParameters")
+        () => callOperation(ctx, "Brand.StrictInput"),
+        (err: any) => err.message.includes("InvalidInput")
       );
     } finally {
-      delete getStorage().operations["Brand.StrictParams"];
+      delete getStorage().operations["Brand.StrictInput"];
     }
   }
 }

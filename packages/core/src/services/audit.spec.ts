@@ -99,11 +99,11 @@ class AuditServiceTest extends WebdaApplicationTest {
         // Already registered in a previous test — that's fine
       }
     };
-    tryRegister("Audit.Create", { service: "AuditTarget", method: "doCreate" });
-    tryRegister("Audit.Get", { service: "AuditTarget", method: "doGet" });
-    tryRegister("Audit.Fail", { service: "AuditTarget", method: "doFail" });
-    tryRegister("Other.Create", { service: "AuditTarget", method: "doCreate" });
-    tryRegister("Other.Get", { service: "AuditTarget", method: "doGet" });
+    tryRegister("Audit.Create", { service: "AuditTarget", method: "doCreate", input: "void", output: "void" });
+    tryRegister("Audit.Get", { service: "AuditTarget", method: "doGet", input: "void", output: "void" });
+    tryRegister("Audit.Fail", { service: "AuditTarget", method: "doFail", input: "void", output: "void" });
+    tryRegister("Other.Create", { service: "AuditTarget", method: "doCreate", input: "void", output: "void" });
+    tryRegister("Other.Get", { service: "AuditTarget", method: "doGet", input: "void", output: "void" });
   }
 
   /**

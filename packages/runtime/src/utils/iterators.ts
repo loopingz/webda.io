@@ -19,6 +19,13 @@ export class EventIterator {
   resolve: () => void;
   running: boolean;
 
+  /**
+   * Create an async iterator over event emitter events
+   * @param eventEmitter - source emitter to listen on
+   * @param events - map of event names to transform functions (true = identity)
+   * @param prefix - if set, wraps each yielded value in `{ [prefix]: value }`
+   * @param initValue - optional initial value to yield before listening
+   */
   constructor(
     protected eventEmitter: EventEmitter | AsyncEventEmitter,
     events: { [key: string]: true | ((data: any) => any) } | string,
@@ -39,6 +46,11 @@ export class EventIterator {
     this.resolve = () => {};
   }
 
+  /**
+   * Enqueue a transformed event value for the async iterator to yield
+   * @param event - event name used to look up the transform function
+   * @param data - raw event payload to transform and enqueue
+   */
   async push(event: string, data: any) {
     const tdata = await this.events[event](data);
     if (tdata === undefined) {
@@ -56,6 +68,10 @@ export class EventIterator {
     this.resolve();
   }
 
+  /**
+   * Async generator that yields event values as they arrive, until stopped
+   * @yields transformed event values (optionally wrapped with prefix key)
+   */
   async *iterate() {
     this.running = true;
     // using a queue and not the once method in case 2 events are sent successively
@@ -75,7 +91,7 @@ export class EventIterator {
         };
         // We might have multiple listeners on the same event
         // We could optimize by keeping a map but not sure it is better
-        this.eventEmitter.on(event, this.listeners[event]);
+        (this.eventEmitter as any).on(event, this.listeners[event]);
       }
       while (true) {
         if (this.queue.length === 0) {
@@ -94,7 +110,7 @@ export class EventIterator {
     } finally {
       // Remove all listeners
       Object.keys(this.listeners).forEach(event => {
-        this.eventEmitter.removeListener(event, this.listeners[event]);
+        (this.eventEmitter as any).removeListener(event, this.listeners[event]);
       });
       this.listeners = {};
       // Avoid creating a map to get one listener that will ultimately be the same as having multiple listeners
@@ -103,6 +119,11 @@ export class EventIterator {
   }
 }
 
+/**
+ * Type guard checking whether a value implements the AsyncGenerator protocol
+ * @param it - value to test
+ * @returns true if the value has asyncIterator, next, and throw methods
+ */
 function isAsyncGenerator(it: any): it is AsyncGenerator {
   return (
     typeof it[Symbol.asyncIterator] == "function" && typeof it["next"] == "function" && typeof it["throw"] == "function"
@@ -113,6 +134,12 @@ function isAsyncGenerator(it: any): it is AsyncGenerator {
  * Assemble to event iterator into one
  */
 export class MergedIterator {
+  /**
+   * Merge multiple async generators and promises into a single async stream
+   * @param data - map of keys to async generators, promises, or plain values
+   * @param ignoreUndefined - skip yielding when a value resolves to undefined
+   * @param transformer - transform function applied to each resolved value
+   */
   static async *iterate(data: any, ignoreUndefined = false, transformer: (data: any) => any = a => a) {
     const res = {};
     let available = false;

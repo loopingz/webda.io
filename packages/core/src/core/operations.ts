@@ -51,11 +51,21 @@ async function checkOperation(context: OperationContext, operationId: string) {
     throw new WebdaError.Forbidden(`${operationId} PermissionDenied`);
   }
   try {
-    if (operations[operationId].input) {
-      const input = await context.getInput();
-      if (input === undefined || validateSchema(operations[operationId].input, input) !== true) {
-        throw new WebdaError.BadRequest(`${operationId} InvalidInput Empty input`);
+    if (operations[operationId].input && operations[operationId].input !== "void") {
+      // Validate the merged (path params + request body) against the input schema.
+      // Path params (e.g., {uuid}, {hash}) are provided via context.getParameters()
+      // and must be merged with the body before validation because schemas like
+      // uuidRequest and binaryHashRequest declare them as required properties.
+      const params = context.getParameters() || {};
+      let body: any;
+      try {
+        body = await context.getInput();
+      } catch {
+        // No body (e.g., GET request) — skip validation
       }
+      // Merge path params with body (body overrides params for same keys)
+      const merged = { ...params, ...(typeof body === "object" && body !== null ? body : {}) };
+      validateSchema(operations[operationId].input, merged);
     }
   } catch (err) {
     if (err instanceof ValidationError) {
@@ -63,29 +73,15 @@ async function checkOperation(context: OperationContext, operationId: string) {
     }
     throw err;
   }
-  try {
-    if (operations[operationId].parameters) {
-      validateSchema(operations[operationId].parameters, context.getParameters());
-    }
-  } catch (err) {
-    if (err instanceof ValidationError) {
-      throw new WebdaError.BadRequest(`${operationId} InvalidParameters ${err.errors.map(e => e.message).join("; ")}`);
-    }
-    throw err;
-  }
 }
 
 /**
- * Resolve method arguments from the OperationContext using the operation's input/parameters schema metadata.
+ * Resolve method arguments from the OperationContext using the operation's input schema metadata.
  *
- * When both `parameters` and `input` schemas are resolvable via the application schema registry,
- * the parameters schema properties are extracted from URL/query params first, then the request
- * body is appended as the next argument. This supports signatures like `method(uuid: string, body: any)`.
- *
- * When only an `input` schema exists, properties are merged from params and body, then
- * extracted in schema property order.
- *
- * When only a `parameters` schema exists, its properties are extracted from URL/query params.
+ * The REST transport merges path/query params into the context so that `context.getParameters()`
+ * contains URL-derived values (e.g., `{uuid}`) while `context.getInput()` contains the request
+ * body. This function merges both sources (body overrides params) and extracts arguments based
+ * on the `input` schema property names and order.
  *
  * @param context - the execution context
  * @param operation - the operation definition
@@ -100,46 +96,16 @@ export async function resolveArguments(context: OperationContext, operation: Ope
     // No input (e.g., GET request)
   }
 
-  const app = useApplication();
-
-  // When both parameters and input schemas are resolvable, extract params then append body.
-  // This supports methods like modelUpdate(uuid: string, body: any).
-  if (operation.parameters && operation.input) {
-    const paramsSchema = app.getSchema(operation.parameters);
-    const inputSchema = app.getSchema(operation.input);
-    if (paramsSchema?.properties && inputSchema) {
-      const paramArgs = Object.keys(paramsSchema.properties).map(name => params[name]);
-      // Append the whole body as the next argument
-      return [...paramArgs, input];
-    }
-  }
-
-  // When only parameters schema is resolvable (no input), extract params by schema property names.
-  // This supports methods like modelGet(uuid: string) and modelQuery(query: string).
-  if (operation.parameters && !operation.input) {
-    const paramsSchema = app.getSchema(operation.parameters);
-    if (paramsSchema?.properties) {
-      return Object.keys(paramsSchema.properties).map(name => params[name]);
-    }
-  }
-
   // Merge: params + body (body overrides params for same keys)
   const merged = { ...params, ...(typeof input === "object" && input !== null ? input : {}) };
 
   // Use input schema properties to determine argument order
-  if (operation.input) {
+  if (operation.input && operation.input !== "void") {
+    const app = useApplication();
     const schema = app.getSchema(operation.input);
     if (schema?.properties) {
       const propNames = Object.keys(schema.properties);
-      if (propNames.length === 1) {
-        const key = propNames[0];
-        // Single param: extract if key matches, otherwise pass whole input
-        if (key in merged && Object.keys(merged).length <= Object.keys(params).length + 1) {
-          return [merged[key]];
-        }
-        return [typeof input === "object" && input !== null ? input : merged];
-      }
-      // Multiple params: extract by name in schema order
+      // Extract values by schema property names from the merged params + body
       return propNames.map(name => merged[name]);
     }
   }
@@ -254,11 +220,20 @@ export function listOperations(): { [key: string]: Omit<OperationDefinition, "se
 }
 
 /**
+ * Get available operations with full details including service/method.
+ * Intended for debug/introspection only.
+ * @returns operations map with all fields
+ */
+export function listFullOperations(): { [key: string]: OperationDefinition } {
+  return { ...useInstanceStorage().operations };
+}
+
+/**
  * Register a new operation within the app
  * @param operationId - the operation identifier
  * @param definition - the definition object
  */
-export function registerOperation(operationId: string, definition: Omit<OperationDefinition, "id">) {
+export function registerOperation(operationId: string, definition: Omit<OperationDefinition, "id" | "input" | "output"> & { input?: string; output?: string }) {
   // Check operation naming convention
   if (!operationId.match(/^([A-Z][A-Za-z0-9]*\.)*([A-Z][a-zA-Z0-9]*)$/)) {
     throw new Error(`OperationId ${operationId} must match ^([A-Z][A-Za-z0-9]*.)*([A-Z][a-zA-Z0-9]*)$`);
@@ -279,14 +254,18 @@ export function registerOperation(operationId: string, definition: Omit<Operatio
     throw new Error(`Operation ${operationId} must have a service or a model`);
   }
   const operations = useInstanceStorage().operations;
-  // Add the operation
-  // We will want to cache operations for faster startup
-  operations[operationId] = { ...definition, id: operationId } as OperationDefinitionInfo;
+  // Add the operation, defaulting input/output to "void" if not provided
+  operations[operationId] = {
+    ...definition,
+    id: operationId,
+    input: definition.input ?? "void",
+    output: definition.output ?? "void"
+  } as OperationDefinitionInfo;
   ["input", "output"]
-    .filter(key => operations[operationId][key])
+    .filter(key => operations[operationId][key] && operations[operationId][key] !== "void")
     .forEach(key => {
       if (!useApplication().getSchema(operations[operationId][key])) {
-        delete operations[operationId][key];
+        operations[operationId][key] = "void";
       }
     });
 }
@@ -375,9 +354,11 @@ function Operation(...args: any[]) {
       static: context.static,
       generator: isGeneratorFunction(target)
     });
-    return function operationWrapper(this: any, ...args) {
+    const wrapper = function operationWrapper(this: any, ...args) {
       return target.call(this, ...args);
     };
+    (wrapper as any).__original = target;
+    return wrapper;
   };
   if (args.length === 2 && args[1] instanceof Object && args[1].kind === "method") {
     return annotate(args[0], args[1]);

@@ -169,7 +169,8 @@ class ServiceTest extends WebdaApplicationTest {
     assert.deepStrictEqual(listOperations(), {
       "Plop.MyOperation": {
         id: "Plop.MyOperation",
-        input: "plop.myoperation.input"
+        input: "plop.myoperation.input",
+        output: "void"
       }
     });
 
@@ -184,25 +185,30 @@ class ServiceTest extends WebdaApplicationTest {
     // Test input detection
     registerOperation("Plop.MyOperation", {
       input: "plop.myOperation.input",
+      output: "void",
       service: "plop",
       method: "myOperation"
     });
     assert.deepStrictEqual(listOperations(), {
       "Plop.MyOperation": {
         id: "Plop.MyOperation",
-        input: "plop.myOperation.input"
+        input: "plop.myOperation.input",
+        output: "void"
       }
     });
 
     // Test input detection
     registerOperation("Plop.MyOperation", {
       input: "plop.myOperation.input2",
+      output: "void",
       service: "plop",
       method: "myOperation"
     });
     assert.deepStrictEqual(listOperations(), {
       "Plop.MyOperation": {
-        id: "Plop.MyOperation"
+        id: "Plop.MyOperation",
+        input: "void",
+        output: "void"
       }
     });
   }

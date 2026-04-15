@@ -19,9 +19,8 @@ import { createRequire } from "node:module";
  */
 export interface OperationEntry {
   id: string;
-  input?: string;
-  output?: string;
-  parameters?: string;
+  input: string;
+  output: string;
 }
 
 /**
@@ -135,32 +134,23 @@ function groupOperations(operations: Record<string, OperationEntry>): Map<string
  * @returns the result
  */
 function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): Argv {
-  const paramDef = op.parameters ? KNOWN_PARAMS[op.parameters] : undefined;
+  const hasInput = op.input && op.input !== "void";
+  const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
 
-  // Add well-known parameter options
+  // Add well-known parameter options (e.g., uuidRequest -> positional uuid)
   if (paramDef?.options) {
     for (const [name, opt] of Object.entries(paramDef.options)) {
       y.option(name, opt);
     }
   }
 
-  // Add custom parameter options from schema
-  if (op.parameters && !paramDef && ops.schemas[op.parameters]) {
-    for (const [name, opt] of Object.entries(schemaToOptions(ops.schemas[op.parameters]))) {
-      y.option(name, opt);
-    }
-  }
-
-  // Input: raw JSON, file, or individual properties from the input schema
-  if (op.input) {
+  // Add custom input options from schema
+  if (hasInput && !paramDef && ops.schemas[op.input]) {
+    // Offer both raw JSON/file and per-property CLI options
     y.option("json", { type: "string", describe: "JSON input (inline)" });
     y.option("file", { type: "string", alias: "f", describe: "JSON input from file" });
-    // Also expose input schema properties as individual CLI options
-    // Skip demandOption since input can also come from --json or --file
-    if (ops.schemas[op.input]) {
-      for (const [name, opt] of Object.entries(schemaToOptions(ops.schemas[op.input], true))) {
-        y.option(name, opt);
-      }
+    for (const [name, opt] of Object.entries(schemaToOptions(ops.schemas[op.input], true))) {
+      y.option(name, opt);
     }
   }
 
@@ -177,19 +167,14 @@ function addOperationOptions(y: Argv, op: OperationEntry, ops: OperationsFile): 
  */
 function extractParameters(args: Record<string, any>, op: OperationEntry, ops: OperationsFile): Record<string, any> {
   const params: Record<string, any> = {};
-  const paramDef = op.parameters ? KNOWN_PARAMS[op.parameters] : undefined;
+  const hasInput = op.input && op.input !== "void";
+  const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
 
   if (paramDef?.positional && args[paramDef.positional] !== undefined) {
     params[paramDef.positional] = args[paramDef.positional];
   }
   if (paramDef?.options) {
     for (const name of Object.keys(paramDef.options)) {
-      if (args[name] !== undefined) params[name] = args[name];
-    }
-  }
-  // Custom schema parameters
-  if (op.parameters && !paramDef && ops.schemas[op.parameters]?.properties) {
-    for (const name of Object.keys(ops.schemas[op.parameters].properties)) {
       if (args[name] !== undefined) params[name] = args[name];
     }
   }
@@ -206,6 +191,12 @@ function extractParameters(args: Record<string, any>, op: OperationEntry, ops: O
  * @returns Parsed input object, or undefined if no input was provided
  */
 function extractInput(args: Record<string, any>, op: OperationEntry, ops: OperationsFile): any | undefined {
+  const hasInput = op.input && op.input !== "void";
+  // When input is a well-known param schema (e.g., uuidRequest), it is handled
+  // via extractParameters and positional args, not as body input.
+  if (hasInput && KNOWN_PARAMS[op.input]) {
+    return undefined;
+  }
   if (args.json) {
     return JSON.parse(args.json as string);
   }
@@ -213,7 +204,7 @@ function extractInput(args: Record<string, any>, op: OperationEntry, ops: Operat
     return JSON.parse(readFileSync(args.file as string, "utf-8"));
   }
   // Build input from individual CLI options matching the input schema properties
-  if (op.input && ops.schemas[op.input]?.properties) {
+  if (hasInput && ops.schemas[op.input]?.properties) {
     const input: Record<string, any> = {};
     for (const name of Object.keys(ops.schemas[op.input].properties)) {
       if (args[name] !== undefined) input[name] = args[name];
@@ -260,7 +251,8 @@ export function buildCli(ops: OperationsFile, handler: OperationHandler, argv?: 
     cli.command(group.toLowerCase(), `${group} operations`, groupY => {
       for (const op of operations) {
         const action = op.id.substring(op.id.indexOf(".") + 1).toLowerCase();
-        const paramDef = op.parameters ? KNOWN_PARAMS[op.parameters] : undefined;
+        const hasInput = op.input && op.input !== "void";
+        const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
 
         // Build command string with positional if needed
         const cmd = paramDef?.positional ? `${action} <${paramDef.positional}>` : action;
@@ -273,7 +265,7 @@ export function buildCli(ops: OperationsFile, handler: OperationHandler, argv?: 
             await handler({
               id: op.id,
               parameters: extractParameters(args, op, ops),
-              input: op.input ? extractInput(args, op, ops!) : undefined
+              input: hasInput ? extractInput(args, op, ops!) : undefined
             });
           }
         );
@@ -711,7 +703,8 @@ if (isMain) {
           cli.command(group.toLowerCase(), `${group} operations`, groupY => {
             for (const op of operations) {
               const action = op.id.substring(op.id.indexOf(".") + 1).toLowerCase();
-              const paramDef = op.parameters ? KNOWN_PARAMS[op.parameters] : undefined;
+              const hasInput = op.input && op.input !== "void";
+              const paramDef = hasInput ? KNOWN_PARAMS[op.input] : undefined;
               const cmd = paramDef?.positional ? `${action} <${paramDef.positional}>` : action;
               groupY.command(
                 cmd,
@@ -723,7 +716,7 @@ if (isMain) {
                     call: {
                       id: op.id,
                       parameters: extractParameters(args, op, ops!),
-                      input: op.input ? extractInput(args, op, ops!) : undefined
+                      input: hasInput ? extractInput(args, op, ops!) : undefined
                     }
                   };
                 }

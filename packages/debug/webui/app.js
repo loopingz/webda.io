@@ -1,14 +1,11 @@
-import { h, render } from "https://esm.sh/preact@10.25.4";
-import { useState, useEffect, useRef, useCallback } from "https://esm.sh/preact@10.25.4/hooks";
-import htm from "https://esm.sh/htm@3.1.1";
+import { h, render } from "preact";
+import { useState, useEffect, useRef, useCallback } from "preact/hooks";
+import htm from "htm";
 
 import { ModelsPanel } from "./components/models.js";
 import { ServicesPanel } from "./components/services.js";
 import { OperationsPanel } from "./components/operations.js";
-import { RoutesPanel } from "./components/routes.js";
-import { ConfigPanel } from "./components/config.js";
 import { RequestsPanel } from "./components/requests.js";
-import { OpenAPIPanel } from "./components/openapi.js";
 import { LogsPanel } from "./components/logs.js";
 
 const html = htm.bind(h);
@@ -18,10 +15,7 @@ const TABS = [
   { id: "models", label: "Models", color: "#81bf6b" },
   { id: "services", label: "Services", color: "#6b8fd4" },
   { id: "operations", label: "Operations", color: "#f4f4f4" },
-  { id: "routes", label: "Routes", color: "#f7992c" },
-  { id: "config", label: "Config", color: "#81bf6b" },
-  { id: "requests", label: "Requests", color: "#6b8fd4" },
-  { id: "openapi", label: "OpenAPI", color: "#f4f4f4" }
+  { id: "requests", label: "Requests", color: "#6b8fd4" }
 ];
 
 /**
@@ -50,12 +44,11 @@ function App() {
       fetchApi("/api/models").catch(() => []),
       fetchApi("/api/services").catch(() => []),
       fetchApi("/api/operations").catch(() => []),
-      fetchApi("/api/routes").catch(() => []),
       fetchApi("/api/config").catch(() => {}),
       fetchApi("/api/requests").catch(() => []),
       fetchApi("/api/logs").catch(() => [])
-    ]).then(([info, models, services, operations, routes, config, requests, logs]) => {
-      setCache({ info, models, services, operations, routes, config, requests, logs });
+    ]).then(([info, models, services, operations, config, requests, logs]) => {
+      setCache({ info, models, services, operations, config, requests, logs });
     });
   }, [dataVersion]);
 
@@ -136,19 +129,13 @@ function App() {
       case "models":
         return html`<${ModelsPanel} data=${cache.models} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
       case "services":
-        return html`<${ServicesPanel} data=${cache.services} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
+        return html`<${ServicesPanel} data=${cache.services} config=${cache.config} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
       case "operations":
         return html`<${OperationsPanel} data=${cache.operations} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
-      case "routes":
-        return html`<${RoutesPanel} data=${cache.routes} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
-      case "config":
-        return html`<${ConfigPanel} data=${cache.config} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
       case "requests":
         return html`<${RequestsPanel} data=${cache.requests} fetchApi=${fetchApi} dataVersion=${dataVersion} wsEvents=${wsEvents} />`;
       case "logs":
         return html`<${LogsPanel} data=${cache.logs} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
-      case "openapi":
-        return html`<${OpenAPIPanel} />`;
       default:
         return null;
     }

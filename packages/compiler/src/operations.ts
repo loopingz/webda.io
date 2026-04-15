@@ -12,9 +12,8 @@ export interface OperationsExportFormat {
 
 export interface OperationEntry {
   id: string;
-  input?: string;
-  output?: string;
-  parameters?: string;
+  input: string;
+  output: string;
 }
 
 /**
@@ -82,39 +81,36 @@ function processModelOperations(
     switch (action) {
       case "create":
         addOperation(result, `${shortId}.${capitalized}`, {
-          input: modelKey,
           output: modelKey
         });
         addModelSchema(mod, modelKey, result);
         break;
       case "update":
         addOperation(result, `${shortId}.${capitalized}`, {
-          input: modelKey,
-          output: modelKey,
-          parameters: "uuidRequest"
+          input: "uuidRequest",
+          output: modelKey
         });
         // Also add Patch operation
         addOperation(result, `${shortId}.Patch`, {
-          input: modelKey + "?",
-          parameters: "uuidRequest"
+          input: "uuidRequest"
         });
         addModelSchema(mod, modelKey, result);
         break;
       case "delete":
         addOperation(result, `${shortId}.${capitalized}`, {
-          parameters: "uuidRequest"
+          input: "uuidRequest"
         });
         break;
       case "get":
         addOperation(result, `${shortId}.${capitalized}`, {
-          output: modelKey,
-          parameters: "uuidRequest"
+          input: "uuidRequest",
+          output: modelKey
         });
         addModelSchema(mod, modelKey, result);
         break;
       case "query":
         addOperation(result, `${plural}.Query`, {
-          parameters: "searchRequest"
+          input: "searchRequest"
         });
         break;
     }
@@ -131,17 +127,16 @@ function processModelOperations(
     const outputSchema = `${modelKey}.${action}.output`;
 
     const entry: Partial<OperationEntry> = {};
-    if (mod.schemas?.[inputSchema]) {
+    // Instance actions require a uuid; global (static) ones use their own input schema
+    if (!actions[action].global) {
+      entry.input = "uuidRequest";
+    } else if (mod.schemas?.[inputSchema]) {
       entry.input = inputSchema;
       result.schemas[inputSchema] = mod.schemas[inputSchema];
     }
     if (mod.schemas?.[outputSchema]) {
       entry.output = outputSchema;
       result.schemas[outputSchema] = mod.schemas[outputSchema];
-    }
-    // Instance actions require a uuid, global (static) ones don't
-    if (!actions[action].global) {
-      entry.parameters = "uuidRequest";
     }
     addOperation(result, id, entry);
   }
@@ -207,6 +202,7 @@ function processServiceOperations(mod: WebdaModule, result: OperationsExportForm
       entry.output = schemas.output;
       result.schemas[schemas.output] = mod.schemas[schemas.output];
     }
+    // addOperation defaults missing input/output to "void"
     addOperation(result, opId, entry);
   }
 }
@@ -220,8 +216,10 @@ function processServiceOperations(mod: WebdaModule, result: OperationsExportForm
 function addOperation(result: OperationsExportFormat, id: string, entry: Partial<OperationEntry>) {
   result.operations[id] = {
     id,
+    input: "void",
+    output: "void",
     ...entry
-  } as OperationEntry;
+  };
   useLog("DEBUG", `Registered operation: ${id}`);
 }
 

@@ -1,4 +1,4 @@
-import { OperationContext, Service, ServiceParameters } from "@webda/core";
+import { OperationContext, Service, ServiceParameters, useApplication } from "@webda/core";
 
 /**
  * Version parameters
@@ -44,18 +44,20 @@ export class VersionService<T extends VersionServiceParameters = VersionServiceP
   }
 
   /**
-   * @inheritdoc
+   * Set defaults for version and url from the application's package.json
+   * @param params - raw configuration values
+   * @returns initialized VersionServiceParameters
    */
   loadParameters(params: any) {
-    params.version = params.version || this.getWebda().getApplication().getPackageDescription().version;
+    params.version = params.version || useApplication().getPackageDescription().version;
     params.url = params.url || "/version";
-    return new VersionServiceParameters(params);
+    return new VersionServiceParameters().load(params);
   }
 
   /**
-   * Serve the version of the app
+   * Serve the version of the app as plain text
    *
-   * @param ctx
+   * @param ctx - operation context to write the response to
    */
   version(ctx: OperationContext) {
     ctx.setHeader("Content-Type", "text/plain");

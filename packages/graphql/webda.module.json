@@ -1,46 +1,140 @@
 {
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/GraphQLService": "lib/graphql:GraphQLService"
+    "Webda/GraphQLService": {
+      "Import": "lib/graphql:GraphQLService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Parameters for the GraphQL service",
+        "properties": {
+          "exposeGraphiQL": {
+            "default": false,
+            "description": "Expose the schema",
+            "type": "boolean"
+          },
+          "exposeMe": {
+            "default": true,
+            "description": "Expose current user in the context with me",
+            "type": "boolean"
+          },
+          "globalSubscription": {
+            "default": false,
+            "description": "Expose a aggregation of all available subscriptions",
+            "type": "boolean"
+          },
+          "maxOperationsPerRequest": {
+            "default": 10,
+            "description": "Max number of requests allowed within a graphql query or mutation",
+            "type": "number"
+          },
+          "models": {
+            "default": [
+              "*"
+            ],
+            "description": "List of models to include\n\nIf model is prefixed with a ! it will be excluded",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "nameTransfomer": {
+            "default": "camelCase",
+            "description": "Transform the name of the model to be used in the URL",
+            "enum": [
+              "none",
+              "camelCase",
+              "ENV_VAR",
+              "snake_case",
+              "PascalCase",
+              "kebab-case",
+              "UPPERCASE",
+              "lowercase"
+            ],
+            "see": [
+              "https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go",
+              "https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go"
+            ],
+            "type": "string"
+          },
+          "operations": {
+            "default": true,
+            "description": "Expose objects as operations too",
+            "type": "boolean"
+          },
+          "queryMethod": {
+            "default": "PUT",
+            "description": "Method used for query objects",
+            "enum": [
+              "PUT",
+              "GET"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "default": "/graphql",
+            "description": "URL for the GraphQL endpoint",
+            "type": "string"
+          },
+          "userModel": {
+            "default": "User",
+            "description": "User model to expose",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "GraphQLService"
+      },
+      "Configuration": "lib/graphql:GraphQLParameters"
+    }
   },
-  "models": {
-    "graph": {},
-    "tree": {},
-    "plurals": {},
-    "list": {},
-    "reflections": {}
-  },
+  "models": {},
   "schemas": {
     "Webda/BinaryFile": {
-      "type": "object",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
       "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
         "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
         },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
         },
         "metadata": {
           "description": "Metadatas stored along with the binary"
         },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
         "originalname": {
-          "type": "string",
-          "description": "Original name"
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
         }
       },
       "required": [
@@ -48,105 +142,8 @@
         "name",
         "size"
       ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BinaryFile"
-    },
-    "Webda/GraphQLService": {
       "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "operations": {
-          "type": "boolean",
-          "description": "Expose objects as operations too",
-          "default": true
-        },
-        "nameTransfomer": {
-          "$ref": "#/definitions/TransformCaseType",
-          "description": "Transform the name of the model to be used in the URL",
-          "default": "camelCase"
-        },
-        "queryMethod": {
-          "type": "string",
-          "enum": [
-            "PUT",
-            "GET"
-          ],
-          "description": "Method used for query objects",
-          "default": "PUT"
-        },
-        "models": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "List of models to include\n\nIf model is prefixed with a ! it will be excluded",
-          "default": [
-            "*"
-          ]
-        },
-        "maxOperationsPerRequest": {
-          "type": "number",
-          "description": "Max number of requests allowed within a graphql query or mutation",
-          "default": 10
-        },
-        "userModel": {
-          "type": "string",
-          "description": "User model to expose",
-          "default": "User"
-        },
-        "exposeMe": {
-          "type": "boolean",
-          "description": "Expose current user in the context with me",
-          "default": true
-        },
-        "exposeGraphiQL": {
-          "type": "boolean",
-          "description": "Expose the schema"
-        },
-        "globalSubscription": {
-          "type": "boolean",
-          "description": "Expose a aggregation of all available subscriptions"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "exposeGraphiQL",
-        "exposeMe",
-        "globalSubscription",
-        "maxOperationsPerRequest",
-        "type",
-        "userModel"
-      ],
-      "description": "Parameters for the GraphQL service",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "TransformCaseType": {
-          "type": "string",
-          "enum": [
-            "none",
-            "camelCase",
-            "ENV_VAR",
-            "snake_case",
-            "PascalCase",
-            "kebab-case",
-            "UPPERCASE",
-            "lowercase"
-          ],
-          "description": "Transform the name of the model to be used in the URL"
-        }
-      },
-      "title": "GraphQLService"
+      "title": "BinaryFile"
     }
   }
 }

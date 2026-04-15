@@ -26,24 +26,39 @@ const mockServices = {
     getName: () => "Router",
     getState: () => "running",
     parameters: { type: "Webda/Router" },
-    getCapabilities: () => ({ router: {} })
+    getCapabilities: () => ({ router: {} }),
+    metrics: {}
   },
   Store: {
     getName: () => "Store",
     getState: () => "running",
     parameters: { type: "MemoryStore" },
-    getCapabilities: () => ({})
+    getCapabilities: () => ({}),
+    metrics: {
+      operations_total: {
+        name: "webda_store_operations_total",
+        help: "Total operations",
+        constructor: { name: "Counter" },
+        labelNames: ["method", "service"],
+        hashMap: { "": { value: 42, labels: {} } }
+      }
+    }
   }
 };
 
+const mockTestMethod = function testMethod() {
+  return "hello";
+};
+
 const mockOperations = {
-  "Task.Create": { input: "MyApp/Task", output: "MyApp/Task" },
-  "Task.Get": { output: "MyApp/Task", parameters: "uuidRequest" }
+  "Task.Create": { input: "MyApp/Task", output: "MyApp/Task", service: "DomainService", method: "modelCreate" },
+  "Task.Get": { output: "MyApp/Task", parameters: "uuidRequest", service: "DomainService", method: "modelGet" },
+  "Task.Publish": { input: "void", output: "void", service: "DomainService", method: "modelAction", context: { action: { name: "publish" }, model: { prototype: { publish: mockTestMethod }, getIdentifier: () => "MyApp/Task" } } }
 };
 
 const mockRoutes = {
-  "/tasks": [{ methods: ["GET", "POST"], executor: "RESTOperationsTransport" }],
-  "/tasks/{uuid}": [{ methods: ["GET", "PUT", "DELETE"], executor: "RESTOperationsTransport" }]
+  "/tasks": [{ methods: ["POST"], executor: "RESTOperationsTransport", openapi: { post: { operationId: "Task.Create" } } }],
+  "/tasks/{uuid}": [{ methods: ["GET"], executor: "RESTOperationsTransport", openapi: { get: { operationId: "Task.Get" } } }]
 };
 
 const mockConfig = {
@@ -68,15 +83,21 @@ vi.mock("@webda/core", () => ({
     getModels: () => mockModels,
     getConfiguration: () => mockConfig,
     getProjectInfo: () => mockProjectInfo,
-    getPackageDescription: () => mockPackageDescription
+    getPackageDescription: () => mockPackageDescription,
+    getSchema: () => undefined,
+    completeNamespace: (name: string) => (name.includes("/") ? name : `Webda/${name}`)
   }),
   useCore: () => ({
-    getServices: () => mockServices
+    getServices: () => mockServices,
+    getService: (name: string) => {
+      if (name === "DomainService") return { modelCreate: function modelCreate() {}, modelGet: function modelGet() {}, modelAction: function modelAction() {} };
+      return undefined;
+    }
   }),
   useRouter: () => ({
     getRoutes: () => mockRoutes
   }),
-  listOperations: () => mockOperations,
+  listFullOperations: () => mockOperations,
   useModelMetadata: (model: any) => model?.Metadata
 }));
 
@@ -183,7 +204,7 @@ class GetOperationsTest {
   @test
   returnsAnEntryForEachOperation() {
     const ops = getOperations();
-    assert.strictEqual(ops.length, 2);
+    assert.strictEqual(ops.length, 3);
   }
 
   @test
@@ -206,6 +227,72 @@ class GetOperationsTest {
     const get = getOperations().find(o => o.id === "Task.Get");
     assert.strictEqual(get!.parameters, "uuidRequest");
   }
+
+  @test
+  resolvesRestUrlFromRouterOpenapi() {
+    const create = getOperations().find(o => o.id === "Task.Create")!;
+    assert.ok(create.rest, "Task.Create should have rest info");
+    assert.strictEqual(create.rest.url, "/tasks");
+  }
+
+  @test
+  resolvesImplementorForServiceOperations() {
+    const create = getOperations().find(o => o.id === "Task.Create")!;
+    assert.ok(create.implementor, "Task.Create should have implementor");
+    assert.strictEqual(create.implementor.type, "service");
+    assert.strictEqual(create.implementor.name, "DomainService");
+    assert.strictEqual(create.implementor.method, "modelCreate");
+  }
+
+  @test
+  resolvesModelActionFromPrototype() {
+    const publish = getOperations().find(o => o.id === "Task.Publish")!;
+    assert.ok(publish.implementor, "Task.Publish should have implementor");
+    assert.strictEqual(publish.implementor.type, "model");
+    assert.strictEqual(publish.implementor.name, "MyApp/Task");
+    assert.strictEqual(publish.implementor.method, "publish");
+    assert.ok(publish.implementor.code, "Should include method source code");
+  }
+
+  @test
+  stripsInternalFieldsFromOutput() {
+    const ops = getOperations();
+    for (const op of ops) {
+      assert.strictEqual((op as any).service, undefined, `${op.id} should not expose service`);
+      assert.strictEqual((op as any).model, undefined, `${op.id} should not expose model`);
+      assert.strictEqual((op as any).context, undefined, `${op.id} should not expose context`);
+    }
+  }
+}
+
+@suite
+class GetServicesMetricsTest {
+  @test
+  includesMetricsForServicesWithMetrics() {
+    const store = getServices().find(s => s.name === "Store")!;
+    assert.ok(store.metrics, "Store should have metrics");
+    assert.strictEqual(store.metrics.length, 1);
+    const m = store.metrics[0];
+    assert.strictEqual(m.name, "operations_total");
+    assert.strictEqual(m.fullName, "webda_store_operations_total");
+    assert.strictEqual(m.type, "counter");
+    assert.strictEqual(m.help, "Total operations");
+  }
+
+  @test
+  includesMetricValues() {
+    const store = getServices().find(s => s.name === "Store")!;
+    const m = store.metrics[0];
+    assert.ok(m.values, "Should have values");
+    assert.strictEqual(m.values.length, 1);
+    assert.strictEqual(m.values[0].value, 42);
+  }
+
+  @test
+  omitsMetricsForServicesWithoutMetrics() {
+    const router = getServices().find(s => s.name === "Router")!;
+    assert.strictEqual(router.metrics, undefined);
+  }
 }
 
 @suite
@@ -225,8 +312,8 @@ class GetRoutesTest {
 
   @test
   includesMethodsArray() {
-    const tasks = getRoutes().find(r => r.path === "/tasks");
-    assert.deepStrictEqual(tasks!.methods, ["GET", "POST"]);
+    const tasks = getRoutes().find(r => r.path === "/tasks") as any;
+    assert.deepStrictEqual(tasks!.methods, ["POST"]);
   }
 
   @test

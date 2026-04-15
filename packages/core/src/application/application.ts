@@ -192,9 +192,20 @@ export class Application {
    * @returns the result
    */
   getSchema(type: string): JSONSchema7 {
+    // "?" suffix means optional input — return the same schema without required fields
+    if (type.endsWith("?")) {
+      const base = this.getSchema(type.slice(0, -1));
+      if (!base) return undefined;
+      const copy = { ...base };
+      delete copy.required;
+      return copy;
+    }
+    const cm = this.baseConfiguration.cachedModules;
     return (
-      this.baseConfiguration.cachedModules.schemas[type] ||
-      this.baseConfiguration.cachedModules.models?.[type]?.Schemas?.Input
+      cm.schemas[type] ||
+      cm.models?.[type]?.Schemas?.Input ||
+      cm.moddas?.[type]?.Schema ||
+      cm.beans?.[type]?.Schema
     );
   }
 

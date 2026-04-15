@@ -124,53 +124,75 @@ export class ModelsPanel extends ScrollablePanel {
     const model = this.models[this.cursor];
     if (!model) return;
 
-    let row = startRow;
-    const print = function printLine(text: string) {
-      if (row >= endRow) return;
-      term.moveTo(1, row);
-      term.eraseLine();
-      term(text);
-      row++;
+    const lines: { render: (t: any, w: number) => void }[] = [];
+    const addText = function addTextLine(text: string, style?: string) {
+      lines.push({
+        render: function renderText(t: any, w: number) {
+          const s = text.substring(0, w);
+          if (style === "bold") t.bold(s);
+          else if (style === "dim") t.dim(s);
+          else if (style === "cyan") t.cyan(s);
+          else t(s);
+        }
+      });
+    };
+    const addEmpty = function addEmptyLine() {
+      lines.push({ render: function renderEmpty() {} });
     };
 
-    term.moveTo(1, row);
-    term.eraseLine();
-    term.bold(`  Model: ${model.id}`);
-    row++;
+    addText(`  Model: ${model.id}`, "bold");
+    if (model.plural) addText(`  Plural: ${model.plural}`);
+    if (model.store) addText(`  Store: ${model.store}${model.storeType ? " (" + model.storeType + ")" : ""}`);
+    addEmpty();
 
-    print(`  Plural: ${model.plural || "N/A"}`);
-    print("");
-
-    if (model.actions && model.actions.length > 0) {
-      term.moveTo(1, row);
-      term.eraseLine();
-      term.bold("  Actions:");
-      row++;
-      for (const action of model.actions) {
-        print(`    - ${action}`);
+    // Inheritance
+    const ancestors = model.metadata?.Ancestors || [];
+    const subclasses = model.metadata?.Subclasses || [];
+    if (ancestors.length > 0 || subclasses.length > 0) {
+      addText("  Inheritance:", "bold");
+      if (ancestors.length > 0) {
+        addText(`    Ancestors: ${[...ancestors].reverse().join(" → ")} → ${model.id.split("/").pop()}`);
       }
-      print("");
+      if (subclasses.length > 0) {
+        addText(`    Subclasses: ${subclasses.join(", ")}`);
+      }
+      addEmpty();
     }
 
-    if (model.relations && Object.keys(model.relations).length > 0) {
-      term.moveTo(1, row);
-      term.eraseLine();
-      term.bold("  Relations:");
-      row++;
-      const json = JSON.stringify(model.relations, null, 2);
-      for (const line of json.split("\n")) {
-        print(`    ${line}`);
-      }
-      print("");
+    // Relations
+    const rel = model.relations || {};
+    const relLines: string[] = [];
+    if (rel.parent) relLines.push(`    parent    ${rel.parent.attribute.padEnd(20)} → ${rel.parent.model}`);
+    (rel.links || []).forEach((l: any) => relLines.push(`    ${(l.type || "link").padEnd(10)} ${l.attribute.padEnd(20)} → ${l.model}`));
+    (rel.queries || []).forEach((q: any) => relLines.push(`    query     ${q.attribute.padEnd(20)} → ${q.model}`));
+    (rel.maps || []).forEach((m: any) => relLines.push(`    map       ${m.attribute.padEnd(20)} → ${m.model}`));
+    (rel.children || []).forEach((c: string) => relLines.push(`    child     ${"".padEnd(20)} → ${c}`));
+    (rel.binaries || []).forEach((b: any) => relLines.push(`    binary    ${b.attribute.padEnd(20)}   (${b.cardinality})`));
+
+    if (relLines.length > 0) {
+      addText("  Relations:", "bold");
+      relLines.forEach(l => addText(l));
+      addEmpty();
     }
 
-    print("  Press ENTER or ESC to go back");
+    // Actions
+    if (model.actions?.length > 0) {
+      addText("  Actions:", "bold");
+      addText(`    ${model.actions.join(", ")}`);
+      addEmpty();
+    }
 
-    // Clear remaining rows
-    while (row < endRow) {
+    addText("  Press ENTER or ESC to go back", "dim");
+
+    // Render with scroll (reuse detailMode scroll if we had one)
+    const visible = endRow - startRow;
+    for (let i = 0; i < visible; i++) {
+      const row = startRow + i;
       term.moveTo(1, row);
       term.eraseLine();
-      row++;
+      if (i < lines.length) {
+        lines[i].render(term, width);
+      }
     }
   }
 

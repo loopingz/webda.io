@@ -15,6 +15,7 @@
               "DomainService",
               "Mailer",
               "RESTService",
+              "WebUI",
               "TestBean"
             ],
             "type": "string"

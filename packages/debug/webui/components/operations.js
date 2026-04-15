@@ -77,18 +77,18 @@ export function OperationsPanel({ data }) {
             class="list-item ${selected === o.id ? "active" : ""}"
             onClick=${() => { setSelected(o.id); setFormValues({}); setActiveTab("form"); }}
           >
-            <div style="display:flex;align-items:center;gap:0.375rem">
-              ${o.rest?.method && html`<span class="badge method-${o.rest.method.toLowerCase()}" style="font-size:0.625rem;padding:0.0625rem 0.3rem">${o.rest.method.toUpperCase()}</span>`}
-              <span>${o.id}</span>
+            <div>${o.id}</div>
+            <div style="font-size:0.6875rem;color:var(--text-muted)">
+              ${o.input && o.input !== "void" ? o.input.split("/").pop().split(".").pop() : "void"}
+              ${" → "}
+              ${o.output && o.output !== "void" ? o.output.split("/").pop().split(".").pop() : "void"}
             </div>
-            ${o.rest?.path != null
-              ? html`<div class="mono" style="font-size:0.6875rem;color:var(--text-muted)">${o.rest.path || "/"}</div>`
-              : html`<div style="font-size:0.6875rem;color:var(--text-muted)">
-                  ${o.input && o.input !== "void" ? o.input.split("/").pop().split(".").pop() : "void"}
-                  ${" → "}
-                  ${o.output && o.output !== "void" ? o.output.split("/").pop().split(".").pop() : "void"}
-                </div>`
-            }
+            ${o.rest?.method && html`
+              <div style="font-size:0.625rem;margin-top:0.125rem;display:flex;align-items:center;gap:0.25rem">
+                <span class="badge method-${o.rest.method.toLowerCase()}" style="font-size:0.5625rem;padding:0.0625rem 0.25rem">${o.rest.method.toUpperCase()}</span>
+                <span class="mono" style="color:var(--text-muted);opacity:0.7">${o.rest.path || "/"}</span>
+              </div>
+            `}
           </div>
         `)}
         ${filtered.length === 0 && html`<div style="color:var(--text-muted);padding:0.5rem">No operations found</div>`}

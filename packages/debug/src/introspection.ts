@@ -148,6 +148,25 @@ export function getServices(): ServiceInfo[] {
 export function getOperations(): OperationInfo[] {
   const ops = listOperations();
   const app = useApplication();
+  // Build a map of operation ID → full route URL by scanning the router's openapi metadata
+  const operationRoutes: Record<string, { url: string; method: string }> = {};
+  try {
+    const router = useRouter();
+    const routes = router.getRoutes();
+    for (const [path, infos] of Object.entries(routes)) {
+      for (const info of infos as any[]) {
+        if (!info.openapi) continue;
+        for (const methodDef of Object.values(info.openapi) as any[]) {
+          if (methodDef?.operationId) {
+            const method = info.methods?.[0]?.toLowerCase() || "get";
+            operationRoutes[methodDef.operationId] = { url: path, method };
+          }
+        }
+      }
+    }
+  } catch {
+    // Router may not be available
+  }
   return Object.entries(ops).map(([opId, def]) => {
     const entry: any = { ...def, id: opId };
     // Resolve input/output schema refs to actual JSON Schema objects
@@ -155,6 +174,11 @@ export function getOperations(): OperationInfo[] {
       if (entry[key] && entry[key] !== "void") {
         entry[`${key}Schema`] = app.getSchema?.(entry[key]) || undefined;
       }
+    }
+    // Enrich rest with full URL from router
+    const route = operationRoutes[opId];
+    if (route) {
+      entry.rest = { ...(typeof entry.rest === "object" ? entry.rest : {}), url: route.url, method: entry.rest?.method || route.method };
     }
     return entry;
   });

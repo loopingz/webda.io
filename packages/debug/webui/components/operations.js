@@ -84,9 +84,9 @@ export function OperationsPanel({ data }) {
               ${o.output && o.output !== "void" ? o.output.split("/").pop().split(".").pop() : "void"}
             </div>
             ${o.rest?.method && html`
-              <div style="font-size:0.625rem;margin-top:0.125rem;display:flex;align-items:center;gap:0.25rem">
-                <span class="badge method-${o.rest.method.toLowerCase()}" style="font-size:0.5625rem;padding:0.0625rem 0.25rem">${o.rest.method.toUpperCase()}</span>
-                <span class="mono" style="color:var(--text-muted);opacity:0.7">${o.rest.path || "/"}</span>
+              <div style="font-size:0.625rem;margin-top:0.125rem;display:flex;align-items:center;gap:0.25rem;min-width:0">
+                <span class="badge method-${o.rest.method.toLowerCase()}" style="font-size:0.5625rem;padding:0.0625rem 0.25rem;flex-shrink:0">${o.rest.method.toUpperCase()}</span>
+                <span class="mono" style="color:var(--text-muted);opacity:0.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.rest.url || o.rest.path || "/"}</span>
               </div>
             `}
           </div>
@@ -144,7 +144,7 @@ function OperationDetail({ op, activeTab, setActiveTab, formValues, setFormValue
         `)}
         ${op.rest && typeof op.rest === "object" && op.rest.method && html`
           <span class="badge method-${op.rest.method.toLowerCase()}">${op.rest.method.toUpperCase()}</span>
-          <span class="mono" style="font-size:0.8125rem;color:var(--text-muted)">${op.rest.path || "/"}</span>
+          <span class="mono" style="font-size:0.8125rem;color:var(--text-muted)">${op.rest.url || op.rest.path || "/"}</span>
         `}
       </div>
 

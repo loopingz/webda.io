@@ -323,7 +323,7 @@ export class RESTOperationsTransport<
       [this.parameters.queryMethod.toLowerCase()]: {
         tags: [shortId],
         summary: `Query ${shortId}`,
-        operationId: `query${shortId}`,
+        operationId,
         requestBody:
           this.parameters.queryMethod === "GET"
             ? undefined
@@ -438,7 +438,7 @@ export class RESTOperationsTransport<
       post: {
         tags: [shortId],
         summary: `Create ${shortId}`,
-        operationId: `create${shortId}`,
+        operationId,
         requestBody: {
           content: {
             "application/json": {
@@ -522,7 +522,7 @@ export class RESTOperationsTransport<
     const openapi: OpenAPIWebdaDefinition = {
       delete: {
         tags: [shortId],
-        operationId: `delete${shortId}`,
+        operationId,
         description: `Delete ${shortId} if the permissions allow`,
         summary: `Delete a ${shortId}`,
         responses: {
@@ -572,7 +572,7 @@ export class RESTOperationsTransport<
 
     const openapiInfo = {
       tags: [shortId],
-      operationId: `update${shortId}`,
+      operationId: updateOpId,
       description: `Update ${shortId} if the permissions allow`,
       summary: `Update a ${shortId}`,
       requestBody: {
@@ -640,7 +640,7 @@ export class RESTOperationsTransport<
         tags: [shortId],
         description: `Retrieve ${shortId} model if permissions allow`,
         summary: `Retrieve a ${shortId}`,
-        operationId: `get${shortId}`,
+        operationId,
         responses: {
           "200": {
             content: {

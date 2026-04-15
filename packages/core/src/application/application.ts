@@ -200,9 +200,12 @@ export class Application {
       delete copy.required;
       return copy;
     }
+    const cm = this.baseConfiguration.cachedModules;
     return (
-      this.baseConfiguration.cachedModules.schemas[type] ||
-      this.baseConfiguration.cachedModules.models?.[type]?.Schemas?.Input
+      cm.schemas[type] ||
+      cm.models?.[type]?.Schemas?.Input ||
+      cm.moddas?.[type]?.Schema ||
+      cm.beans?.[type]?.Schema
     );
   }
 

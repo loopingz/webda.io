@@ -202,7 +202,8 @@ Fork(
               const namespace = project.namespace || "Webda";
               const app: ConfigSchemaApplication = {
                 getModdas: () => mod.moddas || {},
-                getSchema: (type: string) => mod.schemas?.[type],
+                getSchema: (type: string) =>
+                  mod.schemas?.[type] || mod.moddas?.[type]?.Schema || mod.beans?.[type]?.Schema || mod.deployers?.[type]?.Schema,
                 getDeployers: () => mod.deployers || {},
                 getConfiguration: () => config,
                 getModules: () => mod,

@@ -1,6 +1,6 @@
-import { h, render } from "https://esm.sh/preact@10.25.4";
-import { useState, useEffect, useRef, useCallback } from "https://esm.sh/preact@10.25.4/hooks";
-import htm from "https://esm.sh/htm@3.1.1";
+import { h, render } from "preact";
+import { useState, useEffect, useRef, useCallback } from "preact/hooks";
+import htm from "htm";
 
 import { ModelsPanel } from "./components/models.js";
 import { ServicesPanel } from "./components/services.js";

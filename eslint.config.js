@@ -7,7 +7,7 @@ export default [
   eslintConfigPrettier,
   ...tseslint.configs.recommended,
   {
-    ignores: ["**/node_modules/**", "**/lib/**", "**/reports/**", "**/coverage/**", "packages/schema/test/fixtures/**", "packages/schema/test/vega-fixtures/**", "packages/schema/test/webda/**", "packages/compiler/test/**", "packages/compiler/other.ts", "**/.webda.d.ts", "packages/cloudevents/src/models/filters/sql/CESQL*.ts", "packages/ql/src/WebdaQL*.ts"]
+    ignores: ["**/node_modules/**", "**/lib/**", "**/reports/**", "**/coverage/**", "**/vendor/**", "packages/schema/test/fixtures/**", "packages/schema/test/vega-fixtures/**", "packages/schema/test/webda/**", "packages/compiler/test/**", "packages/compiler/other.ts", "**/.webda.d.ts", "packages/cloudevents/src/models/filters/sql/CESQL*.ts", "packages/ql/src/WebdaQL*.ts"]
   },
   {
     plugins: {

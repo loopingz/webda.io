@@ -183,19 +183,34 @@ export function getOperations(): OperationInfo[] {
     }
     // Resolve implementor info
     try {
-      let impl: any;
       if (def.service) {
-        impl = core.getService(def.service);
+        const svc: any = core.getService(def.service);
         entry.implementor = { type: "service", name: def.service };
+        if (svc && def.method) {
+          // For model actions, the real code is on the model prototype
+          const actionName = def.context?.action?.name;
+          const modelClass: any = def.context?.model;
+          if (actionName && modelClass?.prototype?.[actionName]) {
+            const fn = modelClass.prototype[actionName];
+            const modelId = modelClass.getIdentifier?.() || modelClass.name || def.service;
+            entry.implementor = { type: "model", name: modelId, method: actionName };
+            entry.implementor.code = (fn.__original || fn).toString();
+          } else if (typeof svc[def.method] === "function") {
+            entry.implementor.method = def.method;
+            const fn = svc[def.method];
+            entry.implementor.code = (fn.__original || fn).toString();
+          }
+        }
       } else if (def.model) {
+        const modelClass: any = app.getModel(def.model);
         entry.implementor = { type: "model", name: def.model };
-        impl = app.getModel(def.model);
-      }
-      if (impl && def.method && typeof impl[def.method] === "function") {
-        entry.implementor.method = def.method;
-        // Prefer the original unwrapped method if the @Operation decorator stored it
-        const fn = impl[def.method];
-        entry.implementor.code = (fn.__original || fn).toString();
+        if (modelClass && def.method) {
+          const fn = modelClass.prototype?.[def.method] || modelClass[def.method];
+          if (typeof fn === "function") {
+            entry.implementor.method = def.method;
+            entry.implementor.code = (fn.__original || fn).toString();
+          }
+        }
       }
     } catch {
       // Service/model may not be resolvable

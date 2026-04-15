@@ -1,14 +1,15 @@
 import { h } from "preact";
 import { useState } from "preact/hooks";
 import htm from "htm";
+import { ModelGraph } from "./model-graph.js";
 
 const html = htm.bind(h);
 
 export function ModelsPanel({ data }) {
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState("__graph");
   const [filter, setFilter] = useState("");
   const models = data || [];
-  const detail = selected ? models.find((m) => m.id === selected) || null : null;
+  const detail = selected && selected !== "__graph" ? models.find((m) => m.id === selected) || null : null;
 
   const filtered = models.filter(
     (m) => (m.id || m.name || "").toLowerCase().includes(filter.toLowerCase())
@@ -23,6 +24,14 @@ export function ModelsPanel({ data }) {
           value=${filter}
           onInput=${(e) => setFilter(e.target.value)}
         />
+        <div
+          class="list-item ${selected === "__graph" ? "active" : ""}"
+          onClick=${() => setSelected("__graph")}
+          style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);margin-bottom:0.5rem;padding-bottom:0.625rem"
+        >
+          <span style="font-weight:500">Model Graph</span>
+          <span class="badge badge-muted">${models.length}</span>
+        </div>
         ${filtered.map(
           (m) => html`
             <div
@@ -37,11 +46,14 @@ export function ModelsPanel({ data }) {
         ${filtered.length === 0 && html`<div style="color: var(--text-muted); padding: 0.5rem;">No models found</div>`}
       </div>
       <div class="split-right">
-        ${detail ? html`<${ModelDetail} model=${detail} />` : html`
-          <div style="color: var(--text-muted); padding: 2rem; text-align: center;">
-            Select a model to view details
-          </div>
-        `}
+        ${selected === "__graph"
+          ? html`<${ModelGraph} models=${models} selectedId=${null} onSelect=${id => setSelected(id)} />`
+          : detail ? html`<${ModelDetail} model=${detail} onSelect=${id => setSelected(id)} />`
+          : html`
+            <div style="color: var(--text-muted); padding: 2rem; text-align: center;">
+              Select a model to view details
+            </div>
+          `}
       </div>
     </div>
   `;
@@ -95,92 +107,96 @@ function SchemaTab({ schemas }) {
   `;
 }
 
-function ModelDetail({ model }) {
+function ModelLink({ id, onSelect }) {
+  return html`<a href="#" class="mono" style="color:var(--accent);text-decoration:none" onClick=${e => { e.preventDefault(); onSelect(id); }}>${id.split("/").pop()}</a>`;
+}
+
+function RelationsTable({ relations, onSelect }) {
+  const rows = [];
+  if (relations.parent) {
+    rows.push({ name: relations.parent.attribute, type: "parent", target: relations.parent.model });
+  }
+  (relations.links || []).forEach(l => rows.push({ name: l.attribute, type: l.type || "link", target: l.model }));
+  (relations.queries || []).forEach(q => rows.push({ name: q.attribute, type: "query", target: q.model }));
+  (relations.maps || []).forEach(m => rows.push({ name: m.attribute, type: "map", target: m.model }));
+  (relations.children || []).forEach(c => rows.push({ name: "", type: "child", target: c }));
+  (relations.binaries || []).forEach(b => rows.push({ name: b.attribute, type: `binary (${b.cardinality})`, target: "" }));
+  if (rows.length === 0) return null;
+  return html`
+    <div class="detail-section">
+      <h3>Relations</h3>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Attribute</th><th>Type</th><th>Target</th></tr></thead>
+          <tbody>
+            ${rows.map((r, i) => html`
+              <tr key=${i}>
+                <td class="mono">${r.name || "-"}</td>
+                <td><span class="badge ${r.type === "parent" ? "badge-purple" : r.type === "child" ? "badge-purple" : r.type === "query" ? "badge-green" : r.type.startsWith("binary") ? "badge-orange" : "badge-blue"}">${r.type}</span></td>
+                <td>${r.target ? html`<${ModelLink} id=${r.target} onSelect=${onSelect} />` : "-"}</td>
+              </tr>
+            `)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function ModelDetail({ model, onSelect }) {
+  const ancestors = model.metadata?.Ancestors || [];
+  const subclasses = model.metadata?.Subclasses || [];
+
   return html`
     <div>
-      <h2 style="margin-bottom: 1rem; color: var(--accent);">${model.id || model.name}</h2>
+      <h2 style="margin-bottom:0.5rem;color:var(--accent)">${model.id?.split("/").pop()}</h2>
+      <div class="mono" style="font-size:0.75rem;color:var(--text-muted);margin-bottom:1rem">${model.id}</div>
 
-      <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
         ${model.store && html`
-          <div style="background: var(--bg-tertiary); padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem;">
-            <span style="color: var(--text-muted);">Store: </span>
-            <span class="mono" style="color: var(--text-primary);">${model.store}</span>
-            ${model.storeType && html`
-              <span style="color: var(--text-muted);"> (${model.storeType})</span>
-            `}
+          <div style="background:var(--bg-tertiary);padding:0.375rem 0.625rem;border-radius:4px;font-size:0.8125rem">
+            <span style="color:var(--text-muted)">Store: </span>
+            <span class="mono">${model.store}</span>
+            ${model.storeType && html`<span style="color:var(--text-muted)"> (${model.storeType})</span>`}
           </div>
         `}
         ${model.plural && html`
-          <div style="background: var(--bg-tertiary); padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem;">
-            <span style="color: var(--text-muted);">Plural: </span>
+          <div style="background:var(--bg-tertiary);padding:0.375rem 0.625rem;border-radius:4px;font-size:0.8125rem">
+            <span style="color:var(--text-muted)">Plural: </span>
             <span class="mono">${model.plural}</span>
           </div>
         `}
       </div>
 
-      ${model.parent && html`
+      ${ancestors.length > 0 && html`
         <div class="detail-section">
-          <h3>Parent</h3>
-          <span class="mono" style="color: var(--text-muted);">${model.parent}</span>
-        </div>
-      `}
-
-      ${model.relations && Object.keys(model.relations).length > 0 && html`
-        <div class="detail-section">
-          <h3>Relations</h3>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Target</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${Object.entries(model.relations).map(
-                  ([name, rel]) => html`
-                    <tr key=${name}>
-                      <td class="mono">${name}</td>
-                      <td><span class="badge badge-blue">${rel.type || "unknown"}</span></td>
-                      <td class="mono">${rel.model || rel.target || "-"}</td>
-                    </tr>
-                  `
-                )}
-              </tbody>
-            </table>
+          <h3>Inheritance</h3>
+          <div style="display:flex;align-items:center;gap:0.375rem;flex-wrap:wrap;font-size:0.8125rem">
+            ${[...ancestors].reverse().map(a => html`
+              <${ModelLink} key=${a} id=${a} onSelect=${onSelect} />
+              <span style="color:var(--text-muted)">\u2192</span>
+            `)}
+            <span class="mono" style="font-weight:600;color:var(--accent)">${model.id?.split("/").pop()}</span>
+            ${subclasses.length > 0 && html`
+              <span style="color:var(--text-muted)">\u2192</span>
+              ${subclasses.map((s, i) => html`
+                <${ModelLink} key=${s} id=${s} onSelect=${onSelect} />
+                ${i < subclasses.length - 1 && html`<span style="color:var(--text-muted)">,</span>`}
+              `)}
+            `}
           </div>
         </div>
       `}
 
+      <${RelationsTable} relations=${model.relations || {}} onSelect=${onSelect} />
+
       ${model.actions && model.actions.length > 0 && html`
         <div class="detail-section">
           <h3>Actions</h3>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Methods</th>
-                  <th>Global</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${model.actions.map(
-                  (a) => html`
-                    <tr key=${typeof a === "string" ? a : a.name}>
-                      <td class="mono">${typeof a === "string" ? a : a.name}</td>
-                      <td>
-                        ${typeof a === "object" && (a.methods || []).map(
-                          (m) => html`<span key=${m} class="badge method-${m.toLowerCase()}" style="margin-right: 0.25rem;">${m}</span>`
-                        )}
-                      </td>
-                      <td>${typeof a === "object" ? (a.global ? "Yes" : "No") : "-"}</td>
-                    </tr>
-                  `
-                )}
-              </tbody>
-            </table>
+          <div style="display:flex;gap:0.375rem;flex-wrap:wrap">
+            ${model.actions.map(a => html`
+              <span key=${typeof a === "string" ? a : a.name} class="badge badge-blue">${typeof a === "string" ? a : a.name}</span>
+            `)}
           </div>
         </div>
       `}

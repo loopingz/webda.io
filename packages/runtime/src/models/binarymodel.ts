@@ -1,4 +1,13 @@
-import { Binary, CoreModel, MemoryBinaryFile, NotEnumerable } from "@webda/core";
+import { Binary, CoreModel, MemoryBinaryFile } from "@webda/core";
+
+/**
+ * Mark a property as non-enumerable (compile-time hint for schema generation)
+ * @param _target - the property being decorated
+ * @param _context - decorator context
+ */
+function NotEnumerable(_target: any, _context: any) {
+  // No-op at runtime — used by the compiler for schema generation
+}
 import { gunzipSync, gzipSync } from "zlib";
 
 /**

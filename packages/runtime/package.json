@@ -22,6 +22,7 @@
   "dependencies": {
     "@types/json-schema": "^7.0.15",
     "@webda/core": "workspace:*",
+    "@webda/models": "workspace:*",
     "@webda/ql": "workspace:*",
     "@webda/workout": "workspace:*",
     "accept-language": "^3.0.20",

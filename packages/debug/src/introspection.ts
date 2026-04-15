@@ -181,6 +181,18 @@ export function getOperations(): OperationInfo[] {
     if (route) {
       entry.rest = { ...(typeof entry.rest === "object" ? entry.rest : {}), url: route.url, method: entry.rest?.method || route.method };
     }
+    // Dedent: find the smallest leading whitespace (skipping the first line which
+    // Function.toString() always returns at column 0) and strip it from all lines
+    const dedent = (code: string): string => {
+      const lines = code.split("\n");
+      if (lines.length <= 1) return code;
+      // Compute min indent from lines 1+ (skip first line and empty lines)
+      const indents = lines.slice(1).filter(l => l.trim().length > 0).map(l => (l.match(/^(\s*)/) || ["", ""])[1].length);
+      if (indents.length === 0) return code;
+      const min = Math.min(...indents);
+      if (min === 0) return code;
+      return [lines[0], ...lines.slice(1).map(l => l.slice(min))].join("\n");
+    };
     // Resolve implementor info
     try {
       if (def.service) {
@@ -194,11 +206,11 @@ export function getOperations(): OperationInfo[] {
             const fn = modelClass.prototype[actionName];
             const modelId = modelClass.getIdentifier?.() || modelClass.name || def.service;
             entry.implementor = { type: "model", name: modelId, method: actionName };
-            entry.implementor.code = (fn.__original || fn).toString();
+            entry.implementor.code = dedent((fn.__original || fn).toString());
           } else if (typeof svc[def.method] === "function") {
             entry.implementor.method = def.method;
             const fn = svc[def.method];
-            entry.implementor.code = (fn.__original || fn).toString();
+            entry.implementor.code = dedent((fn.__original || fn).toString());
           }
         }
       } else if (def.model) {
@@ -208,7 +220,7 @@ export function getOperations(): OperationInfo[] {
           const fn = modelClass.prototype?.[def.method] || modelClass[def.method];
           if (typeof fn === "function") {
             entry.implementor.method = def.method;
-            entry.implementor.code = (fn.__original || fn).toString();
+            entry.implementor.code = dedent((fn.__original || fn).toString());
           }
         }
       }

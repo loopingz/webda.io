@@ -74,8 +74,8 @@ export class ClusterServiceParameters extends ServiceParameters {
   unsyncCodeAlert?: boolean;
 
   /**
-   *
-   * @param params
+   * Initialize cluster parameters with defaults
+   * @param params - raw configuration values
    */
   constructor(params: any) {
     super(params);
@@ -153,8 +153,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   nodeData: any = {};
 
   /**
-   * Return cluster members
-   * @returns
+   * Return cluster members including this node
+   * @returns map of member IDs to their metadata and lastSeen timestamps
    */
   getMembers() {
     return { ...this.members, [this.emitterId]: { lastSeen: Date.now(), ...this.nodeData } };
@@ -179,8 +179,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   }
 
   /**
-   *
-   * @returns
+   * Subscribe to model, service, and store events for cross-instance replication
+   * @returns this instance for chaining
    */
   async init() {
     await super.init();
@@ -243,8 +243,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
 
   /**
    * Allow to set some data on the member
-   * @param data
-   * @param erase will remove any other data
+   * @param data - key-value pairs to attach to this node's member info
+   * @param erase - if true, replaces all existing data instead of merging
    */
   setMemberInfo(data: any = {}, erase?: boolean) {
     this.nodeData = erase ? data : { ...this.nodeData, ...data };
@@ -255,7 +255,7 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
    *
    * Useful to override to add some dynamic data
    * If the data is static you can use setMemberInfo
-   * @returns
+   * @returns partial cluster message to broadcast as keep-alive
    */
   async getKeepAliveMessage(): Promise<Partial<ClusterMessage>> {
     return {
@@ -294,9 +294,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   }
 
   /**
-   *
-   * @param ctx
-   * @returns
+   * Health-check endpoint returning 503 until the cluster is ready
+   * @param ctx - incoming web context
    */
   @Route(".")
   readyEndpoint(ctx: WebContext) {
@@ -308,8 +307,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   }
 
   /**
-   * If service is ready
-   * @returns
+   * Whether this cluster node has completed initialization and sent its welcome
+   * @returns true if the service has joined the cluster
    */
   ready(): boolean {
     // Could have some state sync
@@ -317,10 +316,9 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   }
 
   /**
-   * Send message to the pub/sub
-   * @param message
-   * @param force
-   * @returns
+   * Broadcast a message to other cluster members via pub/sub
+   * @param message - partial cluster message to send
+   * @param force - send even if no other members are known
    */
   async sendMessage(message: Partial<ClusterMessage>, force?: boolean): Promise<void> {
     // If no other member no point to use the pub/sub
@@ -337,7 +335,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   }
 
   /**
-   *
+   * Populate node metadata from package.json and CLUSTER_* environment variables
+   * @returns this instance for chaining
    */
   resolve(): this {
     super.resolve();
@@ -359,9 +358,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   }
 
   /**
-   * Handle message received by the pub/sub
-   * @param message
-   * @returns
+   * Dispatch a message received from the pub/sub to the appropriate local emitter
+   * @param message - incoming cluster message with type, emitter, and event data
    */
   protected async handleMessage(message: ClusterMessage) {
     // Skip if we are the emitter

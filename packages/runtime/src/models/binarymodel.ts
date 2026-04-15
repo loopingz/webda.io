@@ -14,7 +14,8 @@ export class BinaryModel<T = any> extends CoreModel {
   __dataUpdated: boolean = false;
 
   /**
-   *
+   * Proxied accessor that marks the model as dirty on any mutation
+   * @returns a Proxy wrapping the underlying data that tracks writes
    */
   public get data(): T {
     const subProxier = prop => {
@@ -59,7 +60,7 @@ export class BinaryModel<T = any> extends CoreModel {
   }
 
   /**
-   *
+   * Replace the underlying data and mark it for upload
    */
   public set data(data: T) {
     this.__data = data;
@@ -67,15 +68,16 @@ export class BinaryModel<T = any> extends CoreModel {
   }
 
   /**
-   *
+   * Check whether the in-memory data has been modified and needs to be persisted
+   * @returns true if data was mutated since last upload
    */
   needsUpload(): boolean {
     return this.__dataUpdated;
   }
 
   /**
-   *
-   * @param force
+   * Load and decompress the JSON data from the binary attachment
+   * @param force - reload even if data is already in memory
    */
   async loadData(force: boolean = false) {
     if (this.__data && !force) {
@@ -85,7 +87,8 @@ export class BinaryModel<T = any> extends CoreModel {
   }
 
   /**
-   *
+   * Persist the model and upload the binary data if it was modified
+   * @returns this instance for chaining
    */
   async save() {
     await super.save();

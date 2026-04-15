@@ -1,7 +1,7 @@
 import { Service, ServiceParameters, WebContext } from "@webda/core";
 
 /**
- *
+ * Configuration for EchoService — static content served on a fixed route
  */
 export class EchoServiceParameters extends ServiceParameters {
   /**
@@ -38,7 +38,7 @@ export class EchoService extends Service<EchoServiceParameters> {
   /**
    * Load parameters
    *
-   * @param params
+   * @param params - raw configuration values
    * @ignore
    */
   loadParameters(params: any): ServiceParameters {

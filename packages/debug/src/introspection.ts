@@ -142,7 +142,18 @@ export function getServices(): ServiceInfo[] {
  */
 export function getOperations(): OperationInfo[] {
   const ops = listOperations();
-  return Object.entries(ops).map(([opId, def]) => ({ ...def, id: opId }));
+  const app = useApplication();
+  return Object.entries(ops).map(([opId, def]) => {
+    const entry: any = { ...def, id: opId };
+    // Resolve input/output schema refs to actual JSON Schema objects
+    if (entry.input && entry.input !== "void") {
+      entry.inputSchema = app.getSchema?.(entry.input) || undefined;
+    }
+    if (entry.output && entry.output !== "void") {
+      entry.outputSchema = app.getSchema?.(entry.output) || undefined;
+    }
+    return entry;
+  });
 }
 
 /**

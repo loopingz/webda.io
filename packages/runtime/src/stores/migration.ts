@@ -2,7 +2,7 @@ import { CoreModel, Inject, Store, StoreFindResult, StoreParameters } from "@web
 import * as WebdaQL from "@webda/ql";
 
 /**
- *
+ * Configuration for MigrationStore — specifies the source and destination stores
  */
 export class MigrationStoreParameters extends StoreParameters {
   /**
@@ -35,18 +35,19 @@ export class MigrationStore<
   }
 
   /**
-   *
-   * @param uid
+   * Check existence in the source store
+   * @param uid - object UUID to check
+   * @returns true if the object exists in fromStore
    */
   _exists(uid: string): Promise<boolean> {
     return this.fromStore._exists(uid);
   }
 
   /**
-   * Delete on both
-   * @param uid
-   * @param writeCondition
-   * @param itemWriteConditionField
+   * Delete the object from both stores (failures on fromStore are ignored)
+   * @param uid - object UUID to delete
+   * @param writeCondition - optional optimistic lock value
+   * @param itemWriteConditionField - field name for the write condition
    */
   protected async _delete(
     uid: string,
@@ -60,28 +61,31 @@ export class MigrationStore<
   }
 
   /**
-   *
-   * @param uid
-   * @param raiseIfNotFound
+   * Retrieve an object from the source store
+   * @param uid - object UUID to fetch
+   * @param raiseIfNotFound - throw NotFound if the object does not exist
+   * @returns the model instance from fromStore
    */
   protected _get(uid: string, raiseIfNotFound?: boolean | undefined): Promise<T> {
     return this.fromStore["_get"](uid, raiseIfNotFound);
   }
 
   /**
-   *
-   * @param list
+   * Retrieve all objects from the source store
+   * @param list - optional list of UUIDs to retrieve (all if omitted)
+   * @returns array of model instances from fromStore
    */
   getAll(list?: string[] | undefined): Promise<T[]> {
     return this.fromStore.getAll(list);
   }
 
   /**
-   *
-   * @param object
-   * @param uid
-   * @param itemWriteCondition
-   * @param itemWriteConditionField
+   * Update an object in both stores (toStore failures are ignored)
+   * @param object - partial object data to update
+   * @param uid - object UUID
+   * @param itemWriteCondition - optional optimistic lock value
+   * @param itemWriteConditionField - field name for the write condition
+   * @returns the result from fromStore
    */
   protected async _update(
     object: any,
@@ -97,11 +101,12 @@ export class MigrationStore<
     )[0];
   }
   /**
-   *
-   * @param object
-   * @param uid
-   * @param itemWriteCondition
-   * @param itemWriteConditionField
+   * Patch an object in both stores (toStore failures are ignored)
+   * @param object - partial fields to patch
+   * @param uid - object UUID
+   * @param itemWriteCondition - optional optimistic lock value
+   * @param itemWriteConditionField - field name for the write condition
+   * @returns the result from fromStore
    */
   protected async _patch(
     object: any,
@@ -118,11 +123,11 @@ export class MigrationStore<
   }
 
   /**
-   *
-   * @param uuid
-   * @param attribute
-   * @param itemWriteCondition
-   * @param itemWriteConditionField
+   * Remove an attribute from an object in both stores (toStore failures are ignored)
+   * @param uuid - object UUID
+   * @param attribute - attribute name to remove
+   * @param itemWriteCondition - optional optimistic lock value
+   * @param itemWriteConditionField - field name for the write condition
    */
   protected async _removeAttribute(
     uuid: string,
@@ -137,8 +142,9 @@ export class MigrationStore<
   }
 
   /**
-   *
-   * @param object
+   * Save a new object to both stores (toStore failures are ignored)
+   * @param object - model instance to persist
+   * @returns the result from fromStore
    */
   protected async _save(object: T): Promise<any> {
     return (
@@ -150,10 +156,11 @@ export class MigrationStore<
   }
 
   /**
-   *
-   * @param uid
-   * @param params
-   * @param updateDate
+   * Increment numeric attributes in both stores (toStore failures are ignored)
+   * @param uid - object UUID
+   * @param params - array of property/value pairs to increment
+   * @param updateDate - timestamp to set as the update date
+   * @returns the result from fromStore
    */
   protected async _incrementAttributes(
     uid: string,
@@ -168,14 +175,14 @@ export class MigrationStore<
     )[0];
   }
   /**
-   *
-   * @param uid
-   * @param prop
-   * @param item
-   * @param index
-   * @param itemWriteCondition
-   * @param itemWriteConditionField
-   * @param updateDate
+   * Upsert an item in a collection property in both stores (toStore failures are ignored)
+   * @param uid - object UUID
+   * @param prop - collection property name
+   * @param item - item to upsert into the collection
+   * @param index - position to insert/update at
+   * @param itemWriteCondition - value to match for conditional write
+   * @param itemWriteConditionField - field name for the condition
+   * @param updateDate - timestamp to set as the update date
    */
   protected async _upsertItemToCollection(
     uid: string,
@@ -208,13 +215,13 @@ export class MigrationStore<
     ]);
   }
   /**
-   *
-   * @param uid
-   * @param prop
-   * @param index
-   * @param itemWriteCondition
-   * @param itemWriteConditionField
-   * @param updateDate
+   * Delete an item from a collection property in both stores (toStore failures are ignored)
+   * @param uid - object UUID
+   * @param prop - collection property name
+   * @param index - position to delete from
+   * @param itemWriteCondition - value to match for conditional write
+   * @param itemWriteConditionField - field name for the condition
+   * @param updateDate - timestamp to set as the update date
    */
   protected async _deleteItemFromCollection(
     uid: string,
@@ -244,9 +251,9 @@ export class MigrationStore<
     ]);
   }
   /**
-   *
-   * @param params
-   * @returns
+   * Load and initialize migration store parameters
+   * @param params - raw configuration values
+   * @returns initialized MigrationStoreParameters
    */
   loadParameters(params: any): StoreParameters {
     return new MigrationStoreParameters(params, this);

@@ -4,6 +4,11 @@ import { GraphQLScalarType, Kind } from "graphql";
 const MAX_LONG = Number.MAX_SAFE_INTEGER;
 const MIN_LONG = Number.MIN_SAFE_INTEGER;
 
+/**
+ * Coerce a value into a 52-bit integer, throwing if out of safe integer range
+ * @param value - value to coerce to a Long integer
+ * @returns the coerced integer
+ */
 function coerceLong(value: any): number {
   if (value === "") {
     throw new TypeError("Long cannot represent non 52-bit signed integer value: (empty string)");
@@ -16,6 +21,11 @@ function coerceLong(value: any): number {
   throw new TypeError("Long cannot represent non 52-bit signed integer value: " + String(value));
 }
 
+/**
+ * Parse a GraphQL literal AST node into a Long integer
+ * @param ast - GraphQL AST node to parse
+ * @returns the parsed integer, or null if not a valid INT literal
+ */
 function parseLiteral(ast: any): number | null {
   if (ast.kind === Kind.INT) {
     const num = parseInt(ast.value, 10);

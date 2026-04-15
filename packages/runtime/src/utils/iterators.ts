@@ -20,11 +20,11 @@ export class EventIterator {
   running: boolean;
 
   /**
-   *
-   * @param eventEmitter
-   * @param events
-   * @param prefix
-   * @param initValue
+   * Create an async iterator over event emitter events
+   * @param eventEmitter - source emitter to listen on
+   * @param events - map of event names to transform functions (true = identity)
+   * @param prefix - if set, wraps each yielded value in `{ [prefix]: value }`
+   * @param initValue - optional initial value to yield before listening
    */
   constructor(
     protected eventEmitter: EventEmitter | AsyncEventEmitter,
@@ -47,9 +47,9 @@ export class EventIterator {
   }
 
   /**
-   *
-   * @param event
-   * @param data
+   * Enqueue a transformed event value for the async iterator to yield
+   * @param event - event name used to look up the transform function
+   * @param data - raw event payload to transform and enqueue
    */
   async push(event: string, data: any) {
     const tdata = await this.events[event](data);
@@ -69,7 +69,8 @@ export class EventIterator {
   }
 
   /**
-   *
+   * Async generator that yields event values as they arrive, until stopped
+   * @yields transformed event values (optionally wrapped with prefix key)
    */
   async *iterate() {
     this.running = true;
@@ -119,8 +120,9 @@ export class EventIterator {
 }
 
 /**
- *
- * @param it
+ * Type guard checking whether a value implements the AsyncGenerator protocol
+ * @param it - value to test
+ * @returns true if the value has asyncIterator, next, and throw methods
  */
 function isAsyncGenerator(it: any): it is AsyncGenerator {
   return (
@@ -133,10 +135,10 @@ function isAsyncGenerator(it: any): it is AsyncGenerator {
  */
 export class MergedIterator {
   /**
-   *
-   * @param data
-   * @param ignoreUndefined
-   * @param transformer
+   * Merge multiple async generators and promises into a single async stream
+   * @param data - map of keys to async generators, promises, or plain values
+   * @param ignoreUndefined - skip yielding when a value resolves to undefined
+   * @param transformer - transform function applied to each resolved value
    */
   static async *iterate(data: any, ignoreUndefined = false, transformer: (data: any) => any = a => a) {
     const res = {};

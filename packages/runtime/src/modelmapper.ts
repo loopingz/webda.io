@@ -31,7 +31,8 @@ export class ModelMapper extends Service {
     [key: string]: ModelMapperInfo[];
   } = {};
   /**
-   *
+   * Build the mapper graph from model metadata and register event listeners on mapped models
+   * @returns this instance for chaining
    */
   resolve() {
     super.resolve();
@@ -74,9 +75,9 @@ export class ModelMapper extends Service {
 
   /**
    * Get uuids from a ModelLinker
-   * @param object
-   * @param mapper
-   * @returns
+   * @param object - the source model instance to extract linked UUIDs from
+   * @param mapper - mapper definition describing the link type and attribute
+   * @returns array of UUID strings for all linked models (empty values filtered out)
    */
   getUuidsFromMapper(object: Model, mapper: ModelMapperInfo) {
     const targetUuids = [];
@@ -95,19 +96,19 @@ export class ModelMapper extends Service {
   }
 
   /**
-   *
-   * @param params
-   * @returns
+   * Load and validate service parameters
+   * @param params - raw partial parameters from configuration
+   * @returns initialized ServiceParameters instance
    */
   loadParameters(params: ServicePartialParameters<ServiceParameters>): ServiceParameters {
     return new ServiceParameters().load(params);
   }
   /**
-   * Handle event
-   * @param modelName
-   * @param evt
-   * @param type
-   * @returns
+   * Handle a model lifecycle event by updating mapped collections (add/remove/update)
+   * @param modelName - fully-qualified model identifier
+   * @param evt - event payload containing object and previous state
+   * @param type - lifecycle event type (Created, Deleted, Updated, etc.)
+   * @returns promise resolving when all collection updates complete
    */
   async handleEvent(
     modelName: string,
@@ -178,12 +179,12 @@ export class ModelMapper extends Service {
   }
 
   /**
-   * Handle partial event to update a mapper
+   * Handle partial update event — checks if any mapped attribute changed and
+   * falls back to a full update if so
    *
-   * @param modelName
-   * @param evt
-   * @param type
-   * @returns
+   * @param modelName - fully-qualified model identifier
+   * @param evt - partial update event with increments/patches/deletes
+   * @returns promise resolving when the update is handled (or void if no mapped attribute changed)
    */
   async handlePartialEvent(modelName: string, evt: ModelEvents["PartialUpdate"]) {
     let uuid = evt.object_id;
@@ -216,9 +217,9 @@ export class ModelMapper extends Service {
    *
    * Copy attributes that are supposed to be copied
    *
-   * @param model
-   * @param mapper
-   * @returns
+   * @param model - source model instance to extract mapped attributes from
+   * @param mapper - mapper definition listing which attributes to copy
+   * @returns plain object with the mapped attributes and the model's uuid
    */
   getMapped(model: any, mapper: Mapper): any {
     const obj = {};

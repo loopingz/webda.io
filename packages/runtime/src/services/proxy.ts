@@ -13,9 +13,10 @@ import * as http from "http";
 import * as https from "https";
 
 /**
- *
- * @param line
- * @param headers
+ * Build a raw HTTP header block from a status line and header map
+ * @param line - status line (e.g. "HTTP/1.1 101 Switching Protocols")
+ * @param headers - header key-value map (values may be arrays for multi-value headers)
+ * @returns formatted header string terminated by CRLFCRLF
  */
 export function createHttpHeader(line, headers) {
   return (
@@ -64,8 +65,8 @@ export class ProxyParameters extends ServiceParameters {
   proxyHeaders: boolean;
 
   /**
-   *
-   * @param params
+   * Normalize backend URL and set defaults
+   * @param params - raw configuration values
    */
   constructor(params: any) {
     super(params);
@@ -124,7 +125,8 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   }
 
   /**
-   *
+   * Register an HTTP upgrade listener for WebSocket proxying
+   * @returns this instance for chaining
    */
   resolve() {
     // Register the proxy on the 'upgrade' event of http socket
@@ -138,13 +140,13 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
 
   /**
    * Create the request to the backend
-   * @param url
-   * @param method
-   * @param headers
-   * @param callback
-   * @param options
-   * @param options.timeout
-   * @returns
+   * @param url - full backend URL to request
+   * @param method - HTTP method (GET, POST, etc.)
+   * @param headers - headers to forward
+   * @param callback - response handler invoked when the backend responds
+   * @param options - request options
+   * @param options.timeout - request timeout in milliseconds (default 30000)
+   * @returns the outgoing ClientRequest
    */
   createRequest(
     url: string,
@@ -169,10 +171,10 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   }
 
   /**
-   * Filter backend headers to send to the client
+   * Filter backend headers to send to the client (strips CORS headers by default)
    *
-   * @param responseHeaders
-   * @returns
+   * @param responseHeaders - headers from the backend response
+   * @returns filtered headers safe to forward to the client
    */
   filterHeaders(responseHeaders: http.IncomingHttpHeaders = {}): http.OutgoingHttpHeaders {
     const headers = {};
@@ -186,11 +188,11 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   }
 
   /**
-   * Forward the response
-   * Allow you to intercept and override part of the answer
+   * Forward the response from the backend to the client.
+   * Override to intercept or transform the proxied response.
    *
-   * @param response
-   * @param context
+   * @param response - incoming HTTP response from the backend
+   * @param context - WebContext to write the proxied response to
    */
   forwardResponse(response: http.IncomingMessage, context: WebContext) {
     context.writeHead(response.statusCode, this.filterHeaders(response.headers));
@@ -198,9 +200,9 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   }
 
   /**
-   * Allow subclass to implement custom override
-   * @param context
-   * @returns
+   * Build request headers to forward, adding X-Forwarded-* if configured
+   * @param context - the original HTTP context from the client
+   * @returns header map to send to the backend including proxy headers
    */
   getRequestHeaders(context: HttpContext) {
     const headers = { ...context.getHeaders() };
@@ -221,10 +223,11 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   }
 
   /**
-   * Proxy to an url
-   * @param ctx
-   * @param host
-   * @param url prefix to remove
+   * Proxy the request to a backend after stripping the local URL prefix
+   * @param ctx - incoming web context
+   * @param host - backend base URL to proxy to
+   * @param url - local URL prefix to strip before forwarding
+   * @returns promise resolving when the proxied response is fully streamed
    */
   async proxy(ctx: WebContext, host: string, url: string) {
     const subUrl = ctx.getHttpContext().getRelativeUri().substring(url.length);
@@ -232,18 +235,19 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   }
 
   /**
-   * Proxy request to the backend errored
-   * @param e
+   * Handle proxy request errors (logged at ERROR level)
+   * @param e - the error that occurred during proxying
    */
   onError(e) {
     this.log("ERROR", "Proxying error", e);
   }
 
   /**
-   * Proxy WebService
-   * @param req
-   * @param socket
-   * @param head
+   * Handle an HTTP upgrade request and proxy it as a WebSocket connection
+   * @param req - raw HTTP incoming message from the upgrade event
+   * @param socket - duplex socket from the upgrade event
+   * @param head - first packet of the upgraded stream
+   * @returns promise resolving when the WebSocket proxy is set up
    */
   async proxyWS(req, socket, head) {
     if (!req.url.startsWith(this.parameters.url)) {
@@ -268,9 +272,9 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
 
   /**
    * Create the request to the WS backend
-   * @param url
-   * @param context
-   * @returns
+   * @param url - full WebSocket backend URL
+   * @param context - web context supplying headers and client info
+   * @returns an outgoing HTTP client request configured for WS upgrade
    */
   createWSRequest(url: string, context: WebContext): http.ClientRequest {
     const Url = new URL(url);
@@ -284,10 +288,10 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   }
 
   /**
-   *
-   * @param context
-   * @param url
-   * @param socket
+   * Low-level WebSocket proxy: pipes the client socket to the backend socket
+   * @param context - web context for header forwarding
+   * @param url - full backend WebSocket URL
+   * @param socket - client-side duplex socket from the HTTP upgrade
    */
   async rawProxyWS(context: WebContext, url: string, socket: any) {
     this.log("DEBUG", "Proxying upgrade request", `${url}`);
@@ -342,11 +346,11 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   }
 
   /**
-   * Proxy an url to the response directly
-   * @param ctx
-   * @param host
-   * @param url
-   * @param headers
+   * Low-level HTTP proxy: pipes request body to backend and streams the response back
+   * @param ctx - incoming web context
+   * @param host - backend base URL
+   * @param url - path to append to the host
+   * @param headers - extra headers to merge into the forwarded request
    */
   async rawProxy(ctx: WebContext, host: string, url: string = "/", headers: any = {}) {
     if (!url.startsWith("/")) {
@@ -406,17 +410,17 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   }
 
   /**
-   * Simplify override for dynamic backend
-   * @param _ctx
-   * @returns
+   * Resolve the backend URL for a given request. Override for dynamic routing.
+   * @param _ctx - web context (unused in base implementation)
+   * @returns the backend base URL to proxy to
    */
   getBackend(_ctx: WebContext) {
     return this.parameters.backend;
   }
 
   /**
-   * Proxy route
-   * @param ctx
+   * Main proxy route handler — enforces authentication if configured, then proxies
+   * @param ctx - incoming web context
    */
   @Route("./{+path}", ["GET", "POST", "DELETE", "PUT", "PATCH"])
   @Route(".", ["GET", "POST", "DELETE", "PUT", "PATCH"])

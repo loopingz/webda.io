@@ -154,6 +154,10 @@ export class GraphQLParameters extends DomainServiceParameters {
    */
   globalSubscription: boolean;
 
+  /**
+   * Initialize GraphQL parameters with defaults
+   * @param params - raw configuration values
+   */
   constructor(params: any) {
     super({ ...params, nameTransfomer: params.nameTransfomer || "PascalCase" });
     this.url ??= "/graphql";
@@ -180,15 +184,20 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   wss: WebSocketServer;
   wsHandler: GraphQLWSServer;
   modelListeners: any;
+  /**
+   * Load and initialize GraphQL service parameters
+   * @param params - raw partial configuration
+   * @returns initialized GraphQLParameters
+   */
   loadParameters(params: DeepPartial<T>): GraphQLParameters {
     return new GraphQLParameters(params);
   }
 
   /**
-   *
-   * @param prop
-   * @param definitions
-   * @returns
+   * Resolve a JSON Schema property by following $ref pointers
+   * @param prop - JSON Schema property that may contain $ref
+   * @param definitions - schema definitions map for resolving references
+   * @returns the resolved JSON Schema (or a null type if unresolvable)
    */
   getJsonSchemaDefinition(prop: JSONSchema7, definitions = {}): JSONSchema7 {
     if (prop?.type) {
@@ -204,10 +213,11 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   *
-   * @param schema
-   * @param defaultName
-   * @returns
+   * Convert a JSON Schema to a GraphQL type definition
+   * @param schema - JSON Schema to convert
+   * @param defaultName - fallback name for anonymous types
+   * @param input - if true, generate GraphQLInputObjectType instead of GraphQLObjectType
+   * @returns object with the GraphQL type and optional description, or undefined for null types
    */
   getGraphQLSchemaFromSchema(
     schema: JSONSchema7,
@@ -263,9 +273,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   * Add the GraphQL schema results
-   * @param type
-   * @returns
+   * Get or create a GraphQL query result wrapper type with results array and continuationToken
+   * @param type - GraphQL object type to wrap in a query result
+   * @returns GraphQL object type with results and continuationToken fields
    */
   getGraphQLQueryResult(type) {
     const name = `${type.name}QueryResult`;
@@ -284,11 +294,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   *
-   * @param schema
-   * @param defaultName
-   * @param webdaGraph
-   * @returns
+   * Build GraphQL field definitions from a JSON Schema, enriching with relation resolvers from the model graph
+   * @param schema - JSON Schema describing the model properties
+   * @param defaultName - fallback name for generated types
+   * @param webdaGraph - model relation graph (links, maps, queries, parent)
+   * @param input - if true, generate input types (skip readonly fields, skip relation resolvers)
+   * @returns map of field names to GraphQL field configs
    */
   getGraphQLFieldsFromSchema(schema: JSONSchema7, defaultName: string, webdaGraph?: ModelGraph, input?: boolean): any {
     const fields: ThunkObjMap<GraphQLFieldConfig<any, any, any>> = {};
@@ -423,12 +434,13 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   * Load model with filter on attributes
-   * @param knownFieldsOrId
-   * @param model
-   * @param context
-   * @param info
-   * @returns
+   * Load a model instance, optimizing to skip store reads when all requested fields are already known
+   * @param knownFieldsOrId - UUID string or object with known field values
+   * @param model - model class to load from
+   * @param context - web context for permission checks
+   * @param info - GraphQL field node describing the selection set
+   * @param filter - optional WebdaQL filter to apply to the result
+   * @returns the model instance, or null if filtered out
    */
   async loadModelInstance(
     knownFieldsOrId: string | { uuid: string; [key: string]: any },
@@ -483,8 +495,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   * Count the number of operations done with graphql
-   * @param context
+   * Increment the operation counter and throw if the per-request limit is exceeded
+   * @param context - web context holding the graphql extension with the counter
+   * @param increment - number of operations to add (default 1)
    */
   countOperation(context: WebContext, increment: number = 1) {
     const ext = context.getExtension<GraphQLContextExtension>("graphql");
@@ -501,6 +514,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     }
   }
 
+  /**
+   * Set up WebSocket server for GraphQL subscriptions and register upgrade handler
+   * @returns this instance for chaining
+   */
   resolve() {
     super.resolve();
     // Set-up ws server
@@ -865,9 +882,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   * Return the events to subscribe to
-   * @param info
-   * @returns
+   * Extract the list of event names from the GraphQL selection set (excluding latestEventTime)
+   * @param info - GraphQL resolve info containing field selections
+   * @returns array of event name strings the client subscribed to
    */
   getSubscribedEvents(info: GraphQLResolveInfo) {
     return (info.fieldNodes[0].selectionSet?.selections || [])
@@ -876,11 +893,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   *
-   * @param model
-   * @param arg1
-   * @param context
-   * @returns
+   * Create an async iterator that streams query results, updating when store events occur
+   * @param model - model class to query
+   * @param plural - plural name used as the iterator prefix key
+   * @param query - WebdaQL query string
+   * @param context - web context for permission checks
+   * @returns async iterator yielding updated query results on store changes
    */
   async registerAsyncIteratorQuery(
     model: CoreModelDefinition<CoreModel>,
@@ -928,11 +946,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   *
-   * @param model
-   * @param uuid
-   * @param context
-   * @returns
+   * Create an async iterator that streams a single model instance, updating on store events
+   * @param model - model class the instance belongs to
+   * @param uuid - UUID of the specific instance to watch
+   * @param context - web context for permission checks
+   * @param identifier - optional key used as the iterator prefix (defaults to model identifier)
+   * @returns async iterator yielding the updated model on each store change
    */
   async registerAsyncIterator(
     model: CoreModelDefinition<CoreModel>,
@@ -971,11 +990,13 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   *
-   * @param model
-   * @param uuid
-   * @param context
-   * @returns
+   * Create an async iterator for raw model events (not full objects), filtered by event name and UUID
+   * @param model - model class to listen on
+   * @param uuid - UUID to filter events for, or null for all instances
+   * @param events - list of event names the client wants to receive
+   * @param context - web context for authorization checks
+   * @param identifier - key used as the iterator prefix
+   * @returns async iterator yielding event payloads with latestEventTime
    */
   async registerAsyncEventIterator(
     model: CoreModelDefinition<CoreModel>,
@@ -1008,10 +1029,11 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   *
-   * @param rootFields
-   * @param mutation
-   * @returns
+   * Assemble the final GraphQLSchema from root query fields, mutations, and subscriptions
+   * @param rootFields - top-level query fields
+   * @param mutations - mutation fields
+   * @param subscription - subscription fields
+   * @returns the constructed GraphQLSchema
    */
   getGraphQLSchema(
     rootFields: ThunkObjMap<GraphQLFieldConfig<any, any, any>>,
@@ -1102,14 +1124,21 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     return this;
   }
 
+  /**
+   * Check whether a model should be handled by this service (always returns true)
+   * @param model - model class to check
+   * @param name - display name of the model
+   * @param context - request context
+   * @returns true if the model should be processed
+   */
   handleModel(model: CoreModelDefinition<CoreModel>, name: string, context: any): boolean {
     //throw new Error("Method not implemented.");
     return true;
   }
 
   /**
-   * Serve schema and graphqli
-   * @params ctx
+   * Serve the GraphQL schema as text or the GraphiQL IDE as HTML
+   * @param ctx - incoming web context
    */
   @Route(".", ["GET"], { hidden: true })
   async schemaRoute(ctx: WebContext<any>) {
@@ -1132,9 +1161,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   * Endpoint for the GraphQL schema
-   * @param ctx
-   * @returns
+   * Handle POST requests to the GraphQL endpoint
+   * @param ctx - incoming web context with the GraphQL query body
    */
   @Route(".", ["POST"], {
     post: {

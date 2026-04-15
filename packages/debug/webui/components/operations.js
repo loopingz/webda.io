@@ -77,12 +77,18 @@ export function OperationsPanel({ data }) {
             class="list-item ${selected === o.id ? "active" : ""}"
             onClick=${() => { setSelected(o.id); setFormValues({}); setActiveTab("form"); }}
           >
-            <div>${o.id}</div>
-            <div style="font-size:0.75rem;color:var(--text-muted)">
-              ${o.input && o.input !== "void" ? o.input.split("/").pop().split(".").pop() : "void"}
-              ${" → "}
-              ${o.output && o.output !== "void" ? o.output.split("/").pop().split(".").pop() : "void"}
+            <div style="display:flex;align-items:center;gap:0.375rem">
+              ${o.rest?.method && html`<span class="badge method-${o.rest.method.toLowerCase()}" style="font-size:0.625rem;padding:0.0625rem 0.3rem">${o.rest.method.toUpperCase()}</span>`}
+              <span>${o.id}</span>
             </div>
+            ${o.rest?.path != null
+              ? html`<div class="mono" style="font-size:0.6875rem;color:var(--text-muted)">${o.rest.path || "/"}</div>`
+              : html`<div style="font-size:0.6875rem;color:var(--text-muted)">
+                  ${o.input && o.input !== "void" ? o.input.split("/").pop().split(".").pop() : "void"}
+                  ${" → "}
+                  ${o.output && o.output !== "void" ? o.output.split("/").pop().split(".").pop() : "void"}
+                </div>`
+            }
           </div>
         `)}
         ${filtered.length === 0 && html`<div style="color:var(--text-muted);padding:0.5rem">No operations found</div>`}
@@ -136,8 +142,9 @@ function OperationDetail({ op, activeTab, setActiveTab, formValues, setFormValue
         ${op.tags?.length > 0 && op.tags.map(t => html`
           <span key=${t} class="badge badge-purple">${t}</span>
         `)}
-        ${op.rest && html`
-          <span class="badge badge-blue">${typeof op.rest === "object" ? `${op.rest.method?.toUpperCase()} ${op.rest.path}` : "REST"}</span>
+        ${op.rest && typeof op.rest === "object" && op.rest.method && html`
+          <span class="badge method-${op.rest.method.toLowerCase()}">${op.rest.method.toUpperCase()}</span>
+          <span class="mono" style="font-size:0.8125rem;color:var(--text-muted)">${op.rest.path || "/"}</span>
         `}
       </div>
 

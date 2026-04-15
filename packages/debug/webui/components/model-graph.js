@@ -18,9 +18,27 @@ const COLORS = {
 };
 
 /**
- * Build the graph layout: compute grid positions for tree, then scale to fit container.
+ * Compute the leaf count (width in columns) of a tree rooted at nodeId.
  */
-function buildGraph(models, selectedId, containerW, containerH) {
+function treeWidth(nodeId, childMap) {
+  const kids = childMap[nodeId] || [];
+  if (kids.length === 0) return 1;
+  return kids.reduce((sum, k) => sum + treeWidth(k, childMap), 0);
+}
+
+/**
+ * Compute the max depth of a tree rooted at nodeId.
+ */
+function treeDepth(nodeId, childMap) {
+  const kids = childMap[nodeId] || [];
+  if (kids.length === 0) return 1;
+  return 1 + Math.max(...kids.map(k => treeDepth(k, childMap)));
+}
+
+/**
+ * Build the graph layout: compute grid positions for trees, wrap rows to fit container.
+ */
+function buildGraph(models, selectedId, containerW) {
   const byId = {};
   models.forEach(m => { byId[m.id] = m; });
 
@@ -38,67 +56,78 @@ function buildGraph(models, selectedId, containerW, containerH) {
     }
   });
 
-  // Tree layout: assign grid (col, row)
-  const grid = {};
-  let nextCol = 0;
-  let maxDepth = 0;
+  // Pick a reasonable node size
+  const MARGIN = 20;
+  const nodeW = Math.max(80, Math.min(140, (containerW - MARGIN * 2) / 6));
+  const nodeH = Math.max(26, Math.min(36, nodeW * 0.25));
+  const gapX = Math.max(12, nodeW * 0.2);
+  const gapY = Math.max(16, nodeH * 0.6);
+  const cellW = nodeW + gapX;
+  const cellH = nodeH + gapY;
+  const maxCols = Math.max(1, Math.floor((containerW - MARGIN * 2 + gapX) / cellW));
 
-  function layoutTree(nodeId, depth) {
-    maxDepth = Math.max(maxDepth, depth);
-    const kids = childMap[nodeId] || [];
-    if (kids.length === 0) {
-      grid[nodeId] = { col: nextCol, row: depth };
-      nextCol++;
-      return;
+  // Wrap root trees into bands that fit within maxCols
+  const bands = []; // each band: { roots: [...], colOffset: 0, rowOffset: 0, width, depth }
+  let curBandRoots = [];
+  let curBandCols = 0;
+
+  roots.forEach(r => {
+    const w = treeWidth(r, childMap);
+    if (curBandCols > 0 && curBandCols + w > maxCols) {
+      bands.push(curBandRoots);
+      curBandRoots = [];
+      curBandCols = 0;
     }
-    kids.forEach(kid => layoutTree(kid, depth + 1));
-    const first = grid[kids[0]];
-    const last = grid[kids[kids.length - 1]];
-    grid[nodeId] = { col: (first.col + last.col) / 2, row: depth };
-  }
+    curBandRoots.push({ id: r, colStart: curBandCols, width: w });
+    curBandCols += w;
+  });
+  if (curBandRoots.length) bands.push(curBandRoots);
 
-  roots.forEach(r => layoutTree(r, 0));
+  // Layout each band
+  const grid = {};
+  let bandRowOffset = 0;
+
+  bands.forEach(band => {
+    let bandMaxDepth = 0;
+    band.forEach(entry => {
+      const d = treeDepth(entry.id, childMap);
+      bandMaxDepth = Math.max(bandMaxDepth, d);
+
+      let nextCol = entry.colStart;
+      function layoutTree(nodeId, depth) {
+        const kids = childMap[nodeId] || [];
+        if (kids.length === 0) {
+          grid[nodeId] = { col: nextCol, row: bandRowOffset + depth };
+          nextCol++;
+          return;
+        }
+        kids.forEach(kid => layoutTree(kid, depth + 1));
+        const first = grid[kids[0]];
+        const last = grid[kids[kids.length - 1]];
+        grid[nodeId] = { col: (first.col + last.col) / 2, row: bandRowOffset + depth };
+      }
+      layoutTree(entry.id, 0);
+    });
+    bandRowOffset += bandMaxDepth;
+  });
+
+  // Place orphans
+  let orphanCol = 0;
   models.forEach(m => {
     if (!grid[m.id]) {
-      grid[m.id] = { col: nextCol, row: 0 };
-      nextCol++;
+      grid[m.id] = { col: orphanCol, row: bandRowOffset };
+      orphanCol++;
     }
   });
 
-  const cols = nextCol || 1;
-  const rows = maxDepth + 1;
-
-  // Compute node sizing to fit the container
-  const MARGIN = 20;
-  const MIN_NODE_W = 80;
-  const MIN_NODE_H = 28;
-  const MIN_GAP_X = 16;
-  const MIN_GAP_Y = 24;
-
-  const availW = Math.max(containerW - MARGIN * 2, 200);
-  const availH = Math.max(containerH - MARGIN * 2, 100);
-
-  // Distribute space: cols * nodeW + (cols-1) * gapX = availW
-  // Target 70% node, 30% gap
-  let nodeW = Math.max(MIN_NODE_W, Math.min(160, (availW * 0.7) / cols));
-  let gapX = cols > 1 ? Math.max(MIN_GAP_X, (availW - cols * nodeW) / (cols - 1)) : 0;
-  let nodeH = Math.max(MIN_NODE_H, Math.min(36, (availH * 0.4) / rows));
-  let gapY = rows > 1 ? Math.max(MIN_GAP_Y, (availH - rows * nodeH) / (rows - 1)) : 0;
-
-  // Clamp gaps so it doesn't get too spread out
-  gapX = Math.min(gapX, nodeW * 0.6);
-  gapY = Math.min(gapY, nodeH * 2);
-
-  const totalW = cols * nodeW + Math.max(0, cols - 1) * gapX + MARGIN * 2;
-  const totalH = rows * nodeH + Math.max(0, rows - 1) * gapY + MARGIN * 2;
-
+  // Convert to pixel positions
   const nodes = models.map(m => {
     const g = grid[m.id];
     return {
       id: m.id,
       shortName: m.id.split("/").pop(),
-      x: MARGIN + g.col * (nodeW + gapX),
-      y: MARGIN + g.row * (nodeH + gapY),
+      x: MARGIN + g.col * cellW,
+      y: MARGIN + g.row * cellH,
       w: nodeW,
       h: nodeH,
       model: m,
@@ -133,7 +162,10 @@ function buildGraph(models, selectedId, containerW, containerH) {
     });
   });
 
-  return { nodes, edges, width: Math.max(totalW, containerW), height: Math.max(totalH, containerH - 40) };
+  const maxX = Math.max(...nodes.map(n => n.x + nodeW), 200) + MARGIN;
+  const maxY = Math.max(...nodes.map(n => n.y + nodeH), 100) + MARGIN;
+
+  return { nodes, edges, width: maxX, height: maxY };
 }
 
 function edgeColor(type) {
@@ -217,7 +249,7 @@ export function ModelGraph({ models, selectedId, onSelect }) {
     return () => ro.disconnect();
   }, []);
 
-  const graph = useMemo(() => buildGraph(models, selectedId, size.w, size.h), [models, selectedId, size.w, size.h]);
+  const graph = useMemo(() => buildGraph(models, selectedId, size.w), [models, selectedId, size.w]);
 
   const legend = [
     { color: COLORS.inheritance, label: "Extends", dashed: true },

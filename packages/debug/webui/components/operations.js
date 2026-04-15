@@ -1,10 +1,7 @@
 import { h } from "https://esm.sh/preact@10.25.4";
-import { useState, useMemo, useEffect, useRef } from "https://esm.sh/preact@10.25.4/hooks";
+import { useState, useMemo } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 import { SchemaForm } from "./schema-form.js";
-import hljs from "https://esm.sh/highlight.js@11.11.1/lib/core";
-import javascript from "https://esm.sh/highlight.js@11.11.1/lib/languages/javascript";
-hljs.registerLanguage("javascript", javascript);
 
 const html = htm.bind(h);
 
@@ -114,15 +111,76 @@ export function OperationsPanel({ data }) {
   `;
 }
 
-function CodeBlock({ code }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (ref.current) {
-      ref.current.textContent = code;
-      hljs.highlightElement(ref.current);
+/**
+ * Lightweight JS syntax highlighter — no external dependencies.
+ * Tokenizes into comments, strings, keywords, numbers, and punctuation.
+ */
+function highlightJS(code) {
+  const keywords = new Set([
+    "async","await","break","case","catch","class","const","continue","debugger","default",
+    "delete","do","else","export","extends","finally","for","function","if","import","in",
+    "instanceof","let","new","of","return","static","super","switch","this","throw","try",
+    "typeof","var","void","while","with","yield","from","true","false","null","undefined"
+  ]);
+  const tokens = [];
+  let i = 0;
+  while (i < code.length) {
+    // Line comments
+    if (code[i] === "/" && code[i + 1] === "/") {
+      const end = code.indexOf("\n", i);
+      tokens.push({ type: "comment", value: code.slice(i, end === -1 ? undefined : end) });
+      i = end === -1 ? code.length : end;
+      continue;
     }
-  }, [code]);
-  return html`<pre class="code-block"><code ref=${ref} class="language-javascript">${code}</code></pre>`;
+    // Block comments
+    if (code[i] === "/" && code[i + 1] === "*") {
+      const end = code.indexOf("*/", i + 2);
+      tokens.push({ type: "comment", value: code.slice(i, end === -1 ? undefined : end + 2) });
+      i = end === -1 ? code.length : end + 2;
+      continue;
+    }
+    // Strings
+    if (code[i] === '"' || code[i] === "'" || code[i] === "`") {
+      const q = code[i];
+      let j = i + 1;
+      while (j < code.length && code[j] !== q) { if (code[j] === "\\") j++; j++; }
+      tokens.push({ type: "string", value: code.slice(i, j + 1) });
+      i = j + 1;
+      continue;
+    }
+    // Numbers
+    if (/[0-9]/.test(code[i]) && (i === 0 || /[^a-zA-Z_$]/.test(code[i - 1]))) {
+      let j = i;
+      while (j < code.length && /[0-9a-fA-FxXoObBeE._n]/.test(code[j])) j++;
+      tokens.push({ type: "number", value: code.slice(i, j) });
+      i = j;
+      continue;
+    }
+    // Words (identifiers / keywords)
+    if (/[a-zA-Z_$]/.test(code[i])) {
+      let j = i;
+      while (j < code.length && /[a-zA-Z0-9_$]/.test(code[j])) j++;
+      const word = code.slice(i, j);
+      tokens.push({ type: keywords.has(word) ? "keyword" : "ident", value: word });
+      i = j;
+      continue;
+    }
+    // Punctuation / operators
+    tokens.push({ type: "punct", value: code[i] });
+    i++;
+  }
+  return tokens;
+}
+
+function CodeBlock({ code }) {
+  const tokens = useMemo(() => highlightJS(code), [code]);
+  return html`<pre class="code-block"><code>${tokens.map((t, i) =>
+    t.type === "comment" ? html`<span key=${i} class="hl-comment">${t.value}</span>`
+    : t.type === "string" ? html`<span key=${i} class="hl-string">${t.value}</span>`
+    : t.type === "keyword" ? html`<span key=${i} class="hl-keyword">${t.value}</span>`
+    : t.type === "number" ? html`<span key=${i} class="hl-number">${t.value}</span>`
+    : t.value
+  )}</code></pre>`;
 }
 
 function OperationDetail({ op, activeTab, setActiveTab, formValues, setFormValues, exampleOutput }) {

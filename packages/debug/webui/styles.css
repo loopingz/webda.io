@@ -403,6 +403,21 @@ tr:hover td {
   background: var(--text-muted);
 }
 
+/* Code block */
+.code-block {
+  margin: 0;
+  border-radius: 4px;
+  overflow: auto;
+  max-height: 500px;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  tab-size: 2;
+}
+
+.code-block code {
+  font-family: "SF Mono", "Fira Code", "JetBrains Mono", Consolas, monospace;
+}
+
 /* Schema Form */
 .sf-root {
   font-size: 0.875rem;

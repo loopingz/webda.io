@@ -1,7 +1,10 @@
 import { h } from "https://esm.sh/preact@10.25.4";
-import { useState, useMemo } from "https://esm.sh/preact@10.25.4/hooks";
+import { useState, useMemo, useEffect, useRef } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 import { SchemaForm } from "./schema-form.js";
+import hljs from "https://esm.sh/highlight.js@11.11.1/lib/core";
+import javascript from "https://esm.sh/highlight.js@11.11.1/lib/languages/javascript";
+hljs.registerLanguage("javascript", javascript);
 
 const html = htm.bind(h);
 
@@ -109,6 +112,17 @@ export function OperationsPanel({ data }) {
       </div>
     </div>
   `;
+}
+
+function CodeBlock({ code }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.textContent = code;
+      hljs.highlightElement(ref.current);
+    }
+  }, [code]);
+  return html`<pre class="code-block"><code ref=${ref} class="language-javascript">${code}</code></pre>`;
 }
 
 function OperationDetail({ op, activeTab, setActiveTab, formValues, setFormValues, exampleOutput }) {
@@ -235,11 +249,7 @@ function OperationDetail({ op, activeTab, setActiveTab, formValues, setFormValue
           <div style="margin-bottom:0.5rem;font-size:0.8125rem;color:var(--text-muted)">
             <span class="mono">${op.implementor.name}.${op.implementor.method}()</span>
           </div>
-          <pre class="mono" style="
-            background:var(--bg-secondary);padding:1rem;border-radius:4px;
-            overflow:auto;max-height:500px;font-size:0.8125rem;line-height:1.5;
-            tab-size:2;
-          ">${op.implementor.code}</pre>
+          <${CodeBlock} code=${op.implementor.code} />
         </div>
       `}
     </div>

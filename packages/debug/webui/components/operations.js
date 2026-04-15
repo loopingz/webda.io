@@ -130,7 +130,7 @@ function OperationDetail({ op, activeTab, setActiveTab, formValues, setFormValue
         ${op.summary && html`<div style="color:var(--text-muted);font-size:0.875rem">${op.summary}</div>`}
       </div>
 
-      <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;flex-wrap:wrap">
+      <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;flex-wrap:wrap;align-items:center">
         <div style="background:var(--bg-tertiary);padding:0.375rem 0.625rem;border-radius:4px;font-size:0.8125rem">
           <span style="color:var(--text-muted)">Input: </span>
           <span class="mono">${hasInput ? op.input : "void"}</span>
@@ -143,7 +143,7 @@ function OperationDetail({ op, activeTab, setActiveTab, formValues, setFormValue
           <span key=${t} class="badge badge-purple">${t}</span>
         `)}
         ${op.rest && typeof op.rest === "object" && op.rest.method && html`
-          <span class="badge method-${op.rest.method.toLowerCase()}">${op.rest.method.toUpperCase()}</span>
+          <span class="badge method-${op.rest.method.toLowerCase()}" style="padding:0.125rem 0.5rem;line-height:1.2">${op.rest.method.toUpperCase()}</span>
           <span class="mono" style="font-size:0.8125rem;color:var(--text-muted)">${op.rest.url || op.rest.path || "/"}</span>
         `}
       </div>

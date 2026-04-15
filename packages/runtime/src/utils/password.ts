@@ -1,4 +1,4 @@
-import { Core, CryptoService, DeepPartial, Service, ServiceParameters, StringEncrypter } from "@webda/core";
+import { CryptoService, Service, ServiceParameters, StringEncrypter, useApplication } from "@webda/core";
 import { WorkerInputType } from "@webda/workout";
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
 /**
@@ -21,12 +21,12 @@ function getKey(password: string): Buffer {
  */
 async function requestPassword(): Promise<string> {
   /* c8 ignore next 5 */
-  if (!Core.get().getWorkerOutput().interactive) {
+  if (!useApplication().getWorkerOutput().interactive) {
     // Fallback to password-prompt as we have a tty
     const passwordLib = await import("password-prompt");
     return passwordLib.default("Configuration Encryption Password: ", { method: "hide" });
   }
-  return await Core.get()
+  return await useApplication()
     .getWorkerOutput()
     .requestInput("Configuration Encryption Password", WorkerInputType.PASSWORD, [], true);
 }
@@ -67,8 +67,8 @@ export class PasswordEncryptionService extends Service {
   /**
    * @override
    */
-  loadParameters(params: DeepPartial<ServiceParameters>): ServiceParameters {
-    return new ServiceParameters(params);
+  loadParameters(params: any): ServiceParameters {
+    return new ServiceParameters().load(params);
   }
 
   /**

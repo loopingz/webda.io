@@ -6,6 +6,8 @@ import {
   Route,
   Service,
   ServiceParameters,
+  useCore,
+  useCoreEvents,
   WebContext,
   WebdaError
 } from "@webda/core";
@@ -68,8 +70,9 @@ export class ProxyParameters extends ServiceParameters {
    * Normalize backend URL and set defaults
    * @param params - raw configuration values
    */
-  constructor(params: any) {
-    super(params);
+  constructor(params?: any) {
+    super();
+    this.load(params);
     if (this.backend?.endsWith("/")) {
       this.backend = this.backend.substring(0, this.backend.length - 1);
     }
@@ -130,7 +133,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    */
   resolve() {
     // Register the proxy on the 'upgrade' event of http socket
-    this.getWebda().on("Webda.Init.Http", (evt: any) => {
+    useCoreEvents("Webda.Init.Http" as any, (evt: any) => {
       evt.on("upgrade", (req, socket, head) => {
         this.proxyWS(req, socket, head);
       });
@@ -194,9 +197,9 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @param response - incoming HTTP response from the backend
    * @param context - WebContext to write the proxied response to
    */
-  forwardResponse(response: http.IncomingMessage, context: WebContext) {
+  async forwardResponse(response: http.IncomingMessage, context: WebContext) {
     context.writeHead(response.statusCode, this.filterHeaders(response.headers));
-    response.pipe(context.getStream());
+    response.pipe(await context.getOutputStream());
   }
 
   /**
@@ -261,7 +264,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
       socket.destroy();
     }
     // Proxy WS Only works with a WebdaServer from @webda/shell for now
-    const webdaContext = await (<any>this.getWebda()).getContextFromRequest(req);
+    const webdaContext = await (<any>useCore()).getContextFromRequest(req);
     await webdaContext.init();
     return this.rawProxyWS(
       webdaContext,

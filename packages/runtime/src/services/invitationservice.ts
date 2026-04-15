@@ -210,22 +210,23 @@ export class InvitationService<
   authenticationService: Authentication;
 
   // Optional service
-  @Inject("params:notificationService", true)
+  // @ts-ignore - Optional inject
+  @Inject("params:notificationService", undefined, true)
   notificationService: NotificationService;
 
   @Inject("params:invitationStore")
-  invitationStore: Store;
+  invitationStore: any;
   /**
    * CoreModel to manage invitation on
    */
-  model: Repository<User>;
+  model: any;
 
   /**
    * Load and validate invitation service parameters
    * @param params - raw partial configuration
    * @returns initialized InvitationParameters instance
    */
-  loadParameters(params: ServicePartialParameters<T>) {
+  loadParameters(params: any) {
     return <T>new InvitationParameters().load(params);
   }
 
@@ -401,7 +402,7 @@ export class InvitationService<
     }
     const user = await ctx.getCurrentUser<User>();
     let metadata = undefined;
-    user.getIdents().forEach(i => {
+    ((user as any).getIdents?.() || []).forEach((i: any) => {
       if (model[this.parameters.pendingAttribute][`ident_${i.uuid}`]) {
         metadata = model[this.parameters.pendingAttribute][`ident_${i.uuid}`];
         delete model[this.parameters.pendingAttribute][`ident_${i.uuid}`];
@@ -463,7 +464,7 @@ export class InvitationService<
         // Remove user
         promises.push(
           (async () => {
-            const id = await this.authenticationService.getIdentModel().get(ident);
+            const id: any = await this.authenticationService.getIdentModel().get(ident);
             if (id && id.getUser()) {
               delete model[this.parameters.attribute][id.getUser()];
               await this.removeInvitationFromUser(id.getUser().toString(), model.getUUID());
@@ -522,7 +523,7 @@ export class InvitationService<
    * @returns promise resolving when the request is handled
    */
   async invite(ctx: WebContext) {
-    const model = <GenericModel>await this.model.ref(ctx.getParameters().uuid).get();
+    const model = <any>await this.model.ref(ctx.getParameters().uuid).get();
     if (ctx.getHttpContext().getMethod() === "PUT") {
       return this.answerInvitation(ctx, model);
     }
@@ -546,7 +547,7 @@ export class InvitationService<
     // For each ident
     const identsStore = this.authenticationService.getIdentModel();
     // Load all idents with orignal
-    const invitations: { invitation: string; ident: Ident }[] = await Promise.all(
+    const invitations: { invitation: string; ident: any }[] = await Promise.all(
       (body.idents || []).map(async i => ({
         ident: await identsStore.get(i),
         invitation: i
@@ -554,7 +555,7 @@ export class InvitationService<
     );
 
     const invitedIdents: string[] = [];
-    const invitedUsers: User[] = [];
+    const invitedUsers: any[] = [];
     const promises = [];
     const metadata = {};
     this.parameters.mapFields.forEach(f => (metadata[f] = model[f]));
@@ -602,7 +603,7 @@ export class InvitationService<
       const ident = invitation.invitation.split("_");
       await this.sendNotification(
         await Ident.create(
-          {
+          <any>{
             _type: ident.pop(),
             uuid: ident.join("_")
           },
@@ -657,14 +658,14 @@ export class InvitationService<
    * @param metadata - mapped fields copied from the model
    * @param notification - notification payload to pass to the notification service
    */
-  async addInvitationToUser(model: CoreModel, user: User, inviter: User, metadata: any, notification: any = {}) {
+  async addInvitationToUser(model: CoreModel, user: any, inviter: any, metadata: any, notification: any = {}) {
     if ((user[this.parameters.mapAttribute] || []).filter(p => p.model === model.getUUID()).length) {
       return;
     }
-    await this.authenticationService
+    await (this.authenticationService
       .getUserModel()
-      .ref(user.getUUID())
-      .upsertItemToCollection(<any>this.parameters.mapAttribute, {
+      .ref(user.getUUID()) as any)
+      .upsertItemToCollection(this.parameters.mapAttribute, {
         model: model.getUUID(),
         metadata,
         inviter: inviter.toPublicEntry(),

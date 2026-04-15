@@ -1,4 +1,5 @@
 import { CoreModel, Inject, Store, StoreFindResult, StoreParameters } from "@webda/core";
+import type { ModelClass, Repository } from "@webda/core";
 import * as WebdaQL from "@webda/ql";
 
 /**
@@ -19,9 +20,8 @@ export class MigrationStoreParameters extends StoreParameters {
  * @WebdaModda
  */
 export class MigrationStore<
-  T extends CoreModel,
-  K extends MigrationStoreParameters = MigrationStoreParameters
-> extends Store<T, K> {
+  T extends MigrationStoreParameters = MigrationStoreParameters
+> extends Store<T> {
   @Inject("params:from")
   fromStore: Store<T>;
   @Inject("params:to")
@@ -30,8 +30,15 @@ export class MigrationStore<
   /**
    * @override
    */
-  find(query: WebdaQL.Query): Promise<StoreFindResult<T>> {
-    return this.fromStore.find(query);
+  getRepository<M extends ModelClass>(model: M): Repository<M> {
+    return this.fromStore.getRepository(model);
+  }
+
+  /**
+   * @override
+   */
+  find(query: WebdaQL.Query): Promise<StoreFindResult<CoreModel>> {
+    return (this.fromStore as any).find(query);
   }
 
   /**
@@ -40,7 +47,7 @@ export class MigrationStore<
    * @returns true if the object exists in fromStore
    */
   _exists(uid: string): Promise<boolean> {
-    return this.fromStore._exists(uid);
+    return (this.fromStore as any)._exists(uid);
   }
 
   /**
@@ -66,7 +73,7 @@ export class MigrationStore<
    * @param raiseIfNotFound - throw NotFound if the object does not exist
    * @returns the model instance from fromStore
    */
-  protected _get(uid: string, raiseIfNotFound?: boolean | undefined): Promise<T> {
+  protected _get(uid: string, raiseIfNotFound?: boolean | undefined): Promise<CoreModel> {
     return this.fromStore["_get"](uid, raiseIfNotFound);
   }
 
@@ -75,8 +82,8 @@ export class MigrationStore<
    * @param list - optional list of UUIDs to retrieve (all if omitted)
    * @returns array of model instances from fromStore
    */
-  getAll(list?: string[] | undefined): Promise<T[]> {
-    return this.fromStore.getAll(list);
+  getAll(list?: string[] | undefined): Promise<CoreModel[]> {
+    return (this.fromStore as any).getAll(list);
   }
 
   /**
@@ -146,7 +153,7 @@ export class MigrationStore<
    * @param object - model instance to persist
    * @returns the result from fromStore
    */
-  protected async _save(object: T): Promise<any> {
+  protected async _save(object: CoreModel): Promise<any> {
     return (
       await Promise.all([
         this.fromStore["_save"](object),
@@ -256,7 +263,7 @@ export class MigrationStore<
    * @returns initialized MigrationStoreParameters
    */
   loadParameters(params: any): StoreParameters {
-    return new MigrationStoreParameters(params, this);
+    return new MigrationStoreParameters().load(params);
   }
 
   /**
@@ -264,8 +271,8 @@ export class MigrationStore<
    */
   async migrate() {
     this.log("INFO", "Ensuring migrate the store");
-    await this.migration("migration", async item => {
-      if (!(await this.toStore.exists(item.getUuid()))) {
+    await (this as any).migration("migration", async (item: CoreModel) => {
+      if (!(await (this.toStore as any).exists(item.getUUID()))) {
         return async () => await this.toStore["_save"](item);
       }
     });

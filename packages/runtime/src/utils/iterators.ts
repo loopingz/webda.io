@@ -91,7 +91,7 @@ export class EventIterator {
         };
         // We might have multiple listeners on the same event
         // We could optimize by keeping a map but not sure it is better
-        this.eventEmitter.on(event, this.listeners[event]);
+        (this.eventEmitter as any).on(event, this.listeners[event]);
       }
       while (true) {
         if (this.queue.length === 0) {
@@ -110,7 +110,7 @@ export class EventIterator {
     } finally {
       // Remove all listeners
       Object.keys(this.listeners).forEach(event => {
-        this.eventEmitter.removeListener(event, this.listeners[event]);
+        (this.eventEmitter as any).removeListener(event, this.listeners[event]);
       });
       this.listeners = {};
       // Avoid creating a map to get one listener that will ultimately be the same as having multiple listeners

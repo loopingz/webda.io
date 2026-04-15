@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "type": "module",
   "scripts": {
-    "build": "webda build",
+    "build": "webdac build",
     "pretest": "npm run build",
     "test": "vitest run",
     "new-model": "webda init webda:model",

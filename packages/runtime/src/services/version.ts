@@ -1,4 +1,4 @@
-import { OperationContext, Service, ServiceParameters } from "@webda/core";
+import { OperationContext, Service, ServiceParameters, useApplication } from "@webda/core";
 
 /**
  * Version parameters
@@ -49,9 +49,9 @@ export class VersionService<T extends VersionServiceParameters = VersionServiceP
    * @returns initialized VersionServiceParameters
    */
   loadParameters(params: any) {
-    params.version = params.version || this.getWebda().getApplication().getPackageDescription().version;
+    params.version = params.version || useApplication().getPackageDescription().version;
     params.url = params.url || "/version";
-    return new VersionServiceParameters(params);
+    return new VersionServiceParameters().load(params);
   }
 
   /**

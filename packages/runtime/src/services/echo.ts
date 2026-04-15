@@ -42,7 +42,7 @@ export class EchoService extends Service<EchoServiceParameters> {
    * @ignore
    */
   loadParameters(params: any): ServiceParameters {
-    return new EchoServiceParameters(params);
+    return new EchoServiceParameters().load(params);
   }
 
   /** @ignore */

@@ -116,6 +116,7 @@ function ServiceDetail({ service }) {
 
   const tabs = ["config"];
   if (schema) tabs.push("schema-form", "schema-json");
+  if (service.metrics?.length) tabs.push("metrics");
 
   const currentTab = tabs.includes(activeTab) ? activeTab : tabs[0];
 
@@ -145,7 +146,7 @@ function ServiceDetail({ service }) {
       <!-- Tabs -->
       <div style="display:flex;gap:0;margin-bottom:0.75rem;border-bottom:1px solid var(--border)">
         ${tabs.map(tab => {
-          const label = tab === "config" ? "Configuration" : tab === "schema-form" ? "Schema Form" : "Schema JSON";
+          const label = tab === "config" ? "Configuration" : tab === "schema-form" ? "Schema Form" : tab === "schema-json" ? "Schema JSON" : tab === "metrics" ? "Metrics" : tab;
           return html`
             <button key=${tab} onClick=${() => { setActiveTab(tab); if (tab === "schema-form") setFormValues({...config}); }} style="
               padding:6px 16px;
@@ -213,6 +214,33 @@ function ServiceDetail({ service }) {
             background:var(--bg-secondary);padding:1rem;border-radius:4px;
             overflow:auto;max-height:500px;font-size:0.8125rem;line-height:1.5;
           ">${JSON.stringify(schema, null, 2)}</pre>
+        </div>
+      `}
+
+      ${currentTab === "metrics" && service.metrics && html`
+        <div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Help</th>
+                  <th style="text-align:right">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${service.metrics.map(m => html`
+                  <tr key=${m.name}>
+                    <td class="mono" style="font-weight:500">${m.name}</td>
+                    <td><span class="badge ${m.type === "counter" ? "badge-blue" : m.type === "gauge" ? "badge-green" : m.type === "histogram" ? "badge-purple" : "badge-muted"}">${m.type}</span></td>
+                    <td style="color:var(--text-muted);font-size:0.8125rem">${m.help || "-"}</td>
+                    <td class="mono" style="text-align:right;font-weight:500">${m.values?.length ? m.values.map(v => v.value).reduce((a, b) => a + b, 0).toLocaleString() : "0"}</td>
+                  </tr>
+                `)}
+              </tbody>
+            </table>
+          </div>
         </div>
       `}
     </div>

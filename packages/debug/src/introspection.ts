@@ -126,13 +126,39 @@ export function getServices(): ServiceInfo[] {
     .filter(([, svc]) => svc != null)
     .map(([name, svc]) => {
       const type = (svc.parameters as any)?.type || "unknown";
+      // Collect metric definitions and current values from the service's metrics object
+      const metricsInfo: any[] = [];
+      const metricsObj = (svc as any).metrics;
+      if (metricsObj && typeof metricsObj === "object") {
+        for (const [key, metric] of Object.entries(metricsObj)) {
+          if (!metric || typeof metric !== "object") continue;
+          const m = metric as any;
+          try {
+            const values = m.hashMap ? Object.values(m.hashMap).map((v: any) => ({
+              value: v.value,
+              labels: v.labels
+            })) : [];
+            metricsInfo.push({
+              name: key,
+              fullName: m.name,
+              help: m.help,
+              type: m.constructor?.name?.toLowerCase() || "unknown",
+              labelNames: m.labelNames || [],
+              values
+            });
+          } catch {
+            // Skip unreadable metrics
+          }
+        }
+      }
       return {
         name,
         type,
         state: svc.getState(),
         capabilities: svc.getCapabilities(),
         configuration: config[name] || {},
-        schema: app.getSchema?.(app.completeNamespace(type)) || undefined
+        schema: app.getSchema?.(app.completeNamespace(type)) || undefined,
+        metrics: metricsInfo.length > 0 ? metricsInfo : undefined
       };
     });
 }

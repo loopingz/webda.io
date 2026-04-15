@@ -1,6 +1,7 @@
 import { h } from "https://esm.sh/preact@10.25.4";
 import { useState } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
+import { SchemaForm } from "./schema-form.js";
 
 const html = htm.bind(h);
 
@@ -61,9 +62,17 @@ export function ServicesPanel({ data }) {
 }
 
 function ServiceDetail({ service }) {
-  // Filter out internal/noise keys from configuration
+  const [activeTab, setActiveTab] = useState("config");
+  const [formValues, setFormValues] = useState({});
+
   const config = service.configuration || {};
   const configKeys = Object.keys(config).filter((k) => !k.startsWith("_"));
+  const schema = service.schema;
+
+  const tabs = ["config"];
+  if (schema) tabs.push("schema-form", "schema-json");
+
+  const currentTab = tabs.includes(activeTab) ? activeTab : tabs[0];
 
   return html`
     <div>
@@ -81,50 +90,84 @@ function ServiceDetail({ service }) {
       </div>
 
       ${Object.keys(service.capabilities || {}).length > 0 && html`
-        <div class="detail-section">
-          <h3>Capabilities</h3>
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            ${Object.keys(service.capabilities).map(
-              (c) => html`<span key=${c} class="badge badge-purple">${c}</span>`
-            )}
-          </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+          ${Object.keys(service.capabilities).map(
+            (c) => html`<span key=${c} class="badge badge-purple">${c}</span>`
+          )}
         </div>
       `}
 
-      ${configKeys.length > 0 && html`
-        <div class="detail-section">
-          <h3>Configuration</h3>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th style="width: 200px;">Parameter</th>
-                  <th>Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${configKeys.map(
-                  (key) => html`
-                    <tr key=${key}>
-                      <td class="mono" style="font-weight: 500;">${key}</td>
-                      <td class="mono" style="font-size: 0.8125rem; word-break: break-all;">
-                        ${typeof config[key] === "object"
-                          ? html`<pre style="margin: 0; white-space: pre-wrap; font-size: 0.8125rem;">${JSON.stringify(config[key], null, 2)}</pre>`
-                          : String(config[key])}
-                      </td>
-                    </tr>
-                  `
-                )}
-              </tbody>
-            </table>
-          </div>
+      <!-- Tabs -->
+      <div style="display:flex;gap:0;margin-bottom:0.75rem;border-bottom:1px solid var(--border)">
+        ${tabs.map(tab => {
+          const label = tab === "config" ? "Configuration" : tab === "schema-form" ? "Schema Form" : "Schema JSON";
+          return html`
+            <button key=${tab} onClick=${() => { setActiveTab(tab); if (tab === "schema-form") setFormValues({...config}); }} style="
+              padding:6px 16px;
+              background:${currentTab === tab ? "var(--bg-tertiary)" : "transparent"};
+              color:${currentTab === tab ? "var(--accent)" : "var(--text-muted)"};
+              border:none;
+              border-bottom:2px solid ${currentTab === tab ? "var(--accent)" : "transparent"};
+              cursor:pointer;font-size:0.875rem;
+              font-weight:${currentTab === tab ? "600" : "400"};
+            ">${label}</button>
+          `;
+        })}
+      </div>
+
+      <!-- Tab Content -->
+      ${currentTab === "config" && html`
+        <div>
+          ${configKeys.length > 0 ? html`
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 200px;">Parameter</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${configKeys.map(
+                    (key) => html`
+                      <tr key=${key}>
+                        <td class="mono" style="font-weight: 500;">${key}</td>
+                        <td class="mono" style="font-size: 0.8125rem; word-break: break-all;">
+                          ${typeof config[key] === "object"
+                            ? html`<pre style="margin: 0; white-space: pre-wrap; font-size: 0.8125rem;">${JSON.stringify(config[key], null, 2)}</pre>`
+                            : String(config[key])}
+                        </td>
+                      </tr>
+                    `
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ` : html`<div style="color: var(--text-muted); padding: 0.5rem;">No configuration parameters</div>`}
         </div>
       `}
 
-      ${configKeys.length === 0 && html`
-        <div class="detail-section">
-          <h3>Configuration</h3>
-          <div style="color: var(--text-muted); padding: 0.5rem;">No configuration parameters</div>
+      ${currentTab === "schema-form" && schema && html`
+        <div>
+          <${SchemaForm} schema=${schema} values=${formValues} onChange=${setFormValues} />
+          ${Object.keys(formValues).length > 0 && html`
+            <div style="margin-top:0.75rem">
+              <strong style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase">Configuration Preview</strong>
+              <pre class="mono" style="
+                background:var(--bg-secondary);padding:0.75rem;border-radius:4px;
+                margin-top:0.25rem;font-size:0.8125rem;overflow:auto;max-height:300px;
+              ">${JSON.stringify(formValues, null, 2)}</pre>
+            </div>
+          `}
+        </div>
+      `}
+
+      ${currentTab === "schema-json" && schema && html`
+        <div>
+          <pre class="mono" style="
+            background:var(--bg-secondary);padding:1rem;border-radius:4px;
+            overflow:auto;max-height:500px;font-size:0.8125rem;line-height:1.5;
+          ">${JSON.stringify(schema, null, 2)}</pre>
         </div>
       `}
     </div>

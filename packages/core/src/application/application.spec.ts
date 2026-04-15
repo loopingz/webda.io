@@ -89,6 +89,17 @@ class ApplicationTest extends WebdaInternalTest {
       }
     };
     assert.strictEqual(app.getSchema("fake"), 666);
+    // "?" suffix should return schema without required
+    // @ts-ignore
+    app.baseConfiguration.cachedModules.schemas["typed"] = { type: "object", properties: { a: { type: "string" } }, required: ["a"] };
+    const optional = app.getSchema("typed?");
+    assert.ok(optional);
+    assert.strictEqual(optional.required, undefined);
+    assert.deepStrictEqual(optional.properties, { a: { type: "string" } });
+    // Original should still have required
+    assert.deepStrictEqual(app.getSchema("typed").required, ["a"]);
+    // "?" on unknown schema returns undefined
+    assert.strictEqual(app.getSchema("nonexistent?"), undefined);
   }
 
   @test

@@ -143,14 +143,18 @@ export function getServices(): ServiceInfo[] {
 export function getOperations(): OperationInfo[] {
   const ops = listOperations();
   const app = useApplication();
+  const schemas = app.getSchemas?.() || {};
   return Object.entries(ops).map(([opId, def]) => {
     const entry: any = { ...def, id: opId };
     // Resolve input/output schema refs to actual JSON Schema objects
-    if (entry.input && entry.input !== "void") {
-      entry.inputSchema = app.getSchema?.(entry.input) || undefined;
-    }
-    if (entry.output && entry.output !== "void") {
-      entry.outputSchema = app.getSchema?.(entry.output) || undefined;
+    // Strip trailing "?" (optional marker used by DomainService for create/update inputs)
+    for (const key of ["input", "output"] as const) {
+      if (entry[key] && entry[key] !== "void") {
+        const schemaName = entry[key].endsWith("?") ? entry[key].slice(0, -1) : entry[key];
+        // Try app.getSchema() first (handles cachedModules.schemas + model Schemas.Input),
+        // then fall back to the runtime schemas registry (DomainService.schemas, dynamic pk/queryResult schemas)
+        entry[`${key}Schema`] = app.getSchema?.(schemaName) || schemas[schemaName] || undefined;
+      }
     }
     return entry;
   });

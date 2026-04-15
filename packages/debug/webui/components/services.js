@@ -14,11 +14,13 @@ function stateBadge(state) {
   return html`<span class="badge badge-muted">${state}</span>`;
 }
 
-export function ServicesPanel({ data }) {
+export function ServicesPanel({ data, config }) {
   const [selected, setSelected] = useState(null);
   const [filter, setFilter] = useState("");
   const services = data || [];
   const detail = selected ? services.find((s) => s.name === selected) || null : null;
+  const globalParams = config?.parameters || {};
+  const paramKeys = Object.keys(globalParams);
 
   const filtered = services.filter(
     (s) =>
@@ -28,27 +30,41 @@ export function ServicesPanel({ data }) {
 
   return html`
     <div class="split-panel">
-      <div class="split-left">
+      <div class="split-left" style="display:flex;flex-direction:column">
         <input
           class="search-input"
           placeholder="Filter services..."
           value=${filter}
           onInput=${(e) => setFilter(e.target.value)}
         />
-        ${filtered.map(
-          (s) => html`
-            <div
-              key=${s.name}
-              class="list-item ${selected === s.name ? "active" : ""}"
-              onClick=${() => setSelected(s.name)}
-              style="display: flex; justify-content: space-between; align-items: center;"
-            >
-              <span>${s.name}</span>
-              ${stateBadge(s.state)}
-            </div>
-          `
-        )}
-        ${filtered.length === 0 && html`<div style="color: var(--text-muted); padding: 0.5rem;">No services found</div>`}
+        <div style="flex:1;overflow-y:auto">
+          ${filtered.map(
+            (s) => html`
+              <div
+                key=${s.name}
+                class="list-item ${selected === s.name ? "active" : ""}"
+                onClick=${() => setSelected(s.name)}
+                style="display: flex; justify-content: space-between; align-items: center;"
+              >
+                <span>${s.name}</span>
+                ${stateBadge(s.state)}
+              </div>
+            `
+          )}
+          ${filtered.length === 0 && html`<div style="color: var(--text-muted); padding: 0.5rem;">No services found</div>`}
+        </div>
+        ${paramKeys.length > 0 && html`
+          <div style="border-top:1px solid var(--border);padding-top:0.75rem;margin-top:0.75rem;flex-shrink:0">
+            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;font-weight:500">Global Parameters</div>
+            ${paramKeys.map(key => html`
+              <div key=${key} style="font-size:0.75rem;margin-bottom:0.375rem;padding:0 0.25rem">
+                <span class="mono" style="color:var(--accent)">${key}</span>
+                <span style="color:var(--text-muted)"> = </span>
+                <span class="mono" style="color:var(--text);word-break:break-all">${typeof globalParams[key] === "object" ? JSON.stringify(globalParams[key]) : String(globalParams[key])}</span>
+              </div>
+            `)}
+          </div>
+        `}
       </div>
       <div class="split-right">
         ${detail ? html`<${ServiceDetail} service=${detail} />` : html`

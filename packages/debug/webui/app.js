@@ -5,7 +5,6 @@ import htm from "htm";
 import { ModelsPanel } from "./components/models.js";
 import { ServicesPanel } from "./components/services.js";
 import { OperationsPanel } from "./components/operations.js";
-import { ConfigPanel } from "./components/config.js";
 import { RequestsPanel } from "./components/requests.js";
 import { LogsPanel } from "./components/logs.js";
 
@@ -16,7 +15,6 @@ const TABS = [
   { id: "models", label: "Models", color: "#81bf6b" },
   { id: "services", label: "Services", color: "#6b8fd4" },
   { id: "operations", label: "Operations", color: "#f4f4f4" },
-  { id: "config", label: "Config", color: "#81bf6b" },
   { id: "requests", label: "Requests", color: "#6b8fd4" }
 ];
 
@@ -131,11 +129,9 @@ function App() {
       case "models":
         return html`<${ModelsPanel} data=${cache.models} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
       case "services":
-        return html`<${ServicesPanel} data=${cache.services} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
+        return html`<${ServicesPanel} data=${cache.services} config=${cache.config} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
       case "operations":
         return html`<${OperationsPanel} data=${cache.operations} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
-      case "config":
-        return html`<${ConfigPanel} data=${cache.config} fetchApi=${fetchApi} dataVersion=${dataVersion} />`;
       case "requests":
         return html`<${RequestsPanel} data=${cache.requests} fetchApi=${fetchApi} dataVersion=${dataVersion} wsEvents=${wsEvents} />`;
       case "logs":

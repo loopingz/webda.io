@@ -1,8 +1,11 @@
 {
   "name": "@webda/debug",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0",
   "description": "Development debug server for Webda applications",
-  "keywords": ["webda", "debug"],
+  "keywords": [
+    "webda",
+    "debug"
+  ],
   "author": "Remi Cattiau <remi@cattiau.com>",
   "repository": "git://github.com/loopingz/webda.io.git",
   "main": "lib/index.js",
@@ -41,10 +44,17 @@
     "vite": "^6.0.0",
     "vitest": "^4.1.2"
   },
-  "files": ["lib", "webui"],
+  "files": [
+    "lib",
+    "webui"
+  ],
   "homepage": "https://webda.io",
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "license": "LGPL-3.0-only"
 }

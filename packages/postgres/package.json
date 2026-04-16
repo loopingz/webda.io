@@ -1,6 +1,6 @@
 {
   "name": "@webda/postgres",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0",
   "description": "Implements Postgres on webda",
   "keywords": [
     "postgres",

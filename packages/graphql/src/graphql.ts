@@ -9,6 +9,7 @@ import {
   WebdaError,
   useApplication,
   useCore,
+  useCoreEvents,
   useModelMetadata
 } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
@@ -530,7 +531,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     super.resolve();
     // Set-up ws server
     this.wss = new WebSocketServer({ noServer: true });
-    (useCore() as any).on("Webda.Init.Http", (http: any) => {
+    useCoreEvents("Webda.Init.Http" as any, (http: any) => {
       http.on("upgrade", (req, socket, head) => {
         if (req.url === this.parameters.url) {
           (async () => {

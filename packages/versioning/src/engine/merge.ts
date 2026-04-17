@@ -1,5 +1,8 @@
 import type { VersioningConfig } from "../config.js";
 import type { Conflict, MergeResult, Path } from "../types.js";
+import { chooseStrategy } from "../strings/strategy.js";
+import { lineDiff } from "../strings/line-diff.js";
+import { lineMerge3 } from "../strings/line-merge.js";
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === "object" && !Array.isArray(v);
@@ -54,6 +57,31 @@ function mergeAt(
   if (!oursChanged && theirsChanged) return theirs;
   // Both changed.
   if (deepEqual(ours, theirs)) return ours;
+
+  // String-on-string with both sides changed differently: line strategy may apply.
+  // Probe `base` for strategy selection so the decision is symmetric — swapping
+  // ours/theirs must produce the same strategy. `lineMerge3` uses ours at
+  // conflict sites, which is a separate "default resolution" policy.
+  if (typeof base === "string" && typeof ours === "string" && typeof theirs === "string") {
+    const strategy = chooseStrategy(path, base, cfg);
+    if (strategy === "line") {
+      const lm = lineMerge3(base, ours, theirs);
+      if (lm.clean) return lm.merged;
+      conflicts.push({
+        path,
+        kind: "line",
+        base,
+        ours,
+        theirs,
+        hunks: {
+          ours: lineDiff(base, ours),
+          theirs: lineDiff(base, theirs)
+        }
+      });
+      return lm.merged;
+    }
+    // "replace" strategy: fall through to the generic scalar-conflict path below.
+  }
 
   if (Array.isArray(base) && Array.isArray(ours) && Array.isArray(theirs)) {
     const idKey = arrayIdFor(path, cfg);

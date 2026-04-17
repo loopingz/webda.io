@@ -155,3 +155,61 @@ describe("merge3 (arrays)", () => {
     expect(r.merged).toEqual(ours);
   });
 });
+
+describe("merge3 (line-strategy strings)", () => {
+  it("clean line merge when edits don't overlap", () => {
+    const base = { body: "line 1\nline 2\nline 3\n" };
+    const ours = { body: "line 1 OURS\nline 2\nline 3\n" };
+    const theirs = { body: "line 1\nline 2\nline 3 THEIRS\n" };
+    const r = merge3(base, ours, theirs);
+    expect(r.clean).toBe(true);
+    expect(r.merged.body).toBe("line 1 OURS\nline 2\nline 3 THEIRS\n");
+  });
+
+  it("line conflict with hunks populated", () => {
+    const base = { body: "a\nb\nc\n" };
+    const ours = { body: "a\nOURS\nc\n" };
+    const theirs = { body: "a\nTHEIRS\nc\n" };
+    const r = merge3(base, ours, theirs);
+    expect(r.clean).toBe(false);
+    const c = r.conflicts.find((c) => c.path === "/body");
+    expect(c).toBeDefined();
+    expect(c!.kind).toBe("line");
+    // Narrow: c has kind "line", so hunks is required.
+    if (c!.kind === "line") {
+      expect(c!.hunks).toBeDefined();
+      expect(c!.hunks.ours).toBeDefined();
+      expect(c!.hunks.theirs).toBeDefined();
+    }
+    // merged default = ours side at conflict
+    expect(r.merged.body).toBe(ours.body);
+  });
+
+  it("single-line strings still produce value conflicts (not line)", () => {
+    const r = merge3({ title: "base" }, { title: "ours" }, { title: "theirs" });
+    expect(r.clean).toBe(false);
+    expect(r.conflicts[0].kind).toBe("value");
+  });
+
+  it("short multiline strings under multilineThreshold use replace strategy", () => {
+    const cfg = { multilineThreshold: 100 };
+    const base = { body: "a\nb\n" };
+    const ours = { body: "x\nb\n" };
+    const theirs = { body: "a\ny\n" };
+    const r = merge3(base, ours, theirs, cfg);
+    // body is 4 chars < 100 → replace → value conflict, not line
+    expect(r.conflicts[0].kind).toBe("value");
+  });
+
+  it("strategy is symmetric: swapping ours/theirs gives the same strategy", () => {
+    // Regression test: probing `base` (not `theirs`) for strategy selection
+    // means the decision doesn't flip when callers swap ours/theirs.
+    const base = { body: "one\ntwo\nthree\n" };
+    const ours = { body: "one\nOURS\nthree\n" };
+    const theirs = { body: "one\nTHEIRS\nthree\n" };
+    const r1 = merge3(base, ours, theirs);
+    const r2 = merge3(base, theirs, ours);
+    expect(r1.conflicts[0].kind).toBe("line");
+    expect(r2.conflicts[0].kind).toBe("line");
+  });
+});

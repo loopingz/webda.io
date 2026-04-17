@@ -27,6 +27,10 @@ export { merge3 } from "./engine/merge.js";
 export { resolve } from "./conflicts/resolve.js";
 export { toGitMarkers, fromGitMarkers } from "./conflicts/markers.js";
 
+// History (commit-like metadata wrapper around Delta)
+export { wrap, unwrap } from "./history.js";
+export type { VersionedPatch, VersionedPatchMeta } from "./history.js";
+
 // Adapters (JSON + Schema — always available; CoreModelAdapter is
 // imported separately from "@webda/versioning/coremodel" because it has an
 // optional peer dep on @webda/core/@webda/models).

@@ -2,7 +2,9 @@ export type VersioningErrorCode =
   | "CIRCULAR"
   | "BAD_FORMAT"
   | "STRATEGY_MISMATCH"
-  | "UNRESOLVED_CONFLICT";
+  | "UNRESOLVED_CONFLICT"
+  | "INVALID_RESOLUTION"
+  | "RESOLUTION_TYPE_MISMATCH";
 
 export class VersioningError extends Error {
   public readonly code: VersioningErrorCode;

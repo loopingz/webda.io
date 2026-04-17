@@ -85,3 +85,73 @@ describe("merge3 (values/scalars)", () => {
     expect(Number.isNaN((r.merged as { v: number }).v)).toBe(true);
   });
 });
+
+describe("merge3 (arrays)", () => {
+  const cfg = { arrayId: { "/items": "id" } };
+
+  it("inserts from both sides when arrayId is configured", () => {
+    const base = { items: [{ id: "1", v: 1 }] };
+    const ours = { items: [{ id: "1", v: 1 }, { id: "2", v: 2 }] };
+    const theirs = { items: [{ id: "1", v: 1 }, { id: "3", v: 3 }] };
+    const r = merge3(base, ours, theirs, cfg);
+    expect(r.clean).toBe(true);
+    expect(r.merged.items).toEqual(
+      expect.arrayContaining([
+        { id: "1", v: 1 },
+        { id: "2", v: 2 },
+        { id: "3", v: 3 }
+      ])
+    );
+    expect(r.merged.items).toHaveLength(3);
+  });
+
+  it("recurses into items modified on both sides (clean)", () => {
+    const base = { items: [{ id: "1", a: 1, b: 1 }] };
+    const ours = { items: [{ id: "1", a: 2, b: 1 }] };
+    const theirs = { items: [{ id: "1", a: 1, b: 2 }] };
+    const r = merge3(base, ours, theirs, cfg);
+    expect(r.clean).toBe(true);
+    expect(r.merged.items[0]).toEqual({ id: "1", a: 2, b: 2 });
+  });
+
+  it("raises delete-modify conflict on array items", () => {
+    const base = { items: [{ id: "1", v: 1 }] };
+    const ours = { items: [] };
+    const theirs = { items: [{ id: "1", v: 2 }] };
+    const r = merge3(base, ours, theirs, cfg);
+    expect(r.clean).toBe(false);
+    const c = r.conflicts[0];
+    expect(c.kind).toBe("delete-modify");
+    expect(c.path).toBe("/items/1");
+  });
+
+  it("JSON-pointer-escapes ids containing '/' or '~'", () => {
+    const base = { items: [{ id: "us/east", v: 1 }] };
+    const ours = { items: [] };
+    const theirs = { items: [{ id: "us/east", v: 2 }] };
+    const r = merge3(base, ours, theirs, cfg);
+    expect(r.clean).toBe(false);
+    // '/' must be escaped as ~1 in a JSON Pointer segment.
+    expect(r.conflicts[0].path).toBe("/items/us~1east");
+  });
+
+  it("without arrayId, any array change falls back to whole-array conflict", () => {
+    const base = { items: [1, 2, 3] };
+    const ours = { items: [1, 2, 4] };
+    const theirs = { items: [0, 2, 3] };
+    const r = merge3(base, ours, theirs);
+    expect(r.clean).toBe(false);
+    const c = r.conflicts[0];
+    expect(c.path).toBe("/items");
+    expect(c.kind).toBe("value");
+  });
+
+  it("without arrayId and only one side changed, takes that side", () => {
+    const base = { items: [1, 2, 3] };
+    const ours = { items: [1, 2, 4] };
+    const theirs = { items: [1, 2, 3] };
+    const r = merge3(base, ours, theirs);
+    expect(r.clean).toBe(true);
+    expect(r.merged).toEqual(ours);
+  });
+});

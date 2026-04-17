@@ -13,6 +13,11 @@
       "import": "./lib/index.js",
       "require": "./lib/index.js",
       "node": "./lib/index.js"
+    },
+    "./coremodel": {
+      "types": "./lib/adapters/coremodel.d.ts",
+      "import": "./lib/adapters/coremodel.js",
+      "require": "./lib/adapters/coremodel.js"
     }
   },
   "scripts": {
@@ -32,8 +37,18 @@
     "jsondiffpatch": "^0.6.0",
     "node-diff3": "^3.1.2"
   },
+  "peerDependencies": {
+    "@webda/core": "workspace:*",
+    "@webda/models": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@webda/core": { "optional": true },
+    "@webda/models": { "optional": true }
+  },
   "devDependencies": {
     "@types/node": "25.5.0",
+    "@webda/core": "workspace:*",
+    "@webda/models": "workspace:*",
     "@webda/tsc-esm": "workspace:*",
     "fast-check": "^3.23.2",
     "vite": "^6.0.0",

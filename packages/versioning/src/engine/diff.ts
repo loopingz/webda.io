@@ -60,14 +60,18 @@ function extractLineHunks(
   }
 
   if (Array.isArray(a) && Array.isArray(b)) {
-    const out: unknown[] = [];
+    // Output array must match b.length exactly. Only recurse for overlapping
+    // indices; excess a-elements become deletions (jsondiffpatch handles them),
+    // excess b-elements are insertions (pass through unchanged).
+    const out: unknown[] = new Array(b.length);
     const hunks: Record<Path, UnifiedDiff> = {};
-    const len = Math.max(a.length, b.length);
-    for (let i = 0; i < len; i++) {
+    const minLen = Math.min(a.length, b.length);
+    for (let i = 0; i < minLen; i++) {
       const res = extractLineHunks(a[i], b[i], cfg, `${path}/${i}`);
       out[i] = res.bStripped;
       Object.assign(hunks, res.hunks);
     }
+    for (let i = minLen; i < b.length; i++) out[i] = b[i];
     return { bStripped: out, hunks };
   }
 

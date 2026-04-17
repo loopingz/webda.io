@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { expect } from "vitest";
+import { suite, test } from "@webda/test";
 import fc from "fast-check";
 
 import { diff } from "./engine/diff.js";
@@ -18,8 +19,10 @@ const jsonValue = fc.letrec(tie => ({
   )
 })).value;
 
-describe("properties", () => {
-  it("patch(a, diff(a, b)) ≡ b", () => {
+@suite("properties")
+class PropertiesTest {
+  @test({ name: "patch(a, diff(a, b)) ≡ b" })
+  patchDiffEqualsB() {
     fc.assert(
       fc.property(jsonValue, jsonValue, (a, b) => {
         const result = patch(a, diff(a, b));
@@ -27,9 +30,10 @@ describe("properties", () => {
       }),
       { numRuns: 100 }
     );
-  });
+  }
 
-  it("patch(b, reverse(diff(a, b))) ≡ a", () => {
+  @test({ name: "patch(b, reverse(diff(a, b))) ≡ a" })
+  patchReverseEqualsA() {
     fc.assert(
       fc.property(jsonValue, jsonValue, (a, b) => {
         const result = patch(b, reverse(diff(a, b)));
@@ -37,11 +41,13 @@ describe("properties", () => {
       }),
       { numRuns: 100 }
     );
-  });
-});
+  }
+}
 
-describe("properties — merge3", () => {
-  it("identity: merge3(x, x, x) is clean and equal to x", () => {
+@suite("properties — merge3")
+class PropertiesMerge3Test {
+  @test({ name: "identity: merge3(x, x, x) is clean and equal to x" })
+  identityMerge3IsCleanAndEqualToX() {
     fc.assert(
       fc.property(jsonValue, (x) => {
         const r = merge3(x, x, x);
@@ -50,9 +56,10 @@ describe("properties — merge3", () => {
       }),
       { numRuns: 100 }
     );
-  });
+  }
 
-  it("symmetry: swapping ours/theirs yields the same merged value when clean", () => {
+  @test({ name: "symmetry: swapping ours/theirs yields the same merged value when clean" })
+  symmetrySwappingOursTheirsYieldsSameMergedValueWhenClean() {
     fc.assert(
       fc.property(jsonValue, jsonValue, jsonValue, (base, ours, theirs) => {
         const a = merge3(base, ours, theirs);
@@ -63,9 +70,10 @@ describe("properties — merge3", () => {
       }),
       { numRuns: 100 }
     );
-  });
+  }
 
-  it("determinism: identical inputs produce identical outputs", () => {
+  @test({ name: "determinism: identical inputs produce identical outputs" })
+  determinismIdenticalInputsProduceIdenticalOutputs() {
     fc.assert(
       fc.property(jsonValue, jsonValue, jsonValue, (base, ours, theirs) => {
         const a = JSON.stringify(merge3(base, ours, theirs));
@@ -74,11 +82,13 @@ describe("properties — merge3", () => {
       }),
       { numRuns: 100 }
     );
-  });
-});
+  }
+}
 
-describe("properties — resolve", () => {
-  it("idempotent: resolve(resolve(r, m), m) === resolve(r, m)", () => {
+@suite("properties — resolve")
+class PropertiesResolveTest {
+  @test({ name: "idempotent: resolve(resolve(r, m), m) === resolve(r, m)" })
+  idempotentResolveIsStable() {
     fc.assert(
       fc.property(jsonValue, jsonValue, jsonValue, (base, ours, theirs) => {
         const r = merge3(base, ours, theirs);
@@ -91,5 +101,5 @@ describe("properties — resolve", () => {
       }),
       { numRuns: 100 }
     );
-  });
-});
+  }
+}

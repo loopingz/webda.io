@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { expect } from "vitest";
+import { suite, test } from "@webda/test";
 
 import { diff } from "./engine/diff.js";
 import { patch } from "./engine/patch.js";
@@ -6,8 +7,10 @@ import { merge3 } from "./engine/merge.js";
 import { resolve } from "./conflicts/resolve.js";
 import { toGitMarkers, fromGitMarkers } from "./conflicts/markers.js";
 
-describe("integration — full workflow across modules", () => {
-  it("merge3 → toGitMarkers → user-edit → fromGitMarkers → resolve → patch", () => {
+@suite("integration — full workflow across modules")
+class IntegrationTest {
+  @test({ name: "merge3 → toGitMarkers → user-edit → fromGitMarkers → resolve → patch" })
+  fullWorkflow() {
     const base = { title: "draft", body: "a\nb\nc\n", tags: ["x"] };
     const ours = { title: "draft v2", body: "a\nOURS\nc\n", tags: ["x", "y"] };
     const theirs = { title: "draft v3", body: "a\nTHEIRS\nc\n", tags: ["x", "z"] };
@@ -50,5 +53,5 @@ describe("integration — full workflow across modules", () => {
     const next = { ...final.merged, published: true };
     const d = diff(final.merged, next);
     expect(patch(final.merged, d)).toEqual(next);
-  });
-});
+  }
+}

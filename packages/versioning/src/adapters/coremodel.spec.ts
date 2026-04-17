@@ -15,7 +15,8 @@
  *    which does Object.assign + optional per-field deserializers. Returns `this`.
  *  - Static: `Model.deserialize(data, instance?)` for more control.
  */
-import { describe, it, expect } from "vitest";
+import { expect } from "vitest";
+import { suite, test } from "@webda/test";
 import { UuidModel } from "@webda/models";
 
 import { CoreModelAdapter } from "./coremodel.js";
@@ -39,8 +40,10 @@ function buildTask(init: Partial<TestTask>): TestTask {
   return t;
 }
 
-describe("CoreModelAdapter", () => {
-  it("round-trips diff + patch on a UuidModel subclass", () => {
+@suite("CoreModelAdapter")
+class CoreModelAdapterTest {
+  @test({ name: "round-trips diff + patch on a UuidModel subclass" })
+  roundTripsDiffPatchOnAUuidModelSubclass() {
     const uuid = "00000000-0000-0000-0000-000000000001";
     const a = buildTask({ uuid, title: "t1", description: "hello", done: false });
     const b = buildTask({ uuid, title: "t1", description: "hello world", done: true });
@@ -52,18 +55,20 @@ describe("CoreModelAdapter", () => {
     expect(patched.title).toBe("t1");
     expect(patched.description).toBe("hello world");
     expect(patched.done).toBe(true);
-  });
+  }
 
-  it("returns no-op delta when models are equal", () => {
+  @test({ name: "returns no-op delta when models are equal" })
+  returnsNoOpDeltaWhenModelsAreEqual() {
     const uuid = "00000000-0000-0000-0000-000000000002";
     const a = buildTask({ uuid, title: "same", description: "same", done: false });
     const b = buildTask({ uuid, title: "same", description: "same", done: false });
 
     const d = CoreModelAdapter.diff(a, b);
     expect(d.ops).toBeUndefined();
-  });
+  }
 
-  it("reverse produces inverse delta", () => {
+  @test({ name: "reverse produces inverse delta" })
+  reverseProducesInverseDelta() {
     const uuid = "00000000-0000-0000-0000-000000000003";
     const a = buildTask({ uuid, title: "before", description: "x", done: false });
     const b = buildTask({ uuid, title: "after", description: "x", done: true });
@@ -75,9 +80,10 @@ describe("CoreModelAdapter", () => {
     expect(restored).toBeInstanceOf(TestTask);
     expect(restored.title).toBe("before");
     expect(restored.done).toBe(false);
-  });
+  }
 
-  it("3-way merges UuidModel instances without conflict", () => {
+  @test({ name: "3-way merges UuidModel instances without conflict" })
+  threeWayMergesUuidModelInstancesWithoutConflict() {
     const uuid = "00000000-0000-0000-0000-000000000004";
     const base = buildTask({ uuid, title: "t", description: "base", done: false });
     const ours = buildTask({ uuid, title: "t ours", description: "base", done: false });
@@ -90,9 +96,10 @@ describe("CoreModelAdapter", () => {
     expect(r.merged.title).toBe("t ours");
     expect(r.merged.description).toBe("theirs");
     expect(r.merged.done).toBe(false);
-  });
+  }
 
-  it("3-way merge detects conflicts when both sides change the same field differently", () => {
+  @test({ name: "3-way merge detects conflicts when both sides change the same field differently" })
+  threeWayMergeDetectsConflictsWhenBothSidesChangeTheSameFieldDifferently() {
     const uuid = "00000000-0000-0000-0000-000000000005";
     const base = buildTask({ uuid, title: "original", description: "d", done: false });
     const ours = buildTask({ uuid, title: "ours title", description: "d", done: false });
@@ -102,5 +109,5 @@ describe("CoreModelAdapter", () => {
 
     expect(r.clean).toBe(false);
     expect(r.conflicts.length).toBeGreaterThan(0);
-  });
-});
+  }
+}

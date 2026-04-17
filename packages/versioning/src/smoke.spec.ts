@@ -1,9 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { expect } from "vitest";
+import { suite, test } from "@webda/test";
 import { VERSION } from "./index.js";
 
-describe("@webda/versioning", () => {
-  it("exports a VERSION constant", () => {
+@suite("@webda/versioning")
+class SmokeTest {
+  @test({ name: "exports a VERSION constant" })
+  exportsAVersionConstant() {
     expect(typeof VERSION).toBe("string");
     expect(VERSION).toMatch(/^\d+\.\d+\.\d+/);
-  });
-});
+  }
+}

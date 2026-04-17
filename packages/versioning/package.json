@@ -49,6 +49,7 @@
     "@types/node": "25.5.0",
     "@webda/core": "workspace:*",
     "@webda/models": "workspace:*",
+    "@webda/test": "workspace:*",
     "@webda/tsc-esm": "workspace:*",
     "fast-check": "^3.23.2",
     "vite": "^6.0.0",

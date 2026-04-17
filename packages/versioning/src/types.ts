@@ -16,7 +16,8 @@ export type UnifiedDiff = StructuredPatch;
  */
 export type Delta = {
   readonly __versioning: 1;
-  readonly ops: JsonDiffPatchDelta;
+  /** Undefined when the inputs to `diff()` are equal. */
+  readonly ops?: JsonDiffPatchDelta;
   readonly stringHunks?: Readonly<Record<Path, UnifiedDiff>>;
 };
 

@@ -33,6 +33,7 @@
     "packages/ts-plugin": {},
     "packages/tsc-esm": {},
     "packages/utils": {},
+    "packages/versioning": {},
     "packages/workout": {}
   }
 }

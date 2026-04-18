@@ -43,3 +43,68 @@ export function wrap(delta: Delta, meta: VersionedPatchMeta = {}): VersionedPatc
 export function unwrap(patch: VersionedPatch): Delta {
   return patch.delta;
 }
+
+/**
+ * Canonical JSON serialization: keys sorted at every level so structurally-equal
+ * values hash identically regardless of insertion order. `undefined` fields and
+ * functions are skipped (JSON semantics).
+ */
+function canonicalJSON(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return "[" + value.map(canonicalJSON).join(",") + "]";
+  const keys = Object.keys(value as Record<string, unknown>).sort();
+  const parts: string[] = [];
+  for (const k of keys) {
+    const v = (value as Record<string, unknown>)[k];
+    if (v === undefined || typeof v === "function") continue;
+    parts.push(JSON.stringify(k) + ":" + canonicalJSON(v));
+  }
+  return "{" + parts.join(",") + "}";
+}
+
+function bytesToHex(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let hex = "";
+  for (let i = 0; i < bytes.length; i++) {
+    hex += bytes[i].toString(16).padStart(2, "0");
+  }
+  return hex;
+}
+
+/**
+ * Compute a SHA-256 content hash of a `VersionedPatch` as a 64-char hex string.
+ * The hash covers `delta`, `timestamp`, `author`, and `message` — the `id`
+ * field is deliberately excluded (self-reference).
+ *
+ * Uses the Web Crypto API (`crypto.subtle.digest`) — portable across Node ≥19
+ * and all modern browsers.
+ */
+export async function hash(vp: VersionedPatch): Promise<string> {
+  const canonical = canonicalJSON({
+    delta: vp.delta,
+    timestamp: vp.timestamp,
+    author: vp.author,
+    message: vp.message
+  });
+  const bytes = new TextEncoder().encode(canonical);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return bytesToHex(digest);
+}
+
+/**
+ * Wrap a `Delta` with commit metadata AND compute a content-addressed `id`
+ * via `hash()`. The resulting `id` is a 64-char hex SHA-256 fingerprint of
+ * the patch's content — stable across runtimes, deterministic, and unique
+ * per (delta, timestamp, author, message) tuple.
+ *
+ * For the common case where you want a git-like commit record, prefer
+ * `commit()` over manually wiring `wrap()` + `hash()`.
+ */
+export async function commit(
+  delta: Delta,
+  meta: Omit<VersionedPatchMeta, "id"> = {}
+): Promise<VersionedPatch> {
+  const stub = wrap(delta, meta);
+  const id = await hash(stub);
+  return { ...stub, id };
+}

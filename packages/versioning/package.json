@@ -1,0 +1,65 @@
+{
+  "name": "@webda/versioning",
+  "version": "4.0.0-beta.1",
+  "description": "Diff, patch, and 3-way merge for JSON-serializable objects with git-style conflicts",
+  "keywords": ["diff", "patch", "merge", "conflict", "versioning", "webda"],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.js",
+      "node": "./lib/index.js"
+    },
+    "./coremodel": {
+      "types": "./lib/adapters/coremodel.d.ts",
+      "import": "./lib/adapters/coremodel.js",
+      "require": "./lib/adapters/coremodel.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc-esm",
+    "build:watch": "tsc-esm --watch",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "pretest": "tsc-esm",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "diff": "^8.0.2",
+    "jsondiffpatch": "^0.6.0",
+    "node-diff3": "^3.1.2",
+    "yaml": "^2.8.3"
+  },
+  "peerDependencies": {
+    "@webda/core": "workspace:*",
+    "@webda/models": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@webda/core": { "optional": true },
+    "@webda/models": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "@webda/core": "workspace:*",
+    "@webda/models": "workspace:*",
+    "@webda/test": "workspace:*",
+    "@webda/tsc-esm": "workspace:*",
+    "fast-check": "^3.23.2",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
+  },
+  "files": ["lib"],
+  "homepage": "https://webda.io",
+  "publishConfig": { "access": "public" },
+  "type": "module",
+  "engines": { "node": ">=22.0.0" },
+  "license": "LGPL-3.0-only"
+}

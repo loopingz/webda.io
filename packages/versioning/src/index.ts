@@ -31,6 +31,10 @@ export { toGitMarkers, fromGitMarkers } from "./conflicts/markers.js";
 export { wrap, unwrap, hash, commit } from "./history.js";
 export type { VersionedPatch, VersionedPatchMeta } from "./history.js";
 
+// Rendering (git-style YAML unified-diff view of a patch or commit)
+export { renderPatch, renderCommit } from "./render.js";
+export type { RenderOptions } from "./render.js";
+
 // Adapters (JSON + Schema — always available; CoreModelAdapter is
 // imported separately from "@webda/versioning/coremodel" because it has an
 // optional peer dep on @webda/core/@webda/models).

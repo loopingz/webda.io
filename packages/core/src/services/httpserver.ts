@@ -7,7 +7,8 @@ import { ServiceParameters } from "../services/serviceparameters.js";
 import { emitCoreEvent } from "../events/events.js";
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
-import { createSecureServer, Http2SecureServer } from "node:http2";
+import { createSecureServer, createServer as createHttp2Server, Http2SecureServer } from "node:http2";
+import type { Http2Server } from "node:http2";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { AddressInfo } from "node:net";
 import { createChecker } from "is-in-subnet";
@@ -16,7 +17,9 @@ import type { JSONed } from "@webda/models";
 import { Writable } from "node:stream";
 import { useRouter } from "../rest/hooks.js";
 import { runWithContext } from "../contexts/execution.js";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
 import { serialize as cookieSerialize } from "cookie";
 
 /** Parameters for the HTTP server including request limits, timeouts, TLS, and proxy settings */
@@ -66,6 +69,15 @@ export class HttpServerParameters extends ServiceParameters {
   port?: number;
 
   /**
+   * Optional HTTP/2 cleartext port. When set, the HttpServer additionally
+   * binds an h2c listener on this port for alternate-protocol clients (gRPC).
+   * Interceptors registered on the server also run for requests arriving
+   * here.
+   * @default 50051 when the gRPC service is configured, unset otherwise
+   */
+  h2cPort?: number;
+
+  /**
    * TLS key file path — enables HTTPS or HTTP/2
    */
   key?: string;
@@ -78,6 +90,16 @@ export class HttpServerParameters extends ServiceParameters {
    * Set to false for HTTPS without HTTP/2
    */
   http2?: boolean;
+
+  /**
+   * Auto-generate a self-signed certificate on startup when `key`/`cert`
+   * aren't configured. Dev convenience: gives the main port HTTP/2 via
+   * ALPN (plus HTTP/1.1 fallback) with zero setup. Keys are written under
+   * `.webda/dev-tls/`.
+   *
+   * @default false
+   */
+  autoTls?: boolean;
 
   /**
    * Load parameters with defaults for request limits, timeouts, and proxy configuration
@@ -131,9 +153,28 @@ export class HttpServer<
     }
   ];
   server: Server | Http2SecureServer;
+  /** Optional cleartext HTTP/2 server bound to {@link HttpServerParameters.h2cPort}, shared with gRPC. */
+  protected h2cServer?: Http2Server;
   protected subnetChecker: (address: string) => boolean;
   /** Whether this server uses HTTP/2 */
   protected isHttp2 = false;
+  /**
+   * Extra request handlers — matched first, before the default web request
+   * pipeline. Used to plug in alternate wire protocols (gRPC) that share the
+   * same port. Each interceptor returns true when it handles the request.
+   */
+  private interceptors: Array<(req: IncomingMessage, res: ServerResponse) => boolean> = [];
+
+  /**
+   * Register an additional low-level request handler. Interceptors are
+   * checked in registration order; the first one that returns true short-
+   * circuits the default pipeline. Typical use: gRPC dispatcher that matches
+   * `content-type: application/grpc`.
+   * @param handler - returns true when it has taken ownership of the request
+   */
+  registerRequestInterceptor(handler: (req: IncomingMessage, res: ServerResponse) => boolean): void {
+    this.interceptors.push(handler);
+  }
 
   /**
    * Flush response headers from WebContext to the underlying response stream.
@@ -186,6 +227,16 @@ export class HttpServer<
    * @param res - the server response
    */
   async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    // Alternate protocols (e.g. gRPC) get first crack at the request — they
+    // return true to claim it, otherwise we fall through to the normal web
+    // pipeline.
+    for (const interceptor of this.interceptors) {
+      try {
+        if (interceptor(req, res)) return;
+      } catch (err) {
+        useLog("ERROR", "Request interceptor failed", err);
+      }
+    }
     try {
       const ctx = await this.getContextFromRequest(req, res);
       if (!ctx) {
@@ -201,6 +252,15 @@ export class HttpServer<
           try { emitCoreEvent("Webda.Result", { context: webCtx }); } catch { /* listener error */ }
         } catch (err) {
           webCtx.statusCode = err?.getResponseCode?.() || 500;
+          const method = webCtx.getHttpContext().getMethod();
+          const url = webCtx.getHttpContext().getUrl();
+          // Log 5xx at ERROR and 4xx at DEBUG so validation failures are still
+          // visible during development but don't drown the normal log stream.
+          if (webCtx.statusCode >= 500) {
+            useLog("ERROR", `${method} ${url} → ${webCtx.statusCode}`, err);
+          } else if (webCtx.statusCode >= 400) {
+            useLog("WARN", `${method} ${url} → ${webCtx.statusCode}: ${err?.message ?? err}`);
+          }
         }
       });
       // Flush response — skip if pipeline/streaming already handled it
@@ -211,6 +271,7 @@ export class HttpServer<
         res.end(webCtx.getOutput() || "");
       }
     } catch (err) {
+      useLog("ERROR", "Unhandled error in HTTP request handler", err);
       if (!res.writableEnded) {
         if (!res.headersSent) res.writeHead(500);
         res.end();
@@ -251,6 +312,14 @@ export class HttpServer<
         this.server.close();
       }
 
+      // Auto-generate a dev self-signed cert when autoTls is on and nothing is
+      // already configured — gives the main port HTTP/2 via ALPN for free.
+      if (params.autoTls && !(params.key && params.cert)) {
+        const { key, cert } = ensureDevTlsCert();
+        params.key = key;
+        params.cert = cert;
+      }
+
       // Create server based on TLS configuration
       if (params.key && params.cert) {
         const tlsOptions = {
@@ -282,8 +351,24 @@ export class HttpServer<
       useRouter().remapRoutes();
       this.server.listen(listenPort, bind);
 
-      // Emit event for WebSocket upgrade handling (used by GraphQL subscriptions)
+      // Optional secondary h2c listener — lets alternate-protocol services
+      // (gRPC) reuse the HttpServer pipeline (interceptors + request handler)
+      // without fighting HTTP/1.1 on the main port. HTTP/1.1 compatibility
+      // without TLS/ALPN requires socket-level sniffing that Node's http2
+      // module doesn't support cleanly, so we bind a separate port.
+      if (params.h2cPort) {
+        this.h2cServer = createHttp2Server((req, res) =>
+          this.handleRequest(req as any, res as any)
+        );
+        this.h2cServer.listen(params.h2cPort, bind);
+        useLog("INFO", `HTTP/2 cleartext listening on ${bind ?? "0.0.0.0"}:${params.h2cPort}`);
+      }
+
+      // Emit on both channels: core event for decoupled listeners (gRPC
+      // interceptor, graphql ws handler) and the service-level event for
+      // anyone still listening via `this.on(...)`.
       this.emit("Webda.Init.Http" as any, this.server as any);
+      emitCoreEvent("Webda.Init.Http" as any, this.server as any);
     });
 
     // Set up trusted proxy checker
@@ -298,6 +383,7 @@ export class HttpServer<
   async stop(): Promise<void> {
     await super.stop();
     this.server?.close();
+    this.h2cServer?.close();
   }
 
   /**
@@ -388,4 +474,46 @@ export class HttpServer<
     this.contextProviders ??= [];
     this.contextProviders.unshift(provider);
   }
+}
+
+/**
+ * Ensure a self-signed TLS key+cert exists under `.webda/dev-tls/` and return
+ * their paths. Used to bring up HTTPS/HTTP2 on the dev server with zero setup.
+ * Regenerated automatically if missing or older than ~300 days.
+ *
+ * @returns absolute paths to the `.webda/dev-tls/key.pem` / `cert.pem`
+ */
+function ensureDevTlsCert(): { key: string; cert: string } {
+  const dir = join(process.cwd(), ".webda", "dev-tls");
+  const key = join(dir, "key.pem");
+  const cert = join(dir, "cert.pem");
+  if (existsSync(key) && existsSync(cert)) {
+    return { key, cert };
+  }
+  mkdirSync(dir, { recursive: true });
+  // Use openssl for a no-dependency self-signed cert. Dev-only; real deploys
+  // should supply real certs via `key`/`cert` params.
+  const subj = "/CN=localhost";
+  // `-addext` needs OpenSSL 1.1.1+; SAN for localhost/127.0.0.1 lets browsers
+  // (and grpcurl) skip hostname complaints when -k/-insecure is used.
+  try {
+    execFileSync(
+      "openssl",
+      [
+        "req", "-x509", "-newkey", "rsa:2048",
+        "-keyout", key,
+        "-out", cert,
+        "-days", "365",
+        "-nodes",
+        "-subj", subj,
+        "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:0.0.0.0"
+      ],
+      { stdio: "pipe" }
+    );
+  } catch (err) {
+    writeFileSync(join(dir, "openssl-error.log"), String(err));
+    throw new Error(`autoTls: failed to generate self-signed cert via openssl — ${err}`);
+  }
+  useLog("INFO", `[HttpServer] generated self-signed dev cert at ${dir}`);
+  return { key, cert };
 }

@@ -163,3 +163,49 @@ pre.yaml {
   color: var(--ifm-font-color-base);
   min-width: 7em;
 }
+
+.commitRow {
+  margin-top: 0.75rem;
+}
+
+.patchList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.patchCard {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 6px;
+  padding: 0.75rem;
+  background: var(--ifm-background-color);
+}
+
+.patchHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.patchAuthor {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--ifm-color-primary-lightest);
+  color: var(--ifm-color-primary-darkest);
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.patchId {
+  font-family: var(--ifm-font-family-monospace);
+  color: var(--ifm-color-emphasis-600);
+}
+
+.empty {
+  color: var(--ifm-color-emphasis-600);
+  font-style: italic;
+}

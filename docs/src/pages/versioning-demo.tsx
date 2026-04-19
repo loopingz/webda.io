@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
 import Layout from "@theme/Layout";
+import { commit as makeCommit, diff, type Delta, type VersionedPatch } from "@webda/versioning";
 import styles from "./versioning-demo.module.css";
 
 type Obj = { title: string; body: string; tags: string[] };
@@ -142,6 +143,26 @@ export default function VersioningDemoPage(): React.JSX.Element {
     []
   );
 
+  type CommittedPatch = VersionedPatch & {
+    basedOn: Obj;
+    appliedState: Obj;
+  };
+
+  const [patches, setPatches] = useState<CommittedPatch[]>([]);
+
+  const onCommit = useCallback(
+    async (author: User) => {
+      const appliedState = drafts[author];
+      const delta: Delta = diff(base, appliedState);
+      const vp = await makeCommit(delta, {
+        author: USER_LABELS[author],
+        timestamp: Date.now()
+      });
+      setPatches((prev) => [{ ...vp, basedOn: base, appliedState } as CommittedPatch, ...prev]);
+    },
+    [base, drafts]
+  );
+
   const onReseed = useCallback(() => {
     setBase(DEFAULT_BASE);
     setDrafts({ user1: DEFAULT_BASE, user2: DEFAULT_BASE });
@@ -174,11 +195,35 @@ export default function VersioningDemoPage(): React.JSX.Element {
               drafts={drafts}
               onDraftChange={onDraftChange}
             />
+            <div className={styles.commitRow}>
+              <button
+                className={styles.btn}
+                onClick={() => void onCommit(activeTab)}
+              >
+                Commit {USER_LABELS[activeTab]}'s edits
+              </button>
+            </div>
           </section>
 
           <section className={styles.panel}>
             <h2>Patches</h2>
-            <p>Nothing committed yet.</p>
+            {patches.length === 0 ? (
+              <p className={styles.empty}>Nothing committed yet.</p>
+            ) : (
+              <div className={styles.patchList}>
+                {patches.map((p) => (
+                  <article key={p.id} className={styles.patchCard}>
+                    <header className={styles.patchHeader}>
+                      <span>
+                        <span className={styles.patchAuthor}>{p.author}</span>
+                        <span className={styles.patchId}>{p.id!.slice(0, 7)}</span>
+                      </span>
+                      <time>{new Date(p.timestamp).toLocaleTimeString()}</time>
+                    </header>
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
         </div>
       </div>

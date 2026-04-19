@@ -1,0 +1,26 @@
+import type { AIProvider } from "./provider.js";
+
+export class AnthropicProvider implements AIProvider {
+  constructor(private opts: { apiKey?: string; model?: string } = {}) {}
+
+  async complete(prompt: string, options?: { maxTokens?: number }): Promise<string> {
+    const apiKey = this.opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        "AnthropicProvider: no apiKey configured and ANTHROPIC_API_KEY is not set in env"
+      );
+    }
+    // Lazy-load the SDK so the package does not require it at import time.
+    const mod: any = await import("@anthropic-ai/sdk");
+    const Anthropic = mod.default ?? mod.Anthropic;
+    const client = new Anthropic({ apiKey });
+    const model = this.opts.model ?? "claude-haiku-4-5-20251001";
+    const res = await client.messages.create({
+      model,
+      max_tokens: options?.maxTokens ?? 512,
+      messages: [{ role: "user", content: prompt }]
+    });
+    const first = res.content.find((b: { type: string }) => b.type === "text") as { text?: string } | undefined;
+    return first?.text ?? "";
+  }
+}

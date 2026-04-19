@@ -1,6 +1,14 @@
 import React, { useCallback, useState } from "react";
 import Layout from "@theme/Layout";
-import { commit as makeCommit, diff, type Delta, type VersionedPatch } from "@webda/versioning";
+import {
+  commit as makeCommit,
+  diff,
+  merge3,
+  renderPatch,
+  type Delta,
+  type MergeResult,
+  type VersionedPatch
+} from "@webda/versioning";
 import styles from "./versioning-demo.module.css";
 
 type Obj = { title: string; body: string; tags: string[] };
@@ -16,6 +24,48 @@ const USER_LABELS: Record<User, string> = {
   user1: "User 1",
   user2: "User 2"
 };
+
+function DiffView({ text }: { text: string }): React.JSX.Element {
+  if (!text) return <></>;
+  const lines = text.split("\n");
+  return (
+    <pre className={styles.diff}>
+      {lines.map((line, i) => {
+        let cls = styles["diffLine"];
+        if (line.startsWith("---") || line.startsWith("+++")) cls = styles["diffLine--header"];
+        else if (line.startsWith("@@")) cls = styles["diffLine--hunk"];
+        else if (line.startsWith("+")) cls = styles["diffLine--add"];
+        else if (line.startsWith("-")) cls = styles["diffLine--del"];
+        return (
+          <span key={i} className={cls}>
+            {line}
+            {"\n"}
+          </span>
+        );
+      })}
+    </pre>
+  );
+}
+
+function AppliedPanel({
+  base,
+  applied
+}: {
+  base: Obj;
+  applied: Obj;
+}): React.JSX.Element {
+  const diffText = renderPatch(base, diff(base, applied), {
+    fromLabel: "base",
+    toLabel: "applied",
+    sortKeys: true
+  });
+  return (
+    <div className={styles.appliedPanel}>
+      <h2>Applied state</h2>
+      {diffText ? <DiffView text={diffText} /> : <p className={styles.empty}>applied === base</p>}
+    </div>
+  );
+}
 
 function EditorForm({
   value,
@@ -149,6 +199,8 @@ export default function VersioningDemoPage(): React.JSX.Element {
   };
 
   const [patches, setPatches] = useState<CommittedPatch[]>([]);
+  const [applied, setApplied] = useState<Obj>(base);
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
 
   const onCommit = useCallback(
     async (author: User) => {
@@ -163,9 +215,36 @@ export default function VersioningDemoPage(): React.JSX.Element {
     [base, drafts]
   );
 
+  const onApply = useCallback(
+    (p: CommittedPatch) => {
+      const result: MergeResult<Obj> = merge3(p.basedOn, applied, p.appliedState);
+      if (!result.clean) {
+        // Task 7 will open a dialog here.
+        // eslint-disable-next-line no-console
+        console.warn("Conflict — skipping apply for now", result);
+        return;
+      }
+      setApplied(result.merged);
+      setAppliedIds((prev) => {
+        const next = new Set(prev);
+        next.add(p.id!);
+        return next;
+      });
+    },
+    [applied]
+  );
+
+  const onReset = useCallback(() => {
+    setApplied(base);
+    setAppliedIds(new Set());
+  }, [base]);
+
   const onReseed = useCallback(() => {
     setBase(DEFAULT_BASE);
     setDrafts({ user1: DEFAULT_BASE, user2: DEFAULT_BASE });
+    setApplied(DEFAULT_BASE);
+    setAppliedIds(new Set());
+    setPatches([]);
   }, []);
 
   return (
@@ -177,7 +256,7 @@ export default function VersioningDemoPage(): React.JSX.Element {
         <header className={styles.header}>
           <h1>@webda/versioning demo</h1>
           <div className={styles.headerActions}>
-            <button className={styles.btn} disabled>
+            <button className={styles.btn} onClick={onReset} disabled={appliedIds.size === 0}>
               Reset
             </button>
             <button className={styles.btn} onClick={onReseed}>
@@ -217,13 +296,35 @@ export default function VersioningDemoPage(): React.JSX.Element {
                       <span>
                         <span className={styles.patchAuthor}>{p.author}</span>
                         <span className={styles.patchId}>{p.id!.slice(0, 7)}</span>
+                        {appliedIds.has(p.id!) ? (
+                          <span className={styles.applied}> · applied</span>
+                        ) : null}
                       </span>
                       <time>{new Date(p.timestamp).toLocaleTimeString()}</time>
                     </header>
+                    <div className={styles.patchBody}>
+                      <DiffView
+                        text={renderPatch(p.basedOn, p.delta, {
+                          fromLabel: "base",
+                          toLabel: p.author ?? "patch",
+                          sortKeys: true
+                        })}
+                      />
+                      <div className={styles.patchActions}>
+                        <button
+                          className={styles.btn}
+                          onClick={() => onApply(p)}
+                          disabled={appliedIds.has(p.id!)}
+                        >
+                          Apply ▶
+                        </button>
+                      </div>
+                    </div>
                   </article>
                 ))}
               </div>
             )}
+            <AppliedPanel base={base} applied={applied} />
           </section>
         </div>
       </div>

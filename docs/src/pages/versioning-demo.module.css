@@ -209,3 +209,45 @@ pre.yaml {
   color: var(--ifm-color-emphasis-600);
   font-style: italic;
 }
+
+.patchBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.patchActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.applied {
+  color: var(--ifm-color-success-dark);
+}
+
+.appliedPanel {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--ifm-color-emphasis-300);
+}
+
+.diff {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 0;
+  padding: 0.6rem;
+  background: var(--ifm-color-emphasis-100);
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.diffLine--add    { background: color-mix(in srgb, #22c55e 14%, transparent); color: #166534; display: block; }
+.diffLine--del    { background: color-mix(in srgb, #ef4444 14%, transparent); color: #991b1b; display: block; }
+.diffLine--hunk   { color: var(--ifm-color-emphasis-600); font-weight: 600; display: block; }
+.diffLine--header { color: var(--ifm-color-emphasis-600); display: block; }
+.diffLine         { display: block; }
+
+[data-theme='dark'] .diffLine--add    { color: #bbf7d0; }
+[data-theme='dark'] .diffLine--del    { color: #fecaca; }

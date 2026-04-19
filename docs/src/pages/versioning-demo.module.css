@@ -251,3 +251,85 @@ pre.yaml {
 
 [data-theme='dark'] .diffLine--add    { color: #bbf7d0; }
 [data-theme='dark'] .diffLine--del    { color: #fecaca; }
+
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, black 35%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.dialog {
+  background: var(--ifm-background-surface-color);
+  border-radius: 8px;
+  max-width: 780px;
+  width: 100%;
+  max-height: 85vh;
+  overflow: auto;
+  padding: 1.25rem;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.25);
+}
+
+.dialog h2 {
+  margin-top: 0;
+}
+
+.conflict {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.conflictPath {
+  font-family: var(--ifm-font-family-monospace);
+  color: var(--ifm-color-emphasis-700);
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+}
+
+.conflictCols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.conflictCol {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 4px;
+  padding: 0.4rem;
+  background: var(--ifm-color-emphasis-100);
+}
+
+.conflictCol label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.conflictCustom {
+  margin-top: 0.4rem;
+}
+
+.conflictCustom input {
+  width: 100%;
+  font-family: var(--ifm-font-family-monospace);
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 4px;
+  background: var(--ifm-background-color);
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

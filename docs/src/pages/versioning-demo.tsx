@@ -5,8 +5,12 @@ import {
   diff,
   merge3,
   renderPatch,
+  resolve,
+  type Conflict,
   type Delta,
   type MergeResult,
+  type Path,
+  type Resolution,
   type VersionedPatch
 } from "@webda/versioning";
 import styles from "./versioning-demo.module.css";
@@ -63,6 +67,129 @@ function AppliedPanel({
     <div className={styles.appliedPanel}>
       <h2>Applied state</h2>
       {diffText ? <DiffView text={diffText} /> : <p className={styles.empty}>applied === base</p>}
+    </div>
+  );
+}
+
+type OpenConflict = {
+  patchId: string;
+  result: MergeResult<Obj>;
+  choices: Map<Path, Resolution>;
+};
+
+function renderValueSnippet(v: unknown): string {
+  if (typeof v === "string") return JSON.stringify(v);
+  return JSON.stringify(v, null, 2);
+}
+
+function parseCustom(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function ConflictDialog({
+  open,
+  onCancel,
+  onApplyResolutions
+}: {
+  open: OpenConflict;
+  onCancel: () => void;
+  onApplyResolutions: (choices: Map<Path, Resolution>) => void;
+}): React.JSX.Element {
+  const [choices, setChoices] = useState<Map<Path, Resolution>>(open.choices);
+
+  const setChoice = (path: Path, r: Resolution) => {
+    setChoices((prev) => {
+      const next = new Map(prev);
+      next.set(path, r);
+      return next;
+    });
+  };
+
+  // Seed a fallback "ours" choice for any line-kind conflicts so the dialog
+  // remains dismissable even before Task 8 introduces the real editor.
+  React.useEffect(() => {
+    for (const c of open.result.conflicts) {
+      if (c.kind === "line" && !choices.has(c.path)) {
+        setChoice(c.path, { choose: "ours" });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const canApply = open.result.conflicts.every((c) => choices.has(c.path));
+
+  return (
+    <div className={styles.dialogBackdrop} role="dialog" aria-modal="true">
+      <div className={styles.dialog}>
+        <h2>Resolve conflicts</h2>
+        {open.result.conflicts.map((c: Conflict) => (
+          <div key={c.path} className={styles.conflict}>
+            <div className={styles.conflictPath}>
+              <strong>{c.path}</strong> &nbsp; <em>kind: {c.kind}</em>
+            </div>
+
+            {c.kind === "line" ? (
+              <p className={styles.empty}>
+                Line-kind conflicts are handled in a separate pane (Task 8).
+                For now, this entry auto-resolves to "ours".
+              </p>
+            ) : (
+              <>
+                <div className={styles.conflictCols}>
+                  {(["base", "ours", "theirs"] as const).map((side) => {
+                    const value = side === "base" ? c.base : side === "ours" ? c.ours : c.theirs;
+                    const id = `${c.path}:${side}`;
+                    return (
+                      <div key={side} className={styles.conflictCol}>
+                        <label>
+                          <input
+                            type="radio"
+                            name={c.path}
+                            id={id}
+                            checked={
+                              (choices.get(c.path) as { choose?: string } | undefined)?.choose === side
+                            }
+                            onChange={() => setChoice(c.path, { choose: side })}
+                          />
+                          {side}
+                        </label>
+                        <pre className={styles.yaml}>{renderValueSnippet(value)}</pre>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className={styles.conflictCustom}>
+                  <label>
+                    Custom (JSON or plain string):{" "}
+                    <input
+                      type="text"
+                      placeholder='e.g. "hello" or 42 or ["a","b"]'
+                      onChange={(e) => setChoice(c.path, { value: parseCustom(e.target.value) })}
+                    />
+                  </label>
+                </div>
+              </>
+            )}
+          </div>
+        ))}
+
+        <div className={styles.dialogActions}>
+          <button className={styles.btn} onClick={onCancel}>
+            Cancel
+          </button>
+          <button
+            className={styles.btn}
+            disabled={!canApply}
+            onClick={() => onApplyResolutions(choices)}
+          >
+            Apply resolutions
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -223,6 +350,7 @@ export default function VersioningDemoPage(): React.JSX.Element {
   const [patches, setPatches] = useState<CommittedPatch[]>([]);
   const [applied, setApplied] = useState<Obj>(base);
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
+  const [openConflict, setOpenConflict] = useState<OpenConflict | null>(null);
 
   const onCommit = useCallback(
     async (author: User) => {
@@ -240,20 +368,34 @@ export default function VersioningDemoPage(): React.JSX.Element {
   const onApply = useCallback(
     (p: CommittedPatch) => {
       const result: MergeResult<Obj> = merge3(p.basedOn, applied, p.appliedState);
-      if (!result.clean) {
-        // Task 7 will open a dialog here.
-        // eslint-disable-next-line no-console
-        console.warn("Conflict — skipping apply for now", result);
+      if (result.clean) {
+        setApplied(result.merged);
+        setAppliedIds((prev) => {
+          const next = new Set(prev);
+          next.add(p.id!);
+          return next;
+        });
         return;
       }
-      setApplied(result.merged);
-      setAppliedIds((prev) => {
-        const next = new Set(prev);
-        next.add(p.id!);
-        return next;
-      });
+      setOpenConflict({ patchId: p.id!, result, choices: new Map() });
     },
     [applied]
+  );
+
+  const onResolutionsApplied = useCallback(
+    (choices: Map<Path, Resolution>) => {
+      if (!openConflict) return;
+      const finalResult = resolve(openConflict.result, choices);
+      if (!finalResult.clean) return; // guardrail — dialog should have prevented this
+      setApplied(finalResult.merged);
+      setAppliedIds((prev) => {
+        const next = new Set(prev);
+        next.add(openConflict.patchId);
+        return next;
+      });
+      setOpenConflict(null);
+    },
+    [openConflict]
   );
 
   const onReset = useCallback(() => {
@@ -351,6 +493,13 @@ export default function VersioningDemoPage(): React.JSX.Element {
           </section>
         </div>
       </div>
+      {openConflict && (
+        <ConflictDialog
+          open={openConflict}
+          onCancel={() => setOpenConflict(null)}
+          onApplyResolutions={onResolutionsApplied}
+        />
+      )}
     </Layout>
   );
 }

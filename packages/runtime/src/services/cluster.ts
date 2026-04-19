@@ -4,7 +4,6 @@ import {
   getMachineId,
   Inject,
   PubSubService,
-  Route,
   Service,
   ServiceParameters,
   Store,
@@ -188,6 +187,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   async init() {
     await super.init();
 
+    this.addRoute(".", ["GET"], this.readyEndpoint.bind(this));
+
     this.models = useApplication().getModels();
     for (const i in this.models) {
       for (const event of this.models[i].getClientEvents()) {
@@ -302,7 +303,6 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
    * Health-check endpoint returning 503 until the cluster is ready
    * @param ctx - incoming web context
    */
-  @Route(".")
   readyEndpoint(ctx: WebContext) {
     if (!this._ready) {
       ctx.writeHead(503);

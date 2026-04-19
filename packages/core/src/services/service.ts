@@ -415,18 +415,14 @@ abstract class Service<
   }
 
   /**
-   * Init the routes
-   * @deprecated
+   * No-op stub kept only so external call sites (Service.resolve) don't break.
+   * Routes are now registered programmatically from each service's init(); the
+   * old @Route decorator has been removed.
+   *
+   * @deprecated Call `this.addRoute(...)` from init() instead.
    */
   initRoutes() {
-    // @ts-ignore
-    const routes = this.constructor.routes || {};
-    for (const j in routes) {
-      this.log("TRACE", "Adding route", j, "for bean", this.getName());
-      routes[j].forEach(route => {
-        this.addRoute(j, route.methods, this[route.executor], route.openapi);
-      });
-    }
+    // intentionally empty — see doc
   }
 
   /**

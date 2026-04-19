@@ -15,6 +15,9 @@ export type SeedParsed = {
  *   --mode dev|demo|…
  *   --ai | --no-ai        enable / disable AI provider
  *   --spec ./file.json    alternate source for model counts
+ *
+ * @param argv - the command-line arguments to parse (without the `webda mock seed` prefix).
+ * @returns the parsed spec map, optional spec file path, and options bag.
  */
 export function parseSeedArgs(argv: string[]): SeedParsed {
   const out: SeedParsed = { spec: {}, options: {} };

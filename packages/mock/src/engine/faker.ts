@@ -5,6 +5,7 @@ import { Faker, en, base } from "@faker-js/faker";
  * (numbers, dates) as fallbacks — matches Faker v9's recommended defaults.
  *
  * @param seed - optional numeric seed. Defaults to Date.now() for non-deterministic runs.
+ * @returns a seeded Faker instance.
  */
 export function makeFaker(seed?: number): Faker {
   const faker = new Faker({ locale: [en, base] });

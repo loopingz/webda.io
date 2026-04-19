@@ -27,6 +27,10 @@ type FieldMetaMap = Record<string, MockMeta>;
  * Write a mock-meta entry for the decorated field into the class's
  * metadata bag. Each field contributes exactly one `{ kind, options }` entry;
  * a subclass-level decorator overrides a parent's entry for the same field.
+ *
+ * @param kind - the `MockKind` to stash for the decorated field.
+ * @param options - optional generator options, serialised verbatim in the metadata.
+ * @returns a TC39 field decorator that records the meta on class metadata.
  */
 function mark(kind: MockKind, options?: Record<string, unknown>) {
   return (_value: unknown, context: ClassFieldDecoratorContext) => {
@@ -101,6 +105,9 @@ export const Mock: {
 /**
  * Read the mock-meta map for a model class. Merges entries from the class
  * and its prototype chain so a subclass's `@Mock.*` overrides the parent's.
+ *
+ * @param ctor - the model class constructor.
+ * @returns the merged `fieldName → MockMeta` map across the prototype chain.
  */
 export function readMockMeta(ctor: new (...args: unknown[]) => unknown): FieldMetaMap {
   const chain: Array<new (...args: unknown[]) => unknown> = [];

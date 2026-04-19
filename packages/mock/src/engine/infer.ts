@@ -42,6 +42,9 @@ const TYPE_TO_KIND: Record<string, MockKind> = {
  * Resolve a mock kind from a field's name (strong signal) or declared type
  * (weak fallback). Returns `null` when no rule matches — callers decide
  * whether to warn, throw, or skip.
+ *
+ * @param ctx - the inference context (field name + optional declared type).
+ * @returns the inferred `MockKind`, or `null` when no rule matches.
  */
 export function inferKind(ctx: InferContext): MockKind | null {
   const lower = ctx.fieldName.toLowerCase();

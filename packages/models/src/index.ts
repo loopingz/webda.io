@@ -6,3 +6,4 @@ export * from "./repositories/repository";
 export * from "./repositories/abstract";
 export * from "./repositories/memory";
 export * from "./storable";
+export * from "./mock.js";

@@ -16,6 +16,7 @@
   "packages/grpc": "4.0.0-beta.1",
   "packages/hawk": "4.0.0-beta.1",
   "packages/kubernetes": "4.0.0-beta.1",
+  "packages/mock": "4.0.0-beta.1",
   "packages/models": "4.0.0-beta.1",
   "packages/mongodb": "4.0.0-beta.1",
   "packages/otel": "4.0.0-beta.1",

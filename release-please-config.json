@@ -21,6 +21,7 @@
     "packages/grpc": {},
     "packages/hawk": {},
     "packages/kubernetes": {},
+    "packages/mock": {},
     "packages/models": {},
     "packages/mongodb": {},
     "packages/otel": {},

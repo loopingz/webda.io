@@ -1,0 +1,65 @@
+{
+  "name": "@webda/mock",
+  "version": "4.0.0-beta.1",
+  "description": "Coherent mock-data generation for @webda/models classes",
+  "keywords": ["webda", "mock", "fixtures", "faker", "seed"],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.js",
+      "node": "./lib/index.js"
+    },
+    "./service": {
+      "types": "./lib/service/mock-service.d.ts",
+      "import": "./lib/service/mock-service.js"
+    },
+    "./cli": {
+      "types": "./lib/cli/seed.d.ts",
+      "import": "./lib/cli/seed.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc-esm",
+    "build:watch": "tsc-esm --watch",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "pretest": "tsc-esm",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^9.5.1",
+    "@webda/models": "workspace:*"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@webda/core": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": { "optional": true },
+    "@webda/core": { "optional": true }
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@types/node": "25.5.0",
+    "@webda/core": "workspace:*",
+    "@webda/test": "workspace:*",
+    "@webda/tsc-esm": "workspace:*",
+    "fast-check": "^3.23.2",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
+  },
+  "files": ["lib"],
+  "publishConfig": { "access": "public" },
+  "type": "module",
+  "engines": { "node": ">=22.0.0" },
+  "license": "LGPL-3.0-only"
+}

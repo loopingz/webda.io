@@ -180,6 +180,28 @@ function EditorTabs({
   );
 }
 
+const TITLE_POOL = ["draft", "proposal", "spec v0.1", "rough idea", "outline"];
+const BODY_SUFFIX_POOL = [
+  "line 1\nline 2\nline 3\n",
+  "line 1\nline 2\nline 3\nline 4\n",
+  "Alpha\nBeta\nGamma\n",
+  "One.\nTwo.\nThree.\n",
+  "The quick brown\nfox jumps over\nthe lazy dog.\n"
+];
+const TAGS_POOL: string[][] = [["draft"], ["idea"], ["draft", "wip"], ["v1"]];
+
+function pickRandom<T>(pool: readonly T[]): T {
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function randomBase(): Obj {
+  return {
+    title: pickRandom(TITLE_POOL),
+    body: pickRandom(BODY_SUFFIX_POOL),
+    tags: [...pickRandom(TAGS_POOL)]
+  };
+}
+
 export default function VersioningDemoPage(): React.JSX.Element {
   const [base, setBase] = useState<Obj>(DEFAULT_BASE);
   const [activeTab, setActiveTab] = useState<User>("user1");
@@ -240,9 +262,10 @@ export default function VersioningDemoPage(): React.JSX.Element {
   }, [base]);
 
   const onReseed = useCallback(() => {
-    setBase(DEFAULT_BASE);
-    setDrafts({ user1: DEFAULT_BASE, user2: DEFAULT_BASE });
-    setApplied(DEFAULT_BASE);
+    const next = randomBase();
+    setBase(next);
+    setDrafts({ user1: next, user2: next });
+    setApplied(next);
     setAppliedIds(new Set());
     setPatches([]);
   }, []);

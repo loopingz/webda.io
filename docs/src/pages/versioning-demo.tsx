@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import Layout from "@theme/Layout";
 import {
   commit as makeCommit,
@@ -6,6 +6,7 @@ import {
   merge3,
   renderPatch,
   resolve,
+  toGitMarkers,
   type Conflict,
   type Delta,
   type MergeResult,
@@ -90,6 +91,53 @@ function parseCustom(text: string): unknown {
   }
 }
 
+function LineKindEditor({
+  conflict,
+  result,
+  value,
+  onChange
+}: {
+  conflict: Conflict;
+  result: MergeResult<Obj>;
+  value: string | undefined;
+  onChange: (text: string) => void;
+}): React.JSX.Element {
+  // Synthesise a starting point the first time we render this editor.
+  const initial = useMemo(() => {
+    // Build a one-conflict MergeResult copy just for this conflict's path.
+    const single: MergeResult<Obj> = {
+      merged: result.merged,
+      conflicts: [conflict],
+      clean: false
+    };
+    const withMarkers = toGitMarkers(single) as Record<string, unknown>;
+    // Navigate the RFC 6901 path to extract the string.
+    const seg = conflict.path.slice(1).split("/");
+    let cursor: unknown = withMarkers;
+    for (const s of seg) cursor = (cursor as Record<string, unknown>)[s];
+    return typeof cursor === "string" ? cursor : "";
+  }, [conflict.path]);
+
+  const current = value ?? initial;
+  const stillHasMarkers =
+    current.includes("<<<<<<<") && current.includes("=======") && current.includes(">>>>>>>");
+
+  return (
+    <div>
+      <textarea
+        className={styles.lineEditor}
+        value={current}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      {stillHasMarkers && (
+        <p className={styles.markerWarning}>
+          Still contains conflict markers — edit before applying.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ConflictDialog({
   open,
   onCancel,
@@ -109,18 +157,15 @@ function ConflictDialog({
     });
   };
 
-  // Seed a fallback "ours" choice for any line-kind conflicts so the dialog
-  // remains dismissable even before Task 8 introduces the real editor.
-  React.useEffect(() => {
-    for (const c of open.result.conflicts) {
-      if (c.kind === "line" && !choices.has(c.path)) {
-        setChoice(c.path, { choose: "ours" });
-      }
+  const canApply = open.result.conflicts.every((c) => {
+    const ch = choices.get(c.path);
+    if (!ch) return false;
+    if (c.kind === "line" && "text" in ch) {
+      const t = ch.text;
+      return !(t.includes("<<<<<<<") && t.includes("=======") && t.includes(">>>>>>>"));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const canApply = open.result.conflicts.every((c) => choices.has(c.path));
+    return true;
+  });
 
   return (
     <div className={styles.dialogBackdrop} role="dialog" aria-modal="true">
@@ -133,10 +178,12 @@ function ConflictDialog({
             </div>
 
             {c.kind === "line" ? (
-              <p className={styles.empty}>
-                Line-kind conflicts are handled in a separate pane (Task 8).
-                For now, this entry auto-resolves to "ours".
-              </p>
+              <LineKindEditor
+                conflict={c}
+                result={open.result}
+                value={(choices.get(c.path) as { text?: string } | undefined)?.text}
+                onChange={(text) => setChoice(c.path, { text })}
+              />
             ) : (
               <>
                 <div className={styles.conflictCols}>

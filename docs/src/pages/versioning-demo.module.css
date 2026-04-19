@@ -333,3 +333,22 @@ pre.yaml {
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
+.lineEditor {
+  width: 100%;
+  min-height: 9em;
+  padding: 0.5rem;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.85rem;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 4px;
+  background: var(--ifm-background-color);
+  color: var(--ifm-font-color-base);
+  box-sizing: border-box;
+}
+
+.markerWarning {
+  color: var(--ifm-color-warning-dark);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}

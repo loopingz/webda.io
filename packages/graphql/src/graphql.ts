@@ -4,7 +4,6 @@ import {
   DomainService,
   DomainServiceParameters,
   ModelDefinition,
-  Route,
   WebContext,
   WebdaError,
   useApplication,
@@ -490,7 +489,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         }
       });
     }
-    if ((await (modelInstance as any).canAct(context, "get")) !== true) {
+    if ((await (modelInstance as any)?.canAct?.(context, "get")) !== true) {
       throw new GraphQLError("Permission denied", {
         extensions: {
           code: "PERMISSION_DENIED"
@@ -560,17 +559,15 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     for (const i in models) {
       const model = models[i];
       const metadata = useModelMetadata(model);
-      if (!metadata) {
-        continue;
-      }
-      // Not exposed
-      if (!this.parameters.isIncluded(metadata.Identifier)) {
-        continue;
-      }
+      if (!metadata) continue;
+      // Only expose the "final" version of each model — mirrors the REST
+      // transport's behavior so that an app-specific override (e.g.
+      // WebdaSample/User) shadows a framework-provided one (Webda/User)
+      // instead of both being registered under the same GraphQL type name.
+      if (!this.app.isFinalModel(metadata.Identifier)) continue;
+      if (!this.parameters.isIncluded(metadata.Identifier)) continue;
       const schema = this.app.getSchema(i);
-      if (!schema) {
-        continue;
-      }
+      if (!schema) continue;
       const name = (metadata.ShortName || i.split("/").pop()).replace("/", "_");
       this.log("INFO", "Add GraphQL type", name);
       const modelGraph = metadata.Relations;
@@ -593,7 +590,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             const object = new (model as any)();
             object.load(args[name]);
             this.log("INFO", "Create", object, context.getCurrentUserId());
-            if ((await (object as any).canAct(context, "create")) !== true) {
+            if ((await (object as any).canAct?.(context, "create")) !== true) {
               throw new GraphQLError("Permission denied", {
                 extensions: {
                   code: "PERMISSION_DENIED"
@@ -616,7 +613,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           },
           resolve: async (_, args, context) => {
             const object = await model.ref(args.uuid).get();
-            if ((await object?.canAct(context, "update")) !== true) {
+            if ((await object?.canAct?.(context, "update")) !== true) {
               throw new GraphQLError("Permission denied", {
                 extensions: {
                   code: "PERMISSION_DENIED"
@@ -638,7 +635,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           },
           resolve: async (_, args, context) => {
             const object = await model.ref(args.uuid).get();
-            if ((await object?.canAct(context, "delete")) !== true) {
+            if ((await object?.canAct?.(context, "delete")) !== true) {
               throw new GraphQLError("Permission denied", {
                 extensions: {
                   code: "PERMISSION_DENIED"
@@ -992,7 +989,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     };
     const modelInstance = await model.ref(uuid).get();
     // Ensure we have the permission to get the object
-    if ((await (modelInstance as any)?.canAct(context, "get")) !== true) {
+    if ((await (modelInstance as any)?.canAct?.(context, "get")) !== true) {
       throw new GraphQLError("Permission denied", {
         extensions: {
           code: "PERMISSION_DENIED"
@@ -1093,6 +1090,26 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     this.parameters.exposeGraphiQL ??= useCore().isDebug();
     this.app = useApplication();
     this.generateSchema();
+    // Register HTTP endpoints explicitly — replaces the old @Route decorator.
+    this.addRoute(".", ["GET"], this.schemaRoute.bind(this), { hidden: true });
+    this.addRoute(".", ["POST"], this.endpoint.bind(this), {
+      post: {
+        summary: "GraphQL endpoint",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  query: { type: "string" },
+                  variables: { type: "object" }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
     // Generate GraphQL schema
     this.handler = createHandler({
       schema: this.schema,
@@ -1163,7 +1180,6 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * Serve the GraphQL schema as text or the GraphiQL IDE as HTML
    * @param ctx - incoming web context
    */
-  @Route(".", ["GET"], { hidden: true })
   async schemaRoute(ctx: WebContext<any>) {
     const httpContext = ctx.getHttpContext();
     if (!this.parameters.exposeGraphiQL) {
@@ -1187,28 +1203,6 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * Handle POST requests to the GraphQL endpoint
    * @param ctx - incoming web context with the GraphQL query body
    */
-  @Route(".", ["POST"], {
-    post: {
-      summary: "GraphQL endpoint",
-      requestBody: {
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                query: {
-                  type: "string"
-                },
-                variables: {
-                  type: "object"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  })
   async endpoint(ctx: WebContext<any>) {
     const httpContext = ctx.getHttpContext();
     ctx.setExtension("graphql", { count: 0 });

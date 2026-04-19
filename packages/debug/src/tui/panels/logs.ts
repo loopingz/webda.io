@@ -1,5 +1,7 @@
 import type { Panel } from "./panel.js";
 import type { DebugClient, WsEvent } from "../client.js";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 
 /**
  * A single log entry for display.
@@ -32,11 +34,46 @@ export class LogsPanel implements Panel {
   private levelFilter = 2; // Index into LOG_LEVELS, default INFO
   /** Maximum entries to keep in memory */
   private maxEntries = 2000;
+  /** Persisted TUI state file — survives across `webda debug` restarts */
+  private static readonly STATE_FILE = join(".webda", "debug-state.json");
 
   /**
    * @param client - Debug API client
    */
-  constructor(private client: DebugClient) {}
+  constructor(private client: DebugClient) {
+    this.loadState();
+  }
+
+  /**
+   * Restore the log level filter from `.webda/debug-state.json` if present.
+   * Silent on any failure — stale/corrupt state falls back to the INFO default.
+   */
+  private loadState(): void {
+    try {
+      const raw = readFileSync(LogsPanel.STATE_FILE, "utf8");
+      const state = JSON.parse(raw);
+      const idx = LogsPanel.LOG_LEVELS.indexOf(state.logLevel);
+      if (idx >= 0) this.levelFilter = idx;
+    } catch {
+      /* no prior state — keep default */
+    }
+  }
+
+  /**
+   * Persist the current log level filter. Creates `.webda/` on demand.
+   * Silent on failure — the user can still use the TUI without persistence.
+   */
+  private saveState(): void {
+    try {
+      mkdirSync(".webda", { recursive: true });
+      writeFileSync(
+        LogsPanel.STATE_FILE,
+        JSON.stringify({ logLevel: LogsPanel.LOG_LEVELS[this.levelFilter] })
+      );
+    } catch {
+      /* non-fatal — TUI keeps working without persistence */
+    }
+  }
 
   /**
    * Fetch existing log entries from the server.
@@ -133,6 +170,7 @@ export class LogsPanel implements Panel {
     this.levelFilter = Math.min(LogsPanel.LOG_LEVELS.length - 1, this.levelFilter + 1);
     this.cursor = 0;
     this.scrollOffset = 0;
+    this.saveState();
   }
 
   /**
@@ -142,6 +180,7 @@ export class LogsPanel implements Panel {
     this.levelFilter = Math.max(0, this.levelFilter - 1);
     this.cursor = 0;
     this.scrollOffset = 0;
+    this.saveState();
   }
 
   /**

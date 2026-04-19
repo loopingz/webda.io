@@ -539,9 +539,13 @@ export function createAccessorTransformer(
         const isModel = isModelClass(tsModule, classDecl, checker, modelBases);
         const newMembers: ts.ClassElement[] = [...remainingMembers];
 
+        // Any transformed class references WEBDA_STORAGE — via the injected toJSON, the
+        // coercion getters/setters, or the local storage property below. Ensure the import
+        // is present regardless of whether the class is a Model subclass.
+        needsStorageImport = true;
+
         // For non-model classes with Accessors marker, inject WEBDA_STORAGE initialization
         if (!isModel) {
-          needsStorageImport = true;
           const hasStorage = classDecl.members.some(
             m => tsModule.isPropertyDeclaration(m) && safeGetText(m.name, sourceFile) === "WEBDA_STORAGE"
           );

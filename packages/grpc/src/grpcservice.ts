@@ -6,10 +6,12 @@ import {
   OperationContext,
   SimpleOperationContext,
   WebContext,
-  useCoreEvents,
   useApplication,
+  useDynamicService,
   Command,
-  ServiceParameters
+  ServiceParameters,
+  runWithInstanceStorage,
+  useInstanceStorage
 } from "@webda/core";
 import { useLog } from "@webda/workout";
 import * as protoLoader from "@grpc/proto-loader";
@@ -82,7 +84,19 @@ export class GrpcService<
   ): Promise<void> {
     const outPath = output || this.parameters.protoFile;
     const operations = this.getOperations();
-    const schemas = useApplication().getSchemas?.() || {};
+    const app = useApplication();
+    const schemas: Record<string, any> = { ...(app.getSchemas?.() || {}) };
+    // Fold per-model input schemas into the flat schemas map so that `$ref`
+    // lookups like `WebdaSample/Post` resolve to a concrete message shape —
+    // `getSchemas()` only returns operation-level schemas, not model ones.
+    const models = app.getModels?.() || {};
+    for (const modelId of Object.keys(models)) {
+      const metadata = (models[modelId] as any)?.Metadata;
+      const inputSchema = metadata?.Schemas?.Input;
+      if (inputSchema && !schemas[modelId]) {
+        schemas[modelId] = inputSchema;
+      }
+    }
 
     const proto = generateProto(operations, schemas, this.parameters.packageName);
 
@@ -129,19 +143,44 @@ export class GrpcService<
           oneofs: true
         });
         this.buildRpcMap();
-        this.log("INFO", `Loaded gRPC definitions from ${this.parameters.protoFile}`);
+        useLog(
+          "INFO",
+          `Loaded gRPC definitions from ${this.parameters.protoFile} — ${this.rpcToOperation.size} RPC methods mapped`
+        );
       } catch (err: any) {
-        this.log("WARN", `Failed to load proto file: ${err.message}`);
+        useLog("WARN", `Failed to load proto file: ${err.message}`);
       }
     } else {
-      this.log("WARN", `Proto file not found: ${this.parameters.protoFile}. Run 'webda generate-proto' first.`);
+      useLog(
+        "WARN",
+        `Proto file not found: ${this.parameters.protoFile}. Run 'webda generate-proto' first.`
+      );
     }
 
-    // Hook into HttpServer to intercept gRPC requests
-    useCoreEvents("Webda.Init.Http" as any, ({ server }: any) => {
-      if (server?.on) {
-        this.log("DEBUG", "Registered gRPC request interceptor on HTTP server");
-      }
+    // Reuse the HttpServer pipeline — registering an interceptor means gRPC
+    // requests flow through the same request handler (interceptors + context
+    // propagation) as REST, but delivered via the HttpServer's h2c listener.
+    // AsyncLocalStorage doesn't reliably cross HTTP/2 data events, so we
+    // capture the InstanceStorage at init and re-enter it per request.
+    const capturedStorage = useInstanceStorage();
+    const httpServer =
+      useDynamicService<any>("HttpServer") || useDynamicService<any>("Webda/HttpServer");
+    if (!httpServer?.registerRequestInterceptor) {
+      useLog("WARN", "HttpServer unavailable — gRPC cannot register its interceptor");
+      return this;
+    }
+    // Ask the HttpServer to bind an h2c listener — gRPC needs HTTP/2 and the
+    // main port stays HTTP/1.1 for REST/GraphQL clients.
+    (httpServer.parameters as any).h2cPort ??= 50051;
+    httpServer.registerRequestInterceptor((req: IncomingMessage, res: ServerResponse) => {
+      const contentType = (req.headers["content-type"] as string) || "";
+      if (!contentType.startsWith("application/grpc")) return false;
+      runWithInstanceStorage(capturedStorage, () => {
+        this.handleGrpcRequest(req as any, res as any).catch(err => {
+          useLog("ERROR", "[GrpcService] handler failed:", err);
+        });
+      });
+      return true;
     });
 
     return this;
@@ -156,27 +195,32 @@ export class GrpcService<
     const operations = this.getOperations();
     const pkg = this.parameters.packageName;
 
-    for (const [servicePath, def] of Object.entries(this.definitions)) {
-      // servicePath looks like "webda.PostService" or just the method def
-      if (typeof def !== "object" || !def) continue;
-      const methodDef = def as unknown as protoLoader.MethodDefinition<any, any>;
-      if (methodDef.path) {
-        // This is a method definition — path is like "/webda.PostService/Create"
-        const grpcPath = methodDef.path;
-        // Extract service and method from path: /package.ServiceName/MethodName
-        const parts = grpcPath.split("/").filter(Boolean);
-        if (parts.length === 2) {
-          const [fullService, method] = parts;
-          const serviceName = fullService.replace(`${pkg}.`, "").replace("Service", "");
-          const opId = `${serviceName}.${method}`;
-          if (operations[opId]) {
-            this.rpcToOperation.set(grpcPath, opId);
-            this.rpcMethods.set(grpcPath, methodDef);
-          }
+    // `protoLoader.loadSync` returns a flat map where service entries are plain
+    // objects keyed by method name (each method has a `.path`), mixed with
+    // top-level message types. Walk both levels so we catch every method.
+    const visitMethod = (methodDef: any) => {
+      if (!methodDef?.path) return;
+      const parts = (methodDef.path as string).split("/").filter(Boolean);
+      if (parts.length !== 2) return;
+      const [fullService, method] = parts;
+      const serviceName = fullService.replace(`${pkg}.`, "").replace(/Service$/, "");
+      const opId = `${serviceName}.${method}`;
+      if (operations[opId]) {
+        this.rpcToOperation.set(methodDef.path, opId);
+        this.rpcMethods.set(methodDef.path, methodDef);
+      }
+    };
+    for (const def of Object.values(this.definitions)) {
+      if (typeof def !== "object" || def === null) continue;
+      if ((def as any).path) {
+        visitMethod(def);
+      } else {
+        // Service object — iterate its method members
+        for (const inner of Object.values(def)) {
+          if (typeof inner === "object" && (inner as any)?.path) visitMethod(inner);
         }
       }
     }
-    this.log("DEBUG", `Mapped ${this.rpcToOperation.size} gRPC methods to operations`);
   }
 
   /**
@@ -237,22 +281,49 @@ export class GrpcService<
     opId: string,
     methodDef: protoLoader.MethodDefinition<any, any>
   ): Promise<void> {
+    // AsyncLocalStorage doesn't always propagate through the HTTP/2 'data'
+    // event that drives GrpcStream.onMessage, so capture the storage here and
+    // re-enter it inside the callback.
+    const instanceStorage = useInstanceStorage();
     return new Promise<void>((resolve, reject) => {
-      stream.onMessage(async message => {
-        try {
-          const ctx = new SimpleOperationContext();
-          await ctx.init();
-          ctx.setInput(Buffer.from(JSON.stringify(message)));
-          await callOperation(ctx, opId);
-          const output = ctx.getOutput();
-          const response = output ? JSON.parse(output) : {};
-          stream.sendUnary(response);
-          resolve();
-        } catch (err: any) {
-          const status = this.errorToGrpcStatus(err);
-          stream.sendError(status, err.message);
-          resolve(); // Don't reject — error was sent via gRPC status
-        }
+      stream.onMessage(message => {
+        runWithInstanceStorage(instanceStorage, async () => {
+          try {
+            const ctx = new SimpleOperationContext();
+            await ctx.init();
+            // Proto3 `optional` fields deserialize with an extra `_field: "field"`
+            // marker (synthetic oneof tracking). Drop those so the payload matches
+            // the backing JSON schema which forbids additional properties.
+            const cleaned =
+              typeof message === "object" && message !== null && !Array.isArray(message)
+                ? Object.fromEntries(Object.entries(message).filter(([k]) => !k.startsWith("_")))
+                : message;
+            ctx.setInput(Buffer.from(JSON.stringify(cleaned)));
+            await callOperation(ctx, opId);
+            const output = ctx.getOutput();
+            // Operation return values may be plain strings/numbers (e.g. version
+            // strings, publish ids). Wrap them in a `{value: ...}` object so the
+            // proto response is always a valid message shape.
+            let response: any = {};
+            if (output !== undefined && output !== null && output !== "") {
+              try {
+                response = JSON.parse(output);
+                if (typeof response !== "object" || response === null) {
+                  response = { value: response };
+                }
+              } catch {
+                response = { value: output };
+              }
+            }
+            stream.sendUnary(response);
+            resolve();
+          } catch (err: any) {
+            useLog("ERROR", `[gRPC ${opId}] handler threw:`, err);
+            const status = this.errorToGrpcStatus(err);
+            stream.sendError(status, err.message);
+            resolve(); // Don't reject — error was sent via gRPC status
+          }
+        });
       });
     });
   }

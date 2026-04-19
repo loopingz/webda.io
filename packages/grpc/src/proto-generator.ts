@@ -41,19 +41,31 @@ export function generateProto(
     serviceGroups.get(prefix)!.push({ opId, op, rpcName });
   }
 
+  // Webda operation inputs ending in `?` are the "ignoreRequired" variant of
+  // the base schema; strip the suffix when looking the schema up since only
+  // the base key exists in the registry.
+  const resolveSchemaRef = (ref?: string): string | undefined => {
+    if (!ref || ref === "void") return undefined;
+    if (schemas[ref]) return ref;
+    if (ref.endsWith("?") && schemas[ref.slice(0, -1)]) return ref.slice(0, -1);
+    return undefined;
+  };
+
   // Generate messages for all referenced schemas
   for (const [opId, op] of Object.entries(operations)) {
     if (op.hidden) continue;
-    if (op.input && op.input !== "void" && schemas[op.input]) {
-      const msgName = schemaToMessageName(op.input);
+    const inputRef = resolveSchemaRef(op.input);
+    if (inputRef) {
+      const msgName = schemaToMessageName(inputRef);
       if (!messages.has(msgName)) {
-        messages.set(msgName, jsonSchemaToMessage(msgName, schemas[op.input], schemas, messages));
+        messages.set(msgName, jsonSchemaToMessage(msgName, schemas[inputRef], schemas, messages));
       }
     }
-    if (op.output && op.output !== "void" && schemas[op.output]) {
-      const msgName = schemaToMessageName(op.output);
+    const outputRef = resolveSchemaRef(op.output);
+    if (outputRef) {
+      const msgName = schemaToMessageName(outputRef);
       if (!messages.has(msgName)) {
-        messages.set(msgName, jsonSchemaToMessage(msgName, schemas[op.output], schemas, messages));
+        messages.set(msgName, jsonSchemaToMessage(msgName, schemas[outputRef], schemas, messages));
       }
     }
   }
@@ -115,8 +127,15 @@ function getInputType(
   schemas: Record<string, JSONSchema7>,
   messages: Map<string, string>
 ): string {
-  if (op.input && op.input !== "void" && schemas[op.input]) {
-    return schemaToMessageName(op.input);
+  const ref = op.input && op.input !== "void"
+    ? (schemas[op.input]
+        ? op.input
+        : op.input.endsWith("?") && schemas[op.input.slice(0, -1)]
+          ? op.input.slice(0, -1)
+          : undefined)
+    : undefined;
+  if (ref) {
+    return schemaToMessageName(ref);
   }
   return "google.protobuf.Empty";
 }
@@ -157,16 +176,21 @@ function jsonSchemaToMessage(
   lines.push(`message ${name} {`);
 
   if (schema.properties) {
+    // JSON-Schema `required` list drives proto3 `optional` marker so that
+    // fields the caller didn't set aren't sent as empty-string defaults and
+    // trip pattern/format/minLength validations server-side.
+    const required = new Set((schema.required as string[]) || []);
     let fieldNum = 1;
     for (const [propName, propSchema] of Object.entries(schema.properties)) {
       const prop = propSchema as JSONSchema7;
       const protoType = jsonTypeToProto(propName, prop, name, allSchemas, messages);
-      const repeated = prop.type === "array" ? "repeated " : "";
       const fieldType = prop.type === "array" ? jsonTypeToProto(propName, (prop.items as JSONSchema7) || {}, name, allSchemas, messages) : protoType;
       if (prop.type === "array") {
         lines.push(`  repeated ${fieldType} ${propName} = ${fieldNum};`);
-      } else {
+      } else if (required.has(propName)) {
         lines.push(`  ${protoType} ${propName} = ${fieldNum};`);
+      } else {
+        lines.push(`  optional ${protoType} ${propName} = ${fieldNum};`);
       }
       fieldNum++;
     }
@@ -194,7 +218,16 @@ function jsonTypeToProto(
 ): string {
   if (schema.$ref) {
     const refName = schema.$ref.replace("#/definitions/", "").replace("#/components/schemas/", "");
-    return schemaToMessageName(refName);
+    const msgName = schemaToMessageName(refName);
+    // Generate the referenced message if the target schema exists and hasn't
+    // been emitted yet. Without this, proto output referenced types like
+    // `Comment` (from QueryResult.results) without ever defining them, which
+    // broke proto parsing in grpcurl clients.
+    if (!messages.has(msgName) && allSchemas[refName]) {
+      messages.set(msgName, ""); // placeholder to break recursion cycles
+      messages.set(msgName, jsonSchemaToMessage(msgName, allSchemas[refName], allSchemas, messages));
+    }
+    return msgName;
   }
 
   switch (schema.type) {

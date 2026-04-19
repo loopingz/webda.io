@@ -21,7 +21,14 @@ const NAME_TO_KIND: Record<string, MockKind> = {
   image: "avatar",
   photo: "avatar",
   createdat: "recentDate",
-  updatedat: "recentDate"
+  updatedat: "recentDate",
+  age: "integer",
+  count: "integer",
+  quantity: "integer",
+  amount: "float",
+  price: "float",
+  score: "float",
+  rating: "float"
 };
 
 const TYPE_TO_KIND: Record<string, MockKind> = {

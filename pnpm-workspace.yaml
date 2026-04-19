@@ -1,5 +1,6 @@
 packages:
   - packages/*
+  - docs
   - sample-app
   - sample-apps/*
   # Exclude packages that are not yet ready

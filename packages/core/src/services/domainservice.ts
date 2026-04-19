@@ -217,10 +217,10 @@ export class DomainService<
    * @param uuid - the primary key
    * @returns the model instance
    */
-  private async loadModel(model: ModelClass<Model>, uuid: string): Promise<Model> {
+  private async loadModel(model: ModelClass<Model>, uuid: string | Record<string, any>): Promise<Model> {
     let object: Model | undefined;
     try {
-      object = await model.ref(uuid).get();
+      object = await model.ref(uuid as any).get();
     } catch {
       // Repository may throw when the object does not exist
     }
@@ -228,7 +228,7 @@ export class DomainService<
       const context = useContext<OperationContext>();
       await this.emit("Store.WebNotFound", {
         context,
-        uuid
+        uuid: typeof uuid === "string" ? uuid : JSON.stringify(uuid)
       });
       throw new WebdaError.NotFound("Object not found");
     }
@@ -243,10 +243,11 @@ export class DomainService<
   async modelCreate(input: any): Promise<Model> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
-    // When callOperation passes [context] as fallback (no input schema),
-    // the first argument is the OperationContext, not the input data.
-    // Detect this and read the actual input from the context.
-    if (input === undefined || input === null || input instanceof OperationContext) {
+    // resolveArguments spreads the model schema's properties into positional args,
+    // so what lands here as `input` may be a single property value (e.g. slug string)
+    // rather than the full body. Also handles the no-schema fallback where the
+    // OperationContext itself is passed. In all non-object cases, read the raw input.
+    if (typeof input !== "object" || input === null || input instanceof OperationContext) {
       input = await context.getInput();
     }
     return runWithContext(context, async () => {
@@ -266,15 +267,28 @@ export class DomainService<
    */
   async modelUpdate(input?: any): Promise<Model> {
     const context = useContext<OperationContext>();
-    const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
+    const { model, pkFields } = context.getExtension<{
+      model: ModelClass<Model>;
+      pkFields?: string[];
+    }>("operationContext");
     // resolveArguments spreads all model schema properties as positional args.
-    // The first arg becomes the first property value (often uuid).
-    // Fall back to context for both uuid and input when needed.
+    // The first arg becomes the first property value (often the PK value).
+    // Fall back to context for both PK and input when needed.
     if (typeof input !== "object" || input === null) {
       input = await context.getInput();
     }
-    const uuid = input?.uuid || context.getParameters()?.uuid;
-    const object = await this.loadModel(model, uuid);
+    // Resolve the PK from body or URL params using the model's actual PK fields;
+    // fall back to "uuid" for legacy operations without pkFields in the context.
+    const params = context.getParameters() ?? {};
+    const fields = pkFields?.length ? pkFields : ["uuid"];
+    const pk: any =
+      fields.length === 1
+        ? input?.[fields[0]] ?? params[fields[0]]
+        : fields.reduce((acc, f) => {
+            acc[f] = input?.[f] ?? params[f];
+            return acc;
+          }, {} as Record<string, unknown>);
+    const object = await this.loadModel(model, pk);
     object["load"](input);
     return object;
   }
@@ -334,12 +348,24 @@ export class DomainService<
    */
   async modelPatch(input?: any): Promise<Model> {
     const context = useContext<OperationContext>();
-    const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
+    const { model, pkFields } = context.getExtension<{
+      model: ModelClass<Model>;
+      pkFields?: string[];
+    }>("operationContext");
     if (typeof input !== "object" || input === null) {
       input = await context.getInput();
     }
-    const uuid = input?.uuid || context.getParameters()?.uuid;
-    const object = await this.loadModel(model, uuid);
+    // Build the PK from the model's real primary-key fields (same logic as modelUpdate).
+    const params = context.getParameters() ?? {};
+    const fields = pkFields?.length ? pkFields : ["uuid"];
+    const pk: any =
+      fields.length === 1
+        ? input?.[fields[0]] ?? params[fields[0]]
+        : fields.reduce((acc, f) => {
+            acc[f] = input?.[f] ?? params[f];
+            return acc;
+          }, {} as Record<string, unknown>);
+    const object = await this.loadModel(model, pk);
     await object.patch(input);
     return object;
   }
@@ -447,6 +473,12 @@ export class DomainService<
         appSchemas[queryResultSchemaName] = queryResultSchema;
       }
 
+      // URL path segments for the model's primary key (e.g. "{slug}" or
+      // "{follower}/{following}"). Named after the real PK fields so the router
+      // exposes them in context.getParameters() under matching names, which is
+      // what the pkSchema validation and modelGet/Update/Delete expect.
+      const pkPath = pkFields.map(f => `{${String(f)}}`).join("/");
+
       // CRUD operations
       ["create", "update"]
         .filter(k => !actionsName.includes(k))
@@ -460,9 +492,10 @@ export class DomainService<
             output: modelSchema,
             summary: k === "Create" ? `Create a new ${shortId}` : `Update a ${shortId}`,
             tags: [shortId],
-            rest: { method: k === "Create" ? "post" : "put", path: k === "Create" ? "" : "{uuid}" },
+            rest: { method: k === "Create" ? "post" : "put", path: k === "Create" ? "" : pkPath },
             context: {
-              model
+              model,
+              pkFields
             }
           });
         });
@@ -478,9 +511,10 @@ export class DomainService<
             output: k === "Get" ? modelSchema : "void",
             summary: `${k === "Delete" ? "Delete" : "Retrieve"} a ${shortId}`,
             tags: [shortId],
-            rest: { method: k === "Delete" ? "delete" : "get", path: "{uuid}" },
+            rest: { method: k === "Delete" ? "delete" : "get", path: pkPath },
             context: {
-              model
+              model,
+              pkFields
             }
           });
         });
@@ -509,9 +543,10 @@ export class DomainService<
           output: modelSchema,
           summary: `Patch a ${shortId}`,
           tags: [shortId],
-          rest: { method: "patch", path: "{uuid}" },
+          rest: { method: "patch", path: pkPath },
           context: {
-            model
+            model,
+            pkFields
           }
         });
       }

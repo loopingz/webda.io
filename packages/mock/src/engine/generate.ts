@@ -31,6 +31,14 @@ export type MockContext = {
   fieldName: string;
 };
 
+/**
+ * Generate `count` instances of `ModelClass`, resolving each field through the
+ * fallback chain (explicit `@Mock.*` → name-heuristic → type fallback → throw/skip).
+ *
+ * @param ModelClass - the target model constructor.
+ * @param options - generation options (count, seed, mode, overrides, ai, pool, strict).
+ * @returns the generated instances.
+ */
 export async function generate<T>(ModelClass: ModelClass<T>, options: GenerateOptions<T> = {}): Promise<T[]> {
   const count = options.count ?? 1;
   const mode = options.mode ?? (process.env.VITEST ? "test" : "dev");
@@ -111,6 +119,14 @@ export async function generate<T>(ModelClass: ModelClass<T>, options: GenerateOp
   return out;
 }
 
+/**
+ * Route a resolved kind to its Faker / AI / custom generator.
+ *
+ * @param kind - the `MockKind` to produce.
+ * @param opts - decorator-time options for that kind.
+ * @param ctx - the mock context (faker, rng, pool, etc.).
+ * @returns the generated value.
+ */
 async function resolveKind(kind: MockKind, opts: Record<string, unknown>, ctx: MockContext): Promise<unknown> {
   const f = ctx.faker;
   switch (kind) {

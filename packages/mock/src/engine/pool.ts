@@ -9,8 +9,18 @@
  */
 export class SessionPool {
   private byClass = new Map<Function, unknown[]>();
+
+  /**
+   * @param rng - deterministic RNG returning a float in `[0, 1)`. Defaults to
+   *   `Math.random` when no seed is needed.
+   */
   constructor(private rng: () => number = Math.random) {}
 
+  /**
+   * Add an instance to the pool, keyed by its constructor.
+   *
+   * @param instance - the object to add. Non-objects are ignored.
+   */
   add(instance: unknown): void {
     if (instance == null || typeof instance !== "object") return;
     const ctor = (instance as { constructor: Function }).constructor;
@@ -22,6 +32,12 @@ export class SessionPool {
     list.push(instance);
   }
 
+  /**
+   * Pick one random instance of the given class from the pool.
+   *
+   * @param ctor - the class to pick an instance of.
+   * @returns a pooled instance, or `null` when the pool has none.
+   */
   pickOne<T>(ctor: new (...args: any[]) => T): T | null {
     const list = this.byClass.get(ctor);
     if (!list || list.length === 0) return null;
@@ -29,6 +45,13 @@ export class SessionPool {
     return list[Math.min(idx, list.length - 1)] as T;
   }
 
+  /**
+   * Pick a unique subset of instances of the given class.
+   *
+   * @param ctor - the class to pick from.
+   * @param count - requested subset size; clamped to `pool.size(ctor)`.
+   * @returns the selected instances (may be shorter than `count`).
+   */
   pickMany<T>(ctor: new (...args: any[]) => T, count: number): T[] {
     const list = this.byClass.get(ctor);
     if (!list || list.length === 0) return [];
@@ -45,6 +68,12 @@ export class SessionPool {
     return copy.slice(0, take) as T[];
   }
 
+  /**
+   * Number of pooled instances of the given class.
+   *
+   * @param ctor - the class to count.
+   * @returns the current pool size for that class (0 when absent).
+   */
   size(ctor: new (...args: any[]) => unknown): number {
     return this.byClass.get(ctor)?.length ?? 0;
   }

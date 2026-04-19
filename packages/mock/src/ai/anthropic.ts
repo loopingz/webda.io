@@ -1,8 +1,24 @@
 import type { AIProvider } from "./provider.js";
 
+/**
+ * `AIProvider` backed by Anthropic's Claude API. Loads `@anthropic-ai/sdk`
+ * lazily on the first `complete()` call so the package does not force the
+ * SDK into consumers' graphs at import time.
+ */
 export class AnthropicProvider implements AIProvider {
+  /**
+   * @param opts - optional API key (falls back to `ANTHROPIC_API_KEY` env)
+   *   and model identifier (defaults to the current Haiku).
+   */
   constructor(private opts: { apiKey?: string; model?: string } = {}) {}
 
+  /**
+   * Send a single completion request to Claude.
+   *
+   * @param prompt - the user-side prompt text.
+   * @param options - optional tuning parameters (currently just `maxTokens`).
+   * @returns the first text block of the response; empty string if none.
+   */
   async complete(prompt: string, options?: { maxTokens?: number }): Promise<string> {
     const apiKey = this.opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {

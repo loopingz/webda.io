@@ -28,6 +28,9 @@ export type VersionedPatchMeta = {
 /**
  * Wrap a `Delta` with commit metadata. `timestamp` defaults to `Date.now()`
  * when omitted; all other fields are optional.
+ * @param delta - the delta to wrap
+ * @param meta - optional metadata (timestamp, author, message, id)
+ * @returns a `VersionedPatch` combining the delta with the supplied metadata
  */
 export function wrap(delta: Delta, meta: VersionedPatchMeta = {}): VersionedPatch {
   return {
@@ -39,7 +42,11 @@ export function wrap(delta: Delta, meta: VersionedPatchMeta = {}): VersionedPatc
   };
 }
 
-/** Return the bare `Delta` from a `VersionedPatch`. Symmetric with `wrap()`. */
+/**
+ * Return the bare `Delta` from a `VersionedPatch`. Symmetric with `wrap()`.
+ * @param patch - the versioned patch to unwrap
+ * @returns the `Delta` embedded in the patch
+ */
 export function unwrap(patch: VersionedPatch): Delta {
   return patch.delta;
 }
@@ -48,6 +55,8 @@ export function unwrap(patch: VersionedPatch): Delta {
  * Canonical JSON serialization: keys sorted at every level so structurally-equal
  * values hash identically regardless of insertion order. `undefined` fields and
  * functions are skipped (JSON semantics).
+ * @param value - the value to serialize canonically
+ * @returns a deterministic JSON string representation of `value`
  */
 function canonicalJSON(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -62,6 +71,11 @@ function canonicalJSON(value: unknown): string {
   return "{" + parts.join(",") + "}";
 }
 
+/**
+ * Convert an `ArrayBuffer` of raw bytes to a lowercase hex string.
+ * @param buffer - the raw byte buffer to encode
+ * @returns a lowercase hexadecimal string representation of the buffer
+ */
 function bytesToHex(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let hex = "";
@@ -78,6 +92,8 @@ function bytesToHex(buffer: ArrayBuffer): string {
  *
  * Uses the Web Crypto API (`crypto.subtle.digest`) — portable across Node ≥19
  * and all modern browsers.
+ * @param vp - the versioned patch to hash
+ * @returns a 64-character lowercase hex SHA-256 digest
  */
 export async function hash(vp: VersionedPatch): Promise<string> {
   const canonical = canonicalJSON({
@@ -99,6 +115,9 @@ export async function hash(vp: VersionedPatch): Promise<string> {
  *
  * For the common case where you want a git-like commit record, prefer
  * `commit()` over manually wiring `wrap()` + `hash()`.
+ * @param delta - the delta to commit
+ * @param meta - optional metadata (timestamp, author, message); `id` is computed automatically
+ * @returns a `VersionedPatch` with a content-addressed `id` field set
  */
 export async function commit(
   delta: Delta,

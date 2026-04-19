@@ -9,6 +9,8 @@ export const SchemaAdapter = {
   /**
    * Build a closed-over adapter where the config is fixed once and reused
    * across every call. Use when the same object shape is diffed/merged repeatedly.
+   * @param cfg - versioning config (string strategies, arrayId, etc.) to bind for all calls
+   * @returns an object exposing `diff`, `patch`, `reverse`, and `merge3` pre-configured with `cfg`
    */
   forSchema(cfg: VersioningConfig) {
     // patch and reverse are config-independent: they operate on the delta,

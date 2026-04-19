@@ -16,6 +16,12 @@ export type RenderOptions = {
   sortKeys?: boolean;
 };
 
+/**
+ * Serialize a value to a YAML string using block scalars for multiline strings.
+ * @param value - the value to serialize
+ * @param sortKeys - when `true`, object keys are sorted alphabetically for reproducible output
+ * @returns a YAML string representation of `value`
+ */
 function toYaml(value: unknown, sortKeys: boolean): string {
   return yaml.stringify(value, {
     sortMapEntries: sortKeys,

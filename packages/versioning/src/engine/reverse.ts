@@ -3,6 +3,11 @@ import { create as createJdp } from "jsondiffpatch";
 import { lineReverse } from "../strings/line-diff.js";
 import type { Delta, Path, UnifiedDiff } from "../types.js";
 
+/**
+ * Reverse a delta so it can be applied to `b` to recover `a` (i.e., undo the patch).
+ * @param delta - the delta produced by `diff(a, b)`
+ * @returns a new `Delta` that, when applied to `b`, produces `a`
+ */
 export function reverse(delta: Delta): Delta {
   const jdp = createJdp({});
   const reversedOps = delta.ops ? jdp.reverse(delta.ops) : undefined;

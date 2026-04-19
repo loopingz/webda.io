@@ -4,14 +4,31 @@ import { chooseStrategy } from "../strings/strategy.js";
 import { lineDiff } from "../strings/line-diff.js";
 import { lineMerge3 } from "../strings/line-merge.js";
 
+/**
+ * Return `true` when `v` is a non-null, non-array plain object.
+ * @param v - value to test
+ * @returns `true` if `v` is a plain object
+ */
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === "object" && !Array.isArray(v);
 }
 
+/**
+ * Escape a single path segment for use in a JSON Pointer (RFC 6901).
+ * @param k - the raw key to escape
+ * @returns the escaped key
+ */
 function escapeSeg(k: string): string {
   return k.replace(/~/g, "~0").replace(/\//g, "~1");
 }
 
+/**
+ * Deep structural equality check using `Object.is` for scalar comparisons
+ * (handles NaN and -0 correctly).
+ * @param a - first value
+ * @param b - second value
+ * @returns `true` when `a` and `b` are deeply equal
+ */
 function deepEqual(a: unknown, b: unknown): boolean {
   // Object.is handles NaN (so NaN ≡ NaN) and distinguishes -0 from 0.
   if (Object.is(a, b)) return true;
@@ -37,10 +54,26 @@ function deepEqual(a: unknown, b: unknown): boolean {
   return false;
 }
 
+/**
+ * Look up the configured array identity key for `path` in `cfg.arrayId`.
+ * @param path - JSON Pointer path of the array
+ * @param cfg - versioning config containing the `arrayId` map
+ * @returns the id key string, or `undefined` when not configured
+ */
 function arrayIdFor(path: Path, cfg: VersioningConfig): string | undefined {
   return cfg.arrayId?.[path];
 }
 
+/**
+ * Recursively merge three values at `path`, appending any conflicts to `conflicts`.
+ * @param base - common ancestor value
+ * @param ours - our local value
+ * @param theirs - their remote value
+ * @param path - JSON Pointer path of the current node (used in conflict records)
+ * @param conflicts - mutable array accumulating conflicts found during the merge
+ * @param cfg - versioning config (string strategies, arrayId, etc.)
+ * @returns the merged value (may be `ours` when a conflict is recorded)
+ */
 function mergeAt(
   base: unknown,
   ours: unknown,
@@ -146,6 +179,17 @@ function mergeAt(
   return ours;
 }
 
+/**
+ * Merge three arrays using per-element identity matching via `idKey`.
+ * @param base - common ancestor array
+ * @param ours - our local array
+ * @param theirs - their remote array
+ * @param path - JSON Pointer path of the array (used in conflict records)
+ * @param idKey - object property name used as stable element identity
+ * @param conflicts - mutable array accumulating conflicts found during the merge
+ * @param cfg - versioning config passed through to recursive `mergeAt` calls
+ * @returns the merged array
+ */
 function mergeArraysById(
   base: unknown[],
   ours: unknown[],
@@ -237,6 +281,14 @@ function mergeArraysById(
   return out;
 }
 
+/**
+ * Perform a 3-way merge of `base`, `ours`, and `theirs`.
+ * @param base - common ancestor value
+ * @param ours - our local value
+ * @param theirs - their remote value
+ * @param cfg - optional versioning config (string strategies, arrayId, etc.)
+ * @returns a `MergeResult` with the merged value, any conflicts, and a `clean` flag
+ */
 export function merge3<T>(base: T, ours: T, theirs: T, cfg: VersioningConfig = {}): MergeResult<T> {
   const conflicts: Conflict[] = [];
   const merged = mergeAt(base, ours, theirs, "", conflicts, cfg) as T;

@@ -40,6 +40,8 @@ import type { Delta, MergeResult } from "../types.js";
  *
  * `model.toJSON()` returns `this` (self-reference), so we use a
  * JSON round-trip to obtain a true plain object with only serializable fields.
+ * @param model - the UuidModel instance to serialize
+ * @returns a plain JSON object with all serializable fields
  */
 function toPlain<T extends UuidModel>(model: T): Record<string, unknown> {
   return JSON.parse(JSON.stringify(model));
@@ -53,6 +55,9 @@ function toPlain<T extends UuidModel>(model: T): Record<string, unknown> {
  * new random uuid), then call `fresh.load(plain)` to overlay all fields from
  * the plain snapshot — including the correct uuid and any custom-deserialised
  * fields defined in `static getDeserializers()`.
+ * @param source - an existing instance used to determine the subclass constructor
+ * @param plain - the plain JSON object to rehydrate
+ * @returns a new instance of the same UuidModel subclass loaded with the plain data
  */
 function fromPlain<T extends UuidModel>(source: T, plain: Record<string, unknown>): T {
   const Ctor = source.constructor as new (data?: Partial<T>) => T;

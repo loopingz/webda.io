@@ -2,6 +2,13 @@ import { setAtPointer } from "../engine/patch.js";
 import { VersioningError } from "../errors.js";
 import type { Conflict, MergeResult, Path, Resolution } from "../types.js";
 
+/**
+ * Convert a `Resolution` decision for a single conflict into a concrete value
+ * that can be written back into the merged object.
+ * @param c - the conflict being resolved
+ * @param res - the resolution instruction (`choose`, `value`, or `text`)
+ * @returns the resolved value to write at the conflict's path
+ */
 function resolutionToValue(c: Conflict, res: Resolution): unknown {
   if ("choose" in res) {
     switch (res.choose) {
@@ -36,6 +43,13 @@ function resolutionToValue(c: Conflict, res: Resolution): unknown {
   );
 }
 
+/**
+ * Apply a map of resolutions to a merge result, writing resolved values back
+ * into the merged object and returning any still-unresolved conflicts.
+ * @param result - the merge result containing conflicts and the current merged value
+ * @param resolutions - a map from conflict path to resolution instruction
+ * @returns a new `MergeResult` with resolved conflicts applied and remaining conflicts listed
+ */
 export function resolve<T>(
   result: MergeResult<T>,
   resolutions: Map<Path, Resolution>

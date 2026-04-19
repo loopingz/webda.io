@@ -12,6 +12,12 @@ import type { Delta, Path, UnifiedDiff } from "../types.js";
 // order decides which wins. Document-space objects in this package's domain are
 // expected to have a single stable identity field per array; cross-array id
 // collisions are out of scope.
+/**
+ * Create a jsondiffpatch instance configured to use `cfg.arrayId` keys for
+ * identity-based array diffing.
+ * @param cfg - versioning config supplying optional `arrayId` key mappings
+ * @returns a configured jsondiffpatch instance
+ */
 function makeJdp(cfg: VersioningConfig) {
   const arrayIds = cfg.arrayId ?? {};
   return createJdp({
@@ -35,6 +41,11 @@ function makeJdp(cfg: VersioningConfig) {
   });
 }
 
+/**
+ * Escape a JSON Pointer path segment per RFC 6901 (`~` → `~0`, `/` → `~1`).
+ * @param key - the raw object key to escape
+ * @returns the escaped key safe for use in a JSON Pointer segment
+ */
 function escapePointer(key: string): string {
   return key.replace(/~/g, "~0").replace(/\//g, "~1");
 }
@@ -44,6 +55,11 @@ function escapePointer(key: string): string {
  * "line" strategy, records `{ path → hunks }` and replaces the `b` value
  * with the `a` value so the structural delta produced by jsondiffpatch
  * skips that path.
+ * @param a - the "before" value
+ * @param b - the "after" value
+ * @param cfg - versioning config used to determine per-path string strategy
+ * @param path - current JSON Pointer path (empty string at root)
+ * @returns `bStripped` (b with line-strategy strings replaced by a) and `hunks` map
  */
 function extractLineHunks(
   a: unknown,
@@ -93,6 +109,13 @@ function extractLineHunks(
   return { bStripped: b, hunks: {} };
 }
 
+/**
+ * Compute a structured delta between two values.
+ * @param a - the "before" value
+ * @param b - the "after" value
+ * @param cfg - optional versioning config (string strategies, arrayId, etc.)
+ * @returns a serializable `Delta` describing the changes from `a` to `b`
+ */
 export function diff(a: unknown, b: unknown, cfg: VersioningConfig = {}): Delta {
   const { bStripped, hunks } = extractLineHunks(a, b, cfg);
   const jdp = makeJdp(cfg);

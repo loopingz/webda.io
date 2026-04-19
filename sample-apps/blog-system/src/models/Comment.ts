@@ -33,4 +33,9 @@ export class Comment extends UuidModel {
   // Relations
   post!: BelongTo<Post>;
   author!: BelongTo<User>;
+
+  /** Public sample — permissive for all actions. */
+  async canAct(_context: any, _action: string): Promise<boolean> {
+    return true;
+  }
 }

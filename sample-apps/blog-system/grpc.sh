@@ -34,8 +34,9 @@ elif [ -f "app.proto" ]; then
   PROTO="-proto app.proto"
 fi
 
-# Use plaintext since debug server is HTTP (not TLS)
-GRPC="grpcurl -plaintext $PROTO"
+# -insecure skips TLS cert validation (dev self-signed). Swap for -plaintext
+# when targeting the h2c port (default 50051) instead of the TLS main port.
+GRPC="grpcurl -insecure $PROTO"
 
 # ── helpers ────────────────────────────────────────────────────────────
 check() {
@@ -90,16 +91,16 @@ fi
 # ── Tags ───────────────────────────────────────────────────────────────
 section "Tags"
 
-check "Create tag" webda.Tag Create \
+check "Create tag" webda.TagService Create \
   -d '{"slug":"grpc-tag","name":"gRPC Tag","description":"From gRPC","color":"#00b4d8"}'
 
-check "Get tag" webda.Tag Get \
+check "Get tag" webda.TagService Get \
   -d '{"slug":"grpc-tag"}'
 
-check "Query tags" webda.Tags Query \
+check "Query tags" webda.TagsService Query \
   -d '{"query":""}'
 
-check "Update tag" webda.Tag Update \
+check "Update tag" webda.TagService Update \
   -d '{"slug":"grpc-tag","name":"gRPC Tag Updated"}'
 
 # ── Users ──────────────────────────────────────────────────────────────
@@ -107,71 +108,71 @@ section "Users"
 
 GRPC_USER="550e8400-e29b-41d4-a716-446655440020"
 
-check "Create user" webda.User Create \
+check "Create user" webda.UserService Create \
   -d "{\"uuid\":\"$GRPC_USER\",\"username\":\"grpcuser\",\"email\":\"grpc@example.com\",\"password\":\"secret\",\"name\":\"gRPC User\"}"
 
-check "Get user" webda.User Get \
+check "Get user" webda.UserService Get \
   -d "{\"uuid\":\"$GRPC_USER\"}"
 
-check "Query users" webda.Users Query \
+check "Query users" webda.UsersService Query \
   -d '{"query":""}'
 
 # ── Posts ──────────────────────────────────────────────────────────────
 section "Posts"
 
-check "Create post" webda.Post Create \
+check "Create post" webda.PostService Create \
   -d '{"title":"gRPC Test Post","slug":"grpc-test","content":"Testing gRPC with the blog system sample app.","status":"draft","viewCount":0}'
 
-check "Get post" webda.Post Get \
+check "Get post" webda.PostService Get \
   -d '{"slug":"grpc-test"}'
 
-check "Query posts" webda.Posts Query \
+check "Query posts" webda.PostsService Query \
   -d '{"query":""}'
 
-check "Update post" webda.Post Update \
+check "Update post" webda.PostService Update \
   -d '{"slug":"grpc-test","title":"gRPC Updated","content":"Updated via gRPC with enough content here.","status":"published","viewCount":1}'
 
 # ── Post Actions ───────────────────────────────────────────────────────
 section "Post Actions"
 
-check "Publish post" webda.Post Publish \
-  -d '{"slug":"grpc-test","destination":"twitter"}'
+check "Publish post" webda.PostService Publish \
+  -d '{"uuid":"grpc-test"}'
 
 # ── Comments ───────────────────────────────────────────────────────────
 section "Comments"
 
 GRPC_COMMENT="770e8400-e29b-41d4-a716-446655440001"
 
-check "Create comment" webda.Comment Create \
+check "Create comment" webda.CommentService Create \
   -d "{\"uuid\":\"$GRPC_COMMENT\",\"content\":\"gRPC comment\",\"post\":\"grpc-test\",\"author\":\"$GRPC_USER\",\"isEdited\":false}"
 
-check "Get comment" webda.Comment Get \
+check "Get comment" webda.CommentService Get \
   -d "{\"uuid\":\"$GRPC_COMMENT\"}"
 
-check "Query comments" webda.Comments Query \
+check "Query comments" webda.CommentsService Query \
   -d '{"query":""}'
 
 # ── Service Operations ─────────────────────────────────────────────────
 section "Service Operations"
 
-check "Version" webda.Version Get -d '{}'
+check "Version" webda.VersionService Get -d '{}'
 
-check "Publisher.publish" webda.Publisher Publish \
+check "Publisher.publish" webda.PublisherService Publish \
   -d '{"message":"Hello from gRPC"}'
 
-check "Publisher.publishPost" webda.Publisher PublishPost \
+check "Publisher.publishPost" webda.PublisherService PublishPost \
   -d '{"postId":"grpc-test"}'
 
-check "TestBean.testOperation" webda.TestBean TestOperation \
+check "TestBean.testOperation" webda.TestBeanService TestOperation \
   -d '{"counter":42}'
 
 # ── Cleanup ────────────────────────────────────────────────────────────
 section "Cleanup"
 
-check "Delete comment" webda.Comment Delete -d "{\"uuid\":\"$GRPC_COMMENT\"}"
-check "Delete post" webda.Post Delete -d '{"slug":"grpc-test"}'
-check "Delete tag" webda.Tag Delete -d '{"slug":"grpc-tag"}'
-check "Delete user" webda.User Delete -d "{\"uuid\":\"$GRPC_USER\"}"
+check "Delete comment" webda.CommentService Delete -d "{\"uuid\":\"$GRPC_COMMENT\"}"
+check "Delete post" webda.PostService Delete -d '{"slug":"grpc-test"}'
+check "Delete tag" webda.TagService Delete -d '{"slug":"grpc-tag"}'
+check "Delete user" webda.UserService Delete -d "{\"uuid\":\"$GRPC_USER\"}"
 
 # ── Summary ────────────────────────────────────────────────────────────
 echo

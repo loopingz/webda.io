@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-BASE="${1:-http://localhost:18080}"
+BASE="${1:-https://localhost:18080}"
 PASS=0
 FAIL=0
 TOTAL=0
@@ -23,7 +23,8 @@ check() {
   shift 4
   TOTAL=$((TOTAL + 1))
 
-  local args=(-s -o /tmp/webda-rest-body -w "%{http_code}" -X "$method" "$BASE$path")
+  # `-k` accepts the dev self-signed cert; drop once a real cert is in play.
+  local args=(-sk -o /tmp/webda-rest-body -w "%{http_code}" -X "$method" "$BASE$path")
   args+=("$@")
 
   local code
@@ -116,7 +117,7 @@ check PATCH /posts/hello-world 200 "Patch post" \
 # ── Post Actions ───────────────────────────────────────────────────────
 section "Post Actions"
 
-check POST /posts/hello-world/publish 200 "Publish post" \
+check PUT /posts/hello-world/publish 200 "Publish post" \
   -H "Content-Type: application/json" \
   -d '{"destination":"twitter"}'
 

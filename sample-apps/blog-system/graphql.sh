@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-BASE="${1:-http://localhost:18080}"
+BASE="${1:-https://localhost:18080}"
 GQL="$BASE/graphql"
 PASS=0
 FAIL=0
@@ -27,16 +27,19 @@ gql() {
   payload=$(printf '{"query":"%s"}' "$(echo "$query" | tr '\n' ' ' | sed 's/"/\\"/g')")
 
   local code
-  code=$(curl -s -o /tmp/webda-gql-body -w "%{http_code}" \
+  code=$(curl -sk -o /tmp/webda-gql-body -w "%{http_code}" \
     -X POST "$GQL" \
     -H "Content-Type: application/json" \
     -d "$payload" 2>/dev/null) || code="000"
   local body
   body=$(cat /tmp/webda-gql-body 2>/dev/null || echo "")
 
-  # Check for GraphQL errors in response
+  # Check for GraphQL errors in response. `grep -c` exits with 1 when there are
+  # zero matches and still prints "0"; under `set -e` the pipefail-friendly
+  # way to swallow the non-zero exit is `|| true`, not `|| echo "0"` (which
+  # would append a second "0" to the captured value and break the == check).
   local has_errors
-  has_errors=$(echo "$body" | grep -c '"errors"' 2>/dev/null || echo "0")
+  has_errors=$(echo "$body" | grep -c '"errors"' || true)
 
   if [ "$code" = "$expect" ] && [ "$has_errors" = "0" ]; then
     PASS=$((PASS + 1))
@@ -62,13 +65,13 @@ section() { echo; echo "── $1 ──"; }
 # ── Setup via REST (GraphQL needs data to query) ──────────────────────
 section "Setup (REST)"
 
-curl -s -X POST "$BASE/tags" -H "Content-Type: application/json" \
+curl -sk -X POST "$BASE/tags" -H "Content-Type: application/json" \
   -d '{"slug":"graphql-tag","name":"GraphQL","description":"GraphQL testing","color":"#e535ab"}' > /dev/null
 
-curl -s -X POST "$BASE/users" -H "Content-Type: application/json" \
+curl -sk -X POST "$BASE/users" -H "Content-Type: application/json" \
   -d '{"uuid":"550e8400-e29b-41d4-a716-446655440010","username":"gqluser","email":"gql@example.com","password":"secret","name":"GQL User"}' > /dev/null
 
-curl -s -X POST "$BASE/posts" -H "Content-Type: application/json" \
+curl -sk -X POST "$BASE/posts" -H "Content-Type: application/json" \
   -d '{"title":"GraphQL Test Post","slug":"graphql-test","content":"Testing GraphQL queries with enough content here.","status":"draft","viewCount":0}' > /dev/null
 
 echo "  $(dim "Created test data via REST")"
@@ -118,9 +121,9 @@ gql "List types" 200 '{ __schema { types { name kind } } }'
 # ── Cleanup ────────────────────────────────────────────────────────────
 section "Cleanup (REST)"
 
-curl -s -X DELETE "$BASE/posts/graphql-test" > /dev/null
-curl -s -X DELETE "$BASE/tags/graphql-tag" > /dev/null
-curl -s -X DELETE "$BASE/users/550e8400-e29b-41d4-a716-446655440010" > /dev/null
+curl -sk -X DELETE "$BASE/posts/graphql-test" > /dev/null
+curl -sk -X DELETE "$BASE/tags/graphql-tag" > /dev/null
+curl -sk -X DELETE "$BASE/users/550e8400-e29b-41d4-a716-446655440010" > /dev/null
 
 echo "  $(dim "Cleaned up test data")"
 

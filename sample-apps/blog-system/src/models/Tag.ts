@@ -38,4 +38,12 @@ export class Tag extends Model {
 
   // Relations
   posts!: OneToMany<Post, Tag, "tags">; // Posts associated with this tag
+
+  /**
+   * Public sample — anyone can read/write tags. Real apps should check the
+   * context's user/roles before returning true.
+   */
+  async canAct(_context: any, _action: string): Promise<boolean> {
+    return true;
+  }
 }

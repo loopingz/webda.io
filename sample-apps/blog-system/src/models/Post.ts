@@ -107,4 +107,9 @@ export class Post extends Model {
   async publish(destination: "linkedin" | "twitter"): Promise<string> {
     return `${destination}_${this.slug}_${Date.now()}`;
   }
+
+  /** Public sample — permissive for all actions. */
+  async canAct(_context: any, _action: string): Promise<boolean> {
+    return true;
+  }
 }

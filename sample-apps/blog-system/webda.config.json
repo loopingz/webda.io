@@ -5,6 +5,13 @@
     "website": "http://localhost:18080"
   },
   "services": {
+    "HttpServer": {
+      "type": "Webda/HttpServer",
+      "autoTls": true
+    },
+    "Publisher": {
+      "type": "Publisher"
+    },
     "Mailer": {
       "type": "Webda/Mailer"
     },

@@ -167,4 +167,9 @@ export class User extends UuidModel {
       target
     });
   }
+
+  /** Public sample — permissive for all actions. */
+  async canAct(_context: any, _action: string): Promise<boolean> {
+    return true;
+  }
 }

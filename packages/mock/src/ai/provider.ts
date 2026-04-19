@@ -4,7 +4,8 @@ export interface AIProvider {
    * Complete a prompt.
    *
    * @param prompt - the input text.
-   * @param options - optional tuning (e.g. `maxTokens`).
+   * @param options - optional tuning.
+   * @param options.maxTokens - maximum tokens for the response.
    * @returns the completion text.
    */
   complete(prompt: string, options?: { maxTokens?: number }): Promise<string>;
@@ -14,8 +15,9 @@ export interface AIProvider {
 export class MockAIProvider implements AIProvider {
   private i = 0;
   /**
-   * @param opts - optional canned responses (returned in order, last repeats
-   *   if exhausted). When omitted, `complete()` echoes the prompt back.
+   * @param opts - construction options.
+   * @param opts.canned - canned responses returned in order (last repeats if exhausted).
+   *   When omitted, `complete()` echoes the prompt back.
    */
   constructor(private opts: { canned?: string[] } = {}) {}
 

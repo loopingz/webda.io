@@ -7,8 +7,9 @@ import type { AIProvider } from "./provider.js";
  */
 export class AnthropicProvider implements AIProvider {
   /**
-   * @param opts - optional API key (falls back to `ANTHROPIC_API_KEY` env)
-   *   and model identifier (defaults to the current Haiku).
+   * @param opts - construction options.
+   * @param opts.apiKey - Anthropic API key (falls back to `ANTHROPIC_API_KEY` env).
+   * @param opts.model - model identifier (defaults to the current Haiku).
    */
   constructor(private opts: { apiKey?: string; model?: string } = {}) {}
 
@@ -16,7 +17,8 @@ export class AnthropicProvider implements AIProvider {
    * Send a single completion request to Claude.
    *
    * @param prompt - the user-side prompt text.
-   * @param options - optional tuning parameters (currently just `maxTokens`).
+   * @param options - optional tuning parameters.
+   * @param options.maxTokens - maximum tokens for the response (default 512).
    * @returns the first text block of the response; empty string if none.
    */
   async complete(prompt: string, options?: { maxTokens?: number }): Promise<string> {

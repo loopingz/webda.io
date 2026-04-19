@@ -67,7 +67,18 @@ export class MemoryRepository<
     if (this.storage.has(key)) {
       throw new Error(`Already exists: ${key}`);
     }
-    const item: InstanceType<T> = new this.model(data) as InstanceType<T>;
+    // Build a fresh instance and copy the incoming fields onto it. Most model
+    // constructors ignore their arguments (only RegistryEntry and a few others
+    // assign them), so `new this.model(data)` alone dropped slug/name/uuid and
+    // produced an empty object on serialize → deserialize was missing the PK.
+    const item = new this.model(data) as InstanceType<T>;
+    if (data && data !== item) {
+      if (typeof (item as any).load === "function") {
+        (item as any).load(data);
+      } else {
+        Object.assign(item as any, data);
+      }
+    }
     if (save !== false) {
       this.storage.set(key, this.serialize(item));
     }

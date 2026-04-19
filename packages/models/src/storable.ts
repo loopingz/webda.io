@@ -97,7 +97,7 @@ export interface ModelClass<S extends Storable = Storable> {
     results: InstanceType<T>[];
     continuationToken?: string;
   }>;
-  registerSerializer(): void;
+  registerSerializer(overwrite?: boolean, identifier?: string): void;
   getDeserializers<T extends ModelClass>(): Partial<Record<keyof InstanceType<T>, (value: any) => any>> | undefined;
 }
 

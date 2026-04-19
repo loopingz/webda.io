@@ -4,6 +4,7 @@ import { Context, ContextProviderInfo } from "../contexts/icontext.js";
 import { IWebContext } from "../contexts/icontext.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { EventEmitter } from "node:events";
+import { useLog } from "@webda/workout";
 
 export type CoreEvents = {
   /**
@@ -67,12 +68,29 @@ export class EventWithContext<T extends Context = Context> {
 
 const emitter = new EventEmitter();
 /**
- * Emit a core event
+ * Emit a core event.
+ *
+ * Async listeners can return a rejected promise that would otherwise escape as
+ * an unhandled rejection and crash the process. We iterate listeners manually
+ * so we can attach a `.catch()` on async returns and isolate sync throws —
+ * listeners must never take down the emitter's caller.
+ *
  * @param event - the event name
  * @param data - the data to process
  */
 export function emitCoreEvent<K extends keyof CoreEvents>(event: K, data: CoreEvents[K]) {
-  emitter.emit(event, data);
+  for (const listener of emitter.listeners(event)) {
+    try {
+      const result = (listener as (d: CoreEvents[K]) => unknown)(data);
+      if (result && typeof (result as Promise<unknown>).then === "function") {
+        (result as Promise<unknown>).catch(err => {
+          useLog("ERROR", `Async listener error on "${String(event)}":`, err);
+        });
+      }
+    } catch (err) {
+      useLog("ERROR", `Listener error on "${String(event)}":`, err);
+    }
+  }
 }
 
 /**

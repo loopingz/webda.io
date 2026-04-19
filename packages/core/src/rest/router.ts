@@ -73,12 +73,6 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     useCoreEvents("Webda.Init", () => {
       this.remapRoutes();
     });
-    // Listen to incoming requests and route them
-    useCoreEvents("Webda.Request", async ({ context }) => {
-      if (context instanceof WebContext) {
-        await this.execute(context);
-      }
-    });
     return super.resolve();
   }
 

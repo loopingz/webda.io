@@ -30,7 +30,13 @@ type FieldMetaMap = Record<string, MockMeta>;
  */
 function mark(kind: MockKind, options?: Record<string, unknown>) {
   return (_value: unknown, context: ClassFieldDecoratorContext) => {
-    const bag = (context.metadata[MOCK_META] ??= {} as FieldMetaMap) as FieldMetaMap;
+    // Use own-property check so that a subclass field decorator does not mutate
+    // the parent's shared metadata bag (TC39: Symbol.metadata is prototypally inherited).
+    if (!Object.hasOwn(context.metadata, MOCK_META)) {
+      const inherited = context.metadata[MOCK_META] as FieldMetaMap | undefined;
+      context.metadata[MOCK_META] = inherited ? { ...inherited } : ({} as FieldMetaMap);
+    }
+    const bag = context.metadata[MOCK_META] as FieldMetaMap;
     bag[String(context.name)] = options === undefined ? { kind } : { kind, options };
   };
 }

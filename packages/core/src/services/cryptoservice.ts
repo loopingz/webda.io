@@ -9,6 +9,7 @@ import { getMachineId, useCore, useService } from "../core/hooks.js";
 import { useLog } from "../loggers/hooks.js";
 import { Service } from "./service.js";
 import { OperationContext } from "../contexts/operationcontext.js";
+import { Route } from "../rest/irest.js";
 import { useRegistry } from "../models/registry.js";
 
 /** Wraps a secret string value, masking it in logs and inspect output */
@@ -153,10 +154,6 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     if (this.parameters.autoCreate && !(await this.load())) {
       await this.rotate();
     }
-    this.addRoute(".", ["GET"], this.serveJWKS.bind(this), {
-      description: "Serve JWKS keys",
-      get: { operationId: "getJWKS" }
-    });
     return this;
   }
 
@@ -164,6 +161,12 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    *
    * @param context - the execution context
    */
+  @Route(".", ["GET"], {
+    description: "Serve JWKS keys",
+    get: {
+      operationId: "getJWKS"
+    }
+  })
   async serveJWKS(context: OperationContext) {
     context.write({
       keys: Object.keys(this.keys).map(k => {

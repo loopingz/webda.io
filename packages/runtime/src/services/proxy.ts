@@ -3,6 +3,7 @@ import {
   Gauge,
   Histogram,
   HttpContext,
+  Route,
   Service,
   ServiceParameters,
   useCore,
@@ -138,18 +139,6 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
       });
     });
     return super.resolve();
-  }
-
-  /**
-   * Register proxy routes previously declared via the @Route decorator
-   * @returns this instance for chaining
-   */
-  async init(): Promise<this> {
-    await super.init();
-    const methods = <("GET" | "POST" | "DELETE" | "PUT" | "PATCH")[]>["GET", "POST", "DELETE", "PUT", "PATCH"];
-    this.addRoute("./{+path}", methods, this.proxyRoute.bind(this));
-    this.addRoute(".", methods, this.proxyRoute.bind(this));
-    return this;
   }
 
   /**
@@ -436,6 +425,8 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * Main proxy route handler — enforces authentication if configured, then proxies
    * @param ctx - incoming web context
    */
+  @Route("./{+path}", ["GET", "POST", "DELETE", "PUT", "PATCH"])
+  @Route(".", ["GET", "POST", "DELETE", "PUT", "PATCH"])
   async proxyRoute(ctx: WebContext) {
     if (this.parameters.requireAuthentication && !ctx.getCurrentUserId()) {
       throw new WebdaError.Unauthorized("You need to be authenticated to access this route");

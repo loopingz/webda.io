@@ -415,14 +415,34 @@ abstract class Service<
   }
 
   /**
-   * No-op stub kept only so external call sites (Service.resolve) don't break.
-   * Routes are now registered programmatically from each service's init(); the
-   * old @Route decorator has been removed.
+   * Register routes declared with the `@Route` decorator on this service.
    *
-   * @deprecated Call `this.addRoute(...)` from init() instead.
+   * @Route writes to `context.metadata["webda.route"]` via the Symbol.metadata
+   * pipeline. Walk that table, plus the legacy `this.constructor.routes`
+   * bucket some services still populate by hand, and forward each entry to
+   * `addRoute`. Services are free to add more routes programmatically from
+   * `init()` — `@Route` is just a sugar for the common case.
    */
   initRoutes() {
-    // intentionally empty — see doc
+    // @ts-ignore — back-compat for subclasses that still populate this
+    const legacy: Record<string, any[]> = this.constructor.routes || {};
+    const fromMetadata: Record<string, any[]> =
+      getMetadata(this.constructor as any)?.["webda.route"] || {};
+    const routes: Record<string, any[]> = { ...legacy };
+    for (const path in fromMetadata) {
+      routes[path] = [...(routes[path] || []), ...fromMetadata[path]];
+    }
+    for (const path in routes) {
+      this.log("TRACE", "Adding route", path, "for bean", this.getName());
+      routes[path].forEach(route => {
+        const executor = this[route.executor];
+        if (typeof executor !== "function") {
+          this.log("WARN", `@Route references ${route.executor} which is not a method on ${this.getName()}`);
+          return;
+        }
+        this.addRoute(path, route.methods, executor.bind(this), route.openapi);
+      });
+    }
   }
 
   /**

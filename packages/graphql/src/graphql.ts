@@ -4,6 +4,7 @@ import {
   DomainService,
   DomainServiceParameters,
   ModelDefinition,
+  Route,
   WebContext,
   WebdaError,
   useApplication,
@@ -1090,26 +1091,6 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     this.parameters.exposeGraphiQL ??= useCore().isDebug();
     this.app = useApplication();
     this.generateSchema();
-    // Register HTTP endpoints explicitly — replaces the old @Route decorator.
-    this.addRoute(".", ["GET"], this.schemaRoute.bind(this), { hidden: true });
-    this.addRoute(".", ["POST"], this.endpoint.bind(this), {
-      post: {
-        summary: "GraphQL endpoint",
-        requestBody: {
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  query: { type: "string" },
-                  variables: { type: "object" }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
     // Generate GraphQL schema
     this.handler = createHandler({
       schema: this.schema,
@@ -1180,6 +1161,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * Serve the GraphQL schema as text or the GraphiQL IDE as HTML
    * @param ctx - incoming web context
    */
+  @Route(".", ["GET"], { hidden: true })
   async schemaRoute(ctx: WebContext<any>) {
     const httpContext = ctx.getHttpContext();
     if (!this.parameters.exposeGraphiQL) {
@@ -1203,6 +1185,24 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * Handle POST requests to the GraphQL endpoint
    * @param ctx - incoming web context with the GraphQL query body
    */
+  @Route(".", ["POST"], {
+    post: {
+      summary: "GraphQL endpoint",
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                query: { type: "string" },
+                variables: { type: "object" }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
   async endpoint(ctx: WebContext<any>) {
     const httpContext = ctx.getHttpContext();
     ctx.setExtension("graphql", { count: 0 });

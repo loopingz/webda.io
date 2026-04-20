@@ -1,7 +1,7 @@
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
 import { HttpMethodType } from "../contexts/httpcontext.js";
-import { DeepPartial } from "@webda/tsc-esm";
+import { createMethodDecorator, DeepPartial } from "@webda/tsc-esm";
 import { IWebContext } from "../contexts/icontext.js";
 import type { Repository } from "@webda/models";
 
@@ -29,6 +29,52 @@ export interface OpenAPIWebdaDefinition extends DeepPartial<OpenAPIV3.PathItemOb
   patch?: OpenApiWebdaOperation;
   get?: OpenApiWebdaOperation;
 }
+
+/**
+ * Bind a class method to an HTTP route at the service's base URL.
+ *
+ * **Prefer `@Operation`.** Operations plug into REST, GraphQL, and gRPC with
+ * a single declaration and give you request/response schema generation for
+ * free. `@Route` is the escape hatch for endpoints that don't fit the
+ * operation model (static assets, JWKS, Accept-based content negotiation,
+ * server-sent events, manual streaming, etc.) — anything where you need raw
+ * access to `WebContext` and the operation abstraction would get in the way.
+ *
+ * Routes are read by `Service.initRoutes()` during service init and
+ * registered on the router with the same semantics as a manual
+ * `this.addRoute(...)` call. `route` is resolved relative to the service's
+ * `url` parameter when it starts with `.` (`".", "./me", "./email/{email}"`).
+ *
+ * @param route - URL pattern, e.g. `"."`, `"./me"`, `"./{id}/children"`
+ * @param methods - HTTP verb or list; defaults to `["GET"]`
+ * @param openapi - OpenAPI `PathItemObject` fragment for this method
+ *
+ * @example
+ * ```ts
+ * class JwksService extends Service {
+ *   // Raw route — JWKS content-type isn't a natural fit for @Operation
+ *   ⁣@Route(".", ["GET"], { get: { operationId: "getJWKS" } })
+ *   async serveJWKS(ctx: OperationContext) { … }
+ * }
+ * ```
+ */
+export const Route = createMethodDecorator(
+  (
+    _value: any,
+    context: ClassMemberDecoratorContext,
+    route: string,
+    methods: HttpMethodType | HttpMethodType[] = ["GET"],
+    openapi: OpenAPIWebdaDefinition = {}
+  ) => {
+    context.metadata["webda.route"] ??= {};
+    context.metadata["webda.route"][route] ??= [];
+    context.metadata["webda.route"][route].push({
+      methods: Array.isArray(methods) ? methods : [methods],
+      executor: context.name,
+      openapi
+    });
+  }
+);
 
 /**
  * Operation object with optional schemas

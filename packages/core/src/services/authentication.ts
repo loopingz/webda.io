@@ -4,6 +4,7 @@ import * as WebdaError from "../errors/errors.js";
 import { Ident } from "../models/ident.js";
 import type { User } from "../models/user.js";
 import { Inject, Service } from "../services/service.js";
+import { Route } from "../rest/irest.js";
 import type { OperationContext } from "../contexts/operationcontext.js";
 import { type HttpMethodType } from "../contexts/httpcontext.js";
 import type { CryptoService } from "./cryptoservice.js";
@@ -412,66 +413,6 @@ class Authentication<
   }
 
   /**
-   * Register routes previously declared via the @Route decorator
-   * @returns this instance for chaining
-   */
-  async init(): Promise<this> {
-    await super.init();
-    this.addRoute("./email/{email}/validate", ["GET"], this._sendEmailValidation.bind(this), {
-      get: {
-        description: "The email validation process will be start",
-        summary: "Restart email validation",
-        operationId: "startEmailRecovery",
-        responses: {
-          "204": {
-            description: ""
-          },
-          "409": {
-            description: "Email already verified for another user"
-          },
-          "412": {
-            description: "Email already verified for current user"
-          },
-          "429": {
-            description: "Validation has been initiated in the last 4 hours"
-          }
-        }
-      }
-    });
-    this.addRoute("./me", ["GET"], this._getMe.bind(this), {
-      get: {
-        description: "Retrieve the current user from the session",
-        summary: "Get current user",
-        operationId: "getCurrentUser"
-      }
-    });
-    this.addRoute(".", ["GET", "DELETE"], this._listAuthentications.bind(this), {
-      get: {
-        description: "Retrieve the list of available authentication",
-        summary: "Get available auths",
-        operationId: `getAuthenticationMethods`,
-        responses: {
-          "200": {
-            description: "List of authentication"
-          }
-        }
-      },
-      delete: {
-        description: "Logout current user",
-        summary: "Logout",
-        operationId: `logout`,
-        responses: {
-          "200": {}
-        }
-      }
-    });
-    this.addRoute("./email/callback{?email,token,user?}", ["GET"], this._handleEmailCallback.bind(this), {
-      hidden: true
-    });
-    return this;
-  }
-
-  /**
    * Add a provider to the oauth scheme
    * @param name - the name to use
    */
@@ -498,6 +439,27 @@ class Authentication<
    * @throws 412 if the email is already validated
    * @throws 429 if a validation email has been sent recently
    */
+  @Route("./email/{email}/validate", ["GET"], {
+    get: {
+      description: "The email validation process will be start",
+      summary: "Restart email validation",
+      operationId: "startEmailRecovery",
+      responses: {
+        "204": {
+          description: ""
+        },
+        "409": {
+          description: "Email already verified for another user"
+        },
+        "412": {
+          description: "Email already verified for current user"
+        },
+        "429": {
+          description: "Validation has been initiated in the last 4 hours"
+        }
+      }
+    }
+  })
   async _sendEmailValidation(ctx) {
     const identKey = ctx.parameters.email + "_email";
     const ident = await this.identModel.ref(identKey).get();
@@ -532,6 +494,13 @@ class Authentication<
    * Return current user
    * @param ctx - the operation context
    */
+  @Route("./me", ["GET"], {
+    get: {
+      description: "Retrieve the current user from the session",
+      summary: "Get current user",
+      operationId: "getCurrentUser"
+    }
+  })
   async _getMe(ctx: OperationContext) {
     const user = await ctx.getCurrentUser<User>();
     if (user === undefined) {
@@ -551,6 +520,26 @@ class Authentication<
    * @param ctx - the operation context
    * @returns the result
    */
+  @Route(".", ["GET", "DELETE"], {
+    get: {
+      description: "Retrieve the list of available authentication",
+      summary: "Get available auths",
+      operationId: `getAuthenticationMethods`,
+      responses: {
+        "200": {
+          description: "List of authentication"
+        }
+      }
+    },
+    delete: {
+      description: "Logout current user",
+      summary: "Logout",
+      operationId: `logout`,
+      responses: {
+        "200": {}
+      }
+    }
+  })
   async _listAuthentications(ctx: WebContext) {
     if (ctx.getHttpContext().getMethod() === "DELETE") {
       await this.logout(ctx);
@@ -777,6 +766,9 @@ class Authentication<
    * @param ctx - the operation context
    * @returns the result
    */
+  @Route("./email/callback{?email,token,user?}", ["GET"], {
+    hidden: true
+  })
   async _handleEmailCallback(ctx: WebContext) {
     if (
       !(await this.cryptoService.hmacVerify(

@@ -227,8 +227,9 @@ abstract class Service<
   }
 
   /**
-   * Resolve parameters
-   * Call initRoutes and initBeanRoutes
+   * Resolve parameters and load metadata. `@Route`-declared routes are scanned
+   * and registered by `Router.discoverRoutes(services)` from `Core.init()`
+   * once every service has resolved — nothing to do per-service here.
    * @returns the result
    */
   @ServiceState({ start: "resolving", end: "resolved" })
@@ -241,7 +242,6 @@ abstract class Service<
     this.computeParameters();
 
     this.loadCapabilities();
-    this.initRoutes();
     this.initOperations();
     return this;
   }
@@ -412,37 +412,6 @@ abstract class Service<
    */
   getOpenApiReplacements(): any {
     return {};
-  }
-
-  /**
-   * Register routes declared with the `@Route` decorator on this service.
-   *
-   * @Route writes to `context.metadata["webda.route"]` via the Symbol.metadata
-   * pipeline. Walk that table, plus the legacy `this.constructor.routes`
-   * bucket some services still populate by hand, and forward each entry to
-   * `addRoute`. Services are free to add more routes programmatically from
-   * `init()` — `@Route` is just a sugar for the common case.
-   */
-  initRoutes() {
-    // @ts-ignore — back-compat for subclasses that still populate this
-    const legacy: Record<string, any[]> = this.constructor.routes || {};
-    const fromMetadata: Record<string, any[]> =
-      getMetadata(this.constructor as any)?.["webda.route"] || {};
-    const routes: Record<string, any[]> = { ...legacy };
-    for (const path in fromMetadata) {
-      routes[path] = [...(routes[path] || []), ...fromMetadata[path]];
-    }
-    for (const path in routes) {
-      this.log("TRACE", "Adding route", path, "for bean", this.getName());
-      routes[path].forEach(route => {
-        const executor = this[route.executor];
-        if (typeof executor !== "function") {
-          this.log("WARN", `@Route references ${route.executor} which is not a method on ${this.getName()}`);
-          return;
-        }
-        this.addRoute(path, route.methods, executor.bind(this), route.openapi);
-      });
-    }
   }
 
   /**

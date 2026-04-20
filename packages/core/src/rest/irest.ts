@@ -214,4 +214,8 @@ export interface IRouter {
    * Auto-discover services with request-filter and cors-filter capabilities
    */
   discoverFilters(services: Iterable<{ getCapabilities(): Record<string, any> }>): void;
+  /**
+   * Auto-discover routes declared via `@Route` on each service and register them
+   */
+  discoverRoutes(services: Iterable<any>): void;
 }

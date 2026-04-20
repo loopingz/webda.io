@@ -240,10 +240,14 @@ export abstract class OAuthService<
   }
 
   /**
-   * Add routes for the authentication
+   * Add routes for the authentication. The URL suffixes depend on runtime
+   * config (`parameters.url`, callback query params) so they're registered
+   * programmatically from init() rather than declaratively via `@Route`.
+   *
+   * @returns this for chaining
    */
-  initRoutes() {
-    super.initRoutes();
+  async init(): Promise<this> {
+    await super.init();
     const name = this.getName();
 
     this.addRoute(`${this.parameters.url}{?redirect?}`, ["GET"], this._redirect, {
@@ -323,6 +327,7 @@ export abstract class OAuthService<
         }
       });
     }
+    return this;
   }
 
   /**

@@ -305,8 +305,12 @@ export class Core implements ICore {
     for (const service of this.initOrders) {
       await this.initService(service);
     }
-    // Auto-discover capability-based filters
-    useInstanceStorage().router?.discoverFilters(Object.values(this.services).filter(Boolean));
+    // Auto-discover capability-based filters + @Route metadata across every
+    // service so services don't have to push their own routes at init time.
+    const router = useInstanceStorage().router;
+    const services = Object.values(this.services).filter(Boolean);
+    router?.discoverFilters(services);
+    router?.discoverRoutes(services);
     await emitCoreEvent("Webda.Init.Services", this.services);
   }
 

@@ -16,6 +16,8 @@ let mockCallOperationError: any = null;
 let mockCallOperationRawOutput: string | undefined = undefined;
 /** Services returned by the mocked useCore().getServices() — set per test to inject HttpServer stubs */
 let mockCoreServices: Record<string, any> = {};
+/** Models returned by the mocked useApplication().getModels() — used by generateProto */
+let mockModels: Record<string, any> = {};
 
 vi.mock("@webda/core", () => {
   class MockServiceParameters {
@@ -105,7 +107,8 @@ vi.mock("@webda/core", () => {
       };
     },
     useApplication: () => ({
-      getSchemas: () => mockSchemas
+      getSchemas: () => mockSchemas,
+      getModels: () => mockModels
     }),
     useCore: () => ({ getServices: () => mockCoreServices }),
     useInstanceStorage: () => ({}),
@@ -374,6 +377,26 @@ class GrpcServiceGenerateProtoTest {
   }
 
   @test
+  async foldsModelInputSchemasIntoSchemasMap() {
+    // app.getModels() returns models whose Metadata.Schemas.Input should be
+    // merged into the schema map used for proto generation.
+    mockOperations["Post.Create"] = { service: "PostService", method: "create" };
+    mockModels = {
+      "WebdaSample/Post": {
+        Metadata: { Schemas: { Input: { type: "object", properties: { title: { type: "string" } } } } }
+      }
+    };
+    const outPath = join(this.tmpDir, "with-model.proto");
+    const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: outPath }));
+    try {
+      await service.generateProto();
+      assert.ok(existsSync(outPath), "Proto file should be written");
+    } finally {
+      mockModels = {};
+    }
+  }
+
+  @test
   async emptyOperationsStillProducesValidProto() {
     const outPath = join(this.tmpDir, "empty.proto");
     const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: outPath }));
@@ -553,6 +576,36 @@ class GrpcServiceHandleGrpcRequestTest {
     assert.ok(mock.trailers !== null);
     assert.strictEqual(mock.trailers!["grpc-status"], "0");
     assert.ok(mock.ended);
+  }
+
+  @test
+  async unaryWrapsScalarOutputInValueField() {
+    // When the operation returns a JSON-parsed scalar (not an object), wrap in {value}
+    const service = setupServiceWithRpc("Test.GetVersion", {});
+    mockCallOperationRawOutput = '"1.2.3"';
+
+    const grpcPath = "/webda.TestService/GetVersion";
+    const req = createMockReq(grpcPath, {});
+    const mock = createMockRes();
+    await service.handleGrpcRequest(req as any, mock.res);
+    assert.strictEqual(mock.written.length, 1);
+    const response = JSON.parse(mock.written[0].subarray(5).toString());
+    assert.deepStrictEqual(response, { value: "1.2.3" });
+  }
+
+  @test
+  async unaryWrapsUnparseableOutputInValueField() {
+    // When the operation output isn't valid JSON, fall through to {value: rawString}
+    const service = setupServiceWithRpc("Test.Raw", {});
+    mockCallOperationRawOutput = "not-json-at-all";
+
+    const grpcPath = "/webda.TestService/Raw";
+    const req = createMockReq(grpcPath, {});
+    const mock = createMockRes();
+    await service.handleGrpcRequest(req as any, mock.res);
+    assert.strictEqual(mock.written.length, 1);
+    const response = JSON.parse(mock.written[0].subarray(5).toString());
+    assert.deepStrictEqual(response, { value: "not-json-at-all" });
   }
 
   @test
@@ -987,6 +1040,30 @@ class GrpcServiceInitTest {
     const res = {};
     assert.strictEqual(interceptorsA[0](req, res), false);
 
+    // Interceptor claims application/grpc requests and runs handleGrpcRequest
+    let handleCalled = false;
+    (service as any).handleGrpcRequest = async () => {
+      handleCalled = true;
+    };
+    const grpcReq = {
+      url: "/webda.Missing/Method",
+      headers: { "content-type": "application/grpc" }
+    };
+    const grpcRes = {};
+    assert.strictEqual(interceptorsA[0](grpcReq, grpcRes), true);
+    // handleGrpcRequest fires synchronously inside runWithInstanceStorage
+    await new Promise(resolve => setImmediate(resolve));
+    assert.ok(handleCalled, "Interceptor should dispatch to handleGrpcRequest");
+
+    mockCoreServices = {};
+  }
+
+  @test
+  async initLogsWarningWhenNoHttpServer() {
+    // No services registered → init should log a warning but not throw.
+    mockCoreServices = {};
+    const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: "/nonexistent/file.proto" }));
+    await service.init();
     mockCoreServices = {};
   }
 

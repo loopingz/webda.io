@@ -1,4 +1,4 @@
-import { OperationContext, Service, ServiceParameters, useApplication } from "@webda/core";
+import { OperationContext, Route, Service, ServiceParameters, useApplication } from "@webda/core";
 
 /**
  * Version parameters
@@ -20,33 +20,6 @@ export class VersionServiceParameters extends ServiceParameters {
  */
 export class VersionService<T extends VersionServiceParameters = VersionServiceParameters> extends Service<T> {
   /**
-   * Register the version route dynamically from `parameters.url`.
-   *
-   * @returns this for chaining
-   */
-  async init(): Promise<this> {
-    await super.init();
-    this.addRoute(this.parameters.url, ["GET"], this.version, {
-      get: {
-        summary: "Get the version of the application",
-        responses: {
-          200: {
-            description: "Version of the application",
-            content: {
-              "text/plain": {
-                schema: {
-                  type: "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-    return this;
-  }
-
-  /**
    * Set defaults for version and url from the application's package.json
    * @param params - raw configuration values
    * @returns initialized VersionServiceParameters
@@ -62,6 +35,23 @@ export class VersionService<T extends VersionServiceParameters = VersionServiceP
    *
    * @param ctx - operation context to write the response to
    */
+  @Route(".", ["GET"], {
+    get: {
+      summary: "Get the version of the application",
+      responses: {
+        200: {
+          description: "Version of the application",
+          content: {
+            "text/plain": {
+              schema: {
+                type: "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  })
   version(ctx: OperationContext) {
     ctx.setHeader("Content-Type", "text/plain");
     ctx.write(this.parameters.version);

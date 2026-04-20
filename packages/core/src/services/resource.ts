@@ -3,6 +3,7 @@ import * as mime from "mime-types";
 import * as path from "path";
 import * as WebdaError from "../errors/errors.js";
 import type { IWebContext } from "../contexts/icontext.js";
+import { Route } from "../rest/irest.js";
 import { Service } from "./service.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 
@@ -119,56 +120,13 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
   }
 
   /**
-   * Init the routes dynamically from `parameters.url`.
+   * Register the optional rootRedirect route — kept programmatic because
+   * it's conditional on `parameters.rootRedirect`.
    *
    * @returns this for chaining
    */
   async init(): Promise<this> {
     await super.init();
-    this.addRoute(this.parameters.url, ["GET"], this._serve, {
-      hidden: true,
-      get: {
-        description: "Get resources",
-        summary: "Get file",
-        operationId: "getResource",
-        responses: {
-          "200": {
-            description: ""
-          },
-          "401": {
-            description: "Illegal resource"
-          },
-          "404": {
-            description: "File not found"
-          }
-        }
-      }
-    });
-    this.addRoute(
-      this.parameters.url + "{+resource}",
-      ["GET"],
-      this._serve,
-      {
-        hidden: true,
-        get: {
-          description: "Get resources",
-          summary: "Get file",
-          operationId: "getResources",
-          responses: {
-            "200": {
-              description: ""
-            },
-            "401": {
-              description: "Illegal resource"
-            },
-            "404": {
-              description: "File not found"
-            }
-          }
-        }
-      },
-      true
-    );
     if (this.parameters.rootRedirect) {
       this.addRoute("/", ["GET"], this._redirect, {
         hidden: true,
@@ -203,6 +161,32 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
    * @param ctx - the operation context
    * @returns the result
    */
+  @Route(".", ["GET"], {
+    hidden: true,
+    get: {
+      description: "Get resources",
+      summary: "Get file",
+      operationId: "getResource",
+      responses: {
+        "200": { description: "" },
+        "401": { description: "Illegal resource" },
+        "404": { description: "File not found" }
+      }
+    }
+  })
+  @Route("./{+resource}", ["GET"], {
+    hidden: true,
+    get: {
+      description: "Get resources",
+      summary: "Get file",
+      operationId: "getResources",
+      responses: {
+        "200": { description: "" },
+        "401": { description: "Illegal resource" },
+        "404": { description: "File not found" }
+      }
+    }
+  })
   _serve(ctx: IWebContext) {
     let file = this._resolved;
     let cacheControl = this.parameters.cacheControl;

@@ -80,7 +80,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     useInstanceStorage().router = this;
     // Discover routes + filters once every service is resolved and initialized
     useCoreEvents("Webda.Init.Services", services => {
-      const list = Object.values(services).filter(Boolean) as unknown as Service[];
+      const list = Object.values(services) as unknown as Service[];
       this.discoverFilters(list);
       this.discoverRoutes(list);
     });

@@ -7,7 +7,7 @@ import {
   SimpleOperationContext,
   WebContext,
   useApplication,
-  useDynamicService,
+  useCore,
   Command,
   ServiceParameters,
   runWithInstanceStorage,
@@ -157,22 +157,22 @@ export class GrpcService<
       );
     }
 
-    // Reuse the HttpServer pipeline — registering an interceptor means gRPC
-    // requests flow through the same request handler (interceptors + context
-    // propagation) as REST, but delivered via the HttpServer's h2c listener.
-    // AsyncLocalStorage doesn't reliably cross HTTP/2 data events, so we
-    // capture the InstanceStorage at init and re-enter it per request.
+    // Plug the gRPC dispatcher into every HttpServer instance in the app.
+    // Serving both REST (HTTP/1.1 or TLS+ALPN) and plaintext gRPC (h2c) means
+    // configuring two HttpServer services with different protocols; gRPC
+    // doesn't care which one — it claims any `application/grpc` request.
+    //
+    // AsyncLocalStorage doesn't reliably cross HTTP/2 data events, so capture
+    // the InstanceStorage here and re-enter it per request.
     const capturedStorage = useInstanceStorage();
-    const httpServer =
-      useDynamicService<any>("HttpServer") || useDynamicService<any>("Webda/HttpServer");
-    if (!httpServer?.registerRequestInterceptor) {
-      useLog("WARN", "HttpServer unavailable — gRPC cannot register its interceptor");
+    const servers = Object.values(useCore().getServices()).filter(
+      s => typeof (s as any).registerRequestInterceptor === "function"
+    );
+    if (servers.length === 0) {
+      useLog("WARN", "No HttpServer found — gRPC cannot register its interceptor");
       return this;
     }
-    // Ask the HttpServer to bind an h2c listener — gRPC needs HTTP/2 and the
-    // main port stays HTTP/1.1 for REST/GraphQL clients.
-    (httpServer.parameters as any).h2cPort ??= 50051;
-    httpServer.registerRequestInterceptor((req: IncomingMessage, res: ServerResponse) => {
+    const interceptor = (req: IncomingMessage, res: ServerResponse): boolean => {
       const contentType = (req.headers["content-type"] as string) || "";
       if (!contentType.startsWith("application/grpc")) return false;
       runWithInstanceStorage(capturedStorage, () => {
@@ -181,7 +181,10 @@ export class GrpcService<
         });
       });
       return true;
-    });
+    };
+    for (const server of servers) {
+      (server as any).registerRequestInterceptor(interceptor);
+    }
 
     return this;
   }

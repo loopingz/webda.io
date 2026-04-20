@@ -17,7 +17,7 @@ import type { JSONed } from "@webda/models";
 import { Writable } from "node:stream";
 import { useRouter } from "../rest/hooks.js";
 import { runWithContext } from "../contexts/execution.js";
-import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { serialize as cookieSerialize } from "cookie";
@@ -69,13 +69,14 @@ export class HttpServerParameters extends ServiceParameters {
   port?: number;
 
   /**
-   * Optional HTTP/2 cleartext port. When set, the HttpServer additionally
-   * binds an h2c listener on this port for alternate-protocol clients (gRPC).
-   * Interceptors registered on the server also run for requests arriving
-   * here.
-   * @default 50051 when the gRPC service is configured, unset otherwise
+   * Run this instance as an HTTP/2 cleartext (h2c) server rather than
+   * HTTP/1.1. The resulting port accepts only prior-knowledge HTTP/2
+   * clients (e.g. `grpcurl -plaintext`). To serve both REST (HTTP/1.1)
+   * and gRPC without TLS, configure a second HttpServer service with
+   * `h2c: true` on a separate port.
+   * @default false
    */
-  h2cPort?: number;
+  h2c?: boolean;
 
   /**
    * TLS key file path — enables HTTPS or HTTP/2
@@ -152,9 +153,7 @@ export class HttpServer<
       }
     }
   ];
-  server: Server | Http2SecureServer;
-  /** Optional cleartext HTTP/2 server bound to {@link HttpServerParameters.h2cPort}, shared with gRPC. */
-  protected h2cServer?: Http2Server;
+  server: Server | Http2SecureServer | Http2Server;
   protected subnetChecker: (address: string) => boolean;
   /** Whether this server uses HTTP/2 */
   protected isHttp2 = false;
@@ -313,25 +312,27 @@ export class HttpServer<
       }
 
       // Auto-generate a dev self-signed cert when autoTls is on and nothing is
-      // already configured — gives the main port HTTP/2 via ALPN for free.
+      // already configured — gives the port HTTP/2 via ALPN for free.
       if (params.autoTls && !(params.key && params.cert)) {
-        const { key, cert } = ensureDevTlsCert();
+        const { key, cert } = this.ensureDevTlsCert();
         params.key = key;
         params.cert = cert;
       }
 
-      // Create server based on TLS configuration
+      // Create server based on configuration. The same HttpServer class runs
+      // in three modes — one instance per mode, one port per instance. Mix
+      // modes by configuring multiple HttpServer services (e.g. a TLS one
+      // for REST/GraphQL and a second h2c one for gRPC without TLS).
       if (params.key && params.cert) {
+        // TLS — HTTP/2 via ALPN with HTTP/1.1 fallback (or plain HTTPS).
         const tlsOptions = {
           key: readFileSync(params.key),
           cert: readFileSync(params.cert),
           allowHTTP1: true
         };
         if (params.http2 !== false) {
-          // HTTP/2 with HTTP/1.1 fallback
           this.isHttp2 = true;
           this.server = createSecureServer(tlsOptions, (req, res) => {
-            // Filter HTTP/2 pseudo-headers for compatibility
             if (req.headers[":authority"]) {
               const [host] = (req.headers[":authority"] as string).split(":");
               req.headers.host = host;
@@ -339,9 +340,12 @@ export class HttpServer<
             this.handleRequest(req as any, res as any);
           });
         } else {
-          // HTTPS without HTTP/2
           this.server = createHttpsServer(tlsOptions, (req, res) => this.handleRequest(req, res));
         }
+      } else if (params.h2c) {
+        // Prior-knowledge HTTP/2 cleartext — for gRPC clients without TLS.
+        this.isHttp2 = true;
+        this.server = createHttp2Server((req, res) => this.handleRequest(req as any, res as any));
       } else {
         // Plain HTTP/1.1
         this.server = createServer((req, res) => this.handleRequest(req, res));
@@ -350,19 +354,6 @@ export class HttpServer<
       // Ensure routes are mapped before accepting requests
       useRouter().remapRoutes();
       this.server.listen(listenPort, bind);
-
-      // Optional secondary h2c listener — lets alternate-protocol services
-      // (gRPC) reuse the HttpServer pipeline (interceptors + request handler)
-      // without fighting HTTP/1.1 on the main port. HTTP/1.1 compatibility
-      // without TLS/ALPN requires socket-level sniffing that Node's http2
-      // module doesn't support cleanly, so we bind a separate port.
-      if (params.h2cPort) {
-        this.h2cServer = createHttp2Server((req, res) =>
-          this.handleRequest(req as any, res as any)
-        );
-        this.h2cServer.listen(params.h2cPort, bind);
-        useLog("INFO", `HTTP/2 cleartext listening on ${bind ?? "0.0.0.0"}:${params.h2cPort}`);
-      }
 
       // Emit on both channels: core event for decoupled listeners (gRPC
       // interceptor, graphql ws handler) and the service-level event for
@@ -383,7 +374,45 @@ export class HttpServer<
   async stop(): Promise<void> {
     await super.stop();
     this.server?.close();
-    this.h2cServer?.close();
+  }
+
+  /**
+   * Ensure a self-signed TLS key+cert exists under `.webda/dev-tls/` and
+   * return their paths. Used by {@link HttpServerParameters.autoTls} to bring
+   * up HTTPS/HTTP2 on the dev server with zero setup. Dev-only — real
+   * deploys should supply a proper cert via `key`/`cert` params.
+   *
+   * @returns absolute paths to the generated key and cert files
+   */
+  protected ensureDevTlsCert(): { key: string; cert: string } {
+    const dir = join(process.cwd(), ".webda", "dev-tls");
+    const key = join(dir, "key.pem");
+    const cert = join(dir, "cert.pem");
+    if (existsSync(key) && existsSync(cert)) {
+      return { key, cert };
+    }
+    mkdirSync(dir, { recursive: true });
+    // SAN on localhost/127.0.0.1 so browsers and grpcurl skip hostname
+    // complaints when -k / -insecure is used.
+    try {
+      execFileSync(
+        "openssl",
+        [
+          "req", "-x509", "-newkey", "rsa:2048",
+          "-keyout", key,
+          "-out", cert,
+          "-days", "365",
+          "-nodes",
+          "-subj", "/CN=localhost",
+          "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:0.0.0.0"
+        ],
+        { stdio: "pipe" }
+      );
+    } catch (err) {
+      throw new Error(`autoTls: failed to generate self-signed cert via openssl — ${err}`);
+    }
+    this.log("INFO", `generated self-signed dev cert at ${dir}`);
+    return { key, cert };
   }
 
   /**
@@ -476,44 +505,3 @@ export class HttpServer<
   }
 }
 
-/**
- * Ensure a self-signed TLS key+cert exists under `.webda/dev-tls/` and return
- * their paths. Used to bring up HTTPS/HTTP2 on the dev server with zero setup.
- * Regenerated automatically if missing or older than ~300 days.
- *
- * @returns absolute paths to the `.webda/dev-tls/key.pem` / `cert.pem`
- */
-function ensureDevTlsCert(): { key: string; cert: string } {
-  const dir = join(process.cwd(), ".webda", "dev-tls");
-  const key = join(dir, "key.pem");
-  const cert = join(dir, "cert.pem");
-  if (existsSync(key) && existsSync(cert)) {
-    return { key, cert };
-  }
-  mkdirSync(dir, { recursive: true });
-  // Use openssl for a no-dependency self-signed cert. Dev-only; real deploys
-  // should supply real certs via `key`/`cert` params.
-  const subj = "/CN=localhost";
-  // `-addext` needs OpenSSL 1.1.1+; SAN for localhost/127.0.0.1 lets browsers
-  // (and grpcurl) skip hostname complaints when -k/-insecure is used.
-  try {
-    execFileSync(
-      "openssl",
-      [
-        "req", "-x509", "-newkey", "rsa:2048",
-        "-keyout", key,
-        "-out", cert,
-        "-days", "365",
-        "-nodes",
-        "-subj", subj,
-        "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:0.0.0.0"
-      ],
-      { stdio: "pipe" }
-    );
-  } catch (err) {
-    writeFileSync(join(dir, "openssl-error.log"), String(err));
-    throw new Error(`autoTls: failed to generate self-signed cert via openssl — ${err}`);
-  }
-  useLog("INFO", `[HttpServer] generated self-signed dev cert at ${dir}`);
-  return { key, cert };
-}

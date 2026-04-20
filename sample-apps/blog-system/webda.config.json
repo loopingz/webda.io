@@ -9,6 +9,11 @@
       "type": "Webda/HttpServer",
       "autoTls": true
     },
+    "HttpServerH2c": {
+      "type": "Webda/HttpServer",
+      "port": 50051,
+      "h2c": true
+    },
     "Publisher": {
       "type": "Publisher"
     },

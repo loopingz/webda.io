@@ -981,10 +981,10 @@
             "$ref": "#/definitions/defaultHeaders",
             "description": "Default headers to send to the client\n\nHaving a Cache-Control: private will prevent caching for API\nIf you overwrite this parameter, you will need to add it back"
           },
-          "h2cPort": {
-            "default": "50051 when the gRPC service is configured, unset otherwise",
-            "description": "Optional HTTP/2 cleartext port. When set, the HttpServer additionally\nbinds an h2c listener on this port for alternate-protocol clients (gRPC).\nInterceptors registered on the server also run for requests arriving\nhere.",
-            "type": "number"
+          "h2c": {
+            "default": false,
+            "description": "Run this instance as an HTTP/2 cleartext (h2c) server rather than\nHTTP/1.1. The resulting port accepts only prior-knowledge HTTP/2\nclients (e.g. `grpcurl -plaintext`). To serve both REST (HTTP/1.1)\nand gRPC without TLS, configure a second HttpServer service with\n`h2c: true` on a separate port.",
+            "type": "boolean"
           },
           "http2": {
             "default": false,

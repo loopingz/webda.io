@@ -15,6 +15,7 @@
               "DomainService",
               "GRPCService",
               "GraphQLService",
+              "HttpServer",
               "Mailer",
               "Publisher",
               "RESTService",

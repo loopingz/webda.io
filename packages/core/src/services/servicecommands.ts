@@ -165,7 +165,8 @@ export async function executeServiceCommand(
     }
     for (const service of matches) {
       if (!service[svc.method]) {
-        useLog("ERROR", `Method '${svc.method}' not found on service '${service.getName()}'`);
+        const instanceName = typeof service.getName === "function" ? service.getName() : svc.name;
+        useLog("ERROR", `Method '${svc.method}' not found on service '${instanceName}'`);
         return 1;
       }
       await service[svc.method](...commandArgs);

@@ -31,7 +31,7 @@ class CoreTest extends WebdaInternalTest {
     const registry = useRegistry();
     await registry.put("test", { anyData: "plop" });
     const test = JSON.parse((<MemoryRepository<any>>registry.getRepository())["storage"].get("test")!);
-    assert.strictEqual(test.$serializer?.type, "@webda/models/RegistryEntry");
+    assert.strictEqual(test.$serializer?.type, "@webda/models/Webda/RegistryEntry");
     assert.strictEqual((await registry.get("test")).anyData, "plop");
   }
 

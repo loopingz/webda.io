@@ -14,6 +14,8 @@ let mockCallOperationResult: any = {};
 let mockCallOperationError: any = null;
 /** If set, callOperation will use this as the raw _output string (instead of JSON.stringify(mockCallOperationResult)) */
 let mockCallOperationRawOutput: string | undefined = undefined;
+/** Services returned by the mocked useCore().getServices() — set per test to inject HttpServer stubs */
+let mockCoreServices: Record<string, any> = {};
 
 vi.mock("@webda/core", () => {
   class MockServiceParameters {
@@ -105,6 +107,9 @@ vi.mock("@webda/core", () => {
     useApplication: () => ({
       getSchemas: () => mockSchemas
     }),
+    useCore: () => ({ getServices: () => mockCoreServices }),
+    useInstanceStorage: () => ({}),
+    runWithInstanceStorage: (_storage: any, fn: () => any) => fn(),
     Command: () => () => {}
   };
 });
@@ -961,19 +966,28 @@ class GrpcServiceInitTest {
   }
 
   @test
-  async initRegistersHttpEventHook() {
-    const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: "/nonexistent/file.proto" }));
+  async initRegistersInterceptorOnEveryHttpServer() {
+    // Two HttpServer-like services — each should receive the gRPC interceptor
+    const interceptorsA: Function[] = [];
+    const interceptorsB: Function[] = [];
+    mockCoreServices = {
+      HttpServer: { registerRequestInterceptor: (fn: Function) => interceptorsA.push(fn) },
+      HttpServerH2c: { registerRequestInterceptor: (fn: Function) => interceptorsB.push(fn) },
+      Plain: {} // no registerRequestInterceptor — must be skipped
+    };
 
+    const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: "/nonexistent/file.proto" }));
     await service.init();
 
-    // The init should have registered Webda.Init.Http event callback
-    assert.ok(coreEventCallbacks["Webda.Init.Http"], "Should register Webda.Init.Http event");
+    assert.strictEqual(interceptorsA.length, 1, "HttpServer should get the interceptor");
+    assert.strictEqual(interceptorsB.length, 1, "HttpServerH2c should get the interceptor");
 
-    // Call the callback with a mock server
-    coreEventCallbacks["Webda.Init.Http"]({ server: { on: () => {} } });
+    // Interceptor short-circuits non-grpc content types
+    const req = { headers: { "content-type": "text/html" } };
+    const res = {};
+    assert.strictEqual(interceptorsA[0](req, res), false);
 
-    // Also test with server that doesn't have 'on'
-    coreEventCallbacks["Webda.Init.Http"]({ server: null });
+    mockCoreServices = {};
   }
 
   @test

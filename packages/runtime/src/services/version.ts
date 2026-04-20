@@ -20,10 +20,12 @@ export class VersionServiceParameters extends ServiceParameters {
  */
 export class VersionService<T extends VersionServiceParameters = VersionServiceParameters> extends Service<T> {
   /**
-   * @inheritdoc
+   * Register the version route dynamically from `parameters.url`.
+   *
+   * @returns this for chaining
    */
-  initRoutes() {
-    super.initRoutes();
+  async init(): Promise<this> {
+    await super.init();
     this.addRoute(this.parameters.url, ["GET"], this.version, {
       get: {
         summary: "Get the version of the application",
@@ -41,6 +43,7 @@ export class VersionService<T extends VersionServiceParameters = VersionServiceP
         }
       }
     });
+    return this;
   }
 
   /**

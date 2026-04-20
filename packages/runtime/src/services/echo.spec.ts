@@ -15,7 +15,7 @@ class EchoTest extends WebdaSimpleTest {
     // @ts-ignore
     const stub = sinon.spy(service, "addRoute");
     try {
-      service.initRoutes();
+      await service.init();
       assert.strictEqual(stub.callCount, 1);
     } finally {
       stub.restore();

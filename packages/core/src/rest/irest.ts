@@ -40,7 +40,7 @@ export interface OpenAPIWebdaDefinition extends DeepPartial<OpenAPIV3.PathItemOb
  * server-sent events, manual streaming, etc.) — anything where you need raw
  * access to `WebContext` and the operation abstraction would get in the way.
  *
- * Routes are read by `Service.initRoutes()` during service init and
+ * Routes are read by `Router.discoverRoutes()` after service init and
  * registered on the router with the same semantics as a manual
  * `this.addRoute(...)` call. `route` is resolved relative to the service's
  * `url` parameter when it starts with `.` (`".", "./me", "./email/{email}"`).

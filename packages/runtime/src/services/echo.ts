@@ -45,9 +45,15 @@ export class EchoService extends Service<EchoServiceParameters> {
     return new EchoServiceParameters().load(params);
   }
 
-  /** @ignore */
-  initRoutes() {
+  /**
+   * Register the echo route dynamically from `parameters.url`.
+   *
+   * @returns this for chaining
+   */
+  async init(): Promise<this> {
+    await super.init();
     this.addRoute(this.parameters.url, ["GET"], this.execute);
+    return this;
   }
 
   /** @ignore */

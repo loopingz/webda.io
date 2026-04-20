@@ -64,12 +64,26 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   }
 
   /**
-   * Resolve dependencies and register route remapping on core init
+   * Resolve dependencies and wire up core lifecycle listeners.
+   *
+   * The Router pulls its inputs from events rather than being driven by
+   * `Core.init()` directly:
+   *  - `Webda.Init.Services` — scan every resolved service for
+   *    `@Route` metadata and filter capabilities.
+   *  - `Webda.Init` — finalize the URI template index after all routes
+   *    (dynamic or decorator-based) have been registered.
+   *
    * @returns the result
    */
   resolve() {
     // Register as the instance router
     useInstanceStorage().router = this;
+    // Discover routes + filters once every service is resolved and initialized
+    useCoreEvents("Webda.Init.Services", services => {
+      const list = Object.values(services).filter(Boolean) as unknown as Service[];
+      this.discoverFilters(list);
+      this.discoverRoutes(list);
+    });
     // Remap route
     useCoreEvents("Webda.Init", () => {
       this.remapRoutes();

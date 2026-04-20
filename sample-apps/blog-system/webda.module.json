@@ -16,6 +16,7 @@
               "GRPCService",
               "GraphQLService",
               "HttpServer",
+              "HttpServerH2c",
               "Mailer",
               "Publisher",
               "RESTService",

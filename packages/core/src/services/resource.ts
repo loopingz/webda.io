@@ -119,9 +119,12 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
   }
 
   /**
-   * Init the routes
+   * Init the routes dynamically from `parameters.url`.
+   *
+   * @returns this for chaining
    */
-  initRoutes() {
+  async init(): Promise<this> {
+    await super.init();
     this.addRoute(this.parameters.url, ["GET"], this._serve, {
       hidden: true,
       get: {
@@ -181,6 +184,7 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
         }
       });
     }
+    return this;
   }
 
   /**

@@ -10,10 +10,11 @@ const { __dirname } = getCommonJS(import.meta.url);
 
 @Bean
 class ExceptionExecutor extends Service {
-  initRoutes() {
-    super.initRoutes();
+  async init(): Promise<this> {
+    await super.init();
     this.addRoute("/broken/{type}", ["GET"], this._brokenRoute);
     this.addRoute("/route/string", ["GET"], this.onString);
+    return this;
   }
 
   @Route("/route/broken/{type}")

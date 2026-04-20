@@ -227,13 +227,19 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
     if (this.parameters.brokenConstructor) throw Error();
   }
 
-  /** Register test routes for simulating errors and templates */
-  initRoutes() {
+  /**
+   * Register test routes for simulating errors and templates.
+   *
+   * @returns this for chaining
+   */
+  async init(): Promise<this> {
+    await super.init();
     if (this.parameters.brokenInit) throw Error();
     this.addRoute("/broken/{type}", ["GET"], this._brokenRoute);
     this.addRoute("/", ["GET", "POST"], this._default);
     this.addRoute("/urltemplate/{+id}", ["GET"], this._template);
     this.addRoute("/urltemplate/callback{?code}", ["GET"], this._query);
+    return this;
   }
 
   /**

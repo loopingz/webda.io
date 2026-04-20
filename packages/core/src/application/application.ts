@@ -314,22 +314,28 @@ export class Application {
   }
 
   /**
-   * Define if the model is the last one in the hierarchy
+   * Return true if `model` is the one that wins when consumers look up the
+   * short name in the current namespace. Used by transports (REST, GraphQL,
+   * gRPC) so only one model gets exposed at a given URL / type when the app
+   * overrides a framework-provided class — e.g. WebdaSample/User shadowing
+   * Webda/User at `/users`.
    *
-   * TODO Define clearly
-   * @param model - the model to use
-   * @returns true if the condition is met
+   * A model is "final" when either:
+   *  - it is the one resolved by `completeNamespace(shortName)`, or
+   *  - no other model exists with the same short name in the current namespace.
+   * @param model - the fully-qualified model identifier (e.g. "Webda/User")
+   * @returns true when `model` should be treated as the canonical version
    */
   isFinalModel(model: string): boolean {
     if (!this.models[model]) {
       return false;
     }
     const name = model.split("/").pop();
-    if (this["models"][this.completeNamespace(name)] !== undefined) {
-      return true;
-    }
-    //return this.graph[model].children?.length === 0;
-    return false;
+    const resolved = this.completeNamespace(name);
+    // Only a model that the current namespace resolves to is exposed. If the
+    // app defines its own version (e.g. WebdaSample/User shadowing Webda/User)
+    // just that one wins; otherwise the framework-provided model stays internal.
+    return resolved === model;
   }
 
   /**
@@ -713,8 +719,10 @@ export class Application {
       if (!this.models[m]) {
         continue;
       }
-      // Register serializer
-      this.models[m].registerSerializer();
+      // Register serializer under the full model identifier so app-specific
+      // classes (e.g. WebdaSample/User) don't collide with framework ones that
+      // share the same JS constructor name (Webda/User).
+      this.models[m].registerSerializer(true, m);
       this.models[m].Metadata = Object.freeze({
         ...info[m],
         // Runtime: resolve strings to model classes for backward compat

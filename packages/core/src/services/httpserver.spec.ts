@@ -1,6 +1,9 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as http from "node:http";
+import * as nodeFs from "node:fs";
+import * as nodeOs from "node:os";
+import * as nodePath from "node:path";
 import { PassThrough } from "node:stream";
 import { WebdaApplicationTest } from "../test/index.js";
 import { HttpServer, HttpServerParameters } from "./httpserver.js";
@@ -669,5 +672,141 @@ class HttpServerTest extends WebdaApplicationTest {
     assert.strictEqual(params.requestLimit, 1024);
     assert.strictEqual(params.requestTimeout, 5000);
     assert.strictEqual(params.port, 9090);
+  }
+
+  @test
+  async httpServerParametersH2cAndAutoTls() {
+    const params = new HttpServerParameters().load({});
+    assert.strictEqual(params.h2c, undefined);
+    assert.strictEqual(params.autoTls, undefined);
+    const enabled = new HttpServerParameters().load({ h2c: true, autoTls: true });
+    assert.strictEqual(enabled.h2c, true);
+    assert.strictEqual(enabled.autoTls, true);
+  }
+
+  @test
+  async interceptorClaimsRequest() {
+    // When an interceptor returns true, the default pipeline must not run.
+    const claimed: string[] = [];
+    this.server.registerRequestInterceptor((req, res) => {
+      if (req.headers["x-claim"] === "yes") {
+        claimed.push(req.url || "");
+        res.writeHead(204);
+        res.end();
+        return true;
+      }
+      return false;
+    });
+    const port = await this.startServer();
+    const res = await httpRequest({
+      hostname: "127.0.0.1",
+      port,
+      path: "/anything",
+      method: "GET",
+      headers: { "x-claim": "yes" }
+    });
+    assert.strictEqual(res.statusCode, 204);
+    assert.deepStrictEqual(claimed, ["/anything"]);
+  }
+
+  @test
+  async interceptorErrorDoesNotBreakPipeline() {
+    // A throwing interceptor should be logged and the next handler should run.
+    this.server.registerRequestInterceptor(() => {
+      throw new Error("boom");
+    });
+    const port = await this.startServer();
+    const res = await httpRequest({
+      hostname: "127.0.0.1",
+      port,
+      path: "/nonexistent-xyz",
+      method: "GET"
+    });
+    assert.ok(res.statusCode >= 400);
+  }
+
+  @test
+  async h2cServerIsCreated() {
+    // Swap the server for one configured with h2c
+    await this.server.stop();
+    this.server = new HttpServer(
+      "HttpServerH2c",
+      new ServiceParameters().load({ port: 0, h2c: true, trustedProxies: ["127.0.0.1", "::1"] })
+    );
+    this.registerService(this.server);
+    (this.server as any).subnetChecker = createChecker(["127.0.0.1/32", "::1/32"]);
+    await this.server.serve("127.0.0.1", 0);
+    await new Promise<void>(resolve => {
+      const check = () => (this.server.server?.listening ? resolve() : setTimeout(check, 10));
+      check();
+    });
+    assert.ok(this.server.server?.listening, "h2c server should be listening");
+    assert.strictEqual((this.server as any).isHttp2, true, "h2c server sets isHttp2");
+    assert.strictEqual(this.server.server!.constructor.name, "Http2Server");
+  }
+
+  @test
+  async ensureDevTlsCertCreatesAndReusesFiles() {
+    // Exercise ensureDevTlsCert: first call generates via openssl, second call short-circuits.
+    // Vitest doesn't honor process.chdir cleanly across isolated contexts, so stub process.cwd
+    // directly for the duration of the test.
+    const tmpDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), "webda-devtls-"));
+    const origCwd = process.cwd;
+    process.cwd = () => tmpDir;
+    try {
+      const result = (this.server as any).ensureDevTlsCert();
+      assert.ok(nodeFs.existsSync(result.key), "key file should exist");
+      assert.ok(nodeFs.existsSync(result.cert), "cert file should exist");
+      assert.ok(result.key.startsWith(tmpDir), `key should live under tmpDir: ${result.key}`);
+      const second = (this.server as any).ensureDevTlsCert();
+      assert.strictEqual(second.key, result.key, "second call returns same key path");
+      assert.strictEqual(second.cert, result.cert, "second call returns same cert path");
+    } finally {
+      process.cwd = origCwd;
+      nodeFs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async ensureDevTlsCertThrowsOnOpensslFailure() {
+    const tmpDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), "webda-devtls-err-"));
+    const origCwd = process.cwd;
+    const origPath = process.env.PATH;
+    process.cwd = () => tmpDir;
+    process.env.PATH = tmpDir; // openssl not here
+    try {
+      assert.throws(() => (this.server as any).ensureDevTlsCert(), /autoTls: failed to generate self-signed cert/);
+    } finally {
+      process.env.PATH = origPath;
+      process.cwd = origCwd;
+      nodeFs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async serveWithAutoTlsUsesGeneratedCert() {
+    const tmpDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), "webda-autotls-"));
+    const origCwd = process.cwd;
+    process.cwd = () => tmpDir;
+    await this.server.stop();
+    this.server = new HttpServer(
+      "HttpServerTls",
+      new ServiceParameters().load({ port: 0, autoTls: true, trustedProxies: ["127.0.0.1", "::1"] })
+    );
+    this.registerService(this.server);
+    (this.server as any).subnetChecker = createChecker(["127.0.0.1/32", "::1/32"]);
+    try {
+      await this.server.serve("127.0.0.1", 0);
+      await new Promise<void>(resolve => {
+        const check = () => (this.server.server?.listening ? resolve() : setTimeout(check, 10));
+        check();
+      });
+      assert.ok(this.server.server?.listening, "autoTls server should listen");
+      assert.strictEqual((this.server as any).isHttp2, true);
+      assert.strictEqual(this.server.server!.constructor.name, "Http2SecureServer");
+    } finally {
+      process.cwd = origCwd;
+      nodeFs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   }
 }

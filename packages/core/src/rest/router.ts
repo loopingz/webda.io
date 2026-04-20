@@ -15,6 +15,7 @@ import { Service } from "../services/service.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import type { Storable } from "@webda/models";
+import { getMetadata } from "@webda/decorators";
 import { templateVariables } from "../templates/templates.js";
 import { emitCoreEvent, useCoreEvents } from "../events/events.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
@@ -63,21 +64,29 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   }
 
   /**
-   * Resolve dependencies and register route remapping on core init
+   * Resolve dependencies and wire up core lifecycle listeners.
+   *
+   * The Router pulls its inputs from events rather than being driven by
+   * `Core.init()` directly:
+   *  - `Webda.Init.Services` — scan every resolved service for
+   *    `@Route` metadata and filter capabilities.
+   *  - `Webda.Init` — finalize the URI template index after all routes
+   *    (dynamic or decorator-based) have been registered.
+   *
    * @returns the result
    */
   resolve() {
     // Register as the instance router
     useInstanceStorage().router = this;
+    // Discover routes + filters once every service is resolved and initialized
+    useCoreEvents("Webda.Init.Services", services => {
+      const list = Object.values(services) as unknown as Service[];
+      this.discoverFilters(list);
+      this.discoverRoutes(list);
+    });
     // Remap route
     useCoreEvents("Webda.Init", () => {
       this.remapRoutes();
-    });
-    // Listen to incoming requests and route them
-    useCoreEvents("Webda.Request", async ({ context }) => {
-      if (context instanceof WebContext) {
-        await this.execute(context);
-      }
     });
     return super.resolve();
   }
@@ -759,6 +768,44 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       }
       if ("cors-filter" in caps) {
         this.registerCORSFilter(service as unknown as CORSFilter);
+      }
+    }
+  }
+
+  /**
+   * Auto-discover routes declared with `@Route` (or the legacy
+   * `constructor.routes` bucket) on each service, and register them with the
+   * router. Called once from `Core.init()` after all services have resolved —
+   * services don't have to push their own routes anymore.
+   *
+   * @param services - iterable of initialized services to scan
+   */
+  discoverRoutes(services: Iterable<Service>): void {
+    for (const service of services) {
+      // @ts-ignore — back-compat for subclasses that still populate this
+      const legacy: Record<string, any[]> = service.constructor.routes || {};
+      const fromMetadata: Record<string, any[]> =
+        getMetadata(service.constructor as any)?.["webda.route"] || {};
+      const routes: Record<string, any[]> = { ...legacy };
+      for (const path in fromMetadata) {
+        routes[path] = [...(routes[path] || []), ...fromMetadata[path]];
+      }
+      for (const path in routes) {
+        for (const route of routes[path]) {
+          const executor = (service as any)[route.executor];
+          if (typeof executor !== "function") {
+            useLog("WARN", `@Route on ${service.getName()} references non-method ${route.executor}`);
+            continue;
+          }
+          const finalUrl = (service as any).getUrl(path, route.methods);
+          if (!finalUrl) continue;
+          this.addRouteToRouter(finalUrl, {
+            _method: executor.bind(service),
+            executor: service.getName(),
+            openapi: route.openapi,
+            methods: route.methods
+          });
+        }
       }
     }
   }

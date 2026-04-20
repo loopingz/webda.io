@@ -364,11 +364,11 @@ class FileBinaryUnitTest {
   }
 
   @test
-  initRoutesEarlyReturnWithoutUrl() {
-    // When url is undefined, initRoutes should return early without adding routes
+  async initEarlyReturnWithoutUrl() {
+    // When url is undefined, init should return early without adding routes
     assert.strictEqual(this.binary.getParameters().url, undefined);
     // Should not throw
-    this.binary.initRoutes();
+    await this.binary.init();
   }
 
   @test

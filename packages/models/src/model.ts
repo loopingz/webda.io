@@ -148,23 +148,30 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
    * Register Model custom serializer
    * @param this - the model class constructor
    * @param overwrite - whether to overwrite an existing serializer
+   * @param identifier - fully-qualified model identifier (e.g. `WebdaSample/User`)
+   *   used to namespace the serializer key when multiple classes share the same
+   *   JS constructor name. Defaults to the constructor's own name.
    *
    * TODO Might want to move to deserialize static function
    */
   static registerSerializer<T extends ModelClass>(
     this: T & { fromJSON?: (data: any) => InstanceType<T>; getStaticProperties?: () => any },
-    overwrite: boolean = true
+    overwrite: boolean = true,
+    identifier?: string
   ): void {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const clazz: T & { fromJSON?: (data: any) => InstanceType<T>; getStaticProperties?: () => any } = this;
     if (!clazz.getStaticProperties) {
       clazz.getStaticProperties = () => ({}) as any;
     }
-    registerSerializer(
-      `@webda/models/${this.prototype.constructor.name}`,
-      new ObjectSerializer(clazz as any, clazz.getStaticProperties()),
-      overwrite
-    );
+    // Use the fully-qualified model identifier (e.g. "WebdaSample/User") when
+    // available so two classes that share a JS constructor name — like an app
+    // override shadowing a framework-provided model — don't collide on the
+    // same serializer key.
+    const typeKey = identifier
+      ? `@webda/models/${identifier}`
+      : `@webda/models/${this.prototype.constructor.name}`;
+    registerSerializer(typeKey, new ObjectSerializer(clazz as any, clazz.getStaticProperties()), overwrite);
   }
 
   /**

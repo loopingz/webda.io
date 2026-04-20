@@ -95,12 +95,19 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     }
   }
 
-  /** Register download routes if a public URL is configured. */
-  initRoutes(): void {
-    super.initRoutes();
+  /**
+   * Register download/upload routes if a public URL is configured.
+   *
+   * Routes depend on the runtime `parameters.url` + content hash, so they're
+   * registered programmatically rather than via `@Route`.
+   *
+   * @returns this for chaining
+   */
+  async init(): Promise<this> {
+    await super.init();
     // We do not want to expose by default
     if (this.parameters.url === undefined) {
-      return;
+      return this;
     }
     // Will redirect to this URL for direct download
     let url = this.parameters.url + "/download/data/{hash}{?token,content-disposition,content-type}";
@@ -143,6 +150,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
         }
       }
     });
+    return this;
   }
 
   /**

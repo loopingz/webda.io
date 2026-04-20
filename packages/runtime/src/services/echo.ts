@@ -1,4 +1,4 @@
-import { Service, ServiceParameters, WebContext } from "@webda/core";
+import { Route, Service, ServiceParameters, WebContext } from "@webda/core";
 
 /**
  * Configuration for EchoService — static content served on a fixed route
@@ -46,11 +46,7 @@ export class EchoService extends Service<EchoServiceParameters> {
   }
 
   /** @ignore */
-  initRoutes() {
-    this.addRoute(this.parameters.url, ["GET"], this.execute);
-  }
-
-  /** @ignore */
+  @Route(".", ["GET"])
   async execute(ctx: WebContext): Promise<any> {
     if (this.parameters.mime) {
       ctx.writeHead(200, {

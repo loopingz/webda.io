@@ -296,7 +296,10 @@ export class ModuleGenerator {
         return alias.name.getText();
       }
     }
-    if (tsquery(node, "DefaultKeyword").length) {
+    // Only treat as default export if the `default` keyword is a class modifier,
+    // not something inside the class body (e.g. a `default:` switch clause).
+    const modifiers = (node as any).modifiers as ts.ModifierLike[] | undefined;
+    if (modifiers?.some(m => m.kind === ts.SyntaxKind.DefaultKeyword)) {
       return "default";
     }
     return className;

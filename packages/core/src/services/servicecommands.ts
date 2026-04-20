@@ -144,29 +144,33 @@ export async function executeServiceCommand(
     }
   }
 
-  // Execute each matching service handler
+  // Execute each matching service handler. A single target type can map to
+  // multiple configured instances (e.g. two HttpServer services on different
+  // ports); dispatch to every instance whose constructor matches the type.
   for (const svc of targetServices) {
-    // Try direct lookup first (works for beans and configured services)
-    let service = services[svc.name];
-    if (!service) {
-      // Search through all services for ones matching the type by class name
-      const shortName = svc.type.split("/").pop();
-      for (const [, instanceService] of Object.entries(services)) {
-        if (instanceService?.constructor?.name === shortName) {
-          service = instanceService;
-          break;
-        }
+    const matches: AbstractService[] = [];
+    // Direct lookup — works when the modda name is used verbatim as service key
+    if (services[svc.name]) matches.push(services[svc.name]);
+    // Plus every other configured instance of the same class
+    const shortName = svc.type.split("/").pop();
+    for (const [, instanceService] of Object.entries(services)) {
+      if (!instanceService || matches.includes(instanceService)) continue;
+      if (instanceService.constructor?.name === shortName) {
+        matches.push(instanceService);
       }
     }
-    if (!service) {
+    if (matches.length === 0) {
       useLog("WARN", `Service '${svc.name}' not found, skipping`);
       continue;
     }
-    if (!service[svc.method]) {
-      useLog("ERROR", `Method '${svc.method}' not found on service '${svc.name}'`);
-      return 1;
+    for (const service of matches) {
+      if (!service[svc.method]) {
+        const instanceName = typeof service.getName === "function" ? service.getName() : svc.name;
+        useLog("ERROR", `Method '${svc.method}' not found on service '${instanceName}'`);
+        return 1;
+      }
+      await service[svc.method](...commandArgs);
     }
-    await service[svc.method](...commandArgs);
   }
 
   return 0;

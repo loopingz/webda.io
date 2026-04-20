@@ -402,34 +402,42 @@ export class TestBean<T extends TestBeanParameters = TestBeanParameters> extends
    * Scenario 6: Demonstrating Type Safety
    */
   @Operation
-  async demonstrateTypeSafety() {
+  async demonstrateTypeSafety(): Promise<{ ok: true }> {
     console.log("\n=== Scenario 6: Type Safety ===\n");
 
     console.log("🔒 Type Safety Features:\n");
 
-    // 1. Single primary key returns string
-    const user = await User.ref("user-alice").get();
-    if (user) {
-      const userPk = user.getPrimaryKey();
-      console.log("1. Single Primary Key:");
-      console.log(`   user.getPrimaryKey() returns: string`);
-      console.log(`   Value: "${userPk}"`);
-      console.log(`   Type: ${typeof userPk}\n`);
+    // 1. Single primary key returns string. MemoryRepository.get throws when the
+    // row is missing, so catch it — this runs as a demo against arbitrary state.
+    try {
+      const user = await User.ref("user-alice").get();
+      if (user) {
+        const userPk = user.getPrimaryKey();
+        console.log("1. Single Primary Key:");
+        console.log(`   user.getPrimaryKey() returns: string`);
+        console.log(`   Value: "${userPk}"`);
+        console.log(`   Type: ${typeof userPk}\n`);
+      }
+    } catch {
+      useLog("INFO", "1. Single Primary Key: (user 'user-alice' not present — skipping sample)");
     }
 
     // 2. Composite primary key returns object
-    const userFollow = await UserFollow.ref({
-      follower: "user-alice",
-      following: "user-bob"
-    }).get();
-
-    if (userFollow) {
-      const followPk = userFollow.getPrimaryKey();
-      console.log("2. Composite Primary Key:");
-      console.log(`   userFollow.getPrimaryKey() returns: Pick<UserFollow, "follower" | "following">`);
-      console.log(`   follower: "${followPk.follower}"`);
-      console.log(`   following: "${followPk.following}"`);
-      console.log(`   toString(): "${followPk.toString()}"\n`);
+    try {
+      const userFollow = await UserFollow.ref({
+        follower: "user-alice",
+        following: "user-bob"
+      }).get();
+      if (userFollow) {
+        const followPk = userFollow.getPrimaryKey();
+        console.log("2. Composite Primary Key:");
+        console.log(`   userFollow.getPrimaryKey() returns: Pick<UserFollow, "follower" | "following">`);
+        console.log(`   follower: "${followPk.follower}"`);
+        console.log(`   following: "${followPk.following}"`);
+        console.log(`   toString(): "${followPk.toString()}"\n`);
+      }
+    } catch {
+      useLog("INFO", "2. Composite Primary Key: (userFollow not present — skipping sample)");
     }
 
     // 3. Relations are fully typed
@@ -445,6 +453,7 @@ export class TestBean<T extends TestBeanParameters = TestBeanParameters> extends
     console.log(`   ✅ Results are properly typed User instances\n`);
 
     console.log("💡 All of this type safety happens at compile time with zero runtime overhead!");
+    return { ok: true };
   }
 
   async test() {

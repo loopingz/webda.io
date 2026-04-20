@@ -5,6 +5,18 @@
     "website": "http://localhost:18080"
   },
   "services": {
+    "HttpServer": {
+      "type": "Webda/HttpServer",
+      "autoTls": true
+    },
+    "HttpServerH2c": {
+      "type": "Webda/HttpServer",
+      "port": 50051,
+      "h2c": true
+    },
+    "Publisher": {
+      "type": "Publisher"
+    },
     "Mailer": {
       "type": "Webda/Mailer"
     },

@@ -227,8 +227,9 @@ abstract class Service<
   }
 
   /**
-   * Resolve parameters
-   * Call initRoutes and initBeanRoutes
+   * Resolve parameters and load metadata. `@Route`-declared routes are scanned
+   * and registered by `Router.discoverRoutes(services)` from `Core.init()`
+   * once every service has resolved — nothing to do per-service here.
    * @returns the result
    */
   @ServiceState({ start: "resolving", end: "resolved" })
@@ -241,7 +242,6 @@ abstract class Service<
     this.computeParameters();
 
     this.loadCapabilities();
-    this.initRoutes();
     this.initOperations();
     return this;
   }
@@ -412,21 +412,6 @@ abstract class Service<
    */
   getOpenApiReplacements(): any {
     return {};
-  }
-
-  /**
-   * Init the routes
-   * @deprecated
-   */
-  initRoutes() {
-    // @ts-ignore
-    const routes = this.constructor.routes || {};
-    for (const j in routes) {
-      this.log("TRACE", "Adding route", j, "for bean", this.getName());
-      routes[j].forEach(route => {
-        this.addRoute(j, route.methods, this[route.executor], route.openapi);
-      });
-    }
   }
 
   /**

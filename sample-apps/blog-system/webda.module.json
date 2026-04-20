@@ -13,7 +13,12 @@
               "CryptoService",
               "SessionManager",
               "DomainService",
+              "GRPCService",
+              "GraphQLService",
+              "HttpServer",
+              "HttpServerH2c",
               "Mailer",
+              "Publisher",
               "RESTService",
               "WebUI",
               "TestBean"
@@ -61,7 +66,8 @@
         ],
         "type": "object",
         "title": "Publisher"
-      }
+      },
+      "Configuration": "lib/services/publisher:PublisherParameters"
     }
   },
   "models": {
@@ -1684,17 +1690,7 @@
       "type": "object",
       "properties": {
         "postId": {
-          "allOf": [
-            {
-              "additionalProperties": false,
-              "type": "object"
-            },
-            {
-              "additionalProperties": false,
-              "type": "object"
-            }
-          ],
-          "description": "Get the primary key type of the object\n\nThe main difference with the PrimaryKey<T> type is that if the primary key is a not union type, it will\nbe returned as a single type, otherwise it will be returned as a Pick type\n\nThe PrimaryKey<T> will always return a Pick type"
+          "type": "string"
         }
       },
       "required": [
@@ -1706,26 +1702,7 @@
       "additionalProperties": false,
       "properties": {
         "postId": {
-          "allOf": [
-            {
-              "additionalProperties": false,
-              "properties": {
-                "length": {
-                  "description": "Returns the length of a String object.",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "length"
-              ],
-              "type": "object"
-            },
-            {
-              "additionalProperties": false,
-              "type": "object"
-            }
-          ],
-          "description": "Get the primary key type of the object\n\nThe main difference with the PrimaryKey<T> type is that if the primary key is a not union type, it will\nbe returned as a single type, otherwise it will be returned as a Pick type\n\nThe PrimaryKey<T> will always return a Pick type"
+          "type": "string"
         },
         "status": {
           "type": "string"
@@ -1766,7 +1743,15 @@
     },
     "TestBean.demonstrateTypeSafety.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "not": {}
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "const": true,
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "type": "object"
     }
   }
 }

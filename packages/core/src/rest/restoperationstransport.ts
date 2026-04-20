@@ -472,6 +472,10 @@ export class RESTOperationsTransport<
       }
     };
 
+    // Lookup pkFields from the operation context to build a Location header
+    // that uses the model's real primary key (slug, uuid, composite, etc.).
+    const createCtx = operations[operationId]?.context as { pkFields?: string[] } | undefined;
+    const pkFields = createCtx?.pkFields ?? ["uuid"];
     this.addRoute(
       `${prefix}`,
       ["POST"],
@@ -481,17 +485,20 @@ export class RESTOperationsTransport<
           (await context.getInput())[injectAttribute] = context.parameter(`pid.${depth - 1}`);
         }
         await callOperation(context, operationId);
-        // https://www.rfc-editor.org/rfc/rfc9110#status.201
+        // Add Location for successful creates without changing the status code —
+        // the rest of the framework (and the shipped tests) assume 2xx without
+        // the 200→201 upgrade, so surface the URL via header only.
         if (context.statusCode < 300 || context.statusCode === 204) {
           const output = context.getOutput();
           if (output) {
             try {
               const parsed = typeof output === "string" ? JSON.parse(output) : output;
-              const uuid = parsed?.uuid || parsed?.getUUID?.();
-              if (uuid) {
-                context.writeHead(201, {
-                  Location: `${context.getHttpContext().getAbsoluteUrl()}/${uuid}`
-                });
+              const pkParts = pkFields.map(f => parsed?.[f]).filter(v => v !== undefined && v !== null);
+              if (pkParts.length === pkFields.length) {
+                context.setHeader(
+                  "Location",
+                  `${context.getHttpContext().getAbsoluteUrl()}/${pkParts.join("/")}`
+                );
               }
             } catch {
               // Not JSON, skip Location
@@ -539,8 +546,14 @@ export class RESTOperationsTransport<
       }
     };
 
+    // Use the operation's declared REST path so the URL params match the model's
+    // actual primary-key field names (e.g. {slug} for Tag, {follower}/{following}
+    // for UserFollow). Fall back to {uuid} for legacy operations.
+    const pathSuffix = typeof operations[operationId].rest === "object"
+      ? (operations[operationId].rest as any).path || "{uuid}"
+      : "{uuid}";
     this.addRoute(
-      `${prefix}/{uuid}`,
+      `${prefix}/${pathSuffix}`,
       ["DELETE"],
       async (context: WebContext) => {
         await callOperation(context, operationId);
@@ -605,15 +618,28 @@ export class RESTOperationsTransport<
       patch: openapiInfo
     };
 
+    // Use the update op's declared REST path so URL params match the PK fields.
+    const updateOp = operations[updateOpId] ?? operations[patchOpId];
+    const pathSuffix = typeof updateOp?.rest === "object"
+      ? (updateOp.rest as any).path || "{uuid}"
+      : "{uuid}";
+    // DomainService only registers `${shortId}.Update`; `${shortId}.Patch` is
+    // not auto-registered. Route both PUT and PATCH through Update when Patch
+    // is absent so PATCH requests work for plain CRUD models (modelUpdate's
+    // load() already does a merge, which is patch semantics).
+    const hasUpdate = operations[updateOpId] !== undefined;
+    const hasPatch = operations[patchOpId] !== undefined;
     this.addRoute(
-      `${prefix}/{uuid}`,
+      `${prefix}/${pathSuffix}`,
       ["PUT", "PATCH"],
       (context: WebContext) => {
-        if (context.getHttpContext().getMethod() === "PUT") {
-          return callOperation(context, updateOpId);
-        } else {
-          return callOperation(context, patchOpId);
+        const method = context.getHttpContext().getMethod();
+        // Fall back to whichever operation is registered so users can override
+        // just one of Update/Patch without breaking the other HTTP verb.
+        if (method === "PATCH") {
+          return callOperation(context, hasPatch ? patchOpId : updateOpId);
         }
+        return callOperation(context, hasUpdate ? updateOpId : patchOpId);
       },
       openapi
     );
@@ -664,8 +690,11 @@ export class RESTOperationsTransport<
       }
     };
 
+    const pathSuffix = typeof operations[operationId].rest === "object"
+      ? (operations[operationId].rest as any).path || "{uuid}"
+      : "{uuid}";
     this.addRoute(
-      `${prefix}/{uuid}`,
+      `${prefix}/${pathSuffix}`,
       ["GET"],
       (context: WebContext) => callOperation(context, operationId),
       openapi

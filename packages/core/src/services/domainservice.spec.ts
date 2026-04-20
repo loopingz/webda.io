@@ -541,6 +541,95 @@ class DomainServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async modelUpdateWithMultiFieldPkFromParams() {
+    // pkFields with multiple entries triggers the reduce branch: PK is built as an
+    // object from URL params when the body lacks those fields. Call modelUpdate
+    // directly to bypass the schema validator and hit the pk-assembly code.
+    const { Brand } = this.setupBrandRepo();
+    const service = new (await import("./domainservice.js")).DomainService(
+      "DomainService",
+      new DomainServiceParameters().load({})
+    );
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setExtension("operationContext", { model: Brand, pkFields: ["namespace", "slug"] });
+    ctx.setParameters({ namespace: "ns-1", slug: "my-brand" });
+    ctx.setInput(JSON.stringify({ name: "Updated" }));
+    await runWithContext(ctx, async () => {
+      await assert.rejects(
+        () => service.modelUpdate({ name: "Updated" }),
+        WebdaError.NotFound
+      );
+    });
+  }
+
+  @test
+  async modelPatchWithSingleNonUuidPkField() {
+    // pkFields=["slug"] triggers the single-field branch with a non-uuid PK.
+    const { Brand } = this.setupBrandRepo();
+    const service = new (await import("./domainservice.js")).DomainService(
+      "DomainService",
+      new DomainServiceParameters().load({})
+    );
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setExtension("operationContext", { model: Brand, pkFields: ["slug"] });
+    ctx.setParameters({ slug: "does-not-exist" });
+    ctx.setInput(JSON.stringify({ name: "NopePatched" }));
+    await runWithContext(ctx, async () => {
+      await assert.rejects(
+        () => service.modelPatch({ name: "NopePatched" }),
+        WebdaError.NotFound
+      );
+    });
+  }
+
+  @test
+  async modelCreateRejectsScalarInputByReadingContext() {
+    // When the first arg is a scalar, modelCreate detects it isn't an object
+    // and falls back to context.getInput().
+    const { Brand } = this.setupBrandRepo();
+    const service = new (await import("./domainservice.js")).DomainService(
+      "DomainService",
+      new DomainServiceParameters().load({})
+    );
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setExtension("operationContext", { model: Brand });
+    ctx.setInput(JSON.stringify({ name: "ScalarFallback" }));
+    let created: any;
+    await runWithContext(ctx, async () => {
+      // Pass a scalar string — typeof "scalar" !== "object", so the code
+      // re-reads the body from context.getInput().
+      created = await service.modelCreate("a-scalar-pk-value");
+    });
+    assert.strictEqual(created.name, "ScalarFallback");
+  }
+
+  @test
+  async loadModelWithObjectPkSerializesForEvent() {
+    // loadModel receives a non-string PK — on NotFound, the emitted event uses
+    // JSON.stringify of the object so the event bus gets a loggable key.
+    const service = new (await import("./domainservice.js")).DomainService(
+      "DomainService",
+      new DomainServiceParameters().load({})
+    );
+    const events: any[] = [];
+    service.on("Store.WebNotFound", (evt: any) => events.push(evt));
+    const { Brand } = this.setupBrandRepo();
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    await runWithContext(ctx, async () => {
+      await assert.rejects(
+        () => (service as any).loadModel(Brand, { namespace: "x", slug: "y" }),
+        WebdaError.NotFound
+      );
+    });
+    assert.strictEqual(events.length, 1);
+    assert.strictEqual(events[0].uuid, JSON.stringify({ namespace: "x", slug: "y" }));
+  }
+
+  @test
   async checkBinaryAlreadyLinkedCoverage() {
     // Test the checkBinaryAlreadyLinked helper method
     const { DomainService: DS } = await import("./domainservice.js");

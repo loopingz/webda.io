@@ -2,7 +2,7 @@ import * as WebdaError from "../errors/errors.js";
 import type { Authentication } from "./authentication.js";
 import { Service } from "./service.js";
 import { getUuid } from "@webda/utils";
-import { RequestFilter } from "../rest/irest.js";
+import { RequestFilter, Route } from "../rest/irest.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { Counter } from "../metrics/metrics.js";
 import { RegExpStringValidator } from "@webda/utils";
@@ -240,27 +240,18 @@ export abstract class OAuthService<
   }
 
   /**
-   * Add routes for the authentication
+   * Register callback + optional token/scope routes.
+   *
+   * `_redirect` is declared via `@Route` below. The callback query string
+   * depends on {@link getCallbackQueryParams} (subclass-overridable), and
+   * the token/scope routes are conditional on {@link hasToken} and
+   * `parameters.exposeScope`, so those three stay programmatic.
+   *
+   * @returns this for chaining
    */
-  initRoutes() {
-    super.initRoutes();
+  async init(): Promise<this> {
+    await super.init();
     const name = this.getName();
-
-    this.addRoute(`${this.parameters.url}{?redirect?}`, ["GET"], this._redirect, {
-      get: {
-        description: `Log with a ${name} account`,
-        summary: `Redirect to ${name}`,
-        operationId: `logInWith${name}`,
-        responses: {
-          "302": {
-            description: ""
-          },
-          "400": {
-            description: "Missing token"
-          }
-        }
-      }
-    });
 
     this.addRoute(
       this.parameters.url +
@@ -323,6 +314,7 @@ export abstract class OAuthService<
         }
       });
     }
+    return this;
   }
 
   /**
@@ -356,11 +348,32 @@ export abstract class OAuthService<
   }
 
   /**
+   * Inject the provider name into openapi template replacements so the
+   * `${name}` placeholders in `@Route` metadata resolve per-instance.
+   *
+   * @returns replacements map merged with defaults
+   */
+  getOpenApiReplacements(): any {
+    return { ...super.getOpenApiReplacements(), name: this.getName() };
+  }
+
+  /**
    * Redirect to the OAuth provider
    *
    * The calling url must be and authorized_uris if defined
    * @param ctx - the operation context
    */
+  @Route(".{?redirect?}", ["GET"], {
+    get: {
+      description: "Log with a ${name} account",
+      summary: "Redirect to ${name}",
+      operationId: "logInWith${name}",
+      responses: {
+        "302": { description: "" },
+        "400": { description: "Missing token" }
+      }
+    }
+  })
   _redirect(ctx: WebContext) {
     // implement default behavior
     const redirect_uri = this.parameters.redirect_uri || `${ctx.getHttpContext().getAbsoluteUrl()}/callback`;

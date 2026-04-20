@@ -1,8 +1,6 @@
-import { Operation, Service } from "@webda/core";
-import { Post } from "../models/Post";
-import { PrimaryKeyType } from "@webda/models";
+import { Operation, Service, useLog } from "@webda/core";
 
-class PublisherParameters extends Service.Parameters {}
+export class PublisherParameters extends Service.Parameters {}
 
 /**
  * @WebdaModda
@@ -12,19 +10,13 @@ export class Publisher<T extends PublisherParameters = PublisherParameters> exte
 
   @Operation()
   publish(message: string): string {
-    console.log("Publishing message:", message);
+    useLog("INFO", "Publishing message:", message);
     return "customid";
   }
 
   @Operation()
-  async publishPost(postId: PrimaryKeyType<Post>): Promise<{
-    postId: PrimaryKeyType<Post>;
-    status: string;
-  }> {
-    console.log("Publishing post with ID:", postId);
-    return {
-      postId,
-      status: "published"
-    };
+  async publishPost(postId: string): Promise<{ postId: string; status: string }> {
+    useLog("INFO", "Publishing post with ID:", postId);
+    return { postId, status: "published" };
   }
 }

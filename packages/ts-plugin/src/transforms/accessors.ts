@@ -15,7 +15,7 @@ import { dirname, relative, basename } from "path";
  * - "string-union": a union of string literals like "typeA" | "typeB" → emitted as array
  */
 export type ResolvedTypeArg =
-  | { kind: "identifier"; name: string }
+  | { kind: "identifier"; name: string; importSource?: string }
   | { kind: "string"; value: string }
   | { kind: "string-union"; values: string[] }
   | { kind: "undefined" };
@@ -48,9 +48,15 @@ export type CoercibleFieldMap = Map<string, Map<string, ResolvedCoercion>>;
  * @param tsModule - the TypeScript module
  * @param arg - the type argument node
  * @param sourceFile - the containing source file
+ * @param checker - optional type checker used to resolve the import source of identifier type args
  * @returns the resolved type argument
  */
-function resolveTypeArg(tsModule: typeof ts, arg: ts.TypeNode, sourceFile: ts.SourceFile): ResolvedTypeArg {
+function resolveTypeArg(
+  tsModule: typeof ts,
+  arg: ts.TypeNode,
+  sourceFile: ts.SourceFile,
+  checker?: ts.TypeChecker
+): ResolvedTypeArg {
   // Union type: check if all members are string literals
   if (tsModule.isUnionTypeNode(arg)) {
     const stringValues: string[] = [];
@@ -72,7 +78,23 @@ function resolveTypeArg(tsModule: typeof ts, arg: ts.TypeNode, sourceFile: ts.So
 
   // Type reference (class/interface identifier): TestModel2
   if (tsModule.isTypeReferenceNode(arg)) {
-    return { kind: "identifier", name: safeGetText(arg.typeName, sourceFile) };
+    const name = safeGetText(arg.typeName, sourceFile);
+    // Resolve import source so generated `new Ctor(Name, ...)` code has a live binding —
+    // TypeScript elides imports that only appear in type positions, so we must re-inject.
+    let importSource: string | undefined;
+    if (checker) {
+      const symbol = checker.getTypeFromTypeNode(arg).getSymbol();
+      const decls = symbol?.getDeclarations();
+      if (decls) {
+        for (const decl of decls) {
+          if (tsModule.isClassDeclaration(decl) && decl.name) {
+            importSource = resolveImportSource(decl.getSourceFile(), sourceFile);
+            break;
+          }
+        }
+      }
+    }
+    return { kind: "identifier", name, importSource };
   }
 
   // Keyword types (string, number, boolean, etc.) → undefined at runtime
@@ -361,7 +383,7 @@ export function computeCoercibleFields(
             const runtimeClass = resolveRuntimeClass(tsModule, checker, member.type, sourceFile, program);
 
             // Resolve type arguments for constructor instantiation
-            const typeArgs = member.type.typeArguments?.map(arg => resolveTypeArg(tsModule, arg, sourceFile));
+            const typeArgs = member.type.typeArguments?.map(arg => resolveTypeArg(tsModule, arg, sourceFile, checker));
 
             // Validate constructor has enough parameters for type arguments
             if (typeArgs?.length && !validateConstructorForTypeArgs(tsModule, checker, member.type)) {
@@ -379,7 +401,7 @@ export function computeCoercibleFields(
             // Check if type resolves to ModelRelated (OneToMany, etc.) — needs readonly initializer
             const runtimeClass = resolveRuntimeClass(tsModule, checker, member.type, sourceFile, program);
             if (runtimeClass.name === "ModelRelated") {
-              const typeArgs = member.type.typeArguments?.map(arg => resolveTypeArg(tsModule, arg, sourceFile));
+              const typeArgs = member.type.typeArguments?.map(arg => resolveTypeArg(tsModule, arg, sourceFile, checker));
               fields.set(fieldName, {
                 setterType: "",
                 coercionKind: "relation-initializer",
@@ -479,6 +501,14 @@ export function createAccessorTransformer(
                 if (coercion.importSource) {
                   neededTypeImports.set(coercion.typeName, coercion.importSource);
                 }
+                // Type-argument identifiers (e.g. `Post` in OneToMany<Post, ...>) are emitted
+                // as value expressions in the generated `new ModelRelated(Post, ...)` call.
+                // TypeScript elides these since they only appeared in type positions.
+                for (const arg of coercion.typeArguments ?? []) {
+                  if (arg.kind === "identifier" && arg.importSource) {
+                    neededTypeImports.set(arg.name, arg.importSource);
+                  }
+                }
                 continue;
               }
               fieldsToTransform.push({ name: fieldName, coercion });
@@ -487,6 +517,14 @@ export function createAccessorTransformer(
               // and erased by TypeScript, but our generated code needs the value at runtime.
               if (coercion.coercionKind === "set-method" && coercion.importSource) {
                 neededTypeImports.set(coercion.typeName, coercion.importSource);
+              }
+              // Same story for type-argument identifiers used in `new ModelLink(User)` etc.
+              if (coercion.coercionKind === "set-method") {
+                for (const arg of coercion.typeArguments ?? []) {
+                  if (arg.kind === "identifier" && arg.importSource) {
+                    neededTypeImports.set(arg.name, arg.importSource);
+                  }
+                }
               }
               continue;
             }
@@ -501,9 +539,13 @@ export function createAccessorTransformer(
         const isModel = isModelClass(tsModule, classDecl, checker, modelBases);
         const newMembers: ts.ClassElement[] = [...remainingMembers];
 
+        // Any transformed class references WEBDA_STORAGE — via the injected toJSON, the
+        // coercion getters/setters, or the local storage property below. Ensure the import
+        // is present regardless of whether the class is a Model subclass.
+        needsStorageImport = true;
+
         // For non-model classes with Accessors marker, inject WEBDA_STORAGE initialization
         if (!isModel) {
-          needsStorageImport = true;
           const hasStorage = classDecl.members.some(
             m => tsModule.isPropertyDeclaration(m) && safeGetText(m.name, sourceFile) === "WEBDA_STORAGE"
           );

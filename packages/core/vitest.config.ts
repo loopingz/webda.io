@@ -49,8 +49,10 @@ export default defineConfig({
       "src/services/mailer.spec.ts",
       "src/services/notificationservice.spec.ts",
       //"src/services/oauth.spec.ts", // Need small refactor
+      "src/services/oauth-unit.spec.ts",
       //"src/services/prometheus.spec.ts", // Check parameters loading
       //"src/services/resource.spec.ts",
+      "src/services/resource-unit.spec.ts",
       "src/services/command.spec.ts",
       "src/services/servicecommands.spec.ts",
       "src/services/service.spec.ts",

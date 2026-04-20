@@ -9,6 +9,7 @@ import {
   WebdaError,
   useApplication,
   useCore,
+  useCoreEvents,
   useModelMetadata
 } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
@@ -489,7 +490,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         }
       });
     }
-    if ((await (modelInstance as any).canAct(context, "get")) !== true) {
+    if ((await (modelInstance as any)?.canAct?.(context, "get")) !== true) {
       throw new GraphQLError("Permission denied", {
         extensions: {
           code: "PERMISSION_DENIED"
@@ -530,7 +531,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     super.resolve();
     // Set-up ws server
     this.wss = new WebSocketServer({ noServer: true });
-    (useCore() as any).on("Webda.Init.Http", (http: any) => {
+    useCoreEvents("Webda.Init.Http" as any, (http: any) => {
       http.on("upgrade", (req, socket, head) => {
         if (req.url === this.parameters.url) {
           (async () => {
@@ -559,17 +560,15 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     for (const i in models) {
       const model = models[i];
       const metadata = useModelMetadata(model);
-      if (!metadata) {
-        continue;
-      }
-      // Not exposed
-      if (!this.parameters.isIncluded(metadata.Identifier)) {
-        continue;
-      }
+      if (!metadata) continue;
+      // Only expose the "final" version of each model — mirrors the REST
+      // transport's behavior so that an app-specific override (e.g.
+      // WebdaSample/User) shadows a framework-provided one (Webda/User)
+      // instead of both being registered under the same GraphQL type name.
+      if (!this.app.isFinalModel(metadata.Identifier)) continue;
+      if (!this.parameters.isIncluded(metadata.Identifier)) continue;
       const schema = this.app.getSchema(i);
-      if (!schema) {
-        continue;
-      }
+      if (!schema) continue;
       const name = (metadata.ShortName || i.split("/").pop()).replace("/", "_");
       this.log("INFO", "Add GraphQL type", name);
       const modelGraph = metadata.Relations;
@@ -592,7 +591,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             const object = new (model as any)();
             object.load(args[name]);
             this.log("INFO", "Create", object, context.getCurrentUserId());
-            if ((await (object as any).canAct(context, "create")) !== true) {
+            if ((await (object as any).canAct?.(context, "create")) !== true) {
               throw new GraphQLError("Permission denied", {
                 extensions: {
                   code: "PERMISSION_DENIED"
@@ -615,7 +614,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           },
           resolve: async (_, args, context) => {
             const object = await model.ref(args.uuid).get();
-            if ((await object?.canAct(context, "update")) !== true) {
+            if ((await object?.canAct?.(context, "update")) !== true) {
               throw new GraphQLError("Permission denied", {
                 extensions: {
                   code: "PERMISSION_DENIED"
@@ -637,7 +636,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           },
           resolve: async (_, args, context) => {
             const object = await model.ref(args.uuid).get();
-            if ((await object?.canAct(context, "delete")) !== true) {
+            if ((await object?.canAct?.(context, "delete")) !== true) {
               throw new GraphQLError("Permission denied", {
                 extensions: {
                   code: "PERMISSION_DENIED"
@@ -991,7 +990,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     };
     const modelInstance = await model.ref(uuid).get();
     // Ensure we have the permission to get the object
-    if ((await (modelInstance as any)?.canAct(context, "get")) !== true) {
+    if ((await (modelInstance as any)?.canAct?.(context, "get")) !== true) {
       throw new GraphQLError("Permission denied", {
         extensions: {
           code: "PERMISSION_DENIED"
@@ -1195,12 +1194,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             schema: {
               type: "object",
               properties: {
-                query: {
-                  type: "string"
-                },
-                variables: {
-                  type: "object"
-                }
+                query: { type: "string" },
+                variables: { type: "object" }
               }
             }
           }

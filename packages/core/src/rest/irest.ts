@@ -1,7 +1,7 @@
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
 import { HttpMethodType } from "../contexts/httpcontext.js";
-import { createMethodDecorator, createPropertyDecorator, DeepPartial } from "@webda/tsc-esm";
+import { createMethodDecorator, DeepPartial } from "@webda/tsc-esm";
 import { IWebContext } from "../contexts/icontext.js";
 import type { Repository } from "@webda/models";
 
@@ -31,15 +31,41 @@ export interface OpenAPIWebdaDefinition extends DeepPartial<OpenAPIV3.PathItemOb
 }
 
 /**
- * Route annotation to declare a route on a Bean
- * @param route
- * @param methods
- * @param openapi
- * @returns
- * @deprecated use @Operation instead
+ * Bind a class method to an HTTP route at the service's base URL.
+ *
+ * **Prefer `@Operation`.** Operations plug into REST, GraphQL, and gRPC with
+ * a single declaration and give you request/response schema generation for
+ * free. `@Route` is the escape hatch for endpoints that don't fit the
+ * operation model (static assets, JWKS, Accept-based content negotiation,
+ * server-sent events, manual streaming, etc.) — anything where you need raw
+ * access to `WebContext` and the operation abstraction would get in the way.
+ *
+ * Routes are read by `Router.discoverRoutes()` after service init and
+ * registered on the router with the same semantics as a manual
+ * `this.addRoute(...)` call. `route` is resolved relative to the service's
+ * `url` parameter when it starts with `.` (`".", "./me", "./email/{email}"`).
+ *
+ * @param route - URL pattern, e.g. `"."`, `"./me"`, `"./{id}/children"`
+ * @param methods - HTTP verb or list; defaults to `["GET"]`
+ * @param openapi - OpenAPI `PathItemObject` fragment for this method
+ *
+ * @example
+ * ```ts
+ * class JwksService extends Service {
+ *   // Raw route — JWKS content-type isn't a natural fit for @Operation
+ *   ⁣@Route(".", ["GET"], { get: { operationId: "getJWKS" } })
+ *   async serveJWKS(ctx: OperationContext) { … }
+ * }
+ * ```
  */
 export const Route = createMethodDecorator(
-  (value: any, context: ClassMemberDecoratorContext, route: string, methods: HttpMethodType | HttpMethodType[] = ["GET"], openapi: OpenAPIWebdaDefinition = {}) => {
+  (
+    _value: any,
+    context: ClassMemberDecoratorContext,
+    route: string,
+    methods: HttpMethodType | HttpMethodType[] = ["GET"],
+    openapi: OpenAPIWebdaDefinition = {}
+  ) => {
     context.metadata["webda.route"] ??= {};
     context.metadata["webda.route"][route] ??= [];
     context.metadata["webda.route"][route].push({
@@ -47,8 +73,8 @@ export const Route = createMethodDecorator(
       executor: context.name,
       openapi
     });
-  });
-    
+  }
+);
 
 /**
  * Operation object with optional schemas
@@ -188,4 +214,8 @@ export interface IRouter {
    * Auto-discover services with request-filter and cors-filter capabilities
    */
   discoverFilters(services: Iterable<{ getCapabilities(): Record<string, any> }>): void;
+  /**
+   * Auto-discover routes declared via `@Route` on each service and register them
+   */
+  discoverRoutes(services: Iterable<any>): void;
 }

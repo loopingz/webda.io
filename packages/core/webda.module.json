@@ -961,6 +961,11 @@
         },
         "description": "Parameters for the HTTP server including request limits, timeouts, TLS, and proxy settings",
         "properties": {
+          "autoTls": {
+            "default": false,
+            "description": "Auto-generate a self-signed certificate on startup when `key`/`cert`\naren't configured. Dev convenience: gives the main port HTTP/2 via\nALPN (plus HTTP/1.1 fallback) with zero setup. Keys are written under\n`.webda/dev-tls/`.",
+            "type": "boolean"
+          },
           "cert": {
             "description": "TLS certificate file path",
             "type": "string"
@@ -975,6 +980,11 @@
           "defaultHeaders": {
             "$ref": "#/definitions/defaultHeaders",
             "description": "Default headers to send to the client\n\nHaving a Cache-Control: private will prevent caching for API\nIf you overwrite this parameter, you will need to add it back"
+          },
+          "h2c": {
+            "default": false,
+            "description": "Run this instance as an HTTP/2 cleartext (h2c) server rather than\nHTTP/1.1. The resulting port accepts only prior-knowledge HTTP/2\nclients (e.g. `grpcurl -plaintext`). To serve both REST (HTTP/1.1)\nand gRPC without TLS, configure a second HttpServer service with\n`h2c: true` on a separate port.",
+            "type": "boolean"
           },
           "http2": {
             "default": false,

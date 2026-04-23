@@ -56,4 +56,28 @@ class CommandDecoratorTest {
     assert.ok(names.includes("stop"), "stop command should be registered");
     assert.ok(names.includes("restart"), "restart command should be registered");
   }
+
+  @test
+  phaseDefaultsToUndefinedWhenNotSpecified() {
+    class Foo extends Service {
+      @Command("foo", { description: "x" })
+      async foo() {}
+    }
+    const commands = (Foo as any)[Symbol.metadata]["webda.commands"] as any[];
+    const fooCmd = commands.find(c => c.name === "foo");
+    assert.ok(fooCmd, "foo command should be registered");
+    assert.strictEqual(fooCmd.phase, undefined);
+  }
+
+  @test
+  storesResolvedPhaseWhenProvided() {
+    class Bar extends Service {
+      @Command("bar", { description: "x", phase: "resolved" })
+      async bar() {}
+    }
+    const commands = (Bar as any)[Symbol.metadata]["webda.commands"] as any[];
+    const barCmd = commands.find(c => c.name === "bar");
+    assert.ok(barCmd, "bar command should be registered");
+    assert.strictEqual(barCmd.phase, "resolved");
+  }
 }

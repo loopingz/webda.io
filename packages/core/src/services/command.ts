@@ -22,6 +22,13 @@ export interface CommandOptions {
    * capabilities map in webda.module.json.
    */
   requires?: string[];
+  /**
+   * Lifecycle phase at which this command runs.
+   * - `"initialized"` (default): runs after `Core.init()` — full runtime including service.init() (DB, network).
+   * - `"resolved"`: runs after `Core.resolve()` only — services are constructed and resolve()d but init() is skipped.
+   *   Use for build-time codegen hooks that shouldn't touch the network.
+   */
+  phase?: "resolved" | "initialized";
 }
 
 /**
@@ -94,7 +101,8 @@ export const Command = createMethodDecorator(
       name,
       description: options.description,
       method: context.name,
-      requires: options.requires
+      requires: options.requires,
+      phase: options.phase
     });
   }
 );

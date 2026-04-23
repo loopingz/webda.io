@@ -226,6 +226,27 @@ Fork(
             } catch (err) {
               useWorkerOutput().log("WARN", "Cannot generate operations.json", err.message);
             }
+
+            // Build-hook dispatch: if any configured service declares a `build`
+            // command, spawn `webda build` to run the hooks. Keeps the compiler
+            // free of a runtime dependency on @webda/core.
+            try {
+              const { listConfiguredServiceTypes } = await import("@webda/utils");
+              const { shouldDispatchBuildHooks, spawnWebdaBuild } = await import("./shell-build-dispatch.js");
+              const configPath = FileUtils.getConfigurationFile(project.getAppPath("webda.config"));
+              const namespace = project.namespace || "Webda";
+              const configuredTypes = listConfiguredServiceTypes(configPath, namespace);
+              if (shouldDispatchBuildHooks(mod, configuredTypes)) {
+                useWorkerOutput().log("INFO", "Running build hooks (webda build)…");
+                const code = await spawnWebdaBuild(project.getAppPath());
+                if (code !== 0) {
+                  useWorkerOutput().log("ERROR", `webda build exited with code ${code}`);
+                  process.exit(code);
+                }
+              }
+            } catch (err) {
+              useWorkerOutput().log("WARN", "Build-hook dispatch skipped", (err as Error).message);
+            }
           }
         }
       });

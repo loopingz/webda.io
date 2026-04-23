@@ -35,6 +35,19 @@ class CliPhaseTest {
   }
 
   @test
+  errorMessageIncludesCommandName() {
+    assert.throws(
+      () => selectPhase(["resolved", "initialized"], "build"),
+      /Command 'build' has inconsistent phases/
+    );
+  }
+
+  @test
+  allUndefinedReturnsInitialized() {
+    assert.strictEqual(selectPhase([undefined, undefined]), "initialized");
+  }
+
+  @test
   emptyArrayReturnsInitialized() {
     // Document the choice: no declared phases = safest default (full init).
     assert.strictEqual(selectPhase([]), "initialized");

@@ -47,19 +47,14 @@
       },
       "Configuration": "lib/grpcservice:GrpcServiceParameters",
       "commands": {
-        "generate-proto": {
+        "build": {
           "description": "Generate protobuf definition from operations",
-          "method": "generateProto",
-          "args": {
-            "output": {
-              "type": "string",
-              "alias": "o",
-              "description": "Output file path"
-            }
-          },
+          "method": "build",
+          "args": {},
           "requires": [
             "rest-domain"
-          ]
+          ],
+          "phase": "resolved"
         }
       }
     }

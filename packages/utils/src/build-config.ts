@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { useLog } from "@webda/workout";
 import { FileUtils } from "./serializers.js";
 
 /**
@@ -19,11 +20,16 @@ export function listConfiguredServiceTypes(configPath: string, namespace: string
   let config: any;
   try {
     config = FileUtils.load(configPath);
-  } catch {
+  } catch (err) {
+    // The file exists (we checked above), so reaching this path means the
+    // config failed to parse. Surface it as a warning — silently returning
+    // `[]` would make `webdac build` skip build-hook dispatch without any
+    // explanation when a user introduces a JSON/JSONC typo.
+    useLog("WARN", `listConfiguredServiceTypes: cannot parse ${configPath}: ${(err as Error).message}`);
     return [];
   }
   const services = config?.services;
-  if (!services || typeof services !== "object") return [];
+  if (!services || typeof services !== "object" || Array.isArray(services)) return [];
   const types = new Set<string>();
   for (const svc of Object.values(services)) {
     const t = (svc as any)?.type;

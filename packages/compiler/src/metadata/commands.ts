@@ -99,26 +99,21 @@ export class CommandsMetadata extends MetadataPlugin {
     if (!ts.isStringLiteral(firstArg)) return undefined;
     const commandName = firstArg.text;
 
-    // Second arg (optional): options object { description: "...", requires: [...] }
+    // Second arg (optional): options object { description, requires, phase }
     let description = "";
     let requires: string[] | undefined;
+    let phase: "resolved" | "initialized" | undefined;
     if (args.length > 1 && ts.isObjectLiteralExpression(args[1])) {
       for (const prop of args[1].properties) {
-        if (
-          ts.isPropertyAssignment(prop) &&
-          ts.isIdentifier(prop.name) &&
-          prop.name.text === "description" &&
-          ts.isStringLiteral(prop.initializer)
-        ) {
+        if (!ts.isPropertyAssignment(prop) || !ts.isIdentifier(prop.name)) continue;
+        const key = prop.name.text;
+        if (key === "description" && ts.isStringLiteral(prop.initializer)) {
           description = prop.initializer.text;
-        }
-        if (
-          ts.isPropertyAssignment(prop) &&
-          ts.isIdentifier(prop.name) &&
-          prop.name.text === "requires" &&
-          ts.isArrayLiteralExpression(prop.initializer)
-        ) {
+        } else if (key === "requires" && ts.isArrayLiteralExpression(prop.initializer)) {
           requires = prop.initializer.elements.filter(ts.isStringLiteral).map(el => el.text);
+        } else if (key === "phase" && ts.isStringLiteral(prop.initializer)) {
+          const val = prop.initializer.text;
+          if (val === "resolved" || val === "initialized") phase = val;
         }
       }
     }
@@ -139,7 +134,8 @@ export class CommandsMetadata extends MetadataPlugin {
         description,
         method: methodName,
         args: methodArgs,
-        requires
+        requires,
+        phase
       }
     };
   }

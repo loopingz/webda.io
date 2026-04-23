@@ -379,4 +379,121 @@ suite("CommandsMetadata", () => {
     expect(cmd.args["verbose"]).toMatchObject({ default: true });
     expect(cmd.args["name"]).toMatchObject({ default: "default" });
   });
+
+  test("captures phase: 'resolved' from @Command options", () => {
+    const source = `
+      function Command(...args: any[]) {
+        return function(t: any, c: any) { return t; };
+      }
+      class TestService {
+        @Command("bar", { description: "d", phase: "resolved" })
+        async bar(): Promise<void> {}
+      }
+    `;
+    const { checker, classes } = compileSource(source);
+    const gen = createMockModuleGenerator(checker);
+    const plugin = new CommandsMetadata(gen);
+
+    const module: WebdaModule = {
+      beans: { "Test/TestService": { Import: "lib:TestService", Schema: {} } },
+      moddas: {},
+      deployers: {},
+      models: {},
+      schemas: {}
+    };
+
+    const serviceClass = classes.find(c => c.name?.text === "TestService")!;
+    const type = checker.getTypeAtLocation(serviceClass);
+
+    const objects = {
+      beans: { "Test/TestService": { type, node: serviceClass } },
+      moddas: {},
+      models: {},
+      deployers: {},
+      schemas: {} as any
+    };
+
+    plugin.getMetadata(module, objects);
+
+    const cmd = module.beans!["Test/TestService"].commands!["bar"];
+    expect(cmd.phase).toBe("resolved");
+  });
+
+  test("omits phase when not specified in @Command options", () => {
+    const source = `
+      function Command(...args: any[]) {
+        return function(t: any, c: any) { return t; };
+      }
+      class TestService {
+        @Command("bar", { description: "d" })
+        async bar(): Promise<void> {}
+      }
+    `;
+    const { checker, classes } = compileSource(source);
+    const gen = createMockModuleGenerator(checker);
+    const plugin = new CommandsMetadata(gen);
+
+    const module: WebdaModule = {
+      beans: { "Test/TestService": { Import: "lib:TestService", Schema: {} } },
+      moddas: {},
+      deployers: {},
+      models: {},
+      schemas: {}
+    };
+
+    const serviceClass = classes.find(c => c.name?.text === "TestService")!;
+    const type = checker.getTypeAtLocation(serviceClass);
+
+    const objects = {
+      beans: { "Test/TestService": { type, node: serviceClass } },
+      moddas: {},
+      models: {},
+      deployers: {},
+      schemas: {} as any
+    };
+
+    plugin.getMetadata(module, objects);
+
+    const cmd = module.beans!["Test/TestService"].commands!["bar"];
+    expect(cmd.phase).toBeUndefined();
+  });
+
+  test("ignores invalid phase values in @Command options", () => {
+    const source = `
+      function Command(...args: any[]) {
+        return function(t: any, c: any) { return t; };
+      }
+      class TestService {
+        @Command("bar", { description: "d", phase: "bogus" })
+        async bar(): Promise<void> {}
+      }
+    `;
+    const { checker, classes } = compileSource(source);
+    const gen = createMockModuleGenerator(checker);
+    const plugin = new CommandsMetadata(gen);
+
+    const module: WebdaModule = {
+      beans: { "Test/TestService": { Import: "lib:TestService", Schema: {} } },
+      moddas: {},
+      deployers: {},
+      models: {},
+      schemas: {}
+    };
+
+    const serviceClass = classes.find(c => c.name?.text === "TestService")!;
+    const type = checker.getTypeAtLocation(serviceClass);
+
+    const objects = {
+      beans: { "Test/TestService": { type, node: serviceClass } },
+      moddas: {},
+      models: {},
+      deployers: {},
+      schemas: {} as any
+    };
+
+    plugin.getMetadata(module, objects);
+
+    const cmd = module.beans!["Test/TestService"].commands!["bar"];
+    expect(cmd.phase).toBeUndefined();
+  });
 });

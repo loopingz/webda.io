@@ -193,6 +193,126 @@ class CollectServiceCommandsTest {
 }
 
 @suite
+class CollectServiceCommandsPhasesTest {
+  @test
+  singleProviderWithPhase() {
+    const app = {
+      getModules: () => ({
+        moddas: {
+          "MyApp/Builder": {
+            Import: "lib/builder",
+            commands: {
+              build: { description: "Build", method: "build", args: {}, phase: "resolved" }
+            }
+          }
+        },
+        beans: {},
+        deployers: {},
+        models: {},
+        schemas: {}
+      })
+    } as any;
+    const cmds = collectServiceCommands(app);
+    assert.ok(cmds.build);
+    assert.deepStrictEqual(cmds.build.phases, ["resolved"]);
+  }
+
+  @test
+  singleProviderWithNoPhase() {
+    const app = {
+      getModules: () => ({
+        moddas: {
+          "MyApp/Server": {
+            Import: "lib/server",
+            commands: {
+              serve: { description: "Start server", method: "serve", args: {} }
+            }
+          }
+        },
+        beans: {},
+        deployers: {},
+        models: {},
+        schemas: {}
+      })
+    } as any;
+    const cmds = collectServiceCommands(app);
+    assert.ok(cmds.serve);
+    assert.deepStrictEqual(cmds.serve.phases, [undefined]);
+  }
+
+  @test
+  twoProvidersWithDifferentPhases() {
+    const app = {
+      getModules: () => ({
+        moddas: {
+          "MyApp/Postgres": {
+            Import: "lib/pg",
+            commands: {
+              migrate: { description: "PG migrations", method: "migrate", args: {}, phase: "resolved" }
+            }
+          },
+          "MyApp/Mongo": {
+            Import: "lib/mongo",
+            commands: {
+              migrate: { description: "Mongo migrations", method: "migrate", args: {}, phase: "initialized" }
+            }
+          }
+        },
+        beans: {},
+        deployers: {},
+        models: {},
+        schemas: {}
+      })
+    } as any;
+    const cmds = collectServiceCommands(app);
+    assert.ok(cmds.migrate);
+    assert.strictEqual(cmds.migrate.services.length, 2);
+    // phases array is in lockstep with services array
+    assert.deepStrictEqual(cmds.migrate.phases, ["resolved", "initialized"]);
+  }
+
+  @test
+  phasesOrderMatchesServicesOrder() {
+    const app = {
+      getModules: () => ({
+        beans: {
+          "MyApp/First": {
+            Import: "lib/first",
+            commands: {
+              run: { description: "Run", method: "run", args: {}, phase: "resolved" }
+            }
+          }
+        },
+        moddas: {
+          "MyApp/Second": {
+            Import: "lib/second",
+            commands: {
+              run: { description: "Run", method: "run", args: {} }
+            }
+          }
+        },
+        deployers: {},
+        models: {},
+        schemas: {}
+      })
+    } as any;
+    const cmds = collectServiceCommands(app);
+    assert.ok(cmds.run);
+    assert.strictEqual(cmds.run.services.length, 2);
+    // moddas is collected before beans in collectServiceCommands — but sections
+    // are iterated in ["moddas","beans","deployers"] order, so Second comes first
+    assert.strictEqual(cmds.run.phases.length, cmds.run.services.length);
+    for (let i = 0; i < cmds.run.services.length; i++) {
+      if (cmds.run.services[i].name === "MyApp/First") {
+        assert.strictEqual(cmds.run.phases[i], "resolved");
+      } else {
+        assert.strictEqual(cmds.run.phases[i], undefined);
+      }
+    }
+  }
+}
+
+@suite
 class ExecuteServiceCommandTest {
   @test
   async executesAllServices() {

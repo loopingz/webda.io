@@ -27,6 +27,17 @@ export interface ServiceCommandInfo {
   args: { [name: string]: CommandArgDefinition };
   /** Merged capability requirements from all services declaring this command */
   requires: string[];
+  /**
+   * Lifecycle phase declared by each service providing this command, in the
+   * same order as `services`. Values are one of:
+   * - `"resolved"`: service declared phase "resolved" (e.g. via `@BuildCommand`).
+   * - `"initialized"`: service declared phase "initialized".
+   * - `undefined`: service did not declare a phase (treat as "initialized").
+   *
+   * The CLI dispatcher uses this to decide whether to skip `Core.init()`:
+   * all-"resolved" → resolve-only; all-"initialized"/undefined → full init; mixed → error.
+   */
+  phases: Array<"resolved" | "initialized" | undefined>;
 }
 
 /**
@@ -65,13 +76,15 @@ export function collectServiceCommands(app: Application): { [name: string]: Serv
           description: cmdDef.description,
           services: [],
           args: { ...cmdDef.args },
-          requires: []
+          requires: [],
+          phases: []
         };
         commands[cmdName].services.push({
           name: typeName,
           method: cmdDef.method,
           type: typeName
         });
+        commands[cmdName].phases.push(cmdDef.phase);
         // Merge args from multiple services providing the same command
         for (const [argName, argDef] of Object.entries(cmdDef.args)) {
           commands[cmdName].args[argName] ??= argDef;

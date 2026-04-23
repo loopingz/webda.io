@@ -190,6 +190,52 @@ Fork(
       await runWithCurrentDirectory(targetDir, async () => {
         const compiler = new Compiler(project);
         if (argv.watch) {
+          // Guard against accidental recursion if a build hook re-invokes webdac.
+          const recursive = !!process.env[WEBDA_BUILD_DISPATCH_ENV];
+
+          let building = false;
+          let pending = false;
+
+          const runHooksOnce = async () => {
+            const modulePath = project.getAppPath("webda.module.json");
+            if (!existsSync(modulePath)) return;
+            const localMod = FileUtils.load(modulePath, "json");
+            mergeDependencyModules(project.getAppPath(), localMod);
+            const configPath = FileUtils.getConfigurationFile(project.getAppPath("webda.config"));
+            const configuredTypes = listConfiguredServiceTypes(configPath, project.namespace);
+            if (!shouldDispatchBuildHooks(localMod, configuredTypes)) return;
+            const code = await spawnWebdaBuild(project.getAppPath());
+            if (code !== 0) {
+              useWorkerOutput().log("ERROR", `webda build exited with code ${code}`);
+            }
+          };
+
+          const runHooks = async () => {
+            if (building) {
+              pending = true;
+              return;
+            }
+            building = true;
+            try {
+              await runHooksOnce();
+            } catch (err) {
+              useWorkerOutput().log("ERROR", "Build hook dispatch failed", (err as Error).message);
+            } finally {
+              building = false;
+              if (pending) {
+                pending = false;
+                // Run again — the source changed during the previous run.
+                void runHooks();
+              }
+            }
+          };
+
+          if (!recursive) {
+            project.on("done", () => {
+              void runHooks();
+            });
+          }
+
           compiler.watch(() => {});
           await new Promise(() => {});
         } else {

@@ -286,6 +286,13 @@ export type CommandDefinition = {
    * missing services before booting Core.
    */
   requires?: string[];
+  /**
+   * Lifecycle phase at which this command runs.
+   * - `"initialized"` (default when omitted): after `Core.init()`.
+   * - `"resolved"`: after `Core.resolve()` only. No service.init() called.
+   *   Used for build-time hooks (e.g. `@BuildCommand`).
+   */
+  phase?: "resolved" | "initialized";
 };
 
 export type ServiceMetadata = {

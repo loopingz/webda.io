@@ -497,3 +497,99 @@ suite("CommandsMetadata", () => {
     expect(cmd.phase).toBeUndefined();
   });
 });
+
+// Helper: compile source string, return a CommandsMetadata plugin instance
+// and a function that calls extractCommands (via getMetadata) for a single class.
+function makeExtractCommands(source: string) {
+  const { checker, classes } = compileSource(source);
+  const gen = createMockModuleGenerator(checker);
+  const plugin = new CommandsMetadata(gen);
+
+  return function extractCommands(className = "Foo") {
+    const serviceClass = classes.find(c => c.name?.text === className)!;
+    const type = checker.getTypeAtLocation(serviceClass);
+
+    const module: WebdaModule = {
+      beans: { "Test/Foo": { Import: "lib:Foo", Schema: {} } },
+      moddas: {},
+      deployers: {},
+      models: {},
+      schemas: {}
+    };
+    const objects = {
+      beans: { "Test/Foo": { type, node: serviceClass } },
+      moddas: {},
+      models: {},
+      deployers: {},
+      schemas: {} as any
+    };
+
+    plugin.getMetadata(module, objects);
+    return module.beans!["Test/Foo"].commands ?? {};
+  };
+}
+
+suite("CommandsMetadata @BuildCommand", () => {
+  test("recognizes @BuildCommand as a build command with phase 'resolved'", () => {
+    const src = `
+      function BuildCommand(...args: any[]) {
+        return function(t: any, c: any) { return t; };
+      }
+      class Foo {
+        @BuildCommand({ description: "generate proto" })
+        async build() {}
+      }
+    `;
+    const cmds = makeExtractCommands(src)();
+    expect(cmds["build"]).toBeDefined();
+    expect(cmds["build"].phase).toBe("resolved");
+    expect(cmds["build"].description).toBe("generate proto");
+    expect(cmds["build"].method).toBe("build");
+  });
+
+  test("preserves requires from @BuildCommand", () => {
+    const src = `
+      function BuildCommand(...args: any[]) {
+        return function(t: any, c: any) { return t; };
+      }
+      class Foo {
+        @BuildCommand({ description: "x", requires: ["rest-domain"] })
+        async build() {}
+      }
+    `;
+    const cmds = makeExtractCommands(src)();
+    expect(cmds["build"].requires).toEqual(["rest-domain"]);
+  });
+
+  test("@BuildCommand with no options still registers", () => {
+    const src = `
+      function BuildCommand(...args: any[]) {
+        return function(t: any, c: any) { return t; };
+      }
+      class Foo {
+        @BuildCommand()
+        async build() {}
+      }
+    `;
+    const cmds = makeExtractCommands(src)();
+    expect(cmds["build"]).toBeDefined();
+    expect(cmds["build"].phase).toBe("resolved");
+  });
+
+  test("@BuildCommand ignores user-provided phase override", () => {
+    // Even if someone tries to pass phase: "initialized" via @BuildCommand
+    // (which is impossible via the @webda/core sugar but the compiler sees raw source),
+    // the phase must stay "resolved".
+    const src = `
+      function BuildCommand(...args: any[]) {
+        return function(t: any, c: any) { return t; };
+      }
+      class Foo {
+        @BuildCommand({ description: "x", phase: "initialized" })
+        async build() {}
+      }
+    `;
+    const cmds = makeExtractCommands(src)();
+    expect(cmds["build"].phase).toBe("resolved");
+  });
+});

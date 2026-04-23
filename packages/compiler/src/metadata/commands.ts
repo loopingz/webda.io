@@ -55,7 +55,7 @@ export class CommandsMetadata extends MetadataPlugin {
 
       const decorator = ts.getDecorators(member)?.find(annotation => {
         const dname = this.moduleGenerator.getDecoratorName(annotation);
-        return dname === "Command";
+        return dname === "Command" || dname === "BuildCommand";
       });
 
       if (!decorator) continue;
@@ -71,14 +71,18 @@ export class CommandsMetadata extends MetadataPlugin {
   }
 
   /**
-   * Parse a `@Command` decorator and method signature into a command name
-   * and its full definition including arguments.
+   * Parse a `@Command` or `@BuildCommand` decorator and method signature into
+   * a command name and its full definition including arguments.
    *
-   * The decorator is expected to be called as `@Command("name", { description: "..." })`.
-   * The first argument is the command name (required string literal), and the
-   * second is an optional options object with a `description` property.
+   * For `@Command("name", { description: "..." })`, the first argument is the
+   * command name (required string literal) and the second is an optional options
+   * object.
    *
-   * @param decorator - The `@Command` decorator AST node
+   * For `@BuildCommand({ description: "..." })`, the first argument (optional)
+   * is the options object, the command name is fixed to `"build"`, and `phase`
+   * is always pinned to `"resolved"` regardless of what the options object says.
+   *
+   * @param decorator - The decorator AST node (`@Command` or `@BuildCommand`)
    * @param methodName - The name of the decorated method (used as the `method` field)
    * @param method - The method declaration, used to extract parameter definitions
    * @returns An object with `commandName` and `definition`, or `undefined` if
@@ -91,27 +95,41 @@ export class CommandsMetadata extends MetadataPlugin {
   ): { commandName: string; definition: CommandDefinition } | undefined {
     if (!ts.isCallExpression(decorator.expression)) return undefined;
 
+    const decoratorName = this.moduleGenerator.getDecoratorName(decorator);
+    const isBuildCommand = decoratorName === "BuildCommand";
+
     const args = decorator.expression.arguments;
-    if (args.length === 0) return undefined;
+    let commandName: string;
+    let optionsArg: ts.Expression | undefined;
 
-    // First arg: command name (string literal)
-    const firstArg = args[0];
-    if (!ts.isStringLiteral(firstArg)) return undefined;
-    const commandName = firstArg.text;
+    if (isBuildCommand) {
+      // @BuildCommand(options?) — first arg is the options object (optional).
+      // Command name is fixed to "build"; phase is pinned to "resolved" and cannot be overridden.
+      commandName = "build";
+      optionsArg = args[0];
+    } else {
+      // @Command("name", options?) — name required, options optional.
+      if (args.length === 0) return undefined;
+      const firstArg = args[0];
+      if (!ts.isStringLiteral(firstArg)) return undefined;
+      commandName = firstArg.text;
+      optionsArg = args[1];
+    }
 
-    // Second arg (optional): options object { description, requires, phase }
+    // Parse options
     let description = "";
     let requires: string[] | undefined;
-    let phase: "resolved" | "initialized" | undefined;
-    if (args.length > 1 && ts.isObjectLiteralExpression(args[1])) {
-      for (const prop of args[1].properties) {
+    let phase: "resolved" | "initialized" | undefined = isBuildCommand ? "resolved" : undefined;
+    if (optionsArg && ts.isObjectLiteralExpression(optionsArg)) {
+      for (const prop of optionsArg.properties) {
         if (!ts.isPropertyAssignment(prop) || !ts.isIdentifier(prop.name)) continue;
         const key = prop.name.text;
         if (key === "description" && ts.isStringLiteral(prop.initializer)) {
           description = prop.initializer.text;
         } else if (key === "requires" && ts.isArrayLiteralExpression(prop.initializer)) {
           requires = prop.initializer.elements.filter(ts.isStringLiteral).map(el => el.text);
-        } else if (key === "phase" && ts.isStringLiteral(prop.initializer)) {
+        } else if (!isBuildCommand && key === "phase" && ts.isStringLiteral(prop.initializer)) {
+          // `phase` is user-settable only on @Command; @BuildCommand pins it to "resolved".
           const val = prop.initializer.text;
           if (val === "resolved" || val === "initialized") phase = val;
         }

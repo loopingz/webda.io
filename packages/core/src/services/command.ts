@@ -106,3 +106,31 @@ export const Command = createMethodDecorator(
     });
   }
 );
+
+/**
+ * Sugar for `@Command("build", { phase: "resolved", ...options })`.
+ *
+ * Marks a service method as a build-time hook. The method is invoked during
+ * `webda build` after `Core.resolve()` completes; `service.init()` is NOT
+ * called, so the method must not depend on DB/network connections.
+ *
+ * The compiler (`@webda/compiler`) emits a `build` command entry into
+ * `webda.module.json` when it sees this decorator; `webdac build` then
+ * auto-invokes `webda build` if any configured service declares it.
+ *
+ * @param options - Same options as `@Command`, minus `phase` (fixed to `"resolved"`).
+ * @returns A method decorator that registers the method as a `build` command with `phase: "resolved"`.
+ *
+ * @example
+ * ```typescript
+ * class GrpcService extends Service {
+ *   @BuildCommand({ description: "Generate proto", requires: ["rest-domain"] })
+ *   async build() {
+ *     writeFileSync(this.parameters.protoFile, generateProto(...));
+ *   }
+ * }
+ * ```
+ */
+export function BuildCommand(options: Omit<CommandOptions, "phase"> = { description: "" }) {
+  return Command("build", { ...options, phase: "resolved" });
+}

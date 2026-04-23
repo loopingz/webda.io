@@ -5,12 +5,17 @@ import { Compiler } from "./compiler";
 import { generateConfigurationSchemas, ConfigSchemaApplication } from "./configuration";
 import { generateOperations } from "./operations";
 import { useWorkerOutput, Fork, InteractiveConsoleLogger } from "@webda/workout";
-import { FileUtils } from "@webda/utils";
+import { FileUtils, listConfiguredServiceTypes } from "@webda/utils";
 import { resolve, join } from "path";
 import { runWithCurrentDirectory } from "@webda/utils";
 import { existsSync, mkdirSync, readdirSync, lstatSync, realpathSync, writeFileSync } from "node:fs";
 import { bold, italic, yellow } from "yoctocolors";
 import { WebdaMorpher } from "./morpher/morpher";
+import {
+  shouldDispatchBuildHooks,
+  spawnWebdaBuild,
+  WEBDA_BUILD_DISPATCH_ENV
+} from "./shell-build-dispatch";
 
 /**
  * Scan a single node_modules directory for webda.module.json files
@@ -228,14 +233,13 @@ Fork(
             }
 
             // Build-hook dispatch: if any configured service declares a `build`
-            // command, spawn `webda build` to run the hooks. Keeps the compiler
-            // free of a runtime dependency on @webda/core.
-            try {
-              const { listConfiguredServiceTypes } = await import("@webda/utils");
-              const { shouldDispatchBuildHooks, spawnWebdaBuild } = await import("./shell-build-dispatch.js");
+            // command, spawn `webda build` to run the hooks.
+            // If WEBDA_BUILD_DISPATCH is set, we are already the child of an
+            // outer `webdac build` — skip to break any accidental fork loop
+            // (e.g. a user's build hook that re-invokes `webdac build`).
+            if (!process.env[WEBDA_BUILD_DISPATCH_ENV]) {
               const configPath = FileUtils.getConfigurationFile(project.getAppPath("webda.config"));
-              const namespace = project.namespace || "Webda";
-              const configuredTypes = listConfiguredServiceTypes(configPath, namespace);
+              const configuredTypes = listConfiguredServiceTypes(configPath, project.namespace);
               if (shouldDispatchBuildHooks(mod, configuredTypes)) {
                 useWorkerOutput().log("INFO", "Running build hooks (webda build)…");
                 const code = await spawnWebdaBuild(project.getAppPath());
@@ -244,8 +248,6 @@ Fork(
                   process.exit(code);
                 }
               }
-            } catch (err) {
-              useWorkerOutput().log("WARN", "Build-hook dispatch skipped", (err as Error).message);
             }
           }
         }

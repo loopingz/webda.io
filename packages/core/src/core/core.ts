@@ -20,7 +20,16 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import * as jsondiffpatch from "jsondiffpatch";
 import { ConfigurationService } from "../configurations/configuration.js";
 
-export type CoreStates = "initial" | "loading" | "initializing" | "reinitializing" | "ready" | "stopping" | "stopped";
+export type CoreStates =
+  | "initial"
+  | "loading"
+  | "resolving"
+  | "resolved"
+  | "initializing"
+  | "reinitializing"
+  | "ready"
+  | "stopping"
+  | "stopped";
 
 const CoreState = (options: StateOptions<CoreStates>) => State(options);
 
@@ -257,13 +266,21 @@ export class Core implements ICore {
   }
 
   /**
-   * Init Webda
+   * Resolve services and their dependencies WITHOUT calling service.init().
    *
-   * It will resolve Services init method and autolink
+   * After this completes:
+   * - All services declared in configuration are constructed.
+   * - Each service's `resolve()` has been called (via createService / bean registration).
+   * - `this.initOrders` is finalized (Store services first).
+   * - The configuration service (if any) has been fully initialized — it must run
+   *   early so other services can read config during construction.
+   *
+   * No non-configuration service.init() calls — no DB/network I/O is performed.
+   * Build-time hooks (`@BuildCommand`) run after this phase.
    */
-  @CoreState({ start: "initializing", end: "ready" })
+  @CoreState({ start: "resolving", end: "resolved" })
   @InstanceCache()
-  async init() {
+  async resolve() {
     // Create services
     // First create the configuration service if defined
     const initOrders = [];
@@ -280,7 +297,8 @@ export class Core implements ICore {
         initOrders.push(this.configurationService);
       }
       this.initOrders = [];
-      // Init all services defined in configuration
+      // The configuration service's init() must run now — downstream service
+      // construction reads updated config values from it.
       for (const service of initOrders) {
         await this.initService(service);
       }
@@ -302,6 +320,20 @@ export class Core implements ICore {
       return 0;
     });
     this.log("DEBUG", "Services init order", [...initOrders, ...this.initOrders]);
+  }
+
+  /**
+   * Init Webda
+   *
+   * It will resolve Services init method and autolink.
+   *
+   * Delegates to {@link resolve} for service creation + resolve, then calls
+   * `init()` on every remaining non-configuration service.
+   */
+  @CoreState({ start: "initializing", end: "ready" })
+  @InstanceCache()
+  async init() {
+    await this.resolve();
     for (const service of this.initOrders) {
       await this.initService(service);
     }

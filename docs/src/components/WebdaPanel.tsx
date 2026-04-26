@@ -223,14 +223,21 @@ export default function WebdaPanel({
     flexDirection: "column"
   };
   return (
-    <div style={{ margin: 20 }}>
+    <div style={{ margin: 20, position: "relative" }}>
       <img
         src="/img/webda.svg"
         alt="Webda Logo"
         width="200px"
-        style={{ position: "relative", left: "calc(50% - 100px", bottom: -160 }}
+        style={{
+          position: "absolute",
+          left: "calc(50% - 100px)",
+          top: "calc(50% - 100px)",
+          zIndex: 3,
+          pointerEvents: "none",
+          filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.18))"
+        }}
       />
-      <div style={{ display: "flex", marginTop: -200 }}>
+      <div style={{ display: "flex" }}>
         <ModelsPanel style={{ ...panelStyle, borderBottomWidth: 1, borderTopLeftRadius: 10 }} />
         <DeploymentsPanel
           style={{

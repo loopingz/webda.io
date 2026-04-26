@@ -8,7 +8,9 @@
   min-width: 250px;
   width: 50%;
   height: 50%;
-  border-radius: 6px;
+  /* No base border-radius — the four panels meet sharply in the middle so
+     the central webda logo can peek through where they join. Per-panel
+     style overrides set the outer-corner radius only. */
   background-color: var(--webda-panel-bg);
   color: var(--webda-panel-fg);
   position: relative;

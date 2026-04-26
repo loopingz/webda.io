@@ -13,15 +13,65 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-This project allows you to use Cloud Storage ... soon
+# @webda/gcp
 
-## Run local tests
+> Google Cloud Platform integration bundle for Webda — Firestore Store, Cloud Storage Binary, Cloud Pub/Sub, GCP Queue, and KMS encryption service in one package.
 
-The test credentials need to be provided by the author
+## When to use it
 
+- You are deploying a Webda application on GCP and need cloud-native backing services.
+- You want to replace `MemoryStore` / `FileBinary` / `MemoryQueue` with GCP-managed equivalents for production.
+- You need envelope encryption via Google Cloud KMS for stored model data.
+
+## Install
+
+```bash
+pnpm add @webda/gcp
 ```
-GOOGLE_APPLICATION_CREDENTIALS=`pwd`/webda-dev-750c62811e3b.json yarn test
+
+## What's inside
+
+- `FireStore` — Firestore-backed Store for any Webda model ([source](./src/services/firestore.ts))
+- `Storage` — Cloud Storage-backed Binary service for file uploads/downloads ([source](./src/services/storage.ts))
+- `GCPQueue` — Cloud Pub/Sub-backed Queue for reliable task delivery ([source](./src/services/queue.ts))
+- `GCPPubSubService` — Cloud Pub/Sub fan-out pub/sub messaging ([source](./src/services/pubsub.ts))
+- `GCPKMSService` — Cloud KMS-based encryption/decryption ([source](./src/services/kms.ts))
+
+## Quick config example
+
+```json
+{
+  "services": {
+    "userStore": {
+      "type": "FireStore",
+      "model": "MyApp/User",
+      "project": "my-gcp-project",
+      "collection": "users"
+    },
+    "uploads": {
+      "type": "Storage",
+      "bucket": "my-app-uploads"
+    },
+    "taskQueue": {
+      "type": "GCPQueue",
+      "topic": "my-app-tasks",
+      "subscription": "my-app-tasks-sub"
+    }
+  }
+}
 ```
+
+Authentication uses Application Default Credentials. Set `GOOGLE_APPLICATION_CREDENTIALS` to a service account key file for local development:
+
+```bash
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json webda serve
+```
+
+## Reference
+
+- API reference: see the auto-generated typedoc at `docs/pages/Modules/gcp/`.
+- Source: [`packages/gcp`](https://github.com/loopingz/webda.io/tree/main/packages/gcp)
+- Related: [`@webda/core`](../core) for the `Store`, `Binary`, and `Queue` base classes; [`@webda/async`](../async) for job orchestration on top of GCPQueue; [`@webda/aws`](../aws) for the AWS equivalent.
 
 <!-- README_FOOTER -->
 ## Sponsors

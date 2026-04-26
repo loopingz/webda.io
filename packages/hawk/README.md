@@ -13,6 +13,87 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
+# @webda/hawk
+
+> Hawk HTTP authentication for Webda — HMAC-signed request authentication using API keys stored in a Webda Store, with optional session-bound dynamic keys.
+
+## When to use it
+
+- You need server-to-server or machine-to-machine authentication via HMAC-signed HTTP requests (the [Hawk protocol](https://github.com/mozilla/hawk#readme)).
+- You want to manage API keys as first-class Webda models with full CRUD, revocation, and audit trail support.
+- You need an alternative to Bearer tokens that also covers request integrity (method + URL included in the signature).
+
+## Install
+
+```bash
+pnpm add @webda/hawk
+```
+
+## Configuration
+
+```json
+{
+  "services": {
+    "hawk": {
+      "type": "Hawk",
+      "keyModel": "MyApp/ApiKey"
+    },
+    "apiKeyStore": {
+      "type": "MemoryStore",
+      "model": "MyApp/ApiKey"
+    }
+  }
+}
+```
+
+| Parameter | Type | Default | Required | Description |
+|---|---|---|---|---|
+| `keyModel` | string | — | No | Fully qualified model name for API key lookup (must extend `ApiKey`) |
+| `dynamicSessionKey` | string | — | No | Session attribute to read a per-session HMAC key from |
+| `redirectUrl` | string | — | No | URL to redirect to after successful key exchange |
+| `redirectUris` | string[] | `[]` | No | Whitelist of allowed redirect URIs for CSRF protection |
+
+## Usage
+
+```typescript
+// 1. Create an API key for a client
+import { ApiKey } from "@webda/hawk";
+import { Bean, Inject } from "@webda/core";
+import HawkService from "@webda/hawk";
+
+@Bean
+export class ApiKeyManager extends Service {
+  @Inject("hawk")
+  hawk: HawkService;
+
+  async issueKey(clientId: string): Promise<ApiKey> {
+    const key = new ApiKey();
+    key.clientId = clientId;
+    // key.key and key.algorithm are auto-generated
+    return key.save();
+  }
+}
+
+// 2. Sign a request on the client side (e.g. using the hawk npm package)
+import * as Hawk from "hawk";
+
+const { header } = Hawk.client.header(
+  "https://api.example.com/orders",
+  "GET",
+  { credentials: { id: apiKeyId, key: apiKeySecret, algorithm: "sha256" } }
+);
+// Send the Authorization: Hawk ... header
+
+// 3. HawkService automatically validates incoming requests as a RequestFilter
+// before other route handlers run — no additional middleware needed.
+```
+
+## Reference
+
+- API reference: see the auto-generated typedoc at `docs/pages/Modules/hawk/`.
+- Source: [`packages/hawk`](https://github.com/loopingz/webda.io/tree/main/packages/hawk)
+- Related: [`@webda/core`](../core) for `RequestFilter`; [`@webda/async`](../async) for pairing Hawk-authenticated job callbacks.
+
 <!-- README_FOOTER -->
 ## Sponsors
 

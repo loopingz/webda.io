@@ -19,9 +19,9 @@ Congratulations — you have built a complete blog API with REST, GraphQL, and g
 
 The blog currently allows anyone to create, update, and delete any resource. Real applications restrict operations to authenticated users.
 
-- **Email/password + OAuth** — [`../../../Modules/core/`](../../../Modules/core/) covers the built-in `Authentication` service which handles email-based login and provides hooks for OAuth.
-- **Google OAuth** — [`../../../Modules/google-auth/`](../../../Modules/google-auth/) — plug-and-play Google Sign-In that adds `/auth/google` and `/auth/google/callback` routes automatically.
-- **HAWK authentication** — [`../../../Modules/hawk/`](../../../Modules/hawk/) — MAC-based API authentication for server-to-server scenarios.
+- **Email/password + OAuth** — [`@webda/core`](../../Modules/core/README.md) covers the built-in `Authentication` service which handles email-based login and provides hooks for OAuth.
+- **Google OAuth** — [`@webda/google-auth`](../../Modules/google-auth/README.md) — plug-and-play Google Sign-In that adds `/auth/google` and `/auth/google/callback` routes automatically.
+- **HAWK authentication** — [`@webda/hawk`](../../Modules/hawk/README.md) — MAC-based API authentication for server-to-server scenarios.
 
 Once authentication is in place, tighten `canAct` on each model:
 
@@ -41,9 +41,9 @@ async canAct(context: WebContext, action: string): Promise<boolean> {
 
 | Backend | Package | Link |
 |---------|---------|------|
-| MongoDB | `@webda/mongodb` | [`../../../Modules/mongodb/`](../../../Modules/mongodb/) |
-| PostgreSQL | `@webda/postgres` | [`../../../Modules/postgres/`](../../../Modules/postgres/) |
-| AWS DynamoDB / S3 | `@webda/aws` | [`../../../Modules/aws/`](../../../Modules/aws/) |
+| MongoDB | `@webda/mongodb` | [`@webda/mongodb`](../../Modules/mongodb/README.md) |
+| PostgreSQL | `@webda/postgres` | [`@webda/postgres`](../../Modules/postgres/README.md) |
+| AWS DynamoDB / S3 | `@webda/aws` | [`@webda/aws`](../../Modules/aws/README.md) |
 
 Changing the store is a config-only change — no model code is modified:
 
@@ -64,9 +64,9 @@ Webda includes first-class deployers for cloud platforms.
 
 | Target | Package | Link |
 |--------|---------|------|
-| AWS Lambda + CloudFormation | `@webda/aws` | [`../../../Modules/aws/`](../../../Modules/aws/) |
-| Kubernetes | `@webda/kubernetes` | [`../../../Modules/kubernetes/`](../../../Modules/kubernetes/) |
-| Google Cloud | `@webda/gcp` | [`../../../Modules/gcp/`](../../../Modules/gcp/) |
+| AWS Lambda + CloudFormation | `@webda/aws` | [`@webda/aws`](../../Modules/aws/README.md) |
+| Kubernetes | `@webda/kubernetes` | [`@webda/kubernetes`](../../Modules/kubernetes/README.md) |
+| Google Cloud | `@webda/gcp` | [`@webda/gcp`](../../Modules/gcp/README.md) |
 
 Deploying to AWS uses a dedicated deployment config:
 
@@ -90,9 +90,9 @@ webda -d aws deploy
 
 ## Observability
 
-**Logging** — [`../../../Modules/workout/`](../../../Modules/workout/) — `@webda/workout` provides structured log output, memory logging for tests, and a `useLog` helper used throughout this tutorial.
+**Logging** — [`@webda/workout`](../../Modules/workout/README.md) — provides structured log output, memory logging for tests, and a `useLog` helper used throughout this tutorial.
 
-**OpenTelemetry** — [`../../../Modules/otel/`](../../../Modules/otel/) — `@webda/otel` instruments your services with traces and metrics compatible with any OpenTelemetry backend (Jaeger, Grafana Tempo, AWS X-Ray, etc.).
+**OpenTelemetry** — [`@webda/otel`](../../Modules/otel/README.md) — instruments your services with traces and metrics compatible with any OpenTelemetry backend (Jaeger, Grafana Tempo, AWS X-Ray, etc.).
 
 Add to `webda.config.json`:
 
@@ -108,7 +108,7 @@ Add to `webda.config.json`:
 
 ## Testing
 
-[`../../../Modules/test/`](../../../Modules/test/) — `@webda/test` provides:
+[`@webda/test`](../../Modules/test/README.md) provides:
 
 - `WebdaTest` base class for Vitest/Mocha integration tests
 - `@testWrapper` decorator for automatic memory-log export on failure
@@ -130,12 +130,12 @@ class PostApiTest extends WebdaTest {
 
 | Package | Description | Link |
 |---------|-------------|------|
-| `@webda/mock` | Generates realistic mock data for models (Faker-backed) | [`../../../Modules/mock/`](../../../Modules/mock/) |
-| `@webda/elasticsearch` | Full-text search integration | [`../../../Modules/elasticsearch/`](../../../Modules/elasticsearch/) |
-| `@webda/cache` | In-process and Redis-backed caching | [`../../../Modules/cache/`](../../../Modules/cache/) |
-| `@webda/versioning` | Immutable object patches and audit trails | [`../../../Modules/versioning/`](../../../Modules/versioning/) |
-| `@webda/amqp` | AMQP/RabbitMQ queue workers | [`../../../Modules/amqp/`](../../../Modules/amqp/) |
-| `@webda/cloudevents` | CloudEvents ingestion and emission | [`../../../Modules/cloudevents/`](../../../Modules/cloudevents/) |
+| `@webda/mock` | Generates realistic mock data for models (Faker-backed) | [`@webda/mock`](../../Modules/mock/README.md) |
+| `@webda/elasticsearch` | Full-text search integration | [`@webda/elasticsearch`](../../Modules/elasticsearch/README.md) |
+| `@webda/cache` | In-process and Redis-backed caching | [`@webda/cache`](../../Modules/cache/README.md) |
+| `@webda/versioning` | Immutable object patches and audit trails | [`@webda/versioning`](../../Modules/versioning/README.md) |
+| `@webda/amqp` | AMQP/RabbitMQ queue workers | [`@webda/amqp`](../../Modules/amqp/README.md) |
+| `@webda/cloudevents` | CloudEvents ingestion and emission | [`@webda/cloudevents`](../../Modules/cloudevents/README.md) |
 
 ---
 

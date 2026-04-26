@@ -140,4 +140,4 @@ modules: [ 'unserializer', 'loadParameters', 'accessors', 'updateImports', 'capa
 - [Build](./Build.md) — `webdac build` orchestrates the compilation pipeline
 - [Code Generation](./CodeGen.md) — built-in morpher modules
 - [Module Manifest](./ModuleManifest.md) — the output of the build pipeline
-- [@webda/ts-plugin](../ts-plugin/README.md) — compile-time TypeScript transformer
+- [@webda/tsc-esm](../tsc-esm/README.md) — ESM extension-rewriter that runs after compilation

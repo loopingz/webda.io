@@ -204,4 +204,4 @@ curl -sk -o /dev/null -w "%{http_code}" https://localhost:18080/profile
 - [Routing](./Routing.md) — how routes are matched and context is created
 - [Events](./Events.md) — `Webda.Request` fires with the context for each request
 - [Errors](./Errors.md) — error types that affect the response status
-- [@webda/authentication](../authentication/README.md) — sets the authenticated user in context
+- `@webda/authentication` — sets the authenticated user in context via `SessionManager`

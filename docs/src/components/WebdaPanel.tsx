@@ -1,6 +1,7 @@
 import React from "react";
 import { useMediaQuery } from "react-responsive";
 import WebdaJigsaw from "./WebdaJigsaw";
+import styles from "./WebdaPanel.module.css";
 
 export const WebdaColors = {
   ORANGE: "#FF9901",
@@ -111,20 +112,17 @@ function Subpanel({
   children: React.ReactNode;
   style?: React.CSSProperties;
 }) {
-  const panelStyle: React.CSSProperties = {
-    padding: 10,
-    color: adjustLightness(WebdaColors[color], -0.4),
-    backgroundColor: color === "WHITE" ? "#F8F8F8" : adjustLightness(WebdaColors[color], 0.3),
-    minHeight: 250,
-    minWidth: 250,
-    width: "50%",
-    height: "50%",
-    ...style
+  const accent = WebdaColors[color];
+  const cssVars: React.CSSProperties & Record<string, string> = {
+    "--webda-panel-color": accent,
+    "--webda-panel-bg": color === "WHITE" ? "#F8F8F8" : adjustLightness(accent, 0.3),
+    "--webda-panel-fg": adjustLightness(accent, -0.4),
+    "--webda-panel-title": adjustLightness(accent, -0.2),
+    "--webda-panel-glow": color === "WHITE" ? "rgba(0,0,0,0.18)" : `${accent}66`
   };
-
   return (
-    <div style={{ ...panelStyle }}>
-      <h3 style={{ color: adjustLightness(WebdaColors[color], -0.2) }}>{title}</h3>
+    <div className={styles.subpanel} style={{ ...cssVars, ...style }}>
+      <h3 className={styles.subpanelTitle}>{title}</h3>
       {children}
     </div>
   );
@@ -193,20 +191,20 @@ export default function WebdaPanel({
     return (
       <div>
         <ModelsPanel style={style} />
-        <div style={{ display: "flex", justifyContent: "end", marginTop: -60, marginRight: -10 }}>
+        <div className={styles.jigsawWrap}>
           <WebdaJigsaw fillColor={WebdaColors.BLUE} style={{ transform: "scale(-1, 1)", width: "96" }} />
         </div>
         <ServicesPanel style={style} />
-        <div style={{ display: "flex", justifyContent: "end", marginTop: -60, marginRight: -10 }}>
+        <div className={styles.jigsawWrap}>
           <WebdaJigsaw fillColor={WebdaColors.GREEN} style={{ transform: "scale(-1, 1)", width: "96" }} />
         </div>
 
         <DeploymentsPanel style={style} />
-        <div style={{ display: "flex", justifyContent: "end", marginTop: -60, marginRight: -10 }}>
+        <div className={styles.jigsawWrap}>
           <WebdaJigsaw fillColor={WebdaColors.ORANGE} style={{ transform: "scale(-1, 1)", width: "96" }} />
         </div>
         <OthersPanel style={style} />
-        <div style={{ display: "flex", justifyContent: "end", marginTop: -60, marginRight: -10 }}>
+        <div className={styles.jigsawWrap}>
           <WebdaJigsaw
             fillColor={adjustLightness(WebdaColors.WHITE, -0.1)}
             style={{ transform: "scale(-1, 1)", width: "96" }}

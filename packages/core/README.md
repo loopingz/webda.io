@@ -219,6 +219,19 @@ throw new WebdaError.Redirect("https://example.com/new-location");
 | `@webda/serialize` | Serialization framework |
 | `@webda/schema` | JSON Schema generator |
 
+## Deep-dive sub-pages
+
+- [Architecture](../../docs/pages/Modules/core/Architecture.md) — 6-layer overview with diagram
+- [Service Lifecycle](../../docs/pages/Modules/core/Lifecycle.md) — resolve → init → run → stop
+- [Services](../../docs/pages/Modules/core/Services.md) — `Service`, `@Bean`, `@Inject`, `ServiceParameters`
+- [Stores](../../docs/pages/Modules/core/Stores.md) — Store contract, query interface, events
+- [Context](../../docs/pages/Modules/core/Context.md) — `WebContext`, sessions, request lifecycle
+- [Routing](../../docs/pages/Modules/core/Routing.md) — `@Route`, `@Operation`, REST auto-generation
+- [Events](../../docs/pages/Modules/core/Events.md) — `Core.on`, store events, `@On` decorator
+- [Errors](../../docs/pages/Modules/core/Errors.md) — WebdaError hierarchy and HTTP status mapping
+- [Logging](../../docs/pages/Modules/core/Logging.md) — `useLog` + `@webda/workout` integration
+- [CLI](../../docs/pages/Modules/core/CLI.md) — `webda` runtime commands
+
 <!-- README_FOOTER -->
 ## Sponsors
 

@@ -13,22 +13,27 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-TypeScript Language Service Plugin + build-time transformer for Webda models. One package, two entry points:
+# @webda/ts-plugin
 
-- **IDE** (`index.ts`) — asymmetric getter/setter types on hover, suppresses false TS2322 errors
-- **Build** (`transform.ts`) — transforms field declarations into accessor pairs, generates `webda.module.json`
+> TypeScript Language Service Plugin and build-time transformer for Webda — one package that gives your IDE correct getter/setter types for Webda model fields and, optionally, generates `webda.module.json` at compile time via `ts-patch`.
 
-## Problem
+## When to use it
 
-When `createdAt: Date` is transformed at build time into a getter/setter where the setter accepts `string | number | Date`, the source `.ts` file still declares `createdAt: Date`. Without this plugin:
+- You want IDE autocomplete and hover to show widened setter types (`string | number | Date`) for Webda model date fields instead of the narrower declared type.
+- You want to suppress false `TS2322` errors when assigning string values to a `Date` field that accepts coercion.
+- You want to replace the separate `webdac build` step with a single `tspc` compile that transforms and generates `webda.module.json` in one pass.
 
-- Hover shows `Date` instead of the widened setter type
-- `user.createdAt = "2024-01-01"` shows a false TS2322 error
-- Build transforms and `webda.module.json` generation require a separate `webdac` step
+## Install
 
-## Setup
+```bash
+pnpm add -D @webda/ts-plugin
+# For build-time transform (optional):
+pnpm add -D ts-patch && npx ts-patch install
+```
 
-### IDE only (Language Service Plugin)
+## Configuration
+
+### IDE only (Language Service Plugin — no `ts-patch` required)
 
 ```jsonc
 // tsconfig.json
@@ -41,14 +46,9 @@ When `createdAt: Date` is transformed at build time into a getter/setter where t
 }
 ```
 
-For VS Code: Command Palette → "TypeScript: Select TypeScript Version" → "Use Workspace Version".
+In VS Code: Command Palette → "TypeScript: Select TypeScript Version" → "Use Workspace Version".
 
 ### IDE + Build (with ts-patch)
-
-```bash
-npm install -D ts-patch @webda/ts-plugin
-npx ts-patch install
-```
 
 ```jsonc
 // tsconfig.json
@@ -59,97 +59,55 @@ npx ts-patch install
         "name": "@webda/ts-plugin",
         "transform": "@webda/ts-plugin/transform",
         "afterDeclarations": "@webda/ts-plugin/transform",
-        "generateModule": true
-      }
-    ]
-  }
-}
-```
-
-Then `tspc` (ts-patch's patched tsc) replaces both `tsc` and `webdac`:
-
-```bash
-# Before: tsc && webdac build
-# After:
-tspc
-```
-
-## Configuration
-
-```jsonc
-{
-  "compilerOptions": {
-    "plugins": [
-      {
-        "name": "@webda/ts-plugin",
-        "transform": "@webda/ts-plugin/transform",
-        // Additional model base classes (Model and UuidModel are always included)
-        "modelBases": ["MyCustomBaseModel"],
-        // Package namespace for webda.module.json (auto-detected from package.json)
+        "generateModule": true,
         "namespace": "MyApp",
-        // Additional coercion rules beyond Date
+        "modelBases": ["MyCustomBaseModel"],
         "coercions": {
           "Decimal": { "setterType": "string | number | Decimal" }
-        },
-        // Generate webda.module.json (default: true)
-        "generateModule": true
+        }
       }
     ]
   }
 }
 ```
 
-## Architecture
+| Plugin option | Type | Default | Description |
+|---|---|---|---|
+| `generateModule` | boolean | `true` | Generate `webda.module.json` during build |
+| `namespace` | string | auto from `package.json` | Package namespace for `webda.module.json` |
+| `modelBases` | string[] | `[]` | Additional base class names recognized as Webda models |
+| `coercions` | object | `{}` | Map of type name → `{ setterType }` for additional coercion rules beyond `Date` |
 
-```
-Source code:        createdAt: Date;
+## Usage
 
-                    ┌─── IDE (tsserver) ──────────────────────┐
-                    │  LS Plugin (src/index.ts)                │
-                    │  - Widened hover info                    │
-                    │  - Suppresses TS2322 for valid setters   │
-                    └─────────────────────────────────────────┘
+```typescript
+// With @webda/ts-plugin active, this source code:
+class User extends CoreModel {
+  createdAt: Date;
+}
 
-                    ┌─── Build (tspc via ts-patch) ───────────┐
-                    │  Transformer (src/transform.ts)          │
-                    │                                          │
-                    │  "before" phase:                         │
-                    │    Emitted .js gets getter/setter:       │
-                    │    get createdAt() { ... }               │
-                    │    set createdAt(value) { ... }          │
-                    │                                          │
-                    │  "afterDeclarations" phase:              │
-                    │    Emitted .d.ts gets asymmetric types:  │
-                    │    get createdAt(): Date;                │
-                    │    set createdAt(v: string|number|Date); │
-                    │                                          │
-                    │    + generates webda.module.json         │
-                    └─────────────────────────────────────────┘
-```
+// Gives you in the IDE:
+//   get createdAt(): Date              ← correct return type
+//   set createdAt(v: string|number|Date)  ← widened setter (no TS2322)
 
-## Files
+// And the compiled .js becomes:
+//   get createdAt() { return this.__createdAt; }
+//   set createdAt(value) { this.__createdAt = value instanceof Date ? value : new Date(value); }
 
-```
-src/
-├── index.ts                        # LS plugin entry (export = init)
-├── transform.ts                    # ts-patch transformer entry (export default + afterDeclarations)
-├── analyzer.ts                     # Shared: class hierarchy walker, coercible property finder
-├── coercions.ts                    # Shared: coercion registry (Date -> string|number|Date)
-└── transforms/
-    ├── accessors.ts                # AST transformer: field -> getter/setter
-    └── module-generator.ts         # Generates webda.module.json from program analysis
+// Build:
+//   Before: tsc && webdac build
+//   After (with ts-patch installed):
+//   tspc
+//   → generates lib/ and webda.module.json in one step
 ```
 
-## Migration from @webda/compiler
+> **CONCERN:** The typedoc build for this package currently fails with `TS5103: Invalid value for '--ignoreDeprecations'`. The auto-generated API docs at `docs/pages/Modules/ts-plugin/` will be incomplete until this is resolved.
 
-The module generator in this plugin is a scaffold covering core model/service discovery. The full `@webda/compiler` module.ts handles additional concerns:
+## Reference
 
-- JSON Schema generation via `@webda/schema`
-- Metadata plugins (Actions, Events, PrimaryKey, Plural)
-- Complex relation detection (ModelsMapped, Binary)
-- Source code morphing (import rewrites, deserialize method generation)
-
-These can be migrated incrementally. The morpher's code transformation capabilities are replaced by the ts-patch transformer's AST rewriting.
+- API reference: see the auto-generated typedoc at `docs/pages/Modules/ts-plugin/` (build currently failing — see concern above).
+- Source: [`packages/ts-plugin`](https://github.com/loopingz/webda.io/tree/main/packages/ts-plugin)
+- Related: [`@webda/compiler`](../compiler) for the full `webdac build` pipeline; [`@webda/decorators`](../decorators) for the decorator primitives that this plugin operates on.
 
 <!-- README_FOOTER -->
 ## Sponsors

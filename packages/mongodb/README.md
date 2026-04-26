@@ -13,6 +13,91 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
+# @webda/mongodb
+
+> MongoDB-backed Store for Webda — persists any model to MongoDB using the JSONB document model, with full query, pagination, and update-condition support.
+
+## When to use it
+
+- You want a flexible document store for Webda models without a fixed schema (MongoDB's schema-less documents match Webda's JSON models naturally).
+- You are deploying on infrastructure that already runs MongoDB (Atlas, self-hosted, DocumentDB).
+- You need free-text indexes, geospatial queries, or aggregation pipelines alongside your Webda models.
+
+## Install
+
+```bash
+pnpm add @webda/mongodb
+```
+
+## Configuration
+
+```json
+{
+  "services": {
+    "userStore": {
+      "type": "MongoStore",
+      "model": "MyApp/User",
+      "collection": "users",
+      "database": "my-app"
+    }
+  }
+}
+```
+
+Set the connection URL via the `WEBDA_MONGO_URL` environment variable (recommended) or inline:
+
+```json
+{
+  "services": {
+    "userStore": {
+      "type": "MongoStore",
+      "mongoUrl": "mongodb+srv://user:pass@cluster.mongodb.net",
+      "collection": "users",
+      "database": "my-app"
+    }
+  }
+}
+```
+
+| Parameter | Type | Default | Required | Description |
+|---|---|---|---|---|
+| `mongoUrl` | string | `$WEBDA_MONGO_URL` | Yes | MongoDB connection string (falls back to `WEBDA_MONGO_URL` env variable) |
+| `collection` | string | — | Yes | MongoDB collection name to store model documents in |
+| `database` | string | — | No | MongoDB database name (uses default from connection string if omitted) |
+| `options` | object | `{}` | No | Additional `MongoClientOptions` passed to the driver |
+| `databaseOptions` | object | — | No | `DbOptions` passed to `client.db()` |
+
+## Usage
+
+```typescript
+import { CoreModel, Model, Expose } from "@webda/core";
+import { Bean, Inject } from "@webda/core";
+import { Store } from "@webda/core";
+
+@Model()
+export class User extends CoreModel {
+  @Expose() name: string;
+  @Expose() email: string;
+}
+
+// With MongoStore configured, all CoreModel CRUD is automatically backed by MongoDB:
+const user = new User();
+user.name = "Alice";
+user.email = "alice@example.com";
+await user.save();                          // inserts into MongoDB
+
+const found = await User.ref(user.uuid).get();   // fetch by UUID
+const results = await User.query("name = 'Alice'"); // filtered query
+await user.patch({ name: "Alice Smith" });        // partial update
+await user.delete();                              // hard delete
+```
+
+## Reference
+
+- API reference: see the auto-generated typedoc at `docs/pages/Modules/mongodb/`.
+- Source: [`packages/mongodb`](https://github.com/loopingz/webda.io/tree/main/packages/mongodb)
+- Related: [`@webda/postgres`](../postgres) for a SQL-backed alternative; [`@webda/aws`](../aws) for `DynamoStore`; [`@webda/core`](../core) for the `Store` base class and model CRUD API.
+
 <!-- README_FOOTER -->
 ## Sponsors
 

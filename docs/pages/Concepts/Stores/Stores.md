@@ -104,3 +104,11 @@ The MongoDB configuration requires a collection and a mongo parameter where mong
 ## FileDB configuration
 
 The FileDB only requires a folder where to store the datas. It creates it if not exists
+
+## See also
+
+- [Core Stores](../../Modules/core/Stores.md)
+- [fs store](../../Modules/fs/README.md)
+- [mongodb store](../../Modules/mongodb/README.md)
+- [postgres store](../../Modules/postgres/README.md)
+- [aws (DynamoStore)](../../Modules/aws/README.md)

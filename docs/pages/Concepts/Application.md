@@ -18,3 +18,9 @@ It can compile your typescript application, generate documentation, generate ope
 ## TestApplication
 
 Similar to SourceApplication with additional test services prebuilt
+
+## See also
+
+- [Core Architecture](../Modules/core/Architecture.md)
+- [Core CLI](../Modules/core/CLI.md)
+- [Core Service Lifecycle](../Modules/core/Lifecycle.md)

@@ -13,13 +13,70 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-## Summary
+# @webda/aws
 
-This module allows you to use DynamoDB Store, SQS, CloudWatchLogger and SecretsManager
+> AWS integration bundle for Webda — DynamoDB Store, S3 Binary, SQS Queue, CloudWatch Logger, Secrets Manager, Lambda server, Route53, and Lambda/CloudFormation deployers in one package.
 
-## Lambda Entrypoint
+## When to use it
 
-You can add the request id to the http header response by specifying `parameters.lambdaRequestHeader`
+- You are deploying a Webda application on AWS (Lambda or EC2/ECS) and need cloud-native backing services.
+- You want to swap out `MemoryStore` / `MemoryQueue` / `FileBinary` with AWS-managed equivalents for production.
+- You need to deploy your application as a Lambda function or manage infrastructure via CloudFormation.
+
+## Install
+
+```bash
+pnpm add @webda/aws
+```
+
+## What's inside
+
+### Runtime services
+
+- `DynamoStore` — DynamoDB-backed Store for any Webda model ([source](./src/services/dynamodb.ts))
+- `S3Binary` — S3-backed Binary service for file uploads and downloads ([source](./src/services/s3binary.ts))
+- `SQSQueue` — SQS-backed Queue for durable task queuing ([source](./src/services/sqsqueue.ts))
+- `CloudWatchLogger` — Streams application logs to CloudWatch Logs ([source](./src/services/cloudwatchlogger.ts))
+- `SecretsManager` — Resolves configuration parameters from AWS Secrets Manager ([source](./src/services/secretsmanager.ts))
+- `Route53` — DNS record management via Route53 ([source](./src/services/route53.ts))
+- `LambdaServer` — Adapts incoming Lambda events to Webda's HTTP context ([source](./src/services/lambdaserver.ts))
+- `LambdaCaller` — Invokes other Lambda functions as service calls ([source](./src/services/lambdacaller.ts))
+
+### Deployers (shell/build-time)
+
+- `LambdaDeployer` — Packages and deploys the application as an AWS Lambda function ([source](./src/deployers/lambda-entrypoint.ts))
+- `CloudFormationDeployer` — Full infrastructure deployment via AWS CloudFormation ([source](./src/deployers/cloudformation.ts))
+- `LambdaPackager` — Bundles the application for Lambda deployment ([source](./src/deployers/lambdapackager.ts))
+
+## Quick config example
+
+```json
+{
+  "services": {
+    "userStore": {
+      "type": "DynamoStore",
+      "model": "MyApp/User",
+      "table": "my-app-users",
+      "region": "us-east-1"
+    },
+    "uploadBucket": {
+      "type": "S3Binary",
+      "bucket": "my-app-uploads",
+      "region": "us-east-1"
+    },
+    "taskQueue": {
+      "type": "SQSQueue",
+      "queue": "https://sqs.us-east-1.amazonaws.com/123456789/my-tasks"
+    }
+  }
+}
+```
+
+## Reference
+
+- API reference: see the auto-generated typedoc at `docs/pages/Modules/aws/`.
+- Source: [`packages/aws`](https://github.com/loopingz/webda.io/tree/main/packages/aws)
+- Related: [`@webda/core`](../core) for Store, Queue, and Binary base classes; [`@webda/async`](../async) for job orchestration using SQSQueue.
 
 <!-- README_FOOTER -->
 ## Sponsors

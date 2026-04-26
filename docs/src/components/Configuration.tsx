@@ -23,7 +23,6 @@ import Layout from "@theme/Layout";
 import DocSidebar from "@theme/DocSidebar";
 import MDXContent from "@theme/MDXContent";
 import WelcomeMD from "./Welcome.mdx";
-import { WelcomeStatus } from "./WelcomeStatus";
 import { ModelsPanel } from "../debug/panels/ModelsPanel";
 import { ServicesPanel } from "../debug/panels/ServicesPanel";
 import { OperationsPanel } from "../debug/panels/OperationsPanel";
@@ -44,7 +43,6 @@ const SIDEBAR = [
     label: "Models",
     type: "category" as const,
     href: "/configuration/models/hierarchy",
-    className: "models",
     collapsed: false,
     collapsible: false,
     items: [
@@ -102,14 +100,13 @@ function PanelRouter() {
     return <LogsPanel />;
   }
 
-  // Welcome / default (handles /configuration and /configuration/welcome)
+  // Welcome / default (handles /configuration and /configuration/welcome).
+  // Welcome.mdx already renders <WelcomeStatus />, so we just render the MDX
+  // here and don't add a second one.
   return (
-    <>
-      <MDXContent>
-        <WelcomeMD />
-      </MDXContent>
-      <WelcomeStatus />
-    </>
+    <MDXContent>
+      <WelcomeMD />
+    </MDXContent>
   );
 }
 
@@ -143,12 +140,12 @@ function NoApp() {
   const onClick = () => {
     alert("Not implemented");
   };
+  // Welcome.mdx already renders <WelcomeStatus /> internally — don't double-render.
   return (
     <div style={{ padding: 30 }}>
       <MDXContent>
         <WelcomeMD onClick={onClick} />
       </MDXContent>
-      <WelcomeStatus />
     </div>
   );
 }

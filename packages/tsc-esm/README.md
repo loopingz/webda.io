@@ -13,52 +13,52 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-This is a wrapper around tsc to compile typescript to esm format without the culprit of having to add '.js' at the end of your import.
+# @webda/tsc-esm
 
-When you work with typescript this is valid
+> ESM-aware TypeScript compiler wrapper — compiles your TypeScript to ESM and automatically rewrites bare specifiers (`./myclass`) to their `.js` equivalents so the output works in Node.js without manual import path edits.
 
+## When to use it
+
+- You write TypeScript imports without `.js` extensions (`import { X } from './myclass'`) but need valid ESM output where Node.js requires `'./myclass.js'`.
+- You want a drop-in `tsc` replacement that handles the long-standing [TypeScript ESM import extension issue](https://github.com/microsoft/TypeScript/issues/16577) automatically.
+- Your package has `"type": "module"` in `package.json` and you are tired of adding `.js` to every local import.
+
+## Install
+
+```bash
+pnpm add -D @webda/tsc-esm
 ```
-import { MyClass } from './myclass';
-```
 
-But the official compiler will generate a file named `myclass.js` and you will have to write
+## Configuration
 
-```
-import { MyClass } from './myclass.js';
-```
-
-This is not really clean in my opinion, so this wrapper will allow you to use the first syntax and will take care of fixing the `.js` issue for you.
-
-Reference on the famous issue on typescript: https://github.com/microsoft/TypeScript/issues/16577
+No extra config needed beyond your existing `tsconfig.json`. The wrapper reads the same config file that `tsc` would use.
 
 ## Usage
 
-You can run the compiler directly with
-
-```bash
-npx @webda/tsc-esm
-```
-
-Or add it to your project with
-
-```
-# NPM
-npm add --dev @webda/tsc-esm
-# Yarn
-yarn add --dev @webda/tsc-esm
-# pnpm
-pnpm add --dev @webda/tsc-esm
-```
-
-Update your `package.json` to add a script
-
 ```json
+// package.json — replace "tsc" with "tsc-esm" in your build script
 {
   "scripts": {
     "build": "tsc-esm"
   }
 }
 ```
+
+```bash
+# Run directly
+pnpm exec tsc-esm
+
+# Pass tsconfig options through (same flags as tsc)
+pnpm exec tsc-esm --project tsconfig.build.json
+```
+
+After compilation, all relative import/export specifiers in the emitted `.js` files will have `.js` extensions appended automatically — no source changes required.
+
+## Reference
+
+- API reference: see the auto-generated typedoc at `docs/pages/Modules/tsc-esm/`.
+- Source: [`packages/tsc-esm`](https://github.com/loopingz/webda.io/tree/main/packages/tsc-esm)
+- Related: [`@webda/ts-plugin`](../ts-plugin) for the ts-patch-based alternative that also generates `webda.module.json`; [`@webda/compiler`](../compiler) for the full `webdac build` pipeline.
 
 <!-- README_FOOTER -->
 ## Sponsors

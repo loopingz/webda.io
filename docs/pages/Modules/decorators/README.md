@@ -2,11 +2,6 @@
 sidebar_label: "@webda/decorators"
 ---
 # decorators
-**@webda/decorators**
-
-***
-
-# @webda/decorators
 
 This is a small library to help create decorators that can be called with or without parenthesis
 

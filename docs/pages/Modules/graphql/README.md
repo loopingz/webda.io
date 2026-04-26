@@ -2,11 +2,6 @@
 sidebar_label: "@webda/graphql"
 ---
 # graphql
-**@webda/graphql**
-
-***
-
-# @webda/graphql
 
 Implements the GraphQL protocol with subscriptions and mutations
 

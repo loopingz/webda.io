@@ -9,3 +9,8 @@
 %(t): Timestamp
 %(d): Date ISO
 ```
+
+## See also
+
+- [Core Logging](../Modules/core/Logging.md)
+- [workout](../Modules/workout/README.md)

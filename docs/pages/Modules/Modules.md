@@ -6,6 +6,22 @@ sidebar_position: 2.1
 
 This page is a categorized index of every `@webda/*` package. Click a package name to reach its dedicated documentation page.
 
+## Why @webda is modular
+
+Webda is a thin runtime (`@webda/core`) wrapped in a fleet of focused, opt-in packages — one for each integration point. You pull in only the protocol layers, stores, deployers, and observability tools your application actually uses. A REST-only app deploying to Lambda doesn't drag in MongoDB, GraphQL, Kubernetes, or OpenTelemetry; an internal service running on bare metal doesn't drag in any AWS code at all. Every package follows the same conventions (a Modda type, a `ServiceParameters` interface, a `webda.config.json` entry), so the integration cost of adding a new layer is nearly zero — declare it in configuration, and `Core` picks it up at boot.
+
+## How code generation amplifies it
+
+Modules are not just runtime libraries — they're *contracts the compiler reads*. `webdac build` walks every package in the dependency graph, discovers each Modda and Model, and generates:
+
+- a typed `webda.module.json` manifest of every service, model, and decorator the app exposes;
+- JSON schemas (`.webda-config-schema.json`, `.webda-deployment-schema.json`) that drive VS Code autocomplete *and* runtime validation against `ajv`;
+- OpenAPI specs and GraphQL SDL derived from your Models — no hand-written endpoint definitions;
+- gRPC `.proto` files with the same source of truth;
+- accessor methods, dirty-tracking proxies, and serialization shims emitted by `@webda/ts-plugin` directly into your TypeScript output.
+
+Adding a Model to your app means: write the class, run `webdac build`, and the framework gives you typed REST handlers, a GraphQL type, gRPC service methods, validation, schema autocomplete, and store mappings — across every protocol package you've enabled. The modules below are the building blocks the compiler stitches together; pick the ones you need and configure them in `webda.config.json`.
+
 ---
 
 ## Foundational (deep tier)

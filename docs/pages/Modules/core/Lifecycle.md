@@ -38,16 +38,18 @@ export class MyService extends Service<MyServiceParameters> {
 }
 ```
 
-### 2. `resolve(): Promise<this>`
+### 2. `resolve(): this`
 
-Called after all services are instantiated, before `init()`. Use `resolve()` to:
+Called after all services are instantiated, before `init()`. **Synchronous** — `resolve()` returns `this`, not a Promise. Use it to:
 - Validate configuration
-- Resolve `@Inject` dependencies (already injected by the time `resolve()` runs)
-- Connect to other services
+- Read `@Inject` dependencies (already injected by the time `resolve()` runs)
+- Wire up cross-service references that don't require I/O
+
+If you need to do async work, defer it to `init()`.
 
 ```typescript
-async resolve(): Promise<this> {
-  await super.resolve();  // always call super first
+resolve(): this {
+  super.resolve();  // always call super first
 
   if (!this.parameters.apiKey) {
     throw new Error("apiKey is required in MyService configuration");
@@ -116,8 +118,8 @@ export class EmailService extends Service<EmailServiceParameters> {
   protected log = useLog("EmailService");
   protected transport: any;
 
-  async resolve(): Promise<this> {
-    await super.resolve();
+  resolve(): this {
+    super.resolve();
 
     if (!this.parameters.smtpHost) {
       throw new Error("smtpHost is required");
@@ -189,11 +191,12 @@ sequenceDiagram
 
 ## Key rules
 
-1. **Always call `await super.resolve()`** first in `resolve()`.
+1. **Always call `super.resolve()`** first in `resolve()` (synchronous).
 2. **Always call `await super.init()`** first in `init()`.
 3. **Call `await super.stop()` last** in `stop()` (reverse order).
-4. **Never do async work in the constructor** — use `init()`.
-5. **Never access `@Inject` dependencies in the constructor** — they are not yet populated. Access them in `resolve()` or later.
+4. **Never do async work in `resolve()`** — `resolve()` is sync. Defer async work to `init()`.
+5. **Never do async work in the constructor** — use `init()`.
+6. **Never access `@Inject` dependencies in the constructor** — they are not yet populated. Access them in `resolve()` or later.
 
 ## Verify
 

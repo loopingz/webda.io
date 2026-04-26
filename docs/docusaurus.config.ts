@@ -116,11 +116,6 @@ const config = {
             position: "left"
           },
           {
-            to: "/versioning-demo",
-            label: "Versioning demo",
-            position: "left"
-          },
-          {
             to: "/configuration/welcome",
             activeBasePath: "configuration",
             label: "My Application",

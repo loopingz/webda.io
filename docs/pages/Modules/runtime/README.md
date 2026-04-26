@@ -37,7 +37,7 @@ pnpm add @webda/runtime
 ### Utility models
 
 - `BinaryModel` — Base model with binary attachment support
-- `PasswordModel` — Secure password hashing helper ([source](_media/password.ts))
+- `PasswordModel` — Secure password hashing helper
 
 ## Quick config example
 

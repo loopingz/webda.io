@@ -17,6 +17,10 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 > Diff, patch, and 3-way merge for JSON-serializable objects — adaptive string strategies, array identity tracking, and git-style conflict markers for collaborative model editing.
 
+:::tip Try the live demo
+Open the [interactive versioning demo](/versioning-demo) to play with concurrent edits, conflict markers, and the resolution workflow side-by-side with two simulated users — backed by this exact library.
+:::
+
 ## When to use it
 
 - You need to compute a diff between two versions of a Webda model and apply it as an incremental patch.

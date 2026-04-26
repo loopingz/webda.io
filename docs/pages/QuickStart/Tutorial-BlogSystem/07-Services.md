@@ -124,15 +124,16 @@ curl -sk -X PUT https://localhost:18080/publisher/publishpost \
 If the `Publisher` needs to connect to an external message broker, use the lifecycle hooks:
 
 ```typescript
-async resolve(): Promise<this> {
-  await super.resolve();
-  // Validate config — throw here if required fields are missing
+resolve(): this {
+  super.resolve();
+  // Validate config — throw here if required fields are missing.
+  // resolve() is synchronous; defer any async work to init().
   return this;
 }
 
 async init(): Promise<this> {
   await super.init();
-  // Establish connections — runs after all services are resolved
+  // Establish connections — async work goes here.
   return this;
 }
 
@@ -142,7 +143,7 @@ async stop(): Promise<void> {
 }
 ```
 
-The framework calls these in order: `resolve()` → `init()` → (running) → `stop()`. Never bypass the chain — always call `super`.
+The framework calls these in order: `resolve()` (sync) → `init()` (async) → (running) → `stop()` (async). Never bypass the chain — always call `super`.
 
 ### 6. The TestBean service (reference implementation)
 

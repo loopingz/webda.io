@@ -196,6 +196,11 @@ Services are auto-prefixed with the package namespace:
 
 ## Development Workflows
 
+> **Note (2026-04-25):** `@webda/shell` no longer exists. The CLI surface is
+> now split between `@webda/core` (`webda` runtime: `debug`, `serve`, …) and
+> `@webda/compiler` (`webdac` build/code-gen). Some examples below referencing
+> `@webda/shell` are stale and pending a separate cleanup.
+
 ### Essential Commands
 
 ```bash

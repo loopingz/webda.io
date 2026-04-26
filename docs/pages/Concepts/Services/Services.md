@@ -52,3 +52,9 @@ Webda have some predefined services that are created by default:
 | CryptoService  | The service that provide the encryption and decryption of data | Webda/CryptoService        |
 | Router         | The service that manage the routing of the application         | N/A or Dummy (TBD)         |
 | SessionManager | The service that manage the session of the user                | Webda/CookieSessionManager |
+
+## See also
+
+- [Core Services](../../Modules/core/Services.md)
+- [Core Service Lifecycle](../../Modules/core/Lifecycle.md)
+- [Decorators catalog](../../Modules/decorators/Catalog.md)

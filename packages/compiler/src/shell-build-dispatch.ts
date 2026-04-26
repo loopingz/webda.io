@@ -1,4 +1,6 @@
 import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
+import { join } from "node:path";
 
 /**
  * Env flag set on the child process to short-circuit nested dispatch.
@@ -57,7 +59,21 @@ export function spawnWebdaBuild(cwd: string, deployment?: string): Promise<numbe
   return new Promise<number>((resolvePromise, reject) => {
     const args = ["build"];
     if (deployment) args.unshift("-d", deployment);
-    const child = spawn("webda", args, {
+    // Resolve the launcher from the project rather than relying on
+    // node_modules/.bin/webda. In a fresh pnpm-workspace install the bin
+    // symlink may be missing because @webda/core wasn't built when pnpm
+    // first ran, so spawn("webda", ...) fails with ENOENT.
+    let command = "webda";
+    let spawnArgs = args;
+    try {
+      const projectRequire = createRequire(join(cwd, "package.json"));
+      const launcher = projectRequire.resolve("@webda/core/lib/bin/launcher.js");
+      command = process.execPath;
+      spawnArgs = [launcher, ...args];
+    } catch {
+      /* fallback: rely on PATH (works when the bin symlink exists) */
+    }
+    const child = spawn(command, spawnArgs, {
       cwd,
       stdio: "inherit",
       shell: false,

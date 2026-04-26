@@ -1,10 +1,47 @@
 import { FileUtils } from "@webda/utils";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import { BinaryLike, createHash } from "crypto";
+import { BinaryLike, createHash, Hash } from "crypto";
 import { existsSync, globSync, readFileSync } from "fs";
 import type { JSONSchema7 } from "json-schema";
-import { join } from "path";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 import ts from "typescript";
+
+/**
+ * Resolve the running @webda/compiler installation root and its lib/ dir.
+ *
+ * Anchored on the compiler's package.json — not on `import.meta.url` —
+ * because under vitest the TS source is served directly, so the running
+ * file lives in `src/` rather than `lib/`. Hashing `src/` at test time
+ * but `lib/` at build time would otherwise produce different digests
+ * for the same logical compiler version.
+ *
+ * @returns the resolved package root and lib directory, or undefined
+ *   if the compiler isn't installed in a standard layout
+ */
+function resolveCompilerLayout(): { root: string; lib: string } | undefined {
+  let dir = dirname(fileURLToPath(import.meta.url));
+  /* c8 ignore next 14 -- defensive walk for non-standard installs */
+  while (true) {
+    const pkgPath = join(dir, "package.json");
+    if (existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+        if (pkg.name === "@webda/compiler") {
+          const main = typeof pkg.main === "string" ? pkg.main : "lib/index.js";
+          return { root: dir, lib: dirname(join(dir, main)) };
+        }
+      } catch {
+        /* malformed package.json — keep walking */
+      }
+    }
+    const parent = dirname(dir);
+    if (parent === dir) return undefined;
+    dir = parent;
+  }
+}
+
+const COMPILER_LAYOUT = resolveCompilerLayout();
 
 export type ModelGraphBinaryDefinition = {
   attribute: string;
@@ -286,6 +323,13 @@ export type CommandDefinition = {
    * missing services before booting Core.
    */
   requires?: string[];
+  /**
+   * Lifecycle phase at which this command runs.
+   * - `"initialized"` (default when omitted): after `Core.init()`.
+   * - `"resolved"`: after `Core.resolve()` only. No service.init() called.
+   *   Used for build-time hooks (e.g. `@BuildCommand`).
+   */
+  phase?: "resolved" | "initialized";
 };
 
 export type ServiceMetadata = {
@@ -380,6 +424,15 @@ export interface WebdaModule {
    * Merged from dependencies at build/load time; project-level values override.
    */
   capabilities?: { [name: string]: string };
+  /**
+   * Hash of the source files this module was generated from.
+   *
+   * Compared against the project's current source digest to decide whether
+   * the on-disk module file is up-to-date — letting the compiler detect
+   * external mutations (git checkout, manual edit, framework upgrade that
+   * regenerates the file) even when source hashes alone match the cache.
+   */
+  sourceDigest?: string;
 }
 
 /**
@@ -694,6 +747,29 @@ export class WebdaProject {
   }
 
   /**
+   * Mix the running @webda/compiler's package.json + lib/ contents into the
+   * digest. Catches both published version bumps (via package.json) and
+   * local rebuilds of a linked workspace dep (via lib/ files), since neither
+   * project source nor tsconfig change when a framework dep updates.
+   *
+   * @param hash - the digest accumulator to update
+   */
+  private hashCompilerPackage(hash: Hash): void {
+    if (!COMPILER_LAYOUT) return;
+    try {
+      hash.update(readFileSync(join(COMPILER_LAYOUT.root, "package.json")));
+    } catch {
+      /* package.json vanished mid-flight — skip */
+    }
+    if (!existsSync(COMPILER_LAYOUT.lib)) return;
+    globSync("**/*", { cwd: COMPILER_LAYOUT.lib, withFileTypes: true })
+      .filter(f => f.isFile())
+      .map(f => join(f.parentPath, f.name))
+      .sort()
+      .forEach(f => hash.update(readFileSync(f) as BinaryLike));
+  }
+
+  /**
    * Compute digest of the source files
    * @returns the MD5 hex digest of the source
    */
@@ -714,6 +790,7 @@ export class WebdaProject {
       .forEach(f => {
         current.update(readFileSync(f) as BinaryLike);
       });
+    this.hashCompilerPackage(current);
     // We might want to consider doing the same with the output files?
     return current.digest("hex");
   }

@@ -1,3 +1,4 @@
+export * from "./build-config";
 export * from "./case";
 export * from "./chdir";
 export * from "./debounce";

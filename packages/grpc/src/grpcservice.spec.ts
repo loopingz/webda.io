@@ -16,7 +16,7 @@ let mockCallOperationError: any = null;
 let mockCallOperationRawOutput: string | undefined = undefined;
 /** Services returned by the mocked useCore().getServices() — set per test to inject HttpServer stubs */
 let mockCoreServices: Record<string, any> = {};
-/** Models returned by the mocked useApplication().getModels() — used by generateProto */
+/** Models returned by the mocked useApplication().getModels() — used by build() */
 let mockModels: Record<string, any> = {};
 
 vi.mock("@webda/core", () => {
@@ -113,7 +113,8 @@ vi.mock("@webda/core", () => {
     useCore: () => ({ getServices: () => mockCoreServices }),
     useInstanceStorage: () => ({}),
     runWithInstanceStorage: (_storage: any, fn: () => any) => fn(),
-    Command: () => () => {}
+    Command: () => () => {},
+    BuildCommand: () => () => {}
   };
 });
 
@@ -324,7 +325,7 @@ class GrpcServiceGenerateProtoTest {
     const outPath = join(this.tmpDir, "output", "app.proto");
     const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: outPath }));
 
-    await service.generateProto();
+    await service.build();
 
     assert.ok(existsSync(outPath), "Proto file should be written");
     const content = readFileSync(outPath, "utf-8");
@@ -335,18 +336,18 @@ class GrpcServiceGenerateProtoTest {
   }
 
   @test
-  async writesProtoFileToCustomOutputPath() {
+  async writesProtoFileToConfiguredPath() {
     mockOperations["Health"] = {
       service: "HealthService",
       method: "check"
     };
 
     const customPath = join(this.tmpDir, "custom.proto");
-    const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({}));
+    const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: customPath }));
 
-    await service.generateProto(customPath);
+    await service.build();
 
-    assert.ok(existsSync(customPath), "Proto file should be written to custom path");
+    assert.ok(existsSync(customPath), "Proto file should be written to configured path");
     const content = readFileSync(customPath, "utf-8");
     assert.ok(content.includes("service DefaultService {"), "Should contain DefaultService");
   }
@@ -358,7 +359,7 @@ class GrpcServiceGenerateProtoTest {
     const outPath = join(this.tmpDir, "test.proto");
     const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: outPath, packageName: "myapp" }));
 
-    await service.generateProto();
+    await service.build();
 
     const content = readFileSync(outPath, "utf-8");
     assert.ok(content.includes("package myapp;"), "Should use custom package name");
@@ -371,7 +372,7 @@ class GrpcServiceGenerateProtoTest {
     const deepPath = join(this.tmpDir, "deep", "nested", "dir", "app.proto");
     const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: deepPath }));
 
-    await service.generateProto();
+    await service.build();
 
     assert.ok(existsSync(deepPath), "Should create nested directories and write file");
   }
@@ -389,7 +390,7 @@ class GrpcServiceGenerateProtoTest {
     const outPath = join(this.tmpDir, "with-model.proto");
     const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: outPath }));
     try {
-      await service.generateProto();
+      await service.build();
       assert.ok(existsSync(outPath), "Proto file should be written");
     } finally {
       mockModels = {};
@@ -401,7 +402,7 @@ class GrpcServiceGenerateProtoTest {
     const outPath = join(this.tmpDir, "empty.proto");
     const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: outPath }));
 
-    await service.generateProto();
+    await service.build();
 
     assert.ok(existsSync(outPath), "Proto file should be written even with no operations");
     const content = readFileSync(outPath, "utf-8");

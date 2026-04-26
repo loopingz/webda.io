@@ -5,12 +5,17 @@ import { Compiler } from "./compiler";
 import { generateConfigurationSchemas, ConfigSchemaApplication } from "./configuration";
 import { generateOperations } from "./operations";
 import { useWorkerOutput, Fork, InteractiveConsoleLogger } from "@webda/workout";
-import { FileUtils } from "@webda/utils";
+import { FileUtils, listConfiguredServiceTypes } from "@webda/utils";
 import { resolve, join } from "path";
 import { runWithCurrentDirectory } from "@webda/utils";
 import { existsSync, mkdirSync, readdirSync, lstatSync, realpathSync, writeFileSync } from "node:fs";
 import { bold, italic, yellow } from "yoctocolors";
 import { WebdaMorpher } from "./morpher/morpher";
+import {
+  shouldDispatchBuildHooks,
+  spawnWebdaBuild,
+  WEBDA_BUILD_DISPATCH_ENV
+} from "./shell-build-dispatch";
 
 /**
  * Scan a single node_modules directory for webda.module.json files
@@ -89,6 +94,7 @@ interface Arguments {
 
 interface BuildArguments extends Arguments {
   watch: boolean;
+  force: boolean;
 }
 
 /**
@@ -118,6 +124,12 @@ const argv: Arguments = yargs(process.argv.slice(2))
       .option("watch", {
         alias: "w",
         describe: "Watch the files for changes",
+        type: "boolean",
+        default: false
+      })
+      .option("force", {
+        alias: "f",
+        describe: "Recompile even when the cache reports nothing changed",
         type: "boolean",
         default: false
       })
@@ -185,12 +197,65 @@ Fork(
       await runWithCurrentDirectory(targetDir, async () => {
         const compiler = new Compiler(project);
         if (argv.watch) {
+          // Guard against accidental recursion if a build hook re-invokes webdac.
+          const recursive = !!process.env[WEBDA_BUILD_DISPATCH_ENV];
+
+          let building = false;
+          let pending = false;
+
+          const runHooksOnce = async () => {
+            const modulePath = project.getAppPath("webda.module.json");
+            if (!existsSync(modulePath)) return;
+            const localMod = FileUtils.load(modulePath, "json");
+            mergeDependencyModules(project.getAppPath(), localMod);
+            const configPath = FileUtils.getConfigurationFile(project.getAppPath("webda.config"));
+            const configuredTypes = listConfiguredServiceTypes(configPath, project.namespace);
+            if (!shouldDispatchBuildHooks(localMod, configuredTypes)) return;
+            const code = await spawnWebdaBuild(project.getAppPath());
+            if (code !== 0) {
+              useWorkerOutput().log("ERROR", `webda build exited with code ${code}`);
+            }
+          };
+
+          const runHooks = async () => {
+            if (building) {
+              pending = true;
+              return;
+            }
+            building = true;
+            try {
+              await runHooksOnce();
+            } catch (err) {
+              useWorkerOutput().log("ERROR", "Build hook dispatch failed", (err as Error).message);
+            } finally {
+              building = false;
+              if (pending) {
+                pending = false;
+                // Run again — the source changed during the previous run.
+                void runHooks();
+              }
+            }
+          };
+
+          if (!recursive) {
+            project.on("done", () => {
+              void runHooks();
+            });
+          }
+
           compiler.watch(() => {});
           await new Promise(() => {});
         } else {
-          compiler.compile(true);
+          const needsCompilation = argv.force || compiler.requireCompilation();
+          compiler.compile(argv.force);
+          if (!needsCompilation) {
+            useWorkerOutput().log(
+              "INFO",
+              "Cache up-to-date; skipping build (pass --force to recompile)"
+            );
+          }
           // Generate configuration schemas if the project is an application
-          if (project.isApplication()) {
+          if (needsCompilation && project.isApplication()) {
             const modulePath = project.getAppPath("webda.module.json");
             const mod = FileUtils.load(modulePath, "json");
             mergeDependencyModules(project.getAppPath(), mod);
@@ -225,6 +290,24 @@ Fork(
               useWorkerOutput().log("INFO", "Generated .webda/operations.json");
             } catch (err) {
               useWorkerOutput().log("WARN", "Cannot generate operations.json", err.message);
+            }
+
+            // Build-hook dispatch: if any configured service declares a `build`
+            // command, spawn `webda build` to run the hooks.
+            // If WEBDA_BUILD_DISPATCH is set, we are already the child of an
+            // outer `webdac build` — skip to break any accidental fork loop
+            // (e.g. a user's build hook that re-invokes `webdac build`).
+            if (!process.env[WEBDA_BUILD_DISPATCH_ENV]) {
+              const configPath = FileUtils.getConfigurationFile(project.getAppPath("webda.config"));
+              const configuredTypes = listConfiguredServiceTypes(configPath, project.namespace);
+              if (shouldDispatchBuildHooks(mod, configuredTypes)) {
+                useWorkerOutput().log("INFO", "Running build hooks (webda build)…");
+                const code = await spawnWebdaBuild(project.getAppPath());
+                if (code !== 0) {
+                  useWorkerOutput().log("ERROR", `webda build exited with code ${code}`);
+                  process.exit(code);
+                }
+              }
             }
           }
         }

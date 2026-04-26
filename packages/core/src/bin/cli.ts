@@ -8,6 +8,7 @@ import { Application } from "../application/application.js";
 import { UnpackedApplication } from "../application/unpackedapplication.js";
 import { collectServiceCommands, executeServiceCommand } from "../services/servicecommands.js";
 import { Core } from "../core/core.js";
+import { bootCoreForCommand } from "./cli-phase.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { CancelablePromise } from "@webda/utils";
 import { ConsoleLogger, useLog, useLogLevel, useWorkerOutput } from "@webda/workout";
@@ -579,7 +580,7 @@ async function runWithWatch(
     // Reload application to pick up regenerated webda.module.json
     await app.load();
     core = new Core(app);
-    await core.init();
+    await bootCoreForCommand(core, cmdName, cmdInfo);
     const exitCode = await executeServiceCommand(cmdName, cmdInfo, args, core.getServices(), serviceFilter);
     if (exitCode !== 0) {
       useLog("ERROR", `Command '${cmdName}' exited with code ${exitCode}`);
@@ -815,7 +816,7 @@ if (isMain) {
             await core.stop();
             process.exit(0);
           });
-          await core.init();
+          await bootCoreForCommand(core, matchedCommand.name, cmdInfo);
 
           const exitCode = await executeServiceCommand(
             matchedCommand.name,

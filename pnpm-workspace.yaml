@@ -2,6 +2,7 @@ packages:
   - packages/*
   - sample-app
   - sample-apps/*
+  - docs
   # Exclude packages that are not yet ready
   - "!packages/async"
   - "!packages/gcp"

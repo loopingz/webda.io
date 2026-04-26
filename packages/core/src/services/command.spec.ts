@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Command } from "./command.js";
+import { BuildCommand, Command } from "./command.js";
 import { Service } from "../index.js";
 
 class MyService extends Service {
@@ -55,5 +55,74 @@ class CommandDecoratorTest {
     assert.ok(names.includes("start"), "start command should be registered");
     assert.ok(names.includes("stop"), "stop command should be registered");
     assert.ok(names.includes("restart"), "restart command should be registered");
+  }
+
+  @test
+  phaseDefaultsToUndefinedWhenNotSpecified() {
+    class Foo extends Service {
+      @Command("foo", { description: "x" })
+      async foo() {}
+    }
+    const commands = (Foo as any)[Symbol.metadata]["webda.commands"] as any[];
+    const fooCmd = commands.find(c => c.name === "foo");
+    assert.ok(fooCmd, "foo command should be registered");
+    assert.strictEqual(fooCmd.phase, undefined);
+  }
+
+  @test
+  storesResolvedPhaseWhenProvided() {
+    class Bar extends Service {
+      @Command("bar", { description: "x", phase: "resolved" })
+      async bar() {}
+    }
+    const commands = (Bar as any)[Symbol.metadata]["webda.commands"] as any[];
+    const barCmd = commands.find(c => c.name === "bar");
+    assert.ok(barCmd, "bar command should be registered");
+    assert.strictEqual(barCmd.phase, "resolved");
+  }
+}
+
+@suite
+class BuildCommandDecoratorTest {
+  @test
+  storesBuildCommandWithDescriptionAndResolvedPhase() {
+    class GrpcService extends Service {
+      @BuildCommand({ description: "Generate proto" })
+      async build() {}
+    }
+    const commands = (GrpcService as any)[Symbol.metadata]["webda.commands"] as any[];
+    assert.ok(Array.isArray(commands), "webda.commands should be an array");
+    const buildCmd = commands.find(c => c.name === "build");
+    assert.ok(buildCmd, "build command should be registered");
+    assert.strictEqual(buildCmd.name, "build");
+    assert.strictEqual(buildCmd.phase, "resolved");
+    assert.strictEqual(buildCmd.description, "Generate proto");
+    assert.strictEqual(buildCmd.method, "build");
+  }
+
+  @test
+  preservesRequiresOption() {
+    class SchemaService extends Service {
+      @BuildCommand({ description: "x", requires: ["rest-domain"] })
+      async build() {}
+    }
+    const commands = (SchemaService as any)[Symbol.metadata]["webda.commands"] as any[];
+    const buildCmd = commands.find(c => c.name === "build");
+    assert.ok(buildCmd, "build command should be registered");
+    assert.deepStrictEqual(buildCmd.requires, ["rest-domain"]);
+    assert.strictEqual(buildCmd.phase, "resolved");
+  }
+
+  @test
+  worksWithNoOptions() {
+    class MinimalService extends Service {
+      @BuildCommand()
+      async build() {}
+    }
+    const commands = (MinimalService as any)[Symbol.metadata]["webda.commands"] as any[];
+    const buildCmd = commands.find(c => c.name === "build");
+    assert.ok(buildCmd, "build command should be registered");
+    assert.strictEqual(buildCmd.name, "build");
+    assert.strictEqual(buildCmd.phase, "resolved");
   }
 }

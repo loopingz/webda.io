@@ -8,7 +8,7 @@ import {
   WebContext,
   useApplication,
   useCore,
-  Command,
+  BuildCommand,
   ServiceParameters,
   runWithInstanceStorage,
   useInstanceStorage
@@ -57,7 +57,7 @@ export class GrpcServiceParameters extends OperationsTransportParameters {
  * Hooks into the HttpServer via the `Webda.Init.Http` event to intercept
  * requests with `content-type: application/grpc`.
  *
- * Use the `generate-proto` command to create the .proto file from operations.
+ * Run `webdac build` to generate the .proto file from operations.
  *
  * @WebdaModda
  */
@@ -74,15 +74,14 @@ export class GrpcService<
   /**
    * Generate a .proto file from the current operation registry.
    *
-   * @param output - output file path (defaults to parameters.protoFile)
    * @returns a promise that resolves when the proto file has been written to disk
    */
-  @Command("generate-proto", { description: "Generate protobuf definition from operations", requires: ["rest-domain"] })
-  async generateProto(
-    /** @alias o @description Output file path */
-    output?: string
-  ): Promise<void> {
-    const outPath = output || this.parameters.protoFile;
+  @BuildCommand({
+    description: "Generate protobuf definition from operations",
+    requires: ["rest-domain"]
+  })
+  async build(): Promise<void> {
+    const outPath = this.parameters.protoFile;
     const operations = this.getOperations();
     const app = useApplication();
     const schemas: Record<string, any> = { ...(app.getSchemas?.() || {}) };
@@ -153,7 +152,7 @@ export class GrpcService<
     } else {
       useLog(
         "WARN",
-        `Proto file not found: ${this.parameters.protoFile}. Run 'webda generate-proto' first.`
+        `Proto file not found: ${this.parameters.protoFile}. Run 'webdac build' to generate it.`
       );
     }
 

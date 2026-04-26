@@ -16,13 +16,28 @@ function cleanDir(dir) {
 }
 
 fs.readdirSync("../packages")
-  .filter(i => !i.startsWith(".") && fs.existsSync(`../packages/${i}/src/index.ts`))
+  .filter(
+    i =>
+      !i.startsWith(".") &&
+      fs.existsSync(`../packages/${i}/src/index.ts`) &&
+      fs.existsSync(`../packages/${i}/node_modules`)
+  )
   .map(packageName => {
     cleanDir(`typedoc/${packageName}`);
     console.log(`Building typedoc for ${packageName}`);
-    execSync(
-      `yarn typedoc  --plugin typedoc-plugin-markdown --out typedoc/${packageName} --exclude "**/*+(index|.spec|.e2e).ts" --excludePrivate --hideInPageTOC --hideBreadcrumbs --tsconfig ../packages/${packageName}/tsconfig.json ../packages/${packageName}/src/index.ts`
-    );
+    try {
+      execSync(
+        `pnpm exec typedoc  --plugin typedoc-plugin-markdown --out typedoc/${packageName} --exclude "**/*+(index|.spec|.e2e).ts" --excludePrivate --hideBreadcrumbs --tsconfig ../packages/${packageName}/tsconfig.json ../packages/${packageName}/src/index.ts`,
+        { stdio: "inherit" }
+      );
+    } catch (e) {
+      console.warn(`Skipping ${packageName}: typedoc build failed`);
+      return;
+    }
+    if (!fs.existsSync(`typedoc/${packageName}/README.md`)) {
+      console.warn(`Skipping ${packageName}: no README.md produced`);
+      return;
+    }
     if (fs.existsSync(`../packages/${packageName}/CHANGELOG.md`)) {
       console.log(`Copying CHANGELOG for ${packageName}`);
       fs.copyFileSync(`../packages/${packageName}/CHANGELOG.md`, `typedoc/${packageName}/CHANGELOG.md`);
@@ -53,6 +68,7 @@ fs.readdirSync("../packages")
 
 // Need to replace ${ in all files but for now handle a case by case
 ["typedoc/core/interfaces/KeysRegistry.md"].forEach(file => {
+  if (!fs.existsSync(file)) return;
   let content = fs.readFileSync(file, "utf8").toString();
   content = content.replace(/\$\{/g, "$\\{");
   fs.writeFileSync(file, content);

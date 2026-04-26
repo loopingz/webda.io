@@ -33,7 +33,7 @@
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "repository": "git://github.com/loopingz/webda.io.git",
   "scripts": {
-    "build": "pnpm -r --workspace-concurrency=1 run build",
+    "build": "pnpm -r --workspace-concurrency=1 --filter='!@webda/docs' run build",
     "test": "pnpm -r run test",
     "test:mocha": "pnpm -r run test:mocha",
     "test:jest": "pnpm -r run test:jest",

@@ -1,4 +1,4 @@
-# @webda/test module
+# @webda/debug module
 
 This module is part of Webda Application Framework that allows you to quickly develop applications with all modern prerequisites: Security, Extensibility, GraphQL, REST, CloudNative [https://webda.io](https://webda.io)
 
@@ -13,13 +13,6 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-This module is used to test the Webda framework.
-
-It aims to abstract the test framework used, and also allow to test the Node AsyncStorage without changing the test paradigm.
-
-The annotations `@test` and `@suite` are inspired by the `@testdeck/core` module.
-
-It includes features to store logs of each failing test.
 <!-- README_FOOTER -->
 ## Sponsors
 

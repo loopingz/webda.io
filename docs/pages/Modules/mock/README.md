@@ -2,11 +2,6 @@
 sidebar_label: "@webda/mock"
 ---
 # mock
-**@webda/mock**
-
-***
-
-# @webda/mock
 
 Coherent mock-data generation for `@webda/models` classes. Decorators live in
 `@webda/models` (zero production runtime cost); this package provides the

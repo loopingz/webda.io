@@ -2,11 +2,6 @@
 sidebar_label: "@webda/versioning"
 ---
 # versioning
-**@webda/versioning**
-
-***
-
-# @webda/versioning
 
 Diff, patch, and 3-way merge for JSON-serializable objects — with adaptive
 string strategies (single-value replace vs. line-based unified diff) and

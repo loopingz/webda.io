@@ -145,5 +145,6 @@
       "type": "object",
       "title": "BinaryFile"
     }
-  }
+  },
+  "sourceDigest": "e9aa43870b4e8b04d5728081ecfefb0c"
 }

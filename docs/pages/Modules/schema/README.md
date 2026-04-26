@@ -2,10 +2,6 @@
 sidebar_label: "@webda/schema"
 ---
 # schema
-**@webda/schema**
-
-***
-
 # schema-gen
 
 TypeScript language-service powered JSON Schema generator for interfaces, classes, and type aliases.

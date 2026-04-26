@@ -2,11 +2,6 @@
 sidebar_label: "@webda/models"
 ---
 # models
-**@webda/models**
-
-***
-
-# @webda/models
 
 This package defines the basic of models:
 

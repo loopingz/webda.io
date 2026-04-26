@@ -2,11 +2,6 @@
 sidebar_label: "@webda/core"
 ---
 # core
-**@webda/core**
-
-***
-
-# @webda/core
 
 The runtime engine of the [webda.io](https://webda.io) framework. It manages the full lifecycle of a Webda application: loading configuration, instantiating services, routing HTTP requests, managing sessions, and providing cross-cutting concerns like logging, metrics, and caching.
 

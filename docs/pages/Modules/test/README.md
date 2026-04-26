@@ -2,11 +2,6 @@
 sidebar_label: "@webda/test"
 ---
 # test
-**@webda/test**
-
-***
-
-# @webda/test
 
 This module is used to test the Webda framework.
 

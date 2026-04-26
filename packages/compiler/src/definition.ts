@@ -8,15 +8,40 @@ import { fileURLToPath } from "url";
 import ts from "typescript";
 
 /**
- * Resolved location of the running @webda/compiler installation.
+ * Resolve the running @webda/compiler installation root and its lib/ dir.
  *
- * In a pnpm workspace this points at the symlinked checkout, so hashing
- * its lib/ folder catches local rebuilds of the compiler — a published
- * version bump alone (captured via package.json) is not enough when the
- * dep is linked.
+ * Anchored on the compiler's package.json — not on `import.meta.url` —
+ * because under vitest the TS source is served directly, so the running
+ * file lives in `src/` rather than `lib/`. Hashing `src/` at test time
+ * but `lib/` at build time would otherwise produce different digests
+ * for the same logical compiler version.
+ *
+ * @returns the resolved package root and lib directory, or undefined
+ *   if the compiler isn't installed in a standard layout
  */
-const COMPILER_LIB_DIR = dirname(fileURLToPath(import.meta.url));
-const COMPILER_PACKAGE_ROOT = join(COMPILER_LIB_DIR, "..");
+function resolveCompilerLayout(): { root: string; lib: string } | undefined {
+  let dir = dirname(fileURLToPath(import.meta.url));
+  /* c8 ignore next 14 -- defensive walk for non-standard installs */
+  while (true) {
+    const pkgPath = join(dir, "package.json");
+    if (existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+        if (pkg.name === "@webda/compiler") {
+          const main = typeof pkg.main === "string" ? pkg.main : "lib/index.js";
+          return { root: dir, lib: dirname(join(dir, main)) };
+        }
+      } catch {
+        /* malformed package.json — keep walking */
+      }
+    }
+    const parent = dirname(dir);
+    if (parent === dir) return undefined;
+    dir = parent;
+  }
+}
+
+const COMPILER_LAYOUT = resolveCompilerLayout();
 
 export type ModelGraphBinaryDefinition = {
   attribute: string;
@@ -730,13 +755,14 @@ export class WebdaProject {
    * @param hash - the digest accumulator to update
    */
   private hashCompilerPackage(hash: Hash): void {
+    if (!COMPILER_LAYOUT) return;
     try {
-      hash.update(readFileSync(join(COMPILER_PACKAGE_ROOT, "package.json")));
+      hash.update(readFileSync(join(COMPILER_LAYOUT.root, "package.json")));
     } catch {
-      /* compiler not installed in a standard layout — skip */
+      /* package.json vanished mid-flight — skip */
     }
-    if (!existsSync(COMPILER_LIB_DIR)) return;
-    globSync("**/*", { cwd: COMPILER_LIB_DIR, withFileTypes: true })
+    if (!existsSync(COMPILER_LAYOUT.lib)) return;
+    globSync("**/*", { cwd: COMPILER_LAYOUT.lib, withFileTypes: true })
       .filter(f => f.isFile())
       .map(f => join(f.parentPath, f.name))
       .sort()

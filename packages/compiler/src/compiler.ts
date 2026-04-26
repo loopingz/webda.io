@@ -5,7 +5,8 @@ import { WebdaProject } from "./definition";
 import { writer } from "@webda/tsc-esm";
 import { useLog } from "@webda/workout";
 import { generateModule as generateModule } from "./module";
-import { existsSync, mkdirSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { FileUtils } from "@webda/utils";
 import {
   createAccessorTransformer,
@@ -39,6 +40,18 @@ export class Compiler {
   constructor(public project: WebdaProject) {}
 
   /**
+   * MD5 hex digest of a file's contents.
+   * @param path - absolute path to the file
+   * @returns the digest, or undefined if the file is missing
+   */
+  private fileDigest(path: string): string | undefined {
+    if (!existsSync(path)) {
+      return undefined;
+    }
+    return createHash("md5").update(readFileSync(path)).digest("hex");
+  }
+
+  /**
    * Add a system to recompile if needed
    * @returns true if compilation is needed
    */
@@ -52,12 +65,34 @@ export class Compiler {
     }
     const webdaCache: {
       sourceDigest?: string;
+      moduleDigest?: string;
     } = FileUtils.load(f, "json");
-    if (webdaCache.sourceDigest == this.project.getDigest()) {
-      useLog("DEBUG", "Skipping compilation as nothing changed");
-      return false;
+    const currentDigest = this.project.getDigest();
+    if (webdaCache.sourceDigest !== currentDigest) {
+      return true;
     }
-    return true;
+    // Cross-check the on-disk webda.module.json: sources may be unchanged but
+    // the generated module file can drift from the cache (git checkout, manual
+    // edit, framework upgrade that regenerates it).
+    const modulePath = this.project.getAppPath("webda.module.json");
+    const moduleDigest = this.fileDigest(modulePath);
+    if (!moduleDigest || moduleDigest !== webdaCache.moduleDigest) {
+      return true;
+    }
+    // Final guard: the module file must declare the same source digest it
+    // was generated against. Catches replacement files that happen to have
+    // the cached content hash recorded but were produced under different
+    // sources.
+    try {
+      const moduleContent = FileUtils.load(modulePath, "json") as { sourceDigest?: string };
+      if (moduleContent.sourceDigest !== currentDigest) {
+        return true;
+      }
+    } catch {
+      return true;
+    }
+    useLog("DEBUG", "Skipping compilation as nothing changed");
+    return false;
   }
 
   /**
@@ -160,15 +195,25 @@ export class Compiler {
       `Took: Compilation - ${compilationStart}ms | Module generation - ${Date.now() - moduleGenerationStart}ms`
     );
     this.compiled = result;
-    // Save cache
+    this.updateCache();
+    this.project.emit("done");
+    return result;
+  }
+
+  /**
+   * Persist the build cache: source digest plus the generated module file's
+   * content hash, so {@link requireCompilation} can detect both source-file
+   * changes and external mutations of webda.module.json.
+   */
+  private updateCache(): void {
     const f = this.project.getAppPath(".webda/cache");
     const webdaCache: {
       sourceDigest?: string;
+      moduleDigest?: string;
     } = existsSync(f) ? FileUtils.load(f, "json") : {};
     webdaCache.sourceDigest = this.project.getDigest();
+    webdaCache.moduleDigest = this.fileDigest(this.project.getAppPath("webda.module.json"));
     FileUtils.save(webdaCache, f, "json");
-    this.project.emit("done");
-    return result;
   }
 
   /**
@@ -208,6 +253,7 @@ export class Compiler {
       this.tsProgram = this.watchProgram.getProgram().getProgram();
 
       generateModule(this);
+      this.updateCache();
       callback("MODULE_GENERATED");
       this.project.emit("done");
       useLog(

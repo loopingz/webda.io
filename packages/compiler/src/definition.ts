@@ -1,10 +1,22 @@
 import { FileUtils } from "@webda/utils";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import { BinaryLike, createHash } from "crypto";
+import { BinaryLike, createHash, Hash } from "crypto";
 import { existsSync, globSync, readFileSync } from "fs";
 import type { JSONSchema7 } from "json-schema";
-import { join } from "path";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 import ts from "typescript";
+
+/**
+ * Resolved location of the running @webda/compiler installation.
+ *
+ * In a pnpm workspace this points at the symlinked checkout, so hashing
+ * its lib/ folder catches local rebuilds of the compiler — a published
+ * version bump alone (captured via package.json) is not enough when the
+ * dep is linked.
+ */
+const COMPILER_LIB_DIR = dirname(fileURLToPath(import.meta.url));
+const COMPILER_PACKAGE_ROOT = join(COMPILER_LIB_DIR, "..");
 
 export type ModelGraphBinaryDefinition = {
   attribute: string;
@@ -387,6 +399,15 @@ export interface WebdaModule {
    * Merged from dependencies at build/load time; project-level values override.
    */
   capabilities?: { [name: string]: string };
+  /**
+   * Hash of the source files this module was generated from.
+   *
+   * Compared against the project's current source digest to decide whether
+   * the on-disk module file is up-to-date — letting the compiler detect
+   * external mutations (git checkout, manual edit, framework upgrade that
+   * regenerates the file) even when source hashes alone match the cache.
+   */
+  sourceDigest?: string;
 }
 
 /**
@@ -701,6 +722,28 @@ export class WebdaProject {
   }
 
   /**
+   * Mix the running @webda/compiler's package.json + lib/ contents into the
+   * digest. Catches both published version bumps (via package.json) and
+   * local rebuilds of a linked workspace dep (via lib/ files), since neither
+   * project source nor tsconfig change when a framework dep updates.
+   *
+   * @param hash - the digest accumulator to update
+   */
+  private hashCompilerPackage(hash: Hash): void {
+    try {
+      hash.update(readFileSync(join(COMPILER_PACKAGE_ROOT, "package.json")));
+    } catch {
+      /* compiler not installed in a standard layout — skip */
+    }
+    if (!existsSync(COMPILER_LIB_DIR)) return;
+    globSync("**/*", { cwd: COMPILER_LIB_DIR, withFileTypes: true })
+      .filter(f => f.isFile())
+      .map(f => join(f.parentPath, f.name))
+      .sort()
+      .forEach(f => hash.update(readFileSync(f) as BinaryLike));
+  }
+
+  /**
    * Compute digest of the source files
    * @returns the MD5 hex digest of the source
    */
@@ -721,6 +764,7 @@ export class WebdaProject {
       .forEach(f => {
         current.update(readFileSync(f) as BinaryLike);
       });
+    this.hashCompilerPackage(current);
     // We might want to consider doing the same with the output files?
     return current.digest("hex");
   }

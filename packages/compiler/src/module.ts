@@ -1069,6 +1069,7 @@ export class ModuleGenerator {
     plugins.forEach(plugin => {
       plugin.getMetadata(mod, objects);
     });
+    mod.sourceDigest = this.compiler.project.getDigest();
     FileUtils.save(mod, this.compiler.project.getAppPath("webda.module.json"));
     if (this.compiler.project.isApplication()) {
       this.generateTypescriptLibrary(mod);

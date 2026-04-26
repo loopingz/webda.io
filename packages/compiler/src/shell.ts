@@ -94,6 +94,7 @@ interface Arguments {
 
 interface BuildArguments extends Arguments {
   watch: boolean;
+  force: boolean;
 }
 
 /**
@@ -123,6 +124,12 @@ const argv: Arguments = yargs(process.argv.slice(2))
       .option("watch", {
         alias: "w",
         describe: "Watch the files for changes",
+        type: "boolean",
+        default: false
+      })
+      .option("force", {
+        alias: "f",
+        describe: "Recompile even when the cache reports nothing changed",
         type: "boolean",
         default: false
       })
@@ -239,9 +246,16 @@ Fork(
           compiler.watch(() => {});
           await new Promise(() => {});
         } else {
-          compiler.compile(true);
+          const needsCompilation = argv.force || compiler.requireCompilation();
+          compiler.compile(argv.force);
+          if (!needsCompilation) {
+            useWorkerOutput().log(
+              "INFO",
+              "Cache up-to-date; skipping build (pass --force to recompile)"
+            );
+          }
           // Generate configuration schemas if the project is an application
-          if (project.isApplication()) {
+          if (needsCompilation && project.isApplication()) {
             const modulePath = project.getAppPath("webda.module.json");
             const mod = FileUtils.load(modulePath, "json");
             mergeDependencyModules(project.getAppPath(), mod);

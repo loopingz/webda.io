@@ -12,101 +12,98 @@ This module is part of Webda Application Framework that allows you to quickly de
 ![CodeQL](https://github.com/loopingz/webda.io/workflows/CodeQL/badge.svg)
 
 <!-- README_HEADER -->
-# schema-gen
 
-TypeScript language-service powered JSON Schema generator for interfaces, classes, and type aliases.
+## @webda/schema
 
-## Features
-- Uses the real TypeScript compiler + language service for type resolution
-- Handles primitives, literals, unions (as enum or anyOf), intersections (allOf), arrays, tuples, objects
-- Mapped types (object with `additionalProperties` when key space can't be enumerated)
-- Conditional types (apparent type + heuristic branch expansion; may fall back to empty objects for generics)
-- Indexed access types (resolved to referenced value type)
-- Template literal types (enumerated when finite, else regex `pattern`)
-- Generates `$ref` references and shared `definitions` for named types
-- Simple zero-dependency argument parsing CLI
+TypeScript-compiler–powered JSON Schema (Draft-07) generator for interfaces, classes, and type aliases — the tool that produces the `.webda-config-schema.json` and `.webda-deployment-schema.json` files that power VS Code autocomplete for Webda projects.
 
-## Install
+### When to use it
+
+- You want VS Code (or any JSON-Schema-aware editor) to autocomplete and validate `webda.config.jsonc` — the schema files are generated automatically by `webdac build`.
+- You need to generate a JSON Schema from any TypeScript type programmatically (e.g. for API documentation, runtime validation, or OpenAPI generation).
+- You want to validate incoming request bodies or model payloads against a generated schema using ajv.
+
+### Install
 
 ```bash
-npm install --save-dev ./schema
+npm install @webda/schema
 ```
 
-(Or publish this package and install from your registry.)
+The `webda-schema-generator` CLI binary is included in the package.
 
-## CLI Usage
+### Configuration (webda.config.jsonc)
 
-```bash
-webda-schema-generator --type User --file test/Sample.ts --pretty
-webda-schema-generator --type Complex --file test/Sample.ts --out complex.schema.json --pretty
-```
+Add a `$schema` pointer to get in-editor autocomplete:
 
-Options:
-- `--type <TypeName>` (required)
-- `--file <path>` restrict search to specific file
-- `--project <dir|tsconfig>` specify project root or tsconfig path (default: CWD)
-- `--out <file>` write output schema to file
-- `--pretty` pretty-print JSON
-
-## Programmatic API
-
-```ts
-import { generateJsonSchema } from '@webda/schema';
-
-const { schema } = generateJsonSchema({ type: 'User', file: 'test/Sample.ts', project: process.cwd() });
-console.log(schema);
-```
-
-## JSON Schema Draft
-Currently emits Draft-07 with `$schema: http://json-schema.org/draft-07/schema#`.
-
-## Limitations / Future Improvements
-## Configuration Options
-
-You can customize generation behavior via internal `GenerationOptions` (see `generateSchema.ts`).
-
-| Option | Default | Description |
-| ------ | ------- | ----------- |
-| `preferConstForSingletonTuple` | `true` | Single-element const tuples inferred into consuming conditional properties as a `const` string. |
-| `enumForMultiTuple` | `true` | Multi-element const string tuples inferred into consuming conditional properties as `enum` rather than array. |
-| `preferArrayForTupleOwner` | `true` | The property declaring a const tuple is emitted as an `array` with `prefixItems` (instead of `enum`). |
-| `debugTrace` | `false` (enable by setting `SCHEMA_TRACE=1`) | Captures handler match trace records for debugging resolution ordering. |
-
-Set `SCHEMA_TRACE=1` when running the CLI to record handler matches (currently internal; expose as needed).
-
-## Handlers Architecture
-
-Schema generation is modular: see `src/handlers/` for prioritized handlers (primitive, literal, templateLiteral, union, conditional, intersection, arrayTuple, indexedAccess, mapped, object). Each implements:
-
-```ts
-interface TypeSchemaHandler {
-	id: string;
-	priority: number;
-	canHandle(type: ts.Type, ctx: GenerationContext): boolean;
-	emit(type: ts.Type, ctx: GenerationContext, typeToSchema: (t: ts.Type, forceInline?: boolean) => any): any;
+```jsonc
+// webda.config.jsonc
+{
+  "$schema": "./.webda-config-schema.json",
+  "version": 3,
+  "services": {
+    "myStore": {
+      "type": "MemoryStore",
+      "model": "MyApp/MyModel"
+    }
+  }
 }
 ```
 
-## Tests
+The schema file is regenerated every time you run `webdac build`.
 
-Run `npm test` to execute runtime assertions (`test/run-tests.js`) covering:
-- Mapped type key enumeration
-- Const tuple + conditional inference propagation
-- Template literal enumeration for finite combinations
-- Discriminated union expansion (kind/value)
+### Usage — Programmatic API
 
-## Limitations / Future Improvements
-- Recursive types produce `$ref` but deeper cycle handling is minimal
-- Generic conditional branches only partially introspected; branch object literals may appear empty
-- Complex mapped types with key remapping or modifiers approximated via `additionalProperties`
-- Index signatures still treated implicitly; explicit `patternProperties` could be added
-- Union handling ignores `undefined` for optional fields rather than creating `anyOf` with `null`
-- Template literal pattern fallback currently simplified; numeric + non-literal placeholders widen to `string`
-- Additional snapshot fixtures desired for regression safety
-- Trace diagnostics not yet surfaced via public API or CLI flag
+```typescript
+import { SchemaGenerator } from "@webda/schema";
 
-## Contributing
-PRs welcome – extend `typeToSchema` for more TypeScript constructs.
+const generator = new SchemaGenerator({ project: process.cwd() });
+
+// Generate schema for a named type
+const schema = generator.getSchemaForTypeName("MyServiceParameters");
+console.log(JSON.stringify(schema, null, 2));
+```
+
+**`GenerateSchemaOptions`** key options:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `project` | `process.cwd()` | Path to tsconfig directory or file |
+| `file` | — | Restrict search to this source file |
+| `maxDepth` | `10` | Max recursion depth for nested types |
+| `asRef` | `false` | Emit top-level type as a `$ref` into `definitions` |
+| `bufferStrategy` | `"base64"` | How `Buffer`/`ArrayBuffer` is represented |
+| `accessorMode` | `"input"` | `"input"` excludes getter-only props; `"output"` includes them |
+
+### Usage — CLI
+
+```bash
+# Generate schema for a TypeScript type and print to stdout
+webda-schema-generator --type MyServiceParameters --file src/service.ts --pretty
+
+# Write to a file
+webda-schema-generator --type Config --project ./ --out config.schema.json --pretty
+```
+
+CLI options:
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--type <TypeName>` | Yes | Interface / class / type alias name |
+| `--file <path>` | No | Restrict search to specific source file |
+| `--project <dir\|tsconfig>` | No | tsconfig directory or path (default: CWD) |
+| `--out <file>` | No | Write schema to file instead of stdout |
+| `--pretty` | No | Pretty-print JSON |
+
+### Reference
+
+- [`SchemaGenerator`](../../docs/pages/Modules/schema/JSON-Schema.md) — main class
+- [Validation](../../docs/pages/Modules/schema/Validation.md) — runtime request validation with ajv
+- [CLI reference](../../docs/pages/Modules/schema/CLI.md) — `webda-schema-generator` flags
+
+### See also
+
+- [@webda/compiler](../compiler/README.md) — `webdac build` triggers schema generation
+- [@webda/core](../core/README.md) — `ServiceParameters` types that are schema-generated
 
 <!-- README_FOOTER -->
 ## Sponsors

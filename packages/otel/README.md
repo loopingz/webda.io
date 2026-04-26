@@ -13,7 +13,91 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-This is my description
+# @webda/otel
+
+> OpenTelemetry integration for Webda — exports traces, metrics, and logs to any OTLP-compatible backend (Jaeger, Prometheus, Grafana, Datadog, etc.) with zero instrumentation code.
+
+## When to use it
+
+- You want distributed tracing across Webda HTTP requests, store operations, and queue workers without manual span management.
+- You need to export metrics (request counts, durations) and structured logs to an OpenTelemetry collector.
+- You are deploying on a platform with OpenTelemetry support (GCP, AWS ADOT, Grafana Cloud, Datadog).
+
+## Install
+
+```bash
+pnpm add @webda/otel
+```
+
+## Configuration
+
+```json
+{
+  "services": {
+    "otel": {
+      "type": "OtelService",
+      "name": "my-webda-app",
+      "traceExporter": {
+        "type": "otlp",
+        "enable": true,
+        "sampling": 0.1
+      },
+      "metricExporter": {
+        "type": "otlp",
+        "enable": true
+      },
+      "loggerExporter": {
+        "enable": true,
+        "type": "otlp",
+        "url": "http://otel-collector:4317"
+      }
+    }
+  }
+}
+```
+
+| Parameter | Type | Default | Required | Description |
+|---|---|---|---|---|
+| `name` | string | app name | No | Service name reported to OTLP as `service.name` |
+| `traceExporter.type` | `"otlp"` \| `"console"` | `"otlp"` | No | Trace export destination |
+| `traceExporter.enable` | boolean | `true` | No | Enable/disable trace exporting |
+| `traceExporter.sampling` | number | `0.01` | No | Trace sampling rate (0.0–1.0) |
+| `metricExporter.type` | `"otlp"` \| `"console"` | `"otlp"` | No | Metric export destination |
+| `metricExporter.enable` | boolean | `true` | No | Enable/disable metric exporting |
+| `loggerExporter.enable` | boolean | `true` | No | Enable/disable log exporting |
+| `loggerExporter.url` | string | `"http://localhost:4317"` | No | OTLP gRPC endpoint for log export |
+| `diagnostic` | string | `"NONE"` | No | OTel SDK diagnostic level: `NONE`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `ALL` |
+
+## Usage
+
+```typescript
+// No code changes needed — add the service to webda.config.json and it
+// auto-instruments HTTP requests, MongoDB, and other supported libraries
+// via @opentelemetry/auto-instrumentations-node.
+
+// To instrument custom code, use the OpenTelemetry API directly:
+import { trace } from "@opentelemetry/api";
+
+const tracer = trace.getTracer("my-service");
+
+async function expensiveOperation(): Promise<void> {
+  const span = tracer.startSpan("expensiveOperation");
+  try {
+    // ... work
+  } finally {
+    span.end();
+  }
+}
+
+// Logs from @webda/workout are automatically forwarded to the OTLP log exporter
+// when loggerExporter is enabled — no extra code needed.
+```
+
+## Reference
+
+- API reference: see the auto-generated typedoc at `docs/pages/Modules/otel/`.
+- Source: [`packages/otel`](https://github.com/loopingz/webda.io/tree/main/packages/otel)
+- Related: [`@webda/workout`](../workout) for the Webda logging system whose output this module exports; [`@webda/debug`](../debug) for local development tracing without an OTLP backend.
 
 <!-- README_FOOTER -->
 ## Sponsors

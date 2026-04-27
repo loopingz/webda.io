@@ -24,6 +24,7 @@ import { JSONSchema7 } from "json-schema";
 import { InstanceCache } from "../cache/cache.js";
 import type { Service } from "../services/service.js";
 import { ModelMetadata } from "@webda/compiler";
+import type { BehaviorMetadata } from "@webda/compiler";
 
 export type ApplicationState = "initial" | "loading" | "ready";
 
@@ -85,6 +86,17 @@ export class Application {
    * Beans registry
    */
   protected beans: { [key: string]: Modda } = {};
+
+  /**
+   * Behaviors registry
+   *
+   * Populated by `loadModule` from the top-level `behaviors` map of every
+   * loaded `webda.module.json`. Each entry pairs the resolved JS constructor
+   * (`class`) with the original metadata blob emitted by the compiler so
+   * downstream consumers (CoreModel hydration, DomainService, etc.) can both
+   * instantiate the behavior and introspect its declared actions / shape.
+   */
+  protected behaviors: { [key: string]: { class: any; metadata: BehaviorMetadata } } = {};
 
   /**
    * Class Logger
@@ -401,6 +413,37 @@ export class Application {
   }
 
   /**
+   * Return the constructor of a Behavior loaded from `webda.module.json`.
+   *
+   * @param identifier - fully qualified Behavior id (e.g. `Webda/MFA`)
+   * @returns the constructor, or undefined if no Behavior with that id is registered
+   */
+  getBehavior(identifier: string): any | undefined {
+    return this.behaviors[identifier]?.class;
+  }
+
+  /**
+   * Return the metadata blob (Identifier, Actions, etc.) for a Behavior
+   * loaded from `webda.module.json`.
+   *
+   * @param identifier - fully qualified Behavior id (e.g. `Webda/MFA`)
+   * @returns the metadata, or undefined if no Behavior with that id is registered
+   */
+  getBehaviorMetadata(identifier: string): BehaviorMetadata | undefined {
+    return this.behaviors[identifier]?.metadata;
+  }
+
+  /**
+   * Return all loaded Behaviors keyed by identifier.
+   *
+   * Each entry exposes both the resolved constructor and its original metadata.
+   * @returns the result
+   */
+  getBehaviors(): { [key: string]: { class: any; metadata: BehaviorMetadata } } {
+    return this.behaviors;
+  }
+
+  /**
    * Return the model name for a object
    * @param object - the target object
    * @returns the result
@@ -702,8 +745,30 @@ export class Application {
         this.baseConfiguration.cachedModules.beans[f] = info.beans[f];
       }
     }
+    // Behaviors mirror the moddas/models loading pattern: each entry has an
+    // `Import` formatted as `path:ExportName` (parsed by `importFile`). Unlike
+    // moddas/beans, behaviors don't carry a parameters/configuration class —
+    // they are plain ES classes whose actions are decorated at the source
+    // level and surfaced via the precomputed metadata blob.
+    const behaviorLoader = async () => {
+      for (const id in info.behaviors ?? {}) {
+        const meta = info.behaviors![id];
+        const cls = await this.importFile(join(parent, meta.Import));
+        if (!cls) {
+          this.log("ERROR", `Cannot load behavior ${id} from ${join(parent, meta.Import)}`);
+          continue;
+        }
+        this.behaviors[id] ??= { class: cls, metadata: meta };
+      }
+    };
+
     // TODO Merging tree from different modules
-    await Promise.all([sectionLoader("moddas"), sectionLoader("models"), sectionLoader("beans")]);
+    await Promise.all([
+      sectionLoader("moddas"),
+      sectionLoader("models"),
+      sectionLoader("beans"),
+      behaviorLoader()
+    ]);
     // Set metadata on models - need to be done after all models are loaded
     this.setModelMetadata(info.models);
   }

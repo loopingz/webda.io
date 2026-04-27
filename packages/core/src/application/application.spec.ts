@@ -205,4 +205,52 @@ class ApplicationTest extends WebdaInternalTest {
       process.chdir(cwd);
     }
   }
+
+  @test
+  async loadBehaviors() {
+    // Verify Application loads Behavior classes declared in webda.module.json
+    // and exposes them via getBehavior / getBehaviorMetadata.
+    const app = new TestInternalApplication(__dirname + "/../../test/config.json");
+    const fixture = path.join(__dirname, "..", "..", "test", "data", "mfa-behavior.js");
+    await app.loadModule(
+      {
+        moddas: {},
+        models: {},
+        schemas: {},
+        behaviors: {
+          "Test/MFA": {
+            Identifier: "Test/MFA",
+            Import: `${fixture}:MFA`,
+            Actions: {
+              verify: { Method: "verify" }
+            }
+          },
+          "Test/Broken": {
+            Identifier: "Test/Broken",
+            Import: "./notFound.js:Missing",
+            Actions: {}
+          }
+        }
+      },
+      ""
+    );
+
+    const cls = app.getBehavior("Test/MFA");
+    assert.ok(cls, "expected Test/MFA behavior class to be loaded");
+    assert.strictEqual(cls.name, "MFA");
+
+    const meta = app.getBehaviorMetadata("Test/MFA");
+    assert.ok(meta, "expected Test/MFA behavior metadata to be available");
+    assert.strictEqual(meta!.Identifier, "Test/MFA");
+    assert.ok(meta!.Actions?.verify, "expected verify action metadata to be preserved");
+
+    // Unknown identifier returns undefined for both accessors
+    assert.strictEqual(app.getBehavior("Test/Unknown"), undefined);
+    assert.strictEqual(app.getBehaviorMetadata("Test/Unknown"), undefined);
+
+    // Behaviors that fail to import should not register a class but metadata
+    // should not register either (consistent with how moddas/models handle it).
+    assert.strictEqual(app.getBehavior("Test/Broken"), undefined);
+    assert.strictEqual(app.getBehaviorMetadata("Test/Broken"), undefined);
+  }
 }

@@ -1105,12 +1105,12 @@ export class RESTOperationsTransport<
   protected exposeBehaviorRoutes(
     prefix: string,
     shortId: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     identifier: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     name: string,
     behavior: ModelGraphBehaviorDefinition
   ): void {
+    void identifier;
+    void name;
     const app = useApplication();
     const behaviorMeta = app.getBehaviorMetadata(behavior.behavior);
     if (!behaviorMeta) {

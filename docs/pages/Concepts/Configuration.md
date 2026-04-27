@@ -15,3 +15,9 @@ Deployment can override service types and add new service. It allows you to defi
 ConfigurationService based on the configuration service you can alter your services configuration from a filesystem, a kubernetes configmap or secrets, a database item, etc.
 
 At runtime you cannot add new services, nor you can change the services types. It is done for security reason.
+
+## See also
+
+- [Core Architecture](../Modules/core/Architecture.md)
+- [JSON-Schema Validation](../Modules/schema/JSON-Schema.md)
+- [webda.config.json reference](./Webda.config.json.md)

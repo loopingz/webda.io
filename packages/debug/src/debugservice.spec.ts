@@ -153,7 +153,7 @@ function createTestWsServer(): Promise<{
 // ---------------------------------------------------------------------------
 
 // Dynamic import so mocks are set up first
-const { DebugService } = await import("./debugservice.js");
+const { DebugService, isAllowedOrigin } = await import("./debugservice.js");
 
 @suite
 class DebugServiceHandleRequestTest {
@@ -744,6 +744,139 @@ class DebugServiceStopCleanupTest {
 
     await service.stop();
     assert.strictEqual((service as any).timings.size, 0, "Timings should be cleared after stop");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// isAllowedOrigin unit tests
+// ---------------------------------------------------------------------------
+
+@suite
+class IsAllowedOriginTest {
+  @test
+  localhostPort3000IsAllowed() {
+    assert.strictEqual(isAllowedOrigin("http://localhost:3000"), true);
+  }
+
+  @test
+  loopbackPort3000IsAllowed() {
+    assert.strictEqual(isAllowedOrigin("http://127.0.0.1:3000"), true);
+  }
+
+  @test
+  httpsWebdaIoIsAllowed() {
+    assert.strictEqual(isAllowedOrigin("https://webda.io"), true);
+  }
+
+  @test
+  httpsDocsSubdomainIsAllowed() {
+    assert.strictEqual(isAllowedOrigin("https://docs.webda.io"), true);
+  }
+
+  @test
+  httpsBlogSubdomainIsAllowed() {
+    assert.strictEqual(isAllowedOrigin("https://blog.webda.io"), true);
+  }
+
+  @test
+  httpOnlySubdomainIsBlocked() {
+    // http:// subdomain of webda.io must not be allowed
+    assert.strictEqual(isAllowedOrigin("http://docs.webda.io"), false);
+  }
+
+  @test
+  httpsEvilComIsBlocked() {
+    assert.strictEqual(isAllowedOrigin("https://evil.com"), false);
+  }
+
+  @test
+  httpsWebdaIoDotEvilComIsBlocked() {
+    // webda.io.evil.com ends with ".evil.com", not ".webda.io"
+    assert.strictEqual(isAllowedOrigin("https://webda.io.evil.com"), false);
+  }
+
+  @test
+  undefinedOriginIsBlocked() {
+    assert.strictEqual(isAllowedOrigin(undefined), false);
+  }
+
+  @test
+  emptyStringOriginIsBlocked() {
+    assert.strictEqual(isAllowedOrigin(""), false);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CORS header integration tests via actual DebugService HTTP server
+// ---------------------------------------------------------------------------
+
+@suite
+class DebugServiceCorsTest {
+  service: InstanceType<typeof DebugService>;
+  port: number;
+
+  async beforeEach() {
+    this.service = new DebugService();
+    this.service.resolve();
+    await this.service.startDebugServer(0);
+    this.port = ((this.service as any).server as Server).address().port;
+  }
+
+  async afterEach() {
+    await this.service.stop();
+  }
+
+  @test
+  async allowedOriginReceivesCorsHeaders() {
+    const res = await fetch(`http://localhost:${this.port}/api/info`, {
+      headers: { Origin: "http://localhost:3000" }
+    });
+    assert.strictEqual(res.headers.get("access-control-allow-origin"), "http://localhost:3000");
+    assert.strictEqual(res.headers.get("vary"), "Origin");
+  }
+
+  @test
+  async allowedWebdaIoSubdomainReceivesCorsHeaders() {
+    const res = await fetch(`http://localhost:${this.port}/api/info`, {
+      headers: { Origin: "https://docs.webda.io" }
+    });
+    assert.strictEqual(res.headers.get("access-control-allow-origin"), "https://docs.webda.io");
+  }
+
+  @test
+  async disallowedOriginDoesNotReceiveCorsHeader() {
+    const res = await fetch(`http://localhost:${this.port}/api/info`, {
+      headers: { Origin: "https://evil.com" }
+    });
+    // No Access-Control-Allow-Origin header should be set
+    assert.strictEqual(res.headers.get("access-control-allow-origin"), null);
+  }
+
+  @test
+  async requestWithNoOriginDoesNotReceiveCorsHeader() {
+    // No Origin header at all (same-origin or non-browser request)
+    const res = await fetch(`http://localhost:${this.port}/api/info`);
+    assert.strictEqual(res.headers.get("access-control-allow-origin"), null);
+  }
+
+  @test
+  async optionsRequestWithAllowedOriginReceivesCorsHeaders() {
+    const res = await fetch(`http://localhost:${this.port}/api/services`, {
+      method: "OPTIONS",
+      headers: { Origin: "https://webda.io" }
+    });
+    assert.strictEqual(res.status, 204);
+    assert.strictEqual(res.headers.get("access-control-allow-origin"), "https://webda.io");
+  }
+
+  @test
+  async optionsRequestWithDisallowedOriginNoCorsHeader() {
+    const res = await fetch(`http://localhost:${this.port}/api/services`, {
+      method: "OPTIONS",
+      headers: { Origin: "https://evil.com" }
+    });
+    assert.strictEqual(res.status, 204);
+    assert.strictEqual(res.headers.get("access-control-allow-origin"), null);
   }
 }
 

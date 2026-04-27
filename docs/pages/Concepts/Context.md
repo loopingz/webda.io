@@ -33,3 +33,8 @@ class MyService extends Service implements ContextProvider {
   }
 }
 ```
+
+## See also
+
+- [Core Context](../Modules/core/Context.md)
+- [Session](./Session.md)

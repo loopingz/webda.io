@@ -13,29 +13,95 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-Pub/Sub and Queue implementation using amqp protocol.
-You can use it with RabbitMQ or any other AMQP compatible server.
+# @webda/amqp
 
-## Usage
+> RabbitMQ-backed Queue and Pub/Sub services for Webda — drop-in replacements for in-memory transports when you need durable, cross-process messaging.
+
+## When to use it
+
+- You need a durable task queue backed by RabbitMQ (or any AMQP 0-9-1 broker).
+- You need fan-out pub/sub across multiple Webda instances via AMQP exchanges.
+- You are replacing `MemoryQueue` / `MemoryPubSub` in a production deployment.
+
+## Install
+
+```bash
+pnpm add @webda/amqp
+```
+
+## Configuration
+
+### AMQPQueue
 
 ```json
 {
   "services": {
-    "queue": {
+    "taskQueue": {
       "type": "AMQPQueue",
-      "endpoint": "amqp://localhost:5672",
-      "queue": "webda-test",
-      "maxConsumers": 1
-    },
-    "pubsub": {
-      "type": "AMQPPubSub",
-      "endpoint": "amqp://localhost:5672",
-      "channel": "webda-test-pub",
-      "maxConsumers": 1
+      "url": "amqp://localhost:5672",
+      "queue": "my-tasks"
     }
   }
 }
 ```
+
+| Parameter | Type | Default | Required | Description |
+|---|---|---|---|---|
+| `url` | string | — | Yes | AMQP broker connection URL (e.g. `amqp://user:pass@host:5672`) |
+| `queue` | string | — | Yes | Name of the AMQP queue to assert and consume |
+| `queueOptions` | object | — | No | Options forwarded to `channel.assertQueue()` (e.g. `{ durable: true }`) |
+
+### AMQPPubSubService
+
+```json
+{
+  "services": {
+    "eventBus": {
+      "type": "AMQPPubSub",
+      "url": "amqp://localhost:5672",
+      "channel": "my-events",
+      "exchange": { "type": "fanout", "durable": true }
+    }
+  }
+}
+```
+
+| Parameter | Type | Default | Required | Description |
+|---|---|---|---|---|
+| `url` | string | — | Yes | AMQP broker connection URL |
+| `channel` | string | — | Yes | Exchange name to publish/subscribe to |
+| `subscription` | string | `""` | No | Subscription queue name (auto-generated exclusive queue if empty) |
+| `exchange.type` | string | `"fanout"` | No | Exchange type (`fanout`, `direct`, `topic`, `headers`) |
+| `exchange.durable` | boolean | `true` | No | Survive broker restarts |
+| `exchange.autoDelete` | boolean | `false` | No | Delete when last binding is removed |
+
+## Usage
+
+```typescript
+import { Queue } from "@webda/core";
+import { Service } from "@webda/core";
+import { Bean, Inject } from "@webda/core";
+
+@Bean
+export class OrderService extends Service {
+  @Inject("taskQueue")
+  queue: Queue<{ orderId: string }>;
+
+  async placeOrder(orderId: string): Promise<void> {
+    // Publish a task to RabbitMQ
+    await this.queue.sendMessage({ orderId });
+  }
+}
+
+// Consumer side: start a queue worker via AsyncJobService or
+// by calling queue.consume(async (msg) => { ... })
+```
+
+## Reference
+
+- API reference: see the auto-generated typedoc at `docs/pages/Modules/amqp/`.
+- Source: [`packages/amqp`](https://github.com/loopingz/webda.io/tree/main/packages/amqp)
+- Related: [`@webda/core`](../core) for the `Queue` and `PubSubService` base classes, [`@webda/async`](../async) for job orchestration on top of a queue.
 
 <!-- README_FOOTER -->
 ## Sponsors

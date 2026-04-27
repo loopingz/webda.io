@@ -1,0 +1,92 @@
+/* Subpanel hover/glow effect for the four-color welcome panels.
+ * Each panel announces its accent color via a CSS custom property
+ * (--webda-panel-color) so the glow matches the panel's identity. */
+
+.subpanel {
+  padding: 10px;
+  min-height: 250px;
+  min-width: 250px;
+  width: 50%;
+  height: 50%;
+  /* No base border-radius — the four panels meet sharply in the middle so
+     the central webda logo can peek through where they join. Per-panel
+     style overrides set the outer-corner radius only. */
+  background-color: var(--webda-panel-bg);
+  color: var(--webda-panel-fg);
+  position: relative;
+  cursor: default;
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease,
+    background-color 220ms ease;
+  will-change: transform, box-shadow;
+  /* Entrance animation when panels first appear */
+  animation: webda-panel-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.subpanel:nth-of-type(1) { animation-delay: 0ms; }
+.subpanel:nth-of-type(2) { animation-delay: 80ms; }
+.subpanel:nth-of-type(3) { animation-delay: 160ms; }
+.subpanel:nth-of-type(4) { animation-delay: 240ms; }
+
+.subpanel:hover {
+  /* Grow slightly and lift above neighbors */
+  transform: translateY(-4px) scale(1.035);
+  box-shadow:
+    0 0 0 1px var(--webda-panel-color),
+    0 8px 24px -8px var(--webda-panel-glow),
+    0 0 32px -4px var(--webda-panel-glow);
+  z-index: 2;
+}
+
+/* Title gently shifts hue and weight on hover */
+.subpanelTitle {
+  margin: 0 0 8px 0;
+  color: var(--webda-panel-title);
+  transition:
+    color 220ms ease,
+    letter-spacing 220ms ease;
+}
+
+.subpanel:hover .subpanelTitle {
+  color: var(--webda-panel-color);
+  letter-spacing: 0.5px;
+}
+
+/* Adjacent jigsaw piece tilts slightly when its panel is hovered */
+.jigsawWrap {
+  display: flex;
+  justify-content: end;
+  margin-top: -60px;
+  margin-right: -10px;
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.subpanel:hover + .jigsawWrap {
+  transform: rotate(-4deg) translateY(-2px);
+}
+
+@keyframes webda-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .subpanel,
+  .subpanelTitle,
+  .jigsawWrap {
+    animation: none !important;
+    transition: none !important;
+  }
+  .subpanel:hover {
+    transform: none;
+    box-shadow: 0 0 0 2px var(--webda-panel-color);
+  }
+}

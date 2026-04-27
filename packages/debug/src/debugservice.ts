@@ -15,6 +15,37 @@ import { DebugTui } from "./tui/tui.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const WEBUI_DIR = join(__dirname, "..", "webui");
 
+/** Origins that are always allowed to access the debug API. */
+const ALLOWED_ORIGIN_EXACT = new Set([
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://webda.io"
+]);
+
+/**
+ * Determine whether the given Origin header value is allowed to access the debug API.
+ *
+ * Allowed origins:
+ * - http://localhost:3000 (docs dev server)
+ * - http://127.0.0.1:3000 (docs dev server, alternate address)
+ * - https://webda.io (production docs)
+ * - https://*.webda.io (any HTTPS subdomain of webda.io)
+ *
+ * @param origin - The value of the HTTP `Origin` request header.
+ * @returns `true` if the origin is allowed, `false` otherwise.
+ */
+export function isAllowedOrigin(origin: string | undefined): boolean {
+  if (!origin) return false;
+  if (ALLOWED_ORIGIN_EXACT.has(origin)) return true;
+  // Allow any https:// subdomain of webda.io
+  try {
+    const u = new URL(origin);
+    return u.protocol === "https:" && u.hostname.endsWith(".webda.io");
+  } catch {
+    return false;
+  }
+}
+
 /** Map file extensions to MIME types for static file serving. */
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -180,10 +211,18 @@ export class DebugService extends Service {
    * @param res - Server response
    */
   private handleRequest(req: IncomingMessage, res: ServerResponse): void {
-    // CORS headers
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    // CORS: echo the origin back only if it is on the allowlist.
+    // If there is no matching origin the browser will block cross-origin access,
+    // which is the desired behaviour. We also set Vary: Origin so that CDN /
+    // proxy caches do not serve a response with an allowed origin header to a
+    // different (disallowed) origin.
+    const origin = req.headers.origin;
+    if (isAllowedOrigin(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin!);
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    }
 
     if (req.method === "OPTIONS") {
       res.writeHead(204);

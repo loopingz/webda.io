@@ -26,3 +26,8 @@ Each service will be injected with its parameters.
 
 This is a map with all Services name. If the `type` is not defined, then it will default
 to `type = name`, and add default namespace if it does not have a namespace.
+
+## See also
+
+- [JSON-Schema Validation](../Modules/schema/JSON-Schema.md)
+- [Configuration concept](./Configuration.md)

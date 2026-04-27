@@ -116,14 +116,13 @@ const config = {
             position: "left"
           },
           {
-            to: "/versioning-demo",
-            label: "Versioning demo",
-            position: "left"
-          },
-          {
-            to: "/configuration/welcome",
-            activeBasePath: "configuration",
-            label: "My Application",
+            // Custom type that renders AppNavbarItem — shows a connection dot
+            // when the `webda debug --web` daemon is running and fades the
+            // link to 50% opacity when no daemon is detected.
+            // Defined in docs/src/theme/NavbarItem/ComponentTypes.tsx.
+            // Falls back gracefully: if the swizzle is removed, switch back to:
+            //   { to: "/configuration/welcome", label: "My Application", position: "right" }
+            type: "custom-app-link",
             position: "right"
           },
           {

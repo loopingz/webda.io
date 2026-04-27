@@ -1,19 +1,8 @@
 import Button from "@mui/material/Button";
+import { WelcomeStatus } from "./WelcomeStatus";
 
-## No application detected
+## My Application
 
-You can visualize information from your Webda application by running the following command in its directory:
+Inspect your running Webda application live — models, services, operations, requests, and logs — directly from this page.
 
-```shell
-webda configuration
-```
-
-You will be able to access your models hierarchy, relations, and more.
-
-:::info
-
-If you just want to explore you can use our sample application.
-
-<Button onClick={props.onClick}>Try sample application</Button>
-
-:::
+<WelcomeStatus onTrySample={props.onClick} />

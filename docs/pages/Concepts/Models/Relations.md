@@ -45,3 +45,8 @@ This attribute is used to define a n:m relation between models. It is an array o
 # ModelLinksMap
 
 This attribute is used to define a n:m relation between models. It is a map of uuid of the targeted model to some attributes.
+
+## See also
+
+- [Model Relationships](../../Modules/models/Relationships.md)
+- [Models overview](./Models.md)

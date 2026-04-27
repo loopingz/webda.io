@@ -2,15 +2,16 @@
 sidebar_label: "@webda/mock"
 ---
 # mock
-**@webda/mock**
-
-***
 
 # @webda/mock
 
-Coherent mock-data generation for `@webda/models` classes. Decorators live in
-`@webda/models` (zero production runtime cost); this package provides the
-engine, service, and CLI support.
+> Coherent mock-data generation for `@webda/models` classes — decorator-driven field population with deterministic seeding, multi-model graph support, and optional AI-generated text.
+
+## When to use it
+
+- You need realistic, consistent test fixtures for Webda models without writing manual factory functions.
+- You want reproducible test data with `mode: "test"` (seed=0) and varied demo data with `mode: "demo"`.
+- You need to populate an entire relational graph of models (e.g. Users + Orders + Posts) in one call.
 
 ## Install
 
@@ -18,11 +19,31 @@ engine, service, and CLI support.
 pnpm add -D @webda/mock
 ```
 
-## Quick start
+## Configuration
 
-```ts
+`@webda/mock` is a pure library — no `webda.config.json` entry is required. Field hints are added via `@Mock.*` decorators from `@webda/models` (zero production cost — tree-shaken out).
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `count` | number | `1` | Number of instances to generate |
+| `seed` | number | `0` (test) / `Date.now()` (dev) | RNG seed for reproducibility |
+| `mode` | `"test"` \| `"dev"` \| `"demo"` \| `"load"` | `"test"` in Vitest | Controls seed default, AI usage, and session pool |
+| `overrides` | `Partial<T>` | — | Force-set specific fields regardless of inference |
+| `strict` | boolean | `false` | Throw instead of skip on unhinted, uninferable fields |
+| `ai` | `AIProvider` | — | AI provider for `@Mock.ai` fields (e.g. `AnthropicProvider`) |
+
+## Usage
+
+```typescript
 import { Mock } from "@webda/models";
-import { generate } from "@webda/mock";
+import { generate, generateGraph } from "@webda/mock";
+
+// Annotate your model fields
+class Post {
+  @Mock.word accessor title!: string;
+  @Mock.paragraph accessor body!: string;
+  @Mock.pastDate accessor publishedAt!: Date;
+}
 
 class User {
   @Mock.firstName accessor firstName!: string;
@@ -30,85 +51,42 @@ class User {
   @Mock.integer({ min: 18, max: 99 }) accessor age!: number;
 }
 
-const users = await generate(User, { count: 10, seed: 42, mode: "test" });
-```
+// Generate 5 deterministic posts (seed=42)
+const posts = await generate(Post, { count: 5, seed: 42, mode: "test" });
+// posts[0].title is always the same string across runs
 
-## Auto-inference
-
-When a field has no `@Mock.*` decorator, the engine infers by:
-
-1. Field name — `email`, `firstName`, `createdAt`, `age`, etc.
-2. Field type — `string` → lorem words, `number` → integer 0–100, `boolean` → 50/50, `Date` → recent date.
-
-Pass `strict: true` to throw on unhinted fields instead.
-
-## Multi-model graphs
-
-```ts
-import { generateGraph } from "@webda/mock";
-
-const { User: users, Order: orders } = await generateGraph(
-  { User: 20, Order: 100 },
-  { models: [User, Order], seed: 1, mode: "dev" }
+// Generate a relational graph: 10 users and 50 posts
+const graph = await generateGraph(
+  { User: 10, Post: 50 },
+  { models: [User, Post], seed: 1, mode: "dev" }
 );
-```
+// graph.User → User[], graph.Post → Post[]
 
-## Modes
-
-| Mode | Seed | AI | Pool |
-|------|------|----|------|
-| `test` | 0 (deterministic) | **throws** on `@Mock.ai` | enabled |
-| `dev`  | Date.now() (logged) | enabled if provider configured | enabled |
-| `demo` | logged | enabled + preferred for text | enabled |
-| `load` | caller-supplied | disabled | disabled |
-
-## AI provider (optional)
-
-```ts
-import { AnthropicProvider, generate } from "@webda/mock";
+// Optional: AI-generated text fields (Anthropic)
+import { AnthropicProvider } from "@webda/mock";
 
 const ai = new AnthropicProvider({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 class Product {
   @Mock.word accessor name!: string;
-  @Mock.ai({ prompt: "Write a one-sentence marketing tagline for a fictional product." })
+  @Mock.ai({ prompt: "One-sentence marketing tagline for a fictional product." })
   accessor tagline!: string;
 }
 
-const products = await generate(Product, { count: 5, mode: "demo", ai });
+const products = await generate(Product, { count: 3, mode: "demo", ai });
 ```
 
-`@anthropic-ai/sdk` is an optional peer dependency — it is only loaded when
-`AnthropicProvider.complete()` is actually called.
+## Modes
 
-## Service (optional)
+| Mode | Seed default | AI | Use case |
+|------|-------------|-----|---------|
+| `test` | `0` (deterministic) | Throws on `@Mock.ai` | Unit tests, snapshots |
+| `dev` | `Date.now()` | Enabled if provider given | Local development seeding |
+| `demo` | Logged | Enabled + preferred for text | Demo environments |
+| `load` | Caller-supplied | Disabled | Load/performance testing |
 
-```ts
-import { MockService } from "@webda/mock/service";
+## Reference
 
-const mock = new MockService(undefined, "mock", { mode: "dev", seed: 1 });
-const users = await mock.generate(User, { count: 10 });
-```
-
-In v1 `MockService` is a plain class. Wrapping it as a webda `@Bean` subclass
-is a planned follow-up once `@webda/core`'s export graph on `main` is repaired.
-
-## CLI arg parser
-
-```ts
-import { parseSeedArgs } from "@webda/mock/cli";
-
-const { spec, options } = parseSeedArgs(process.argv.slice(2));
-// spec:    { User: 10, Task: 50 }
-// options: { seed?, mode?, disableAi? }
-```
-
-A full `webda mock seed` subcommand in `@webda/shell` is a follow-up.
-
-## Design
-
-See [DESIGN.md](_media/DESIGN.md) for the design.
-
-## License
-
-LGPL-3.0-only
+- API reference: see the auto-generated typedoc at `docs/pages/Modules/mock/`.
+- Source: [`packages/mock`](https://github.com/loopingz/webda.io/tree/main/packages/mock)
+- Related: [`@webda/models`](_media/models) for the `@Mock.*` decorator definitions; [`@webda/test`](_media/test) for the `WebdaTest` harness where mock data is typically used; [`@webda/fs`](_media/fs) for `FileStore` to persist generated data locally.

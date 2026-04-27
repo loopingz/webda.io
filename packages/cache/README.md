@@ -1,260 +1,115 @@
+# @webda/cache module
+
+This module is part of Webda Application Framework that allows you to quickly develop applications with all modern prerequisites: Security, Extensibility, GraphQL, REST, CloudNative [https://webda.io](https://webda.io)
+
+<img src="https://webda.io/images/webda.svg" width="128" />
+
+![CI](https://github.com/loopingz/webda.io/workflows/CI/badge.svg)
+
+[![Join the chat at https://gitter.im/loopingz/webda](https://badges.gitter.im/loopingz/webda.svg)](https://gitter.im/loopingz/webda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![codecov](https://codecov.io/gh/loopingz/webda.io/branch/main/graph/badge.svg?token=8N9DNM3K3O)](https://codecov.io/gh/loopingz/webda.io)
+[![SonarCloud.io](https://sonarcloud.io/api/project_badges/measure?project=loopingz_webda.io&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=loopingz_webda.io)
+![CodeQL](https://github.com/loopingz/webda.io/workflows/CodeQL/badge.svg)
+
+<!-- README_HEADER -->
+
 # @webda/cache
 
-A flexible method-level caching library with decorator support, TTL expiration, and multiple storage strategies.
+> Method-level caching decorator library for Webda — annotate any method with `@ProcessCache` or `@ObjectCache` to add TTL, LRU, and statistics-aware memoization with no boilerplate.
 
-## Features
+## When to use it
 
-- **Method-level caching** using TypeScript decorators
-- **Multiple storage strategies**: Process-level, Object-level, or custom
-- **TTL support** with automatic expiration
-- **LRU eviction** when cache size limits are reached
-- **Async method support** with Promise caching
-- **Cache statistics** tracking (hits, misses, evictions)
-- **Automatic garbage collection** with configurable intervals
-- **Customizable key generation** for fine-grained control
+- You want to cache expensive async lookups (database queries, HTTP calls) at the method level without manually managing cache state.
+- You need per-instance caching (`@ObjectCache`) or process-wide shared caching (`@ProcessCache`).
+- You need a custom cache scope (per async context, per request) via `createCacheAnnotation`.
 
-## Installation
+## Install
 
 ```bash
-npm install @webda/cache
+pnpm add @webda/cache
 ```
 
-## Quick Start
+## Configuration
 
-### Basic Usage with Object Cache
+`@webda/cache` is a pure TypeScript library — it has no Webda service entry and requires no `webda.config.json` entry. Import and apply the decorators directly.
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `ttl` | number | — | Time-to-live in milliseconds. Entries older than this are evicted on next access. |
+| `maxSize` | number | — | Maximum entries per instance (LRU eviction when exceeded). |
+| `gcInterval` | number | — | Interval in ms for automatic TTL garbage collection. |
+| `enableStats` | boolean | `false` | Track hit/miss/eviction counters. |
+| `hashStrategy` | `"sha256"` \| `"simple"` | `"sha256"` | Key hashing algorithm for argument fingerprinting. |
+| `shouldCache` | `(result) => boolean` | — | Predicate to skip caching specific results (e.g. nulls). |
+| `methodKeyGenerator` | function | — | Custom function to compute the per-call cache key. |
+| `classKeyGenerator` | function | — | Custom function to compute the per-instance cache key. |
+
+## Usage
 
 ```typescript
-import { ObjectCache } from "@webda/cache";
+import { ObjectCache, ProcessCache, createCacheAnnotation } from "@webda/cache";
 
+// Per-instance cache — each class instance has its own cache
 class UserService {
-  @ObjectCache()
-  async fetchUser(id: string) {
-    // This will only be called once per unique id per instance
-    return await db.users.findById(id);
+  @ObjectCache({ ttl: 30000 })
+  async fetchUser(id: string): Promise<User> {
+    // Called at most once per unique `id` per instance within the 30s TTL
+    return db.users.findById(id);
   }
 }
 
-const service = new UserService();
-await service.fetchUser("123"); // Fetches from DB
-await service.fetchUser("123"); // Returns cached value
-```
-
-### Process-level Cache
-
-```typescript
-import { ProcessCache } from "@webda/cache";
-
+// Process-wide cache — shared across all instances in the Node.js process
 class ConfigService {
-  @ProcessCache()
-  static getConfig(env: string) {
-    // Cached across all instances in the same process
-    return loadConfig(env);
+  @ProcessCache({ ttl: 60000 })
+  getConfig(env: string): Config {
+    return loadConfigFromDisk(env);
   }
 }
-```
 
-### TTL-based Cache
-
-```typescript
-import { createCacheAnnotation } from "@webda/cache";
-
-const ttlCache: { caches?: Map<any, any> } = {};
-const TTLCache = createCacheAnnotation(() => ttlCache, {
-  ttl: 60000 // Cache for 60 seconds
-});
-
-class ApiService {
-  @TTLCache()
-  async fetchData(endpoint: string) {
-    return await fetch(endpoint).then(r => r.json());
-  }
-}
-```
-
-## Advanced Usage
-
-### LRU Cache with Size Limit
-
-```typescript
-const lruCache = {};
-const LRUCache = createCacheAnnotation(() => lruCache, {
-  maxSize: 100, // Keep only 100 most recent entries
-  ttl: 300000   // 5 minutes
-});
-
-class DataService {
-  @LRUCache()
-  processData(input: any) {
-    return expensiveComputation(input);
-  }
-}
-```
-
-### Custom Key Generation
-
-```typescript
-// Only use the first argument for cache key
-function firstArgKey(property: string, args: any[]) {
-  return `${property}$${args[0]}`;
-}
-
-const CustomCache = createCacheAnnotation(() => ({}), {
-  methodKeyGenerator: firstArgKey
-});
+// Custom cache scope (e.g. per async context / per HTTP request)
+import { AsyncLocalStorage } from "async_hooks";
+const storage = new AsyncLocalStorage<object>();
+const RequestCache = createCacheAnnotation(() => storage.getStore() ?? null, { ttl: 5000 });
 
 class SearchService {
-  @CustomCache()
-  search(query: string, options: object) {
-    // Cached only by query, ignoring options
-    return performSearch(query, options);
-  }
-}
-```
-
-### Automatic Garbage Collection
-
-```typescript
-const autoGCCache = {};
-const AutoGCCache = createCacheAnnotation(() => autoGCCache, {
-  ttl: 60000,
-  gcInterval: 30000 // Run GC every 30 seconds
-});
-```
-
-### Cache Statistics
-
-```typescript
-const statsCache = {};
-const StatsCache = createCacheAnnotation(() => statsCache, {
-  enableStats: true
-});
-
-class MetricsService {
-  @StatsCache()
-  calculate(data: any) {
-    return expensiveCalculation(data);
+  @RequestCache()
+  async search(query: string): Promise<Result[]> {
+    return performSearch(query);
   }
 }
 
-// Get statistics
-const stats = StatsCache.getStats();
-console.log(`Hits: ${stats.hits}, Misses: ${stats.misses}`);
-console.log(`Hit Rate: ${(stats.hits / (stats.hits + stats.misses) * 100).toFixed(2)}%`);
+// Manual cache control
+const service = new UserService();
+ObjectCache.clear(service, "fetchUser", "123");    // clear one entry
+ObjectCache.clearAll(service, "fetchUser");         // clear all entries for a method
+ObjectCache.clearAll(service);                      // clear entire instance cache
 
-// Reset statistics
-StatsCache.resetStats();
+// Statistics
+const stats = ObjectCache.getStats();
+// { hits: 42, misses: 8, evictions: 3, sets: 11 }
 ```
 
-### Manual Cache Control
+## Reference
 
-```typescript
-const cache = {};
-const MyCache = createCacheAnnotation(() => cache);
+- API reference: see the auto-generated typedoc at `docs/pages/Modules/cache/`.
+- Source: [`packages/cache`](https://github.com/loopingz/webda.io/tree/main/packages/cache)
+- Related: [`@webda/core`](../core) for service-level caching patterns; [`@webda/decorators`](../decorators) for the underlying `createMethodDecorator` primitive used internally.
 
-class Service {
-  @MyCache()
-  getData(id: string) {
-    return fetchData(id);
-  }
-}
+<!-- README_FOOTER -->
+## Sponsors
 
-const service = new Service();
+<!--
+Support this project by becoming a sponsor. Your logo will show up here with a link to your website. [Become a sponsor](mailto:sponsor@webda.io)
+-->
 
-// Clear specific cache entry
-MyCache.clear(service, "getData", "123");
+Arize AI is a machine learning observability and model monitoring platform. It helps you visualize, monitor, and explain your machine learning models. [Learn more](https://arize.com)
 
-// Clear all entries for a method
-MyCache.clearAll(service, "getData");
+[<img src="https://arize.com/hubfs/arize/brand/arize-logomark-1.png" width="200">](https://arize.com)
 
-// Clear all entries for an instance
-MyCache.clearAll(service);
+Loopingz is a software development company that provides consulting and development services. [Learn more](https://loopingz.com)
 
-// Manual garbage collection
-MyCache.garbageCollect();
-```
+[<img src="https://loopingz.com/images/logo.png" width="200">](https://loopingz.com)
 
-### AsyncLocalStorage Context Cache
+Tellae is an innovative consulting firm specialized in cities transportation issues. We provide our clients, both public and private, with solutions to support your strategic and operational decisions. [Learn more](https://tellae.fr)
 
-```typescript
-import { createCacheAnnotation } from "@webda/cache";
-import { AsyncLocalStorage } from "async_hooks";
-
-const storage = new AsyncLocalStorage();
-const ContextCache = createCacheAnnotation(() => storage.getStore());
-
-function runWithContext(callback) {
-  return storage.run({}, callback);
-}
-
-class RequestService {
-  @ContextCache()
-  processRequest(data: any) {
-    // Cached per async context (e.g., per HTTP request)
-    return process(data);
-  }
-}
-```
-
-## API Reference
-
-### Pre-built Decorators
-
-- **`ProcessCache`**: Cache at the process level (shared across all instances)
-- **`ObjectCache`**: Cache at the instance level (per object)
-
-### `createCacheAnnotation(source, options)`
-
-Creates a custom cache decorator.
-
-**Parameters:**
-- `source`: Function that returns the cache host object
-- `options`: Cache configuration options
-
-**Options:**
-- `ttl?: number` - Time to live in milliseconds
-- `maxSize?: number` - Maximum cache entries (LRU eviction)
-- `gcInterval?: number` - Auto garbage collection interval in ms
-- `enableStats?: boolean` - Enable statistics tracking
-- `methodKeyGenerator?: (property, args) => string` - Custom key generation
-- `classKeyGenerator?: (instance) => any` - Custom instance key generation
-- `cacheMap?: CacheMapConstructor` - Custom CacheMap implementation
-- `cacheStorage?: CacheStorageConstructor` - Custom CacheStorage implementation
-
-**Methods:**
-- `clear(target, propertyKey, ...args)` - Clear specific cache entry
-- `clearAll(target, propertyKey?)` - Clear all or method-specific entries
-- `garbageCollect()` - Run garbage collection
-- `getStats()` - Get cache statistics
-- `resetStats()` - Reset statistics to zero
-
-### Cache Statistics
-
-```typescript
-interface CacheStats {
-  hits: number;       // Cache hits
-  misses: number;     // Cache misses
-  evictions: number;  // Entries evicted (TTL or LRU)
-  sets: number;       // Entries added to cache
-}
-```
-
-## Best Practices
-
-1. **Use TTL for time-sensitive data** to prevent stale data
-2. **Set maxSize for unbounded inputs** to prevent memory leaks
-3. **Enable stats in development** to monitor cache effectiveness
-4. **Use Object-level cache** for instance-specific data
-5. **Use Process-level cache** for shared static data
-6. **Implement custom key generators** for complex argument patterns
-7. **Enable auto GC** for long-running processes with TTL
-
-## Performance Considerations
-
-- Key generation uses SHA-256 hashing for complex arguments
-- LRU eviction is O(1) using Map insertion order
-- TTL checks happen on access (lazy evaluation)
-- Automatic GC runs in background with `unref()` timer
-
-## License
-
-See repository license.
+[<img src="https://tellae.fr/" width="200">](https://tellae.fr)

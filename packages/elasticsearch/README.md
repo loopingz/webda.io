@@ -13,11 +13,89 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-This project allows you to index all documents saved in a Webda Store by connecting to the Store event
+# @webda/elasticsearch
 
-<img src="https://raw.githubusercontent.com/loopingz/webda-elasticsearch/master/docs/webda-elasticsearch.png" width="600px" />
+> Elasticsearch indexing service for Webda — automatically mirrors model saves to one or more Elasticsearch indices, with optional date-split partitioning and a search/delete API.
 
-It exposes a delete and search method for you to run queries.
+## When to use it
+
+- You want full-text or aggregation queries on your Webda models without changing your primary store.
+- You need time-series index partitioning (daily/monthly/yearly) for log or metric models.
+- You want to expose a search endpoint directly from Webda without writing custom ES glue code.
+
+## Install
+
+```bash
+pnpm add @webda/elasticsearch
+```
+
+## Configuration
+
+```json
+{
+  "services": {
+    "search": {
+      "type": "ElasticSearchService",
+      "client": {
+        "node": "http://localhost:9200"
+      },
+      "indexes": {
+        "posts": {
+          "model": "MyApp/Post",
+          "url": "/search/posts"
+        },
+        "events": {
+          "model": "MyApp/Event",
+          "url": "/search/events",
+          "dateSplit": {
+            "frequency": "daily",
+            "attribute": "createdAt"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+| Parameter | Type | Default | Required | Description |
+|---|---|---|---|---|
+| `client` | object | — | Yes | Elasticsearch `ClientOptions` passed directly to `@elastic/elasticsearch` Client constructor (e.g. `{ node, auth }`) |
+| `indexes` | object | `{}` | Yes | Map of index name → index configuration |
+| `indexes.<n>.model` | string | — | Yes | Fully qualified model name to index (e.g. `"MyApp/Post"`) |
+| `indexes.<n>.url` | string | — | No | URL prefix to expose search/delete endpoints |
+| `indexes.<n>.dateSplit.frequency` | string | `"monthly"` | No | Time-based index split: `yearly`, `monthly`, `weekly`, `daily`, or `hourly` |
+| `indexes.<n>.dateSplit.attribute` | string | — | No | Model attribute containing the date used for index partitioning |
+
+## Usage
+
+```typescript
+import { Service } from "@webda/core";
+import { Bean, Inject } from "@webda/core";
+import ElasticSearchService from "@webda/elasticsearch";
+
+@Bean
+export class PostSearchService extends Service {
+  @Inject("search")
+  es: ElasticSearchService;
+
+  async findPosts(query: string): Promise<any[]> {
+    const result = await this.es.search("posts", {
+      query: { match: { title: query } }
+    });
+    return result.hits.hits.map(h => h._source);
+  }
+}
+
+// Documents are indexed automatically when Post models are saved/updated/deleted
+// via the Store event listener wired up in ElasticSearchService.resolve()
+```
+
+## Reference
+
+- API reference: see the auto-generated typedoc at `docs/pages/Modules/elasticsearch/`.
+- Source: [`packages/elasticsearch`](https://github.com/loopingz/webda.io/tree/main/packages/elasticsearch)
+- Related: [`@webda/core`](../core) for the `Store` base class and model events; [`@webda/aws`](../aws) for `DynamoStore` as a primary store to pair with.
 
 <!-- README_FOOTER -->
 ## Sponsors

@@ -1,3 +1,10 @@
+:::warning Stale — under revision
+Parts of this page reference the removed `@webda/shell` package and the
+`npx @webda/shell init` flow. The current entry points are `webda` (from
+`@webda/core`) and `webdac` (from `@webda/compiler`). For an up-to-date
+walkthrough, see [Tutorial-BlogSystem](./Tutorial-BlogSystem/00-Overview).
+:::
+
 # Tutorial - Contact list
 
 For the purpose of the tutorial, we will build a small contact list application.

@@ -822,6 +822,19 @@ export class ModuleGenerator {
                   cardinality: "MANY"
                 });
                 break;
+              default: {
+                // Detect Behavior-typed attributes: properties whose declared
+                // type resolves to a class decorated with `@Behavior()`.
+                const behaviorIdentifier = this.resolveBehaviorIdentifierFromType(pType);
+                if (behaviorIdentifier) {
+                  currentGraph.behaviors ??= [];
+                  currentGraph.behaviors.push({
+                    attribute: prop.getName(),
+                    behavior: behaviorIdentifier
+                  });
+                }
+                break;
+              }
             }
           }
           modelsMetadata[name] = metadata;
@@ -908,6 +921,56 @@ export class ModuleGenerator {
       return expr.getText();
     }
     return undefined;
+  }
+
+  /**
+   * Resolve the Behavior identifier of a property's type, if (and only if) the
+   * property's resolved class declaration carries a `@Behavior()` decorator.
+   *
+   * Used by `processModels` to populate `Relations.behaviors` for any model
+   * attribute whose static type is a Behavior class. Plain class types (e.g.
+   * `Date`, custom classes without `@Behavior`) are intentionally ignored.
+   * @param typeRef - the property's TypeReferenceNode (may be undefined)
+   * @returns the namespaced Behavior identifier, or undefined if not a Behavior
+   */
+  resolveBehaviorIdentifierFromType(typeRef: ts.TypeReferenceNode | undefined): string | undefined {
+    if (!typeRef || !typeRef.typeName) return undefined;
+    const type = this.typeChecker.getTypeAtLocation(typeRef.typeName);
+    const symbol = type.getSymbol();
+    const decl = symbol?.declarations?.find(d => ts.isClassDeclaration(d) || ts.isClassExpression(d)) as
+      | ts.ClassDeclaration
+      | ts.ClassExpression
+      | undefined;
+    if (!decl) return undefined;
+    const decorators = ts.getDecorators(decl) ?? [];
+    const behaviorDeco = decorators.find(d => this.getDecoratorName(d) === "Behavior");
+    if (!behaviorDeco) return undefined;
+
+    // Honour @Behavior({ identifier: "Foo/Bar" }) override
+    if (ts.isCallExpression(behaviorDeco.expression) && behaviorDeco.expression.arguments.length > 0) {
+      const arg = behaviorDeco.expression.arguments[0];
+      if (ts.isObjectLiteralExpression(arg)) {
+        for (const prop of arg.properties) {
+          if (
+            ts.isPropertyAssignment(prop) &&
+            ts.isIdentifier(prop.name) &&
+            prop.name.text === "identifier" &&
+            ts.isStringLiteral(prop.initializer)
+          ) {
+            return prop.initializer.text;
+          }
+        }
+      }
+    }
+
+    // Fallback: namespace-prefixed class name
+    const className = decl.name?.getText() ?? "";
+    if (!className) return undefined;
+    const project = (this.compiler as any)?.project;
+    if (project && typeof project.completeNamespace === "function") {
+      return project.completeNamespace(className);
+    }
+    return className.includes("/") ? className : `Webda/${className}`;
   }
 
   /**

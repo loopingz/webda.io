@@ -2,6 +2,7 @@ import { suite, test, expect } from "vitest";
 import * as ts from "typescript";
 import { BehaviorsMetadata } from "./behaviors";
 import type { WebdaModule } from "../definition";
+import { ModuleGenerator } from "../module";
 
 /**
  * Helper: compile a source string and return the class nodes + type checker.
@@ -87,6 +88,26 @@ function buildObjects(checker: ts.TypeChecker, classes: ts.ClassDeclaration[]) {
     schemas: {} as any,
     allClasses
   };
+}
+
+/**
+ * Build a real ModuleGenerator backed by an in-memory TS program. Used by
+ * tests that exercise `processModels` (which depends on the type checker
+ * being wired correctly to the generator).
+ */
+function buildModuleGenerator(program: ts.Program, checker: ts.TypeChecker): ModuleGenerator {
+  const stubCompiler = {
+    tsProgram: program,
+    typeChecker: checker,
+    project: {
+      completeNamespace: (name: string) => (name.includes("/") ? name : `Webda/${name}`)
+    }
+  } as any;
+  const generator = new ModuleGenerator(stubCompiler);
+  // `processModels` reads `this.typeChecker` directly; populate it here since
+  // we don't go through `generate()` which normally sets it from the program.
+  (generator as any).typeChecker = checker;
+  return generator;
 }
 
 function emptyModule(): WebdaModule {
@@ -194,6 +215,124 @@ suite("BehaviorsMetadata", () => {
     const objects = buildObjects(checker, classes);
 
     expect(() => plugin.getMetadata(module, objects)).toThrow(/static @Action/);
+  });
+
+  test("model with a Behavior-typed attribute emits Relations.behaviors", () => {
+    const source = `
+      function Behavior(...args: any[]) { return function(t: any) { return t; }; }
+      function Model(...args: any[]) { return function(t: any) { return t; }; }
+      function Action(...args: any[]) { return function(t: any, c: any) { return t; }; }
+      class CoreModel {}
+
+      @Behavior()
+      export class MFA {
+        secret?: string;
+        @Action()
+        async verify(totp: string): Promise<boolean> { return true; }
+      }
+
+      @Model()
+      export class User extends CoreModel {
+        mfa: MFA;
+      }
+    `;
+    const { program, checker, classes } = compileSource(source);
+    const generator = buildModuleGenerator(program, checker);
+
+    const userClass = classes.find(c => c.name?.text === "User")!;
+    const models = {
+      "Webda/User": {
+        name: "Webda/User",
+        type: checker.getTypeAtLocation(userClass),
+        symbol: checker.getSymbolAtLocation(userClass.name!) as ts.Symbol,
+        node: userClass,
+        tags: {},
+        jsFile: "lib/test:User",
+        lib: false
+      }
+    };
+
+    const result = generator.processModels(models as any);
+    const userRels = result["Webda/User"].Relations as any;
+    expect(userRels.behaviors).toEqual([{ attribute: "mfa", behavior: "Webda/MFA" }]);
+  });
+
+  test("same Behavior class on two attributes produces two entries", () => {
+    const source = `
+      function Behavior(...args: any[]) { return function(t: any) { return t; }; }
+      function Model(...args: any[]) { return function(t: any) { return t; }; }
+      function Action(...args: any[]) { return function(t: any, c: any) { return t; }; }
+      class CoreModel {}
+
+      @Behavior()
+      export class MFA {
+        @Action()
+        async verify(totp: string): Promise<boolean> { return true; }
+      }
+
+      @Model()
+      export class User extends CoreModel {
+        primaryMfa: MFA;
+        backupMfa: MFA;
+      }
+    `;
+    const { program, checker, classes } = compileSource(source);
+    const generator = buildModuleGenerator(program, checker);
+
+    const userClass = classes.find(c => c.name?.text === "User")!;
+    const models = {
+      "Webda/User": {
+        name: "Webda/User",
+        type: checker.getTypeAtLocation(userClass),
+        symbol: checker.getSymbolAtLocation(userClass.name!) as ts.Symbol,
+        node: userClass,
+        tags: {},
+        jsFile: "lib/test:User",
+        lib: false
+      }
+    };
+
+    const result = generator.processModels(models as any);
+    const userRels = result["Webda/User"].Relations as any;
+    expect(userRels.behaviors).toEqual([
+      { attribute: "primaryMfa", behavior: "Webda/MFA" },
+      { attribute: "backupMfa", behavior: "Webda/MFA" }
+    ]);
+  });
+
+  test("plain non-Behavior class types do not produce Relations.behaviors", () => {
+    const source = `
+      function Model(...args: any[]) { return function(t: any) { return t; }; }
+      class CoreModel {}
+
+      export class NotABehavior {
+        x: number = 0;
+      }
+
+      @Model()
+      export class User extends CoreModel {
+        thing: NotABehavior;
+      }
+    `;
+    const { program, checker, classes } = compileSource(source);
+    const generator = buildModuleGenerator(program, checker);
+
+    const userClass = classes.find(c => c.name?.text === "User")!;
+    const models = {
+      "Webda/User": {
+        name: "Webda/User",
+        type: checker.getTypeAtLocation(userClass),
+        symbol: checker.getSymbolAtLocation(userClass.name!) as ts.Symbol,
+        node: userClass,
+        tags: {},
+        jsFile: "lib/test:User",
+        lib: false
+      }
+    };
+
+    const result = generator.processModels(models as any);
+    const userRels = result["Webda/User"].Relations as any;
+    expect(userRels.behaviors).toBeUndefined();
   });
 
   test("ignores classes without @Behavior decorator", () => {

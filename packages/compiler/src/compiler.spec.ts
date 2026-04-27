@@ -26,6 +26,10 @@ class CompilerTest {
     assert.ok(info.models["Webda/UuidModel"].Ancestors.length === 1);
     // Subclasses may be empty depending on which packages are built
     assert.ok(info.models["Webda/UuidModel"].Subclasses.length >= 0);
+    // BehaviorsMetadata plugin must be wired into the pipeline — every generated
+    // module should expose a `behaviors` field even when empty.
+    assert.notStrictEqual(info.behaviors, undefined, "module.behaviors should be initialised by the pipeline");
+    assert.strictEqual(typeof info.behaviors, "object", "module.behaviors should be an object map");
   }
 
   @test

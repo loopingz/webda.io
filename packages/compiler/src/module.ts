@@ -9,6 +9,7 @@ import { tsquery } from "@phenomnomnominal/tsquery";
 import { dirname, join, relative } from "path";
 import { ModelMetadata, WebdaModule } from "./definition";
 import { ActionsMetadata } from "./metadata/actions";
+import { BehaviorsMetadata } from "./metadata/behaviors";
 import { CapabilitiesMetadata } from "./metadata/capabilities";
 import { CommandsMetadata } from "./metadata/commands";
 import { EventsMetadata } from "./metadata/events";
@@ -1095,12 +1096,14 @@ export class ModuleGenerator {
       moddas: JSONUtils.sortObject(objects.moddas, jsOnly),
       models: this.processModels(objects.models),
       schemas: {},
+      behaviors: {},
       capabilities: this.compiler.project.packageDescription.webda?.capabilities
     };
     // Dispatch schemas
     objects.schemas.generateSchemas(this, mod);
     const plugins = [
       new ActionsMetadata(this),
+      new BehaviorsMetadata(this),
       new CapabilitiesMetadata(this),
       new CommandsMetadata(this),
       new EventsMetadata(this),

@@ -7,7 +7,7 @@ sidebar_position: 2
 Webda is a domain driven framework.
 
 It means you should mainly focus on creating your business models.
-Most business logic should be implemented in your models.
+Most business logic should be implemented in your models — directly as `@Action` methods, or grouped into reusable [Behaviors](./Models/Behaviors.md) attached as model attributes.
 
 Then Services exists to implement generic features:
 

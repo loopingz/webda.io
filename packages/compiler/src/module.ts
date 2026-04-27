@@ -17,6 +17,20 @@ import { PluralMetadata } from "./metadata/plural";
 import { SchemaGenerator } from "@webda/schema";
 
 /**
+ * A lightweight descriptor for any class node walked during
+ * `searchForWebdaObjects`, regardless of whether it ended up classified as a
+ * model, modda, bean, or deployer. Consumed by metadata plugins (e.g.
+ * BehaviorsMetadata) that need to scan ALL exported classes — including
+ * Behaviors, which are intentionally not in any of the existing buckets.
+ */
+export type WebdaClassEntry = {
+  name: string;
+  type: ts.Type;
+  node: ts.Node;
+  jsFile: string;
+};
+
+/**
  * Found all objects from compiled source
  */
 export type WebdaObjects = {
@@ -25,6 +39,13 @@ export type WebdaObjects = {
   moddas: WebdaSearchResults;
   deployers: WebdaSearchResults;
   beans: WebdaSearchResults;
+  /**
+   * Every exported, non-abstract class declaration walked during the search,
+   * regardless of category. Populated so plugins can find classes that don't
+   * match the model/modda/bean/deployer rules (for example, `@Behavior`
+   * classes).
+   */
+  allClasses: WebdaClassEntry[];
 };
 
 type ReplaceModelWith<T, L> = T extends object
@@ -343,7 +364,8 @@ export class ModuleGenerator {
       models: {},
       moddas: {},
       deployers: {},
-      beans: {}
+      beans: {},
+      allClasses: []
     };
     const program = this.compiler.tsProgram;
     program.getSourceFiles().forEach(sourceFile => {
@@ -377,6 +399,17 @@ export class ModuleGenerator {
           }
           const classTree = this.getClassTree(type);
           if (!program.getRootFileNames().includes(sourceFile.fileName)) {
+            // Track library classes too — Behaviors and other plugins may need
+            // to see classes defined in dependencies.
+            const exportedName = this.getExportedName(classNode);
+            if (exportedName) {
+              result.allClasses.push({
+                name: this.compiler.project.completeNamespace(classNode.name?.escapedText.toString() ?? exportedName),
+                type,
+                node,
+                jsFile: sourceFile.fileName.replace(/\.d\.ts$/, ".js")
+              });
+            }
             if (this.extends(classTree, "@webda/models", "Model")) {
               const name = this.getLibraryModelName(sourceFile.fileName, this.getExportedName(classNode));
               // This should not happen likely bad module not worth checking
@@ -400,6 +433,20 @@ export class ModuleGenerator {
             return;
           }
           const importTarget = this.getJSTargetFile(sourceFile).replace(/\.js$/, "");
+          // Track every root-file class regardless of section, so plugins
+          // (e.g. BehaviorsMetadata) can scan classes that aren't models /
+          // moddas / beans / deployers.
+          {
+            const rootExportName = this.getExportedName(classNode);
+            if (rootExportName) {
+              result.allClasses.push({
+                name: this.compiler.project.completeNamespace(classNode.name?.escapedText.toString() ?? rootExportName),
+                type,
+                node,
+                jsFile: `${importTarget}:${rootExportName}`
+              });
+            }
+          }
 
           let section;
           let schemaNode;

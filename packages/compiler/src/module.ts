@@ -925,11 +925,11 @@ export class ModuleGenerator {
 
   /**
    * Resolve the Behavior identifier of a property's type, if (and only if) the
-   * property's resolved class declaration carries a `@Behavior()` decorator.
+   * property's resolved class declaration carries a `@WebdaBehavior` JSDoc tag.
    *
    * Used by `processModels` to populate `Relations.behaviors` for any model
    * attribute whose static type is a Behavior class. Plain class types (e.g.
-   * `Date`, custom classes without `@Behavior`) are intentionally ignored.
+   * `Date`, custom classes without `@WebdaBehavior`) are intentionally ignored.
    * @param typeRef - the property's TypeReferenceNode (may be undefined)
    * @returns the namespaced Behavior identifier, or undefined if not a Behavior
    */
@@ -942,24 +942,15 @@ export class ModuleGenerator {
       | ts.ClassExpression
       | undefined;
     if (!decl) return undefined;
-    const decorators = ts.getDecorators(decl) ?? [];
-    const behaviorDeco = decorators.find(d => this.getDecoratorName(d) === "Behavior");
-    if (!behaviorDeco) return undefined;
+    const behaviorTag = ts.getJSDocTags(decl).find(tag => tag.tagName.escapedText.toString() === "WebdaBehavior");
+    if (!behaviorTag) return undefined;
 
-    // Honour @Behavior({ identifier: "Foo/Bar" }) override
-    if (ts.isCallExpression(behaviorDeco.expression) && behaviorDeco.expression.arguments.length > 0) {
-      const arg = behaviorDeco.expression.arguments[0];
-      if (ts.isObjectLiteralExpression(arg)) {
-        for (const prop of arg.properties) {
-          if (
-            ts.isPropertyAssignment(prop) &&
-            ts.isIdentifier(prop.name) &&
-            prop.name.text === "identifier" &&
-            ts.isStringLiteral(prop.initializer)
-          ) {
-            return prop.initializer.text;
-          }
-        }
+    // Honour `@WebdaBehavior Foo/Bar` payload override
+    const override = ts.getTextOfJSDocComment(behaviorTag.comment)?.trim();
+    if (override) {
+      const firstToken = override.split(/\s+/).shift();
+      if (firstToken) {
+        return firstToken;
       }
     }
 

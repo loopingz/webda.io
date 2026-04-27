@@ -121,11 +121,12 @@ function emptyModule(): WebdaModule {
 }
 
 suite("BehaviorsMetadata", () => {
-  test("discovers a @Behavior class and its @Action methods", () => {
+  test("discovers a @WebdaBehavior class and its @Action methods", () => {
     const source = `
-      function Behavior(...args: any[]) { return function(t: any) { return t; }; }
       function Action(...args: any[]) { return function(t: any, c: any) { return t; }; }
-      @Behavior()
+      /**
+       * @WebdaBehavior
+       */
       class MFA {
         @Action()
         verify(): void {}
@@ -153,11 +154,12 @@ suite("BehaviorsMetadata", () => {
     expect(behavior.Actions["set"]).toEqual({ description: "Set MFA secret" });
   });
 
-  test("respects @Behavior({ identifier }) override", () => {
+  test("respects `@WebdaBehavior <identifier>` payload override", () => {
     const source = `
-      function Behavior(...args: any[]) { return function(t: any) { return t; }; }
       function Action(...args: any[]) { return function(t: any, c: any) { return t; }; }
-      @Behavior({ identifier: "Auth/MFA" })
+      /**
+       * @WebdaBehavior Auth/MFA
+       */
       class CustomMFA {
         @Action()
         verify(): void {}
@@ -179,9 +181,10 @@ suite("BehaviorsMetadata", () => {
 
   test("throws on @Action({ global: true }) inside a Behavior", () => {
     const source = `
-      function Behavior(...args: any[]) { return function(t: any) { return t; }; }
       function Action(...args: any[]) { return function(t: any, c: any) { return t; }; }
-      @Behavior()
+      /**
+       * @WebdaBehavior
+       */
       class BadGlobal {
         @Action({ global: true })
         verify(): void {}
@@ -199,9 +202,10 @@ suite("BehaviorsMetadata", () => {
 
   test("throws on static @Action method inside a Behavior", () => {
     const source = `
-      function Behavior(...args: any[]) { return function(t: any) { return t; }; }
       function Action(...args: any[]) { return function(t: any, c: any) { return t; }; }
-      @Behavior()
+      /**
+       * @WebdaBehavior
+       */
       class BadStatic {
         @Action()
         static verify(): void {}
@@ -219,12 +223,13 @@ suite("BehaviorsMetadata", () => {
 
   test("model with a Behavior-typed attribute emits Relations.behaviors", () => {
     const source = `
-      function Behavior(...args: any[]) { return function(t: any) { return t; }; }
       function Model(...args: any[]) { return function(t: any) { return t; }; }
       function Action(...args: any[]) { return function(t: any, c: any) { return t; }; }
       class CoreModel {}
 
-      @Behavior()
+      /**
+       * @WebdaBehavior
+       */
       export class MFA {
         secret?: string;
         @Action()
@@ -259,12 +264,13 @@ suite("BehaviorsMetadata", () => {
 
   test("same Behavior class on two attributes produces two entries", () => {
     const source = `
-      function Behavior(...args: any[]) { return function(t: any) { return t; }; }
       function Model(...args: any[]) { return function(t: any) { return t; }; }
       function Action(...args: any[]) { return function(t: any, c: any) { return t; }; }
       class CoreModel {}
 
-      @Behavior()
+      /**
+       * @WebdaBehavior
+       */
       export class MFA {
         @Action()
         async verify(totp: string): Promise<boolean> { return true; }
@@ -335,7 +341,7 @@ suite("BehaviorsMetadata", () => {
     expect(userRels.behaviors).toBeUndefined();
   });
 
-  test("ignores classes without @Behavior decorator", () => {
+  test("ignores classes without @WebdaBehavior tag", () => {
     const source = `
       function Action(...args: any[]) { return function(t: any, c: any) { return t; }; }
       class NotABehavior {

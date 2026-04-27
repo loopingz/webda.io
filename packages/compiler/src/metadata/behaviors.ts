@@ -7,7 +7,7 @@ import { MetadataPlugin } from "./plugin";
  * Behaviors metadata plugin
  *
  * Scans every discovered class (via `objects.allClasses`) for the
- * `@Behavior` class decorator and, for each such class, extracts its
+ * `@WebdaBehavior` JSDoc tag and, for each such class, extracts its
  * `@Action` / `@Operation` instance methods into `module.behaviors`.
  *
  * Behaviors are intentionally NOT models, moddas, beans, or deployers — so
@@ -15,13 +15,27 @@ import { MetadataPlugin } from "./plugin";
  * `WebdaObjects.allClasses` to enumerate every TS class declaration found
  * during `searchForWebdaObjects`.
  *
+ * Author syntax:
+ * ```ts
+ * /​**
+ *  * @WebdaBehavior
+ *  *​/
+ * export class MFA { ... }
+ *
+ * /​**
+ *  * @WebdaBehavior Auth/MFA
+ *  *​/
+ * export class CustomMFA { ... }
+ * ```
+ *
  * Validation rules:
  * - Static `@Action` methods are rejected (Behaviors must be instance methods).
  * - `@Action({ global: true })` is rejected for the same reason.
  */
 export class BehaviorsMetadata extends MetadataPlugin {
   /**
-   * Populate `module.behaviors` with one entry per class carrying `@Behavior`.
+   * Populate `module.behaviors` with one entry per class carrying the
+   * `@WebdaBehavior` JSDoc tag.
    * @param module - the module to populate
    * @param objects - discovered Webda objects (must include `allClasses`)
    */
@@ -31,7 +45,7 @@ export class BehaviorsMetadata extends MetadataPlugin {
     const allClasses = objects.allClasses ?? [];
 
     for (const cls of allClasses) {
-      if (!this.hasBehaviorDecorator(cls.node)) continue;
+      if (!this.hasBehaviorTag(cls.node)) continue;
 
       const identifier = this.resolveBehaviorIdentifier(cls);
       const actions: BehaviorMetadata["Actions"] = {};
@@ -102,41 +116,44 @@ export class BehaviorsMetadata extends MetadataPlugin {
   }
 
   /**
-   * Check whether a class node carries the `@Behavior` decorator.
+   * Check whether a class node carries the `@WebdaBehavior` JSDoc tag.
    * @param node - candidate class node
-   * @returns true if the class is decorated with `@Behavior`
+   * @returns true if the class is annotated with `@WebdaBehavior`
    */
-  private hasBehaviorDecorator(node: ts.Node): boolean {
+  private hasBehaviorTag(node: ts.Node): boolean {
     if (!ts.isClassDeclaration(node) && !ts.isClassExpression(node)) return false;
-    return (ts.getDecorators(node) ?? []).some(d => this.moduleGenerator.getDecoratorName(d) === "Behavior");
+    return this.findBehaviorTag(node) !== undefined;
   }
 
   /**
-   * Resolve the Behavior identifier, honouring an `identifier` override
-   * passed to `@Behavior({ identifier: "Foo/Bar" })`. Falls back to the
+   * Find the `@WebdaBehavior` JSDoc tag on a class node, if present.
+   * @param node - the class declaration / expression node
+   * @returns the matching JSDoc tag, or undefined if not annotated
+   */
+  private findBehaviorTag(node: ts.Node): ts.JSDocTag | undefined {
+    return ts.getJSDocTags(node).find(tag => tag.tagName.escapedText.toString() === "WebdaBehavior");
+  }
+
+  /**
+   * Resolve the Behavior identifier, honouring an optional payload on the
+   * `@WebdaBehavior` tag (e.g. `@WebdaBehavior Auth/MFA`). Falls back to the
    * namespaced class name resolved via the project namespace.
    * @param cls - class entry from `WebdaObjects.allClasses`
    * @param cls.name - already-namespaced class name (used as the fallback identifier)
-   * @param cls.node - the class declaration node, used to read the @Behavior decorator
+   * @param cls.node - the class declaration node, used to read the `@WebdaBehavior` tag
    * @returns resolved identifier, e.g. "Webda/MFA"
    */
   private resolveBehaviorIdentifier(cls: { name: string; node: ts.Node }): string {
-    if (ts.isClassDeclaration(cls.node)) {
-      const decorator = ts
-        .getDecorators(cls.node)
-        ?.find(d => this.moduleGenerator.getDecoratorName(d) === "Behavior");
-      if (decorator && ts.isCallExpression(decorator.expression) && decorator.expression.arguments.length > 0) {
-        const arg = decorator.expression.arguments[0];
-        if (ts.isObjectLiteralExpression(arg)) {
-          for (const prop of arg.properties) {
-            if (
-              ts.isPropertyAssignment(prop) &&
-              ts.isIdentifier(prop.name) &&
-              prop.name.text === "identifier" &&
-              ts.isStringLiteral(prop.initializer)
-            ) {
-              return prop.initializer.text;
-            }
+    if (ts.isClassDeclaration(cls.node) || ts.isClassExpression(cls.node)) {
+      const tag = this.findBehaviorTag(cls.node);
+      if (tag) {
+        const override = ts.getTextOfJSDocComment(tag.comment)?.trim();
+        if (override) {
+          // Take only the first whitespace-delimited token, mirroring how
+          // other Webda* JSDoc tags (e.g. @WebdaCapability) parse their payload.
+          const firstToken = override.split(/\s+/).shift();
+          if (firstToken) {
+            return firstToken;
           }
         }
       }

@@ -18,6 +18,7 @@ export * from "./contexts/globalcontext.js";
 export * from "./core/icore.js";
 export * from "./core/instancestorage.js";
 export * from "./core/operations.js";
+export * from "./core/behaviors.js";
 export * from "./core/core.js";
 export * from "./core/hooks.js";
 export * from "./cache/cache.js";

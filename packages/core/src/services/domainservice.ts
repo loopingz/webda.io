@@ -577,7 +577,74 @@ export class DomainService<
         });
 
       this.addBinaryOperations(model as any, Metadata, shortId);
+      this.addBehaviorOperations(model as any, Metadata, shortId);
     }
+  }
+
+  /**
+   * Register one operation per declared action on every Behavior attribute of
+   * the model. Operation ids follow the same `<Model>.<Attribute>.<Action>`
+   * shape used by `addBinaryOperations` so transports can discover them with
+   * the same lookup logic.
+   *
+   * The actual dispatch is deferred to `modelBehaviorAction` (Task 9). This
+   * method only wires the registry entries — it does not invoke behaviors.
+   *
+   * @param model - the model class owning the behavior attribute
+   * @param Metadata - the model metadata blob (with Relations.behaviors)
+   * @param name - the model's short identifier (e.g. "User")
+   */
+  addBehaviorOperations(model: ModelClass<Model>, Metadata: any, name: string) {
+    const app = useApplication<Application>();
+    (Metadata.Relations?.behaviors || []).forEach((behaviorRel: { attribute: string; behavior: string }) => {
+      const behaviorMeta = app.getBehaviorMetadata(behaviorRel.behavior);
+      if (!behaviorMeta) {
+        return;
+      }
+      const attributeCap =
+        behaviorRel.attribute.substring(0, 1).toUpperCase() + behaviorRel.attribute.substring(1);
+      Object.keys(behaviorMeta.Actions || {}).forEach(actionName => {
+        const actionCap = actionName.substring(0, 1).toUpperCase() + actionName.substring(1);
+        const id = `${name}.${attributeCap}.${actionCap}`;
+        const inputSchema = `${behaviorRel.behavior}.${actionName}.input`;
+        const outputSchema = `${behaviorRel.behavior}.${actionName}.output`;
+        registerOperation(id, {
+          service: this.getName(),
+          method: "modelBehaviorAction",
+          input: hasSchema(inputSchema) ? inputSchema : "uuidRequest",
+          output: hasSchema(outputSchema) ? outputSchema : "void",
+          summary: `${actionCap} on ${name}.${behaviorRel.attribute}`,
+          tags: [name],
+          rest: {
+            method: "put",
+            path: `{uuid}/${behaviorRel.attribute}.${actionName}`
+          },
+          context: {
+            model,
+            attribute: behaviorRel.attribute,
+            behavior: behaviorRel.behavior,
+            action: actionName
+          }
+        });
+      });
+    });
+  }
+
+  /**
+   * Dispatcher for behavior-attribute actions registered by
+   * `addBehaviorOperations`. Replaced by Task 9 with the real implementation
+   * that loads the model, hydrates the behavior, and invokes the action.
+   *
+   * Currently a stub so `registerOperation` can validate the method exists
+   * when the registry is built.
+   *
+   * @returns never — always throws
+   */
+  async modelBehaviorAction(): Promise<any> {
+    throw new WebdaError.CodeError(
+      "BEHAVIOR_DISPATCH_NOT_IMPLEMENTED",
+      "modelBehaviorAction dispatcher not yet implemented (Task 9)"
+    );
   }
 
   /**

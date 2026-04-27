@@ -4,9 +4,9 @@ import { WebdaApplicationTest } from "../test/index.js";
 import { useApplication, useModel } from "../application/hooks.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
 import { DomainService, DomainServiceParameters } from "./domainservice.js";
-import { callOperation } from "../core/operations.js";
+import { callOperation, listFullOperations } from "../core/operations.js";
 import { OperationContext } from "../contexts/operationcontext.js";
-import { hasSchema, registerSchema } from "../schemas/hooks.js";
+import { hasSchema, registerSchema, validateModelSchema, ValidationError } from "../schemas/hooks.js";
 import { MemoryRepository, registerBehaviorClass, registerRepository, Repositories } from "@webda/models";
 import type { Application } from "../application/application.js";
 
@@ -363,6 +363,448 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
       }
       restoreRepo();
       restoreBehavior();
+    }
+  }
+
+  /**
+   * Multi-behavior helper — install N behavior identifiers in the application
+   * registry plus N attribute relations on the User Metadata. The shape mirrors
+   * `patchUserWithMfaBehavior` but accepts an arbitrary list of (attribute,
+   * identifier, class, actions) tuples so the same model can carry multiple
+   * Behaviors of different shapes — or the same Behavior on multiple
+   * attributes (AC#6 second half).
+   *
+   * Returns an undo callback that restores the previous Metadata + behavior
+   * registry entries so tests don't leak into each other.
+   *
+   * @param entries - one entry per (attribute, behavior) pair to wire up
+   * @returns an undo callback restoring the previous state
+   */
+  private patchUserWithBehaviors(
+    entries: Array<{
+      attribute: string;
+      identifier: string;
+      Class: any;
+      actions: Record<string, { method: string }>;
+    }>
+  ): () => void {
+    const app = useApplication<Application>() as any;
+    const previousBehaviors: Record<string, any> = {};
+    const seenIds = new Set<string>();
+    for (const e of entries) {
+      if (seenIds.has(e.identifier)) continue;
+      seenIds.add(e.identifier);
+      previousBehaviors[e.identifier] = app.behaviors[e.identifier];
+      app.behaviors[e.identifier] = {
+        class: e.Class,
+        metadata: {
+          Identifier: e.identifier,
+          Import: `fake:${e.identifier}`,
+          Actions: e.actions
+        }
+      };
+      registerBehaviorClass(e.identifier, e.Class);
+    }
+    const User = useModel("User") as any;
+    const previousMetadata = User.Metadata;
+    User.Metadata = Object.freeze({
+      ...previousMetadata,
+      Relations: {
+        ...(previousMetadata.Relations || {}),
+        behaviors: entries.map(e => ({ attribute: e.attribute, behavior: e.identifier }))
+      }
+    });
+    return () => {
+      User.Metadata = previousMetadata;
+      for (const [id, prev] of Object.entries(previousBehaviors)) {
+        if (prev === undefined) {
+          delete app.behaviors[id];
+        } else {
+          app.behaviors[id] = prev;
+        }
+      }
+    };
+  }
+
+  /**
+   * AC#5 — Behavior fields participate in the parent model's JSON-Schema
+   * validation. The compiler walks the TS type of every model property, and
+   * because a Behavior class's instance fields surface as a normal nested
+   * object type, the generated `Schemas.Stored` includes the Behavior's
+   * fields under that attribute. We can't run the real compiler in this test,
+   * so we register a synthetic schema that mirrors what the compiler would
+   * emit and assert that AJV (the validation back-end) rejects invalid
+   * Behavior state.
+   *
+   * Concretely the schema requires `mfa.secret: string` — feeding AJV a User
+   * object whose `mfa` is missing `secret` (or has the wrong type) must throw
+   * `ValidationError`. The valid case must pass cleanly. This is the
+   * runtime-level proof of AC#5; the compile-time half is covered by the
+   * compiler tests + the existing Schema-generation pipeline that already
+   * walks property types.
+   */
+  @test
+  async behaviorFieldsParticipateInParentJSONSchemaValidation() {
+    const app = useApplication<Application>() as any;
+    const User = useModel<any>("User");
+    const modelId = app.getModelId(User) || "WebdaDemo/User";
+    const schemaName = `$WEBDA_${modelId}`;
+    const schema = {
+      type: "object",
+      properties: {
+        uuid: { type: "string" },
+        name: { type: "string" },
+        // The Behavior-typed attribute. The compiler emits this nested object
+        // by walking the TS type of `mfa: MFA`. We require `secret: string`
+        // here so the AJV validator rejects bad Behavior state.
+        mfa: {
+          type: "object",
+          properties: {
+            secret: { type: "string" },
+            lastVerified: { type: "number" }
+          },
+          required: ["secret"],
+          additionalProperties: false
+        }
+      },
+      required: ["uuid", "mfa"]
+    };
+
+    const ajvHadKey = hasSchema(schemaName);
+    if (!ajvHadKey) registerSchema(schemaName, schema);
+    const schemas = app.getSchemas();
+    const previousAppSchema = schemas[modelId];
+    schemas[modelId] = schema;
+
+    try {
+      // 1. Valid Behavior state must pass.
+      const okUser = { uuid: "user-schema-1", name: "Alice", mfa: { secret: "S" } };
+      assert.strictEqual(validateModelSchema(modelId, okUser), true, "valid Behavior state must validate");
+
+      // 2. Missing the Behavior's required `secret` field must fail. This is
+      // the AC#5 acceptance: a Behavior field is part of the parent schema's
+      // validation rules, so missing/invalid Behavior state is rejected at
+      // the validation boundary.
+      const noSecretUser = { uuid: "user-schema-2", name: "Bob", mfa: {} };
+      assert.throws(
+        () => validateModelSchema(modelId, noSecretUser),
+        (err: any) => err instanceof ValidationError && /secret/.test(err.message),
+        "validation must fail when the Behavior's required field is missing"
+      );
+
+      // 3. Wrong type on the Behavior field must also fail — AJV walks the
+      // nested schema, not just the top-level model fields.
+      const wrongTypeUser = {
+        uuid: "user-schema-3",
+        name: "Carol",
+        mfa: { secret: 12345 } // secret should be a string
+      };
+      assert.throws(
+        () => validateModelSchema(modelId, wrongTypeUser),
+        (err: any) => err instanceof ValidationError,
+        "validation must fail when a Behavior field has the wrong type"
+      );
+
+      // 4. Extra Behavior properties must also be rejected (additionalProperties: false)
+      // — proves the Behavior's schema constraints are honored, not just
+      // bypassed once a nested object is present.
+      const extraPropUser = {
+        uuid: "user-schema-4",
+        name: "Dave",
+        mfa: { secret: "S", bogus: true }
+      };
+      assert.throws(
+        () => validateModelSchema(modelId, extraPropUser),
+        (err: any) => err instanceof ValidationError,
+        "validation must fail when a Behavior carries unknown fields"
+      );
+    } finally {
+      if (previousAppSchema === undefined) {
+        delete schemas[modelId];
+      } else {
+        schemas[modelId] = previousAppSchema;
+      }
+    }
+  }
+
+  /**
+   * AC#6 (first half) — a model with two distinct Behaviors works
+   * independently. Both contribute their own operations, both persist their
+   * own state, neither's mutations bleed into the other.
+   *
+   * Fixture: User with `mfa: FakeMFA` and `audit: FakeAudit`. We exercise
+   * each Behavior method through the full round-trip pipeline and confirm
+   * that operations like `User.Mfa.Set` and `User.Audit.Record` both exist
+   * and mutate only their own attribute.
+   */
+  @test
+  async multipleBehaviorsOnOneModelOperateIndependently() {
+    class FakeMFA {
+      secret?: string;
+      setParent(model: any, attribute: string): void {
+        Object.defineProperty(this, "__parent", {
+          value: { model, attribute },
+          enumerable: false,
+          configurable: true,
+          writable: true
+        });
+      }
+      get model(): any {
+        return (this as any).__parent?.model;
+      }
+      get attribute(): string | undefined {
+        return (this as any).__parent?.attribute;
+      }
+      toJSON(): any {
+        const out: any = {};
+        for (const key of Object.keys(this)) out[key] = (this as any)[key];
+        return out;
+      }
+      async set(secret: string): Promise<void> {
+        this.secret = secret;
+        await this.model.save();
+      }
+      async verify(): Promise<boolean> {
+        return !!this.secret;
+      }
+    }
+
+    class FakeAudit {
+      entries: string[] = [];
+      setParent(model: any, attribute: string): void {
+        Object.defineProperty(this, "__parent", {
+          value: { model, attribute },
+          enumerable: false,
+          configurable: true,
+          writable: true
+        });
+      }
+      get model(): any {
+        return (this as any).__parent?.model;
+      }
+      get attribute(): string | undefined {
+        return (this as any).__parent?.attribute;
+      }
+      toJSON(): any {
+        const out: any = {};
+        for (const key of Object.keys(this)) out[key] = (this as any)[key];
+        return out;
+      }
+      async record(message: string): Promise<void> {
+        this.entries.push(message);
+        await this.model.save();
+      }
+    }
+
+    const restore = this.patchUserWithBehaviors([
+      {
+        attribute: "mfa",
+        identifier: "Test/MFA",
+        Class: FakeMFA,
+        actions: { verify: { method: "PUT" }, set: { method: "PUT" } }
+      },
+      {
+        attribute: "audit",
+        identifier: "Test/Audit",
+        Class: FakeAudit,
+        actions: { record: { method: "PUT" } }
+      }
+    ]);
+    const User = useModel<any>("User");
+    const restoreRepo = this.wireMemoryRepository(User);
+
+    // Wipe ops + re-init DomainService so both behavior operations register.
+    const ops = useInstanceStorage().operations!;
+    for (const k of Object.keys(ops)) delete ops[k];
+    const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
+    useInstanceStorage().core!.getServices()["DomainService"] = service;
+    service.initOperations();
+
+    try {
+      const all = listFullOperations();
+      assert.ok(all["User.Mfa.Set"], `expected User.Mfa.Set; got ${Object.keys(all).join(",")}`);
+      assert.ok(all["User.Mfa.Verify"], "expected User.Mfa.Verify");
+      assert.ok(all["User.Audit.Record"], "expected User.Audit.Record");
+
+      // Sanity: each operation's context points at the right (attribute,
+      // behavior) pair. This catches a class of bugs where the loop in
+      // addBehaviorOperations might reuse a closure variable across iterations.
+      const mfaSetCtx = (all["User.Mfa.Set"] as any).context;
+      const auditCtx = (all["User.Audit.Record"] as any).context;
+      assert.strictEqual(mfaSetCtx.attribute, "mfa");
+      assert.strictEqual(mfaSetCtx.behavior, "Test/MFA");
+      assert.strictEqual(auditCtx.attribute, "audit");
+      assert.strictEqual(auditCtx.behavior, "Test/Audit");
+
+      // Persist a user; both attributes hydrate to wired Behavior instances.
+      const uuid = "user-multibehavior-1";
+      await User.create({ uuid, name: "Eve" } as any, true);
+
+      const reloaded = await User.ref(uuid).get();
+      assert.ok(reloaded.mfa instanceof FakeMFA, "mfa must hydrate as FakeMFA");
+      assert.ok(reloaded.audit instanceof FakeAudit, "audit must hydrate as FakeAudit");
+      assert.strictEqual(reloaded.mfa.attribute, "mfa");
+      assert.strictEqual(reloaded.audit.attribute, "audit");
+
+      // Mutate each Behavior independently. The persistence test is critical:
+      // each method calls this.model.save() and that single save must capture
+      // BOTH attributes' state — not just the one being mutated.
+      await reloaded.mfa.set("MFA-SECRET");
+      await reloaded.audit.record("login");
+      await reloaded.audit.record("logout");
+
+      const second = await User.ref(uuid).get();
+      assert.ok(second.mfa instanceof FakeMFA, "mfa must rehydrate after second load");
+      assert.ok(second.audit instanceof FakeAudit, "audit must rehydrate after second load");
+      assert.strictEqual(second.mfa.secret, "MFA-SECRET", "mfa.secret must persist independently");
+      assert.deepStrictEqual(second.audit.entries, ["login", "logout"], "audit.entries must persist independently");
+
+      // Independence: mutating one must NOT clobber the other. Run another
+      // mfa.set and reload — audit.entries must still be intact.
+      await second.mfa.set("MFA-SECRET-2");
+      const third = await User.ref(uuid).get();
+      assert.strictEqual(third.mfa.secret, "MFA-SECRET-2");
+      assert.deepStrictEqual(
+        third.audit.entries,
+        ["login", "logout"],
+        "another behavior's mutations must not clobber prior state"
+      );
+    } finally {
+      restoreRepo();
+      restore();
+    }
+  }
+
+  /**
+   * AC#6 (second half) — the SAME Behavior class on two attributes of one
+   * model. Each attribute holds its own independent state and exposes its
+   * own operation namespace; the parent reference (`this.attribute`) tells
+   * each instance which slot it sits in.
+   *
+   * Fixture: User with `primaryMfa: FakeMFA` and `backupMfa: FakeMFA`. We
+   * confirm both `User.PrimaryMfa.Verify` and `User.BackupMfa.Verify` are
+   * registered, that mutations don't bleed across attributes, and that on
+   * reload each instance re-binds with the correct `attribute` value.
+   */
+  @test
+  async sameBehaviorClassOnTwoAttributesIsIndependent() {
+    class FakeMFA {
+      secret?: string;
+      setParent(model: any, attribute: string): void {
+        Object.defineProperty(this, "__parent", {
+          value: { model, attribute },
+          enumerable: false,
+          configurable: true,
+          writable: true
+        });
+      }
+      get model(): any {
+        return (this as any).__parent?.model;
+      }
+      get attribute(): string | undefined {
+        return (this as any).__parent?.attribute;
+      }
+      toJSON(): any {
+        const out: any = {};
+        for (const key of Object.keys(this)) out[key] = (this as any)[key];
+        return out;
+      }
+      async set(secret: string): Promise<void> {
+        this.secret = secret;
+        await this.model.save();
+      }
+      async verify(): Promise<boolean> {
+        return !!this.secret;
+      }
+    }
+
+    // Same identifier reused twice — the dispatcher keys ops on
+    // (Model, Attribute, Action), not the Behavior class identifier, so this
+    // works.
+    const restore = this.patchUserWithBehaviors([
+      {
+        attribute: "primaryMfa",
+        identifier: "Test/MFA",
+        Class: FakeMFA,
+        actions: { verify: { method: "PUT" }, set: { method: "PUT" } }
+      },
+      {
+        attribute: "backupMfa",
+        identifier: "Test/MFA",
+        Class: FakeMFA,
+        actions: { verify: { method: "PUT" }, set: { method: "PUT" } }
+      }
+    ]);
+    const User = useModel<any>("User");
+    const restoreRepo = this.wireMemoryRepository(User);
+
+    const ops = useInstanceStorage().operations!;
+    for (const k of Object.keys(ops)) delete ops[k];
+    const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
+    useInstanceStorage().core!.getServices()["DomainService"] = service;
+    service.initOperations();
+
+    try {
+      const all = listFullOperations();
+      assert.ok(all["User.PrimaryMfa.Verify"], "expected User.PrimaryMfa.Verify");
+      assert.ok(all["User.PrimaryMfa.Set"], "expected User.PrimaryMfa.Set");
+      assert.ok(all["User.BackupMfa.Verify"], "expected User.BackupMfa.Verify");
+      assert.ok(all["User.BackupMfa.Set"], "expected User.BackupMfa.Set");
+
+      // Each operation's context must point at its own attribute even though
+      // the Behavior identifier is identical. Same Behavior class, two slots.
+      const primaryCtx = (all["User.PrimaryMfa.Set"] as any).context;
+      const backupCtx = (all["User.BackupMfa.Set"] as any).context;
+      assert.strictEqual(primaryCtx.attribute, "primaryMfa");
+      assert.strictEqual(backupCtx.attribute, "backupMfa");
+      assert.strictEqual(primaryCtx.behavior, "Test/MFA");
+      assert.strictEqual(backupCtx.behavior, "Test/MFA");
+
+      // Each REST path must be unique — primaryMfa.set vs backupMfa.set.
+      assert.deepStrictEqual((all["User.PrimaryMfa.Set"] as any).rest, {
+        method: "put",
+        path: "{uuid}/primaryMfa.set"
+      });
+      assert.deepStrictEqual((all["User.BackupMfa.Set"] as any).rest, {
+        method: "put",
+        path: "{uuid}/backupMfa.set"
+      });
+
+      // Round-trip: each attribute holds independent state.
+      const uuid = "user-twin-mfa-1";
+      await User.create({ uuid, name: "Frank" } as any, true);
+
+      const reloaded = await User.ref(uuid).get();
+      assert.ok(reloaded.primaryMfa instanceof FakeMFA, "primaryMfa must hydrate");
+      assert.ok(reloaded.backupMfa instanceof FakeMFA, "backupMfa must hydrate");
+      // Different JS instances, despite being the same class — proves they
+      // aren't aliasing each other through some shared singleton.
+      assert.notStrictEqual(reloaded.primaryMfa, reloaded.backupMfa, "two attributes must produce two instances");
+      assert.strictEqual(reloaded.primaryMfa.attribute, "primaryMfa");
+      assert.strictEqual(reloaded.backupMfa.attribute, "backupMfa");
+      assert.strictEqual(reloaded.primaryMfa.model, reloaded);
+      assert.strictEqual(reloaded.backupMfa.model, reloaded);
+
+      // Mutate only the primary slot.
+      await reloaded.primaryMfa.set("P");
+      assert.strictEqual(reloaded.primaryMfa.secret, "P");
+      assert.strictEqual(reloaded.backupMfa.secret, undefined, "backup must NOT pick up primary's mutation in-memory");
+
+      // Reload from store and confirm the persisted state still segregates.
+      const second = await User.ref(uuid).get();
+      assert.strictEqual(second.primaryMfa.secret, "P", "primary's secret must persist");
+      assert.strictEqual(second.backupMfa.secret, undefined, "backup must remain untouched after primary save");
+
+      // Now mutate the backup slot and confirm primary is unaffected.
+      await second.backupMfa.set("B");
+      const third = await User.ref(uuid).get();
+      assert.strictEqual(third.primaryMfa.secret, "P", "primary must not be clobbered by backup mutation");
+      assert.strictEqual(third.backupMfa.secret, "B", "backup's secret must persist");
+      assert.strictEqual(third.primaryMfa.attribute, "primaryMfa");
+      assert.strictEqual(third.backupMfa.attribute, "backupMfa");
+    } finally {
+      restoreRepo();
+      restore();
     }
   }
 }

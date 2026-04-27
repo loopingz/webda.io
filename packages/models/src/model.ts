@@ -32,6 +32,47 @@ export type ExceptPartial<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K
 export const WEBDA_DELETED = "__deleted";
 
 /**
+ * Module-local registry mapping fully-qualified Behavior identifiers
+ * (e.g. "Webda/MFA") to their constructors. Populated at app startup by
+ * `Application.loadModule`, which calls `registerBehaviorClass` after each
+ * Behavior is dynamically imported.
+ *
+ * The registry lives inside `@webda/models` (rather than `@webda/core`) so
+ * `Model.deserialize` can perform Behavior hydration without importing core
+ * — `@webda/core` already depends on `@webda/models`, and the reverse
+ * direction would create a circular workspace dependency.
+ *
+ * @internal
+ */
+const behaviorRegistry: Record<string, any> = {};
+
+/**
+ * Look up the constructor previously registered for a Behavior identifier.
+ *
+ * Intentionally NOT exported: only `Model.deserialize` consults the registry.
+ * External callers should go through `Application.getBehavior(id)`.
+ * @param id - fully qualified Behavior identifier (e.g. "Webda/MFA")
+ * @returns the registered constructor, or `undefined` if none was registered
+ */
+function lookupBehaviorClass(id: string): any | undefined {
+  return behaviorRegistry[id];
+}
+
+/**
+ * Register a Behavior class against its fully-qualified identifier so that
+ * `Model.deserialize` can hydrate raw plain-object values into proper
+ * Behavior instances when populating a CoreModel.
+ *
+ * Called once per Behavior by `Application.loadModule` after the Behavior
+ * module has been dynamically imported.
+ * @param id - fully qualified Behavior identifier (e.g. "Webda/MFA")
+ * @param cls - the Behavior class constructor
+ */
+export function registerBehaviorClass(id: string, cls: any): void {
+  behaviorRegistry[id] = cls;
+}
+
+/**
  * Event sent by models
  *
  * Events are sent by the model to notify of changes
@@ -268,6 +309,34 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
       info = data;
     }
     Object.assign(instance, info);
+
+    // Hydrate Behavior-typed attributes — coerce raw values (plain objects,
+    // null/undefined, or already-correct instances) into proper Behavior
+    // instances and wire each one back to its parent model. The compiler
+    // populates `Metadata.Relations.behaviors` for any model that declares a
+    // `@Behavior()`-decorated class as the type of one of its attributes.
+    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined = (this as any).Metadata?.Relations
+      ?.behaviors;
+    if (behaviorRels?.length) {
+      for (const { attribute, behavior } of behaviorRels) {
+        const BehaviorClass = lookupBehaviorClass(behavior);
+        if (!BehaviorClass) continue;
+        let value = (instance as any)[attribute];
+        if (value instanceof BehaviorClass) {
+          // Already the right shape — just (re-)wire the parent reference.
+        } else if (value == null) {
+          value = new BehaviorClass();
+        } else {
+          const fresh = new BehaviorClass();
+          Object.assign(fresh, value);
+          value = fresh;
+        }
+        if (typeof (value as any).setParent === "function") {
+          (value as any).setParent(instance, attribute);
+        }
+        (instance as any)[attribute] = value;
+      }
+    }
     return instance;
   }
 

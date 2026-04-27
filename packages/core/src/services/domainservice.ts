@@ -631,20 +631,62 @@ export class DomainService<
   }
 
   /**
-   * Dispatcher for behavior-attribute actions registered by
-   * `addBehaviorOperations`. Replaced by Task 9 with the real implementation
-   * that loads the model, hydrates the behavior, and invokes the action.
+   * Dispatcher for a behavior-attribute action registered by
+   * `addBehaviorOperations`. Mirrors the shape of `modelAction`:
    *
-   * Currently a stub so `registerOperation` can validate the method exists
-   * when the registry is built.
+   *   1. read the parent model class + attribute/action names off
+   *      `operationContext` (set up by `callOperation`),
+   *   2. take `args[0]` as the parent UUID (Behavior actions are always
+   *      instance-scoped per the spec),
+   *   3. load the parent via `model.ref(uuid).get()` — `NotFound` if missing
+   *      or soft-deleted,
+   *   4. ask the model whether the action is allowed via
+   *      `canAct(ctx, "<attribute>.<action>")` — anything but `true` (or the
+   *      instance itself, the convention some models use to say "yes, on this
+   *      object") is treated as a denial,
+   *   5. read `instance[attribute]` — already a hydrated Behavior instance
+   *      thanks to `CoreModel.deserialize` (Task 7),
+   *   6. call `behaviorInstance[action](...args.slice(1))` and let
+   *      `callOperation` write the result onto the context.
    *
-   * @returns never — always throws
+   * @param args - resolved arguments from `resolveArguments`; the first is
+   * always the parent UUID, the rest come from the request body / query
+   * params depending on the registered input schema.
+   * @returns the Behavior method's return value (callOperation writes it to
+   * the context output if non-undefined).
    */
-  async modelBehaviorAction(): Promise<any> {
-    throw new WebdaError.CodeError(
-      "BEHAVIOR_DISPATCH_NOT_IMPLEMENTED",
-      "modelBehaviorAction dispatcher not yet implemented (Task 9)"
-    );
+  async modelBehaviorAction(...args: any[]): Promise<any> {
+    const context = useContext<OperationContext>();
+    const { model, attribute, action } = context.getExtension<{
+      model: ModelClass<Model>;
+      attribute: string;
+      behavior: string;
+      action: string;
+    }>("operationContext");
+
+    const uuid = args[0];
+    let instance: any;
+    try {
+      instance = await model.ref(uuid).get();
+    } catch {
+      // Repositories (e.g. MemoryRepository) throw a plain Error when the
+      // primary key isn't in storage. Treat that the same as a "soft" miss.
+    }
+    if (!instance || instance.isDeleted?.()) {
+      throw new WebdaError.NotFound("Object not found");
+    }
+
+    const allowed = await instance.canAct(context, `${attribute}.${action}`);
+    if (allowed !== true && allowed !== instance) {
+      throw new WebdaError.Forbidden(`Action ${attribute}.${action} not allowed`);
+    }
+
+    const behaviorInstance = instance[attribute];
+    if (!behaviorInstance || typeof behaviorInstance[action] !== "function") {
+      throw new WebdaError.NotFound(`Behavior method ${attribute}.${action} not found`);
+    }
+
+    return behaviorInstance[action](...args.slice(1));
   }
 
   /**

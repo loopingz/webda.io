@@ -4,10 +4,13 @@ import ts from "typescript";
 import { DEFAULT_COERCIONS, CoercionRegistry } from "./coercions";
 import { createAccessorTransformer, createDeclarationAccessorTransformer } from "./transforms/accessors";
 import { createModuleGeneratorTransformer } from "./transforms/module-generator";
+import { createBehaviorTransformer } from "./transforms/behaviors";
 
 // Re-export for use by @webda/compiler and other consumers
 export { createAccessorTransformer, createDeclarationAccessorTransformer, computeCoercibleFields } from "./transforms/accessors";
 export type { CoercibleFieldMap, ResolvedCoercion } from "./transforms/accessors";
+export { createBehaviorTransformer, computeBehaviorMetadata, BEHAVIOR_PARENT_KEY } from "./transforms/behaviors";
+export type { BehaviorAttributeInfo, BehaviorAttributeMap, BehaviorClassSet } from "./transforms/behaviors";
 export { DEFAULT_COERCIONS } from "./coercions";
 export type { CoercionRegistry } from "./coercions";
 export { PerfTracker } from "./perf";
@@ -66,7 +69,26 @@ export default function transformer(
   const coercions = buildCoercions(config);
   const modelBases = new Set(["Model", "UuidModel", ...(config.modelBases ?? [])]);
 
-  return createAccessorTransformer(tsModule, program, coercions, modelBases, undefined, config.accessorsForAll);
+  const accessorTransformer = createAccessorTransformer(
+    tsModule,
+    program,
+    coercions,
+    modelBases,
+    undefined,
+    config.accessorsForAll
+  );
+  const behaviorTransformer = createBehaviorTransformer(tsModule, program);
+
+  // Compose: behavior augmentation first (adds the parent getter, toJSON,
+  // and __hydrateBehaviors method), then accessor pass (which may inject
+  // WEBDA_STORAGE init and the per-field accessor pairs). Order doesn't
+  // strictly matter — both are idempotent — but running behaviors first
+  // means the accessor pass sees the final member set.
+  return context => {
+    const behaviorFn = behaviorTransformer(context);
+    const accessorFn = accessorTransformer(context);
+    return sourceFile => accessorFn(behaviorFn(sourceFile));
+  };
 }
 
 /**

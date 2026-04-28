@@ -577,7 +577,116 @@ export class DomainService<
         });
 
       this.addBinaryOperations(model as any, Metadata, shortId);
+      this.addBehaviorOperations(model as any, Metadata, shortId);
     }
+  }
+
+  /**
+   * Register one operation per declared action on every Behavior attribute of
+   * the model. Operation ids follow the same `<Model>.<Attribute>.<Action>`
+   * shape used by `addBinaryOperations` so transports can discover them with
+   * the same lookup logic.
+   *
+   * The actual dispatch is deferred to `modelBehaviorAction` (Task 9). This
+   * method only wires the registry entries — it does not invoke behaviors.
+   *
+   * @param model - the model class owning the behavior attribute
+   * @param Metadata - the model metadata blob (with Relations.behaviors)
+   * @param name - the model's short identifier (e.g. "User")
+   */
+  addBehaviorOperations(model: ModelClass<Model>, Metadata: any, name: string) {
+    const app = useApplication<Application>();
+    (Metadata.Relations?.behaviors || []).forEach((behaviorRel: { attribute: string; behavior: string }) => {
+      const behaviorMeta = app.getBehaviorMetadata(behaviorRel.behavior);
+      if (!behaviorMeta) {
+        return;
+      }
+      const attributeCap =
+        behaviorRel.attribute.substring(0, 1).toUpperCase() + behaviorRel.attribute.substring(1);
+      Object.keys(behaviorMeta.Actions || {}).forEach(actionName => {
+        const actionCap = actionName.substring(0, 1).toUpperCase() + actionName.substring(1);
+        const id = `${name}.${attributeCap}.${actionCap}`;
+        const inputSchema = `${behaviorRel.behavior}.${actionName}.input`;
+        const outputSchema = `${behaviorRel.behavior}.${actionName}.output`;
+        registerOperation(id, {
+          service: this.getName(),
+          method: "modelBehaviorAction",
+          input: hasSchema(inputSchema) ? inputSchema : "uuidRequest",
+          output: hasSchema(outputSchema) ? outputSchema : "void",
+          summary: `${actionCap} on ${name}.${behaviorRel.attribute}`,
+          tags: [name],
+          rest: {
+            method: "put",
+            path: `{uuid}/${behaviorRel.attribute}.${actionName}`
+          },
+          context: {
+            model,
+            attribute: behaviorRel.attribute,
+            behavior: behaviorRel.behavior,
+            action: actionName
+          }
+        });
+      });
+    });
+  }
+
+  /**
+   * Dispatcher for a behavior-attribute action registered by
+   * `addBehaviorOperations`. Mirrors the shape of `modelAction`:
+   *
+   *   1. read the parent model class + attribute/action names off
+   *      `operationContext` (set up by `callOperation`),
+   *   2. take `args[0]` as the parent UUID (Behavior actions are always
+   *      instance-scoped per the spec),
+   *   3. load the parent via `model.ref(uuid).get()` — `NotFound` if missing
+   *      or soft-deleted,
+   *   4. ask the model whether the action is allowed via
+   *      `canAct(ctx, "<attribute>.<action>")` — anything but `true` (or the
+   *      instance itself, the convention some models use to say "yes, on this
+   *      object") is treated as a denial,
+   *   5. read `instance[attribute]` — already a hydrated Behavior instance
+   *      thanks to `CoreModel.deserialize` (Task 7),
+   *   6. call `behaviorInstance[action](...args.slice(1))` and let
+   *      `callOperation` write the result onto the context.
+   *
+   * @param args - resolved arguments from `resolveArguments`; the first is
+   * always the parent UUID, the rest come from the request body / query
+   * params depending on the registered input schema.
+   * @returns the Behavior method's return value (callOperation writes it to
+   * the context output if non-undefined).
+   */
+  async modelBehaviorAction(...args: any[]): Promise<any> {
+    const context = useContext<OperationContext>();
+    const { model, attribute, action } = context.getExtension<{
+      model: ModelClass<Model>;
+      attribute: string;
+      behavior: string;
+      action: string;
+    }>("operationContext");
+
+    const uuid = args[0];
+    let instance: any;
+    try {
+      instance = await model.ref(uuid).get();
+    } catch {
+      // Repositories (e.g. MemoryRepository) throw a plain Error when the
+      // primary key isn't in storage. Treat that the same as a "soft" miss.
+    }
+    if (!instance || instance.isDeleted?.()) {
+      throw new WebdaError.NotFound("Object not found");
+    }
+
+    const allowed = await instance.canAct(context, `${attribute}.${action}`);
+    if (allowed !== true && allowed !== instance) {
+      throw new WebdaError.Forbidden(`Action ${attribute}.${action} not allowed`);
+    }
+
+    const behaviorInstance = instance[attribute];
+    if (!behaviorInstance || typeof behaviorInstance[action] !== "function") {
+      throw new WebdaError.NotFound(`Behavior method ${attribute}.${action} not found`);
+    }
+
+    return behaviorInstance[action](...args.slice(1));
   }
 
   /**

@@ -46,9 +46,13 @@ The *type* of a Service — the metadata that describes one class so the framewo
 
 A domain entity (a User, an Order, a Post). Subclasses `CoreModel` and is annotated with `@Model`. Models declare their fields, relations (`@ModelRelated`), validation, exposure rules (`@Expose`), and custom actions (`@Action`). The framework derives REST routes, GraphQL schema, gRPC services, and store mappings from the Model definition. See [Modules/models/Defining-Models](./Modules/models/Defining-Models.md).
 
+## Behavior
+
+A class — marked with `@Behavior()` — used as the type of a property on a Model. It groups together a set of `@Action` methods plus optional inline state that round-trips with the parent model on save and load. Each Behavior action is exposed as an Operation `<Model>.<Attribute>.<Action>` (REST: `/<plural>/{uuid}/<attribute>.<action>`). Authorisation is decided by the parent model's `canAct(ctx, "<attribute>.<action>")`. Use a Behavior for reusable, namespaced sets of methods plus a small chunk of state — MFA, audit summary, lock metadata, etc. See [Concepts/Models/Behaviors](./Concepts/Models/Behaviors.md).
+
 ## Operation
 
-A unit of business logic exposed via the framework's protocol layer — commonly an `@Action` on a Model or an `@Operation` method on a Bean. Operations are auto-mapped to REST endpoints, GraphQL mutations, and gRPC methods. The runtime tracks every operation in a registry so the same logic answers across protocols. See [Concepts/Operations](./Concepts/Operations.md).
+A unit of business logic exposed via the framework's protocol layer — commonly an `@Action` on a Model, an `@Action` on a Behavior attached to a Model, or an `@Operation` method on a Bean. Operations are auto-mapped to REST endpoints, GraphQL mutations, and gRPC methods. The runtime tracks every operation in a registry so the same logic answers across protocols. See [Concepts/Operations](./Concepts/Operations.md).
 
 ## ModelDefinition
 

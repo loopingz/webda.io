@@ -36,6 +36,7 @@ export default defineConfig({
       "src/queues/*.spec.ts",
       //"src/rest/*.spec.ts",
       "src/rest/restoperationstransport.spec.ts",
+      "src/rest/rest-behaviors.spec.ts",
       "src/schemas/*.spec.ts",
       //"src/services/authentication.spec.ts", // Need refactor
       "src/services/cloudbinary.spec.ts",
@@ -43,6 +44,8 @@ export default defineConfig({
       "src/services/cryptoservice.spec.ts",
       "src/services/debugmailer.spec.ts",
       "src/services/domainservice.spec.ts",
+      "src/services/domainservice-behaviors.spec.ts",
+      "src/services/behavior-roundtrip.spec.ts",
       "src/services/audit.spec.ts",
       "src/services/operationstransport.spec.ts",
       "src/services/httpserver.spec.ts",

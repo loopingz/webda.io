@@ -171,6 +171,10 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
     const typeKey = identifier
       ? `@webda/models/${identifier}`
       : `@webda/models/${this.prototype.constructor.name}`;
+    // The base ObjectSerializer.deserializer is responsible for invoking the
+    // model's compile-time-emitted `__hydrateBehaviors(rawData)` method (when
+    // present), so a model loaded from a store ends up with the same wired
+    // Behavior instances as one populated via `model.load(...)`.
     registerSerializer(typeKey, new ObjectSerializer(clazz as any, clazz.getStaticProperties()), overwrite);
   }
 
@@ -268,6 +272,14 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
       info = data;
     }
     Object.assign(instance, info);
+
+    // Hydrate Behavior-typed attributes by delegating to the per-model
+    // `__hydrateBehaviors(rawData)` method emitted by the ts-plugin
+    // transformer for any model that declares Behavior-typed properties.
+    // Models without such properties simply lack the method, so the optional
+    // chain makes this a no-op for them. The same call sits inside the base
+    // ObjectSerializer.deserializer so both load paths share the contract.
+    (instance as any).__hydrateBehaviors?.(data);
     return instance;
   }
 

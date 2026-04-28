@@ -96,6 +96,34 @@ class MyModel extends Model {
 }
 ```
 
+## Behaviors
+
+A `Behavior` is a class — marked with `@Behavior()` — used as the type of a model property. It groups together a set of `@Action` methods plus optional inline state that round-trips with the parent model.
+
+```js title="src/behaviors/mfa.ts"
+@Behavior()
+class MFA {
+  secret?: string;
+  lastVerified?: number;
+
+  @Action()
+  async verify(totp: string): Promise<boolean> { /* ... */ }
+
+  @Action()
+  async set(secret: string, totp1: string, totp2: string): Promise<void> { /* ... */ }
+}
+```
+
+```js title="src/models/user.ts"
+class User extends CoreModel {
+  mfa: MFA;
+}
+```
+
+This produces two operations on the user model — `User.Mfa.Verify` and `User.Mfa.Set` — exposed over REST as `PUT /users/{uuid}/mfa.verify` and `PUT /users/{uuid}/mfa.set`. Authorisation is decided by the parent model's `canAct(ctx, "mfa.verify")`.
+
+See [Behaviors](./Behaviors.md) for the full description.
+
 ## Model schemas
 
 The schema is generated with [ts-json-schema-generator](https://github.com/vega/ts-json-schema-generator)

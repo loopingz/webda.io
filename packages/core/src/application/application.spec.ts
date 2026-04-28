@@ -205,4 +205,40 @@ class ApplicationTest extends WebdaInternalTest {
       process.chdir(cwd);
     }
   }
+
+  @test
+  async loadBehaviorsMetadata() {
+    // Verify Application surfaces Behavior metadata declared in
+    // webda.module.json via `getBehaviorMetadata`. The Behavior class itself
+    // is NOT loaded at runtime — the per-model `__hydrateBehaviors` method
+    // emitted at compile time holds the static class import. Only the
+    // metadata blob (used by DomainService / REST transport for operation
+    // registration) needs to round-trip through the application registry.
+    const app = new TestInternalApplication(__dirname + "/../../test/config.json");
+    await app.loadModule(
+      {
+        moddas: {},
+        models: {},
+        schemas: {},
+        behaviors: {
+          "Test/MFA": {
+            Identifier: "Test/MFA",
+            Import: "ignored-at-runtime:MFA",
+            Actions: {
+              verify: { Method: "verify" }
+            }
+          }
+        }
+      },
+      ""
+    );
+
+    const meta = app.getBehaviorMetadata("Test/MFA");
+    assert.ok(meta, "expected Test/MFA behavior metadata to be available");
+    assert.strictEqual(meta!.Identifier, "Test/MFA");
+    assert.ok(meta!.Actions?.verify, "expected verify action metadata to be preserved");
+
+    // Unknown identifier returns undefined.
+    assert.strictEqual(app.getBehaviorMetadata("Test/Unknown"), undefined);
+  }
 }

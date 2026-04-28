@@ -24,6 +24,7 @@ import { JSONSchema7 } from "json-schema";
 import { InstanceCache } from "../cache/cache.js";
 import type { Service } from "../services/service.js";
 import { ModelMetadata } from "@webda/compiler";
+import type { BehaviorMetadata } from "@webda/compiler";
 
 export type ApplicationState = "initial" | "loading" | "ready";
 
@@ -85,6 +86,21 @@ export class Application {
    * Beans registry
    */
   protected beans: { [key: string]: Modda } = {};
+
+  /**
+   * Behaviors registry
+   *
+   * Populated by `loadModule` from the top-level `behaviors` map of every
+   * loaded `webda.module.json`. Each entry holds the metadata blob emitted by
+   * the compiler so downstream consumers (DomainService, REST transport, etc.)
+   * can introspect the Behavior's declared actions and shape.
+   *
+   * The Behavior class itself is NOT loaded at runtime: the per-model
+   * `__hydrateBehaviors` method emitted at compile time by
+   * `@webda/ts-plugin` holds a static import to the class, so the runtime
+   * never needs to look it up by identifier.
+   */
+  protected behaviors: { [key: string]: { metadata: BehaviorMetadata } } = {};
 
   /**
    * Class Logger
@@ -401,6 +417,27 @@ export class Application {
   }
 
   /**
+   * Return the metadata blob (Identifier, Actions, etc.) for a Behavior
+   * loaded from `webda.module.json`.
+   *
+   * @param identifier - fully qualified Behavior id (e.g. `Webda/MFA`)
+   * @returns the metadata, or undefined if no Behavior with that id is registered
+   */
+  getBehaviorMetadata(identifier: string): BehaviorMetadata | undefined {
+    return this.behaviors[identifier]?.metadata;
+  }
+
+  /**
+   * Return all loaded Behaviors keyed by identifier.
+   *
+   * Each entry exposes the original metadata blob emitted by the compiler.
+   * @returns the result
+   */
+  getBehaviors(): { [key: string]: { metadata: BehaviorMetadata } } {
+    return this.behaviors;
+  }
+
+  /**
    * Return the model name for a object
    * @param object - the target object
    * @returns the result
@@ -702,6 +739,19 @@ export class Application {
         this.baseConfiguration.cachedModules.beans[f] = info.beans[f];
       }
     }
+    // Behaviors are registered by metadata only — the runtime never imports
+    // the Behavior class. The per-model `__hydrateBehaviors(rawData)` method
+    // emitted at compile time by `@webda/ts-plugin` holds the static
+    // imports needed to coerce raw values into Behavior instances, so the
+    // application registry just needs to retain the metadata blob (action
+    // shapes, identifier, etc.) for `DomainService` operation registration
+    // and the REST transport routing.
+    if (info.behaviors) {
+      for (const id in info.behaviors) {
+        this.behaviors[id] ??= { metadata: info.behaviors[id] };
+      }
+    }
+
     // TODO Merging tree from different modules
     await Promise.all([sectionLoader("moddas"), sectionLoader("models"), sectionLoader("beans")]);
     // Set metadata on models - need to be done after all models are loaded

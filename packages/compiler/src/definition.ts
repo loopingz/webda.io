@@ -49,6 +49,13 @@ export type ModelGraphBinaryDefinition = {
   metadata?: string;
 };
 
+export type ModelGraphBehaviorDefinition = {
+  /** Property name on the parent model. */
+  attribute: string;
+  /** Identifier of the Behavior class (e.g. "Webda/MFA"). */
+  behavior: string;
+};
+
 export type ModelRelation = {
   attribute: string;
   model: string;
@@ -131,6 +138,13 @@ export type ModelGraph = {
    * will be linked to this object with some metadata
    */
   binaries?: ModelGraphBinaryDefinition[];
+  /**
+   * Behavior attributes — properties whose type is a class marked with
+   * `@Behavior()`. The Behavior class is referenced by Identifier so that
+   * the Behavior's actions can be looked up in the top-level `behaviors`
+   * map of the module.
+   */
+  behaviors?: ModelGraphBehaviorDefinition[];
 };
 
 export interface ModelMetadata {
@@ -229,6 +243,21 @@ export interface ModelMetadata {
       global?: boolean;
     };
   };
+}
+
+/**
+ * Compile-time metadata for a class marked with `@Behavior()`.
+ */
+export interface BehaviorMetadata {
+  /** Identifier of the Behavior (e.g. "Webda/MFA"). */
+  Identifier: string;
+  /** Module-relative path used at runtime to import the class. */
+  Import: string;
+  /**
+   * Behavior actions discovered from `@Action` / `@Operation` methods.
+   * Same shape as `ModelMetadata.Actions`.
+   */
+  Actions: ModelMetadata["Actions"];
 }
 
 /**
@@ -417,6 +446,10 @@ export interface WebdaModule {
      * Models provided by the module
      */
     [key: string]: ModelMetadata;
+  };
+  /** Behavior classes provided by the module. */
+  behaviors?: {
+    [key: string]: BehaviorMetadata;
   };
   /**
    * Default capability providers declared by this package.

@@ -13,7 +13,7 @@ import type { HttpMethodType } from "../contexts/httpcontext.js";
 import { hasSchema } from "../schemas/hooks.js";
 import type { ModelClass } from "@webda/models";
 import type { ModelAction } from "../models/types.js";
-import type { ModelGraphBinaryDefinition, ModelMetadata } from "@webda/compiler";
+import type { ModelGraphBehaviorDefinition, ModelGraphBinaryDefinition, ModelMetadata } from "@webda/compiler";
 
 /**
  * Swagger static html
@@ -279,6 +279,11 @@ export class RESTOperationsTransport<
     // Register binary routes
     (relations.binaries || []).forEach(binary => {
       this.exposeBinaryRoutes(prefix, shortId, Identifier, name, binary);
+    });
+
+    // Register behavior routes
+    (relations.behaviors || []).forEach(behavior => {
+      this.exposeBehaviorRoutes(prefix, shortId, Identifier, name, behavior);
     });
 
     // Find children (models whose parent points to this model)
@@ -1070,6 +1075,95 @@ export class RESTOperationsTransport<
       }
     };
     this.addRoute(`${rootUrl}/url`, ["GET"], modelInjectorGet, openapi);
+  }
+
+  /**
+   * Register routes for every `@Action` on every Behavior attribute of a
+   * model. The URL pattern is `{prefix}/{uuid}/{attribute}.{action}` — the
+   * dot between `attribute` and `action` is intentional and disambiguates
+   * Behavior calls from nested-resource routing (which uses slash-separated
+   * segments).
+   *
+   * Each route dispatches the registered behavior operation
+   * (`{ShortId}.{AttributeCap}.{ActionCap}`) declared by Task 8's
+   * `addBehaviorOperations`. The dispatcher itself (Task 9's
+   * `modelBehaviorAction`) handles model load, `canAct` gating, and method
+   * invocation — this method only wires the HTTP surface.
+   *
+   * v1 surface is PUT-only by design: the operation registry hard-codes
+   * `rest.method = "put"` and we mirror that here. Schema decoration on the
+   * OpenAPI doc is best-effort — we lean on `hasSchema()` (the AJV registry)
+   * to decide whether to emit `requestBody` / `responses` `$ref`s.
+   *
+   * @param prefix - the URL prefix for this model (e.g. `/api/users`)
+   * @param shortId - the short model identifier (e.g. `User`)
+   * @param identifier - the full model identifier (e.g. `MyApp/User`) — accepted
+   *   for parity with `exposeBinaryRoutes` even though we don't currently use it
+   * @param name - the model display name used in OpenAPI tags
+   * @param behavior - the Behavior attribute relation to expose
+   */
+  protected exposeBehaviorRoutes(
+    prefix: string,
+    shortId: string,
+    identifier: string,
+    name: string,
+    behavior: ModelGraphBehaviorDefinition
+  ): void {
+    void identifier;
+    void name;
+    const app = useApplication();
+    const behaviorMeta = app.getBehaviorMetadata(behavior.behavior);
+    if (!behaviorMeta) {
+      return;
+    }
+    const attributeCap = behavior.attribute.substring(0, 1).toUpperCase() + behavior.attribute.substring(1);
+
+    Object.keys(behaviorMeta.Actions || {}).forEach(actionName => {
+      const actionCap = actionName.substring(0, 1).toUpperCase() + actionName.substring(1);
+      const operationId = `${shortId}.${attributeCap}.${actionCap}`;
+
+      const openapi: OpenAPIWebdaDefinition = {
+        put: {
+          tags: [shortId],
+          summary: `${actionCap} on ${shortId}.${behavior.attribute}`,
+          operationId
+        }
+      };
+      const inputSchema = `${behavior.behavior}.${actionName}.input`;
+      const outputSchema = `${behavior.behavior}.${actionName}.output`;
+      if (hasSchema(inputSchema)) {
+        openapi.put.requestBody = {
+          content: {
+            "application/json": {
+              schema: {
+                $ref: `#/components/schemas/${inputSchema}`
+              }
+            }
+          }
+        };
+      }
+      if (hasSchema(outputSchema)) {
+        openapi.put.responses = {
+          "200": {
+            description: "Operation success",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: `#/components/schemas/${outputSchema}`
+                }
+              }
+            }
+          }
+        };
+      }
+
+      this.addRoute(
+        `${prefix}/{uuid}/${behavior.attribute}.${actionName}`,
+        ["PUT"],
+        async (context: WebContext) => callOperation(context, operationId),
+        openapi
+      );
+    });
   }
 
   /**

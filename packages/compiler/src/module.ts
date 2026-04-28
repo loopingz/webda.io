@@ -9,12 +9,27 @@ import { tsquery } from "@phenomnomnominal/tsquery";
 import { dirname, join, relative } from "path";
 import { ModelMetadata, WebdaModule } from "./definition";
 import { ActionsMetadata } from "./metadata/actions";
+import { BehaviorsMetadata } from "./metadata/behaviors";
 import { CapabilitiesMetadata } from "./metadata/capabilities";
 import { CommandsMetadata } from "./metadata/commands";
 import { EventsMetadata } from "./metadata/events";
 import { PrimaryKeyMetadata } from "./metadata/primarykey";
 import { PluralMetadata } from "./metadata/plural";
 import { SchemaGenerator } from "@webda/schema";
+
+/**
+ * A lightweight descriptor for any class node walked during
+ * `searchForWebdaObjects`, regardless of whether it ended up classified as a
+ * model, modda, bean, or deployer. Consumed by metadata plugins (e.g.
+ * BehaviorsMetadata) that need to scan ALL exported classes — including
+ * Behaviors, which are intentionally not in any of the existing buckets.
+ */
+export type WebdaClassEntry = {
+  name: string;
+  type: ts.Type;
+  node: ts.Node;
+  jsFile: string;
+};
 
 /**
  * Found all objects from compiled source
@@ -25,6 +40,13 @@ export type WebdaObjects = {
   moddas: WebdaSearchResults;
   deployers: WebdaSearchResults;
   beans: WebdaSearchResults;
+  /**
+   * Every exported, non-abstract class declaration walked during the search,
+   * regardless of category. Populated so plugins can find classes that don't
+   * match the model/modda/bean/deployer rules (for example, `@Behavior`
+   * classes).
+   */
+  allClasses: WebdaClassEntry[];
 };
 
 type ReplaceModelWith<T, L> = T extends object
@@ -343,7 +365,8 @@ export class ModuleGenerator {
       models: {},
       moddas: {},
       deployers: {},
-      beans: {}
+      beans: {},
+      allClasses: []
     };
     const program = this.compiler.tsProgram;
     program.getSourceFiles().forEach(sourceFile => {
@@ -377,6 +400,17 @@ export class ModuleGenerator {
           }
           const classTree = this.getClassTree(type);
           if (!program.getRootFileNames().includes(sourceFile.fileName)) {
+            // Track library classes too — Behaviors and other plugins may need
+            // to see classes defined in dependencies.
+            const exportedName = this.getExportedName(classNode);
+            if (exportedName) {
+              result.allClasses.push({
+                name: this.compiler.project.completeNamespace(classNode.name?.escapedText.toString() ?? exportedName),
+                type,
+                node,
+                jsFile: sourceFile.fileName.replace(/\.d\.ts$/, ".js")
+              });
+            }
             if (this.extends(classTree, "@webda/models", "Model")) {
               const name = this.getLibraryModelName(sourceFile.fileName, this.getExportedName(classNode));
               // This should not happen likely bad module not worth checking
@@ -400,6 +434,20 @@ export class ModuleGenerator {
             return;
           }
           const importTarget = this.getJSTargetFile(sourceFile).replace(/\.js$/, "");
+          // Track every root-file class regardless of section, so plugins
+          // (e.g. BehaviorsMetadata) can scan classes that aren't models /
+          // moddas / beans / deployers.
+          {
+            const rootExportName = this.getExportedName(classNode);
+            if (rootExportName) {
+              result.allClasses.push({
+                name: this.compiler.project.completeNamespace(classNode.name?.escapedText.toString() ?? rootExportName),
+                type,
+                node,
+                jsFile: `${importTarget}:${rootExportName}`
+              });
+            }
+          }
 
           let section;
           let schemaNode;
@@ -774,6 +822,19 @@ export class ModuleGenerator {
                   cardinality: "MANY"
                 });
                 break;
+              default: {
+                // Detect Behavior-typed attributes: properties whose declared
+                // type resolves to a class decorated with `@Behavior()`.
+                const behaviorIdentifier = this.resolveBehaviorIdentifierFromType(pType);
+                if (behaviorIdentifier) {
+                  currentGraph.behaviors ??= [];
+                  currentGraph.behaviors.push({
+                    attribute: prop.getName(),
+                    behavior: behaviorIdentifier
+                  });
+                }
+                break;
+              }
             }
           }
           modelsMetadata[name] = metadata;
@@ -860,6 +921,47 @@ export class ModuleGenerator {
       return expr.getText();
     }
     return undefined;
+  }
+
+  /**
+   * Resolve the Behavior identifier of a property's type, if (and only if) the
+   * property's resolved class declaration carries a `@WebdaBehavior` JSDoc tag.
+   *
+   * Used by `processModels` to populate `Relations.behaviors` for any model
+   * attribute whose static type is a Behavior class. Plain class types (e.g.
+   * `Date`, custom classes without `@WebdaBehavior`) are intentionally ignored.
+   * @param typeRef - the property's TypeReferenceNode (may be undefined)
+   * @returns the namespaced Behavior identifier, or undefined if not a Behavior
+   */
+  resolveBehaviorIdentifierFromType(typeRef: ts.TypeReferenceNode | undefined): string | undefined {
+    if (!typeRef || !typeRef.typeName) return undefined;
+    const type = this.typeChecker.getTypeAtLocation(typeRef.typeName);
+    const symbol = type.getSymbol();
+    const decl = symbol?.declarations?.find(d => ts.isClassDeclaration(d) || ts.isClassExpression(d)) as
+      | ts.ClassDeclaration
+      | ts.ClassExpression
+      | undefined;
+    if (!decl) return undefined;
+    const behaviorTag = ts.getJSDocTags(decl).find(tag => tag.tagName.escapedText.toString() === "WebdaBehavior");
+    if (!behaviorTag) return undefined;
+
+    // Honour `@WebdaBehavior Foo/Bar` payload override
+    const override = ts.getTextOfJSDocComment(behaviorTag.comment)?.trim();
+    if (override) {
+      const firstToken = override.split(/\s+/).shift();
+      if (firstToken) {
+        return firstToken;
+      }
+    }
+
+    // Fallback: namespace-prefixed class name
+    const className = decl.name?.getText() ?? "";
+    if (!className) return undefined;
+    const project = (this.compiler as any)?.project;
+    if (project && typeof project.completeNamespace === "function") {
+      return project.completeNamespace(className);
+    }
+    return className.includes("/") ? className : `Webda/${className}`;
   }
 
   /**
@@ -1048,12 +1150,14 @@ export class ModuleGenerator {
       moddas: JSONUtils.sortObject(objects.moddas, jsOnly),
       models: this.processModels(objects.models),
       schemas: {},
+      behaviors: {},
       capabilities: this.compiler.project.packageDescription.webda?.capabilities
     };
     // Dispatch schemas
     objects.schemas.generateSchemas(this, mod);
     const plugins = [
       new ActionsMetadata(this),
+      new BehaviorsMetadata(this),
       new CapabilitiesMetadata(this),
       new CommandsMetadata(this),
       new EventsMetadata(this),

@@ -13,7 +13,7 @@ import type { Helpers, SelfJSONed } from "./types";
 import { randomUUID } from "crypto";
 import type { ModelRef } from "./relations";
 import type { Repository } from "./repositories/repository";
-import { ObjectSerializer, registerSerializer, type SerializerContext } from "@webda/serialize";
+import { ObjectSerializer, registerSerializer } from "@webda/serialize";
 import { LoadParameters } from "./types";
 import { RepositoryStorageClassMixIn } from "./repositories/hooks";
 
@@ -30,116 +30,6 @@ export type ExceptPartial<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K
  * Allow simulated delete
  */
 export const WEBDA_DELETED = "__deleted";
-
-/**
- * Module-local registry mapping fully-qualified Behavior identifiers
- * (e.g. "Webda/MFA") to their constructors. Populated at app startup by
- * `Application.loadModule`, which calls `registerBehaviorClass` after each
- * Behavior is dynamically imported.
- *
- * The registry lives inside `@webda/models` (rather than `@webda/core`) so
- * `Model.deserialize` can perform Behavior hydration without importing core
- * — `@webda/core` already depends on `@webda/models`, and the reverse
- * direction would create a circular workspace dependency.
- *
- * @internal
- */
-const behaviorRegistry: Record<string, any> = {};
-
-/**
- * Look up the constructor previously registered for a Behavior identifier.
- *
- * Intentionally NOT exported: only `Model.deserialize` consults the registry.
- * External callers should go through `Application.getBehavior(id)`.
- * @param id - fully qualified Behavior identifier (e.g. "Webda/MFA")
- * @returns the registered constructor, or `undefined` if none was registered
- */
-function lookupBehaviorClass(id: string): any | undefined {
-  return behaviorRegistry[id];
-}
-
-/**
- * Register a Behavior class against its fully-qualified identifier so that
- * `Model.deserialize` can hydrate raw plain-object values into proper
- * Behavior instances when populating a CoreModel.
- *
- * Called once per Behavior by `Application.loadModule` after the Behavior
- * module has been dynamically imported.
- * @param id - fully qualified Behavior identifier (e.g. "Webda/MFA")
- * @param cls - the Behavior class constructor
- */
-export function registerBehaviorClass(id: string, cls: any): void {
-  behaviorRegistry[id] = cls;
-}
-
-/**
- * Hydrate any Behavior-typed attributes on a model instance — coerce raw
- * values (plain objects, null/undefined, or already-correct instances) into
- * proper Behavior instances and wire each one back to its parent model.
- *
- * This helper is shared between `Model.deserialize` (the user-driven `load()`
- * path) and `ModelObjectSerializer` (the store-driven serializer path), so a
- * model loaded from a `MemoryRepository` ends up with the same wired Behavior
- * instances as one populated via `model.load(...)`.
- *
- * Looks up `behaviorRels` on the class's `Metadata.Relations.behaviors`. The
- * compiler populates that array for any model whose attribute type resolves
- * to a `@Behavior()`-decorated class.
- *
- * @param clazz - the model class whose Metadata declares the Behaviors
- * @param instance - the model instance to mutate in-place
- * @internal
- */
-function hydrateBehaviors(clazz: any, instance: any): void {
-  const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined = clazz?.Metadata?.Relations?.behaviors;
-  if (!behaviorRels?.length) return;
-  for (const { attribute, behavior } of behaviorRels) {
-    const BehaviorClass = lookupBehaviorClass(behavior);
-    if (!BehaviorClass) continue;
-    let value = instance[attribute];
-    if (value instanceof BehaviorClass) {
-      // Already the right shape — just (re-)wire the parent reference.
-    } else if (value == null) {
-      value = new BehaviorClass();
-    } else {
-      const fresh = new BehaviorClass();
-      Object.assign(fresh, value);
-      value = fresh;
-    }
-    if (typeof value.setParent === "function") {
-      value.setParent(instance, attribute);
-    }
-    instance[attribute] = value;
-  }
-}
-
-/**
- * `ObjectSerializer` subclass that runs Behavior hydration after the standard
- * field-by-field deserialization pass.
- *
- * The default `ObjectSerializer.deserializer` constructs `new constructor()`
- * and `Object.assign`s the raw fields onto the instance — but does not call
- * `Model.deserialize`, so the Behavior-coercion loop in
- * `Model.deserialize` never fires when a model is loaded from a store
- * (e.g. `MemoryRepository.get` → `@webda/serialize.deserialize` →
- * `ObjectSerializer.deserializer`).
- *
- * This subclass closes that gap: it delegates to the base implementation for
- * the bulk of the work, then runs `hydrateBehaviors` so that `user.mfa` is a
- * wired Behavior instance whether the user came from `model.load(...)` or
- * from a store record. Spec acceptance criterion #2 — round-trip persistence
- * — depends on this.
- *
- * @internal
- */
-class ModelObjectSerializer extends ObjectSerializer {
-  /** @override */
-  deserializer(obj: any, metadata: any, context: SerializerContext): any {
-    const res = super.deserializer(obj, metadata, context);
-    hydrateBehaviors(this.constructorType, res);
-    return res;
-  }
-}
 
 /**
  * Event sent by models
@@ -281,7 +171,11 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
     const typeKey = identifier
       ? `@webda/models/${identifier}`
       : `@webda/models/${this.prototype.constructor.name}`;
-    registerSerializer(typeKey, new ModelObjectSerializer(clazz as any, clazz.getStaticProperties()), overwrite);
+    // The base ObjectSerializer.deserializer is responsible for invoking the
+    // model's compile-time-emitted `__hydrateBehaviors(rawData)` method (when
+    // present), so a model loaded from a store ends up with the same wired
+    // Behavior instances as one populated via `model.load(...)`.
+    registerSerializer(typeKey, new ObjectSerializer(clazz as any, clazz.getStaticProperties()), overwrite);
   }
 
   /**
@@ -379,11 +273,13 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
     }
     Object.assign(instance, info);
 
-    // Hydrate Behavior-typed attributes — see `hydrateBehaviors` for the
-    // shared coercion rules. Centralised so the store-driven path
-    // (`ModelObjectSerializer`) and the load(...)-driven path here apply
-    // identical semantics.
-    hydrateBehaviors(this, instance);
+    // Hydrate Behavior-typed attributes by delegating to the per-model
+    // `__hydrateBehaviors(rawData)` method emitted by the ts-plugin
+    // transformer for any model that declares Behavior-typed properties.
+    // Models without such properties simply lack the method, so the optional
+    // chain makes this a no-op for them. The same call sits inside the base
+    // ObjectSerializer.deserializer so both load paths share the contract.
+    (instance as any).__hydrateBehaviors?.(data);
     return instance;
   }
 

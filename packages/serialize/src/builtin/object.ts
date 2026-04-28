@@ -83,6 +83,15 @@ export class ObjectSerializer implements Serializer<any> {
   /**
    * Deserialize an object, restoring proper types for nested values.
    *
+   * After populating the new instance, this method invokes
+   * `__hydrateBehaviors(rawData)` on the instance when present. Webda model
+   * classes that carry Behavior-typed properties get this method emitted at
+   * compile time by `@webda/ts-plugin`'s behaviors transformer; calling it
+   * here ensures store-load paths (which route through this serializer)
+   * apply the same Behavior coercion as the user-driven `model.load(...)`
+   * path. Instances without the method (plain objects, non-Webda classes)
+   * simply skip the call via the optional chain.
+   *
    * @param obj The raw object from JSON.parse
    * @param metadata The metadata from the serializer
    * @param context The serializer context for handling nested values and references
@@ -112,6 +121,10 @@ export class ObjectSerializer implements Serializer<any> {
         const serializer = context.getSerializer(this.staticProperties[key].type);
         res[key] = serializer.deserializer(obj[key], this.staticProperties[key], context);
       }
+    }
+    // Hand off to the per-model Behavior hydration helper if present.
+    if (typeof (res as any).__hydrateBehaviors === "function") {
+      (res as any).__hydrateBehaviors(obj);
     }
     return res;
   }

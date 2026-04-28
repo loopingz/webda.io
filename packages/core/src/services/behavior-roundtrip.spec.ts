@@ -7,7 +7,7 @@ import { DomainService, DomainServiceParameters } from "./domainservice.js";
 import { callOperation, listFullOperations } from "../core/operations.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { hasSchema, registerSchema, validateModelSchema, ValidationError } from "../schemas/hooks.js";
-import { MemoryRepository, registerBehaviorClass, registerRepository, Repositories } from "@webda/models";
+import { MemoryRepository, registerRepository, Repositories, WEBDA_STORAGE } from "@webda/models";
 import type { Application } from "../application/application.js";
 
 /**
@@ -16,32 +16,23 @@ import type { Application } from "../application/application.js";
  * Spec acceptance criterion #2 (`docs/superpowers/specs/2026-04-26-model-behaviors-design.md`):
  *
  *   "Round-trip: load a model from a store, call a Behavior action that
- *    mutates `this.secret`, the method calls `this.model.save()`, the new
- *    value is persisted in the same nested attribute on the model record."
+ *    mutates `this.secret`, the method calls `this.parent.instance.save()`,
+ *    the new value is persisted in the same nested attribute on the model
+ *    record."
  *
- * The full pipeline exercised here:
+ * After Rework-C, Behavior hydration is driven by a per-model
+ * `__hydrateBehaviors(rawData)` method that the `@webda/ts-plugin`
+ * transformer emits at compile time. There is no longer a runtime registry
+ * of Behavior classes, no `@Behavior()` decorator, and no
+ * `ModelObjectSerializer` subclass — the base `ObjectSerializer.deserializer`
+ * in `@webda/serialize` calls `instance.__hydrateBehaviors?.(rawData)` for
+ * every Webda-model deserialization.
  *
- *   1. `MemoryRepository.create(...)` writes a User record to the store.
- *   2. `MemoryRepository.get(...)` (the store-load path) routes raw record
- *      bytes through `@webda/serialize.deserialize`. Because
- *      `Model.registerSerializer` now installs a `ModelObjectSerializer`
- *      (model.ts) the deserialization runs `hydrateBehaviors`, so
- *      `user.mfa` comes back as a real `FakeMFA` instance with the parent
- *      reference wired — *not* a plain object.
- *   3. The Behavior method mutates `this.secret`, then calls
- *      `this.model.save()`. The model.save() goes through the repository
- *      and re-serializes, persisting the mutated nested attribute.
- *   4. A subsequent `MemoryRepository.get(...)` returns the updated state.
- *
- * The previous gap (flagged in Task 9) was step #2 — the store load did NOT
- * route through `Model.deserialize` and therefore did not run Behavior
- * hydration. That meant the reloaded `user.mfa` was a plain object whose
- * `.set()` method did not exist, breaking AC#2 outside of the hand-rolled
- * dispatcher tests. Closing that gap is what this test guards.
- *
- * The test fixtures (FakeMFA + the metadata patching) are the same shape as
- * `domainservice-behaviors.spec.ts` so the dispatcher half of the pipeline
- * matches the unit-tested contract.
+ * Because vitest does not run `@webda/ts-plugin` on inline test fixtures,
+ * the helpers below hand-roll the post-transformer shape: each fixture
+ * Behavior class manually carries a `[WEBDA_STORAGE]` slot and a `parent`
+ * getter, and the User class is patched with a `__hydrateBehaviors` method
+ * that mimics the per-attribute coercion the transformer would emit.
  */
 @suite
 class BehaviorRoundtripTest extends WebdaApplicationTest {
@@ -60,20 +51,75 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
   }
 
   /**
-   * Inject a Behavior into the loaded application's behaviors registry and
-   * splice a `behaviors` relation into the User model metadata. Identical
-   * shape to the dispatcher tests so the operation/REST registration path
-   * behaves the same.
+   * Hand-roll a `__hydrateBehaviors(rawData)` method onto the model class's
+   * prototype, mirroring the body the `@webda/ts-plugin` transformer emits
+   * at compile time. For each `(attribute, BehaviorClass)` pair the method:
    *
-   * Returns an undo callback that restores the original Metadata so tests
-   * don't leak into each other.
-   * @param FakeMFA - the behavior class to register
+   *   1. Reads the candidate value from `this[attribute]` (already populated
+   *      by `Object.assign(instance, rawData)`) or from `rawData[attribute]`
+   *      when present.
+   *   2. Coerces it into a real Behavior instance: keeps it as-is if it is
+   *      already one, or `Object.assign`s its fields onto a fresh instance.
+   *   3. Stamps the parent reference into the Behavior's WEBDA_STORAGE slot
+   *      under the `"__parent__"` key — same key the transformer uses.
+   *   4. Writes the coerced instance back to `this[attribute]`.
+   *
+   * Returns an undo callback that removes the patched method so tests don't
+   * leak across each other.
+   *
+   * @param ModelClass - the model class to patch
+   * @param attrs - the (attribute, Behavior class) pairs to wire
+   */
+  private installHydrateBehaviors(
+    ModelClass: any,
+    attrs: Array<{ attribute: string; Class: any }>
+  ): () => void {
+    const previous = Object.getOwnPropertyDescriptor(ModelClass.prototype, "__hydrateBehaviors");
+    Object.defineProperty(ModelClass.prototype, "__hydrateBehaviors", {
+      value: function __hydrateBehaviors(rawData?: any) {
+        for (const { attribute, Class } of attrs) {
+          let v: any = (this as any)[attribute];
+          if (rawData != null && rawData[attribute] !== undefined) {
+            v = rawData[attribute];
+          }
+          if (!(v instanceof Class)) {
+            const inst = new Class();
+            if (v != null) Object.assign(inst, v);
+            v = inst;
+          }
+          v[WEBDA_STORAGE] = v[WEBDA_STORAGE] || {};
+          v[WEBDA_STORAGE]["__parent__"] = { instance: this, attribute };
+          (this as any)[attribute] = v;
+        }
+      },
+      enumerable: false,
+      configurable: true,
+      writable: true
+    });
+    return () => {
+      if (previous) {
+        Object.defineProperty(ModelClass.prototype, "__hydrateBehaviors", previous);
+      } else {
+        delete ModelClass.prototype.__hydrateBehaviors;
+      }
+    };
+  }
+
+  /**
+   * Splice a single `(attribute, behavior)` Behavior relation onto the User
+   * model metadata + register the Behavior's metadata blob in the
+   * application registry. The class is also wired into the User prototype
+   * via a hand-rolled `__hydrateBehaviors` so deserialization coerces
+   * `user.mfa` (or whatever attribute) into a real Behavior instance.
+   *
+   * Returns an undo callback that restores the original Metadata, the
+   * application registry, and the prototype.
+   * @param FakeMFA - the behavior class whose instance methods get wired up
    */
   private patchUserWithMfaBehavior(FakeMFA: any): () => void {
     const app = useApplication<Application>() as any;
     const previousBehavior = app.behaviors["Test/MFA"];
     app.behaviors["Test/MFA"] = {
-      class: FakeMFA,
       metadata: {
         Identifier: "Test/MFA",
         Import: "fake:FakeMFA",
@@ -83,10 +129,6 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
         }
       }
     };
-    // Wire the class into the models-package registry so that
-    // CoreModel.deserialize AND ModelObjectSerializer.deserializer both
-    // hydrate `user.mfa` as a FakeMFA instance.
-    registerBehaviorClass("Test/MFA", FakeMFA);
     const User = useModel("User") as any;
     const previousMetadata = User.Metadata;
     User.Metadata = Object.freeze({
@@ -96,7 +138,9 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
         behaviors: [{ attribute: "mfa", behavior: "Test/MFA" }]
       }
     });
+    const restoreHydrate = this.installHydrateBehaviors(User, [{ attribute: "mfa", Class: FakeMFA }]);
     return () => {
+      restoreHydrate();
       User.Metadata = previousMetadata;
       if (previousBehavior === undefined) {
         delete app.behaviors["Test/MFA"];
@@ -115,10 +159,9 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
    * @returns an undo callback that restores the previous repository binding
    */
   private wireMemoryRepository(User: any): () => void {
-    // Re-register the serializer with the current (patched) metadata. The
-    // serializer captures `clazz.getStaticProperties()` at registration time,
-    // so re-registering here ensures the ModelObjectSerializer uses the
-    // newest Metadata for hydrateBehaviors.
+    // Re-register the serializer so it captures the current
+    // (patched) `getStaticProperties()` snapshot. The base
+    // ObjectSerializer.deserializer handles `__hydrateBehaviors` invocation.
     User.registerSerializer(true, User.Metadata?.Identifier);
     const previousRepo = Repositories.get(User);
     const repo = new MemoryRepository(User, ["uuid"]);
@@ -136,43 +179,33 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
    * AC#2 — round-trip the mutation through a real MemoryRepository.
    *
    * This is the smallest test that exercises the full pipeline a real app
-   * sees: Behavior method runs → `this.model.save()` → store re-serialize →
-   * subsequent `.get()` reads back hydrated state.
+   * sees: Behavior method runs → `this.parent.instance.save()` → store
+   * re-serialize → subsequent `.get()` reads back hydrated state.
    */
   @test
   async behaviorMutationPersistsThroughStoreRoundTrip() {
     /**
-     * Behavior class with the same shape the spec uses for MFA: `set()`
-     * mutates `this.secret`, calls `this.model.save()`. We capture call
-     * counts to confirm the persistence rule fires once per call.
+     * Behavior class with the same shape the transformer emits at compile
+     * time: a `[WEBDA_STORAGE]` slot, a `parent` getter that reads the
+     * `__parent__` slot, and a `toJSON` that excludes that slot from the
+     * serialized output. The `set()` and `verify()` instance methods mirror
+     * a real MFA Behavior — `set` mutates `this.secret` and saves through
+     * the parent reference.
      */
     class FakeMFA {
+      [WEBDA_STORAGE]: Record<string, any> = {};
       secret?: string;
       lastVerified?: number;
 
-      // The `model` and `attribute` accessors are normally installed by
-      // `@Behavior()`. In real code that decorator runs at class definition.
-      // We simulate the runtime contract here so the test is hermetic from
-      // the @Behavior() decorator (which is exercised elsewhere — see
-      // behaviors.spec.ts).
-      setParent(model: any, attribute: string): void {
-        Object.defineProperty(this, "__parent", {
-          value: { model, attribute },
-          enumerable: false,
-          configurable: true,
-          writable: true
-        });
+      get parent(): { instance: any; attribute: string } | undefined {
+        return this[WEBDA_STORAGE]["__parent__"];
       }
-      get model(): any {
-        return (this as any).__parent?.model;
-      }
-      get attribute(): string | undefined {
-        return (this as any).__parent?.attribute;
-      }
-      // toJSON strips the parent slot — same rule the real decorator installs.
       toJSON(): any {
         const out: any = {};
         for (const key of Object.keys(this)) out[key] = (this as any)[key];
+        for (const key of Object.keys(this[WEBDA_STORAGE])) {
+          if (key !== "__parent__") out[key] = this[WEBDA_STORAGE][key];
+        }
         return out;
       }
 
@@ -180,7 +213,7 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
         this.secret = secret;
         // Spec requires the method to call save(); persistence is the
         // method's responsibility.
-        await this.model.save();
+        await this.parent!.instance.save();
       }
 
       async verify(_totp: string): Promise<boolean> {
@@ -188,7 +221,7 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
         // hydrated Behavior instance can read its persisted state on reload.
         if (!this.secret) return false;
         this.lastVerified = Date.now();
-        await this.model.save();
+        await this.parent!.instance.save();
         return true;
       }
     }
@@ -204,26 +237,27 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
       const created = await User.create({ uuid, name: "Alice" } as any, true);
       assert.strictEqual(created.uuid, uuid);
 
-      // 2. Reload from the store. With ModelObjectSerializer wired in, the
-      //    reloaded user has `mfa` as a FakeMFA instance with the parent
-      //    reference set — even though `mfa` was never written by us.
+      // 2. Reload from the store. With ObjectSerializer.deserializer calling
+      //    `__hydrateBehaviors`, the reloaded user has `mfa` as a FakeMFA
+      //    instance with the parent reference set — even though `mfa` was
+      //    never written by us.
       const reloaded = await User.ref(uuid).get();
       assert.ok(reloaded, "reloaded user must exist");
       assert.ok(
         reloaded.mfa instanceof FakeMFA,
         `expected reloaded.mfa to be FakeMFA, got ${reloaded.mfa?.constructor?.name}`
       );
-      assert.strictEqual(reloaded.mfa.model, reloaded, "Behavior parent must point at the reloaded user");
-      assert.strictEqual(reloaded.mfa.attribute, "mfa");
+      assert.strictEqual(reloaded.mfa.parent?.instance, reloaded, "Behavior parent must point at the reloaded user");
+      assert.strictEqual(reloaded.mfa.parent?.attribute, "mfa");
 
       // 3. Mutate via the Behavior method. The method writes this.secret then
-      //    calls this.model.save() — that's the spec rule.
+      //    calls this.parent.instance.save() — that's the spec rule.
       await reloaded.mfa.set("S", "111111", "222222");
       assert.strictEqual(reloaded.mfa.secret, "S", "in-memory mutation must take effect");
 
       // 4. Reload AGAIN from the store and confirm the new secret is in the
       //    persisted record. This is the proof of AC#2 — a Behavior method
-      //    that calls this.model.save() actually persists.
+      //    that calls save() actually persists.
       const second = await User.ref(uuid).get();
       assert.ok(second.mfa instanceof FakeMFA, "second reload must rehydrate a Behavior instance");
       assert.strictEqual(second.mfa.secret, "S", "secret must persist across the round-trip");
@@ -257,38 +291,26 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
    * registry. Same persistence guarantees, but driven through
    * `callOperation("User.Mfa.Set", ...)` so the dispatcher (Task 9) and the
    * persistence pipeline (this task) are exercised together.
-   *
-   * This is the closest a unit test can get to the REST scenario without
-   * needing a Router setup — the dispatcher resolves args from the input
-   * schema, runs canAct, calls the Behavior method, and the method's
-   * `this.model.save()` writes back to the same MemoryRepository.
    */
   @test
   async behaviorMutationPersistsViaCallOperation() {
     class FakeMFA {
+      [WEBDA_STORAGE]: Record<string, any> = {};
       secret?: string;
-      setParent(model: any, attribute: string): void {
-        Object.defineProperty(this, "__parent", {
-          value: { model, attribute },
-          enumerable: false,
-          configurable: true,
-          writable: true
-        });
-      }
-      get model(): any {
-        return (this as any).__parent?.model;
-      }
-      get attribute(): string | undefined {
-        return (this as any).__parent?.attribute;
+      get parent(): { instance: any; attribute: string } | undefined {
+        return this[WEBDA_STORAGE]["__parent__"];
       }
       toJSON(): any {
         const out: any = {};
         for (const key of Object.keys(this)) out[key] = (this as any)[key];
+        for (const key of Object.keys(this[WEBDA_STORAGE])) {
+          if (key !== "__parent__") out[key] = this[WEBDA_STORAGE][key];
+        }
         return out;
       }
       async set(secret: string, _totp1?: string, _totp2?: string): Promise<void> {
         this.secret = secret;
-        await this.model.save();
+        await this.parent!.instance.save();
       }
       async verify(): Promise<boolean> {
         return true;
@@ -351,7 +373,7 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
       await callOperation(ctx, "User.Mfa.Set");
 
       // The dispatcher invoked FakeMFA.set, which mutated this.secret and
-      // called this.model.save(). The store record must reflect that.
+      // called this.parent.instance.save(). The store record must reflect that.
       const reloaded = await User.ref(uuid).get();
       assert.ok(reloaded.mfa instanceof FakeMFA, "reloaded user must have a hydrated Behavior");
       assert.strictEqual(reloaded.mfa.secret, "TOPSECRET", "secret set via callOperation must persist");
@@ -368,14 +390,12 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
 
   /**
    * Multi-behavior helper — install N behavior identifiers in the application
-   * registry plus N attribute relations on the User Metadata. The shape mirrors
-   * `patchUserWithMfaBehavior` but accepts an arbitrary list of (attribute,
-   * identifier, class, actions) tuples so the same model can carry multiple
-   * Behaviors of different shapes — or the same Behavior on multiple
+   * registry plus N attribute relations on the User Metadata, and patch a
+   * `__hydrateBehaviors` method onto User that handles every attribute. The
+   * shape mirrors `patchUserWithMfaBehavior` but accepts an arbitrary list of
+   * (attribute, identifier, class, actions) tuples so the same model can carry
+   * multiple Behaviors of different shapes — or the same Behavior on multiple
    * attributes (AC#6 second half).
-   *
-   * Returns an undo callback that restores the previous Metadata + behavior
-   * registry entries so tests don't leak into each other.
    *
    * @param entries - one entry per (attribute, behavior) pair to wire up
    * @returns an undo callback restoring the previous state
@@ -396,14 +416,12 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
       seenIds.add(e.identifier);
       previousBehaviors[e.identifier] = app.behaviors[e.identifier];
       app.behaviors[e.identifier] = {
-        class: e.Class,
         metadata: {
           Identifier: e.identifier,
           Import: `fake:${e.identifier}`,
           Actions: e.actions
         }
       };
-      registerBehaviorClass(e.identifier, e.Class);
     }
     const User = useModel("User") as any;
     const previousMetadata = User.Metadata;
@@ -414,7 +432,12 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
         behaviors: entries.map(e => ({ attribute: e.attribute, behavior: e.identifier }))
       }
     });
+    const restoreHydrate = this.installHydrateBehaviors(
+      User,
+      entries.map(e => ({ attribute: e.attribute, Class: e.Class }))
+    );
     return () => {
+      restoreHydrate();
       User.Metadata = previousMetadata;
       for (const [id, prev] of Object.entries(previousBehaviors)) {
         if (prev === undefined) {
@@ -435,13 +458,6 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
    * so we register a synthetic schema that mirrors what the compiler would
    * emit and assert that AJV (the validation back-end) rejects invalid
    * Behavior state.
-   *
-   * Concretely the schema requires `mfa.secret: string` — feeding AJV a User
-   * object whose `mfa` is missing `secret` (or has the wrong type) must throw
-   * `ValidationError`. The valid case must pass cleanly. This is the
-   * runtime-level proof of AC#5; the compile-time half is covered by the
-   * compiler tests + the existing Schema-generation pipeline that already
-   * walks property types.
    */
   @test
   async behaviorFieldsParticipateInParentJSONSchemaValidation() {
@@ -531,38 +547,26 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
    * AC#6 (first half) — a model with two distinct Behaviors works
    * independently. Both contribute their own operations, both persist their
    * own state, neither's mutations bleed into the other.
-   *
-   * Fixture: User with `mfa: FakeMFA` and `audit: FakeAudit`. We exercise
-   * each Behavior method through the full round-trip pipeline and confirm
-   * that operations like `User.Mfa.Set` and `User.Audit.Record` both exist
-   * and mutate only their own attribute.
    */
   @test
   async multipleBehaviorsOnOneModelOperateIndependently() {
     class FakeMFA {
+      [WEBDA_STORAGE]: Record<string, any> = {};
       secret?: string;
-      setParent(model: any, attribute: string): void {
-        Object.defineProperty(this, "__parent", {
-          value: { model, attribute },
-          enumerable: false,
-          configurable: true,
-          writable: true
-        });
-      }
-      get model(): any {
-        return (this as any).__parent?.model;
-      }
-      get attribute(): string | undefined {
-        return (this as any).__parent?.attribute;
+      get parent(): { instance: any; attribute: string } | undefined {
+        return this[WEBDA_STORAGE]["__parent__"];
       }
       toJSON(): any {
         const out: any = {};
         for (const key of Object.keys(this)) out[key] = (this as any)[key];
+        for (const key of Object.keys(this[WEBDA_STORAGE])) {
+          if (key !== "__parent__") out[key] = this[WEBDA_STORAGE][key];
+        }
         return out;
       }
       async set(secret: string): Promise<void> {
         this.secret = secret;
-        await this.model.save();
+        await this.parent!.instance.save();
       }
       async verify(): Promise<boolean> {
         return !!this.secret;
@@ -570,29 +574,22 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
     }
 
     class FakeAudit {
+      [WEBDA_STORAGE]: Record<string, any> = {};
       entries: string[] = [];
-      setParent(model: any, attribute: string): void {
-        Object.defineProperty(this, "__parent", {
-          value: { model, attribute },
-          enumerable: false,
-          configurable: true,
-          writable: true
-        });
-      }
-      get model(): any {
-        return (this as any).__parent?.model;
-      }
-      get attribute(): string | undefined {
-        return (this as any).__parent?.attribute;
+      get parent(): { instance: any; attribute: string } | undefined {
+        return this[WEBDA_STORAGE]["__parent__"];
       }
       toJSON(): any {
         const out: any = {};
         for (const key of Object.keys(this)) out[key] = (this as any)[key];
+        for (const key of Object.keys(this[WEBDA_STORAGE])) {
+          if (key !== "__parent__") out[key] = this[WEBDA_STORAGE][key];
+        }
         return out;
       }
       async record(message: string): Promise<void> {
         this.entries.push(message);
-        await this.model.save();
+        await this.parent!.instance.save();
       }
     }
 
@@ -643,12 +640,12 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
       const reloaded = await User.ref(uuid).get();
       assert.ok(reloaded.mfa instanceof FakeMFA, "mfa must hydrate as FakeMFA");
       assert.ok(reloaded.audit instanceof FakeAudit, "audit must hydrate as FakeAudit");
-      assert.strictEqual(reloaded.mfa.attribute, "mfa");
-      assert.strictEqual(reloaded.audit.attribute, "audit");
+      assert.strictEqual(reloaded.mfa.parent?.attribute, "mfa");
+      assert.strictEqual(reloaded.audit.parent?.attribute, "audit");
 
       // Mutate each Behavior independently. The persistence test is critical:
-      // each method calls this.model.save() and that single save must capture
-      // BOTH attributes' state — not just the one being mutated.
+      // each method calls save() and that single save must capture BOTH
+      // attributes' state — not just the one being mutated.
       await reloaded.mfa.set("MFA-SECRET");
       await reloaded.audit.record("login");
       await reloaded.audit.record("logout");
@@ -678,40 +675,28 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
   /**
    * AC#6 (second half) — the SAME Behavior class on two attributes of one
    * model. Each attribute holds its own independent state and exposes its
-   * own operation namespace; the parent reference (`this.attribute`) tells
-   * each instance which slot it sits in.
-   *
-   * Fixture: User with `primaryMfa: FakeMFA` and `backupMfa: FakeMFA`. We
-   * confirm both `User.PrimaryMfa.Verify` and `User.BackupMfa.Verify` are
-   * registered, that mutations don't bleed across attributes, and that on
-   * reload each instance re-binds with the correct `attribute` value.
+   * own operation namespace; the parent reference (`this.parent.attribute`)
+   * tells each instance which slot it sits in.
    */
   @test
   async sameBehaviorClassOnTwoAttributesIsIndependent() {
     class FakeMFA {
+      [WEBDA_STORAGE]: Record<string, any> = {};
       secret?: string;
-      setParent(model: any, attribute: string): void {
-        Object.defineProperty(this, "__parent", {
-          value: { model, attribute },
-          enumerable: false,
-          configurable: true,
-          writable: true
-        });
-      }
-      get model(): any {
-        return (this as any).__parent?.model;
-      }
-      get attribute(): string | undefined {
-        return (this as any).__parent?.attribute;
+      get parent(): { instance: any; attribute: string } | undefined {
+        return this[WEBDA_STORAGE]["__parent__"];
       }
       toJSON(): any {
         const out: any = {};
         for (const key of Object.keys(this)) out[key] = (this as any)[key];
+        for (const key of Object.keys(this[WEBDA_STORAGE])) {
+          if (key !== "__parent__") out[key] = this[WEBDA_STORAGE][key];
+        }
         return out;
       }
       async set(secret: string): Promise<void> {
         this.secret = secret;
-        await this.model.save();
+        await this.parent!.instance.save();
       }
       async verify(): Promise<boolean> {
         return !!this.secret;
@@ -780,10 +765,10 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
       // Different JS instances, despite being the same class — proves they
       // aren't aliasing each other through some shared singleton.
       assert.notStrictEqual(reloaded.primaryMfa, reloaded.backupMfa, "two attributes must produce two instances");
-      assert.strictEqual(reloaded.primaryMfa.attribute, "primaryMfa");
-      assert.strictEqual(reloaded.backupMfa.attribute, "backupMfa");
-      assert.strictEqual(reloaded.primaryMfa.model, reloaded);
-      assert.strictEqual(reloaded.backupMfa.model, reloaded);
+      assert.strictEqual(reloaded.primaryMfa.parent?.attribute, "primaryMfa");
+      assert.strictEqual(reloaded.backupMfa.parent?.attribute, "backupMfa");
+      assert.strictEqual(reloaded.primaryMfa.parent?.instance, reloaded);
+      assert.strictEqual(reloaded.backupMfa.parent?.instance, reloaded);
 
       // Mutate only the primary slot.
       await reloaded.primaryMfa.set("P");
@@ -800,8 +785,8 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
       const third = await User.ref(uuid).get();
       assert.strictEqual(third.primaryMfa.secret, "P", "primary must not be clobbered by backup mutation");
       assert.strictEqual(third.backupMfa.secret, "B", "backup's secret must persist");
-      assert.strictEqual(third.primaryMfa.attribute, "primaryMfa");
-      assert.strictEqual(third.backupMfa.attribute, "backupMfa");
+      assert.strictEqual(third.primaryMfa.parent?.attribute, "primaryMfa");
+      assert.strictEqual(third.backupMfa.parent?.attribute, "backupMfa");
     } finally {
       restoreRepo();
       restore();

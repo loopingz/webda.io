@@ -13,7 +13,6 @@ import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import * as WebdaError from "../errors/errors.js";
 import type { Application } from "../application/application.js";
-import { registerBehaviorClass } from "@webda/models";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
 
 /**
@@ -59,11 +58,10 @@ class RESTBehaviorsTest extends WebdaApplicationTest {
    *
    * @param FakeMFA - the behavior class to register; defaults to a no-op stub
    */
-  private patchUserWithMfaBehavior(FakeMFA: any = class FakeMFA { verify() {} set() {} }): () => void {
+  private patchUserWithMfaBehavior(_FakeMFA: any = class FakeMFA { verify() {} set() {} }): () => void {
     const app = useApplication<Application>() as any;
     const previousBehavior = app.behaviors["Test/MFA"];
     app.behaviors["Test/MFA"] = {
-      class: FakeMFA,
       metadata: {
         Identifier: "Test/MFA",
         Import: "fake:FakeMFA",
@@ -73,7 +71,6 @@ class RESTBehaviorsTest extends WebdaApplicationTest {
         }
       }
     };
-    registerBehaviorClass("Test/MFA", FakeMFA);
     const User = useModel("User") as any;
     const previousMetadata = User.Metadata;
     User.Metadata = Object.freeze({

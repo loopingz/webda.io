@@ -10,7 +10,6 @@ import type { Application } from "../application/application.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
-import { registerBehaviorClass } from "@webda/models";
 
 /**
  * Task 8: addBehaviorOperations registers one operation per Behavior action
@@ -18,10 +17,10 @@ import { registerBehaviorClass } from "@webda/models";
  * the operation registry.
  *
  * This spec patches the loaded sample-app User model with a hand-rolled
- * Behavior relation pointing at a hand-rolled Behavior metadata blob. We don't
- * compile a real Behavior class here — Task 6/7 already cover loadModule and
- * hydration; here we only verify that DomainService picks the metadata up and
- * registers operations with the right shape.
+ * Behavior relation pointing at a hand-rolled Behavior metadata blob. The
+ * tests stub `User.ref(...)` so the dispatcher resolves directly to a fake
+ * user instance carrying a fake Behavior — no runtime class hydration is
+ * needed here, the operation registration logic only consults the metadata.
  */
 @suite
 class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
@@ -46,18 +45,19 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
    * without needing a real source file. Returns an undo callback that restores
    * the original Metadata so tests don't leak state into each other.
    *
-   * The injected `FakeMFA` class is also registered in the model-side behavior
-   * registry so that `Model.deserialize` (Task 7) hydrates `user.mfa` into a
-   * real `FakeMFA` instance — the dispatcher we are testing relies on that
-   * hydration.
+   * Only the metadata blob is wired — there is no runtime registry of
+   * Behavior classes any more (the per-model `__hydrateBehaviors` method
+   * emitted at compile time holds the static class reference). The test
+   * stubs `User.ref(...)` so the dispatcher resolves to a fake user that
+   * already carries a fake Behavior instance.
    *
-   * @param FakeMFA - the behavior class to register (defaults to a no-op stub)
+   * @param _FakeMFA - kept as the parameter name for backwards readability;
+   *   ignored by the registry since runtime class lookup no longer exists.
    */
-  private patchUserWithMfaBehavior(FakeMFA: any = class FakeMFA { verify() {} set() {} }): () => void {
+  private patchUserWithMfaBehavior(_FakeMFA: any = class FakeMFA { verify() {} set() {} }): () => void {
     const app = useApplication<Application>() as any;
     const previousBehavior = app.behaviors["Test/MFA"];
     app.behaviors["Test/MFA"] = {
-      class: FakeMFA,
       metadata: {
         Identifier: "Test/MFA",
         Import: "fake:FakeMFA",
@@ -67,9 +67,6 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
         }
       }
     };
-    // Wire the class into the models-package registry so that
-    // CoreModel.deserialize hydrates instance.mfa as a FakeMFA instance.
-    registerBehaviorClass("Test/MFA", FakeMFA);
     const User = useModel("User") as any;
     const previousMetadata = User.Metadata;
     User.Metadata = Object.freeze({

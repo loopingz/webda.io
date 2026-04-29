@@ -7,6 +7,7 @@ import * as WebdaError from "../errors/errors.js";
 import { useRouter } from "./hooks.js";
 import { useApplication } from "../application/hooks.js";
 import { useCore, useModelMetadata } from "../core/hooks.js";
+import { useInstanceStorage } from "../core/instancestorage.js";
 import { callOperation } from "../core/operations.js";
 import { WebContext } from "../contexts/webcontext.js";
 import type { HttpMethodType } from "../contexts/httpcontext.js";
@@ -1079,21 +1080,23 @@ export class RESTOperationsTransport<
 
   /**
    * Register routes for every `@Action` on every Behavior attribute of a
-   * model. The URL pattern is `{prefix}/{uuid}/{attribute}.{action}` — the
-   * dot between `attribute` and `action` is intentional and disambiguates
-   * Behavior calls from nested-resource routing (which uses slash-separated
-   * segments).
+   * model. The default URL pattern is `{prefix}/{uuid}/{attribute}.{action}`
+   * (PUT) — the dot disambiguates Behavior calls from nested-resource routing.
+   *
+   * Authors can override the route via `@Action({ rest: { route, method } })`.
+   * `addBehaviorOperations` resolves that hint and writes the final
+   * `rest.method`/`rest.path` on the registered operation; this method just
+   * mirrors what's there, falling back to the dot-notation default if no
+   * hint was set.
    *
    * Each route dispatches the registered behavior operation
-   * (`{ShortId}.{AttributeCap}.{ActionCap}`) declared by Task 8's
-   * `addBehaviorOperations`. The dispatcher itself (Task 9's
-   * `modelBehaviorAction`) handles model load, `canAct` gating, and method
+   * (`{ShortId}.{AttributeCap}.{ActionCap}`). The dispatcher itself
+   * (`modelBehaviorAction`) handles model load, `canAct` gating, and method
    * invocation — this method only wires the HTTP surface.
    *
-   * v1 surface is PUT-only by design: the operation registry hard-codes
-   * `rest.method = "put"` and we mirror that here. Schema decoration on the
-   * OpenAPI doc is best-effort — we lean on `hasSchema()` (the AJV registry)
-   * to decide whether to emit `requestBody` / `responses` `$ref`s.
+   * Schema decoration on the OpenAPI doc is best-effort — we lean on
+   * `hasSchema()` (the AJV registry) to decide whether to emit
+   * `requestBody` / `responses` `$ref`s.
    *
    * @param prefix - the URL prefix for this model (e.g. `/api/users`)
    * @param shortId - the short model identifier (e.g. `User`)
@@ -1118,12 +1121,24 @@ export class RESTOperationsTransport<
     }
     const attributeCap = behavior.attribute.substring(0, 1).toUpperCase() + behavior.attribute.substring(1);
 
+    const ops = useInstanceStorage().operations;
     Object.keys(behaviorMeta.Actions || {}).forEach(actionName => {
       const actionCap = actionName.substring(0, 1).toUpperCase() + actionName.substring(1);
       const operationId = `${shortId}.${attributeCap}.${actionCap}`;
 
+      // Read REST hints from the registered operation. addBehaviorOperations
+      // resolves the action's `rest: { route, method }` decorator option (if
+      // any) and writes the final method+path here, so we just mirror it.
+      const op = ops?.[operationId];
+      const restHint = op?.rest && typeof op.rest === "object" ? op.rest : undefined;
+      const httpMethod = ((restHint?.method ?? "put") as string).toUpperCase() as HttpMethodType;
+      const methodKey = httpMethod.toLowerCase();
+      // `rest.path` is relative to the model prefix and starts with `{uuid}/`.
+      const relativePath = restHint?.path ?? `{uuid}/${behavior.attribute}.${actionName}`;
+      const fullPath = `${prefix}/${relativePath}`;
+
       const openapi: OpenAPIWebdaDefinition = {
-        put: {
+        [methodKey]: {
           tags: [shortId],
           summary: `${actionCap} on ${shortId}.${behavior.attribute}`,
           operationId
@@ -1132,7 +1147,7 @@ export class RESTOperationsTransport<
       const inputSchema = `${behavior.behavior}.${actionName}.input`;
       const outputSchema = `${behavior.behavior}.${actionName}.output`;
       if (hasSchema(inputSchema)) {
-        openapi.put.requestBody = {
+        openapi[methodKey].requestBody = {
           content: {
             "application/json": {
               schema: {
@@ -1143,7 +1158,7 @@ export class RESTOperationsTransport<
         };
       }
       if (hasSchema(outputSchema)) {
-        openapi.put.responses = {
+        openapi[methodKey].responses = {
           "200": {
             description: "Operation success",
             content: {
@@ -1158,8 +1173,8 @@ export class RESTOperationsTransport<
       }
 
       this.addRoute(
-        `${prefix}/{uuid}/${behavior.attribute}.${actionName}`,
-        ["PUT"],
+        fullPath,
+        [httpMethod],
         async (context: WebContext) => callOperation(context, operationId),
         openapi
       );

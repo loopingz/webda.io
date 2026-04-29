@@ -241,6 +241,24 @@ export interface ModelMetadata {
        * If true, the action is global (static method) rather than per-instance
        */
       global?: boolean;
+      /**
+       * Behavior-only: per-action REST hint that overrides the default
+       * `{prefix}/{uuid}/{attribute}.{actionName}` PUT mapping.
+       *
+       * - `route === "."` → URL is the bare attribute path
+       *   `{prefix}/{uuid}/{attribute}`.
+       * - `route === "<suffix>"` → URL is
+       *   `{prefix}/{uuid}/{attribute}/<suffix>`. Path templates such as
+       *   `"{hash}"` or `"{index}/{hash}"` are passed through unchanged so
+       *   the router treats them as path variables.
+       * - `route === undefined` → URL falls back to the dot-notation default.
+       *
+       * `method` defaults to `"PUT"`.
+       */
+      rest?: {
+        route?: string;
+        method?: string;
+      };
     };
   };
 }

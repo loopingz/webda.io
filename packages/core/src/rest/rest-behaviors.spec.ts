@@ -311,6 +311,213 @@ class RESTBehaviorsTest extends WebdaApplicationTest {
   }
 
   /**
+   * Splice a Behavior with a single action whose `rest` metadata is the
+   * given hint (or none, if `rest` is undefined). Returns a restore() fn,
+   * the User model, and the spun-up transport instance.
+   *
+   * Hand-rolled metadata (rather than running the ts-plugin transformer on
+   * inline sources) is the same trick `patchUserWithMfaBehavior` uses — the
+   * test environment does not run the compiler.
+   */
+  private async setupBehaviorWithRest(
+    actionName: string,
+    rest: { route?: string; method?: string } | undefined,
+    transportName: string,
+    urlPrefix: string
+  ): Promise<{ restore: () => void; User: any; transport: RESTOperationsTransport }> {
+    const app = useApplication<Application>() as any;
+    const previousBehavior = app.behaviors["Test/MFA"];
+    const actionMeta: any = {};
+    if (rest !== undefined) actionMeta.rest = rest;
+    app.behaviors["Test/MFA"] = {
+      metadata: {
+        Identifier: "Test/MFA",
+        Import: "fake:FakeMFA",
+        Actions: { [actionName]: actionMeta }
+      }
+    };
+
+    const User = useModel("User") as any;
+    const previousMetadata = User.Metadata;
+    User.Metadata = Object.freeze({
+      ...previousMetadata,
+      Relations: {
+        ...(previousMetadata.Relations || {}),
+        behaviors: [{ attribute: "mfa", behavior: "Test/MFA" }]
+      }
+    });
+
+    // Reset operations registry and rebuild
+    const ops = useInstanceStorage().operations!;
+    for (const k of Object.keys(ops)) delete ops[k];
+    const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
+    useInstanceStorage().core!.getServices()["DomainService"] = service;
+    service.initOperations();
+
+    const transport = new RESTOperationsTransport(
+      transportName,
+      new RESTOperationsTransportParameters().load({ url: urlPrefix, exposeOpenAPI: false })
+    );
+    this.registerService(transport);
+    transport.resolve();
+    await transport.init();
+
+    const restore = () => {
+      User.Metadata = previousMetadata;
+      if (previousBehavior === undefined) {
+        delete app.behaviors["Test/MFA"];
+      } else {
+        app.behaviors["Test/MFA"] = previousBehavior;
+      }
+    };
+    return { restore, User, transport };
+  }
+
+  /**
+   * Default (no rest hint) keeps the dot-notation URL and PUT.
+   */
+  @test
+  async defaultRouteIsDotNotationPut() {
+    const { restore } = await this.setupBehaviorWithRest("verify", undefined, "RESTRestDefault", "/r0/");
+    try {
+      const doc = useRouter().exportOpenAPI(true);
+      const path = "/r0/companies/{pid.0}/users/{uuid}/mfa.verify";
+      assert.ok(doc.paths[path], `expected ${path} in paths, got: ${Object.keys(doc.paths).join(", ")}`);
+      assert.ok((doc.paths[path] as any).put, "expected PUT operation");
+    } finally {
+      restore();
+    }
+  }
+
+  /**
+   * `rest: { route: ".", method: "GET" }` exposes the bare attribute path
+   * with GET.
+   */
+  @test
+  async restRouteDotMapsToBareAttributeGet() {
+    const { restore } = await this.setupBehaviorWithRest(
+      "get",
+      { route: ".", method: "GET" },
+      "RESTRestDot",
+      "/r1/"
+    );
+    try {
+      const doc = useRouter().exportOpenAPI(true);
+      const path = "/r1/companies/{pid.0}/users/{uuid}/mfa";
+      assert.ok(doc.paths[path], `expected ${path} in paths, got: ${Object.keys(doc.paths).join(", ")}`);
+      assert.ok((doc.paths[path] as any).get, "expected GET operation");
+      assert.strictEqual((doc.paths[path] as any).put, undefined, "PUT should not be registered");
+    } finally {
+      restore();
+    }
+  }
+
+  /**
+   * `rest: { route: "url", method: "GET" }` appends the route as a slash
+   * suffix.
+   */
+  @test
+  async restRouteSuffixMapsToSlashAppended() {
+    const { restore } = await this.setupBehaviorWithRest(
+      "getUrl",
+      { route: "url", method: "GET" },
+      "RESTRestSuffix",
+      "/r2/"
+    );
+    try {
+      const doc = useRouter().exportOpenAPI(true);
+      const path = "/r2/companies/{pid.0}/users/{uuid}/mfa/url";
+      assert.ok(doc.paths[path], `expected ${path} in paths, got: ${Object.keys(doc.paths).join(", ")}`);
+      assert.ok((doc.paths[path] as any).get, "expected GET operation");
+    } finally {
+      restore();
+    }
+  }
+
+  /**
+   * `rest: { route: "{hash}", method: "PUT" }` keeps path templates intact.
+   */
+  @test
+  async restRouteTemplatePreservesPathVariables() {
+    const { restore } = await this.setupBehaviorWithRest(
+      "setMetadata",
+      { route: "{hash}", method: "PUT" },
+      "RESTRestTemplate",
+      "/r3/"
+    );
+    try {
+      const doc = useRouter().exportOpenAPI(true);
+      const path = "/r3/companies/{pid.0}/users/{uuid}/mfa/{hash}";
+      assert.ok(doc.paths[path], `expected ${path} in paths, got: ${Object.keys(doc.paths).join(", ")}`);
+      assert.ok((doc.paths[path] as any).put, "expected PUT operation");
+    } finally {
+      restore();
+    }
+  }
+
+  /**
+   * Three actions on `route: "."` differentiated by HTTP method (POST, PUT, GET)
+   * — single path, three method registrations.
+   */
+  @test
+  async restRouteDotMultipleMethodsCoexist() {
+    const app = useApplication<Application>() as any;
+    const previousBehavior = app.behaviors["Test/MFA"];
+    app.behaviors["Test/MFA"] = {
+      metadata: {
+        Identifier: "Test/MFA",
+        Import: "fake:FakeMFA",
+        Actions: {
+          attach: { rest: { route: ".", method: "POST" } },
+          attachChallenge: { rest: { route: ".", method: "PUT" } },
+          get: { rest: { route: ".", method: "GET" } }
+        }
+      }
+    };
+
+    const User = useModel("User") as any;
+    const previousMetadata = User.Metadata;
+    User.Metadata = Object.freeze({
+      ...previousMetadata,
+      Relations: {
+        ...(previousMetadata.Relations || {}),
+        behaviors: [{ attribute: "mfa", behavior: "Test/MFA" }]
+      }
+    });
+
+    try {
+      const ops = useInstanceStorage().operations!;
+      for (const k of Object.keys(ops)) delete ops[k];
+      const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
+      useInstanceStorage().core!.getServices()["DomainService"] = service;
+      service.initOperations();
+
+      const transport = new RESTOperationsTransport(
+        "RESTRestMultiMethod",
+        new RESTOperationsTransportParameters().load({ url: "/r4/", exposeOpenAPI: false })
+      );
+      this.registerService(transport);
+      transport.resolve();
+      await transport.init();
+
+      const doc = useRouter().exportOpenAPI(true);
+      const path = "/r4/companies/{pid.0}/users/{uuid}/mfa";
+      assert.ok(doc.paths[path], `expected ${path} in paths, got: ${Object.keys(doc.paths).join(", ")}`);
+      const node = doc.paths[path] as any;
+      assert.ok(node.post, "expected POST operation on bare path");
+      assert.ok(node.put, "expected PUT operation on bare path");
+      assert.ok(node.get, "expected GET operation on bare path");
+    } finally {
+      User.Metadata = previousMetadata;
+      if (previousBehavior === undefined) {
+        delete app.behaviors["Test/MFA"];
+      } else {
+        app.behaviors["Test/MFA"] = previousBehavior;
+      }
+    }
+  }
+
+  /**
    * The exported OpenAPI document must include the new behavior paths under
    * `paths`, with `put` defined and the model's tag.
    */

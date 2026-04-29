@@ -77,6 +77,24 @@ export class BehaviorsMetadata extends MetadataPlugin {
                 if ((key === "description" || key === "summary") && ts.isStringLiteral(prop.initializer)) {
                   actionMeta[key] = prop.initializer.text;
                 }
+                if (key === "rest" && ts.isObjectLiteralExpression(prop.initializer)) {
+                  const rest: Record<string, any> = {};
+                  for (const restProp of prop.initializer.properties) {
+                    if (
+                      ts.isPropertyAssignment(restProp) &&
+                      ts.isIdentifier(restProp.name) &&
+                      ts.isStringLiteral(restProp.initializer)
+                    ) {
+                      const rk = restProp.name.text;
+                      if (rk === "route" || rk === "method") {
+                        rest[rk] = restProp.initializer.text;
+                      }
+                    }
+                  }
+                  if (Object.keys(rest).length > 0) {
+                    actionMeta.rest = rest;
+                  }
+                }
               }
             }
           }

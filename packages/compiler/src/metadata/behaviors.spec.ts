@@ -341,6 +341,48 @@ suite("BehaviorsMetadata", () => {
     expect(userRels.behaviors).toBeUndefined();
   });
 
+  test("extracts rest: { route, method } from @Action", () => {
+    const source = `
+      function Action(...args: any[]) { return function(t: any, c: any) { return t; }; }
+      /**
+       * @WebdaBehavior
+       */
+      class MFA {
+        @Action({ rest: { route: ".", method: "GET" } })
+        async get(): Promise<string> { return ""; }
+
+        @Action({ rest: { route: "url", method: "GET" } })
+        async getUrl(): Promise<string> { return ""; }
+
+        @Action({ rest: { route: "{hash}", method: "PUT" } })
+        async setMetadata(): Promise<void> {}
+
+        @Action({ rest: { method: "POST" } })
+        async attach(): Promise<void> {}
+
+        @Action()
+        async plain(): Promise<void> {}
+      }
+    `;
+    const { checker, classes } = compileSource(source);
+    const gen = createMockModuleGenerator(checker);
+    const plugin = new BehaviorsMetadata(gen);
+
+    const module = emptyModule();
+    const objects = buildObjects(checker, classes);
+
+    plugin.getMetadata(module, objects);
+
+    const behavior = module.behaviors!["Webda/MFA"];
+    expect(behavior).toBeDefined();
+    expect(behavior.Actions.get.rest).toEqual({ route: ".", method: "GET" });
+    expect(behavior.Actions.getUrl.rest).toEqual({ route: "url", method: "GET" });
+    expect(behavior.Actions.setMetadata.rest).toEqual({ route: "{hash}", method: "PUT" });
+    expect(behavior.Actions.attach.rest).toEqual({ method: "POST" });
+    // No rest field when @Action has none
+    expect(behavior.Actions.plain.rest).toBeUndefined();
+  });
+
   test("ignores classes without @WebdaBehavior tag", () => {
     const source = `
       function Action(...args: any[]) { return function(t: any, c: any) { return t; }; }

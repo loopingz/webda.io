@@ -608,6 +608,18 @@ export class DomainService<
         const id = `${name}.${attributeCap}.${actionCap}`;
         const inputSchema = `${behaviorRel.behavior}.${actionName}.input`;
         const outputSchema = `${behaviorRel.behavior}.${actionName}.output`;
+        const actionMeta = (behaviorMeta.Actions || {})[actionName] || {};
+        const restHint = actionMeta.rest ?? {};
+        const route = restHint.route;
+        const method = (restHint.method ?? "PUT").toLowerCase() as "get" | "post" | "put" | "delete" | "patch";
+        let path: string;
+        if (route === ".") {
+          path = `{uuid}/${behaviorRel.attribute}`;
+        } else if (route !== undefined && route !== "") {
+          path = `{uuid}/${behaviorRel.attribute}/${route}`;
+        } else {
+          path = `{uuid}/${behaviorRel.attribute}.${actionName}`;
+        }
         registerOperation(id, {
           service: this.getName(),
           method: "modelBehaviorAction",
@@ -616,8 +628,8 @@ export class DomainService<
           summary: `${actionCap} on ${name}.${behaviorRel.attribute}`,
           tags: [name],
           rest: {
-            method: "put",
-            path: `{uuid}/${behaviorRel.attribute}.${actionName}`
+            method,
+            path
           },
           context: {
             model,

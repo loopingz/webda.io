@@ -3405,7 +3405,7 @@
       "Actions": {
         "delete": {
           "rest": {
-            "route": ".",
+            "route": "{hash}",
             "method": "DELETE"
           }
         },
@@ -3489,5 +3489,5 @@
     "rest-domain": "Webda/RESTOperationsTransport",
     "http-server": "Webda/HttpServer"
   },
-  "sourceDigest": "d56f07beb2ed8a920378a8f7c7056af8"
+  "sourceDigest": "194f2f9de55b0f1edcfea8f4957e1ac2"
 }

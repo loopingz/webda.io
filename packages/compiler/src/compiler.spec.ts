@@ -100,31 +100,48 @@ class CompilerTest {
     );
     assert.notStrictEqual(mod, undefined);
     assert.strictEqual(mod.models["WebdaDemo/Company"].Schemas!.Input!.properties!.testNotEnumerable, undefined);
-    // TS6 schema generator resolves BinaryFileInfo to a $ref instead of inline {type: "object"}
-    const avatar = mod.models["WebdaDemo/Contact"].Schemas!.Input!.properties!.avatar;
-    assert.ok(
-      (avatar.$ref && avatar.description === "Contact avatar") || (avatar.type === "object" && avatar.readOnly),
-      "avatar schema should be either a $ref or inline object"
+    // Binary/Binaries attributes are signaled-off-Input via `static fromDto(data: never)`,
+    // so they must be ABSENT from the model's Input schema.
+    assert.strictEqual(
+      mod.models["WebdaDemo/Contact"].Schemas!.Input!.properties!.avatar,
+      undefined,
+      "Binary attribute Contact.avatar must be absent from Input"
     );
-    // TS6 schema generator resolves binary types differently ($ref/allOf instead of inline)
-    const photos = mod.models["WebdaDemo/Contact"].Schemas!.Input!.properties!.photos;
-    assert.ok(photos, "photos schema should exist");
-    assert.ok(
-      photos.allOf || photos.type === "array",
-      "photos should be allOf or array type"
+    assert.strictEqual(
+      mod.models["WebdaDemo/Contact"].Schemas!.Input!.properties!.photos,
+      undefined,
+      "Binaries attribute Contact.photos must be absent from Input"
     );
-    const profilePicture = mod.models["WebdaDemo/User"]!.Schemas!.Input!.properties!.profilePicture;
-    assert.ok(profilePicture, "profilePicture schema should exist");
-    assert.ok(
-      profilePicture.$ref || (profilePicture.type === "object" && profilePicture.properties),
-      "profilePicture should be a $ref or inline object with properties"
+    assert.strictEqual(
+      mod.models["WebdaDemo/User"]!.Schemas!.Input!.properties!.profilePicture,
+      undefined,
+      "Binary attribute User.profilePicture must be absent from Input"
     );
-    const images = mod.models["WebdaDemo/User"]!.Schemas!.Input!.properties!.images;
-    assert.ok(images, "images schema should exist");
-    assert.ok(
-      images.allOf || (images.type === "array" && images.items),
-      "images should be allOf or array type"
+    assert.strictEqual(
+      mod.models["WebdaDemo/User"]!.Schemas!.Input!.properties!.images,
+      undefined,
+      "Binaries attribute User.images must be absent from Input"
     );
+    // Output schema MUST contain the binary attributes — Output is the
+    // serialized form (toDto/toJSON) seen by HTTP / GraphQL clients.
+    const avatarOut = mod.models["WebdaDemo/Contact"].Schemas!.Output!.properties!.avatar;
+    assert.ok(avatarOut, "Output.avatar should exist");
+    assert.ok(
+      avatarOut.$ref || (avatarOut.type === "object" && avatarOut.properties),
+      "Output.avatar should be a $ref (BinaryFileInfo) or inline object"
+    );
+    const photosOut = mod.models["WebdaDemo/Contact"].Schemas!.Output!.properties!.photos;
+    assert.ok(photosOut, "Output.photos should exist");
+    assert.ok(photosOut.type === "array" && photosOut.items, "Output.photos should be a typed array with items");
+    const profilePictureOut = mod.models["WebdaDemo/User"]!.Schemas!.Output!.properties!.profilePicture;
+    assert.ok(profilePictureOut, "Output.profilePicture should exist");
+    assert.ok(
+      profilePictureOut.$ref || (profilePictureOut.type === "object" && profilePictureOut.properties),
+      "Output.profilePicture should be a $ref or inline object"
+    );
+    const imagesOut = mod.models["WebdaDemo/User"]!.Schemas!.Output!.properties!.images;
+    assert.ok(imagesOut, "Output.images should exist");
+    assert.ok(imagesOut.type === "array" && imagesOut.items, "Output.images should be a typed array with items");
     assert.strictEqual(mod.models["WebdaDemo/User"].Schemas!.Input!.properties!.avatar, undefined);
     assert.strictEqual(mod.models["WebdaDemo/User"].Schemas!.Input!.properties!.photos, undefined);
     // Check schema have no properties that start with _ in required

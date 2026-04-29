@@ -327,10 +327,17 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
  * `isEmpty()` and `hash`/`size` immediately.
  *
  * @readOnly
- * @dtoIn skip
  * @WebdaBehavior Webda/Binary
  */
 export class Binary<T extends object = {}> extends BinaryMap<T> {
+  /**
+   * No-op: Binary cannot be constructed from DTO. The `data: never`
+   * signature is the type-checked signal to the schema generator that
+   * this attribute MUST be excluded from the model's Input schema.
+   * @param data - the data to process
+   */
+  static fromDto(data: never): void {}
+
   // NOTE: do NOT redeclare `[WEBDA_STORAGE]` as a field here — class field
   // initializers in the subclass run AFTER `super()` returns and OVERWRITE
   // whatever BinaryMap (and BinaryFile before it) stored. We rely on the
@@ -627,12 +634,14 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
   }
 
   /**
-   * Return undefined if no hash
+   * Return undefined at runtime if no hash; the type annotation deliberately
+   * narrows to the populated shape so the schema generator follows
+   * `BinaryFileInfo<T>` for the Output/Stored schemas.
    * @returns the result
    */
-  toJSON(): BinaryFileInfo<T> | undefined {
+  toJSON(): BinaryFileInfo<T> {
     if (!this.hash) {
-      return undefined;
+      return undefined as unknown as BinaryFileInfo<T>;
     }
     return this;
   }
@@ -685,7 +694,6 @@ export class BinariesItem<T extends object = {}> extends BinaryMap<T> {
  * detects this Array-subclass shape and emits a push-based hydration
  * coercion — see `behaviors.ts:createHydrationBlock`.
  *
- * @dtoIn skip
  * @WebdaBehavior Webda/BinariesImpl
  */
 export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> {

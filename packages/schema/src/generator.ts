@@ -732,15 +732,45 @@ export class SchemaGenerator {
    * @returns the return type or undefined
    */
   private resolveMethodReturnType(type: ts.Type, methodNames: string[], resolveNode: ts.Node): ts.Type | undefined {
-    for (const name of methodNames) {
-      const symbol = type.getProperty(name);
-      if (symbol) {
-        const methodType = this.checker.getTypeOfSymbolAtLocation(symbol, resolveNode);
-        const sigs = this.checker.getSignaturesOfType(methodType, ts.SignatureKind.Call);
-        if (sigs.length > 0) {
-          return this.checker.getReturnTypeOfSignature(sigs[0]);
-        }
+    // Use the apparent type so that generic instantiations propagate
+    // type-arguments into method signatures correctly.
+    const apparent = this.checker.getApparentType(type) || type;
+    const checkerAny = this.checker as any;
+    const containsTypeParameter = (t: ts.Type, seen: Set<ts.Type> = new Set()): boolean => {
+      if (seen.has(t)) return false;
+      seen.add(t);
+      if ((t.flags & ts.TypeFlags.TypeParameter) !== 0) return true;
+      const args = (t as any).typeArguments as ts.Type[] | undefined;
+      if (args && args.some(a => containsTypeParameter(a, seen))) return true;
+      if ((t.flags & ts.TypeFlags.UnionOrIntersection) !== 0) {
+        const subTypes = (t as ts.UnionOrIntersectionType).types;
+        if (subTypes.some(s => containsTypeParameter(s, seen))) return true;
       }
+      return false;
+    };
+    const parentArgs = (apparent as any).typeArguments as ts.Type[] | undefined;
+    for (const name of methodNames) {
+      const symbol = apparent.getProperty(name) || type.getProperty(name);
+      if (!symbol) continue;
+      let methodType: ts.Type | undefined;
+      if (typeof checkerAny.getTypeOfPropertyOfType === "function") {
+        methodType = checkerAny.getTypeOfPropertyOfType(apparent, name);
+      }
+      if (!methodType) {
+        methodType = this.checker.getTypeOfSymbolAtLocation(symbol, resolveNode);
+      }
+      const sigs = this.checker.getSignaturesOfType(methodType, ts.SignatureKind.Call);
+      if (sigs.length === 0) continue;
+      const ret = this.checker.getReturnTypeOfSignature(sigs[0]);
+      // TS API quirk: depending on traversal order the method type may
+      // retain the parent's generic type-parameter (e.g. `BinaryFileInfo<T>`)
+      // instead of the substituted type-argument. When this happens we have
+      // no usable substituted return type — bail out and let the caller
+      // fall through to structural processing of the parent type.
+      if (parentArgs && parentArgs.length > 0 && containsTypeParameter(ret)) {
+        return undefined;
+      }
+      return ret;
     }
     return undefined;
   }
@@ -1230,6 +1260,22 @@ export class SchemaGenerator {
             definition[key] ??= def[key];
           });
         }
+      }
+    }
+
+    // dto-in: classes that declare `static fromDto(data: never)` opt their
+    // attribute out of the Input schema entirely. We check this here (before
+    // the type-shape dispatch below) so it works for both class-typed
+    // attributes (e.g. `Binary<T>`) AND array-typed attributes whose element
+    // is a class with the marker (e.g. `Binaries<T> = BinariesImpl<T> extends
+    // Array<...>`). For array types we walk to the underlying class via the
+    // type's symbol — `getProperty("fromDto")` looks up an instance method, so
+    // we need the static side via the constructor type.
+    if (path !== "/" && this.currentOptions.type === "dto-in") {
+      const fromDtoResult = this.resolveFromDto(type, node || this.targetNode!);
+      if (fromDtoResult === "skip") {
+        this.log(`${indent}Skipping property at ${path}: fromDto parameter is never`);
+        return { optional: false, decision: "skip" };
       }
     }
 

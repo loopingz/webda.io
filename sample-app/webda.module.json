@@ -20,16 +20,36 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "definitions": {
+          "Partial<ServiceParameters>": {
+            "additionalProperties": false,
+            "description": "Make all properties in T optional",
+            "properties": {
+              "type": {
+                "description": "Type of the service",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
         "description": "Parameters for the custom service with introspection support.",
         "properties": {
-          "introspection": {},
+          "introspection": {
+            "$ref": "#/definitions/Partial%3CServiceParameters%3E"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true
           }
         },
         "required": [
-          "introspection"
+          "introspection",
+          "type"
         ],
         "type": "object",
         "title": "CustomService"
@@ -82,6 +102,10 @@
             "$ref": "#/definitions/Partial%3CMyInterfaceParam%3E",
             "description": "The Partial will generate a new $ref"
           },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true
@@ -89,7 +113,8 @@
         },
         "required": [
           "anotherParameter",
-          "interfaceParam"
+          "interfaceParam",
+          "type"
         ],
         "type": "object",
         "title": "AnotherService"
@@ -106,13 +131,18 @@
           "mandatoryField": {
             "type": "string"
           },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true
           }
         },
         "required": [
-          "mandatoryField"
+          "mandatoryField",
+          "type"
         ],
         "type": "object",
         "title": "CustomReusableService"
@@ -150,6 +180,10 @@
             "$ref": "#/definitions/Partial%3CMyInterfaceParam%3E",
             "description": "The Partial will generate a new $ref"
           },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true
@@ -158,7 +192,8 @@
         "required": [
           "anotherParameter",
           "fourthParameter",
-          "interfaceParam"
+          "interfaceParam",
+          "type"
         ],
         "type": "object",
         "title": "FourthOtherService"
@@ -169,13 +204,67 @@
       "Import": "lib/services/compiler:QueueService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "QueueService",
+        "additionalProperties": false,
+        "definitions": {
+          "WaitDelayerDefinition": {
+            "additionalProperties": false,
+            "description": "Configuration object for selecting and parameterizing a `WaitDelayer` from the registry.",
+            "properties": {
+              "interval": {
+                "description": "Base interval in milliseconds passed to the delayer factory.",
+                "type": "number"
+              },
+              "type": {
+                "description": "Key identifying the factory in `WaitDelayerFactories.registry` (e.g. `\"linear\"`, `\"exponential\"`).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "interval",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "Parameters for the in-memory FIFO queue, including message expiration and receive timeout",
         "properties": {
+          "expire": {
+            "default": 30,
+            "description": "Number of seconds before droping message",
+            "type": "number"
+          },
+          "maxConsumers": {
+            "default": 10,
+            "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
+          },
+          "timeout": {
+            "description": "Number of seconds to wait for receiving new message",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "workerDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "description": "Delayer between two failed attempts to process messages"
+          },
+          "workerParallelism": {
+            "default": true,
+            "description": "Define if worker should process multi message received in //",
+            "type": "boolean"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true
           }
-        }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "QueueService"
       },
       "Configuration": "node_modules/@webda/core/lib/queues/memoryqueue:MemoryQueueParameters"
     },
@@ -205,6 +294,10 @@
             "$ref": "#/definitions/Partial%3CMyInterfaceParam%3E",
             "description": "The Partial will generate a new $ref"
           },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true
@@ -212,7 +305,8 @@
         },
         "required": [
           "anotherParameter",
-          "interfaceParam"
+          "interfaceParam",
+          "type"
         ],
         "type": "object",
         "title": "SecondOtherService"
@@ -317,9 +411,41 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Ace": {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "allow": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "type": {
+                  "enum": [
+                    "GROUP",
+                    "USER"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "type"
+              ],
+              "type": "object"
+            }
+          },
           "description": "This file contains several empty methods to test our auto docs\n\nAbstract class should not be exported as model",
           "properties": {
-            "acls": {}
+            "acls": {
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "items": {
+                "$ref": "#/definitions/Ace"
+              },
+              "type": "array"
+            }
           },
           "required": [
             "acls"
@@ -330,9 +456,41 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Ace": {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "allow": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "type": {
+                  "enum": [
+                    "GROUP",
+                    "USER"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "type"
+              ],
+              "type": "object"
+            }
+          },
           "description": "This file contains several empty methods to test our auto docs\n\nAbstract class should not be exported as model",
           "properties": {
-            "acls": {}
+            "acls": {
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "items": {
+                "$ref": "#/definitions/Ace"
+              },
+              "type": "array"
+            }
           },
           "required": [
             "acls"
@@ -343,9 +501,27 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "ResourceAcl": {
+              "additionalProperties": false,
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "properties": {
+                "length": {
+                  "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "length"
+              ],
+              "type": "object"
+            }
+          },
           "description": "This file contains several empty methods to test our auto docs\n\nAbstract class should not be exported as model",
           "properties": {
-            "acls": {}
+            "acls": {
+              "$ref": "#/definitions/ResourceAcl"
+            }
           },
           "required": [
             "acls"
@@ -424,10 +600,50 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Ace": {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "allow": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "type": {
+                  "enum": [
+                    "GROUP",
+                    "USER"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "type"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "description": "Test of TypeParams",
           "properties": {
-            "acls": {},
-            "company": {},
+            "acls": {
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "items": {
+                "$ref": "#/definitions/Ace"
+              },
+              "type": "array"
+            },
+            "company": {
+              "$ref": "#/definitions/company"
+            },
             "n": {
               "type": "number"
             },
@@ -464,10 +680,50 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Ace": {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "allow": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "type": {
+                  "enum": [
+                    "GROUP",
+                    "USER"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "type"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "description": "Test of TypeParams",
           "properties": {
-            "acls": {},
-            "company": {},
+            "acls": {
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "items": {
+                "$ref": "#/definitions/Ace"
+              },
+              "type": "array"
+            },
+            "company": {
+              "$ref": "#/definitions/company"
+            },
             "n": {
               "type": "number"
             },
@@ -504,10 +760,36 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "ResourceAcl": {
+              "additionalProperties": false,
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "properties": {
+                "length": {
+                  "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "length"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "description": "Test of TypeParams",
           "properties": {
-            "acls": {},
-            "company": {},
+            "acls": {
+              "$ref": "#/definitions/ResourceAcl"
+            },
+            "company": {
+              "$ref": "#/definitions/company"
+            },
             "n": {
               "type": "number"
             },
@@ -584,10 +866,16 @@
           "properties": {
             "name": {
               "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
             }
           },
           "required": [
-            "name"
+            "name",
+            "uuid"
           ],
           "type": "object",
           "$webda": "fromDto$auto"
@@ -599,10 +887,16 @@
           "properties": {
             "name": {
               "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
             }
           },
           "required": [
-            "name"
+            "name",
+            "uuid"
           ],
           "type": "object",
           "$webda": "toDto$auto"
@@ -698,18 +992,15 @@
           "additionalProperties": false,
           "description": "Physical classroom with courses and hardware inventory.",
           "properties": {
-            "courses": {},
-            "hardwares": {},
             "name": {
               "type": "string"
             },
             "uuid": {
+              "description": "UUID of the model",
               "type": "string"
             }
           },
           "required": [
-            "courses",
-            "hardwares",
             "name",
             "uuid"
           ],
@@ -721,18 +1012,15 @@
           "additionalProperties": false,
           "description": "Physical classroom with courses and hardware inventory.",
           "properties": {
-            "courses": {},
-            "hardwares": {},
             "name": {
               "type": "string"
             },
             "uuid": {
+              "description": "UUID of the model",
               "type": "string"
             }
           },
           "required": [
-            "courses",
-            "hardwares",
             "name",
             "uuid"
           ],
@@ -744,18 +1032,15 @@
           "additionalProperties": false,
           "description": "Physical classroom with courses and hardware inventory.",
           "properties": {
-            "courses": {},
-            "hardwares": {},
             "name": {
               "type": "string"
             },
             "uuid": {
+              "description": "UUID of the model",
               "type": "string"
             }
           },
           "required": [
-            "courses",
-            "hardwares",
             "name",
             "uuid"
           ],
@@ -909,7 +1194,6 @@
             }
           },
           "properties": {
-            "_projects": {},
             "mapAny": {
               "$ref": "#/definitions/mapAny"
             },
@@ -941,12 +1225,15 @@
               },
               "type": "array"
             },
-            "users": {}
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
           },
           "required": [
-            "_projects",
             "name",
-            "users"
+            "uuid"
           ],
           "type": "object",
           "$webda": "fromDto$auto"
@@ -1007,7 +1294,6 @@
             }
           },
           "properties": {
-            "_projects": {},
             "mapAny": {
               "$ref": "#/definitions/mapAny"
             },
@@ -1039,12 +1325,15 @@
               },
               "type": "array"
             },
-            "users": {}
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
           },
           "required": [
-            "_projects",
             "name",
-            "users"
+            "uuid"
           ],
           "type": "object",
           "$webda": "toDto$auto"
@@ -1077,7 +1366,6 @@
             }
           },
           "properties": {
-            "_projects": {},
             "mapAny": {
               "$ref": "#/definitions/mapAny"
             },
@@ -1109,7 +1397,6 @@
               },
               "type": "array"
             },
-            "users": {},
             "uuid": {
               "description": "UUID of the model",
               "format": "uuid",
@@ -1117,9 +1404,7 @@
             }
           },
           "required": [
-            "_projects",
             "name",
-            "users",
             "uuid"
           ],
           "type": "object",
@@ -1188,17 +1473,40 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "_loanTo": {
+              "additionalProperties": false,
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "object"
+            },
+            "_user": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "properties": {
-            "_loanTo": {},
-            "_user": {},
+            "_loanTo": {
+              "$ref": "#/definitions/_loanTo"
+            },
+            "_user": {
+              "$ref": "#/definitions/_user"
+            },
             "name": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
           "required": [
             "_loanTo",
             "_user",
-            "name"
+            "name",
+            "uuid"
           ],
           "type": "object",
           "$webda": "fromDto$auto"
@@ -1206,17 +1514,40 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "_loanTo": {
+              "additionalProperties": false,
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "object"
+            },
+            "_user": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "properties": {
-            "_loanTo": {},
-            "_user": {},
+            "_loanTo": {
+              "$ref": "#/definitions/_loanTo"
+            },
+            "_user": {
+              "$ref": "#/definitions/_user"
+            },
             "name": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
           "required": [
             "_loanTo",
             "_user",
-            "name"
+            "name",
+            "uuid"
           ],
           "type": "object",
           "$webda": "toDto$auto"
@@ -1224,9 +1555,26 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "_loanTo": {
+              "additionalProperties": false,
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "object"
+            },
+            "_user": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "properties": {
-            "_loanTo": {},
-            "_user": {},
+            "_loanTo": {
+              "$ref": "#/definitions/_loanTo"
+            },
+            "_user": {
+              "$ref": "#/definitions/_user"
+            },
             "name": {
               "type": "string"
             },
@@ -1319,62 +1667,11 @@
           "additionalProperties": false,
           "description": "Computer screen hardware with model and serial number.",
           "properties": {
-            "brands": {},
-            "classroom": {},
-            "modelId": {
+            "classroom": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
               "type": "string"
             },
-            "name": {
-              "type": "string"
-            },
-            "serialNumber": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "brands",
-            "classroom",
-            "modelId",
-            "name",
-            "serialNumber"
-          ],
-          "type": "object",
-          "$webda": "fromDto$auto"
-        },
-        "Output": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
-          "additionalProperties": false,
-          "description": "Computer screen hardware with model and serial number.",
-          "properties": {
-            "brands": {},
-            "classroom": {},
-            "modelId": {
-              "type": "string"
-            },
-            "name": {
-              "type": "string"
-            },
-            "serialNumber": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "brands",
-            "classroom",
-            "modelId",
-            "name",
-            "serialNumber"
-          ],
-          "type": "object",
-          "$webda": "toDto$auto"
-        },
-        "Stored": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
-          "additionalProperties": false,
-          "description": "Computer screen hardware with model and serial number.",
-          "properties": {
-            "brands": {},
-            "classroom": {},
             "modelId": {
               "type": "string"
             },
@@ -1391,7 +1688,76 @@
             }
           },
           "required": [
-            "brands",
+            "classroom",
+            "modelId",
+            "name",
+            "serialNumber",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Computer screen hardware with model and serial number.",
+          "properties": {
+            "classroom": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
+            },
+            "modelId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "serialNumber": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "classroom",
+            "modelId",
+            "name",
+            "serialNumber",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Computer screen hardware with model and serial number.",
+          "properties": {
+            "classroom": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
+            },
+            "modelId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "serialNumber": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
             "classroom",
             "modelId",
             "name",
@@ -1493,14 +1859,18 @@
           "SchemaAdditionalProperties": "Allow mine",
           "WebdaModel": "Contact\nNot sure what this jsdoc does\n\nAnother comment",
           "additionalProperties": false,
+          "definitions": {
+            "owner": {
+              "additionalProperties": false,
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "object"
+            }
+          },
           "properties": {
             "age": {
               "description": "Contact age",
               "minimum": 0,
               "type": "number"
-            },
-            "avatar": {
-              "description": "Contact avatar"
             },
             "firstName": {
               "description": "Contact firstname",
@@ -1516,10 +1886,8 @@
               "type": "string"
             },
             "owner": {
+              "$ref": "#/definitions/owner",
               "description": "Contact owner"
-            },
-            "photos": {
-              "description": "Contact photos"
             },
             "type": {
               "description": "Contact type",
@@ -1528,16 +1896,20 @@
                 "PROFESSIONAL"
               ],
               "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
             }
           },
           "required": [
             "age",
-            "avatar",
             "firstName",
             "lastName",
             "owner",
-            "photos",
-            "type"
+            "type",
+            "uuid"
           ],
           "type": "object",
           "$webda": "fromDto$auto"
@@ -1547,6 +1919,123 @@
           "SchemaAdditionalProperties": "Allow mine",
           "WebdaModel": "Contact\nNot sure what this jsdoc does\n\nAnother comment",
           "additionalProperties": false,
+          "definitions": {
+            "BinariesItem<{ location: { lat: number; lng: number; }; }>": {
+              "additionalProperties": false,
+              "description": "Define a Binary map stored in a Binaries collection",
+              "properties": {
+                "challenge": {
+                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+                  "type": "string"
+                },
+                "hash": {
+                  "description": "Will be computed by the service\n\nhash of the content",
+                  "type": "string"
+                },
+                "metadata": {
+                  "$ref": "#/definitions/photos%5B%5D%24metadata",
+                  "description": "Metadatas stored along with the binary"
+                },
+                "mimetype": {
+                  "description": "Mimetype of the binary",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Current name",
+                  "type": "string"
+                },
+                "originalname": {
+                  "description": "Original name",
+                  "type": "string"
+                },
+                "size": {
+                  "description": "Size of the binary",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "mimetype",
+                "name",
+                "size"
+              ],
+              "type": "object"
+            },
+            "BinaryFileInfo<{}>": {
+              "WebdaBehavior": "Webda/Binary",
+              "additionalProperties": false,
+              "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
+              "properties": {
+                "challenge": {
+                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+                  "type": "string"
+                },
+                "hash": {
+                  "description": "Hash of the binary",
+                  "type": "string"
+                },
+                "metadata": {
+                  "$ref": "#/definitions/avatar%24metadata",
+                  "description": "Metadatas stored along with the binary"
+                },
+                "mimetype": {
+                  "description": "Mimetype",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Name of the file",
+                  "type": "string"
+                },
+                "size": {
+                  "description": "Size of the file",
+                  "type": "number"
+                }
+              },
+              "readOnly": true,
+              "required": [
+                "mimetype",
+                "name",
+                "size"
+              ],
+              "type": "object"
+            },
+            "avatar$metadata": {
+              "additionalProperties": false,
+              "type": "object"
+            },
+            "owner": {
+              "additionalProperties": false,
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "object"
+            },
+            "photos[]$metadata": {
+              "additionalProperties": false,
+              "properties": {
+                "location": {
+                  "$ref": "#/definitions/photos%5B%5D%24metadata%24location"
+                }
+              },
+              "required": [
+                "location"
+              ],
+              "type": "object"
+            },
+            "photos[]$metadata$location": {
+              "additionalProperties": false,
+              "properties": {
+                "lat": {
+                  "type": "number"
+                },
+                "lng": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "lat",
+                "lng"
+              ],
+              "type": "object"
+            }
+          },
           "properties": {
             "age": {
               "description": "Contact age",
@@ -1554,6 +2043,7 @@
               "type": "number"
             },
             "avatar": {
+              "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E",
               "description": "Contact avatar"
             },
             "firstName": {
@@ -1570,10 +2060,16 @@
               "type": "string"
             },
             "owner": {
+              "$ref": "#/definitions/owner",
               "description": "Contact owner"
             },
             "photos": {
-              "description": "Contact photos"
+              "WebdaBehavior": "Webda/BinariesImpl",
+              "description": "Contact photos",
+              "items": {
+                "$ref": "#/definitions/BinariesItem%3C%7B%20location%3A%20%7B%20lat%3A%20number%3B%20lng%3A%20number%3B%20%7D%3B%20%7D%3E"
+              },
+              "type": "array"
             },
             "readonly": {
               "SchemaOptional": true,
@@ -1588,6 +2084,11 @@
                 "PROFESSIONAL"
               ],
               "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
             }
           },
           "required": [
@@ -1597,7 +2098,8 @@
             "lastName",
             "owner",
             "photos",
-            "type"
+            "type",
+            "uuid"
           ],
           "type": "object",
           "$webda": "toDto$auto"
@@ -1608,318 +2110,66 @@
           "WebdaModel": "Contact\nNot sure what this jsdoc does\n\nAnother comment",
           "additionalProperties": false,
           "definitions": {
-            "BinaryService<BinaryParameters, BinaryEvents>": {
-              "WebdaModda": "Binary",
-              "abstract": true,
+            "Binaries<{ location: { lat: number; lng: number; }; }>": {
+              "WebdaBehavior": "Webda/BinariesImpl",
               "additionalProperties": false,
-              "description": "This is an abstract service to represent a storage of files\nThe binary allow you to expose this service as HTTP\n\nIt supports two modes:\n - attached to a CoreModel (attach, detach, reattach)\n - pure storage with no managed id (read, write, delete)\n\nAs we have deduplication builtin you can get some stats\n- getUsageCount(hash)\n- getUsageCountForRaw()\n- getUsageCountForMap()\n\nThe Binary storage should store only once a binary and reference every object that are used by this binary, so it can be cleaned.",
-              "exports": true,
+              "description": "Type-level alias for `BinariesImpl<T>`.\n\nModels declare `photos: Binaries<...>` rather than the more verbose\n`photos: BinariesImpl<...>`; the compiler resolves this alias to the\n`BinariesImpl` class declaration, picks up the `@WebdaBehavior` JSDoc\ntag there, and registers the attribute as a Behavior. The runtime\nshape (push/splice/index access plus `attach`, `attachChallenge`, `get`,\n`getUrl`, `deleteAt`, `setMetadata`, `upload`) comes from\n`BinariesImpl` directly.",
               "properties": {
-                "_lowercaseMaps": {},
-                "metrics": {
-                  "$ref": "#/definitions/photos%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24service%24metrics"
+                "length": {
+                  "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
+                  "type": "number"
                 }
               },
               "required": [
-                "_lowercaseMaps",
-                "metrics"
-              ],
-              "see": [
-                "FileBinary *",
-                "S3Binary *"
+                "length"
               ],
               "type": "object"
             },
-            "photos[][]": {
+            "BinaryFileInfo<{}>": {
+              "WebdaBehavior": "Webda/Binary",
               "additionalProperties": false,
+              "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
               "properties": {
-                "parent": {
-                  "WebdaBehavior": "Webda/BinariesImpl",
-                  "description": "Define a collection of Binary — many-cardinality binary attribute.\n\nTagged as a Behavior so its `@Action` methods register as\n`<Model>.<Attribute>.<Action>` operations alongside Single-Binary ones.\nInherits from `Array<BinariesItem<T>>` so it preserves array semantics\n(iteration, indexed access, JSON.stringify-as-array). The transformer\ndetects this Array-subclass shape and emits a push-based hydration\ncoercion — see `behaviors.ts:createHydrationBlock`.",
-                  "dtoIn": "skip",
-                  "items": {
-                    "description": "Define a Binary map stored in a Binaries collection",
-                    "items": {
-                      "$ref": "#/definitions/photos%5B%5D%5B%5D%24parent%5B%5D%5B%5D"
-                    },
-                    "type": "array"
-                  },
-                  "type": "array"
+                "challenge": {
+                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+                  "type": "string"
                 },
-                "service": {
-                  "$ref": "#/definitions/BinaryService%3CBinaryParameters%2C%20BinaryEvents%3E"
-                }
-              },
-              "required": [
-                "parent",
-                "service"
-              ],
-              "type": "object"
-            },
-            "photos[][]$parent[][]": {
-              "additionalProperties": false,
-              "properties": {
-                "parent": {
-                  "WebdaBehavior": "Webda/BinariesImpl",
-                  "description": "Define a collection of Binary — many-cardinality binary attribute.\n\nTagged as a Behavior so its `@Action` methods register as\n`<Model>.<Attribute>.<Action>` operations alongside Single-Binary ones.\nInherits from `Array<BinariesItem<T>>` so it preserves array semantics\n(iteration, indexed access, JSON.stringify-as-array). The transformer\ndetects this Array-subclass shape and emits a push-based hydration\ncoercion — see `behaviors.ts:createHydrationBlock`.",
-                  "dtoIn": "skip",
-                  "items": {
-                    "description": "Define a Binary map stored in a Binaries collection",
-                    "items": {
-                      "$ref": "#/definitions/photos%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D"
-                    },
-                    "type": "array"
-                  },
-                  "type": "array"
+                "hash": {
+                  "description": "Hash of the binary",
+                  "type": "string"
                 },
-                "service": {
-                  "$ref": "#/definitions/BinaryService%3CBinaryParameters%2C%20BinaryEvents%3E"
-                }
-              },
-              "required": [
-                "parent",
-                "service"
-              ],
-              "type": "object"
-            },
-            "photos[][]$parent[][]$parent[][]": {
-              "additionalProperties": false,
-              "properties": {
-                "parent": {
-                  "WebdaBehavior": "Webda/BinariesImpl",
-                  "description": "Define a collection of Binary — many-cardinality binary attribute.\n\nTagged as a Behavior so its `@Action` methods register as\n`<Model>.<Attribute>.<Action>` operations alongside Single-Binary ones.\nInherits from `Array<BinariesItem<T>>` so it preserves array semantics\n(iteration, indexed access, JSON.stringify-as-array). The transformer\ndetects this Array-subclass shape and emits a push-based hydration\ncoercion — see `behaviors.ts:createHydrationBlock`.",
-                  "dtoIn": "skip",
-                  "items": {
-                    "description": "Define a Binary map stored in a Binaries collection",
-                    "items": {
-                      "$ref": "#/definitions/photos%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D"
-                    },
-                    "type": "array"
-                  },
-                  "type": "array"
+                "metadata": {
+                  "$ref": "#/definitions/avatar%24metadata",
+                  "description": "Metadatas stored along with the binary"
                 },
-                "service": {
-                  "$ref": "#/definitions/BinaryService%3CBinaryParameters%2C%20BinaryEvents%3E"
-                }
-              },
-              "required": [
-                "parent",
-                "service"
-              ],
-              "type": "object"
-            },
-            "photos[][]$parent[][]$parent[][]$parent[][]": {
-              "additionalProperties": false,
-              "properties": {
-                "parent": {
-                  "WebdaBehavior": "Webda/BinariesImpl",
-                  "description": "Define a collection of Binary — many-cardinality binary attribute.\n\nTagged as a Behavior so its `@Action` methods register as\n`<Model>.<Attribute>.<Action>` operations alongside Single-Binary ones.\nInherits from `Array<BinariesItem<T>>` so it preserves array semantics\n(iteration, indexed access, JSON.stringify-as-array). The transformer\ndetects this Array-subclass shape and emits a push-based hydration\ncoercion — see `behaviors.ts:createHydrationBlock`.",
-                  "dtoIn": "skip",
-                  "items": {
-                    "description": "Define a Binary map stored in a Binaries collection",
-                    "items": {
-                      "$ref": "#/definitions/photos%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D"
-                    },
-                    "type": "array"
-                  },
-                  "type": "array"
+                "mimetype": {
+                  "description": "Mimetype",
+                  "type": "string"
                 },
-                "service": {
-                  "$ref": "#/definitions/BinaryService%3CBinaryParameters%2C%20BinaryEvents%3E"
-                }
-              },
-              "required": [
-                "parent",
-                "service"
-              ],
-              "type": "object"
-            },
-            "photos[][]$parent[][]$parent[][]$parent[][]$parent[][]": {
-              "additionalProperties": false,
-              "properties": {
-                "parent": {
-                  "WebdaBehavior": "Webda/BinariesImpl",
-                  "description": "Define a collection of Binary — many-cardinality binary attribute.\n\nTagged as a Behavior so its `@Action` methods register as\n`<Model>.<Attribute>.<Action>` operations alongside Single-Binary ones.\nInherits from `Array<BinariesItem<T>>` so it preserves array semantics\n(iteration, indexed access, JSON.stringify-as-array). The transformer\ndetects this Array-subclass shape and emits a push-based hydration\ncoercion — see `behaviors.ts:createHydrationBlock`.",
-                  "dtoIn": "skip",
-                  "items": {
-                    "description": "Define a Binary map stored in a Binaries collection",
-                    "items": {
-                      "$ref": "#/definitions/photos%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D"
-                    },
-                    "type": "array"
-                  },
-                  "type": "array"
+                "name": {
+                  "description": "Name of the file",
+                  "type": "string"
                 },
-                "service": {
-                  "$ref": "#/definitions/BinaryService%3CBinaryParameters%2C%20BinaryEvents%3E"
+                "size": {
+                  "description": "Size of the file",
+                  "type": "number"
                 }
               },
+              "readOnly": true,
               "required": [
-                "parent",
-                "service"
+                "mimetype",
+                "name",
+                "size"
               ],
               "type": "object"
             },
-            "photos[][]$parent[][]$parent[][]$parent[][]$parent[][]$parent[][]": {
+            "avatar$metadata": {
               "additionalProperties": false,
-              "properties": {
-                "parent": {
-                  "WebdaBehavior": "Webda/BinariesImpl",
-                  "description": "Define a collection of Binary — many-cardinality binary attribute.\n\nTagged as a Behavior so its `@Action` methods register as\n`<Model>.<Attribute>.<Action>` operations alongside Single-Binary ones.\nInherits from `Array<BinariesItem<T>>` so it preserves array semantics\n(iteration, indexed access, JSON.stringify-as-array). The transformer\ndetects this Array-subclass shape and emits a push-based hydration\ncoercion — see `behaviors.ts:createHydrationBlock`.",
-                  "dtoIn": "skip",
-                  "items": {
-                    "description": "Define a Binary map stored in a Binaries collection",
-                    "items": {
-                      "$ref": "#/definitions/photos%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D%24parent%5B%5D%5B%5D"
-                    },
-                    "type": "array"
-                  },
-                  "type": "array"
-                },
-                "service": {
-                  "$ref": "#/definitions/BinaryService%3CBinaryParameters%2C%20BinaryEvents%3E"
-                }
-              },
-              "required": [
-                "parent",
-                "service"
-              ],
               "type": "object"
             },
-            "photos[][]$parent[][]$parent[][]$parent[][]$parent[][]$parent[][]$parent[][]": {
+            "owner": {
               "additionalProperties": false,
-              "properties": {
-                "parent": {
-                  "WebdaBehavior": "Webda/BinariesImpl",
-                  "description": "Define a collection of Binary — many-cardinality binary attribute.\n\nTagged as a Behavior so its `@Action` methods register as\n`<Model>.<Attribute>.<Action>` operations alongside Single-Binary ones.\nInherits from `Array<BinariesItem<T>>` so it preserves array semantics\n(iteration, indexed access, JSON.stringify-as-array). The transformer\ndetects this Array-subclass shape and emits a push-based hydration\ncoercion — see `behaviors.ts:createHydrationBlock`.",
-                  "dtoIn": "skip",
-                  "items": {
-                    "description": "Define a Binary map stored in a Binaries collection",
-                    "items": {},
-                    "type": "array"
-                  },
-                  "type": "array"
-                },
-                "service": {
-                  "$ref": "#/definitions/BinaryService%3CBinaryParameters%2C%20BinaryEvents%3E"
-                }
-              },
-              "required": [
-                "parent",
-                "service"
-              ],
-              "type": "object"
-            },
-            "photos[][]$parent[][]$parent[][]$parent[][]$parent[][]$parent[][]$parent[][]$service$metrics": {
-              "additionalProperties": false,
-              "properties": {
-                "delete": {},
-                "download": {},
-                "metadataUpdate": {},
-                "upload": {}
-              },
-              "required": [
-                "delete",
-                "download",
-                "metadataUpdate",
-                "upload"
-              ],
-              "type": "object"
-            },
-            "photos[][]$parent[][]$parent[][]$parent[][]$parent[][]$parent[][]$service$metrics": {
-              "additionalProperties": false,
-              "properties": {
-                "delete": {},
-                "download": {},
-                "metadataUpdate": {},
-                "upload": {}
-              },
-              "required": [
-                "delete",
-                "download",
-                "metadataUpdate",
-                "upload"
-              ],
-              "type": "object"
-            },
-            "photos[][]$parent[][]$parent[][]$parent[][]$parent[][]$service$metrics": {
-              "additionalProperties": false,
-              "properties": {
-                "delete": {},
-                "download": {},
-                "metadataUpdate": {},
-                "upload": {}
-              },
-              "required": [
-                "delete",
-                "download",
-                "metadataUpdate",
-                "upload"
-              ],
-              "type": "object"
-            },
-            "photos[][]$parent[][]$parent[][]$parent[][]$service$metrics": {
-              "additionalProperties": false,
-              "properties": {
-                "delete": {},
-                "download": {},
-                "metadataUpdate": {},
-                "upload": {}
-              },
-              "required": [
-                "delete",
-                "download",
-                "metadataUpdate",
-                "upload"
-              ],
-              "type": "object"
-            },
-            "photos[][]$parent[][]$parent[][]$service$metrics": {
-              "additionalProperties": false,
-              "properties": {
-                "delete": {},
-                "download": {},
-                "metadataUpdate": {},
-                "upload": {}
-              },
-              "required": [
-                "delete",
-                "download",
-                "metadataUpdate",
-                "upload"
-              ],
-              "type": "object"
-            },
-            "photos[][]$parent[][]$service$metrics": {
-              "additionalProperties": false,
-              "properties": {
-                "delete": {},
-                "download": {},
-                "metadataUpdate": {},
-                "upload": {}
-              },
-              "required": [
-                "delete",
-                "download",
-                "metadataUpdate",
-                "upload"
-              ],
-              "type": "object"
-            },
-            "photos[][]$service$metrics": {
-              "additionalProperties": false,
-              "properties": {
-                "delete": {},
-                "download": {},
-                "metadataUpdate": {},
-                "upload": {}
-              },
-              "required": [
-                "delete",
-                "download",
-                "metadataUpdate",
-                "upload"
-              ],
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
               "type": "object"
             }
           },
@@ -1930,6 +2180,7 @@
               "type": "number"
             },
             "avatar": {
+              "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E",
               "description": "Contact avatar"
             },
             "firstName": {
@@ -1946,20 +2197,12 @@
               "type": "string"
             },
             "owner": {
+              "$ref": "#/definitions/owner",
               "description": "Contact owner"
             },
             "photos": {
-              "WebdaBehavior": "Webda/BinariesImpl",
-              "description": "Contact photos",
-              "dtoIn": "skip",
-              "items": {
-                "description": "Define a Binary map stored in a Binaries collection",
-                "items": {
-                  "$ref": "#/definitions/photos%5B%5D%5B%5D"
-                },
-                "type": "array"
-              },
-              "type": "array"
+              "$ref": "#/definitions/Binaries%3C%7B%20location%3A%20%7B%20lat%3A%20number%3B%20lng%3A%20number%3B%20%7D%3B%20%7D%3E",
+              "description": "Contact photos"
             },
             "readonly": {
               "SchemaOptional": true,
@@ -2072,13 +2315,51 @@
           "additionalProperties": false,
           "description": "Course linking a teacher, students, and a classroom.",
           "properties": {
-            "classroom": {},
+            "classroom": {
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "string"
+            },
             "name": {
               "type": "string"
             },
-            "students": {},
-            "teacher": {},
+            "students": {
+              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "items": {
+                "allOf": [
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "firstName": {
+                        "type": "string"
+                      },
+                      "lastName": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "firstName"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  }
+                ],
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+              },
+              "type": "array"
+            },
+            "teacher": {
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "string"
+            },
             "uuid": {
+              "description": "UUID of the model",
               "type": "string"
             }
           },
@@ -2097,13 +2378,51 @@
           "additionalProperties": false,
           "description": "Course linking a teacher, students, and a classroom.",
           "properties": {
-            "classroom": {},
+            "classroom": {
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "string"
+            },
             "name": {
               "type": "string"
             },
-            "students": {},
-            "teacher": {},
+            "students": {
+              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "items": {
+                "allOf": [
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "firstName": {
+                        "type": "string"
+                      },
+                      "lastName": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "firstName"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  }
+                ],
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+              },
+              "type": "array"
+            },
+            "teacher": {
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "string"
+            },
             "uuid": {
+              "description": "UUID of the model",
               "type": "string"
             }
           },
@@ -2122,7 +2441,10 @@
           "additionalProperties": false,
           "description": "Course linking a teacher, students, and a classroom.",
           "properties": {
-            "classroom": {},
+            "classroom": {
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "string"
+            },
             "name": {
               "type": "string"
             },
@@ -2131,8 +2453,12 @@
               "items": {},
               "type": "array"
             },
-            "teacher": {},
+            "teacher": {
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "string"
+            },
             "uuid": {
+              "description": "UUID of the model",
               "type": "string"
             }
           },
@@ -2214,46 +2540,11 @@
           "additionalProperties": false,
           "description": "Hardware item belonging to a classroom, with associated brands.",
           "properties": {
-            "brands": {},
-            "classroom": {},
-            "name": {
+            "classroom": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
               "type": "string"
-            }
-          },
-          "required": [
-            "brands",
-            "classroom",
-            "name"
-          ],
-          "type": "object",
-          "$webda": "fromDto$auto"
-        },
-        "Output": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
-          "additionalProperties": false,
-          "description": "Hardware item belonging to a classroom, with associated brands.",
-          "properties": {
-            "brands": {},
-            "classroom": {},
-            "name": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "brands",
-            "classroom",
-            "name"
-          ],
-          "type": "object",
-          "$webda": "toDto$auto"
-        },
-        "Stored": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
-          "additionalProperties": false,
-          "description": "Hardware item belonging to a classroom, with associated brands.",
-          "properties": {
-            "brands": {},
-            "classroom": {},
+            },
             "name": {
               "type": "string"
             },
@@ -2264,7 +2555,60 @@
             }
           },
           "required": [
-            "brands",
+            "classroom",
+            "name",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Hardware item belonging to a classroom, with associated brands.",
+          "properties": {
+            "classroom": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "classroom",
+            "name",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Hardware item belonging to a classroom, with associated brands.",
+          "properties": {
+            "classroom": {
+              "ModelLink": "but implies a Cascade delete",
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
             "classroom",
             "name",
             "uuid"
@@ -2350,9 +2694,49 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
+          "definitions": {
+            "Ace": {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "allow": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "type": {
+                  "enum": [
+                    "GROUP",
+                    "USER"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "type"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "properties": {
-            "acls": {},
-            "company": {},
+            "acls": {
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "items": {
+                "$ref": "#/definitions/Ace"
+              },
+              "type": "array"
+            },
+            "company": {
+              "$ref": "#/definitions/company"
+            },
             "n": {
               "type": "number"
             },
@@ -2390,9 +2774,49 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
+          "definitions": {
+            "Ace": {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "allow": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "type": {
+                  "enum": [
+                    "GROUP",
+                    "USER"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "type"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "properties": {
-            "acls": {},
-            "company": {},
+            "acls": {
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "items": {
+                "$ref": "#/definitions/Ace"
+              },
+              "type": "array"
+            },
+            "company": {
+              "$ref": "#/definitions/company"
+            },
             "n": {
               "type": "number"
             },
@@ -2430,9 +2854,35 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
+          "definitions": {
+            "ResourceAcl": {
+              "additionalProperties": false,
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "properties": {
+                "length": {
+                  "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "length"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "properties": {
-            "acls": {},
-            "company": {},
+            "acls": {
+              "$ref": "#/definitions/ResourceAcl"
+            },
+            "company": {
+              "$ref": "#/definitions/company"
+            },
             "n": {
               "type": "number"
             },
@@ -2563,31 +3013,78 @@
             "constraints": {
               "type": "null"
             },
-            "courses": {},
             "email": {
               "type": "string"
             },
             "firstName": {
               "type": "string"
             },
-            "friends": {},
+            "friends": {
+              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "items": {
+                "allOf": [
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "email": {
+                        "type": "string"
+                      },
+                      "firstName": {
+                        "type": "string"
+                      },
+                      "lastName": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "email",
+                      "firstName",
+                      "lastName"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  }
+                ],
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+              },
+              "type": "array"
+            },
             "lastName": {
               "type": "string"
             },
             "order": {
               "type": "number"
             },
-            "teachers": {}
+            "teachers": {
+              "description": "Link to a collection of objects\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety.\n\nThis allows to do a n:m or 1:n relation between two models\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects",
+              "items": {
+                "description": "A reference to a model",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
           },
           "required": [
             "constraints",
-            "courses",
             "email",
             "firstName",
             "friends",
             "lastName",
             "order",
-            "teachers"
+            "teachers",
+            "uuid"
           ],
           "type": "object",
           "$webda": "fromDto$auto"
@@ -2600,31 +3097,78 @@
             "constraints": {
               "type": "null"
             },
-            "courses": {},
             "email": {
               "type": "string"
             },
             "firstName": {
               "type": "string"
             },
-            "friends": {},
+            "friends": {
+              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
+              "items": {
+                "allOf": [
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "email": {
+                        "type": "string"
+                      },
+                      "firstName": {
+                        "type": "string"
+                      },
+                      "lastName": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "email",
+                      "firstName",
+                      "lastName"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "type": "object"
+                  }
+                ],
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+              },
+              "type": "array"
+            },
             "lastName": {
               "type": "string"
             },
             "order": {
               "type": "number"
             },
-            "teachers": {}
+            "teachers": {
+              "description": "Link to a collection of objects\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety.\n\nThis allows to do a n:m or 1:n relation between two models\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects",
+              "items": {
+                "description": "A reference to a model",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
           },
           "required": [
             "constraints",
-            "courses",
             "email",
             "firstName",
             "friends",
             "lastName",
             "order",
-            "teachers"
+            "teachers",
+            "uuid"
           ],
           "type": "object",
           "$webda": "toDto$auto"
@@ -2637,7 +3181,6 @@
             "constraints": {
               "type": "null"
             },
-            "courses": {},
             "email": {
               "type": "string"
             },
@@ -2655,7 +3198,14 @@
             "order": {
               "type": "number"
             },
-            "teachers": {},
+            "teachers": {
+              "description": "Link to a collection of objects\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety.\n\nThis allows to do a n:m or 1:n relation between two models\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects",
+              "items": {
+                "description": "A reference to a model",
+                "type": "string"
+              },
+              "type": "array"
+            },
             "uuid": {
               "description": "UUID of the model",
               "format": "uuid",
@@ -2664,7 +3214,6 @@
           },
           "required": [
             "constraints",
-            "courses",
             "email",
             "firstName",
             "friends",
@@ -2747,10 +3296,50 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Ace": {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "allow": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "type": {
+                  "enum": [
+                    "GROUP",
+                    "USER"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "type"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "description": "Subclass of Project with no additional fields, used for inheritance testing.",
           "properties": {
-            "acls": {},
-            "company": {},
+            "acls": {
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "items": {
+                "$ref": "#/definitions/Ace"
+              },
+              "type": "array"
+            },
+            "company": {
+              "$ref": "#/definitions/company"
+            },
             "n": {
               "type": "number"
             },
@@ -2787,10 +3376,50 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Ace": {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "allow": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "type": {
+                  "enum": [
+                    "GROUP",
+                    "USER"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "type"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "description": "Subclass of Project with no additional fields, used for inheritance testing.",
           "properties": {
-            "acls": {},
-            "company": {},
+            "acls": {
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "items": {
+                "$ref": "#/definitions/Ace"
+              },
+              "type": "array"
+            },
+            "company": {
+              "$ref": "#/definitions/company"
+            },
             "n": {
               "type": "number"
             },
@@ -2827,10 +3456,36 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "ResourceAcl": {
+              "additionalProperties": false,
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "properties": {
+                "length": {
+                  "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "length"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "description": "Subclass of Project with no additional fields, used for inheritance testing.",
           "properties": {
-            "acls": {},
-            "company": {},
+            "acls": {
+              "$ref": "#/definitions/ResourceAcl"
+            },
+            "company": {
+              "$ref": "#/definitions/company"
+            },
             "n": {
               "type": "number"
             },
@@ -2939,13 +3594,53 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Ace": {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "allow": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "type": {
+                  "enum": [
+                    "GROUP",
+                    "USER"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "type"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "description": "Concrete sub-sub-project with custom actions for testing action exposure.",
           "properties": {
-            "acls": {},
+            "acls": {
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "items": {
+                "$ref": "#/definitions/Ace"
+              },
+              "type": "array"
+            },
             "attribute1": {
               "type": "string"
             },
-            "company": {},
+            "company": {
+              "$ref": "#/definitions/company"
+            },
             "n": {
               "type": "number"
             },
@@ -2983,13 +3678,53 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Ace": {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "allow": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "type": {
+                  "enum": [
+                    "GROUP",
+                    "USER"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action",
+                "type"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "description": "Concrete sub-sub-project with custom actions for testing action exposure.",
           "properties": {
-            "acls": {},
+            "acls": {
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "items": {
+                "$ref": "#/definitions/Ace"
+              },
+              "type": "array"
+            },
             "attribute1": {
               "type": "string"
             },
-            "company": {},
+            "company": {
+              "$ref": "#/definitions/company"
+            },
             "n": {
               "type": "number"
             },
@@ -3027,13 +3762,39 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "ResourceAcl": {
+              "additionalProperties": false,
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "properties": {
+                "length": {
+                  "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "length"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "description": "Concrete sub-sub-project with custom actions for testing action exposure.",
           "properties": {
-            "acls": {},
+            "acls": {
+              "$ref": "#/definitions/ResourceAcl"
+            },
             "attribute1": {
               "type": "string"
             },
-            "company": {},
+            "company": {
+              "$ref": "#/definitions/company"
+            },
             "n": {
               "type": "number"
             },
@@ -3157,7 +3918,6 @@
               "items": {},
               "type": "array"
             },
-            "courses": {},
             "name": {
               "type": "string"
             },
@@ -3165,16 +3925,14 @@
               "default": false,
               "type": "boolean"
             },
-            "students": {},
             "uuid": {
+              "description": "UUID of the model",
               "type": "string"
             }
           },
           "required": [
             "anyArray",
-            "courses",
             "name",
-            "students",
             "uuid"
           ],
           "type": "object",
@@ -3190,7 +3948,6 @@
               "items": {},
               "type": "array"
             },
-            "courses": {},
             "name": {
               "type": "string"
             },
@@ -3198,16 +3955,14 @@
               "default": false,
               "type": "boolean"
             },
-            "students": {},
             "uuid": {
+              "description": "UUID of the model",
               "type": "string"
             }
           },
           "required": [
             "anyArray",
-            "courses",
             "name",
-            "students",
             "uuid"
           ],
           "type": "object",
@@ -3223,7 +3978,6 @@
               "items": {},
               "type": "array"
             },
-            "courses": {},
             "name": {
               "type": "string"
             },
@@ -3231,16 +3985,14 @@
               "default": false,
               "type": "boolean"
             },
-            "students": {},
             "uuid": {
+              "description": "UUID of the model",
               "type": "string"
             }
           },
           "required": [
             "anyArray",
-            "courses",
             "name",
-            "students",
             "uuid"
           ],
           "type": "object",
@@ -3361,29 +4113,61 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "description": "User model",
           "properties": {
+            "__password": {
+              "description": "Password of the user if defined",
+              "type": "string"
+            },
+            "_avatar": {
+              "description": "Define the user avatar if exists",
+              "type": "string"
+            },
+            "_lastPasswordRecovery": {
+              "description": "Last time the password was recovered",
+              "type": "number"
+            },
             "company": {
+              "$ref": "#/definitions/company",
               "description": "Company the user belongs to"
             },
-            "computers": {},
-            "contacts": {
-              "description": "Map of favorites contacts"
+            "displayName": {
+              "Frontend": true,
+              "description": "Display name for this user",
+              "optional": true,
+              "type": "string"
             },
-            "images": {},
+            "email": {
+              "description": "Contain main user email if exists",
+              "type": "string"
+            },
+            "locale": {
+              "description": "Contains the locale of the user if known",
+              "type": "string"
+            },
             "name": {
               "description": "User's display name",
               "type": "string"
             },
-            "profilePicture": {}
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
           },
           "required": [
             "company",
-            "computers",
-            "contacts",
-            "images",
+            "displayName",
             "name",
-            "profilePicture"
+            "uuid"
           ],
           "type": "object",
           "$webda": "fromDto$auto"
@@ -3391,42 +4175,51 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "User model",
-          "properties": {
-            "company": {
-              "description": "Company the user belongs to"
-            },
-            "computers": {},
-            "contacts": {
-              "description": "Map of favorites contacts"
-            },
-            "images": {},
-            "name": {
-              "description": "User's display name",
-              "type": "string"
-            },
-            "profilePicture": {}
-          },
-          "required": [
-            "company",
-            "computers",
-            "contacts",
-            "images",
-            "name",
-            "profilePicture"
-          ],
-          "type": "object",
-          "$webda": "toDto$auto"
-        },
-        "Stored": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
-          "additionalProperties": false,
           "definitions": {
-            "BinaryFileInfo<T>": {
+            "BinariesItem<{}>": {
+              "additionalProperties": false,
+              "description": "Define a Binary map stored in a Binaries collection",
+              "properties": {
+                "challenge": {
+                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+                  "type": "string"
+                },
+                "hash": {
+                  "description": "Will be computed by the service\n\nhash of the content",
+                  "type": "string"
+                },
+                "metadata": {
+                  "$ref": "#/definitions/images%5B%5D%24metadata",
+                  "description": "Metadatas stored along with the binary"
+                },
+                "mimetype": {
+                  "description": "Mimetype of the binary",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Current name",
+                  "type": "string"
+                },
+                "originalname": {
+                  "description": "Original name",
+                  "type": "string"
+                },
+                "size": {
+                  "description": "Size of the binary",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "mimetype",
+                "name",
+                "size"
+              ],
+              "type": "object"
+            },
+            "BinaryFileInfo<{ width: number; height: number; }>": {
               "WebdaBehavior": "Webda/Binary",
               "additionalProperties": false,
               "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
-              "dtoIn": "skip",
               "properties": {
                 "challenge": {
                   "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
@@ -3437,6 +4230,7 @@
                   "type": "string"
                 },
                 "metadata": {
+                  "$ref": "#/definitions/profilePicture%24metadata",
                   "description": "Metadatas stored along with the binary"
                 },
                 "mimetype": {
@@ -3459,6 +4253,32 @@
                 "size"
               ],
               "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            },
+            "images[]$metadata": {
+              "additionalProperties": false,
+              "type": "object"
+            },
+            "profilePicture$metadata": {
+              "additionalProperties": false,
+              "properties": {
+                "height": {
+                  "type": "number"
+                },
+                "width": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "height",
+                "width"
+              ],
+              "type": "object"
             }
           },
           "description": "User model",
@@ -3476,11 +4296,8 @@
               "type": "number"
             },
             "company": {
+              "$ref": "#/definitions/company",
               "description": "Company the user belongs to"
-            },
-            "computers": {},
-            "contacts": {
-              "description": "Map of favorites contacts"
             },
             "displayName": {
               "Frontend": true,
@@ -3492,7 +4309,14 @@
               "description": "Contain main user email if exists",
               "type": "string"
             },
-            "images": {},
+            "images": {
+              "WebdaBehavior": "Webda/BinariesImpl",
+              "description": "Type-level alias for `BinariesImpl<T>`.\n\nModels declare `photos: Binaries<...>` rather than the more verbose\n`photos: BinariesImpl<...>`; the compiler resolves this alias to the\n`BinariesImpl` class declaration, picks up the `@WebdaBehavior` JSDoc\ntag there, and registers the attribute as a Behavior. The runtime\nshape (push/splice/index access plus `attach`, `attachChallenge`, `get`,\n`getUrl`, `deleteAt`, `setMetadata`, `upload`) comes from\n`BinariesImpl` directly.",
+              "items": {
+                "$ref": "#/definitions/BinariesItem%3C%7B%7D%3E"
+              },
+              "type": "array"
+            },
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
@@ -3502,7 +4326,7 @@
               "type": "string"
             },
             "profilePicture": {
-              "$ref": "#/definitions/BinaryFileInfo%3CT%3E"
+              "$ref": "#/definitions/BinaryFileInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -3512,8 +4336,166 @@
           },
           "required": [
             "company",
-            "computers",
-            "contacts",
+            "displayName",
+            "images",
+            "name",
+            "profilePicture",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "definitions": {
+            "BinariesItem<{}>": {
+              "additionalProperties": false,
+              "description": "Define a Binary map stored in a Binaries collection",
+              "properties": {
+                "challenge": {
+                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+                  "type": "string"
+                },
+                "hash": {
+                  "description": "Will be computed by the service\n\nhash of the content",
+                  "type": "string"
+                },
+                "metadata": {
+                  "$ref": "#/definitions/images%5B%5D%24metadata",
+                  "description": "Metadatas stored along with the binary"
+                },
+                "mimetype": {
+                  "description": "Mimetype of the binary",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Current name",
+                  "type": "string"
+                },
+                "originalname": {
+                  "description": "Original name",
+                  "type": "string"
+                },
+                "size": {
+                  "description": "Size of the binary",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "mimetype",
+                "name",
+                "size"
+              ],
+              "type": "object"
+            },
+            "Binary<{ width: number; height: number; }>": {
+              "WebdaBehavior": "Webda/Binary",
+              "additionalProperties": false,
+              "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
+              "properties": {
+                "challenge": {
+                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+                  "type": "string"
+                },
+                "hash": {
+                  "description": "Will be computed by the service\n\nhash of the content",
+                  "type": "string"
+                },
+                "metadata": {
+                  "description": "Metadatas stored along with the binary"
+                },
+                "mimetype": {
+                  "description": "Mimetype of the binary",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Current name",
+                  "type": "string"
+                },
+                "originalname": {
+                  "description": "Original name",
+                  "type": "string"
+                },
+                "size": {
+                  "description": "Size of the binary",
+                  "type": "number"
+                }
+              },
+              "readOnly": true,
+              "required": [
+                "mimetype",
+                "name",
+                "size"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            },
+            "images[]$metadata": {
+              "additionalProperties": false,
+              "type": "object"
+            }
+          },
+          "description": "User model",
+          "properties": {
+            "__password": {
+              "description": "Password of the user if defined",
+              "type": "string"
+            },
+            "_avatar": {
+              "description": "Define the user avatar if exists",
+              "type": "string"
+            },
+            "_lastPasswordRecovery": {
+              "description": "Last time the password was recovered",
+              "type": "number"
+            },
+            "company": {
+              "$ref": "#/definitions/company",
+              "description": "Company the user belongs to"
+            },
+            "displayName": {
+              "Frontend": true,
+              "description": "Display name for this user",
+              "optional": true,
+              "type": "string"
+            },
+            "email": {
+              "description": "Contain main user email if exists",
+              "type": "string"
+            },
+            "images": {
+              "WebdaBehavior": "Webda/BinariesImpl",
+              "description": "Type-level alias for `BinariesImpl<T>`.\n\nModels declare `photos: Binaries<...>` rather than the more verbose\n`photos: BinariesImpl<...>`; the compiler resolves this alias to the\n`BinariesImpl` class declaration, picks up the `@WebdaBehavior` JSDoc\ntag there, and registers the attribute as a Behavior. The runtime\nshape (push/splice/index access plus `attach`, `attachChallenge`, `get`,\n`getUrl`, `deleteAt`, `setMetadata`, `upload`) comes from\n`BinariesImpl` directly.",
+              "items": {
+                "$ref": "#/definitions/BinariesItem%3C%7B%7D%3E"
+              },
+              "type": "array"
+            },
+            "locale": {
+              "description": "Contains the locale of the user if known",
+              "type": "string"
+            },
+            "name": {
+              "description": "User's display name",
+              "type": "string"
+            },
+            "profilePicture": {
+              "$ref": "#/definitions/Binary%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "company",
             "displayName",
             "images",
             "name",
@@ -3683,10 +4665,36 @@
       "properties": {
         "project": {
           "additionalProperties": false,
+          "definitions": {
+            "ResourceAcl": {
+              "additionalProperties": false,
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "properties": {
+                "length": {
+                  "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "length"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "description": "Make all properties in T optional",
           "properties": {
-            "acls": {},
-            "company": {},
+            "acls": {
+              "$ref": "#/definitions/ResourceAcl"
+            },
+            "company": {
+              "$ref": "#/definitions/company"
+            },
             "n": {
               "type": "number"
             },
@@ -3724,9 +4732,35 @@
         "project": {
           "WebdaModel": true,
           "additionalProperties": false,
+          "definitions": {
+            "ResourceAcl": {
+              "additionalProperties": false,
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "properties": {
+                "length": {
+                  "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "length"
+              ],
+              "type": "object"
+            },
+            "company": {
+              "ModelLink": "but implies a Cascade delete",
+              "additionalProperties": false,
+              "description": "Define the parent of the model\n\nSimilar to",
+              "type": "object"
+            }
+          },
           "properties": {
-            "acls": {},
-            "company": {},
+            "acls": {
+              "$ref": "#/definitions/ResourceAcl"
+            },
+            "company": {
+              "$ref": "#/definitions/company"
+            },
             "n": {
               "type": "number"
             },
@@ -3792,7 +4826,6 @@
             "Error": {
               "additionalProperties": false,
               "properties": {
-                "cause": {},
                 "message": {
                   "type": "string"
                 },
@@ -3885,7 +4918,6 @@
             "Error": {
               "additionalProperties": false,
               "properties": {
-                "cause": {},
                 "message": {
                   "type": "string"
                 },
@@ -4001,7 +5033,6 @@
             "Error": {
               "additionalProperties": false,
               "properties": {
-                "cause": {},
                 "message": {
                   "type": "string"
                 },
@@ -4094,7 +5125,6 @@
             "Error": {
               "additionalProperties": false,
               "properties": {
-                "cause": {},
                 "message": {
                   "type": "string"
                 },

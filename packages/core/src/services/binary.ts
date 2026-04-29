@@ -328,7 +328,7 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
  *
  * @readOnly
  * @dtoIn skip
- * @WebdaBehavior
+ * @WebdaBehavior Webda/Binary
  */
 export class Binary<T extends object = {}> extends BinaryMap<T> {
   // NOTE: do NOT redeclare `[WEBDA_STORAGE]` as a field here — class field
@@ -433,16 +433,22 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
   /**
    * Delete this binary from storage and clear local state.
    *
-   * Exposed as a Behavior `@Action` (DELETE on the binary's URL). The same
-   * method is used both for direct programmatic deletion and for HTTP
-   * dispatch — the dispatcher calls this method with no arguments and the
-   * action signature is the same as the public API.
+   * Exposed as a Behavior `@Action` (DELETE on `{uuid}/<attribute>/{hash}`).
+   * The URL `{hash}` must match the current binary's hash; this guards
+   * against accidental deletes when the client raced a metadata update.
+   *
+   * Migrated from `DomainService.binaryAction` (action="delete",
+   * single-cardinality branch).
+   * @param hash - the URL-supplied hash; must match `this.hash`
    */
-  @Action({ rest: { route: ".", method: "DELETE" } })
-  async delete(): Promise<void> {
+  @Action({ rest: { route: "{hash}", method: "DELETE" } })
+  async delete(hash: string): Promise<void> {
     const parent = this.getParent();
     if (!parent) {
       throw new Error("Binary parent not yet wired — cannot delete");
+    }
+    if (!this.hash || this.hash !== hash) {
+      throw new WebdaError.BadRequest("Hash does not match");
     }
     await this.getService().delete(parent.instance, parent.attribute);
     this.set(<any>{});
@@ -680,7 +686,7 @@ export class BinariesItem<T extends object = {}> extends BinaryMap<T> {
  * coercion — see `behaviors.ts:createHydrationBlock`.
  *
  * @dtoIn skip
- * @WebdaBehavior
+ * @WebdaBehavior Webda/BinariesImpl
  */
 export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> {
   protected [WEBDA_STORAGE]: {
@@ -1015,11 +1021,17 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
 }
 
 /**
- * Define a collection of Binary with a Readonly and the upload method
+ * Type-level alias for `BinariesImpl<T>`.
+ *
+ * Models declare `photos: Binaries<...>` rather than the more verbose
+ * `photos: BinariesImpl<...>`; the compiler resolves this alias to the
+ * `BinariesImpl` class declaration, picks up the `@WebdaBehavior` JSDoc
+ * tag there, and registers the attribute as a Behavior. The runtime
+ * shape (push/splice/index access plus `attach`, `attachChallenge`, `get`,
+ * `getUrl`, `deleteAt`, `setMetadata`, `upload`) comes from
+ * `BinariesImpl` directly.
  */
-export type Binaries<T extends object = {}> = Readonly<Array<BinariesItem<T>>> & {
-  upload: (file: BinaryFile<T>) => Promise<void>;
-};
+export type Binaries<T extends object = {}> = BinariesImpl<T>;
 
 /** Parameters for BinaryService, defining model mappings and max upload size */
 export class BinaryParameters extends ServiceParameters {

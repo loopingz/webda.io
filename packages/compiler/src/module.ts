@@ -29,6 +29,8 @@ export type WebdaClassEntry = {
   type: ts.Type;
   node: ts.Node;
   jsFile: string;
+  /** True when this entry comes from a `.d.ts` in a dependency, false for project source. */
+  lib?: boolean;
 };
 
 /**
@@ -408,7 +410,8 @@ export class ModuleGenerator {
                 name: this.compiler.project.completeNamespace(classNode.name?.escapedText.toString() ?? exportedName),
                 type,
                 node,
-                jsFile: sourceFile.fileName.replace(/\.d\.ts$/, ".js")
+                jsFile: sourceFile.fileName.replace(/\.d\.ts$/, ".js"),
+                lib: true
               });
             }
             if (this.extends(classTree, "@webda/models", "Model")) {
@@ -807,20 +810,6 @@ export class ModuleGenerator {
                 break;
               case "ModelLinksSimpleArray":
                 addLinkToGraph("LINKS_SIMPLE_ARRAY");
-                break;
-              case "Binary":
-                currentGraph.binaries ??= [];
-                currentGraph.binaries.push({
-                  attribute: prop.getName(),
-                  cardinality: "ONE"
-                });
-                break;
-              case "Binaries":
-                currentGraph.binaries ??= [];
-                currentGraph.binaries.push({
-                  attribute: prop.getName(),
-                  cardinality: "MANY"
-                });
                 break;
               default: {
                 // Detect Behavior-typed attributes: properties whose declared

@@ -6,15 +6,12 @@ import { OperationContext } from "../contexts/operationcontext.js";
 import type { Model, ModelClass } from "@webda/models";
 import { runWithContext, useContext } from "../contexts/execution.js";
 
-import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary.js";
 import * as WebdaError from "../errors/errors.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { useApplication } from "../application/hooks.js";
 import { OperationDefinition } from "../core/icore.js";
-import { ModelGraphBinaryDefinition } from "@webda/compiler";
-import { useCore, useModelMetadata } from "../core/hooks.js";
+import { useModelMetadata } from "../core/hooks.js";
 import { registerOperation } from "../core/operations.js";
-import { WebContext } from "../contexts/webcontext.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
 
 /** Parameters for DomainService, controlling model exposure, URL naming, and query methods */
@@ -120,75 +117,6 @@ export class DomainService<
         }
       },
       required: ["uuid"]
-    },
-    binaryGetRequest: {
-      type: "object",
-      properties: {
-        uuid: {
-          type: "string"
-        },
-        index: {
-          type: "number"
-        }
-      },
-      required: ["uuid", "index"]
-    },
-    binaryHashRequest: {
-      type: "object",
-      properties: {
-        uuid: {
-          type: "string"
-        },
-        hash: {
-          type: "string"
-        }
-      },
-      required: ["uuid", "hash"]
-    },
-    binaryIndexHashRequest: {
-      type: "object",
-      properties: {
-        uuid: {
-          type: "string"
-        },
-        index: {
-          type: "number"
-        },
-        hash: {
-          type: "string"
-        }
-      },
-      required: ["uuid", "index", "hash"]
-    },
-    binaryAttachParameters: {
-      type: "object",
-      properties: {
-        uuid: {
-          type: "string"
-        },
-        filename: {
-          type: "string"
-        },
-        size: {
-          type: "number"
-        },
-        mimetype: {
-          type: "string"
-        }
-      },
-      required: ["uuid"]
-    },
-    binaryChallengeRequest: {
-      type: "object",
-      properties: {
-        hash: {
-          type: "string"
-        },
-        challenge: {
-          type: "string"
-        }
-      },
-      required: ["hash", "challenge"]
     },
     searchRequest: {
       type: "object",
@@ -576,19 +504,18 @@ export class DomainService<
           registerOperation(id, info);
         });
 
-      this.addBinaryOperations(model as any, Metadata, shortId);
       this.addBehaviorOperations(model as any, Metadata, shortId);
     }
   }
 
   /**
    * Register one operation per declared action on every Behavior attribute of
-   * the model. Operation ids follow the same `<Model>.<Attribute>.<Action>`
-   * shape used by `addBinaryOperations` so transports can discover them with
-   * the same lookup logic.
+   * the model. Operation ids follow the `<Model>.<Attribute>.<Action>` shape
+   * so transports can discover them with the same lookup logic used for
+   * model-level operations.
    *
-   * The actual dispatch is deferred to `modelBehaviorAction` (Task 9). This
-   * method only wires the registry entries — it does not invoke behaviors.
+   * The actual dispatch is deferred to `modelBehaviorAction`. This method
+   * only wires the registry entries — it does not invoke behaviors.
    *
    * @param model - the model class owning the behavior attribute
    * @param Metadata - the model metadata blob (with Relations.behaviors)
@@ -701,304 +628,4 @@ export class DomainService<
     return behaviorInstance[action](...args.slice(1));
   }
 
-  /**
-   * Register upload, download, delete, and metadata operations for binary attributes
-   * @param model - the model to use
-   * @param Metadata - the model metadata
-   * @param name - the name to use
-   */
-  addBinaryOperations(model: ModelClass<Model>, Metadata: any, name: string) {
-    (Metadata.Relations.binaries || []).forEach(binary => {
-      const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
-      // Do not resolve binaryStore eagerly - it may not exist yet during resolve()
-      const baseContext = {
-        model,
-        binary
-      };
-      const info = {
-        service: this.getName(),
-        context: baseContext,
-        input: "uuidRequest",
-        output: "void" as string
-      };
-      registerOperation(`${name}.${attribute}.AttachChallenge`, {
-        ...info,
-        method: "binaryChallenge",
-        summary: `Upload ${binary.attribute} of ${name} after challenge`,
-        tags: [name],
-        rest: { method: "put", path: `{uuid}/${binary.attribute}` }
-      });
-      registerOperation(`${name}.${attribute}.Attach`, {
-        ...info,
-        context: {
-          ...info.context,
-          action: "create"
-        },
-        method: "binaryPut",
-        input: "binaryAttachParameters",
-        summary: `Upload ${binary.attribute} of ${name} directly`,
-        tags: [name],
-        rest: { method: "post", path: `{uuid}/${binary.attribute}` }
-      });
-      registerOperation(`${name}.${attribute}.Get`, {
-        ...info,
-        method: "binaryGet",
-        input: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest",
-        summary: `Download ${binary.attribute} of ${name}`,
-        tags: [name],
-        rest: {
-          method: "get",
-          path:
-            binary.cardinality === "ONE" ? `{uuid}/${binary.attribute}` : `{uuid}/${binary.attribute}/{index}`
-        }
-      });
-      registerOperation(`${name}.${attribute}.Delete`, {
-        ...info,
-        context: {
-          ...info.context,
-          action: "delete"
-        },
-        method: "binaryAction",
-        input: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest",
-        summary: `Delete ${binary.attribute} of ${name}`,
-        tags: [name],
-        rest: {
-          method: "delete",
-          path:
-            binary.cardinality === "ONE"
-              ? `{uuid}/${binary.attribute}/{hash}`
-              : `{uuid}/${binary.attribute}/{index}/{hash}`
-        }
-      });
-      registerOperation(`${name}.${attribute}.SetMetadata`, {
-        ...info,
-        context: {
-          ...info.context,
-          action: "metadata"
-        },
-        method: "binaryAction",
-        input: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest",
-        summary: `Update metadata of ${binary.attribute} of ${name}`,
-        tags: [name],
-        rest: {
-          method: "put",
-          path:
-            binary.cardinality === "ONE"
-              ? `{uuid}/${binary.attribute}/{hash}`
-              : `{uuid}/${binary.attribute}/{index}/{hash}`
-        }
-      });
-      registerOperation(`${name}.${attribute}.GetUrl`, {
-        ...info,
-        context: {
-          ...info.context,
-          returnUrl: true
-        },
-        method: "binaryGet",
-        input: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest",
-        summary: `Get signed URL for ${binary.attribute} of ${name}`,
-        tags: [name],
-        rest: {
-          method: "get",
-          path:
-            binary.cardinality === "ONE"
-              ? `{uuid}/${binary.attribute}/url`
-              : `{uuid}/${binary.attribute}/{index}/url`
-        }
-      });
-    });
-  }
-
-  /**
-   * Resolve the binary store for a given context, looking it up lazily if not already set
-   * @param context - the execution context
-   * @returns the binary store, model, and binary definition
-   */
-  private resolveBinaryContext(context: OperationContext) {
-    const ext = context.getExtension<{
-      binaryStore?: BinaryService;
-      model: ModelClass<Model>;
-      binary: any;
-    }>("operationContext");
-    if (!ext.binaryStore) {
-      ext.binaryStore = <BinaryService>useCore().getBinaryStore(ext.model as any, ext.binary.attribute);
-    }
-    return ext as { binaryStore: BinaryService; model: ModelClass<Model>; binary: any } & Record<string, any>;
-  }
-
-  /**
-   * Implement the binary challenge operation
-   * @param uuid - the model primary key
-   * @param body - the challenge request body containing hash, challenge, and optional file info
-   * @returns the challenge result with redirect url or done flag
-   */
-  async binaryChallenge(uuid: string, body?: BinaryFileInfo & { hash: string; challenge: string }): Promise<any> {
-    const context = useContext<OperationContext>();
-    const { model, binaryStore, binary } = this.resolveBinaryContext(context);
-    // Fall back to context input when resolveArguments couldn't extract body
-    if (body === undefined) {
-      body = await context.getInput();
-    }
-    // First verify if map exist
-    const object = await model.ref(uuid).get();
-    if (object === undefined || object.isDeleted()) {
-      throw new WebdaError.NotFound("Object does not exist");
-    }
-    if (this.checkBinaryAlreadyLinked(object[binary.attribute], body.hash)) {
-      return;
-    }
-    //await object.checkAct(context, "attach_binary" as ActionsEnum<Model>);
-    const url = await binaryStore.putRedirectUrl(object, binary.attribute, body, context);
-    const base64String = Buffer.from(body.hash, "hex").toString("base64");
-    return {
-      ...url,
-      done: url === undefined,
-      md5: base64String
-    };
-  }
-
-  /**
-   *
-   * @param property - the property name
-   * @param hash - the hash value
-   * @returns true if the condition is met
-   */
-  protected checkBinaryAlreadyLinked(property: BinaryMap | BinaryMap[], hash: string): boolean {
-    if (Array.isArray(property)) {
-      return property.find(f => f.hash === hash) !== undefined;
-    }
-    return property && property.hash === hash;
-  }
-
-  /**
-   * Set the binary content
-   * @param uuid - the model primary key
-   * @param _filename - the optional filename (from headers)
-   * @param _size - the optional file size (from headers)
-   * @param _mimetype - the optional mime type (from headers)
-   */
-  async binaryPut(uuid: string, _filename?: string, _size?: number, _mimetype?: string): Promise<void> {
-    const context = useContext<OperationContext>();
-    const { model, binaryStore, binary } = this.resolveBinaryContext(context);
-    // First verify if map exist
-    const object = await model.ref(uuid).get();
-    if (object === undefined || object.isDeleted()) {
-      throw new WebdaError.NotFound("Object does not exist");
-    }
-    const file = await binaryStore.getFile(context);
-    const { hash } = await file.getHashes();
-    if (this.checkBinaryAlreadyLinked(object[binary.attribute], hash)) {
-      return;
-    }
-    //await object.checkAct(context, "attach_binary" as ActionsEnum<Model>);
-    await binaryStore.store(object, binary.attribute, file);
-  }
-
-  /**
-   * Get the binary content — handles streaming/redirects directly via context
-   * @param uuid - the model primary key
-   * @param index - the binary index (for MANY cardinality)
-   */
-  async binaryGet(uuid: string, index?: number): Promise<void> {
-    const context = useContext<OperationContext>();
-    const ext = this.resolveBinaryContext(context);
-    const { model, binaryStore, binary } = ext;
-    const returnUrl = ext.returnUrl as boolean;
-    // First verify if map exist
-    const object = await model.ref(uuid).get();
-    if (object === undefined || object.isDeleted()) {
-      throw new WebdaError.NotFound("Object does not exist");
-    }
-    const property = binary.attribute;
-    if (!object || (Array.isArray(object[property]) && object[property].length <= index)) {
-      throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
-    }
-    //await object.checkAct(context, "get_binary" as ActionsEnum<Model>);
-    const file: BinaryMap = Array.isArray(object[property]) ? object[property][index] : object[property];
-    const url = await binaryStore.getRedirectUrlFromObject(file, context);
-    // No url, we return the file
-    if (url === null) {
-      if (returnUrl && context instanceof WebContext) {
-        // Redirect to same url without /url
-        context.write({
-          Location: context
-            .getHttpContext()
-            .getAbsoluteUrl()
-            .replace(/\/url$/, ""),
-          Map: file
-        });
-      } else {
-        // Output
-        context.writeHead(200, {
-          "Content-Type": file.mimetype === undefined ? "application/octet-steam" : file.mimetype,
-          "Content-Length": file.size
-        });
-        const readStream: any = await binaryStore.get(file);
-        await new Promise<void>((resolve, reject) => {
-          // We replaced all the event handlers with a simple call to readStream.pipe()
-          context._stream.on("finish", resolve);
-          context._stream.on("error", reject);
-          readStream.pipe(context._stream);
-        });
-      }
-    } else if (returnUrl) {
-      context.write({ Location: url, Map: file });
-    } else {
-      context.writeHead(302, {
-        Location: url
-      });
-    }
-  }
-
-  /**
-   * Execute a binary operation (delete or metadata update) on a model's binary attribute.
-   *
-   * Called with `(uuid, hash)` for ONE cardinality or `(uuid, index, hash)` for MANY cardinality.
-   * @param uuid - the model primary key
-   * @param indexOrHash - the binary index (MANY) or hash (ONE)
-   * @param hash - the hash (only for MANY cardinality)
-   */
-  async binaryAction(uuid: string, indexOrHash: number | string, hash?: string): Promise<void> {
-    const context = useContext<OperationContext>();
-    const ext = this.resolveBinaryContext(context);
-    const { model, binaryStore, binary } = ext;
-    const action = ext.action as "delete" | "metadata";
-    // Normalize: for ONE cardinality hash comes as second arg, index is undefined
-    let index: number | undefined;
-    let resolvedHash: string;
-    if (hash !== undefined) {
-      // MANY cardinality: (uuid, index, hash)
-      index = indexOrHash as number;
-      resolvedHash = hash;
-    } else {
-      // ONE cardinality: (uuid, hash)
-      resolvedHash = indexOrHash as string;
-    }
-    // First verify if map exist
-    const object = await model.ref(uuid).get();
-    if (object === undefined || object.isDeleted()) {
-      throw new WebdaError.NotFound("Object does not exist");
-    }
-
-    // Current file - would be empty on creation
-    const file = Array.isArray(object[binary.attribute]) ? object[binary.attribute][index] : object[binary.attribute];
-    if (!file || file?.hash !== resolvedHash) {
-      throw new WebdaError.BadRequest("Hash does not match");
-    }
-    if (action === "delete") {
-      //await object.checkAct(context, "detach_binary" as ActionsEnum<Model>);
-      await binaryStore.delete(object, binary.attribute, index);
-    } else if (action === "metadata") {
-      //await object.checkAct(context, "update_binary_metadata" as ActionsEnum<Model>);
-      const metadata: BinaryMetadata = await context.getInput();
-      // Limit metadata to 4kb
-      if (JSON.stringify(metadata).length >= 4096) {
-        throw new WebdaError.BadRequest("Metadata is too big: 4kb max");
-      }
-      file.metadata = metadata;
-      await object.patch({
-        [binary.attribute]: object[binary.attribute]
-      });
-    }
-  }
 }

@@ -121,6 +121,7 @@ function RelationsTable({ relations, onSelect }) {
   (relations.maps || []).forEach(m => rows.push({ name: m.attribute, type: "map", target: m.model }));
   (relations.children || []).forEach(c => rows.push({ name: "", type: "child", target: c }));
   (relations.binaries || []).forEach(b => rows.push({ name: b.attribute, type: `binary (${b.cardinality})`, target: "" }));
+  (relations.behaviors || []).forEach(b => rows.push({ name: b.attribute, type: "behavior", target: b.behavior }));
   if (rows.length === 0) return null;
   return html`
     <div class="detail-section">
@@ -132,7 +133,7 @@ function RelationsTable({ relations, onSelect }) {
             ${rows.map((r, i) => html`
               <tr key=${i}>
                 <td class="mono">${r.name || "-"}</td>
-                <td><span class="badge ${r.type === "parent" ? "badge-purple" : r.type === "child" ? "badge-purple" : r.type === "query" ? "badge-green" : r.type.startsWith("binary") ? "badge-orange" : "badge-blue"}">${r.type}</span></td>
+                <td><span class="badge ${r.type === "parent" ? "badge-purple" : r.type === "child" ? "badge-purple" : r.type === "query" ? "badge-green" : r.type.startsWith("binary") ? "badge-orange" : r.type === "behavior" ? "badge-orange" : "badge-blue"}">${r.type}</span></td>
                 <td>${r.target ? html`<${ModelLink} id=${r.target} onSelect=${onSelect} />` : "-"}</td>
               </tr>
             `)}

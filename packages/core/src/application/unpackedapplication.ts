@@ -469,9 +469,13 @@ export class UnpackedApplication extends Application {
       .forEach(p => {
         module[SectionEnum[p]] = value[SectionEnum[p]];
       });
-    // Copying schemas and capabilities
+    // Copying schemas, capabilities, and behaviors. `behaviors` lives outside
+    // SectionEnum because Behavior classes are intentionally not models /
+    // moddas / beans / deployers — but the merged value must still flow
+    // through to the runtime so DomainService.addBehaviorOperations sees them.
     module.schemas = value.schemas;
     module.capabilities = value.capabilities;
+    module.behaviors = value.behaviors;
     this.log("DEBUG", "Merged modules", module);
     await this.loadModule(module);
     return module;

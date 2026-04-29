@@ -25,6 +25,13 @@ export interface BehaviorAttributeInfo {
   behaviorClassName: string;
   /** Module specifier to import the Behavior class from, or undefined when same-file. */
   importSource?: string;
+  /**
+   * True when the Behavior class extends `Array<...>` (or any built-in array
+   * type). Drives a different hydration coercion shape — we must `push`
+   * each element rather than `Object.assign`, otherwise `arr.length` stays
+   * at 0 even when indexed slots are populated.
+   */
+  isArraySubclass?: boolean;
 }
 
 /**
@@ -133,6 +140,33 @@ function hasWebdaBehaviorTag(tsModule: typeof ts, decl: ts.ClassDeclaration | ts
 }
 
 /**
+ * Detect whether a class declaration extends a built-in `Array<...>` type.
+ * Walks the class's `extends` heritage clause; we don't try to follow
+ * intermediate subclasses (a class that extends `MyBaseArray extends Array`
+ * is not flagged), keeping detection conservative — the Array-subclass code
+ * path is purely an optimization and false negatives just fall back to
+ * `Object.assign`-style coercion.
+ *
+ * @param tsModule - the TypeScript module
+ * @param decl - the class declaration to inspect
+ * @returns true when the class directly extends `Array<...>`
+ */
+function extendsArray(tsModule: typeof ts, decl: ts.ClassDeclaration | ts.ClassExpression): boolean {
+  const heritage = decl.heritageClauses;
+  if (!heritage) return false;
+  for (const clause of heritage) {
+    if (clause.token !== tsModule.SyntaxKind.ExtendsKeyword) continue;
+    for (const type of clause.types) {
+      const expr = type.expression;
+      if (tsModule.isIdentifier(expr) && expr.text === "Array") {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * For the given property type reference, resolve the underlying class
  * declaration and return the runtime class name plus the import source —
  * but only if the resolved class carries a `@WebdaBehavior` JSDoc tag.
@@ -163,7 +197,8 @@ function resolveBehaviorClassFromType(
   if (!decl.name) return undefined;
   const behaviorClassName = safeGetText(decl.name, decl.getSourceFile());
   const importSource = resolveImportSource(decl.getSourceFile(), currentFile);
-  return { behaviorClassName, importSource };
+  const isArraySubclass = extendsArray(tsModule, decl);
+  return { behaviorClassName, importSource, isArraySubclass };
 }
 
 /**
@@ -404,7 +439,7 @@ function createBehaviorToJSON(tsModule: typeof ts, factory: ts.NodeFactory): ts.
  * Build the per-attribute hydration block for a model's `__hydrateBehaviors`
  * method body.
  *
- * Generates:
+ * For non-Array Behavior classes, generates:
  * ```js
  * {
  *   let v = this.<attr>;
@@ -421,21 +456,30 @@ function createBehaviorToJSON(tsModule: typeof ts, factory: ts.NodeFactory): ts.
  *   this.<attr> = v;
  * }
  * ```
+ *
+ * For Array-subclass Behaviors (e.g. `BinariesImpl extends Array<...>`), the
+ * coercion uses `inst.push(item)` instead of `Object.assign(inst, v)` because
+ * `Object.assign` on an Array instance silently fails to update `length` when
+ * indexed slots are copied — leaving you with `arr.length === 0` even though
+ * `arr[0]` and `arr[1]` are set.
+ *
  * @param tsModule - the TypeScript module
  * @param factory - the AST node factory
  * @param attribute - the model property name
- * @param behaviorClassName - the Behavior class name
+ * @param info - the Behavior attribute info (className + array flag)
  * @returns a block statement
  */
 function createHydrationBlock(
   tsModule: typeof ts,
   factory: ts.NodeFactory,
   attribute: string,
-  behaviorClassName: string
+  info: BehaviorAttributeInfo
 ): ts.Statement {
+  const behaviorClassName = info.behaviorClassName;
   const vId = factory.createIdentifier("v");
   const rawDataId = factory.createIdentifier("rawData");
   const instId = factory.createIdentifier("inst");
+  const itemId = factory.createIdentifier("item");
   const behaviorId = factory.createIdentifier(behaviorClassName);
   const storageOnV = factory.createElementAccessExpression(vId, factory.createIdentifier("WEBDA_STORAGE"));
   const parentSlotOnV = factory.createElementAccessExpression(
@@ -478,7 +522,62 @@ function createHydrationBlock(
     ])
   );
 
-  // if (!(v instanceof Behavior)) { const inst = new Behavior(); if (v != null) Object.assign(inst, v); v = inst; }
+  // Build the coercion body based on whether the Behavior extends Array.
+  const innerCoercion: ts.Statement[] = info.isArraySubclass
+    ? [
+        // if (Array.isArray(v)) { for (const item of v) inst.push(item); }
+        factory.createIfStatement(
+          factory.createCallExpression(
+            factory.createPropertyAccessExpression(factory.createIdentifier("Array"), "isArray"),
+            undefined,
+            [vId]
+          ),
+          factory.createBlock([
+            factory.createForOfStatement(
+              undefined,
+              factory.createVariableDeclarationList(
+                [factory.createVariableDeclaration("item")],
+                tsModule.NodeFlags.Const
+              ),
+              vId,
+              factory.createBlock([
+                factory.createExpressionStatement(
+                  factory.createCallExpression(
+                    factory.createPropertyAccessExpression(instId, "push"),
+                    undefined,
+                    [itemId]
+                  )
+                )
+              ])
+            )
+          ])
+        )
+      ]
+    : [
+        // if (v != null) Object.assign(inst, v);
+        factory.createIfStatement(
+          factory.createBinaryExpression(
+            factory.createBinaryExpression(
+              vId,
+              tsModule.SyntaxKind.ExclamationEqualsEqualsToken,
+              factory.createIdentifier("undefined")
+            ),
+            tsModule.SyntaxKind.AmpersandAmpersandToken,
+            factory.createBinaryExpression(vId, tsModule.SyntaxKind.ExclamationEqualsEqualsToken, factory.createNull())
+          ),
+          factory.createBlock([
+            factory.createExpressionStatement(
+              factory.createCallExpression(
+                factory.createPropertyAccessExpression(factory.createIdentifier("Object"), "assign"),
+                undefined,
+                [instId, vId]
+              )
+            )
+          ])
+        )
+      ];
+
+  // if (!(v instanceof Behavior)) { const inst = new Behavior(); <coerce>; v = inst; }
   const coerce = factory.createIfStatement(
     factory.createPrefixUnaryExpression(
       tsModule.SyntaxKind.ExclamationToken,
@@ -501,26 +600,7 @@ function createHydrationBlock(
           tsModule.NodeFlags.Const
         )
       ),
-      factory.createIfStatement(
-        factory.createBinaryExpression(
-          factory.createBinaryExpression(
-            vId,
-            tsModule.SyntaxKind.ExclamationEqualsEqualsToken,
-            factory.createIdentifier("undefined")
-          ),
-          tsModule.SyntaxKind.AmpersandAmpersandToken,
-          factory.createBinaryExpression(vId, tsModule.SyntaxKind.ExclamationEqualsEqualsToken, factory.createNull())
-        ),
-        factory.createBlock([
-          factory.createExpressionStatement(
-            factory.createCallExpression(
-              factory.createPropertyAccessExpression(factory.createIdentifier("Object"), "assign"),
-              undefined,
-              [instId, vId]
-            )
-          )
-        ])
-      ),
+      ...innerCoercion,
       factory.createExpressionStatement(factory.createAssignment(vId, instId))
     ])
   );
@@ -572,7 +652,7 @@ function createHydrateBehaviorsMethod(
 ): ts.MethodDeclaration {
   const blocks: ts.Statement[] = [];
   for (const [attr, info] of attrs) {
-    blocks.push(createHydrationBlock(tsModule, factory, attr, info.behaviorClassName));
+    blocks.push(createHydrationBlock(tsModule, factory, attr, info));
   }
 
   return factory.createMethodDeclaration(

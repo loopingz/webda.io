@@ -3398,9 +3398,96 @@
       "title": "BinaryFile"
     }
   },
+  "behaviors": {
+    "Webda/Binary": {
+      "Identifier": "Webda/Binary",
+      "Import": "lib/services/binary:Binary",
+      "Actions": {
+        "delete": {
+          "rest": {
+            "route": ".",
+            "method": "DELETE"
+          }
+        },
+        "attach": {
+          "rest": {
+            "route": ".",
+            "method": "POST"
+          }
+        },
+        "attachChallenge": {
+          "rest": {
+            "route": ".",
+            "method": "PUT"
+          }
+        },
+        "download": {
+          "rest": {
+            "route": ".",
+            "method": "GET"
+          }
+        },
+        "downloadUrl": {
+          "rest": {
+            "route": "url",
+            "method": "GET"
+          }
+        },
+        "setMetadata": {
+          "rest": {
+            "route": "{hash}",
+            "method": "PUT"
+          }
+        }
+      }
+    },
+    "Webda/BinariesImpl": {
+      "Identifier": "Webda/BinariesImpl",
+      "Import": "lib/services/binary:BinariesImpl",
+      "Actions": {
+        "attach": {
+          "rest": {
+            "route": ".",
+            "method": "POST"
+          }
+        },
+        "attachChallenge": {
+          "rest": {
+            "route": ".",
+            "method": "PUT"
+          }
+        },
+        "get": {
+          "rest": {
+            "route": "{index}",
+            "method": "GET"
+          }
+        },
+        "getUrl": {
+          "rest": {
+            "route": "{index}/url",
+            "method": "GET"
+          }
+        },
+        "deleteAt": {
+          "rest": {
+            "route": "{index}/{hash}",
+            "method": "DELETE"
+          }
+        },
+        "setMetadata": {
+          "rest": {
+            "route": "{index}/{hash}",
+            "method": "PUT"
+          }
+        }
+      }
+    }
+  },
   "capabilities": {
     "router": "Webda/Router",
     "rest-domain": "Webda/RESTOperationsTransport",
     "http-server": "Webda/HttpServer"
-  }
+  },
+  "sourceDigest": "d56f07beb2ed8a920378a8f7c7056af8"
 }

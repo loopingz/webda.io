@@ -36,6 +36,7 @@ export * from "./models/user.js";
 export * from "./models/coremodel.js";
 export * from "./models/ownermodel.js";
 export * from "./models/rolemodel.js";
+export * from "./models/decorator.js";
 export * from "./schemas/hooks.js";
 export * from "./queues/queueservice.js";
 export * from "./queues/pubsubservice.js";

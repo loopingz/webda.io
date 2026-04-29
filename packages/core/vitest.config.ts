@@ -46,6 +46,7 @@ export default defineConfig({
       "src/services/domainservice.spec.ts",
       "src/services/domainservice-behaviors.spec.ts",
       "src/services/behavior-roundtrip.spec.ts",
+      "src/services/binary-behavior.spec.ts",
       "src/services/audit.spec.ts",
       "src/services/operationstransport.spec.ts",
       "src/services/httpserver.spec.ts",

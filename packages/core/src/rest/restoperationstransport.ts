@@ -7,13 +7,14 @@ import * as WebdaError from "../errors/errors.js";
 import { useRouter } from "./hooks.js";
 import { useApplication } from "../application/hooks.js";
 import { useCore, useModelMetadata } from "../core/hooks.js";
+import { useInstanceStorage } from "../core/instancestorage.js";
 import { callOperation } from "../core/operations.js";
 import { WebContext } from "../contexts/webcontext.js";
 import type { HttpMethodType } from "../contexts/httpcontext.js";
 import { hasSchema } from "../schemas/hooks.js";
 import type { ModelClass } from "@webda/models";
 import type { ModelAction } from "../models/types.js";
-import type { ModelGraphBehaviorDefinition, ModelGraphBinaryDefinition, ModelMetadata } from "@webda/compiler";
+import type { ModelGraphBehaviorDefinition, ModelMetadata } from "@webda/compiler";
 
 /**
  * Swagger static html
@@ -275,11 +276,6 @@ export class RESTOperationsTransport<
       .forEach(actionName => {
         this.exposeActionRoute(prefix, shortId, Identifier, actionName, actions[actionName], depth, injectAttribute);
       });
-
-    // Register binary routes
-    (relations.binaries || []).forEach(binary => {
-      this.exposeBinaryRoutes(prefix, shortId, Identifier, name, binary);
-    });
 
     // Register behavior routes
     (relations.behaviors || []).forEach(behavior => {
@@ -780,325 +776,29 @@ export class RESTOperationsTransport<
   }
 
   /**
-   * Register all binary routes (upload, download, delete, metadata, challenge, signed url)
-   * @param prefix - the URL prefix for this model
-   * @param shortId - the short model identifier
-   * @param identifier - the full model identifier
-   * @param name - the display name for OpenAPI tags
-   * @param binary - the binary attribute definition
-   */
-  protected exposeBinaryRoutes(
-    prefix: string,
-    shortId: string,
-    identifier: string,
-    name: string,
-    binary: ModelGraphBinaryDefinition
-  ): void {
-    const modelInjector = async (context: WebContext) => {
-      context.getParameters().model = identifier;
-      context.getParameters().property = binary.attribute;
-      let action = "SetMetadata";
-      if (context.getHttpContext().getMethod() === "POST") {
-        action = "Attach";
-        const params = context.getParameters();
-        params["mimetype"] = context.getHttpContext().getUniqueHeader("Content-Type", "application/octet-stream");
-        params["name"] = context.getHttpContext().getUniqueHeader("X-Filename");
-        params["size"] = context.getHttpContext().getUniqueHeader("Content-Length");
-      } else if (context.getHttpContext().getMethod() === "DELETE") {
-        action = "Delete";
-      }
-      const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
-      return callOperation(context, `${shortId}.${attribute}.${action}`);
-    };
-
-    const modelInjectorChallenge = async (context: WebContext) => {
-      const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
-      return callOperation(context, `${shortId}.${attribute}.AttachChallenge`);
-    };
-
-    const modelInjectorGet = async (context: WebContext) => {
-      const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
-      if (binary.cardinality === "MANY") {
-        context.getParameters().index = parseInt(context.parameter("index"));
-      }
-      return callOperation(
-        context,
-        `${shortId}.${attribute}.Get${context.getHttpContext().getUrl().endsWith("url") ? "Url" : ""}`
-      );
-    };
-
-    let openapi: OpenAPIWebdaDefinition;
-
-    // PUT challenge upload
-    openapi = {
-      put: {
-        tags: [name],
-        summary: `Upload ${binary.attribute} of ${name} after challenge`,
-        description: `You will need to call the challenge method first to get a signed url to upload the content\nIf the data is already known then done is returned`,
-        operationId: `upload${name}${binary.attribute}`,
-        requestBody: {
-          content: {
-            "application/octet-stream": {
-              schema: {
-                type: "object",
-                required: ["hash", "challenge"],
-                properties: {
-                  hash: {
-                    type: "string",
-                    description: "md5(data)"
-                  },
-                  challenge: {
-                    type: "string",
-                    description: "md5('Webda' + data)"
-                  },
-                  size: {
-                    type: "number",
-                    description: "Size of the data"
-                  },
-                  name: {
-                    type: "string",
-                    description: "Name of the file"
-                  },
-                  mimetype: {
-                    type: "string",
-                    description: "Mimetype of the file"
-                  },
-                  metadata: {
-                    type: "object",
-                    description: "Metadata to add to the binary"
-                  }
-                }
-              }
-            }
-          }
-        },
-        responses: {
-          "200": {
-            description: "Operation success",
-            content: {
-              "application/octet-stream": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    done: {
-                      type: "boolean"
-                    },
-                    url: {
-                      type: "string"
-                    },
-                    method: {
-                      type: "string"
-                    },
-                    md5: {
-                      type: "string",
-                      description:
-                        "base64 md5 of the data\nThe next request requires Content-MD5 to be added with this one along with Content-Type: 'application/octet-stream'"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            description: "You don't have permissions"
-          },
-          "404": {
-            description: "Unknown object"
-          }
-        }
-      }
-    };
-    this.addRoute(`${prefix}/{uuid}/${binary.attribute}`, ["PUT"], modelInjectorChallenge, openapi);
-
-    // POST direct upload
-    openapi = {
-      post: {
-        tags: [name],
-        summary: `Upload ${binary.attribute} of ${name} directly`,
-        description: `You can upload the content directly to the server\nThis is not the recommended way as it wont be able to optimize network traffic`,
-        operationId: `upload${name}${binary.attribute}`,
-        requestBody: {
-          content: {
-            "application/octet-stream": {
-              schema: {
-                type: "string",
-                format: "binary"
-              }
-            }
-          }
-        },
-        responses: {
-          "204": {
-            description: ""
-          },
-          "403": {
-            description: "You don't have permissions"
-          },
-          "404": {
-            description: "Object does not exist or attachment does not exist"
-          }
-        }
-      }
-    };
-    this.addRoute(`${prefix}/{uuid}/${binary.attribute}`, ["POST"], modelInjector, openapi);
-
-    let rootUrl = `${prefix}/{uuid}/${binary.attribute}`;
-    if (binary.cardinality === "MANY") {
-      rootUrl += "/{index}";
-    }
-
-    // GET download
-    openapi = {
-      get: {
-        tags: [name],
-        summary: `Download ${binary.attribute} of ${name}`,
-        operationId: `download${name}${binary.attribute}`,
-        responses: {
-          "200": {
-            description: "Operation success",
-            content: {
-              "application/octet-stream": {
-                schema: {
-                  type: "string",
-                  format: "binary"
-                }
-              }
-            }
-          },
-          "302": {
-            description: "Redirect to the binary"
-          },
-          "403": {
-            description: "You don't have permissions"
-          },
-          "404": {
-            description: "Unknown object"
-          }
-        }
-      }
-    };
-    this.addRoute(`${rootUrl}`, ["GET"], modelInjectorGet, openapi);
-
-    // DELETE binary
-    openapi = {
-      delete: {
-        tags: [name],
-        summary: `Delete ${binary.attribute} of ${name}`,
-        responses: {
-          "204": {
-            description: ""
-          },
-          "403": {
-            description: "You don't have permissions"
-          },
-          "404": {
-            description: "Object does not exist or attachment does not exist"
-          },
-          "412": {
-            description: "Provided hash does not match"
-          }
-        }
-      }
-    };
-    this.addRoute(`${rootUrl}/{hash}`, ["DELETE"], modelInjector, openapi);
-
-    // PUT metadata update
-    openapi = {
-      put: {
-        tags: [name],
-        summary: `Update metadata of ${binary.attribute} of ${name}`,
-        operationId: `update${name}${binary.attribute}`,
-        requestBody: {
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                description: "Metadata to add to the binary",
-                additionalProperties: true
-              }
-            }
-          }
-        },
-        responses: {
-          "204": {
-            description: ""
-          },
-          "400": {
-            description: "Invalid input: metadata are limited to 4kb"
-          },
-          "403": {
-            description: "You don't have permissions"
-          },
-          "404": {
-            description: "Object does not exist or attachment does not exist"
-          },
-          "412": {
-            description: "Provided hash does not match"
-          }
-        }
-      }
-    };
-    this.addRoute(`${rootUrl}/{hash}`, ["PUT"], modelInjector, openapi);
-
-    // GET signed url
-    openapi = {
-      get: {
-        tags: [name],
-        summary: `Get a signed url to download ${binary.attribute} of ${name} with a limited lifetime`,
-        responses: {
-          "200": {
-            description: "Operation success",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    Location: {
-                      type: "string",
-                      description: "Signed url to download the binary"
-                    },
-                    Map: {
-                      $ref: "#/components/schemas/BinaryMap"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            description: "You don't have permissions"
-          },
-          "404": {
-            description: "Object does not exist or attachment does not exist"
-          }
-        }
-      }
-    };
-    this.addRoute(`${rootUrl}/url`, ["GET"], modelInjectorGet, openapi);
-  }
-
-  /**
    * Register routes for every `@Action` on every Behavior attribute of a
-   * model. The URL pattern is `{prefix}/{uuid}/{attribute}.{action}` — the
-   * dot between `attribute` and `action` is intentional and disambiguates
-   * Behavior calls from nested-resource routing (which uses slash-separated
-   * segments).
+   * model. The default URL pattern is `{prefix}/{uuid}/{attribute}.{action}`
+   * (PUT) — the dot disambiguates Behavior calls from nested-resource routing.
+   *
+   * Authors can override the route via `@Action({ rest: { route, method } })`.
+   * `addBehaviorOperations` resolves that hint and writes the final
+   * `rest.method`/`rest.path` on the registered operation; this method just
+   * mirrors what's there, falling back to the dot-notation default if no
+   * hint was set.
    *
    * Each route dispatches the registered behavior operation
-   * (`{ShortId}.{AttributeCap}.{ActionCap}`) declared by Task 8's
-   * `addBehaviorOperations`. The dispatcher itself (Task 9's
-   * `modelBehaviorAction`) handles model load, `canAct` gating, and method
+   * (`{ShortId}.{AttributeCap}.{ActionCap}`). The dispatcher itself
+   * (`modelBehaviorAction`) handles model load, `canAct` gating, and method
    * invocation — this method only wires the HTTP surface.
    *
-   * v1 surface is PUT-only by design: the operation registry hard-codes
-   * `rest.method = "put"` and we mirror that here. Schema decoration on the
-   * OpenAPI doc is best-effort — we lean on `hasSchema()` (the AJV registry)
-   * to decide whether to emit `requestBody` / `responses` `$ref`s.
+   * Schema decoration on the OpenAPI doc is best-effort — we lean on
+   * `hasSchema()` (the AJV registry) to decide whether to emit
+   * `requestBody` / `responses` `$ref`s.
    *
    * @param prefix - the URL prefix for this model (e.g. `/api/users`)
    * @param shortId - the short model identifier (e.g. `User`)
    * @param identifier - the full model identifier (e.g. `MyApp/User`) — accepted
-   *   for parity with `exposeBinaryRoutes` even though we don't currently use it
+   *   for symmetry with `walkModel`'s caller signature even though we don't currently use it
    * @param name - the model display name used in OpenAPI tags
    * @param behavior - the Behavior attribute relation to expose
    */
@@ -1118,12 +818,24 @@ export class RESTOperationsTransport<
     }
     const attributeCap = behavior.attribute.substring(0, 1).toUpperCase() + behavior.attribute.substring(1);
 
+    const ops = useInstanceStorage().operations;
     Object.keys(behaviorMeta.Actions || {}).forEach(actionName => {
       const actionCap = actionName.substring(0, 1).toUpperCase() + actionName.substring(1);
       const operationId = `${shortId}.${attributeCap}.${actionCap}`;
 
+      // Read REST hints from the registered operation. addBehaviorOperations
+      // resolves the action's `rest: { route, method }` decorator option (if
+      // any) and writes the final method+path here, so we just mirror it.
+      const op = ops?.[operationId];
+      const restHint = op?.rest && typeof op.rest === "object" ? op.rest : undefined;
+      const httpMethod = ((restHint?.method ?? "put") as string).toUpperCase() as HttpMethodType;
+      const methodKey = httpMethod.toLowerCase();
+      // `rest.path` is relative to the model prefix and starts with `{uuid}/`.
+      const relativePath = restHint?.path ?? `{uuid}/${behavior.attribute}.${actionName}`;
+      const fullPath = `${prefix}/${relativePath}`;
+
       const openapi: OpenAPIWebdaDefinition = {
-        put: {
+        [methodKey]: {
           tags: [shortId],
           summary: `${actionCap} on ${shortId}.${behavior.attribute}`,
           operationId
@@ -1132,7 +844,7 @@ export class RESTOperationsTransport<
       const inputSchema = `${behavior.behavior}.${actionName}.input`;
       const outputSchema = `${behavior.behavior}.${actionName}.output`;
       if (hasSchema(inputSchema)) {
-        openapi.put.requestBody = {
+        openapi[methodKey].requestBody = {
           content: {
             "application/json": {
               schema: {
@@ -1143,7 +855,7 @@ export class RESTOperationsTransport<
         };
       }
       if (hasSchema(outputSchema)) {
-        openapi.put.responses = {
+        openapi[methodKey].responses = {
           "200": {
             description: "Operation success",
             content: {
@@ -1158,8 +870,8 @@ export class RESTOperationsTransport<
       }
 
       this.addRoute(
-        `${prefix}/{uuid}/${behavior.attribute}.${actionName}`,
-        ["PUT"],
+        fullPath,
+        [httpMethod],
         async (context: WebContext) => callOperation(context, operationId),
         openapi
       );

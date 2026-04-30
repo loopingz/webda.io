@@ -105,12 +105,12 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     assert.ok(operations["User.Create"], "User.Create should be registered");
     assert.ok(operations["Users.Query"], "Users.Query should be registered");
 
-    // Binary operations
+    // Binary attribute operations (now registered via the Behavior pipeline)
     assert.ok(operations["Contact.Avatar.Attach"], "Contact.Avatar.Attach should be registered");
     assert.ok(operations["Contact.Avatar.AttachChallenge"], "Contact.Avatar.AttachChallenge should be registered");
-    assert.ok(operations["Contact.Avatar.Get"], "Contact.Avatar.Get should be registered");
+    assert.ok(operations["Contact.Avatar.Download"], "Contact.Avatar.Download should be registered");
     assert.ok(operations["Contact.Avatar.Delete"], "Contact.Avatar.Delete should be registered");
-    assert.ok(operations["Contact.Avatar.GetUrl"], "Contact.Avatar.GetUrl should be registered");
+    assert.ok(operations["Contact.Avatar.DownloadUrl"], "Contact.Avatar.DownloadUrl should be registered");
     assert.ok(operations["Contact.Avatar.SetMetadata"], "Contact.Avatar.SetMetadata should be registered");
     assert.ok(operations["Contact.Photos.Attach"], "Contact.Photos.Attach should be registered");
     assert.ok(operations["Contact.Photos.Get"], "Contact.Photos.Get should be registered");

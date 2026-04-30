@@ -732,15 +732,45 @@ export class SchemaGenerator {
    * @returns the return type or undefined
    */
   private resolveMethodReturnType(type: ts.Type, methodNames: string[], resolveNode: ts.Node): ts.Type | undefined {
-    for (const name of methodNames) {
-      const symbol = type.getProperty(name);
-      if (symbol) {
-        const methodType = this.checker.getTypeOfSymbolAtLocation(symbol, resolveNode);
-        const sigs = this.checker.getSignaturesOfType(methodType, ts.SignatureKind.Call);
-        if (sigs.length > 0) {
-          return this.checker.getReturnTypeOfSignature(sigs[0]);
-        }
+    // Use the apparent type so that generic instantiations propagate
+    // type-arguments into method signatures correctly.
+    const apparent = this.checker.getApparentType(type) || type;
+    const checkerAny = this.checker as any;
+    const containsTypeParameter = (t: ts.Type, seen: Set<ts.Type> = new Set()): boolean => {
+      if (seen.has(t)) return false;
+      seen.add(t);
+      if ((t.flags & ts.TypeFlags.TypeParameter) !== 0) return true;
+      const args = (t as any).typeArguments as ts.Type[] | undefined;
+      if (args && args.some(a => containsTypeParameter(a, seen))) return true;
+      if ((t.flags & ts.TypeFlags.UnionOrIntersection) !== 0) {
+        const subTypes = (t as ts.UnionOrIntersectionType).types;
+        if (subTypes.some(s => containsTypeParameter(s, seen))) return true;
       }
+      return false;
+    };
+    const parentArgs = (apparent as any).typeArguments as ts.Type[] | undefined;
+    for (const name of methodNames) {
+      const symbol = apparent.getProperty(name) || type.getProperty(name);
+      if (!symbol) continue;
+      let methodType: ts.Type | undefined;
+      if (typeof checkerAny.getTypeOfPropertyOfType === "function") {
+        methodType = checkerAny.getTypeOfPropertyOfType(apparent, name);
+      }
+      if (!methodType) {
+        methodType = this.checker.getTypeOfSymbolAtLocation(symbol, resolveNode);
+      }
+      const sigs = this.checker.getSignaturesOfType(methodType, ts.SignatureKind.Call);
+      if (sigs.length === 0) continue;
+      const ret = this.checker.getReturnTypeOfSignature(sigs[0]);
+      // TS API quirk: depending on traversal order the method type may
+      // retain the parent's generic type-parameter (e.g. `BinaryFileInfo<T>`)
+      // instead of the substituted type-argument. When this happens we have
+      // no usable substituted return type — bail out and let the caller
+      // fall through to structural processing of the parent type.
+      if (parentArgs && parentArgs.length > 0 && containsTypeParameter(ret)) {
+        return undefined;
+      }
+      return ret;
     }
     return undefined;
   }
@@ -792,6 +822,37 @@ export class SchemaGenerator {
       }
     }
     return undefined;
+  }
+
+  /**
+   * Detect whether a class type is annotated with the `@readOnly` JSDoc tag
+   * on its class declaration. This is used as the canonical "exclude from
+   * Input schema" signal: a class tagged `@readOnly` represents data that is
+   * never user-supplied, so attributes typed by such a class are skipped in
+   * dto-in mode.
+   *
+   * Walks both the type's own symbol and the symbol of the underlying class
+   * declaration when the type is e.g. an Array subclass.
+   *
+   * @param type - The TypeScript type to inspect
+   * @returns true if the class declaration carries `@readOnly`
+   */
+  private hasReadOnlyClassJsDoc(type: ts.Type): boolean {
+    const symbols: ts.Symbol[] = [];
+    const sym = type.getSymbol();
+    if (sym) symbols.push(sym);
+    // For class types, the value declaration's symbol carries the JSDoc on
+    // the class declaration itself — same as `sym` in practice, but cover
+    // the alias-symbol case too.
+    const aliasSym = (type as any).aliasSymbol as ts.Symbol | undefined;
+    if (aliasSym && !symbols.includes(aliasSym)) symbols.push(aliasSym);
+    for (const s of symbols) {
+      const jsDoc = this.getJsDocForSymbol(s, this.checker);
+      if (jsDoc.tags.some(t => t.name === "readOnly")) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -869,6 +930,12 @@ export class SchemaGenerator {
       // dto-in mode: check for fromDTO/fromDto to determine accepted input type.
       // If the first parameter is `never`, skip the property entirely.
       if (mode === "dto-in") {
+        // A class tagged `@readOnly` on its class declaration is treated as
+        // "never user-supplied" — skip the attribute from the Input schema.
+        if (this.hasReadOnlyClassJsDoc(type)) {
+          this.log(`Skipping property at ${path}: class is @readOnly`);
+          return "skip";
+        }
         const fromDtoResult = this.resolveFromDto(type, resolveNode);
         if (fromDtoResult === "skip") {
           this.log(`Skipping property at ${path}: fromDTO parameter is never`);
@@ -1230,6 +1297,27 @@ export class SchemaGenerator {
             definition[key] ??= def[key];
           });
         }
+      }
+    }
+
+    // dto-in: a class tagged `@readOnly` on its class declaration, OR a class
+    // that declares `static fromDto(data: never)`, opts its attribute out of
+    // the Input schema entirely. We check this here (before the type-shape
+    // dispatch below) so it works for both class-typed attributes (e.g.
+    // `Binary<T>`) AND array-typed attributes whose element is a class with
+    // the marker (e.g. `Binaries<T> = BinariesImpl<T> extends Array<...>`).
+    // For array types we walk to the underlying class via the type's symbol —
+    // `getProperty("fromDto")` looks up an instance method, so we need the
+    // static side via the constructor type.
+    if (path !== "/" && this.currentOptions.type === "dto-in") {
+      if (this.hasReadOnlyClassJsDoc(type)) {
+        this.log(`${indent}Skipping property at ${path}: class is @readOnly`);
+        return { optional: false, decision: "skip" };
+      }
+      const fromDtoResult = this.resolveFromDto(type, node || this.targetNode!);
+      if (fromDtoResult === "skip") {
+        this.log(`${indent}Skipping property at ${path}: fromDto parameter is never`);
+        return { optional: false, decision: "skip" };
       }
     }
 

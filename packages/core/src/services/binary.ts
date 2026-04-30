@@ -14,6 +14,10 @@ import { IStore } from "../core/icore.js";
 import { MappingService } from "../stores/istore.js";
 import { type Model, type Storable, WEBDA_STORAGE } from "@webda/models";
 import { streamToBuffer, FileSize } from "@webda/utils";
+import { Action } from "../models/decorator.js";
+import { useContext } from "../contexts/execution.js";
+import type { OperationContext } from "../contexts/operationcontext.js";
+import { WebContext } from "../contexts/webcontext.js";
 
 /**
  * Represent basic EventBinary
@@ -307,26 +311,89 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
 }
 
 /**
- * One Binary instance
+ * One Binary instance — single-cardinality binary attribute on a CoreModel.
+ *
+ * Tagged as a Behavior so the compiler picks it up via the same path as every
+ * other `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed
+ * as model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by
+ * `RESTOperationsTransport.exposeBehaviorRoutes`.
+ *
+ * Constructor takes no required arguments because the transformer-emitted
+ * `__hydrateBehaviors` calls `new Binary()` with zero args before stamping
+ * the parent reference into `WEBDA_STORAGE["__parent__"]`. Legacy 2-arg
+ * usage (`new Binary(attribute, model)`) is still supported for direct
+ * callers and tests; when present, the constructor eagerly resolves the
+ * service and copies the existing model attribute value so callers can call
+ * `isEmpty()` and `hash`/`size` immediately.
+ *
  * @readOnly
- * @dtoIn skip
+ * @WebdaBehavior Webda/Binary
  */
 export class Binary<T extends object = {}> extends BinaryMap<T> {
-  [WEBDA_STORAGE]: {
-    model: Model;
-    attribute: string;
-    service: BinaryService;
-    empty: boolean;
-  } = {} as any;
-  /** Create a new Binary
-   * @param attribute - the model attribute name
-   * @param model - the parent model
+  // NOTE: do NOT redeclare `[WEBDA_STORAGE]` as a field here — class field
+  // initializers in the subclass run AFTER `super()` returns and OVERWRITE
+  // whatever BinaryMap (and BinaryFile before it) stored. We rely on the
+  // inherited `[WEBDA_STORAGE]: { service: BinaryService } = {}` from
+  // BinaryMap and stash the Behavior-specific keys (`empty`, `__parent__`)
+  // through a typed cast at the assignment site.
+
+  /** Create a new Binary.
+   *
+   * Callable with no arguments (the Behavior-hydration path the transformer
+   * emits) or with the legacy `(attribute, model)` pair for direct
+   * instantiation in tests / non-hydrated code.
+   * @param attribute - the model attribute name (legacy form)
+   * @param model - the parent model (legacy form)
    */
-  constructor(attribute: string, model: Model) {
-    super(<any>useCore().getBinaryStore(model, attribute), model[attribute] || {});
-    this[WEBDA_STORAGE].empty = model[attribute] === undefined;
-    this[WEBDA_STORAGE].attribute = attribute;
-    this[WEBDA_STORAGE].model = model;
+  constructor(attribute?: string, model?: Model) {
+    if (attribute !== undefined && model !== undefined) {
+      // Legacy eager wiring: resolve the service and load existing data so
+      // callers can `isEmpty()` / `.hash` / `.size` right after construction.
+      super(<any>useCore().getBinaryStore(model, attribute), model[attribute] || {});
+      (this[WEBDA_STORAGE] as any).empty = model[attribute] === undefined;
+      (this[WEBDA_STORAGE] as any)["__parent__"] = { instance: model, attribute };
+    } else {
+      // Behavior-hydration path: no args. The transformer's
+      // `__hydrateBehaviors` stamps `__parent__` into WEBDA_STORAGE after
+      // construction, so we leave service/parent unresolved and the public
+      // API resolves them lazily via `getService()` and `this.parent`.
+      super(undefined as any, {} as any);
+      (this[WEBDA_STORAGE] as any).empty = true;
+    }
+  }
+
+  /**
+   * Resolve the BinaryService lazily via the Behavior parent reference.
+   *
+   * The transformer-emitted `__hydrateBehaviors` writes
+   * `WEBDA_STORAGE["__parent__"]` after construction, and the per-Behavior
+   * `parent` getter (also emitted by the transformer) surfaces it as
+   * `this.parent`. We resolve the service on first call and cache it on the
+   * storage slot so subsequent calls don't re-walk the binary registry.
+   *
+   * @returns the BinaryService that owns this Binary's parent attribute
+   */
+  protected getService(): BinaryService {
+    if (!this[WEBDA_STORAGE].service) {
+      const parent = this.getParent();
+      if (!parent) {
+        throw new Error("Binary parent not yet wired — cannot resolve BinaryService");
+      }
+      this[WEBDA_STORAGE].service = useCore().getBinaryStore(parent.instance as any, parent.attribute) as BinaryService;
+    }
+    return this[WEBDA_STORAGE].service;
+  }
+
+  /**
+   * Read the Behavior parent reference. The transformer-emitted `parent`
+   * getter on `@WebdaBehavior` classes returns the same slot, but Binary
+   * may also be used in code paths where the transformer hasn't run (e.g.
+   * unit tests that hand-roll instances), so we read the slot directly.
+   *
+   * @returns the parent reference or undefined
+   */
+  protected getParent(): { instance: Storable; attribute: string } | undefined {
+    return (this[WEBDA_STORAGE] as any)["__parent__"];
   }
 
   /**
@@ -334,7 +401,7 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
    * @returns the result
    */
   isEmpty() {
-    return this[WEBDA_STORAGE].empty;
+    return (this[WEBDA_STORAGE] as any).empty;
   }
 
   /**
@@ -343,37 +410,230 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
    */
   set(info: BinaryFileInfo<T>): void {
     super.set(info);
-    this[WEBDA_STORAGE].empty = false;
+    (this[WEBDA_STORAGE] as any).empty = false;
   }
 
   /**
-   * Replace the binary
-   * @param id - the identifier
-   * @param ctx - the operation context
-   * @param file - the file path
+   * Replace the binary by uploading a new file. Direct programmatic use
+   * (non-HTTP). Equivalent to the `attach(...)` HTTP action minus the
+   * context handling.
+   * @param file - the binary file to upload
    * @returns the result
    */
   async upload(file: BinaryFile<T>): Promise<void> {
-    await this[WEBDA_STORAGE].service.store(this[WEBDA_STORAGE].model, this[WEBDA_STORAGE].attribute, file);
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binary parent not yet wired — cannot upload");
+    }
+    await this.getService().store(parent.instance, parent.attribute, file);
     this.set(file);
   }
 
   /**
-   * Delete the binary, if you need to replace just use upload
+   * Delete this binary from storage and clear local state.
+   *
+   * Exposed as a Behavior `@Action` (DELETE on `{uuid}/<attribute>/{hash}`).
+   * The URL `{hash}` must match the current binary's hash; this guards
+   * against accidental deletes when the client raced a metadata update.
+   *
+   * Migrated from `DomainService.binaryAction` (action="delete",
+   * single-cardinality branch).
+   * @param hash - the URL-supplied hash; must match `this.hash`
    */
-  async delete() {
-    await this[WEBDA_STORAGE].service.delete(this[WEBDA_STORAGE].model, this[WEBDA_STORAGE].attribute);
+  @Action({ rest: { route: "{hash}", method: "DELETE" } })
+  async delete(hash: string): Promise<void> {
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binary parent not yet wired — cannot delete");
+    }
+    if (!this.hash || this.hash !== hash) {
+      throw new WebdaError.BadRequest("Hash does not match");
+    }
+    await this.getService().delete(parent.instance, parent.attribute);
     this.set(<any>{});
-    this[WEBDA_STORAGE].empty = true;
+    (this[WEBDA_STORAGE] as any).empty = true;
   }
 
   /**
-   * Return undefined if no hash
+   * Direct (multipart / raw) upload from an HTTP request.
+   *
+   * `POST /<plural>/{uuid}/<attribute>` — accepts the binary content as the
+   * request body, hashes it, stores it on the BinaryService, and updates
+   * this Binary's metadata. Returns early if the new content's hash matches
+   * what we already hold (idempotent on duplicate uploads).
+   *
+   * Migrated from `DomainService.binaryPut`; the parent-loading step is
+   * unnecessary here because the Behavior is already attached to its parent
+   * by `__hydrateBehaviors`.
+   */
+  @Action({ rest: { route: ".", method: "POST" } })
+  async attach(): Promise<void> {
+    const context = useContext<OperationContext>();
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binary parent not yet wired — cannot attach");
+    }
+    const service = this.getService();
+    const file = await service.getFile(context);
+    const { hash } = await file.getHashes();
+    if (this.hash === hash) {
+      return; // already linked — idempotent
+    }
+    await service.store(parent.instance, parent.attribute, file);
+    this.set(file as unknown as BinaryFileInfo<T>);
+  }
+
+  /**
+   * Challenge-based upload handshake.
+   *
+   * `PUT /<plural>/{uuid}/<attribute>` — the client sends `{ hash, challenge,
+   * size?, name?, mimetype?, metadata? }`; we ask the BinaryService for a
+   * pre-signed upload URL (or a "done" flag if dedup matched) and return it.
+   *
+   * Migrated from `DomainService.binaryChallenge`.
+   * @param body - the challenge body forwarded by `resolveArguments`; falls
+   *   back to `context.getInput()` when undefined.
+   * @returns `{ url?, method?, headers?, done, md5 }`
+   */
+  @Action({ rest: { route: ".", method: "PUT" } })
+  async attachChallenge(body?: BinaryFileInfo & { hash: string; challenge: string }): Promise<any> {
+    const context = useContext<OperationContext>();
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binary parent not yet wired — cannot attachChallenge");
+    }
+    const service = this.getService();
+    if (body === undefined) {
+      body = await context.getInput();
+    }
+    if (this.hash === body.hash) {
+      return; // already linked
+    }
+    const url = await service.putRedirectUrl(parent.instance, parent.attribute, body, context);
+    const md5 = Buffer.from(body.hash, "hex").toString("base64");
+    return {
+      ...url,
+      done: url === undefined,
+      md5
+    };
+  }
+
+  /**
+   * Stream the binary to the response, or 302-redirect to a signed URL.
+   *
+   * `GET /<plural>/{uuid}/<attribute>` — if the underlying BinaryService
+   * supports redirect URLs (e.g. S3) we 302 to the signed URL; otherwise we
+   * pipe the bytes directly through the response.
+   *
+   * Named `download` (not `get`) so the parent `BinaryMap.get(): Readable`
+   * accessor isn't shadowed — Behavior @Action methods can't change the
+   * parent type's contract, and a plain `get()` overload that returns
+   * `void` would break callers that consume the Readable.
+   *
+   * Migrated from `DomainService.binaryGet` (single-cardinality branch).
+   */
+  @Action({ rest: { route: ".", method: "GET" } })
+  async download(): Promise<void> {
+    const context = useContext<OperationContext>();
+    const service = this.getService();
+    if (!this.hash) {
+      throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
+    }
+    const url = await service.getRedirectUrlFromObject(this as unknown as BinaryMap, context);
+    if (url === null) {
+      // No redirect — stream directly through the response.
+      context.writeHead(200, {
+        "Content-Type": this.mimetype === undefined ? "application/octet-stream" : this.mimetype,
+        "Content-Length": this.size
+      });
+      const readStream: any = await service.get(this as unknown as BinaryMap);
+      await new Promise<void>((resolve, reject) => {
+        (context as any)._stream.on("finish", resolve);
+        (context as any)._stream.on("error", reject);
+        readStream.pipe((context as any)._stream);
+      });
+    } else {
+      context.writeHead(302, { Location: url });
+    }
+  }
+
+  /**
+   * Return a JSON `{ Location, Map }` describing where to fetch the binary.
+   *
+   * `GET /<plural>/{uuid}/<attribute>/url` — variant of `download()` that
+   * returns the URL as JSON instead of redirecting. Used by clients that
+   * want to discover the URL without following the redirect.
+   *
+   * Migrated from `DomainService.binaryGet`'s `returnUrl` branch.
+   * @returns `{ Location, Map }`
+   */
+  @Action({ rest: { route: "url", method: "GET" } })
+  async downloadUrl(): Promise<{ Location: string | undefined; Map: BinaryMap<T> }> {
+    const context = useContext<OperationContext>();
+    const service = this.getService();
+    if (!this.hash) {
+      throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
+    }
+    const url = await service.getRedirectUrlFromObject(this as unknown as BinaryMap, context);
+    if (url === null) {
+      // No service-level signed URL: fall back to the same URL minus `/url`.
+      if (context instanceof WebContext) {
+        return {
+          Location: context
+            .getHttpContext()
+            .getAbsoluteUrl()
+            .replace(/\/url$/, ""),
+          Map: this as unknown as BinaryMap<T>
+        };
+      }
+      return { Location: undefined, Map: this as unknown as BinaryMap<T> };
+    }
+    return { Location: url, Map: this as unknown as BinaryMap<T> };
+  }
+
+  /**
+   * Update the metadata sidecar attached to this binary.
+   *
+   * `PUT /<plural>/{uuid}/<attribute>/{hash}` — verifies the URL `{hash}`
+   * matches the current binary, applies the new metadata, and persists via
+   * `parent.instance.patch(...)`. Metadata payload is capped at 4 KB to
+   * mirror the existing `DomainService.binaryAction` rule.
+   *
+   * Migrated from `DomainService.binaryAction` (action="metadata" branch).
+   * @param hash - the URL-supplied hash; must match `this.hash`
+   * @param metadata - the new metadata blob (≤ 4 KB JSON)
+   */
+  @Action({ rest: { route: "{hash}", method: "PUT" } })
+  async setMetadata(hash: string, metadata: T): Promise<void> {
+    const context = useContext<OperationContext>();
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binary parent not yet wired — cannot setMetadata");
+    }
+    if (this.hash !== hash) {
+      throw new WebdaError.BadRequest("Hash does not match");
+    }
+    if (metadata === undefined) {
+      metadata = await context.getInput();
+    }
+    if (JSON.stringify(metadata).length >= 4096) {
+      throw new WebdaError.BadRequest("Metadata is too big: 4kb max");
+    }
+    this.metadata = metadata;
+    await (parent.instance as any).patch({
+      [parent.attribute]: this
+    });
+  }
+
+  /**
+   * Return undefined at runtime if no hash; the type annotation deliberately
+   * narrows to the populated shape so the schema generator follows
+   * `BinaryFileInfo<T>` for the Output/Stored schemas.
    * @returns the result
    */
-  toJSON(): BinaryFileInfo<T> | undefined {
+  toJSON(): BinaryFileInfo<T> {
     if (!this.hash) {
-      return undefined;
+      return undefined as unknown as BinaryFileInfo<T>;
     }
     return this;
   }
@@ -417,36 +677,70 @@ export class BinariesItem<T extends object = {}> extends BinaryMap<T> {
   }
 }
 /**
- * Define a collection of Binary
- * @dtoIn skip
+ * Define a collection of Binary — many-cardinality binary attribute.
+ *
+ * Tagged as a Behavior so its `@Action` methods register as
+ * `<Model>.<Attribute>.<Action>` operations alongside Single-Binary ones.
+ * Inherits from `Array<BinariesItem<T>>` so it preserves array semantics
+ * (iteration, indexed access, JSON.stringify-as-array). The transformer
+ * detects this Array-subclass shape and emits a push-based hydration
+ * coercion — see `behaviors.ts:createHydrationBlock`.
+ *
+ * @readOnly
+ * @WebdaBehavior Webda/BinariesImpl
  */
 export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> {
   protected [WEBDA_STORAGE]: {
-    model: Model;
-    attribute: string;
-    service: BinaryService;
+    service?: BinaryService;
+    [key: string]: any;
   } = {} as any;
 
   /**
-   * No-op: BinariesImpl cannot be constructed from DTO
-   * @param data - the data to process
-   */
-  static fromDto(data: never): void {}
-
-  /**
-   * Bind this collection to a model and attribute, populating from existing binary data
+   * Bind this collection to a model and attribute, populating from existing binary data.
+   *
+   * Legacy entry-point used by code that constructs a `BinariesImpl()`
+   * directly (tests, manual instantiation). The Behavior-hydration path the
+   * transformer emits writes `WEBDA_STORAGE["__parent__"]` instead and
+   * never calls `assign`.
+   *
    * @param model - the model to use
    * @param attribute - the attribute name
    * @returns this for chaining
    */
   assign(model: Model, attribute: string): this {
-    this[WEBDA_STORAGE].model = model;
-    this[WEBDA_STORAGE].attribute = attribute;
+    this[WEBDA_STORAGE]["__parent__"] = { instance: model, attribute };
     for (const binary of model[attribute] || []) {
       this.push(binary);
     }
     this[WEBDA_STORAGE].service = <BinaryService>useCore().getBinaryStore(model, attribute);
     return this;
+  }
+
+  /**
+   * Resolve the BinaryService lazily via the Behavior parent reference.
+   *
+   * Mirrors `Binary.getService()`. The transformer-emitted parent slot
+   * (`WEBDA_STORAGE["__parent__"]`) is the source of truth.
+   *
+   * @returns the BinaryService for this collection's parent attribute
+   */
+  protected getService(): BinaryService {
+    if (!this[WEBDA_STORAGE].service) {
+      const parent = this.getParent();
+      if (!parent) {
+        throw new Error("Binaries parent not yet wired — cannot resolve BinaryService");
+      }
+      this[WEBDA_STORAGE].service = useCore().getBinaryStore(parent.instance as any, parent.attribute) as BinaryService;
+    }
+    return this[WEBDA_STORAGE].service;
+  }
+
+  /**
+   * Read the Behavior parent reference. Mirrors `Binary.getParent()`.
+   * @returns the parent reference or undefined
+   */
+  protected getParent(): { instance: Storable; attribute: string } | undefined {
+    return (this[WEBDA_STORAGE] as any)["__parent__"];
   }
 
   /** @throws Readonly collection */
@@ -475,12 +769,16 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
   }
 
   /**
-   * Upload a file to this model
+   * Upload a file to this model. Direct programmatic API (non-HTTP).
    * @param file - the file path
    * @param replace - whether to replace existing
    */
   async upload(file: BinaryFile<T>, replace?: BinariesItem<T>): Promise<void> {
-    await this[WEBDA_STORAGE].service.store(this[WEBDA_STORAGE].model, this[WEBDA_STORAGE].attribute, file);
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binaries parent not yet wired — cannot upload");
+    }
+    await this.getService().store(parent.instance, parent.attribute, file);
     // Should call the store first
     super.push(new BinariesItem(this, file));
     if (replace) {
@@ -489,29 +787,246 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
   }
 
   /**
-   * Delete an item
-   * @param item - the item
+   * Delete an item by reference or index. Direct programmatic API (non-HTTP).
+   * @param item - the item to delete
    */
-  async delete(item: BinariesItem<T>) {
+  async delete(item: BinariesItem<T>): Promise<void> {
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binaries parent not yet wired — cannot delete");
+    }
     let itemIndex = this.indexOf(item);
     if (itemIndex === -1) {
       throw new Error("Item not found");
     }
-    await this[WEBDA_STORAGE].service.delete(this[WEBDA_STORAGE].model, this[WEBDA_STORAGE].attribute, itemIndex);
+    await this.getService().delete(parent.instance, parent.attribute, itemIndex);
     itemIndex = this.indexOf(item);
     if (itemIndex >= 0) {
       // Call store delete here
       this.splice(itemIndex, 1);
     }
   }
+
+  /**
+   * Direct (multipart / raw) upload from an HTTP request. Pushes a new item
+   * onto the collection.
+   *
+   * `POST /<plural>/{uuid}/<attribute>` — same shape as `Binary.attach` but
+   * pushes the new file rather than replacing the existing one.
+   * Migrated from `DomainService.binaryPut` (MANY-cardinality branch).
+   */
+  @Action({ rest: { route: ".", method: "POST" } })
+  async attach(): Promise<void> {
+    const context = useContext<OperationContext>();
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binaries parent not yet wired — cannot attach");
+    }
+    const service = this.getService();
+    const file = await service.getFile(context);
+    const { hash } = await file.getHashes();
+    if (this.find(item => item.hash === hash)) {
+      return; // dedup
+    }
+    await service.store(parent.instance, parent.attribute, file);
+    super.push(new BinariesItem(this, file as unknown as BinaryFileInfo<T>));
+  }
+
+  /**
+   * Challenge-based upload handshake for the next item.
+   *
+   * `PUT /<plural>/{uuid}/<attribute>` — request a pre-signed upload URL
+   * for a new item identified by `{ hash, challenge, ... }`. Returns the
+   * URL or a `done` flag if dedup matched.
+   *
+   * Migrated from `DomainService.binaryChallenge` (MANY-cardinality branch).
+   * @param body - the challenge body; falls back to `context.getInput()`
+   * @returns `{ url?, method?, headers?, done, md5 }`
+   */
+  @Action({ rest: { route: ".", method: "PUT" } })
+  async attachChallenge(body?: BinaryFileInfo & { hash: string; challenge: string }): Promise<any> {
+    const context = useContext<OperationContext>();
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binaries parent not yet wired — cannot attachChallenge");
+    }
+    const service = this.getService();
+    if (body === undefined) {
+      body = await context.getInput();
+    }
+    if (this.find(item => item.hash === body.hash)) {
+      return; // dedup
+    }
+    const url = await service.putRedirectUrl(parent.instance, parent.attribute, body, context);
+    const md5 = Buffer.from(body.hash, "hex").toString("base64");
+    return {
+      ...url,
+      done: url === undefined,
+      md5
+    };
+  }
+
+  /**
+   * Stream a single item to the response, or 302-redirect to a signed URL.
+   *
+   * `GET /<plural>/{uuid}/<attribute>/{index}` — locates the item by `index`
+   * and behaves like `Binary.get` for that single entry.
+   *
+   * Migrated from `DomainService.binaryGet` (MANY-cardinality branch).
+   * @param index - the item position in the collection
+   */
+  @Action({ rest: { route: "{index}", method: "GET" } })
+  async get(index: number): Promise<void> {
+    const context = useContext<OperationContext>();
+    const service = this.getService();
+    const idx = typeof index === "number" ? index : parseInt(index as any);
+    if (this.length <= idx || idx < 0) {
+      throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
+    }
+    const file = this[idx];
+    const url = await service.getRedirectUrlFromObject(file, context);
+    if (url === null) {
+      context.writeHead(200, {
+        "Content-Type": file.mimetype === undefined ? "application/octet-stream" : file.mimetype,
+        "Content-Length": file.size
+      });
+      const readStream: any = await service.get(file);
+      await new Promise<void>((resolve, reject) => {
+        (context as any)._stream.on("finish", resolve);
+        (context as any)._stream.on("error", reject);
+        readStream.pipe((context as any)._stream);
+      });
+    } else {
+      context.writeHead(302, { Location: url });
+    }
+  }
+
+  /**
+   * Return a `{ Location, Map }` JSON for a single item.
+   *
+   * `GET /<plural>/{uuid}/<attribute>/{index}/url` — variant of `get` that
+   * returns the URL as JSON instead of redirecting / streaming.
+   *
+   * Migrated from `DomainService.binaryGet`'s `returnUrl` branch
+   * (MANY-cardinality).
+   * @param index - the item position in the collection
+   * @returns `{ Location, Map }`
+   */
+  @Action({ rest: { route: "{index}/url", method: "GET" } })
+  async getUrl(index: number): Promise<{ Location: string | undefined; Map: BinaryMap<T> }> {
+    const context = useContext<OperationContext>();
+    const service = this.getService();
+    const idx = typeof index === "number" ? index : parseInt(index as any);
+    if (this.length <= idx || idx < 0) {
+      throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
+    }
+    const file = this[idx];
+    const url = await service.getRedirectUrlFromObject(file, context);
+    if (url === null) {
+      if (context instanceof WebContext) {
+        return {
+          Location: context
+            .getHttpContext()
+            .getAbsoluteUrl()
+            .replace(/\/url$/, ""),
+          Map: file
+        };
+      }
+      return { Location: undefined, Map: file };
+    }
+    return { Location: url, Map: file };
+  }
+
+  /**
+   * Delete a single item by `(index, hash)`.
+   *
+   * `DELETE /<plural>/{uuid}/<attribute>/{index}/{hash}` — the URL `{hash}`
+   * must match the item at `{index}`. Removes from storage and from the
+   * in-memory collection.
+   *
+   * Migrated from `DomainService.binaryAction` (action="delete",
+   * MANY-cardinality branch).
+   * @param index - the item position
+   * @param hash - the URL-supplied hash; must match `this[index].hash`
+   */
+  @Action({ rest: { route: "{index}/{hash}", method: "DELETE" } })
+  async deleteAt(index: number, hash: string): Promise<void> {
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binaries parent not yet wired — cannot delete");
+    }
+    const idx = typeof index === "number" ? index : parseInt(index as any);
+    const file = this[idx];
+    if (!file || file.hash !== hash) {
+      throw new WebdaError.BadRequest("Hash does not match");
+    }
+    await this.getService().delete(parent.instance, parent.attribute, idx);
+    if (this[idx] && this[idx].hash === hash) {
+      this.splice(idx, 1);
+    }
+  }
+
+  /**
+   * Update the metadata sidecar of a single item.
+   *
+   * `PUT /<plural>/{uuid}/<attribute>/{index}/{hash}` — verifies the hash,
+   * applies the new metadata, and persists via `parent.instance.patch(...)`.
+   * Metadata payload capped at 4 KB.
+   *
+   * Migrated from `DomainService.binaryAction` (action="metadata",
+   * MANY-cardinality branch).
+   * @param index - the item position
+   * @param hash - the URL-supplied hash; must match `this[index].hash`
+   * @param metadata - the new metadata blob (≤ 4 KB JSON)
+   */
+  @Action({ rest: { route: "{index}/{hash}", method: "PUT" } })
+  async setMetadata(index: number, hash: string, metadata?: T): Promise<void> {
+    const context = useContext<OperationContext>();
+    const parent = this.getParent();
+    if (!parent) {
+      throw new Error("Binaries parent not yet wired — cannot setMetadata");
+    }
+    const idx = typeof index === "number" ? index : parseInt(index as any);
+    const file = this[idx];
+    if (!file || file.hash !== hash) {
+      throw new WebdaError.BadRequest("Hash does not match");
+    }
+    if (metadata === undefined) {
+      metadata = await context.getInput();
+    }
+    if (JSON.stringify(metadata).length >= 4096) {
+      throw new WebdaError.BadRequest("Metadata is too big: 4kb max");
+    }
+    file.metadata = metadata;
+    await (parent.instance as any).patch({
+      [parent.attribute]: this
+    });
+  }
+
+  /**
+   * Native array serialization. The transformer adds a Behavior-style
+   * `toJSON` to every Behavior class unless the author defines one;
+   * we override it explicitly so JSON.stringify produces a plain array of
+   * items rather than an object keyed by indices.
+   * @returns the result array
+   */
+  toJSON(): BinariesItem<T>[] {
+    return Array.from(this);
+  }
 }
 
 /**
- * Define a collection of Binary with a Readonly and the upload method
+ * Type-level alias for `BinariesImpl<T>`.
+ *
+ * Models declare `photos: Binaries<...>` rather than the more verbose
+ * `photos: BinariesImpl<...>`; the compiler resolves this alias to the
+ * `BinariesImpl` class declaration, picks up the `@WebdaBehavior` JSDoc
+ * tag there, and registers the attribute as a Behavior. The runtime
+ * shape (push/splice/index access plus `attach`, `attachChallenge`, `get`,
+ * `getUrl`, `deleteAt`, `setMetadata`, `upload`) comes from
+ * `BinariesImpl` directly.
  */
-export type Binaries<T extends object = {}> = Readonly<Array<BinariesItem<T>>> & {
-  upload: (file: BinaryFile<T>) => Promise<void>;
-};
+export type Binaries<T extends object = {}> = BinariesImpl<T>;
 
 /** Parameters for BinaryService, defining model mappings and max upload size */
 export class BinaryParameters extends ServiceParameters {

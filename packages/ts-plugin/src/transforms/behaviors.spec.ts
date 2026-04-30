@@ -464,4 +464,68 @@ describe("createBehaviorTransformer", () => {
     expect(output).not.toMatch(/get\s+parent\s*\(/);
     expect(output).not.toContain(BEHAVIOR_PARENT_KEY);
   });
+
+  it("emits push-based hydration for an Array-subclass Behavior", () => {
+    // For a Behavior class that extends Array<T>, `Object.assign(inst, v)` on
+    // an Array instance silently fails to update `length` when indexed slots
+    // are copied. The transformer must emit `inst.push(item)` per element so
+    // a freshly constructed array has both indices AND `length` set.
+    const program = createTestProgram({
+      "test.ts": `
+        class Item {
+          name: string;
+        }
+        /** @WebdaBehavior */
+        class Bin extends Array<Item> {
+          extra: string;
+        }
+        class Holder {
+          bins: Bin;
+        }
+      `
+    });
+
+    const { modelBehaviorAttributes } = computeBehaviorMetadata(ts, program);
+    const holder = modelBehaviorAttributes.get("Holder");
+    expect(holder).toBeDefined();
+    const info = holder!.get("bins")!;
+    expect(info.behaviorClassName).toBe("Bin");
+    expect(info.isArraySubclass).toBe(true);
+
+    const output = transformAndPrint(program, "test.ts");
+    // The codegen must hydrate via `inst.push(item)`, not `Object.assign`.
+    expect(output).toMatch(/__hydrateBehaviors/);
+    expect(output).toMatch(/Array\.isArray\s*\(\s*v\s*\)/);
+    expect(output).toMatch(/inst\.push\s*\(\s*item\s*\)/);
+    // Critically: when the Behavior is an Array subclass we must NOT emit
+    // `Object.assign(inst, v)` for that attribute, otherwise length stays 0.
+    // `Object.assign` may still appear elsewhere in the file, so check the
+    // hydration block region by scoping to the snippet right after the
+    // `if (Array.isArray(v))` guard.
+    const arrayMatch = output.match(/if\s*\(\s*!\s*\(\s*v\s+instanceof\s+Bin\s*\)\s*\)[^]*?\}/);
+    expect(arrayMatch).not.toBeNull();
+    expect(arrayMatch![0]).not.toMatch(/Object\.assign\s*\(\s*inst\s*,\s*v\s*\)/);
+  });
+
+  it("non-Array Behavior still gets Object.assign-style coercion", () => {
+    // Sanity check: the pre-existing non-Array path is unchanged.
+    const program = createTestProgram({
+      "test.ts": `
+        /** @WebdaBehavior */
+        class MFA {
+          secret: string;
+        }
+        class User {
+          mfa: MFA;
+        }
+      `
+    });
+    const { modelBehaviorAttributes } = computeBehaviorMetadata(ts, program);
+    const info = modelBehaviorAttributes.get("User")!.get("mfa")!;
+    expect(info.isArraySubclass).toBeFalsy();
+
+    const output = transformAndPrint(program, "test.ts");
+    expect(output).toMatch(/Object\.assign\s*\(\s*inst\s*,\s*v\s*\)/);
+    expect(output).not.toMatch(/inst\.push\s*\(\s*item\s*\)/);
+  });
 });

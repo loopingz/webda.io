@@ -1,5 +1,55 @@
-import { createPropertyDecorator } from "@webda/tsc-esm";
+import { createMethodDecorator, createPropertyDecorator } from "@webda/tsc-esm";
 import { truncate } from "fs/promises";
+
+/**
+ * Options accepted by `@Action()` and `@Operation()`.
+ *
+ * The compiler scans for these decorators by name to populate model and
+ * Behavior metadata. The runtime decorator itself is a no-op pass-through —
+ * its only job is to make `@Action()` a valid runtime call so the source
+ * compiles. All actual action wiring is metadata-driven (see
+ * `compiler/src/metadata/actions.ts` and `metadata/behaviors.ts`).
+ */
+export interface ActionOptions {
+  /** Override the registered action name (defaults to the method name). */
+  name?: string;
+  /** OpenAPI overrides for the registered route. */
+  openapi?: any;
+  /** HTTP methods accepted by the action; defaults to `["PUT"]`. */
+  methods?: string[];
+  /** Mark the action as global (class-level) rather than instance-level. */
+  global?: boolean;
+  /**
+   * Behavior-only override for the REST route registration.
+   *
+   *   - `route: "."` ⇒ `/<plural>/{uuid}/<attribute>` (no extra segment)
+   *   - `route: "url"` ⇒ `/<plural>/{uuid}/<attribute>/url`
+   *   - `route: "{hash}"` ⇒ `/<plural>/{uuid}/<attribute>/{hash}`
+   *
+   * `method` overrides the HTTP verb; defaults to `"PUT"` when omitted.
+   */
+  rest?: {
+    route?: string;
+    method?: string;
+  };
+  /** Free-form description forwarded into operation metadata. */
+  description?: string;
+  /** Free-form summary forwarded into operation metadata. */
+  summary?: string;
+}
+
+/**
+ * Marker decorator used to expose a method as a model or Behavior action.
+ *
+ * The body is intentionally empty. The compiler discovers `@Action`-decorated
+ * methods by inspecting the AST during module generation, then writes the
+ * action metadata into `webda.module.json`. At runtime the decorator simply
+ * returns the method untouched, so applying or omitting it has no behavioural
+ * effect on the method itself.
+ *
+ * Both `@Action` (no parens) and `@Action({...})` are supported.
+ */
+export const Action = createMethodDecorator((value: any, _context: any, _options?: ActionOptions) => value);
 
 /**
  * Some simple annotations that can be used to add some behavior to attributes

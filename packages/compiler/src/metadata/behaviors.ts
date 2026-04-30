@@ -45,6 +45,12 @@ export class BehaviorsMetadata extends MetadataPlugin {
     const allClasses = objects.allClasses ?? [];
 
     for (const cls of allClasses) {
+      // Library `.d.ts` classes are tracked in `allClasses` so other plugins
+      // (e.g. the model graph resolver) can see them, but Behaviors are
+      // discovered + emitted in the package that owns the source. Re-emitting
+      // them here from the consumer would clobber the imported `Actions` map
+      // (decorators are stripped from `.d.ts`, so we can't re-extract them).
+      if (cls.lib) continue;
       if (!this.hasBehaviorTag(cls.node)) continue;
 
       const identifier = this.resolveBehaviorIdentifier(cls);
@@ -76,6 +82,24 @@ export class BehaviorsMetadata extends MetadataPlugin {
                 }
                 if ((key === "description" || key === "summary") && ts.isStringLiteral(prop.initializer)) {
                   actionMeta[key] = prop.initializer.text;
+                }
+                if (key === "rest" && ts.isObjectLiteralExpression(prop.initializer)) {
+                  const rest: Record<string, any> = {};
+                  for (const restProp of prop.initializer.properties) {
+                    if (
+                      ts.isPropertyAssignment(restProp) &&
+                      ts.isIdentifier(restProp.name) &&
+                      ts.isStringLiteral(restProp.initializer)
+                    ) {
+                      const rk = restProp.name.text;
+                      if (rk === "route" || rk === "method") {
+                        rest[rk] = restProp.initializer.text;
+                      }
+                    }
+                  }
+                  if (Object.keys(rest).length > 0) {
+                    actionMeta.rest = rest;
+                  }
                 }
               }
             }

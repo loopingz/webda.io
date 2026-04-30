@@ -58,18 +58,6 @@ const KNOWN_PARAMS: Record<string, { positional?: string; options?: Record<strin
       query: { type: "string", alias: "q", describe: "Search query (WebdaQL)" }
     }
   },
-  binaryGetRequest: {
-    positional: "uuid",
-    options: {
-      index: { type: "number", demandOption: true, describe: "Binary index" }
-    }
-  },
-  binaryHashRequest: {
-    positional: "uuid",
-    options: {
-      hash: { type: "string", demandOption: true, describe: "Binary hash" }
-    }
-  }
 };
 
 /**

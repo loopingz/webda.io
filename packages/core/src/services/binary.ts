@@ -330,14 +330,6 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
  * @WebdaBehavior Webda/Binary
  */
 export class Binary<T extends object = {}> extends BinaryMap<T> {
-  /**
-   * No-op: Binary cannot be constructed from DTO. The `data: never`
-   * signature is the type-checked signal to the schema generator that
-   * this attribute MUST be excluded from the model's Input schema.
-   * @param data - the data to process
-   */
-  static fromDto(data: never): void {}
-
   // NOTE: do NOT redeclare `[WEBDA_STORAGE]` as a field here — class field
   // initializers in the subclass run AFTER `super()` returns and OVERWRITE
   // whatever BinaryMap (and BinaryFile before it) stored. We rely on the
@@ -694,6 +686,7 @@ export class BinariesItem<T extends object = {}> extends BinaryMap<T> {
  * detects this Array-subclass shape and emits a push-based hydration
  * coercion — see `behaviors.ts:createHydrationBlock`.
  *
+ * @readOnly
  * @WebdaBehavior Webda/BinariesImpl
  */
 export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> {
@@ -701,12 +694,6 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
     service?: BinaryService;
     [key: string]: any;
   } = {} as any;
-
-  /**
-   * No-op: BinariesImpl cannot be constructed from DTO
-   * @param data - the data to process
-   */
-  static fromDto(data: never): void {}
 
   /**
    * Bind this collection to a model and attribute, populating from existing binary data.

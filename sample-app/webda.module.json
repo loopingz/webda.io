@@ -2069,6 +2069,7 @@
               "items": {
                 "$ref": "#/definitions/BinariesItem%3C%7B%20location%3A%20%7B%20lat%3A%20number%3B%20lng%3A%20number%3B%20%7D%3B%20%7D%3E"
               },
+              "readOnly": true,
               "type": "array"
             },
             "readonly": {
@@ -2120,6 +2121,7 @@
                   "type": "number"
                 }
               },
+              "readOnly": true,
               "required": [
                 "length"
               ],
@@ -4315,6 +4317,7 @@
               "items": {
                 "$ref": "#/definitions/BinariesItem%3C%7B%7D%3E"
               },
+              "readOnly": true,
               "type": "array"
             },
             "locale": {
@@ -4475,6 +4478,7 @@
               "items": {
                 "$ref": "#/definitions/BinariesItem%3C%7B%7D%3E"
               },
+              "readOnly": true,
               "type": "array"
             },
             "locale": {

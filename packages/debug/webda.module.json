@@ -7,14 +7,38 @@
       "Import": "lib/debugservice:DebugService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "DebugService",
+        "additionalProperties": false,
+        "description": "Configuration parameters for the {@link DebugService}.\n\nAll capture knobs default to safe values — capture is enabled with a\n64 KB inline body limit and a 4-byte hex preview for binary payloads.",
         "properties": {
+          "captureBinaryPreview": {
+            "description": "Number of leading bytes to include in the hex preview for binary bodies.",
+            "type": "number"
+          },
+          "captureBodyLimit": {
+            "description": "Maximum number of bytes to keep inline for text bodies. Larger payloads\nare truncated to this size and reported as `text-truncated`.",
+            "type": "number"
+          },
+          "captureRequests": {
+            "default": true,
+            "description": "Whether to capture request/response headers and bodies for the debug UI.\nIf `false`, only status code and duration are recorded.",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true
           }
-        }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "DebugService"
       },
+      "Configuration": "lib/debugservice:DebugServiceParameters",
       "commands": {
         "debug": {
           "description": "Start dev server with debug dashboard",
@@ -90,5 +114,7 @@
       "type": "object",
       "title": "BinaryFile"
     }
-  }
+  },
+  "behaviors": {},
+  "sourceDigest": "4fa6b26b2f0c2ec5b00aebc662d6d1ae"
 }

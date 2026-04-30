@@ -130,11 +130,22 @@ export class DebugClient {
   }
 
   /**
-   * Fetch recent request log entries.
-   * @returns array of request log entries
+   * Fetch recent request log entries (summary fields only — no headers/bodies).
+   * @returns array of request log entry summaries
    */
   async getRequests(): Promise<any[]> {
     return this.fetchJson("/api/requests");
+  }
+
+  /**
+   * Fetch the full detail of a single request by id, including captured
+   * headers, bodies, and any error.
+   *
+   * @param id - The request id (as returned in the summary list).
+   * @returns The detailed request entry.
+   */
+  async getRequestDetail(id: string): Promise<any> {
+    return this.fetchJson(`/api/requests/${encodeURIComponent(id)}`);
   }
 
   /**

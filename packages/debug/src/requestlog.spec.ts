@@ -152,4 +152,79 @@ class RequestLogTest {
     assert.strictEqual(events.length, 1);
     assert.strictEqual((events[0] as { id: string }).id, "req-7");
   }
+
+  @test
+  attachDetailsMergesHeadersAndBodiesOntoEntry() {
+    this.log.startRequest("req-d1", "POST", "/api/foo");
+    this.log.attachDetails("req-d1", {
+      requestHeaders: { "content-type": "application/json" },
+      requestBody: { kind: "text", content: '{"a":1}', size: 7 },
+      responseHeaders: { "content-type": "application/json" },
+      responseBody: { kind: "text", content: '{"ok":true}', size: 11 }
+    });
+
+    const entry = this.log.getEntries()[0];
+    assert.deepStrictEqual(entry.requestHeaders, { "content-type": "application/json" });
+    assert.deepStrictEqual(entry.requestBody, { kind: "text", content: '{"a":1}', size: 7 });
+    assert.deepStrictEqual(entry.responseHeaders, { "content-type": "application/json" });
+    assert.deepStrictEqual(entry.responseBody, { kind: "text", content: '{"ok":true}', size: 11 });
+  }
+
+  @test
+  attachDetailsAcceptsErrorPayload() {
+    this.log.startRequest("req-d2", "GET", "/api/error");
+    this.log.attachDetails("req-d2", {
+      error: { message: "Boom!", stack: "at fn ()" }
+    });
+
+    const entry = this.log.getEntries()[0];
+    assert.deepStrictEqual(entry.error, { message: "Boom!", stack: "at fn ()" });
+  }
+
+  @test
+  attachDetailsIsNoOpForUnknownId() {
+    // Should not throw and should not create a phantom entry
+    this.log.attachDetails("nope", { requestBody: { kind: "empty" } });
+    assert.strictEqual(this.log.getEntries().length, 0);
+  }
+
+  @test
+  getEntryReturnsTheStoredEntry() {
+    this.log.startRequest("req-d3", "GET", "/api/x");
+    const entry = this.log.getEntry("req-d3");
+    assert.ok(entry);
+    assert.strictEqual(entry!.id, "req-d3");
+    assert.strictEqual(entry!.url, "/api/x");
+  }
+
+  @test
+  getEntryReturnsUndefinedForUnknownId() {
+    assert.strictEqual(this.log.getEntry("missing"), undefined);
+  }
+
+  @test
+  getSummariesReturnsLightweightEntriesWithoutBodiesOrHeaders() {
+    this.log.startRequest("req-s1", "POST", "/foo");
+    this.log.attachDetails("req-s1", {
+      requestHeaders: { "content-type": "application/json" },
+      requestBody: { kind: "text", content: '{"a":1}', size: 7 },
+      responseHeaders: { "content-type": "application/json" },
+      responseBody: { kind: "text", content: '{"ok":true}', size: 11 }
+    });
+    this.log.completeRequest("req-s1", 201, 12);
+
+    const summaries = this.log.getSummaries();
+    assert.strictEqual(summaries.length, 1);
+    const s = summaries[0];
+    assert.strictEqual(s.id, "req-s1");
+    assert.strictEqual(s.method, "POST");
+    assert.strictEqual(s.url, "/foo");
+    assert.strictEqual(s.statusCode, 201);
+    assert.strictEqual(s.duration, 12);
+    // Summaries must not leak captured bodies / headers
+    assert.strictEqual((s as any).requestHeaders, undefined);
+    assert.strictEqual((s as any).requestBody, undefined);
+    assert.strictEqual((s as any).responseHeaders, undefined);
+    assert.strictEqual((s as any).responseBody, undefined);
+  }
 }

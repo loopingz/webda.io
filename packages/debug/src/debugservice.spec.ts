@@ -280,6 +280,59 @@ class DebugServiceHandleRequestTest {
     const body = await res.json();
     assert.ok(Array.isArray(body));
   }
+
+  @test
+  async getApiRequestsListReturnsSummaryFieldsOnly() {
+    // Seed a fully-detailed entry, then verify the list endpoint strips bodies/headers.
+    this.service.requestLog.startRequest("sum-1", "POST", "/foo");
+    this.service.requestLog.attachDetails("sum-1", {
+      requestHeaders: { "content-type": "application/json" },
+      requestBody: { kind: "text", content: '{"a":1}', size: 7 },
+      responseHeaders: { "content-type": "application/json" },
+      responseBody: { kind: "text", content: '{"ok":true}', size: 11 }
+    });
+    this.service.requestLog.completeRequest("sum-1", 201, 12);
+
+    const res = await fetch(`http://localhost:${this.port}/api/requests`);
+    const body = (await res.json()) as any[];
+    const found = body.find(e => e.id === "sum-1");
+    assert.ok(found, "summary entry should be present");
+    assert.strictEqual(found.statusCode, 201);
+    assert.strictEqual(found.requestHeaders, undefined);
+    assert.strictEqual(found.requestBody, undefined);
+    assert.strictEqual(found.responseHeaders, undefined);
+    assert.strictEqual(found.responseBody, undefined);
+  }
+
+  @test
+  async getApiRequestsByIdReturnsFullDetail() {
+    this.service.requestLog.startRequest("detail-1", "POST", "/bar");
+    this.service.requestLog.attachDetails("detail-1", {
+      requestHeaders: { "content-type": "application/json" },
+      requestBody: { kind: "text", content: '{"x":1}', size: 7 },
+      responseHeaders: { "content-type": "application/json" },
+      responseBody: { kind: "text", content: '{"y":2}', size: 7 }
+    });
+    this.service.requestLog.completeRequest("detail-1", 200, 5);
+
+    const res = await fetch(`http://localhost:${this.port}/api/requests/detail-1`);
+    assert.strictEqual(res.status, 200);
+    const body = (await res.json()) as any;
+    assert.strictEqual(body.id, "detail-1");
+    assert.strictEqual(body.statusCode, 200);
+    assert.deepStrictEqual(body.requestHeaders, { "content-type": "application/json" });
+    assert.deepStrictEqual(body.requestBody, { kind: "text", content: '{"x":1}', size: 7 });
+    assert.deepStrictEqual(body.responseHeaders, { "content-type": "application/json" });
+    assert.deepStrictEqual(body.responseBody, { kind: "text", content: '{"y":2}', size: 7 });
+  }
+
+  @test
+  async getApiRequestsByIdReturns404ForUnknownId() {
+    const res = await fetch(`http://localhost:${this.port}/api/requests/nope`);
+    assert.strictEqual(res.status, 404);
+    const body = (await res.json()) as any;
+    assert.strictEqual(body.error, "Request not found");
+  }
 }
 
 @suite
@@ -422,7 +475,7 @@ class DebugServiceSubscribeToEventsTest {
     };
 
     reqCb({ context: mockCtx });
-    resCb({ context: mockCtx });
+    await resCb({ context: mockCtx });
 
     const entries = this.service.requestLog.getEntries();
     assert.strictEqual(entries.length, 1);
@@ -488,7 +541,7 @@ class DebugServiceSubscribeToEventsTest {
     };
 
     reqCb({ context: mockCtx });
-    notFoundCb({ context: mockCtx });
+    await notFoundCb({ context: mockCtx });
 
     const entries = this.service.requestLog.getEntries();
     assert.strictEqual(entries.length, 1);
@@ -522,6 +575,208 @@ class DebugServiceSubscribeToEventsTest {
 
     notFoundCb({ context: mockCtx });
     assert.strictEqual(this.service.requestLog.getEntries().length, 0);
+  }
+
+  @test
+  async webdaResultEventCapturesRequestAndResponseDetails() {
+    const reqCb = coreEventCallbacks["Webda.Request"];
+    const resCb = coreEventCallbacks["Webda.Result"];
+    assert.ok(reqCb && resCb);
+
+    // Build a mock context that exposes the same surface as WebContext:
+    // - getHttpContext returns headers, getRawBody (already-buffered), getUniqueHeader
+    // - getResponseHeaders returns response headers set during request handling
+    // - getResponseBody returns the captured response body
+    const requestBody = '{"hello":"world"}';
+    const responseBody = '{"ok":true}';
+    const mockCtx = {
+      extensions: {} as Record<string, any>,
+      statusCode: 200,
+      _outputHeaders: { "Cache-Control": "private" },
+      setExtension(key: string, val: any) {
+        this.extensions[key] = val;
+      },
+      getExtension<T>(key: string): T {
+        return this.extensions[key] as T;
+      },
+      getResponseHeaders() {
+        return { "Content-Type": "application/json" };
+      },
+      getResponseBody() {
+        return responseBody;
+      },
+      getHttpContext() {
+        return {
+          getMethod() {
+            return "POST";
+          },
+          getUrl() {
+            return "/api/echo";
+          },
+          getHeaders() {
+            return { "content-type": "application/json", "user-agent": "vitest" };
+          },
+          getUniqueHeader(name: string) {
+            const h: Record<string, string> = {
+              "content-type": "application/json",
+              "user-agent": "vitest"
+            };
+            return h[name.toLowerCase()];
+          },
+          async getRawBody() {
+            return Buffer.from(requestBody, "utf8");
+          }
+        };
+      }
+    };
+
+    reqCb({ context: mockCtx });
+    await resCb({ context: mockCtx });
+
+    const entries = this.service.requestLog.getEntries();
+    assert.strictEqual(entries.length, 1);
+    const entry = entries[0];
+    assert.strictEqual(entry.statusCode, 200);
+    assert.strictEqual(entry.method, "POST");
+    assert.strictEqual(entry.url, "/api/echo");
+
+    // Request capture
+    assert.deepStrictEqual(entry.requestHeaders, {
+      "content-type": "application/json",
+      "user-agent": "vitest"
+    });
+    assert.ok(entry.requestBody);
+    assert.strictEqual(entry.requestBody!.kind, "text");
+    if (entry.requestBody!.kind === "text") {
+      assert.strictEqual(entry.requestBody!.content, requestBody);
+      assert.strictEqual(entry.requestBody!.size, requestBody.length);
+    }
+
+    // Response capture — both _outputHeaders and getResponseHeaders should merge
+    assert.ok(entry.responseHeaders);
+    assert.strictEqual(entry.responseHeaders!["Content-Type"], "application/json");
+    assert.strictEqual(entry.responseHeaders!["Cache-Control"], "private");
+    assert.ok(entry.responseBody);
+    assert.strictEqual(entry.responseBody!.kind, "text");
+    if (entry.responseBody!.kind === "text") {
+      assert.strictEqual(entry.responseBody!.content, responseBody);
+    }
+  }
+
+  @test
+  async webdaResultEventCapturesBinaryResponseAsHexPreview() {
+    const reqCb = coreEventCallbacks["Webda.Request"];
+    const resCb = coreEventCallbacks["Webda.Result"];
+    assert.ok(reqCb && resCb);
+
+    const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const mockCtx = {
+      extensions: {} as Record<string, any>,
+      statusCode: 200,
+      setExtension(key: string, val: any) {
+        this.extensions[key] = val;
+      },
+      getExtension<T>(key: string): T {
+        return this.extensions[key] as T;
+      },
+      getResponseHeaders() {
+        return { "Content-Type": "image/png" };
+      },
+      getResponseBody() {
+        return pngHeader;
+      },
+      getHttpContext() {
+        return {
+          getMethod() {
+            return "GET";
+          },
+          getUrl() {
+            return "/img";
+          },
+          getHeaders() {
+            return {};
+          },
+          getUniqueHeader() {
+            return undefined;
+          },
+          async getRawBody() {
+            return Buffer.alloc(0);
+          }
+        };
+      }
+    };
+
+    reqCb({ context: mockCtx });
+    await resCb({ context: mockCtx });
+
+    const entry = this.service.requestLog.getEntries()[0];
+    assert.ok(entry.responseBody);
+    assert.strictEqual(entry.responseBody!.kind, "binary");
+    if (entry.responseBody!.kind === "binary") {
+      assert.strictEqual(entry.responseBody!.size, 8);
+      assert.strictEqual(entry.responseBody!.preview, "89504e47");
+    }
+
+    // Empty request body becomes `kind: "empty"`
+    assert.deepStrictEqual(entry.requestBody, { kind: "empty" });
+  }
+
+  @test
+  async captureCanBeDisabledViaParameters() {
+    // Set captureRequests=false on the service parameters
+    (this.service as any).parameters = { captureRequests: false };
+
+    const reqCb = coreEventCallbacks["Webda.Request"];
+    const resCb = coreEventCallbacks["Webda.Result"];
+    assert.ok(reqCb && resCb);
+
+    const mockCtx = {
+      extensions: {} as Record<string, any>,
+      statusCode: 200,
+      setExtension(key: string, val: any) {
+        this.extensions[key] = val;
+      },
+      getExtension<T>(key: string): T {
+        return this.extensions[key] as T;
+      },
+      getResponseHeaders() {
+        return { "Content-Type": "application/json" };
+      },
+      getResponseBody() {
+        return '{"ok":true}';
+      },
+      getHttpContext() {
+        return {
+          getMethod() {
+            return "POST";
+          },
+          getUrl() {
+            return "/api/x";
+          },
+          getHeaders() {
+            return { "content-type": "application/json" };
+          },
+          getUniqueHeader() {
+            return "application/json";
+          },
+          async getRawBody() {
+            return Buffer.from('{"a":1}');
+          }
+        };
+      }
+    };
+
+    reqCb({ context: mockCtx });
+    await resCb({ context: mockCtx });
+
+    const entry = this.service.requestLog.getEntries()[0];
+    // Status/duration still recorded
+    assert.strictEqual(entry.statusCode, 200);
+    // Headers/bodies omitted
+    assert.strictEqual(entry.requestHeaders, undefined);
+    assert.strictEqual(entry.requestBody, undefined);
+    assert.strictEqual(entry.responseHeaders, undefined);
+    assert.strictEqual(entry.responseBody, undefined);
   }
 
   @test

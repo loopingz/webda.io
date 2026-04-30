@@ -7,8 +7,9 @@ import { platform } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join, extname } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
-import { RequestLog } from "./requestlog.js";
+import { RequestLog, type RequestLogDetails, type RequestLogError } from "./requestlog.js";
 import { LogBuffer } from "./logbuffer.js";
+import { captureBody, normalizeHeaders } from "./bodycapture.js";
 import { getModels, getModel, getServices, getOperations, getRoutes, getConfig, getAppInfo } from "./introspection.js";
 import { DebugTui } from "./tui/tui.js";
 
@@ -58,12 +59,36 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 /**
+ * Configuration parameters for the {@link DebugService}.
+ *
+ * All capture knobs default to safe values — capture is enabled with a
+ * 64 KB inline body limit and a 4-byte hex preview for binary payloads.
+ */
+export class DebugServiceParameters extends ServiceParameters {
+  /**
+   * Whether to capture request/response headers and bodies for the debug UI.
+   * If `false`, only status code and duration are recorded.
+   */
+  captureRequests: boolean = true;
+  /**
+   * Maximum number of bytes to keep inline for text bodies. Larger payloads
+   * are truncated to this size and reported as `text-truncated`.
+   */
+  captureBodyLimit: number = 65536;
+  /**
+   * Number of leading bytes to include in the hex preview for binary bodies.
+   */
+  captureBinaryPreview: number = 4;
+}
+
+/**
  * Debug dashboard service that provides an HTTP API for introspection
  * and a WebSocket feed of live request events.
  *
  * @WebdaModda
  */
-export class DebugService extends Service {
+export class DebugService extends Service<DebugServiceParameters> {
+  static Parameters = DebugServiceParameters;
   /** Ring buffer of recent HTTP requests */
   requestLog: RequestLog = new RequestLog();
   /** Ring buffer of application log entries */
@@ -78,6 +103,21 @@ export class DebugService extends Service {
   private unsubscribers: (() => void)[] = [];
   /** Timing map: requestId -> start timestamp */
   private timings: Map<string, number> = new Map();
+
+  /**
+   * Resolve the typed parameters and the capture knobs (with safe defaults
+   * when the surrounding test environment does not load real parameters).
+   *
+   * @returns The effective `{ captureRequests, captureBodyLimit, captureBinaryPreview }` triple.
+   */
+  private getCaptureSettings(): { captureRequests: boolean; bodyLimit: number; binaryPreview: number } {
+    const params = (this.parameters || {}) as Partial<DebugServiceParameters>;
+    return {
+      captureRequests: params.captureRequests !== false,
+      bodyLimit: typeof params.captureBodyLimit === "number" ? params.captureBodyLimit : 65536,
+      binaryPreview: typeof params.captureBinaryPreview === "number" ? params.captureBinaryPreview : 4
+    };
+  }
 
   /**
    * Subscribe to core events to populate the request log.
@@ -107,7 +147,7 @@ export class DebugService extends Service {
     );
 
     this.unsubscribers.push(
-      useCoreEvents("Webda.Result", evt => {
+      useCoreEvents("Webda.Result", async evt => {
         const ctx = evt.context;
         const id = ctx.getExtension<string>("debugRequestId");
         if (!id) return;
@@ -115,16 +155,34 @@ export class DebugService extends Service {
         const duration = start ? Date.now() - start : 0;
         this.timings.delete(id);
         const statusCode = ctx.statusCode ?? 200;
+
+        // Capture headers/bodies first so that `attachDetails` runs before
+        // `completeRequest` notifies subscribers — this keeps the UI's view
+        // of "the entry that just got a status code" consistent with the
+        // captured body.
+        const details = await this.collectDetails(ctx);
+        if (details) {
+          this.requestLog.attachDetails(id, details);
+        }
+
         this.requestLog.completeRequest(id, statusCode, duration);
       })
     );
 
     this.unsubscribers.push(
-      useCoreEvents("Webda.404", evt => {
+      useCoreEvents("Webda.404", async evt => {
         const ctx = evt.context;
         const id = ctx.getExtension<string>("debugRequestId");
         if (!id) return;
         this.timings.delete(id);
+
+        // Even on 404 we can capture the request side (and any response
+        // headers Webda may have set) so the UI can show what was asked.
+        const details = await this.collectDetails(ctx);
+        if (details) {
+          this.requestLog.attachDetails(id, details);
+        }
+
         this.requestLog.markNotFound(id);
       })
     );
@@ -139,6 +197,139 @@ export class DebugService extends Service {
     this.logBuffer.onEvent(event => {
       this.broadcast(event);
     });
+  }
+
+  /**
+   * Collect headers, bodies, and any error from a finished context.
+   *
+   * Returns `undefined` if capture is disabled via configuration. Resolves
+   * once both request body (read via the HttpContext, which caches its
+   * Buffer after the first read) and response body (read from the
+   * WebContext's buffered output stream) have been captured. Failures
+   * during capture (e.g. a body that can't be read or that times out) are
+   * swallowed so the debug service never breaks the request itself.
+   *
+   * @param ctx - The finished web context.
+   * @returns A {@link RequestLogDetails} payload, or `undefined` when capture is off.
+   */
+  private async collectDetails(ctx: any): Promise<RequestLogDetails | undefined> {
+    const settings = this.getCaptureSettings();
+    if (!settings.captureRequests) return undefined;
+
+    const details: RequestLogDetails = {};
+
+    // ----- Request headers + body -------------------------------------------
+    try {
+      const http = ctx.getHttpContext?.();
+      if (http) {
+        if (typeof http.getHeaders === "function") {
+          details.requestHeaders = normalizeHeaders(http.getHeaders());
+        }
+        // Webda's HttpContext caches the raw body Buffer the first time it
+        // is read, so awaiting getRawBody here is safe whether or not a
+        // route handler already consumed the stream. We cap at the body
+        // limit to avoid pulling huge uploads back into memory just for
+        // the debug log.
+        let buf: Buffer | undefined;
+        try {
+          if (typeof http.getRawBody === "function") {
+            const result = await http.getRawBody(settings.bodyLimit);
+            buf = result ?? Buffer.alloc(0);
+          } else if (typeof ctx.getRawInput === "function") {
+            const result = await ctx.getRawInput(settings.bodyLimit);
+            buf = result ?? Buffer.alloc(0);
+          }
+        } catch {
+          buf = undefined;
+        }
+        const reqContentType =
+          typeof http.getUniqueHeader === "function" ? http.getUniqueHeader("content-type") : undefined;
+        if (buf !== undefined) {
+          details.requestBody = captureBody(buf, reqContentType, settings.bodyLimit, settings.binaryPreview);
+        }
+      }
+    } catch {
+      /* ignore — request capture is best-effort */
+    }
+
+    // ----- Response headers + body ------------------------------------------
+    try {
+      const responseHeaders = this.getMergedResponseHeaders(ctx);
+      details.responseHeaders = normalizeHeaders(responseHeaders);
+
+      let respBuf: Buffer | undefined;
+      try {
+        if (typeof ctx.getResponseBody === "function") {
+          const body = ctx.getResponseBody();
+          if (body === undefined || body === null) {
+            respBuf = Buffer.alloc(0);
+          } else if (Buffer.isBuffer(body)) {
+            respBuf = body;
+          } else if (typeof body === "string") {
+            respBuf = Buffer.from(body, "utf8");
+          } else {
+            respBuf = Buffer.from(String(body), "utf8");
+          }
+        } else if (typeof ctx.getOutput === "function") {
+          const out = ctx.getOutput();
+          respBuf = out ? Buffer.from(String(out), "utf8") : Buffer.alloc(0);
+        }
+      } catch {
+        respBuf = undefined;
+      }
+
+      const respContentType =
+        (responseHeaders && (responseHeaders["Content-Type"] ?? responseHeaders["content-type"])) ||
+        undefined;
+      if (respBuf !== undefined) {
+        details.responseBody = captureBody(
+          respBuf,
+          typeof respContentType === "string" ? respContentType : undefined,
+          settings.bodyLimit,
+          settings.binaryPreview
+        );
+      }
+    } catch {
+      /* ignore — response capture is best-effort */
+    }
+
+    // ----- Error ------------------------------------------------------------
+    const err = (ctx as any).error || ctx.getExtension?.("error");
+    if (err) {
+      const captured: RequestLogError = { message: err.message ?? String(err) };
+      if (err.stack) captured.stack = err.stack;
+      details.error = captured;
+    }
+
+    return details;
+  }
+
+  /**
+   * Merge `_outputHeaders` (constructor defaults) and `responseHeaders`
+   * (set via `setHeader`) the same way `WebContext.flushHeaders` does.
+   *
+   * Falls back gracefully when running against a stripped-down mock context
+   * that doesn't expose every method.
+   *
+   * @param ctx - The finished web context.
+   * @returns The merged response headers, or an empty object.
+   */
+  private getMergedResponseHeaders(ctx: any): Record<string, any> {
+    const base: Record<string, any> = {};
+    // `_outputHeaders` is protected on WebContext but is read-only data at
+    // this point in the lifecycle; we read it via dynamic access without
+    // mutating it. If absent (mock contexts), we just skip it.
+    const outputHeaders = (ctx as any)._outputHeaders;
+    if (outputHeaders && typeof outputHeaders === "object") {
+      for (const [k, v] of Object.entries(outputHeaders)) base[k] = v;
+    }
+    if (typeof ctx.getResponseHeaders === "function") {
+      const set = ctx.getResponseHeaders();
+      if (set && typeof set === "object") {
+        for (const [k, v] of Object.entries(set)) base[k] = v;
+      }
+    }
+    return base;
   }
 
   /**
@@ -258,7 +449,16 @@ export class DebugService extends Service {
       } else if (pathname === "/api/openapi") {
         this.sendJson(res, this.getOpenAPISpec());
       } else if (pathname === "/api/requests") {
-        this.sendJson(res, this.requestLog.getEntries());
+        // List endpoint stays cheap — summaries only (no headers/bodies).
+        this.sendJson(res, this.requestLog.getSummaries());
+      } else if (pathname.startsWith("/api/requests/")) {
+        const id = decodeURIComponent(pathname.slice("/api/requests/".length));
+        const entry = this.requestLog.getEntry(id);
+        if (entry) {
+          this.sendJson(res, entry);
+        } else {
+          this.sendJson(res, { error: "Request not found" }, 404);
+        }
       } else if (pathname === "/api/logs") {
         const searchParams = new URL(url, "http://localhost").searchParams;
         const query = searchParams.get("q") || "";

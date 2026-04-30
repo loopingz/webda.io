@@ -1,7 +1,7 @@
 import type { ArrayElement } from "@webda/tsc-esm";
 import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable";
 import type { Helpers, JSONed, SelfJSONed, PropertyPaths, NumericPropertyPaths } from "../types";
-import { deserialize, serialize } from "@webda/serialize";
+import { deserialize, serialize, serializeRaw } from "@webda/serialize";
 import { AbstractRepository } from "./abstract";
 import { Repository, WEBDA_TEST } from "./repository";
 
@@ -132,11 +132,42 @@ export class MemoryRepository<
    *
    * This method is used to allow switching between different serialization methods
    *
+   * The serialized payload is also stamped with a top-level `__type` field
+   * carrying the concrete model identifier when available
+   * (`item.constructor.Metadata?.Identifier`). This lets `query()` and external
+   * storage backends filter results by class without re-instantiating every
+   * item — important when a single underlying storage map is shared across a
+   * model and its subclasses (the common case in production where each
+   * registered model owns its own MemoryRepository pointing at the same Map).
+   *
+   * The stamp is added on the serializer envelope rather than inside `value`
+   * so it never lands on the deserialized model instance via the
+   * `Object.assign` path — keeping API responses and re-serialize cycles
+   * byte-identical for the model's own fields.
+   *
+   * Models that don't carry Metadata (plain unit-test classes that don't go
+   * through Application.setModelMetadata) simply skip the stamp; the resulting
+   * payload is byte-identical to the previous implementation.
+   *
    * @param item to serialize
    * @returns serialized object
    */
   serialize(item: InstanceType<T>): string {
-    return serialize(item);
+    const typeIdentifier = (item as any)?.constructor?.Metadata?.Identifier;
+    if (!typeIdentifier) {
+      return serialize(item);
+    }
+    const raw = serializeRaw(item);
+    // serializeRaw returns either { value, $serializer } for objects with
+    // metadata, or just the raw value for primitives. Models always come back
+    // in the former shape; stamp __type at the envelope level (sibling of
+    // value/$serializer) so the deserializer never copies it onto the model.
+    if (raw && typeof raw === "object" && raw.value !== undefined) {
+      if ((raw as any).__type === undefined) {
+        (raw as any).__type = typeIdentifier;
+      }
+    }
+    return JSON.stringify(raw);
   }
 
   /**
@@ -153,6 +184,21 @@ export class MemoryRepository<
 
   /**
    * Add query support
+   *
+   * Class filtering: when several model classes share the same underlying
+   * storage Map (e.g. a model and its subclasses each registering their own
+   * repository pointing at the same `Map` via `MemoryStore.getRepository`),
+   * results are restricted to instances of `this.model` (and its descendants
+   * by virtue of the JS prototype chain). This prevents `Post.query()` from
+   * leaking pure `BlogPost` items when the two share a Map, and prevents
+   * `BlogPost.query()` from returning ancestor-only `Post` items.
+   *
+   * The deserialize pipeline reconstructs the correct concrete class for each
+   * entry — see `MemoryRepository.serialize`'s `__type` stamp and
+   * `@webda/serialize`'s `$serializer.type` — so `instanceof this.model` is a
+   * reliable, prototype-aware predicate without needing to walk
+   * `Metadata.Subclasses`.
+   *
    * @param query - the query string or parsed query
    * @returns the query results with optional continuation token
    */
@@ -161,7 +207,13 @@ export class MemoryRepository<
       WebdaQL ??= await import("@webda/ql");
       query = WebdaQL.parse(query);
     }
-    return MemoryRepository.simulateFind(query as Query, [...this.storage.keys()], this);
+    const found = await MemoryRepository.simulateFind(query as Query, [...this.storage.keys()], this);
+    // Apply class filtering. Skip when `this.model` is not a function (defensive
+    // guard) so we don't break non-class repository wiring used in tests.
+    if (typeof this.model === "function") {
+      found.results = found.results.filter(r => r instanceof (this.model as any));
+    }
+    return found;
   }
 
   /**

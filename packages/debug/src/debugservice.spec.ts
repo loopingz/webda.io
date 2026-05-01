@@ -592,15 +592,16 @@ class DebugServiceSubscribeToEventsTest {
     const mockCtx = {
       extensions: {} as Record<string, any>,
       statusCode: 200,
-      _outputHeaders: { "Cache-Control": "private" },
       setExtension(key: string, val: any) {
         this.extensions[key] = val;
       },
       getExtension<T>(key: string): T {
         return this.extensions[key] as T;
       },
+      // Mirror WebContext.getResponseHeaders: returns the merge of constructor
+      // defaults (Cache-Control here) + dynamic headers set by setHeader.
       getResponseHeaders() {
-        return { "Content-Type": "application/json" };
+        return { "Cache-Control": "private", "Content-Type": "application/json" };
       },
       getResponseBody() {
         return responseBody;

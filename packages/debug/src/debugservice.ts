@@ -254,7 +254,8 @@ export class DebugService extends Service<DebugServiceParameters> {
 
     // ----- Response headers + body ------------------------------------------
     try {
-      const responseHeaders = this.getMergedResponseHeaders(ctx);
+      const responseHeaders =
+        typeof ctx.getResponseHeaders === "function" ? ctx.getResponseHeaders() : {};
       details.responseHeaders = normalizeHeaders(responseHeaders);
 
       let respBuf: Buffer | undefined;
@@ -304,33 +305,6 @@ export class DebugService extends Service<DebugServiceParameters> {
     return details;
   }
 
-  /**
-   * Merge `_outputHeaders` (constructor defaults) and `responseHeaders`
-   * (set via `setHeader`) the same way `WebContext.flushHeaders` does.
-   *
-   * Falls back gracefully when running against a stripped-down mock context
-   * that doesn't expose every method.
-   *
-   * @param ctx - The finished web context.
-   * @returns The merged response headers, or an empty object.
-   */
-  private getMergedResponseHeaders(ctx: any): Record<string, any> {
-    const base: Record<string, any> = {};
-    // `_outputHeaders` is protected on WebContext but is read-only data at
-    // this point in the lifecycle; we read it via dynamic access without
-    // mutating it. If absent (mock contexts), we just skip it.
-    const outputHeaders = (ctx as any)._outputHeaders;
-    if (outputHeaders && typeof outputHeaders === "object") {
-      for (const [k, v] of Object.entries(outputHeaders)) base[k] = v;
-    }
-    if (typeof ctx.getResponseHeaders === "function") {
-      const set = ctx.getResponseHeaders();
-      if (set && typeof set === "object") {
-        for (const [k, v] of Object.entries(set)) base[k] = v;
-      }
-    }
-    return base;
-  }
 
   /**
    * Start the application HTTP server and the debug HTTP+WS server.

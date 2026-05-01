@@ -185,7 +185,7 @@ export class HttpServer<
     const res = ctx._stream as ServerResponse;
     if (res.headersSent) return;
 
-    const headers = { ...ctx["_outputHeaders"], ...ctx.getResponseHeaders() };
+    const headers = ctx.getResponseHeaders();
     const cookies = ctx.getResponseCookies?.() || {};
 
     if (this.isHttp2) {

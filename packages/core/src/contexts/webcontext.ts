@@ -345,10 +345,25 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    * For HTTP ServerResponse, writes via res.writeHead().
    * Called automatically by getOutputStream() before pipeline() and by end().
    */
+  /**
+   * Return the merged response headers — defaults set by the constructor
+   * (`_outputHeaders`) overlaid with any headers added via `setHeader()` /
+   * `writeHead()`. Same merge order as `flushHeaders` writes to the wire,
+   * so callers (logging, capture, transports) see exactly what the client
+   * will receive.
+   *
+   * @returns the merged response headers
+   */
+  override getResponseHeaders(): http.OutgoingHttpHeaders {
+    return { ...this._outputHeaders, ...super.getResponseHeaders() };
+  }
+
+  /**
+   *
+   */
   async flushHeaders(): Promise<void> {
     if (this.flushed) return;
-    // Merge both header maps — responseHeaders (from setHeader) + _outputHeaders (from constructor defaults)
-    const headers = { ...this._outputHeaders, ...this.getResponseHeaders() };
+    const headers = this.getResponseHeaders();
     await super.flushHeaders();
     // Write to ServerResponse if the stream supports writeHead (not a WritableStreamBuffer)
     if (this._stream && !(this._stream instanceof WritableStreamBuffer) && typeof (this._stream as any).writeHead === "function") {

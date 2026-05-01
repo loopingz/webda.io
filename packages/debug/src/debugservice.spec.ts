@@ -1379,3 +1379,214 @@ class DebugServiceWebSocketBroadcastPatternTest {
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Tests for DebugService.collectDetails — exercised via reflection so each
+// branch in the body/header/error capture pipeline is covered without
+// spinning up the whole web stack.
+// ---------------------------------------------------------------------------
+@suite
+class DebugServiceCollectDetailsTest {
+  service: InstanceType<typeof DebugService>;
+
+  async beforeEach() {
+    this.service = new DebugService();
+    this.service.resolve();
+  }
+
+  /** Build a minimal stand-in for a finished WebContext with the given hooks. */
+  private fakeCtx(opts: {
+    httpHeaders?: Record<string, string>;
+    rawBody?: Buffer | undefined;
+    rawInput?: Buffer | undefined;
+    contentType?: string;
+    responseHeaders?: Record<string, string>;
+    responseBody?: unknown;
+    output?: string;
+    error?: any;
+  }): any {
+    const http = {
+      getHeaders: () => opts.httpHeaders ?? {},
+      getRawBody: opts.rawBody !== undefined ? async () => opts.rawBody : undefined,
+      getUniqueHeader: (name: string) =>
+        name === "content-type" ? opts.contentType : undefined
+    };
+    const ctx: any = {
+      getHttpContext: () => http,
+      getResponseHeaders: () => opts.responseHeaders ?? {},
+      getResponseBody:
+        opts.responseBody !== undefined || "responseBody" in opts ? () => opts.responseBody : undefined,
+      getOutput: opts.output !== undefined ? () => opts.output : undefined,
+      getRawInput: opts.rawInput !== undefined ? async () => opts.rawInput : undefined,
+      getExtension: (key: string) => (key === "error" ? opts.error : undefined)
+    };
+    return ctx;
+  }
+
+  @test
+  async returnsUndefinedWhenCaptureDisabled() {
+    (this.service as any).parameters = { captureRequests: false };
+    const result = await (this.service as any).collectDetails(this.fakeCtx({}));
+    assert.strictEqual(result, undefined);
+  }
+
+  @test
+  async capturesTextRequestAndResponseBody() {
+    const result = await (this.service as any).collectDetails(
+      this.fakeCtx({
+        httpHeaders: { "content-type": "application/json" },
+        rawBody: Buffer.from('{"x":1}', "utf8"),
+        contentType: "application/json",
+        responseHeaders: { "content-type": "application/json" },
+        responseBody: '{"y":2}'
+      })
+    );
+    assert.ok(result);
+    assert.deepStrictEqual(result.requestHeaders, { "content-type": "application/json" });
+    assert.strictEqual(result.requestBody?.kind, "text");
+    assert.strictEqual(result.requestBody?.content, '{"x":1}');
+    assert.strictEqual(result.responseBody?.kind, "text");
+    assert.strictEqual(result.responseBody?.content, '{"y":2}');
+  }
+
+  @test
+  async treatsBufferResponseBodyAsBytes() {
+    const result = await (this.service as any).collectDetails(
+      this.fakeCtx({
+        responseBody: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+        responseHeaders: { "content-type": "image/png" }
+      })
+    );
+    assert.ok(result);
+    // The png signature is binary — captureBody returns kind: "binary".
+    assert.strictEqual(result.responseBody?.kind, "binary");
+  }
+
+  @test
+  async coercesNonStringResponseBodyViaString() {
+    const result = await (this.service as any).collectDetails(
+      this.fakeCtx({
+        responseBody: { foo: 42 }, // object → String() coerce branch
+        responseHeaders: { "content-type": "text/plain" }
+      })
+    );
+    assert.ok(result);
+    assert.strictEqual(result.responseBody?.kind, "text");
+    // Object#toString → "[object Object]"
+    assert.match(result.responseBody?.content ?? "", /\[object Object\]/);
+  }
+
+  @test
+  async treatsNullResponseBodyAsEmpty() {
+    const result = await (this.service as any).collectDetails(
+      this.fakeCtx({
+        responseBody: null,
+        responseHeaders: { "content-type": "text/plain" }
+      })
+    );
+    assert.ok(result);
+    assert.strictEqual(result.responseBody?.kind, "empty");
+  }
+
+  @test
+  async fallsBackToGetOutputWhenGetResponseBodyMissing() {
+    // No getResponseBody, but getOutput returns a string — capture should
+    // route through the getOutput branch.
+    const ctx: any = {
+      getHttpContext: () => ({ getHeaders: () => ({}) }),
+      getResponseHeaders: () => ({ "content-type": "text/plain" }),
+      getOutput: () => "fallback-body",
+      getExtension: () => undefined
+    };
+    const result = await (this.service as any).collectDetails(ctx);
+    assert.ok(result);
+    assert.strictEqual(result.responseBody?.kind, "text");
+    assert.strictEqual(result.responseBody?.content, "fallback-body");
+  }
+
+  @test
+  async usesGetRawInputFallbackWhenGetRawBodyAbsent() {
+    // Some HttpContext implementations may not expose getRawBody — the
+    // capture path falls through to ctx.getRawInput.
+    const ctx: any = {
+      getHttpContext: () => ({
+        getHeaders: () => ({ "content-type": "text/plain" }),
+        getUniqueHeader: () => "text/plain"
+        // no getRawBody
+      }),
+      getResponseHeaders: () => ({}),
+      getResponseBody: () => "",
+      getRawInput: async () => Buffer.from("from-raw-input", "utf8"),
+      getExtension: () => undefined
+    };
+    const result = await (this.service as any).collectDetails(ctx);
+    assert.ok(result);
+    assert.strictEqual(result.requestBody?.kind, "text");
+    assert.strictEqual(result.requestBody?.content, "from-raw-input");
+  }
+
+  @test
+  async swallowsRawBodyReadErrors() {
+    // Failures in body reads should be swallowed (capture is best-effort).
+    const ctx: any = {
+      getHttpContext: () => ({
+        getHeaders: () => ({}),
+        getRawBody: async () => {
+          throw new Error("read failed");
+        },
+        getUniqueHeader: () => undefined
+      }),
+      getResponseHeaders: () => ({}),
+      getResponseBody: () => "ok",
+      getExtension: () => undefined
+    };
+    const result = await (this.service as any).collectDetails(ctx);
+    assert.ok(result);
+    assert.strictEqual(result.requestBody, undefined);
+    assert.strictEqual(result.responseBody?.content, "ok");
+  }
+
+  @test
+  async capturesErrorFromExtension() {
+    const err = Object.assign(new Error("validation failed"), { details: { field: "/title" } });
+    const ctx: any = {
+      getHttpContext: () => ({ getHeaders: () => ({}) }),
+      getResponseHeaders: () => ({}),
+      getResponseBody: () => undefined,
+      getExtension: (key: string) => (key === "error" ? err : undefined)
+    };
+    const result = await (this.service as any).collectDetails(ctx);
+    assert.ok(result);
+    assert.strictEqual(result.error?.message, "validation failed");
+    assert.ok(result.error?.stack, "stack should be carried over from the Error");
+  }
+
+  @test
+  async capturesErrorFromDirectProperty() {
+    // Some contexts expose .error directly rather than via getExtension.
+    const ctx: any = {
+      getHttpContext: () => ({ getHeaders: () => ({}) }),
+      getResponseHeaders: () => ({}),
+      getResponseBody: () => undefined,
+      error: { message: "direct prop error" }
+      // no getExtension
+    };
+    const result = await (this.service as any).collectDetails(ctx);
+    assert.ok(result);
+    assert.strictEqual(result.error?.message, "direct prop error");
+  }
+
+  @test
+  async capturesNonErrorErrorValue() {
+    // err.message may be undefined (e.g. if someone threw a string).
+    const ctx: any = {
+      getHttpContext: () => ({ getHeaders: () => ({}) }),
+      getResponseHeaders: () => ({}),
+      getResponseBody: () => undefined,
+      getExtension: (key: string) => (key === "error" ? "boom" : undefined)
+    };
+    const result = await (this.service as any).collectDetails(ctx);
+    assert.ok(result);
+    assert.strictEqual(result.error?.message, "boom");
+  }
+}

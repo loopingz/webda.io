@@ -33,16 +33,28 @@ export class CodeError extends Error {
 
 /** HTTP error with a status code, auto-generating the error code from the class name */
 export class HttpError extends CodeError {
+  /**
+   * Optional structured details for the client. Validation errors put the
+   * AJV `errors[]` here so consumers can map field-level failures to the UI
+   * without parsing the human-readable message.
+   */
+  details?: any;
+
   /** Create a new HttpError
    * @param message - error message
    * @param statusCode - HTTP status code
+   * @param details - optional structured details (e.g. validation errors)
    */
   constructor(
     message: string,
-    public statusCode: number = 500
+    public statusCode: number = 500,
+    details?: any
   ) {
     super("", message);
     this.code = this.constructor.name.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase();
+    if (details !== undefined) {
+      this.details = details;
+    }
   }
 
   /**
@@ -88,9 +100,10 @@ export class NotFound extends HttpError {
 export class BadRequest extends HttpError {
   /** Create a new BadRequest
    * @param message - error message
+   * @param details - optional structured details (e.g. AJV validation errors)
    */
-  constructor(message: string) {
-    super(message, 400);
+  constructor(message: string, details?: any) {
+    super(message, 400, details);
   }
 }
 

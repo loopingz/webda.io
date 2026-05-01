@@ -1,6 +1,28 @@
 
 
 /**
+ * The body of a captured request or response.
+ *
+ * - `text`: text payload that fit entirely within the configured size limit.
+ * - `text-truncated`: text payload truncated at the size limit; `content` is the prefix and `size` is the total byte count.
+ * - `binary`: binary payload — only `size` and a short hex `preview` are kept.
+ * - `empty`: no body at all.
+ */
+export type RequestLogBody =
+  | { kind: "text"; content: string; size: number }
+  | { kind: "text-truncated"; content: string; size: number }
+  | { kind: "binary"; size: number; preview: string }
+  | { kind: "empty" };
+
+/**
+ * Captured error attached to a request, when one was thrown.
+ */
+export interface RequestLogError {
+  message: string;
+  stack?: string;
+}
+
+/**
  * A single entry in the request log
  */
 export interface RequestLogEntry {
@@ -10,6 +32,32 @@ export interface RequestLogEntry {
   timestamp: number;
   statusCode?: number;
   duration?: number;
+  /** Captured request headers (lowercased keys, single string values). */
+  requestHeaders?: Record<string, string>;
+  /** Captured request body. */
+  requestBody?: RequestLogBody;
+  /** Captured response headers (single string values). */
+  responseHeaders?: Record<string, string>;
+  /** Captured response body. */
+  responseBody?: RequestLogBody;
+  /** Captured error, if the request failed. */
+  error?: RequestLogError;
+}
+
+/**
+ * Summary fields returned by the list endpoint — keep this cheap (no bodies, no headers).
+ */
+export type RequestLogSummary = Pick<RequestLogEntry, "id" | "method" | "url" | "timestamp" | "statusCode" | "duration">;
+
+/**
+ * Optional details that can be attached to an existing entry after capture.
+ */
+export interface RequestLogDetails {
+  requestHeaders?: Record<string, string>;
+  requestBody?: RequestLogBody;
+  responseHeaders?: Record<string, string>;
+  responseBody?: RequestLogBody;
+  error?: RequestLogError;
 }
 
 /**
@@ -94,12 +142,61 @@ export class RequestLog {
   }
 
   /**
+   * Attach captured headers, bodies, and/or error details to an existing entry.
+   *
+   * Merges the provided fields onto the entry. Does nothing (silently) if the
+   * id is unknown — the caller should call this only after `startRequest`.
+   *
+   * @param id - Unique identifier of the request.
+   * @param details - Captured details to attach.
+   */
+  attachDetails(id: string, details: RequestLogDetails): void {
+    const entry = this.index.get(id);
+    if (!entry) return;
+    if (details.requestHeaders !== undefined) entry.requestHeaders = details.requestHeaders;
+    if (details.requestBody !== undefined) entry.requestBody = details.requestBody;
+    if (details.responseHeaders !== undefined) entry.responseHeaders = details.responseHeaders;
+    if (details.responseBody !== undefined) entry.responseBody = details.responseBody;
+    if (details.error !== undefined) entry.error = details.error;
+  }
+
+  /**
    * Returns a shallow copy of all currently stored entries in insertion order.
+   *
+   * Includes any captured headers, bodies, and error details.
    *
    * @returns Array of {@link RequestLogEntry} objects.
    */
   getEntries(): RequestLogEntry[] {
     return [...this.entries];
+  }
+
+  /**
+   * Returns lightweight summaries of all stored entries — no headers or bodies.
+   *
+   * Use this for the list view; use {@link getEntry} when the user drills in.
+   *
+   * @returns Array of {@link RequestLogSummary} objects in insertion order.
+   */
+  getSummaries(): RequestLogSummary[] {
+    return this.entries.map(e => ({
+      id: e.id,
+      method: e.method,
+      url: e.url,
+      timestamp: e.timestamp,
+      statusCode: e.statusCode,
+      duration: e.duration
+    }));
+  }
+
+  /**
+   * Look up a single entry by id.
+   *
+   * @param id - Unique identifier of the request.
+   * @returns The entry, or `undefined` if not found.
+   */
+  getEntry(id: string): RequestLogEntry | undefined {
+    return this.index.get(id);
   }
 
   /**

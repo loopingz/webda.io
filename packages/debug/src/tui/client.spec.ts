@@ -19,6 +19,18 @@ class DebugClientHTTPMethodsTest {
     "/api/config": { parameters: {} },
     "/api/openapi": { openapi: "3.0.3" },
     "/api/requests": [{ id: "r1" }],
+    "/api/requests/r1": {
+      id: "r1",
+      method: "POST",
+      url: "/foo",
+      timestamp: 1,
+      statusCode: 200,
+      duration: 5,
+      requestHeaders: { "content-type": "application/json" },
+      requestBody: { kind: "text", content: '{"a":1}', size: 7 },
+      responseHeaders: { "content-type": "application/json" },
+      responseBody: { kind: "text", content: '{"ok":true}', size: 11 }
+    },
     "/api/logs": [{ id: "l1", level: "INFO" }],
     "/api/info": { package: { name: "test" } }
   };
@@ -90,6 +102,15 @@ class DebugClientHTTPMethodsTest {
   async getRequests() {
     const result = await this.client.getRequests();
     assert.strictEqual(result[0].id, "r1");
+  }
+
+  @test
+  async getRequestDetail() {
+    const result = await this.client.getRequestDetail("r1");
+    assert.strictEqual(result.id, "r1");
+    assert.strictEqual(result.method, "POST");
+    assert.deepStrictEqual(result.requestHeaders, { "content-type": "application/json" });
+    assert.deepStrictEqual(result.requestBody, { kind: "text", content: '{"a":1}', size: 7 });
   }
 
   @test

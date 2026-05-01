@@ -185,7 +185,7 @@ export class HttpServer<
     const res = ctx._stream as ServerResponse;
     if (res.headersSent) return;
 
-    const headers = { ...ctx["_outputHeaders"], ...ctx.getResponseHeaders() };
+    const headers = ctx.getResponseHeaders();
     const cookies = ctx.getResponseCookies?.() || {};
 
     if (this.isHttp2) {
@@ -245,10 +245,9 @@ export class HttpServer<
       }
       const webCtx = ctx as WebContext;
       await runWithContext(webCtx, async () => {
+        try { emitCoreEvent("Webda.Request", { context: webCtx }); } catch { /* listener error */ }
         try {
-          try { emitCoreEvent("Webda.Request", { context: webCtx }); } catch { /* listener error */ }
           await useRouter().execute(webCtx);
-          try { emitCoreEvent("Webda.Result", { context: webCtx }); } catch { /* listener error */ }
         } catch (err) {
           webCtx.statusCode = err?.getResponseCode?.() || 500;
           const method = webCtx.getHttpContext().getMethod();
@@ -260,7 +259,33 @@ export class HttpServer<
           } else if (webCtx.statusCode >= 400) {
             useLog("WARN", `${method} ${url} → ${webCtx.statusCode}: ${err?.message ?? err}`);
           }
+          // Stash the error on the context so listeners (e.g. debug capture)
+          // can include it in the request log entry.
+          webCtx.setExtension("error", err);
+          // Write a body so the client actually sees the failure. For 4xx we
+          // include the message + structured details (e.g. AJV errors[] from
+          // input-schema validation). For 5xx we hide internal details.
+          if (!webCtx.hasFlushedHeaders?.() && (webCtx.getOutput?.() ?? "") === "") {
+            if (webCtx.statusCode >= 500) {
+              webCtx.write({
+                error: {
+                  code: err?.code ?? "INTERNAL_SERVER_ERROR",
+                  message: "Internal server error"
+                }
+              });
+            } else {
+              const body: any = {
+                code: err?.code ?? "BAD_REQUEST",
+                message: err?.message ?? String(err)
+              };
+              if (err?.details !== undefined) body.details = err.details;
+              webCtx.write({ error: body });
+            }
+          }
         }
+        // Always emit the Result event — both success and error paths converge
+        // here so that subscribers see every request reach a terminal state.
+        try { emitCoreEvent("Webda.Result", { context: webCtx }); } catch { /* listener error */ }
       });
       // Flush response — skip if pipeline/streaming already handled it
       if (!res.writableEnded && !res.headersSent) {

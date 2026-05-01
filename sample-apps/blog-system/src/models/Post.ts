@@ -2,7 +2,7 @@ import { BelongTo, Contains, ManyToMany, Model, WEBDA_PRIMARY_KEY, WEBDA_EVENTS,
 import type { User } from "./User";
 import type { Comment } from "./Comment";
 import type { Tag } from "./Tag";
-import { Operation } from "@webda/core";
+import { Binaries, Binary, Operation } from "@webda/core";
 
 export class PostEvents<T extends Post> {
   Publish: {
@@ -50,6 +50,18 @@ export class Post extends Model {
    * @format uri
    */
   featuredImage?: string;
+
+  /**
+   * Main image for the post, stored as binary data with width and height metadata. This demonstrates how to use binary data in a model, which can be useful for storing images or files directly in the database.
+   */
+  mainImage: Binary<{width: number; height: number}>;
+
+  /**
+   * Additional images for the post, stored as an array of binaries with width and height metadata. This shows how to manage multiple related binary files in a model.
+   */
+  images: Binaries<{width: number; height: number}>;
+
+  
 
   /**
    * Publication status

@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@webda/core": "workspace:*",
+    "@webda/fs": "workspace:^",
     "@webda/graphql": "workspace:^",
     "@webda/grpc": "workspace:^",
     "@webda/models": "workspace:^",

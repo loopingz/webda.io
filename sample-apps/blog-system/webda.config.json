@@ -36,6 +36,16 @@
       "type": "Webda/ResourceService",
       "folder": "./webui",
       "url": "/admin"
+    },
+    "CryptoService": {
+      "type": "Webda/CryptoService",
+      "autoCreate": true
+    },
+    "Images": {
+      "type": "Webda/FileBinary",
+      "folder": "./data/images",
+      "url": "/binaries",
+      "models": { "*": ["*"] }
     }
   }
 }

@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { FileUtils } from "@webda/utils";
 import {
   createAccessorTransformer,
+  createBehaviorTransformer,
   createDeclarationAccessorTransformer,
   computeCoercibleFields,
   DEFAULT_COERCIONS,
@@ -134,11 +135,17 @@ export class Compiler {
       computeCoercibleFields(ts, this.tsProgram, coercions, modelBases, accessorsForAll, perf)
     );
 
-    // Emit all code with accessor transforms
+    // Emit all code with accessor + behavior transforms.
+    // The behaviors transformer augments `@WebdaBehavior`-tagged classes
+    // (parent slot getter, toJSON) and emits a `__hydrateBehaviors(rawData)`
+    // method on every model that has Behavior-typed properties — that method
+    // is what wires `instance.<attribute>` into a real Behavior instance at
+    // hydration time.
     const { diagnostics } = perf.measure("emit", () =>
       this.tsProgram.emit(undefined, writer, undefined, false, {
         before: [
-          createAccessorTransformer(ts, this.tsProgram, coercions, modelBases, coercibleFields, accessorsForAll, perf)
+          createAccessorTransformer(ts, this.tsProgram, coercions, modelBases, coercibleFields, accessorsForAll, perf),
+          createBehaviorTransformer(ts, this.tsProgram)
         ],
         afterDeclarations: [
           createDeclarationAccessorTransformer(

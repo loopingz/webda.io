@@ -20,10 +20,16 @@ import { registerRepository, Repositories, useRepository } from "./hooks";
  *   - `Post.query("")`     → Post AND BlogPost records (Post + descendants)
  *   - `BlogPost.query("")` → BlogPost records only      (no ancestors)
  *
- * The filter is implemented in `MemoryRepository.query()` via
- * `instanceof this.model`, which works because the deserializer reconstructs
- * the correct concrete class for each entry (the `$serializer.type` typeKey
- * is set when each class registers its own serializer).
+ * Implementation: `MemoryRepository.serialize` stamps `__type` on the storage
+ * envelope, `deserialize` re-surfaces it on the in-memory instance as a
+ * non-enumerable property, and `query()` prepends an `__type IN [...]`
+ * WebdaQL clause built from `Metadata.Identifier` plus every transitive
+ * descendant in `Metadata.Subclasses`. There is no post-filter step.
+ *
+ * The fixtures stamp a minimal `Metadata` blob (Identifier + Subclasses) on
+ * each constructor by hand so they don't need to be loaded through
+ * `Application.setModelMetadata`. Tests that want to exercise the no-Metadata
+ * fallback declare their own bare classes inline.
  */
 class Post extends UuidModel {
   title: string;
@@ -56,8 +62,7 @@ class NewsPost extends Post {
 NewsPost.registerSerializer();
 
 // Multi-level: BlogPost → DraftBlogPost. Used to verify that transitive
-// descendants are still picked up by `instanceof` (no Subclasses walking
-// needed).
+// descendants are pulled in via `Metadata.Subclasses` walking.
 class DraftBlogPost extends BlogPost {
   draft: boolean;
 
@@ -67,6 +72,27 @@ class DraftBlogPost extends BlogPost {
   }
 }
 DraftBlogPost.registerSerializer();
+
+// Stamp the bits of Metadata the class-filter logic actually reads so we
+// don't have to wire these through Application. Subclasses lists every
+// transitive descendant — that's what `Application.setModelMetadata` does in
+// production after walking the full hierarchy.
+(Post as any).Metadata = {
+  Identifier: "Test/Post",
+  Subclasses: [BlogPost, NewsPost, DraftBlogPost]
+};
+(BlogPost as any).Metadata = {
+  Identifier: "Test/BlogPost",
+  Subclasses: [DraftBlogPost]
+};
+(NewsPost as any).Metadata = {
+  Identifier: "Test/NewsPost",
+  Subclasses: []
+};
+(DraftBlogPost as any).Metadata = {
+  Identifier: "Test/DraftBlogPost",
+  Subclasses: []
+};
 
 @suite
 class MemoryRepositoryClassFilterTest {
@@ -192,11 +218,11 @@ class MemoryRepositoryClassFilterTest {
   }
 
   /**
-   * `<Class>.ref(uuid).get()` already routes through the per-class deserializer
-   * (the `$serializer.type` typeKey identifies the concrete class), so this
-   * test exists mainly to confirm the `__type` envelope stamp doesn't bleed
-   * onto the model instance — i.e. the deserialized object's enumerable keys
-   * don't include `__type`.
+   * `<Class>.ref(uuid).get()` routes through the per-class deserializer
+   * (`$serializer.type` typeKey → concrete class). The `__type` stamp comes
+   * back as a NON-ENUMERABLE property on the instance — readable via direct
+   * property access (which is what WebdaQL's filter eval uses) but invisible
+   * to `JSON.stringify` and `Object.keys`. This test pins down both halves.
    */
   @test
   async getReturnsConcreteClassWithoutLeakingTypeStamp() {
@@ -209,18 +235,24 @@ class MemoryRepositoryClassFilterTest {
     assert.strictEqual(fetched.uuid, "bp-4");
     assert.strictEqual(fetched.title, "title");
     assert.strictEqual(fetched.body, "body");
-    // The `__type` stamp lives on the storage envelope, never on the model
-    // instance — re-serializing must not start spitting it out as a field.
-    assert.strictEqual(fetched.__type, undefined, "__type must not land on the deserialized instance");
+    // __type IS readable (non-enumerable property access works) — that's what
+    // lets WebdaQL filter on it.
+    assert.strictEqual(fetched.__type, "Test/BlogPost", "__type must be readable on the instance");
+    // ...but it must NOT show up as an own enumerable key, so JSON.stringify
+    // and API responses don't ship it as a field.
     const ownKeys = Object.keys(fetched);
     assert.ok(!ownKeys.includes("__type"), `instance own-keys must not include __type, got: ${ownKeys.join(",")}`);
+    const json = JSON.parse(JSON.stringify(fetched));
+    assert.strictEqual(json.__type, undefined, "__type must not appear in JSON output");
   }
 
   /**
    * Legacy items written before the `__type` stamp existed must still be
-   * returned by `<this.model>.query()`. The filter relies on `instanceof`,
-   * not on the `__type` field itself, so nothing about the filter cares
-   * whether the envelope carries `__type` or not.
+   * returned by `<this.model>.query()`. The class filter is now driven by a
+   * real WebdaQL `__type IN [...]` clause, so we rely on `deserialize` to
+   * backfill `__type` from `this.model.Metadata.Identifier` whenever the
+   * stored envelope is missing one. That makes legacy rows look like records
+   * of the parent class — matching the parent's own class-filter clause.
    *
    * We simulate a legacy row by writing through the existing
    * `MemoryRepository.serialize` path (which already stamps `__type` for
@@ -245,21 +277,26 @@ class MemoryRepositoryClassFilterTest {
     assert.strictEqual(res.results.length, 1, "legacy row without __type must still be returned");
     assert.ok(res.results[0] instanceof Post);
     assert.strictEqual((res.results[0] as any).uuid, "legacy-1");
+    // Backfill should land __type=Test/Post on the in-memory instance (the
+    // repo's own model identifier), as a non-enumerable property so it
+    // doesn't bleed into JSON output.
+    assert.strictEqual((res.results[0] as any).__type, "Test/Post");
+    assert.ok(!Object.keys(res.results[0]).includes("__type"));
   }
 
   /**
    * Defensive: a repository whose model class has no `Metadata` at all (a
    * plain unit-test class that never went through Application.setModelMetadata)
-   * must still work — the serializer skips the stamp, the filter still works
-   * because `instanceof` doesn't care about Metadata.
+   * opts out of class filtering. Without an identifier, there's no
+   * `__type IN [...]` clause to prepend, so `query()` returns every row in
+   * storage — matching the pre-fix behavior for these bare classes.
    *
-   * This test reuses `SubClassModel` from `model.spec.ts` indirectly: the
-   * `Post` fixture above has no Metadata either (we never set it), so this
-   * test just re-asserts the same behavior with a vanilla `Model` subclass
-   * registering its own serializer.
+   * Apps that need tight class filtering must register their model through
+   * Application.setModelMetadata (the production path) so the repo can build
+   * a real WebdaQL clause.
    */
   @test
-  async modelsWithoutMetadataStillFilterByInstanceof() {
+  async modelsWithoutMetadataReturnEverythingInStorage() {
     class PlainPost extends UuidModel {
       kind = "plain";
     }
@@ -286,14 +323,13 @@ class MemoryRepositoryClassFilterTest {
       const stored = JSON.parse(shared.get("pp-1")!);
       assert.strictEqual(stored.__type, undefined, "no __type stamp without Metadata");
 
-      // PlainPost.query returns both (parent + descendant via instanceof).
+      // No Metadata → no class filter → every row in storage comes back from
+      // both repos. This is the documented opt-out.
       const parentRes = await PlainPost.query("");
-      assert.strictEqual(parentRes.results.length, 2);
+      assert.strictEqual(parentRes.results.length, 2, "no Metadata: parent repo returns every row");
 
-      // PlainBlog.query returns only the descendant.
       const childRes = await PlainBlog.query("");
-      assert.strictEqual(childRes.results.length, 1);
-      assert.strictEqual((childRes.results[0] as any).uuid, "pb-1");
+      assert.strictEqual(childRes.results.length, 2, "no Metadata: child repo also returns every row");
     } finally {
       Repositories.delete(PlainPost);
       Repositories.delete(PlainBlog);
@@ -357,14 +393,45 @@ class MemoryRepositoryClassFilterTest {
       await Post.create({ uuid: "shared-1", title: "post" } as any);
       await BlogPost.create({ uuid: "shared-2", title: "blog", body: "b" } as any);
 
-      // BlogPost.query goes through the ancestor's repo, so the filter is
-      // `instanceof Post`, which matches both records. This is the
-      // documented behavior — apps that need a tighter filter must register
-      // a per-class repository (the production path).
+      // BlogPost.query goes through the ancestor's repo, so the prepended
+      // class filter is `__type IN ['Test/Post', 'Test/BlogPost', ...]`,
+      // which matches both records. This is the documented behavior — apps
+      // that need a tighter filter must register a per-class repository (the
+      // production path).
       const res = await BlogPost.query("");
       assert.strictEqual(res.results.length, 2);
     } finally {
       Repositories.delete(Post);
     }
+  }
+
+  /**
+   * The class filter is ANDed with caller-supplied conditions, not OR'd.
+   * Saving a Post and a BlogPost with the same `title` and querying by title
+   * from each repo must:
+   *   - `Post.query("title = 'foo'")` → returns BOTH (parent + descendant),
+   *     because the `__type IN [Test/Post, Test/BlogPost, ...]` clause
+   *     matches both.
+   *   - `BlogPost.query("title = 'foo'")` → returns ONLY the BlogPost,
+   *     because the prepended clause excludes pure `Test/Post` rows.
+   *
+   * This pins down that the prepend is composed correctly with arbitrary
+   * caller filters via AND.
+   */
+  @test
+  async classFilterAndsWithCallerCondition() {
+    this.setupSharedRepos();
+
+    await Post.create({ uuid: "and-p", title: "shared" } as any);
+    await BlogPost.create({ uuid: "and-bp", title: "shared", body: "body" } as any);
+    await Post.create({ uuid: "and-other", title: "other" } as any);
+
+    const fromPost = await Post.query("title = 'shared'");
+    const fromPostUuids = fromPost.results.map((r: any) => r.uuid).sort();
+    assert.deepStrictEqual(fromPostUuids, ["and-bp", "and-p"], "Post.query AND title returns parent + descendant");
+
+    const fromBlog = await BlogPost.query("title = 'shared'");
+    const fromBlogUuids = fromBlog.results.map((r: any) => r.uuid).sort();
+    assert.deepStrictEqual(fromBlogUuids, ["and-bp"], "BlogPost.query AND title excludes the pure Post row");
   }
 }

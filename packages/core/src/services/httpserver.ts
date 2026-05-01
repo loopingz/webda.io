@@ -245,10 +245,9 @@ export class HttpServer<
       }
       const webCtx = ctx as WebContext;
       await runWithContext(webCtx, async () => {
+        try { emitCoreEvent("Webda.Request", { context: webCtx }); } catch { /* listener error */ }
         try {
-          try { emitCoreEvent("Webda.Request", { context: webCtx }); } catch { /* listener error */ }
           await useRouter().execute(webCtx);
-          try { emitCoreEvent("Webda.Result", { context: webCtx }); } catch { /* listener error */ }
         } catch (err) {
           webCtx.statusCode = err?.getResponseCode?.() || 500;
           const method = webCtx.getHttpContext().getMethod();
@@ -260,7 +259,13 @@ export class HttpServer<
           } else if (webCtx.statusCode >= 400) {
             useLog("WARN", `${method} ${url} → ${webCtx.statusCode}: ${err?.message ?? err}`);
           }
+          // Stash the error on the context so listeners (e.g. debug capture)
+          // can include it in the request log entry.
+          webCtx.setExtension("error", err);
         }
+        // Always emit the Result event — both success and error paths converge
+        // here so that subscribers see every request reach a terminal state.
+        try { emitCoreEvent("Webda.Result", { context: webCtx }); } catch { /* listener error */ }
       });
       // Flush response — skip if pipeline/streaming already handled it
       if (!res.writableEnded && !res.headersSent) {

@@ -69,7 +69,21 @@ async function checkOperation(context: OperationContext, operationId: string) {
     }
   } catch (err) {
     if (err instanceof ValidationError) {
-      throw new WebdaError.BadRequest(`${operationId} InvalidInput ${err.errors.map(e => e.message).join("; ")}`);
+      // Include the failing attribute path (AJV `instancePath`) in the human
+      // message so the client can tell *which* field is invalid; attach the
+      // raw `errors[]` as structured `details` so consumers can map errors
+      // to fields without parsing the string.
+      const summary = err.errors
+        .map(e => {
+          const path = e.instancePath || (e.params && (e.params as any).missingProperty
+            ? `/${(e.params as any).missingProperty}`
+            : "/");
+          return `${path} ${e.message}`;
+        })
+        .join("; ");
+      throw new WebdaError.BadRequest(`${operationId} InvalidInput: ${summary}`, {
+        errors: err.errors
+      });
     }
     throw err;
   }

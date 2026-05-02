@@ -238,3 +238,14 @@ tr:hover { background: var(--bg-secondary); }
   font-size: 0.8125rem;
 }
 .binaries-list .small { font-size: 0.7rem; }
+.binaries-list .binaries-thumb {
+  width: 56px;
+  vertical-align: middle;
+}
+.binaries-list .binaries-thumb img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+}

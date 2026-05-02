@@ -13,6 +13,19 @@ function formatBytes(n) {
 }
 
 /**
+ * True when the binary looks like an inline-renderable image — checks both
+ * the declared mimetype and the filename extension so uploads with a
+ * generic `application/octet-stream` mimetype but a recognisable name
+ * still render as `<img>`.
+ */
+function isImage(value) {
+  if (!value) return false;
+  if ((value.mimetype || "").startsWith("image/")) return true;
+  const name = (value.name || "").toLowerCase();
+  return /\.(png|jpe?g|gif|webp|svg)$/.test(name);
+}
+
+/**
  * Banner explaining the challenge flow. Rendered above the upload UI as
  * a one-paragraph intro for first-time users of the demo.
  */
@@ -99,7 +112,7 @@ function BinaryBlock({ slug, attribute, label, value, onChange, notify }) {
       </div>
       ${isAttached ? html`
         <div class="binary-preview">
-          ${(value.mimetype || "").startsWith("image/") && html`
+          ${isImage(value) && html`
             <img src=${binaries.streamUrl(slug, attribute) + `?t=${value.hash}`} alt=${value.name || ""} />
           `}
           <div class="binary-info">
@@ -198,11 +211,16 @@ function BinariesBlock({ slug, attribute, label, items, onChange, notify }) {
       ` : html`
         <table class="binaries-list">
           <thead>
-            <tr><th>#</th><th>Name</th><th>Type</th><th>Size</th><th>W×H</th><th>Hash</th><th></th></tr>
+            <tr><th></th><th>#</th><th>Name</th><th>Type</th><th>Size</th><th>W×H</th><th>Hash</th><th></th></tr>
           </thead>
           <tbody>
             ${list.map((it, idx) => html`
               <tr key=${idx}>
+                <td class="binaries-thumb">
+                  ${isImage(it) && html`
+                    <img src=${binaries.streamUrl(slug, attribute, idx) + `?t=${it.hash}`} alt=${it.name || ""} />
+                  `}
+                </td>
                 <td>${idx}</td>
                 <td>${it.name || "(no name)"}</td>
                 <td class="muted">${it.mimetype || "?"}</td>

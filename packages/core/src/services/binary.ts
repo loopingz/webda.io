@@ -1359,12 +1359,14 @@ export abstract class BinaryService<
     } else {
       file = fileInfo as BinaryFileInfo;
     }
-    let additionalAttr;
-    if (
-      (additionalAttr = Object.keys(file).filter(
-        k => !["name", "size", "mimetype", "hash", "challenge", "metadata"].includes(k)
-      ))
-    ) {
+    // `.filter()` always returns an array, and an empty array is truthy —
+    // the previous `if ((additionalAttr = filter(...)))` form fired on every
+    // upload (legitimate or not), throwing with an empty `properties: `
+    // suffix because `[].join(",")` is `""`. Compare length instead.
+    const additionalAttr = Object.keys(file).filter(
+      k => !["name", "size", "mimetype", "hash", "challenge", "metadata"].includes(k)
+    );
+    if (additionalAttr.length > 0) {
       throw new Error(
         "Invalid file object it should be a plain BinaryFileInfo found additional properties: " +
           additionalAttr.join(",")

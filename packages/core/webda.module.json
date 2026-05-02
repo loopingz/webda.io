@@ -3425,44 +3425,28 @@
       "properties": {
         "body": {
           "additionalProperties": false,
-          "definitions": {
-            "&1$metadata": {
-              "additionalProperties": false,
-              "type": "object"
-            }
-          },
+          "description": "HTTP body shape accepted by `Binary.attachChallenge` /\n`BinariesImpl.attachChallenge`. Declared as a non-generic interface so the\ncompiler's schema generator can resolve every `$ref` — using\n`BinaryFileInfo<T>` here would leak the class's unbound type parameter\ninto the generated schema (`#/definitions/&1$metadata`), which AJV then\nfails to compile.",
           "properties": {
             "challenge": {
-              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
               "type": "string"
             },
             "hash": {
-              "description": "Hash of the binary",
               "type": "string"
             },
-            "metadata": {
-              "$ref": "#/definitions/%261%24metadata",
-              "description": "Metadatas stored along with the binary"
-            },
+            "metadata": {},
             "mimetype": {
-              "description": "Mimetype",
               "type": "string"
             },
             "name": {
-              "description": "Name of the file",
               "type": "string"
             },
             "size": {
-              "description": "Size of the file",
               "type": "number"
             }
           },
           "required": [
             "challenge",
-            "hash",
-            "mimetype",
-            "name",
-            "size"
+            "hash"
           ],
           "type": "object"
         }
@@ -3487,36 +3471,31 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": false,
       "definitions": {
-        "BinaryMap<T>": {
+        "BinaryFileInfo<{}>": {
           "additionalProperties": false,
-          "class": "BinaryMap",
-          "description": "This is a map used to retrieve binary",
           "properties": {
             "challenge": {
               "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
               "type": "string"
             },
             "hash": {
-              "description": "Will be computed by the service\n\nhash of the content",
+              "description": "Hash of the binary",
               "type": "string"
             },
             "metadata": {
+              "$ref": "#/definitions/Map%24metadata",
               "description": "Metadatas stored along with the binary"
             },
             "mimetype": {
-              "description": "Mimetype of the binary",
+              "description": "Mimetype",
               "type": "string"
             },
             "name": {
-              "description": "Current name",
-              "type": "string"
-            },
-            "originalname": {
-              "description": "Original name",
+              "description": "Name of the file",
               "type": "string"
             },
             "size": {
-              "description": "Size of the binary",
+              "description": "Size of the file",
               "type": "number"
             }
           },
@@ -3526,6 +3505,10 @@
             "size"
           ],
           "type": "object"
+        },
+        "Map$metadata": {
+          "additionalProperties": false,
+          "type": "object"
         }
       },
       "properties": {
@@ -3533,7 +3516,7 @@
           "type": "string"
         },
         "Map": {
-          "$ref": "#/definitions/BinaryMap%3CT%3E"
+          "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E"
         }
       },
       "required": [
@@ -3571,44 +3554,28 @@
       "properties": {
         "body": {
           "additionalProperties": false,
-          "definitions": {
-            "&1$metadata": {
-              "additionalProperties": false,
-              "type": "object"
-            }
-          },
+          "description": "HTTP body shape accepted by `Binary.attachChallenge` /\n`BinariesImpl.attachChallenge`. Declared as a non-generic interface so the\ncompiler's schema generator can resolve every `$ref` — using\n`BinaryFileInfo<T>` here would leak the class's unbound type parameter\ninto the generated schema (`#/definitions/&1$metadata`), which AJV then\nfails to compile.",
           "properties": {
             "challenge": {
-              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
               "type": "string"
             },
             "hash": {
-              "description": "Hash of the binary",
               "type": "string"
             },
-            "metadata": {
-              "$ref": "#/definitions/%261%24metadata",
-              "description": "Metadatas stored along with the binary"
-            },
+            "metadata": {},
             "mimetype": {
-              "description": "Mimetype",
               "type": "string"
             },
             "name": {
-              "description": "Name of the file",
               "type": "string"
             },
             "size": {
-              "description": "Size of the file",
               "type": "number"
             }
           },
           "required": [
             "challenge",
-            "hash",
-            "mimetype",
-            "name",
-            "size"
+            "hash"
           ],
           "type": "object"
         }
@@ -3647,36 +3614,31 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": false,
       "definitions": {
-        "BinaryMap<T>": {
+        "BinaryFileInfo<{}>": {
           "additionalProperties": false,
-          "class": "BinaryMap",
-          "description": "This is a map used to retrieve binary",
           "properties": {
             "challenge": {
               "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
               "type": "string"
             },
             "hash": {
-              "description": "Will be computed by the service\n\nhash of the content",
+              "description": "Hash of the binary",
               "type": "string"
             },
             "metadata": {
+              "$ref": "#/definitions/Map%24metadata",
               "description": "Metadatas stored along with the binary"
             },
             "mimetype": {
-              "description": "Mimetype of the binary",
+              "description": "Mimetype",
               "type": "string"
             },
             "name": {
-              "description": "Current name",
-              "type": "string"
-            },
-            "originalname": {
-              "description": "Original name",
+              "description": "Name of the file",
               "type": "string"
             },
             "size": {
-              "description": "Size of the binary",
+              "description": "Size of the file",
               "type": "number"
             }
           },
@@ -3686,6 +3648,10 @@
             "size"
           ],
           "type": "object"
+        },
+        "Map$metadata": {
+          "additionalProperties": false,
+          "type": "object"
         }
       },
       "properties": {
@@ -3693,7 +3659,7 @@
           "type": "string"
         },
         "Map": {
-          "$ref": "#/definitions/BinaryMap%3CT%3E"
+          "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E"
         }
       },
       "required": [
@@ -3832,5 +3798,5 @@
     "rest-domain": "Webda/RESTOperationsTransport",
     "http-server": "Webda/HttpServer"
   },
-  "sourceDigest": "df5c9138c6cc50c8111a0c41c4c8d88e"
+  "sourceDigest": "50591f44dceb617d8f3ef2f3f4929ad5"
 }

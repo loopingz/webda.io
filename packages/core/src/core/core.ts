@@ -202,17 +202,32 @@ export class Core implements ICore {
    */
   @InstanceCache()
   protected getBinaryStoreCached<T extends Model>(model: string, attribute: string): BinaryService {
-    const binaries: { [key: string]: BinaryService } = <any>useApplication().getImplementations(<any>BinaryService);
+    // Walk live service INSTANCES (not the modda-class registry). The previous
+    // path used `getImplementations(BinaryService)` which compares the
+    // BinaryService class against modda constructors via `instanceof` —
+    // always false for class-vs-class checks, so the lookup never matched
+    // any concrete service. Iterating live instances and checking each with
+    // `instanceof BinaryService` is the correct shape for a polymorphic
+    // service registry: it picks up FileBinary, S3Binary, GCPStorageService,
+    // etc. uniformly.
+    const services = this.getServices();
     let actualScore: number = -1;
-    let actualService: BinaryService;
-    for (const binary in binaries) {
-      const score = binaries[binary].handleBinary(model, attribute);
-      // As 0 mean exact match we stop there
+    let actualService: BinaryService | undefined;
+    for (const name in services) {
+      const svc = services[name];
+      if (!(svc instanceof BinaryService)) continue;
+      const score = svc.handleBinary(model, attribute);
+      // 2 = explicit (model + attribute) — short-circuit.
       if (score === 2) {
-        return binaries[binary];
-      } else if (score >= 0 && (actualService === undefined || actualScore > score)) {
+        return svc;
+      }
+      // For partial matches (1 = model match w/ wildcard attribute, 0 =
+      // catch-all): pick the highest score. The original code used the
+      // wrong inequality (`actualScore > score`) which preferred lower
+      // specificity; flip it to keep the most specific match.
+      if (score >= 0 && (actualService === undefined || score > actualScore)) {
         actualScore = score;
-        actualService = binaries[binary];
+        actualService = svc;
       }
     }
     if (!actualService) {

@@ -1372,28 +1372,31 @@ export abstract class BinaryService<
           additionalAttr.join(",")
       );
     }
-    const object_uid = <any>object.getUUID();
-    // Check if the file is already in the array then skip
-    if (Array.isArray(object[property]) && object[property].find(i => i.hash === file.hash)) {
-      return;
+    // Persist the BinaryFileInfo on the parent model. After the
+    // Binary→Behavior migration the cardinality lives on
+    // `Metadata.Relations.behaviors[]` (no more `Relations.binaries[]`).
+    // `Webda/BinariesImpl` ⇒ MANY (append), anything else (`Webda/Binary`)
+    // ⇒ ONE (replace).
+    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined =
+      (object as any)?.constructor?.Metadata?.Relations?.behaviors;
+    const beh = Array.isArray(behaviorRels)
+      ? behaviorRels.find(b => b.attribute === property)
+      : undefined;
+    const isCollection = beh?.behavior === "Webda/BinariesImpl";
+
+    if (isCollection) {
+      const current: BinaryFileInfo[] = Array.isArray(object[property])
+        ? [...(object[property] as BinaryFileInfo[])]
+        : [];
+      // Idempotent push — already-linked check (preserves the previous
+      // behaviour of the now-deleted early-return guard above).
+      if (!current.some(i => i.hash === file.hash)) {
+        current.push(file);
+      }
+      await object.patch(<any>{ [property]: current });
+    } else {
+      await object.patch(<any>{ [property]: file });
     }
-    // await this.emit("Binary.UploadSuccess", {
-    //   object: file,
-    //   service: this,
-    //   target: object
-    // });
-    // const relations = object.Class.Metadata.Relations;
-    // const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
-    // if (cardinality === "MANY") {
-    //   await (<CoreModelWithBinary<any>>object).Class.ref(object_uid).upsertItemToCollection(property, file);
-    // } else {
-    //   await object.patch(<any>{ [property]: file });
-    // }
-    // await this.emit("Binary.Create", {
-    //   object: file,
-    //   service: this,
-    //   target: object
-    // });
     this.metrics.upload.inc();
   }
 

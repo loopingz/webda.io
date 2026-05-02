@@ -145,7 +145,13 @@ export class Compiler {
       this.tsProgram.emit(undefined, writer, undefined, false, {
         before: [
           createAccessorTransformer(ts, this.tsProgram, coercions, modelBases, coercibleFields, accessorsForAll, perf),
-          createBehaviorTransformer(ts, this.tsProgram)
+          // Pass `coercibleFields` so the behaviors transformer knows when
+          // accessors will inject `import { WEBDA_STORAGE }` for the same
+          // source file. TypeScript runs `before:` transformers in parallel
+          // on the unmodified source, so without this signal both
+          // transformers prepend their own import → duplicate ESM binding
+          // → module load fails.
+          createBehaviorTransformer(ts, this.tsProgram, undefined, coercibleFields)
         ],
         afterDeclarations: [
           createDeclarationAccessorTransformer(

@@ -80,6 +80,88 @@ function hasNotEnumerableDecorator(symbol: ts.Symbol): boolean {
 }
 
 /**
+ * Walk a JSON schema, hoist every nested `definitions` block to the schema
+ * root, then drop any `$ref`s that point at definitions we couldn't resolve.
+ *
+ * The schema generator (typescript-json-schema) emits a `definitions` block
+ * at every level where it inlines a complex sub-type, and uses absolute
+ * `#/definitions/...` references inside that level. When we wrap the result
+ * under `parametersSchema.properties[paramName]`, the inner refs end up
+ * pointing at a root that no longer holds the definitions, so AJV fails to
+ * compile the schema with errors like
+ * `can't resolve reference #/definitions/Map$metadata`.
+ *
+ * Hoisting fixes the bound-generic case (e.g. `BinaryFileInfo<{}>`).
+ * Pruning fixes the unbound-generic case where the def name and the ref
+ * name diverge (e.g. ref `&1$metadata` vs def `&1(NaN)$metadata`) — there's
+ * no valid resolution there, so we drop the ref entirely and let validation
+ * accept whatever value the caller sends. Both situations would otherwise
+ * crash AJV at registration time.
+ * @param schema - schema produced by `schemaGenerator.getSchemaFromType`
+ * @returns the same schema, mutated in place, with definitions hoisted and
+ *   unresolvable refs removed
+ */
+function normalizeSchemaDefinitions(schema: any): any {
+  if (!schema || typeof schema !== "object") return schema;
+
+  const allDefs: Record<string, any> = {};
+  const collect = (node: any) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(collect);
+      return;
+    }
+    if (node.definitions && typeof node.definitions === "object") {
+      for (const [k, v] of Object.entries(node.definitions)) {
+        // First-writer wins — sibling definitions with the same key always
+        // describe the same type because the generator stamps the source
+        // type's name into the key.
+        if (!(k in allDefs)) allDefs[k] = v;
+      }
+      delete node.definitions;
+    }
+    for (const key of Object.keys(node)) {
+      if (key === "$ref") continue;
+      collect(node[key]);
+    }
+  };
+  collect(schema);
+
+  if (Object.keys(allDefs).length > 0) {
+    schema.definitions = { ...(schema.definitions || {}), ...allDefs };
+  }
+
+  const refExists = (ref: string): boolean => {
+    if (!ref.startsWith("#/definitions/")) return true; // external refs are out of scope
+    const raw = ref.substring("#/definitions/".length);
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(raw);
+    } catch {
+      decoded = raw;
+    }
+    return raw in allDefs || decoded in allDefs;
+  };
+
+  const pruneRefs = (node: any) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(pruneRefs);
+      return;
+    }
+    if (typeof node.$ref === "string" && !refExists(node.$ref)) {
+      delete node.$ref;
+    }
+    for (const key of Object.keys(node)) {
+      pruneRefs(node[key]);
+    }
+  };
+  pruneRefs(schema);
+
+  return schema;
+}
+
+/**
  * With compiled program, analyze the program and generate module
  *
  */
@@ -1139,7 +1221,7 @@ export class ModuleGenerator {
     if (required.length > 0) {
       parametersSchema.required = required;
     }
-    return parametersSchema;
+    return normalizeSchemaDefinitions(parametersSchema);
   }
 
   /**
@@ -1163,10 +1245,11 @@ export class ModuleGenerator {
       useLog("WARN", `Cannot determine return type for method ${method.name.getText()}`);
       return undefined;
     }
-    return this.schemaGenerator.getSchemaFromType(resolvedType, {
+    const schema = this.schemaGenerator.getSchemaFromType(resolvedType, {
       asRef: false,
       type: "output"
     });
+    return normalizeSchemaDefinitions(schema);
   }
 
   /**

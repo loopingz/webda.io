@@ -87,26 +87,6 @@ export interface BinaryFileInfo<T extends object = {}> {
 export type BinaryFiles<T extends object = {}> = BinaryFileInfo<T>[];
 
 /**
- * HTTP body shape accepted by `Binary.attachChallenge` /
- * `BinariesImpl.attachChallenge`. Declared as a non-generic interface so the
- * compiler's schema generator can resolve every `$ref` — using
- * `BinaryFileInfo<T>` here would leak the class's unbound type parameter
- * into the generated schema (`#/definitions/&1$metadata`), which AJV then
- * fails to compile.
- */
-export interface BinaryChallengeBody {
-  hash: string;
-  challenge: string;
-  size?: number;
-  name?: string;
-  mimetype?: string;
-  // Typed as `any` to avoid a `$ref` in the generated JSON schema. AJV would
-  // otherwise compile a reference to a nested definition that isn't reachable
-  // from the schema root, breaking the operation at registration time.
-  metadata?: any;
-}
-
-/**
  * Represent a file to store
  * @WebdaSchema
  */
@@ -528,7 +508,7 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
    * @returns `{ url?, method?, headers?, done, md5 }`
    */
   @Action({ rest: { route: ".", method: "PUT" } })
-  async attachChallenge(body?: BinaryChallengeBody): Promise<any> {
+  async attachChallenge(body?: BinaryFileInfo & { hash: string; challenge: string }): Promise<any> {
     const context = useContext<OperationContext>();
     const parent = this.getParent();
     if (!parent) {
@@ -600,7 +580,7 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
    * @returns `{ Location, Map }`
    */
   @Action({ rest: { route: "url", method: "GET" } })
-  async downloadUrl(): Promise<{ Location: string | undefined; Map: BinaryFileInfo }> {
+  async downloadUrl(): Promise<{ Location: string | undefined; Map: BinaryMap<T> }> {
     const context = useContext<OperationContext>();
     const service = this.getService();
     if (!this.hash) {
@@ -876,7 +856,7 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
    * @returns `{ url?, method?, headers?, done, md5 }`
    */
   @Action({ rest: { route: ".", method: "PUT" } })
-  async attachChallenge(body?: BinaryChallengeBody): Promise<any> {
+  async attachChallenge(body?: BinaryFileInfo & { hash: string; challenge: string }): Promise<any> {
     const context = useContext<OperationContext>();
     const parent = this.getParent();
     if (!parent) {
@@ -945,7 +925,7 @@ export class BinariesImpl<T extends object = {}> extends Array<BinariesItem<T>> 
    * @returns `{ Location, Map }`
    */
   @Action({ rest: { route: "{index}/url", method: "GET" } })
-  async getUrl(index: number): Promise<{ Location: string | undefined; Map: BinaryFileInfo }> {
+  async getUrl(index: number): Promise<{ Location: string | undefined; Map: BinaryMap<T> }> {
     const context = useContext<OperationContext>();
     const service = this.getService();
     const idx = typeof index === "number" ? index : parseInt(index as any);

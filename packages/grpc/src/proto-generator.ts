@@ -56,6 +56,30 @@ export function generateProto(
     return undefined;
   };
 
+  // Hoist every operation schema's local `definitions` block into the flat
+  // schema registry so $refs like `#/definitions/BinaryMap<T>` (which the
+  // schema generator emits next to its hoisted definitions block) resolve
+  // to a real shape instead of falling back to `google.protobuf.Struct`.
+  // The compiler's `normalizeSchemaDefinitions` already lifted these to the
+  // schema root; we just need to fold them into the flat registry the proto
+  // walker consults.
+  const enrichedSchemas: Record<string, JSONSchema7> = { ...schemas };
+  for (const op of Object.values(operations)) {
+    if (op.hidden) continue;
+    for (const ref of [op.input, op.output]) {
+      if (!ref || ref === "void") continue;
+      const baseRef = ref.endsWith("?") ? ref.slice(0, -1) : ref;
+      const target = enrichedSchemas[baseRef];
+      const localDefs = (target as any)?.definitions;
+      if (!localDefs) continue;
+      for (const [k, v] of Object.entries(localDefs)) {
+        if (!(k in enrichedSchemas)) {
+          enrichedSchemas[k] = v as JSONSchema7;
+        }
+      }
+    }
+  }
+
   // Generate messages for all referenced schemas
   for (const [opId, op] of Object.entries(operations)) {
     if (op.hidden) continue;
@@ -63,14 +87,14 @@ export function generateProto(
     if (inputRef) {
       const msgName = schemaToMessageName(inputRef);
       if (!messages.has(msgName)) {
-        messages.set(msgName, jsonSchemaToMessage(msgName, schemas[inputRef], schemas, messages));
+        messages.set(msgName, jsonSchemaToMessage(msgName, enrichedSchemas[inputRef], enrichedSchemas, messages));
       }
     }
     const outputRef = resolveSchemaRef(op.output);
     if (outputRef) {
       const msgName = schemaToMessageName(outputRef);
       if (!messages.has(msgName)) {
-        messages.set(msgName, jsonSchemaToMessage(msgName, schemas[outputRef], schemas, messages));
+        messages.set(msgName, jsonSchemaToMessage(msgName, enrichedSchemas[outputRef], enrichedSchemas, messages));
       }
     }
   }
@@ -129,11 +153,15 @@ function schemaToMessageName(schemaRef: string): string {
   // Sanitize anything left that proto3 doesn't accept in an identifier.
   // proto3 idents match `[A-Za-z_][A-Za-z0-9_]*`; splitting on every other
   // char and PascalCasing keeps the original word boundaries readable.
-  return stripped
+  const cleaned = stripped
     .split(/[^A-Za-z0-9]+/)
     .filter(Boolean)
     .map(s => s.charAt(0).toUpperCase() + s.slice(1))
     .join("") || "Empty";
+  // proto3 identifiers must start with a letter or underscore; underscore
+  // prefix the cleaned name when it begins with a digit (e.g. `1Metadata`
+  // from a `&1$metadata` schema-generator artefact for unbound generics).
+  return /^[A-Za-z_]/.test(cleaned) ? cleaned : `_${cleaned}`;
 }
 
 /**

@@ -268,5 +268,7 @@
       "type": "object",
       "title": "BinaryFile"
     }
-  }
+  },
+  "behaviors": {},
+  "sourceDigest": "6a83597ab082b18ddd6b999365979551"
 }

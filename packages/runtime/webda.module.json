@@ -344,10 +344,10 @@
       "Plural": "BinaryModels",
       "Import": "lib/models/binarymodel:BinaryModel",
       "Relations": {
-        "binaries": [
+        "behaviors": [
           {
             "attribute": "__binary",
-            "cardinality": "ONE"
+            "behavior": "Webda/Binary"
           }
         ]
       },
@@ -365,55 +365,8 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "definitions": {
-            "BinaryFileInfo<{}>": {
-              "additionalProperties": false,
-              "description": "One Binary instance",
-              "dtoIn": "skip",
-              "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
-                "hash": {
-                  "description": "Hash of the binary",
-                  "type": "string"
-                },
-                "metadata": {
-                  "$ref": "#/definitions/__binary%24metadata",
-                  "description": "Metadatas stored along with the binary"
-                },
-                "mimetype": {
-                  "description": "Mimetype",
-                  "type": "string"
-                },
-                "name": {
-                  "description": "Name of the file",
-                  "type": "string"
-                },
-                "size": {
-                  "description": "Size of the file",
-                  "type": "number"
-                }
-              },
-              "readOnly": true,
-              "required": [
-                "mimetype",
-                "name",
-                "size"
-              ],
-              "type": "object"
-            },
-            "__binary$metadata": {
-              "additionalProperties": false,
-              "type": "object"
-            }
-          },
           "description": "Binary Model is a model that store its data in a binary file",
           "properties": {
-            "__binary": {
-              "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E"
-            },
             "__data": {},
             "__dataUpdated": {
               "default": false,
@@ -430,7 +383,6 @@
             }
           },
           "required": [
-            "__binary",
             "__data",
             "data",
             "uuid"
@@ -443,9 +395,9 @@
           "additionalProperties": false,
           "definitions": {
             "BinaryFileInfo<{}>": {
+              "WebdaBehavior": "Webda/Binary",
               "additionalProperties": false,
-              "description": "One Binary instance",
-              "dtoIn": "skip",
+              "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
               "properties": {
                 "challenge": {
                   "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
@@ -519,9 +471,9 @@
           "additionalProperties": false,
           "definitions": {
             "BinaryFileInfo<{}>": {
+              "WebdaBehavior": "Webda/Binary",
               "additionalProperties": false,
-              "description": "One Binary instance",
-              "dtoIn": "skip",
+              "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
               "properties": {
                 "challenge": {
                   "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
@@ -655,5 +607,7 @@
       "type": "object",
       "title": "BinaryFile"
     }
-  }
+  },
+  "behaviors": {},
+  "sourceDigest": "792f68ce7721306414acd019453e08ef"
 }

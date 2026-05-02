@@ -166,14 +166,19 @@ export const binaries = {
     return { done: false, hash, viaSignedUrl: false };
   },
 
-  /** Set metadata on a single Binary (Binary, not Binaries). */
+  /** Set metadata on a single Binary (Binary, not Binaries).
+   *  The body is wrapped as `{ metadata }` because the operation's input
+   *  schema is derived from `setMetadata(hash, metadata)` and the path
+   *  param `{hash}` populates only the first argument; the second has to
+   *  arrive in the body keyed by parameter name. */
   async setMetadata(slug, attribute, hash, metadata) {
-    return request("PUT", `/posts/${slug}/${attribute}/${hash}`, metadata);
+    return request("PUT", `/posts/${slug}/${attribute}/${hash}`, { metadata });
   },
 
-  /** Set metadata on one item of a Binaries collection. */
+  /** Set metadata on one item of a Binaries collection. Body wrapped for
+   *  the same reason as `setMetadata`. */
   async setItemMetadata(slug, attribute, index, hash, metadata) {
-    return request("PUT", `/posts/${slug}/${attribute}/${index}/${hash}`, metadata);
+    return request("PUT", `/posts/${slug}/${attribute}/${index}/${hash}`, { metadata });
   },
 
   /** Get the JSON URL descriptor for a Binary (or one item of a Binaries). */

@@ -603,7 +603,12 @@ export class DomainService<
       action: string;
     }>("operationContext");
 
-    const uuid = args[0];
+    // The parent uuid lives on the URL (`/posts/{uuid}/mainImage/...`) and is
+    // exposed via `context.getParameters()`. We deliberately do not consume an
+    // entry from `args` because `resolveArguments` already drives `args` from
+    // the behavior method's own signature (e.g. `setMetadata(hash, metadata)`),
+    // which has no `uuid` parameter.
+    const uuid = (context.getParameters() || {}).uuid;
     let instance: any;
     try {
       instance = await model.ref(uuid).get();
@@ -625,7 +630,7 @@ export class DomainService<
       throw new WebdaError.NotFound(`Behavior method ${attribute}.${action} not found`);
     }
 
-    return behaviorInstance[action](...args.slice(1));
+    return behaviorInstance[action](...args);
   }
 
 }

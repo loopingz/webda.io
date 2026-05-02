@@ -1005,6 +1005,61 @@ export class ModuleGenerator {
   }
 
   /**
+   * Explore Behavior classes (those carrying the `@WebdaBehavior` JSDoc tag)
+   * for `@Action` / `@Operation` instance methods and generate
+   * `<behaviorIdentifier>.<methodName>.input` / `.output` schemas.
+   *
+   * Without this, `DomainService.addBehaviorOperations` falls back to the
+   * generic `uuidRequest` input schema, which causes `resolveArguments` to
+   * drop every argument after `uuid` (e.g., the `{hash}` URL param and
+   * request body for `Binary.setMetadata`).
+   * @param allClasses - every class entry collected by `searchForWebdaObjects`
+   * @param schemas - schema results to populate
+   */
+  exploreBehaviorsAction(allClasses: WebdaClassEntry[], schemas: WebdaSchemaResults) {
+    for (const cls of allClasses) {
+      // Only emit schemas for project-owned Behavior sources; lib `.d.ts`
+      // entries already had their schemas emitted by the package that owns
+      // them.
+      if (cls.lib) continue;
+      if (!ts.isClassDeclaration(cls.node) && !ts.isClassExpression(cls.node)) continue;
+      const behaviorTag = ts
+        .getJSDocTags(cls.node)
+        .find(tag => tag.tagName.escapedText.toString() === "WebdaBehavior");
+      if (!behaviorTag) continue;
+
+      // Resolve the Behavior identifier the same way BehaviorsMetadata does:
+      // honour an optional payload override (`@WebdaBehavior Auth/MFA`),
+      // otherwise fall back to the namespaced class name.
+      let identifier: string | undefined;
+      const override = ts.getTextOfJSDocComment(behaviorTag.comment)?.trim();
+      if (override) {
+        identifier = override.split(/\s+/).shift();
+      }
+      if (!identifier) {
+        const project = (this.compiler as any)?.project;
+        if (project && typeof project.completeNamespace === "function") {
+          identifier = project.completeNamespace(cls.name);
+        } else {
+          identifier = cls.name.includes("/") ? cls.name : `Webda/${cls.name}`;
+        }
+      }
+
+      cls.type
+        .getProperties()
+        .filter(
+          prop =>
+            prop.valueDeclaration?.kind === ts.SyntaxKind.MethodDeclaration &&
+            this.hasOperationDecorator(<ts.MethodDeclaration>prop.valueDeclaration)
+        )
+        .map(prop => prop.valueDeclaration)
+        .forEach((method: ts.MethodDeclaration) => {
+          this.checkMethodForContext(identifier!, method, schemas);
+        });
+    }
+  }
+
+  /**
    * Explore services or beans for @Operation and @Route methods
    * @param services - the discovered services
    * @param schemas - schema results to populate
@@ -1128,6 +1183,7 @@ export class ModuleGenerator {
     this.exploreModelsAction(objects.models, objects.schemas);
     this.exploreServices(objects.moddas, objects.schemas);
     this.exploreServices(objects.beans, objects.schemas);
+    this.exploreBehaviorsAction(objects.allClasses, objects.schemas);
     const jsOnly = a => ({
       Import: a.jsFile,
       Schema: {}

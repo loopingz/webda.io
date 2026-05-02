@@ -405,12 +405,24 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
   }
 
   /**
-   * Ensure empty is set correctly
+   * Ensure empty is set correctly.
+   *
+   * `BinaryFile`'s constructor calls `this.set(info)` before subclass class-field
+   * initializers run, so `this[WEBDA_STORAGE]` is still `undefined` the first
+   * time we get here when constructing a fresh `new Binary()` (the no-args
+   * path used by the transformer's `__hydrateBehaviors`). Initialize the
+   * slot lazily on the first set call to keep that boot path crash-free —
+   * the class-field initializer on `BinaryMap` will then OVERWRITE this on
+   * its way back from super, but that's fine because it preserves the
+   * shape `{ service?, empty?, ... }` and we've passed through `set` only
+   * once at this point.
+   *
    * @param info - the information object
    */
   set(info: BinaryFileInfo<T>): void {
     super.set(info);
-    (this[WEBDA_STORAGE] as any).empty = false;
+    const slot = ((this as any)[WEBDA_STORAGE] ??= {}) as { empty?: boolean };
+    slot.empty = false;
   }
 
   /**

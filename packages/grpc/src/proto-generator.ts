@@ -34,7 +34,12 @@ export function generateProto(
     if (op.hidden) continue;
     const dotIdx = opId.indexOf(".");
     const prefix = dotIdx > 0 ? opId.substring(0, dotIdx) : "Default";
-    const rpcName = dotIdx > 0 ? opId.substring(dotIdx + 1) : opId;
+    // proto3 RPC method names must match `[A-Za-z_][A-Za-z0-9_]*` — dots are
+    // namespace separators and rejected by the parser. Behavior operations
+    // are namespaced as `<Model>.<Attribute>.<Action>` (e.g.
+    // `Post.MainImage.Delete`), so the trailing portion still carries a
+    // dot. Flatten to underscore so the parser accepts the rpc name.
+    const rpcName = (dotIdx > 0 ? opId.substring(dotIdx + 1) : opId).replace(/\./g, "_");
     if (!serviceGroups.has(prefix)) {
       serviceGroups.set(prefix, []);
     }

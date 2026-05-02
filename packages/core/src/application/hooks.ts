@@ -29,10 +29,20 @@ export function useModel<T extends Model = Model>(name: string | T): ModelDefini
   if (name === undefined) {
     throw new Error("Cannot call useModel with undefined");
   }
-  if (typeof name !== "string") {
-    return <ModelDefinition<T>>useApplication().getModel(name.constructor as any);
+  if (typeof name === "string") {
+    return <ModelDefinition<T>>useApplication().getModel(name);
   }
-  return <ModelDefinition<T>>useApplication().getModel(name);
+  // An instance or a class. `getModelId` accepts either and resolves to the
+  // string identifier (e.g. "WebdaSample/Post"). The previous path passed
+  // `name.constructor` directly to `getModel`, which expects a string —
+  // `completeNamespace(name).includes("/")` then crashed with
+  // `name.includes is not a function` because the constructor isn't a
+  // string.
+  const id = useApplication().getModelId(name as any);
+  if (!id) {
+    throw new Error(`Cannot resolve model identifier from ${name}`);
+  }
+  return <ModelDefinition<T>>useApplication().getModel(id);
 }
 
 /**

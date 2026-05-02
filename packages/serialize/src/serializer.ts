@@ -560,6 +560,13 @@ export class SerializerContext {
       return this.staticSerializer("undefined");
     } else if (typeof obj === "object" && this.typeSerializer.has(obj.constructor)) {
       serializer = this.typeSerializer.get(obj.constructor)!;
+    } else if (typeof obj === "object" && Array.isArray(obj)) {
+      // Array subclasses (e.g. webda's `BinariesImpl extends Array`) must
+      // serialize through the array path or `for...in` would treat numeric
+      // indices as plain object keys and emit `{0: item}` instead of
+      // `[item]`. The deserialized shape then fails to round-trip back
+      // through hydration helpers that look for `Array.isArray(v)`.
+      serializer = this.typeSerializer.get(Array) || this.serializers["array"];
     } else if (typeof obj === "object" && obj.constructor && typeof obj.constructor["deserialize"] === "function") {
       // If two objects have same class name without being the same constructor it will fail
       throw new Error(

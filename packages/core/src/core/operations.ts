@@ -65,7 +65,13 @@ async function checkOperation(context: OperationContext, operationId: string) {
       }
       // Merge path params with body (body overrides params for same keys)
       const merged = { ...params, ...(typeof body === "object" && body !== null ? body : {}) };
+      // AJV's `coerceTypes` rewrites primitive fields in `merged` in place
+      // (string `"0"` becomes number `0` for an `integer`/`number` schema).
+      // Stash the post-coercion shape on the context so `resolveArguments`
+      // can hand the typed value to the method instead of re-merging the
+      // original strings.
       validateSchema(operations[operationId].input, merged);
+      context.setExtension("operationResolvedInput", merged);
     }
   } catch (err) {
     if (err instanceof ValidationError) {
@@ -102,16 +108,22 @@ async function checkOperation(context: OperationContext, operationId: string) {
  * @returns an array of resolved arguments to pass to the operation method
  */
 export async function resolveArguments(context: OperationContext, operation: OperationDefinition): Promise<any[]> {
-  const params = context.getParameters() || {};
+  // Prefer the merged-and-coerced object that `checkOperation` left on the
+  // context. Re-merging here would discard AJV's `coerceTypes` rewrites
+  // (e.g. string `"0"` from a `{index}` URL slot back to a `number`).
+  // Falls back to a fresh merge for code paths that bypass `checkOperation`
+  // (currently only `Test.Op` unit tests).
+  let merged = context.getExtension<any>("operationResolvedInput");
   let input: any;
   try {
     input = await context.getInput();
   } catch {
     // No input (e.g., GET request)
   }
-
-  // Merge: params + body (body overrides params for same keys)
-  const merged = { ...params, ...(typeof input === "object" && input !== null ? input : {}) };
+  if (!merged) {
+    const params = context.getParameters() || {};
+    merged = { ...params, ...(typeof input === "object" && input !== null ? input : {}) };
+  }
 
   // Use input schema properties to determine argument order
   if (operation.input && operation.input !== "void") {

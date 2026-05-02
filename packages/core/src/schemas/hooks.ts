@@ -18,7 +18,20 @@ let ajvInstance: (Ajv & { rawSchema: Record<string, JSONSchema7> }) | null = nul
  */
 function getAjv(): Ajv & { rawSchema: Record<string, JSONSchema7> } {
   if (!ajvInstance) {
-    ajvInstance = new Ajv({ allErrors: true, strict: false, allowUnionTypes: true }) as any;
+    ajvInstance = new Ajv({
+      allErrors: true,
+      strict: false,
+      allowUnionTypes: true,
+      // URL path/query params arrive as strings; the schemas derived from
+      // method signatures declare them as `number`/`boolean` etc. Without
+      // coercion, every request to an operation whose input includes a
+      // typed path param (e.g. `setMetadata(index: number, ...)` mounted at
+      // `{index}/{hash}`) gets a 400 because AJV sees `"0"` instead of `0`.
+      // Coerced values overwrite the input in place, which lets the caller
+      // forward a single coerced merged object to `resolveArguments` for
+      // per-parameter extraction.
+      coerceTypes: true
+    }) as any;
     // When content is generated
     ajvInstance.addKeyword("$generated");
     addFormats.default(ajvInstance);

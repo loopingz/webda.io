@@ -101,7 +101,7 @@ function hasNotEnumerableDecorator(symbol: ts.Symbol): boolean {
  * @returns the same schema, mutated in place, with definitions hoisted and
  *   unresolvable refs removed
  */
-function normalizeSchemaDefinitions(schema: any): any {
+export function normalizeSchemaDefinitions(schema: any): any {
   if (!schema || typeof schema !== "object") return schema;
 
   const allDefs: Record<string, any> = {};

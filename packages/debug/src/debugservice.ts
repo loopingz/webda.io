@@ -337,7 +337,11 @@ export class DebugService extends Service<DebugServiceParameters> {
     if (!web) {
       const tui = new DebugTui(port);
       await tui.start();
-    } else {
+    } else if (!process.env.WEBDA_DEBUG_NO_BROWSER) {
+      // Headless callers (CI, Playwright's `webServer`, scripted smoke
+      // tests) set WEBDA_DEBUG_NO_BROWSER=1 to suppress the auto-open —
+      // they manage their own browser instance and don't want the local
+      // Chrome to pop a stray tab on every server start.
       this.openBrowser(`http://localhost:${port}`);
     }
   }

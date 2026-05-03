@@ -267,6 +267,19 @@ function jsonTypeToProto(
   messages: Map<string, string>
 ): string {
   if (schema.$ref) {
+    // Distinguish two ref shapes:
+    //   - `#/components/schemas/<name>` points at a top-level schema in the
+    //     OpenAPI components registry. The original behaviour was to emit
+    //     the bare message name and trust that some other schema source
+    //     defines it; preserve that to keep `componentsSchemaRef` passing.
+    //   - `#/definitions/<name>` is the typescript-json-schema shape: refs
+    //     are local to the same schema's `definitions` block. The compiler
+    //     already hoists those into `allSchemas` for us. If the lookup
+    //     misses, we have a genuinely-unresolvable inline ref (e.g. a
+    //     dropped placeholder from a generic-class method) — fall back to
+    //     `google.protobuf.Struct` so proto-loader doesn't reject the
+    //     output.
+    const isComponentsRef = schema.$ref.startsWith("#/components/schemas/");
     const rawRefName = schema.$ref.replace("#/definitions/", "").replace("#/components/schemas/", "");
     let decodedRefName: string;
     try {
@@ -275,21 +288,12 @@ function jsonTypeToProto(
       decodedRefName = rawRefName;
     }
     const msgName = schemaToMessageName(rawRefName);
-    // Generate the referenced message if the target schema exists and hasn't
-    // been emitted yet. Look up via both raw and decoded names — refs
-    // produced by typescript-json-schema are JSON-Pointer-encoded
-    // (`%3C%7B%7D%3E`) while the registry keys use the literal form.
     const targetSchema = allSchemas[rawRefName] || allSchemas[decodedRefName];
     if (!messages.has(msgName) && targetSchema) {
       messages.set(msgName, ""); // placeholder to break recursion cycles
       messages.set(msgName, jsonSchemaToMessage(msgName, targetSchema, allSchemas, messages));
     }
-    if (!targetSchema && !messages.has(msgName)) {
-      // Ref points at an inline definition (e.g. inside a parent schema's
-      // `definitions` block) that we haven't resolved into a top-level
-      // message. Falling back to `Struct` keeps the proto parseable; the
-      // alternative (emitting an undefined type name) breaks every gRPC
-      // client at load time.
+    if (!isComponentsRef && !targetSchema && !messages.has(msgName)) {
       return "google.protobuf.Struct";
     }
     return msgName;

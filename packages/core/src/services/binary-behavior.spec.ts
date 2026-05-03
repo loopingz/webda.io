@@ -1323,6 +1323,67 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
   }
 
   /**
+   * `deleteSuccess` for a `Webda/BinariesImpl` collection drops the item
+   * at `index` from a fresh copy of `object[property]` and patches the
+   * parent. Mirrors the upload path's persistence shape.
+   */
+  @test
+  async deleteSuccessSplicesCollectionItem() {
+    const svc = this.makeService();
+    const patches: any[] = [];
+    const target: any = {
+      constructor: {
+        Metadata: {
+          Relations: {
+            behaviors: [{ attribute: "items", behavior: "Webda/BinariesImpl" }]
+          }
+        }
+      },
+      getUUID: () => "u",
+      items: [
+        { hash: "h0", size: 1, name: "a", mimetype: "t" },
+        { hash: "h1", size: 1, name: "b", mimetype: "t" },
+        { hash: "h2", size: 1, name: "c", mimetype: "t" }
+      ],
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.deleteSuccess(target, "items", 1);
+    assert.strictEqual(patches.length, 1);
+    assert.strictEqual(patches[0].items.length, 2);
+    assert.strictEqual(patches[0].items[0].hash, "h0");
+    assert.strictEqual(patches[0].items[1].hash, "h2");
+  }
+
+  /**
+   * `deleteSuccess` for a single `Webda/Binary` clears the attribute by
+   * patching `undefined`.
+   */
+  @test
+  async deleteSuccessClearsSingleBinary() {
+    const svc = this.makeService();
+    const patches: any[] = [];
+    const target: any = {
+      constructor: {
+        Metadata: {
+          Relations: {
+            behaviors: [{ attribute: "avatar", behavior: "Webda/Binary" }]
+          }
+        }
+      },
+      getUUID: () => "u",
+      avatar: { hash: "h", size: 1, name: "a", mimetype: "t" },
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.deleteSuccess(target, "avatar");
+    assert.strictEqual(patches.length, 1);
+    assert.strictEqual(patches[0].avatar, undefined);
+  }
+
+  /**
    * `BinaryFile.getHashes` computes md5 + WEBDA-prefixed challenge once.
    */
   @test

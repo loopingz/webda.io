@@ -1183,6 +1183,101 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     // Extracts the "body" property from merged
     assert.deepStrictEqual(args, [{ nested: true }]);
   }
+
+  /**
+   * `checkOperation` coerces string-shaped path/query params to the
+   * primitive type the schema declares before validation runs. Without
+   * this, a `{index}` URL slot (literal `"0"`) gets rejected against
+   * `{ type: "number" }`. Verified via `callOperation` so we exercise
+   * the full path: schema validation → context.setExtension(...) →
+   * resolveArguments → method invocation.
+   */
+  @test
+  async checkOperationCoercesStringNumberParams() {
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.NumericIndex"] = {
+      type: "object",
+      properties: {
+        index: { type: "number" }
+      },
+      required: ["index"]
+    };
+
+    let received: any;
+    class CoercionService extends Service {
+      static createConfiguration(params: any) {
+        return new ServiceParameters().load(params);
+      }
+      static filterParameters(params: any) {
+        return params;
+      }
+      async coerceTarget(index: number) {
+        received = { value: index, kind: typeof index };
+      }
+    }
+    const svc = new CoercionService("CoercionService");
+    this.registerService(svc);
+
+    registerOperation("Coerce.Op", {
+      service: "CoercionService",
+      method: "coerceTarget",
+      input: "Test.NumericIndex",
+      output: "void"
+    });
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters({ index: "42" }); // string from URL slot
+    await callOperation(ctx, "Coerce.Op");
+    assert.strictEqual(received.value, 42);
+    assert.strictEqual(received.kind, "number");
+  }
+
+  /**
+   * Boolean coercion: `"true"`/`"false"` from a query string become
+   * actual booleans before validation, but anything else is left as
+   * a string so AJV can flag it.
+   */
+  @test
+  async checkOperationCoercesStringBooleanParams() {
+    const app = useApplication<Application>();
+    app.getSchemas()["Test.BooleanFlag"] = {
+      type: "object",
+      properties: {
+        flag: { type: "boolean" }
+      },
+      required: ["flag"]
+    };
+
+    let received: any;
+    class BoolService extends Service {
+      static createConfiguration(params: any) {
+        return new ServiceParameters().load(params);
+      }
+      static filterParameters(params: any) {
+        return params;
+      }
+      async withFlag(flag: boolean) {
+        received = { value: flag, kind: typeof flag };
+      }
+    }
+    const svc = new BoolService("BoolService");
+    this.registerService(svc);
+
+    registerOperation("Bool.Op", {
+      service: "BoolService",
+      method: "withFlag",
+      input: "Test.BooleanFlag",
+      output: "void"
+    });
+
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setParameters({ flag: "true" });
+    await callOperation(ctx, "Bool.Op");
+    assert.strictEqual(received.value, true);
+    assert.strictEqual(received.kind, "boolean");
+  }
 }
 
 /**

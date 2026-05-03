@@ -412,4 +412,76 @@ class CompilerTest {
       assert.strictEqual(serveInput.required, undefined, "Optional params should not be required");
     }
   }
+
+  /**
+   * `exploreBehaviorsAction` generates `<behaviorId>.<method>.input` and
+   * `.output` schemas for every `@Action` method on a `@WebdaBehavior`
+   * class. Without this, `addBehaviorOperations` falls back to
+   * `uuidRequest` and `resolveArguments` drops every argument past
+   * `uuid`. Verified via the blog-system fixture which exposes
+   * `Webda/Binary` behaviors with several actions.
+   */
+  @test
+  async behaviorActionsHaveGeneratedInputSchemas() {
+    const projectPath = path.join(__dirname, "..", "..", "..", "sample-apps", "blog-system");
+    if (!existsSync(path.join(projectPath, "package.json"))) return;
+    const project = new WebdaProject(projectPath);
+    const compiler = new Compiler(project);
+    compiler.compile(true);
+    const mod: WebdaModule = JSONUtils.loadFile(path.join(projectPath, "webda.module.json"));
+
+    // setMetadata(hash, metadata) — both fields, hash required.
+    const setMetaInput = mod.schemas["Webda/Binary.setMetadata.input"];
+    assert.notStrictEqual(setMetaInput, undefined, "Webda/Binary.setMetadata.input must exist");
+    assert.deepStrictEqual(Object.keys(setMetaInput.properties), ["hash", "metadata"]);
+    assert.ok((setMetaInput.required as string[]).includes("hash"));
+  }
+
+  /**
+   * `normalizeSchemaDefinitions` hoists every nested `definitions` block
+   * to the schema root. The compiler runs it on every method input/output
+   * schema so AJV can resolve `#/definitions/...` refs after the schema
+   * is registered standalone. We assert that on the blog-system fixture
+   * the only `definitions` blocks present in operation schemas live at
+   * the schema root (no nested ones leaking from sub-types).
+   */
+  @test
+  async operationSchemasHoistDefinitionsToRoot() {
+    const projectPath = path.join(__dirname, "..", "..", "..", "sample-apps", "blog-system");
+    if (!existsSync(path.join(projectPath, "package.json"))) return;
+    const project = new WebdaProject(projectPath);
+    const compiler = new Compiler(project);
+    compiler.compile(true);
+    const mod: WebdaModule = JSONUtils.loadFile(path.join(projectPath, "webda.module.json"));
+
+    const findNestedDefinitions = (node: any, path: string[] = []): string[] => {
+      if (!node || typeof node !== "object") return [];
+      const hits: string[] = [];
+      if (path.length > 0 && Object.prototype.hasOwnProperty.call(node, "definitions")) {
+        hits.push(path.join("."));
+      }
+      for (const key of Object.keys(node)) {
+        if (key === "definitions" && path.length === 0) continue;
+        hits.push(...findNestedDefinitions(node[key], [...path, key]));
+      }
+      return hits;
+    };
+
+    // Sample a few operation input/output schemas that the original bug
+    // emitted with nested definitions (`Webda/Binary.attachChallenge.input`
+    // is the canonical case — `BinaryFileInfo<{}>` was inlined).
+    const candidateNames = Object.keys(mod.schemas).filter(
+      n => n.startsWith("Webda/Binary.") || n.startsWith("Webda/BinariesImpl.")
+    );
+    assert.ok(candidateNames.length > 0, "expected behavior schemas to exist");
+    for (const name of candidateNames) {
+      const schema = mod.schemas[name];
+      const nested = findNestedDefinitions(schema);
+      assert.deepStrictEqual(
+        nested,
+        [],
+        `${name} should have no nested 'definitions' blocks (found at: ${nested.join(", ")})`
+      );
+    }
+  }
 }

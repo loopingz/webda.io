@@ -152,6 +152,49 @@ class CoreTest extends WebdaInternalTest {
     await this.webda.stop();
     assert.deepStrictEqual(stub.getCall(0).args.slice(0, 2), ["ERROR", `Cannot stop service Registry`]);
   }
+
+  /**
+   * `getBinaryStoreCached` walks live service instances and picks the
+   * binary service with the highest `handleBinary` score. Score 2 is
+   * an explicit (model + attribute) match and short-circuits; partial
+   * matches (1 / 0) compete by highest score wins. The previous
+   * implementation walked the modda registry with `instanceof` and
+   * never matched any concrete service.
+   */
+  @test
+  async getBinaryStoreCachedPicksHighestScoreInstance() {
+    const { BinaryService } = await import("../services/binary.js");
+    const services = this.webda.getServices();
+    // Seed two stand-in BinaryService instances. We don't bother giving
+    // them real parameters — `getBinaryStoreCached` only calls
+    // `handleBinary(model, attribute)` on each.
+    const made = (score2For: { model: string; attr: string }, fallback: number = -1) => {
+      const fake: any = Object.create(BinaryService.prototype);
+      fake.handleBinary = (m: string, a: string) =>
+        m === score2For.model && a === score2For.attr ? 2 : fallback;
+      return fake;
+    };
+
+    const exact = made({ model: "WebdaTest/Image", attr: "thumbnail" });
+    const wildcard: any = Object.create(BinaryService.prototype);
+    wildcard.handleBinary = () => 0; // catch-all
+    services["__test_exact"] = exact;
+    services["__test_wild"] = wildcard;
+
+    try {
+      // Score 2 wins
+      assert.strictEqual(this.webda.getBinaryStore("WebdaTest/Image", "thumbnail"), exact);
+      // No exact match → wildcard wins (only score-0 instance)
+      assert.strictEqual(this.webda.getBinaryStore("WebdaTest/Other", "x"), wildcard);
+    } finally {
+      delete services["__test_exact"];
+      delete services["__test_wild"];
+      // The cache stamps results — clear it on the cache key by re-flushing.
+      // `@InstanceCache()` keys by argument tuple; calling again with new
+      // args is the simplest invalidation here. Tests after this one will
+      // use different `(model, attribute)` pairs.
+    }
+  }
 }
 
 @suite

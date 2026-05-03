@@ -577,4 +577,85 @@ class ProtoGeneratorTest {
 
     assert.ok(result.includes("returns (google.protobuf.Empty)"), "Missing output schema should fall back to Empty");
   }
+
+  /**
+   * `schemaToMessageName` strips generic-arg brackets (`<...>`) so a
+   * type like `BinaryFileInfo<{}>` lands as the bare `BinaryFileInfo`
+   * proto identifier. Without this strip step the URL-encoded form
+   * (`BinaryFileInfo%3C%7B%7D%3E`) leaked into the proto output and
+   * proto-loader rejected it as an illegal token.
+   */
+  @test
+  refWithGenericBracketsStripsThemFromMessageName() {
+    const schemas: Record<string, JSONSchema7> = {
+      Wrap: {
+        type: "object",
+        properties: {
+          payload: { $ref: "#/definitions/BinaryFileInfo%3C%7B%7D%3E" }
+        }
+      },
+      "BinaryFileInfo<{}>": {
+        type: "object",
+        properties: { hash: { type: "string" } }
+      }
+    };
+    const operations = { "Wrap.Get": { output: "Wrap" } };
+
+    const result = generateProto(operations, schemas);
+    assert.ok(result.includes("BinaryFileInfo payload = 1;"), "field type drops the bracket noise");
+    assert.ok(result.includes("message BinaryFileInfo {"), "message body is emitted under the cleaned name");
+  }
+
+  /**
+   * A `#/definitions/<name>` ref whose target schema is missing falls
+   * back to `google.protobuf.Struct` so proto-loader gets a valid
+   * identifier instead of a dangling reference. Component-schema refs
+   * keep their original behaviour and emit the bare name (verified in
+   * `componentsSchemaRef` above).
+   */
+  @test
+  unresolvedDefinitionsRefFallsBackToStruct() {
+    const schemas: Record<string, JSONSchema7> = {
+      Outer: {
+        type: "object",
+        properties: {
+          inner: { $ref: "#/definitions/__never__" }
+        }
+      }
+    };
+    const operations = { "Outer.Get": { output: "Outer" } };
+
+    const result = generateProto(operations, schemas);
+    assert.ok(
+      result.includes("google.protobuf.Struct inner = 1;"),
+      "unresolved #/definitions ref must fall back to Struct"
+    );
+  }
+
+  /**
+   * A sanitized message name that would otherwise begin with a digit
+   * (e.g. `&1$metadata` after the strip becomes `1Metadata`) gets a
+   * leading underscore so it satisfies proto3's
+   * `[A-Za-z_][A-Za-z0-9_]*` identifier rule.
+   */
+  @test
+  sanitizedMessageNameNeverStartsWithDigit() {
+    const schemas: Record<string, JSONSchema7> = {
+      Container: {
+        type: "object",
+        properties: {
+          value: { $ref: "#/definitions/&1$metadata" }
+        }
+      },
+      "&1$metadata": {
+        type: "object"
+      }
+    };
+    const operations = { "Container.Get": { output: "Container" } };
+
+    const result = generateProto(operations, schemas);
+    // The cleaned name is `1Metadata`; we expect `_1Metadata` after the
+    // leading-letter guard.
+    assert.ok(result.includes("_1Metadata value = 1;"), "leading-digit sanitized name is prefixed with `_`");
+  }
 }

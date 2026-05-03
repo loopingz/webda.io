@@ -26,6 +26,7 @@
     "test:cli": "vitest run test/cli-test.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "PW_SLOWMO=500 playwright test --headed",
     "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts"
   },
   "engines": {

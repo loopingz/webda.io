@@ -24,7 +24,13 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] }
+      use: {
+        ...devices["Desktop Chrome"],
+        // Set `PW_SLOWMO=500` to watch each Playwright action animate
+        // (button clicks, fills, etc.) with a 500ms gap. Pair with
+        // `--headed` to see the browser. `0` (default) runs at full speed.
+        launchOptions: { slowMo: Number(process.env.PW_SLOWMO || 0) }
+      }
     }
   ],
   webServer: {

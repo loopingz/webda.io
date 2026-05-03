@@ -241,4 +241,29 @@ class ApplicationTest extends WebdaInternalTest {
     // Unknown identifier returns undefined.
     assert.strictEqual(app.getBehaviorMetadata("Test/Unknown"), undefined);
   }
+
+  /**
+   * `useModel` accepts a string id, a model class, or a model instance —
+   * the instance branch was broken before commit e246530c, which passed
+   * `instance.constructor` (a class) to `getModel`'s string-only path.
+   * Cover all three.
+   */
+  @test
+  async useModelHandlesStringClassAndInstance() {
+    const { useModel } = await import("../application/hooks.js");
+
+    // String — the canonical case.
+    const ByString = useModel("Webda/User");
+    assert.ok(ByString, "useModel(string) must resolve");
+
+    // Class — `getModelId` accepts the constructor and resolves to the id.
+    const ByClass = useModel(User as any);
+    assert.strictEqual(ByClass, ByString, "class lookup must equal string lookup");
+
+    // Instance — same id resolution path. The `name.includes is not a function`
+    // bug fired here before the fix.
+    const instance = new User();
+    const ByInstance = useModel(instance as any);
+    assert.strictEqual(ByInstance, ByString, "instance lookup must equal string lookup");
+  }
 }

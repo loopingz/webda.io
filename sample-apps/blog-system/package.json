@@ -24,6 +24,8 @@
     "test": "echo 'Tests disabled — needs CLI and Core.on migration'",
     "test:api": "vitest run test/api-test.ts",
     "test:cli": "vitest run test/cli-test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts"
   },
   "engines": {
@@ -39,6 +41,7 @@
     "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.50.0",
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:^",
     "@webda/debug": "workspace:^",

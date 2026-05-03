@@ -1417,27 +1417,38 @@ export abstract class BinaryService<
    * @returns the result
    */
   async deleteSuccess(object: CoreModelWithBinary, property: string, index?: number) {
-    const info: BinaryMap = <BinaryMap>(index !== undefined ? object[property][index] : object[property]);
-    // TODO: Refactor
-    const relations: any = {}; //object.Class.Metadata.Relations;
-    const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
-    let update;
-    if (cardinality === "MANY") {
-      update = (<CoreModelWithBinary<any>>object).Class.ref(object.getUUID()).deleteItemFromCollection(
-        property,
-        index,
-        "hash",
-        info.hash
-      );
+    // Cardinality lives on `Metadata.Relations.behaviors[]` after the
+    // Binary→Behavior migration. `Webda/BinariesImpl` ⇒ MANY (splice),
+    // anything else (`Webda/Binary`) ⇒ ONE (clear). Mirrors the lookup in
+    // `uploadSuccess`.
+    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined =
+      (object as any)?.constructor?.Metadata?.Relations?.behaviors;
+    const beh = Array.isArray(behaviorRels)
+      ? behaviorRels.find(b => b.attribute === property)
+      : undefined;
+    const isCollection = beh?.behavior === "Webda/BinariesImpl";
+
+    const info: BinaryMap = <BinaryMap>(
+      isCollection && index !== undefined ? object[property][index] : object[property]
+    );
+
+    if (isCollection) {
+      const current: BinaryFileInfo[] = Array.isArray(object[property])
+        ? [...(object[property] as BinaryFileInfo[])]
+        : [];
+      if (index !== undefined && index >= 0 && index < current.length) {
+        current.splice(index, 1);
+      }
+      await object.patch(<any>{ [property]: current });
     } else {
-      (<Model & any>object).ref().removeAttribute(property);
+      await object.patch(<any>{ [property]: undefined });
     }
+
     await this.emit("Binary.Delete", {
       object: info,
       service: this
     });
     this.metrics.delete.inc();
-    return update;
   }
 
   /**

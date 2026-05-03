@@ -5,10 +5,36 @@ import { users } from "../api.js";
 
 const html = htm.bind(h);
 
+/** Editable user fields. Relations (`posts`, `following`, …) and read-only
+ *  bookkeeping (`uuid`) are omitted so the PATCH body matches the server's
+ *  `additionalProperties: false` schema and so optional fields with stricter
+ *  formats (e.g. `website` must match `format: uri`) don't leak empty
+ *  strings from a default-empty input. */
+const EDITABLE_FIELDS = ["username", "email", "name", "bio", "website", "password"];
+const OPTIONAL_FORMAT_FIELDS = ["bio", "website"];
+
+function pickFormFields(source) {
+  const out = {};
+  if (!source) return { username: "", email: "", name: "", bio: "", website: "", password: "" };
+  for (const k of EDITABLE_FIELDS) {
+    if (source[k] !== undefined) out[k] = source[k];
+  }
+  return out;
+}
+
+/** Drop optional fields that are empty strings — server-side schemas treat
+ *  `""` as a value, not "absent", so an empty string trips format checks
+ *  even though the field is optional. */
+function stripEmpty(form) {
+  const out = { ...form };
+  for (const key of OPTIONAL_FORMAT_FIELDS) {
+    if (out[key] === "") delete out[key];
+  }
+  return out;
+}
+
 function UserForm({ initial, onSave, onCancel }) {
-  const [form, setForm] = useState(initial || {
-    username: "", email: "", name: "", bio: "", website: "", password: ""
-  });
+  const [form, setForm] = useState(pickFormFields(initial));
   const set = (k, v) => setForm({ ...form, [k]: v });
 
   return html`
@@ -43,7 +69,7 @@ function UserForm({ initial, onSave, onCancel }) {
         </div>
         <div class="modal-actions">
           <button class="btn btn-ghost" onClick=${onCancel}>Cancel</button>
-          <button class="btn btn-primary" onClick=${() => onSave(form)}>
+          <button class="btn btn-primary" onClick=${() => onSave(stripEmpty(form))}>
             ${initial ? "Update" : "Create"}
           </button>
         </div>

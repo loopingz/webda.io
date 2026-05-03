@@ -54,6 +54,7 @@ export const tags = {
   get: (slug) => request("GET", `/tags/${slug}`),
   create: (data) => request("POST", "/tags", data),
   update: (slug, data) => request("PUT", `/tags/${slug}`, data),
+  patch: (slug, data) => request("PATCH", `/tags/${slug}`, data),
   delete: (slug) => request("DELETE", `/tags/${slug}`),
 };
 
@@ -63,6 +64,7 @@ export const comments = {
   get: (uuid) => request("GET", `/comments/${uuid}`),
   create: (data) => request("POST", "/comments", data),
   update: (uuid, data) => request("PUT", `/comments/${uuid}`, data),
+  patch: (uuid, data) => request("PATCH", `/comments/${uuid}`, data),
   delete: (uuid) => request("DELETE", `/comments/${uuid}`),
 };
 

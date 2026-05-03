@@ -247,10 +247,23 @@ function BinariesBlock({ slug, attribute, label, items, onChange, notify }) {
   `;
 }
 
+/** Editable post fields. Relations (`mainImage`, `images`, ...) and
+ *  read-only bookkeeping are omitted so PATCH bodies don't trip the
+ *  server's `additionalProperties: false` schema. */
+const POST_EDITABLE_FIELDS = ["title", "slug", "content", "excerpt", "status", "viewCount"];
+const POST_DEFAULTS = { title: "", slug: "", content: "", excerpt: "", status: "draft", viewCount: 0 };
+
+function pickPostFormFields(source) {
+  if (!source) return { ...POST_DEFAULTS };
+  const out = { ...POST_DEFAULTS };
+  for (const k of POST_EDITABLE_FIELDS) {
+    if (source[k] !== undefined) out[k] = source[k];
+  }
+  return out;
+}
+
 function PostForm({ initial, onSave, onCancel, notify }) {
-  const [form, setForm] = useState(initial || {
-    title: "", slug: "", content: "", excerpt: "", status: "draft", viewCount: 0
-  });
+  const [form, setForm] = useState(pickPostFormFields(initial));
   const [post, setPost] = useState(initial); // refreshed copy for binary state
   const set = (k, v) => setForm({ ...form, [k]: v });
   const slug = post?.slug;
@@ -275,7 +288,7 @@ function PostForm({ initial, onSave, onCancel, notify }) {
         </div>
         <div class="form-group">
           <label>Slug</label>
-          <input value=${form.slug} onInput=${(e) => set("slug", e.target.value)} placeholder="url-friendly-slug" ${initial ? "disabled" : ""} />
+          <input value=${form.slug} onInput=${(e) => set("slug", e.target.value)} placeholder="url-friendly-slug" disabled=${!!initial} />
         </div>
         <div class="form-group">
           <label>Content</label>

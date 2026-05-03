@@ -1082,4 +1082,30 @@ class Serializer {
     // Wait for the setTimeout in test.ts to complete
     await new Promise(resolve => setTimeout(resolve, 200));
   }
+
+  /**
+   * Array subclasses (e.g. webda's `BinariesImpl extends Array`) must
+   * round-trip as JSON arrays, not as `{0: item, 1: item}` plain objects.
+   * The fallback path in `prepareObject` would otherwise hand them to
+   * `ObjectSerializer`, whose `for...in` walk treats numeric indices as
+   * regular keys.
+   */
+  @test
+  async testArraySubclassUsesArraySerializer() {
+    class MyList extends Array<{ name: string }> {}
+    const list = new MyList();
+    list.push({ name: "a" });
+    list.push({ name: "b" });
+
+    const obj = { items: list };
+    const serialized = serialize(obj);
+    const restored: any = deserialize(serialized);
+
+    assert.ok(Array.isArray(restored.items), "restored.items must be an Array");
+    assert.strictEqual(restored.items.length, 2);
+    assert.strictEqual(restored.items[0].name, "a");
+    assert.strictEqual(restored.items[1].name, "b");
+    // Round-trip via JSON should match the original array shape.
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(restored.items)), [{ name: "a" }, { name: "b" }]);
+  }
 }

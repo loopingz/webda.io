@@ -416,60 +416,53 @@ class CompilerTest {
   /**
    * `exploreBehaviorsAction` generates `<behaviorId>.<method>.input` and
    * `.output` schemas for every `@Action` method on a `@WebdaBehavior`
-   * class. Without this, `addBehaviorOperations` falls back to
-   * `uuidRequest` and `resolveArguments` drops every argument past
-   * `uuid`. Verified via the blog-system fixture which exposes
-   * `Webda/Binary` behaviors with several actions.
+   * class. The canonical source is `@webda/core`'s `Binary` /
+   * `BinariesImpl` — the schemas land in core's own `webda.module.json`
+   * (the consumer projects don't re-emit them because lib `.d.ts` entries
+   * are skipped by design).
    */
   @test
   async behaviorActionsHaveGeneratedInputSchemas() {
-    const projectPath = path.join(__dirname, "..", "..", "..", "sample-apps", "blog-system");
-    if (!existsSync(path.join(projectPath, "package.json"))) return;
-    const project = new WebdaProject(projectPath);
-    const compiler = new Compiler(project);
-    compiler.compile(true);
-    const mod: WebdaModule = JSONUtils.loadFile(path.join(projectPath, "webda.module.json"));
+    const corePath = path.join(__dirname, "..", "..", "..", "packages", "core");
+    if (!existsSync(path.join(corePath, "webda.module.json"))) return;
+    const mod: WebdaModule = JSONUtils.loadFile(path.join(corePath, "webda.module.json"));
 
     // setMetadata(hash, metadata) — both fields, hash required.
     const setMetaInput = mod.schemas["Webda/Binary.setMetadata.input"];
-    assert.notStrictEqual(setMetaInput, undefined, "Webda/Binary.setMetadata.input must exist");
+    assert.notStrictEqual(setMetaInput, undefined, "Webda/Binary.setMetadata.input must exist in core's module");
     assert.deepStrictEqual(Object.keys(setMetaInput.properties), ["hash", "metadata"]);
     assert.ok((setMetaInput.required as string[]).includes("hash"));
+
+    // Behaviors in `BinariesImpl` get the same treatment.
+    const binariesAttachChallenge = mod.schemas["Webda/BinariesImpl.attachChallenge.input"];
+    assert.notStrictEqual(binariesAttachChallenge, undefined, "BinariesImpl.attachChallenge.input must exist");
   }
 
   /**
    * `normalizeSchemaDefinitions` hoists every nested `definitions` block
-   * to the schema root. The compiler runs it on every method input/output
-   * schema so AJV can resolve `#/definitions/...` refs after the schema
-   * is registered standalone. We assert that on the blog-system fixture
-   * the only `definitions` blocks present in operation schemas live at
-   * the schema root (no nested ones leaking from sub-types).
+   * to the schema root and prunes broken refs. Run against core's own
+   * behavior schemas (the canonical home of the generic types that
+   * triggered the original bug — `BinaryMap<T>`, `BinaryFileInfo<{}>`).
    */
   @test
   async operationSchemasHoistDefinitionsToRoot() {
-    const projectPath = path.join(__dirname, "..", "..", "..", "sample-apps", "blog-system");
-    if (!existsSync(path.join(projectPath, "package.json"))) return;
-    const project = new WebdaProject(projectPath);
-    const compiler = new Compiler(project);
-    compiler.compile(true);
-    const mod: WebdaModule = JSONUtils.loadFile(path.join(projectPath, "webda.module.json"));
+    const corePath = path.join(__dirname, "..", "..", "..", "packages", "core");
+    if (!existsSync(path.join(corePath, "webda.module.json"))) return;
+    const mod: WebdaModule = JSONUtils.loadFile(path.join(corePath, "webda.module.json"));
 
-    const findNestedDefinitions = (node: any, path: string[] = []): string[] => {
+    const findNestedDefinitions = (node: any, breadcrumbs: string[] = []): string[] => {
       if (!node || typeof node !== "object") return [];
       const hits: string[] = [];
-      if (path.length > 0 && Object.prototype.hasOwnProperty.call(node, "definitions")) {
-        hits.push(path.join("."));
+      if (breadcrumbs.length > 0 && Object.prototype.hasOwnProperty.call(node, "definitions")) {
+        hits.push(breadcrumbs.join("."));
       }
       for (const key of Object.keys(node)) {
-        if (key === "definitions" && path.length === 0) continue;
-        hits.push(...findNestedDefinitions(node[key], [...path, key]));
+        if (key === "definitions" && breadcrumbs.length === 0) continue;
+        hits.push(...findNestedDefinitions(node[key], [...breadcrumbs, key]));
       }
       return hits;
     };
 
-    // Sample a few operation input/output schemas that the original bug
-    // emitted with nested definitions (`Webda/Binary.attachChallenge.input`
-    // is the canonical case — `BinaryFileInfo<{}>` was inlined).
     const candidateNames = Object.keys(mod.schemas).filter(
       n => n.startsWith("Webda/Binary.") || n.startsWith("Webda/BinariesImpl.")
     );

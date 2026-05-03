@@ -1286,13 +1286,9 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
   }
 
   /**
-   * `uploadSuccess` rejects when the file carries unknown attributes.
-   *
-   * The current production code has a known pre-existing quirk: the
-   * `additionalAttr = Object.keys(file).filter(...)` assignment-in-condition
-   * is always truthy (empty array is truthy), so this branch fires for every
-   * call regardless of whether extra keys are present. The assertion below
-   * just verifies the throw happens — message matching is loose.
+   * `uploadSuccess` rejects when the file carries unknown attributes — the
+   * always-truthy `if (additionalAttr = filter(...))` quirk was fixed in
+   * commit 6fdf4982 so the throw now fires only when extras are present.
    */
   @test
   async uploadSuccessThrowsOnExtraAttrs() {
@@ -1304,17 +1300,26 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
 
   /**
    * `uploadSuccess` accepts an object with `toBinaryFileInfo()` — the
-   * `toBinaryFileInfo()` branch runs and then the same pre-existing
-   * `additionalAttr` quirk fires (empty array is truthy).
+   * `toBinaryFileInfo()` branch runs and then proceeds to persistence via
+   * `object.patch`. The fake target stubs `patch` so we can confirm both
+   * the conversion path and the persistence call site fire.
    */
   @test
   async uploadSuccessRunsToBinaryFileInfoBranch() {
     const svc = this.makeService();
     const file = new MemoryBinaryFile(Buffer.from("y"), { hash: "h", size: 1, name: "y", mimetype: "text/plain" });
-    const target: any = { getUUID: () => "u", y: undefined };
-    // Throws on the post-conversion validation regardless — this exercises
-    // the `toBinaryFileInfo()` call site.
-    await assert.rejects(() => svc.uploadSuccess(target, "y", file as any), /Invalid file object/);
+    const patches: any[] = [];
+    const target: any = {
+      getUUID: () => "u",
+      y: undefined,
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.uploadSuccess(target, "y", file as any);
+    assert.strictEqual(patches.length, 1);
+    assert.strictEqual(patches[0].y.hash, "h");
+    assert.strictEqual(patches[0].y.name, "y");
   }
 
   /**

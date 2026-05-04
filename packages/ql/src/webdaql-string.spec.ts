@@ -118,3 +118,15 @@ describe("escape — rejected value types", () => {
     }
   });
 });
+
+describe("public API surface", () => {
+  it("re-exports WebdaQLString, escape, WebdaQLError from package root", async () => {
+    const mod = await import("./index.js");
+    expect(mod.escape).toBeDefined();
+    expect(mod.WebdaQLError).toBeDefined();
+    // WebdaQLString is a type — verify via runtime no-op
+    const q: import("./index.js").WebdaQLString<{ x: string }> =
+      "x = 'a'" as any;
+    expect(q).toBe("x = 'a'");
+  });
+});

@@ -1,4 +1,5 @@
 import { Attributes, FilterAttributes, ArrayElement } from "@webda/tsc-esm";
+import type { WebdaQLString } from "@webda/ql";
 
 /**
  * This represent the injected methods of Store into the Model
@@ -36,7 +37,7 @@ export interface StoreHelper<T extends object = object> {
    * @param query
    * @returns
    */
-  query(query: string): Promise<T[]>;
+  query(query: WebdaQLString<T>): Promise<T[]>;
   /**
    * Delete data from the store
    * @param uuid

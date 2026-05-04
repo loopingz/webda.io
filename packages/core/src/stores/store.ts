@@ -5,6 +5,7 @@ import { registerRepository, type Model, type ModelClass, type PrimaryKey, type 
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { Service } from "../services/service.js";
 import * as WebdaQL from "@webda/ql";
+import type { WebdaQLString } from "@webda/ql";
 import { useApplication, useModelId } from "../application/hooks.js";
 import { useLog } from "../loggers/hooks.js";
 import { useCore } from "../core/hooks.js";
@@ -182,7 +183,7 @@ export interface StoreFindResult<T> {
  *
  * It does not handle any business logic, only CRUD operations
  */
-export interface StoreInterface {
+export interface StoreInterface<T = any> {
   create(uuid: PrimaryKey<any>, object: any): Promise<any>;
   get(uuid: PrimaryKey<any>): Promise<any>;
   update(uuid: PrimaryKey<any>, object: any): Promise<any>;
@@ -205,9 +206,9 @@ export interface StoreInterface {
     itemWriteConditionField?: string,
     itemWriteCondition?: any
   ): Promise<void>;
-  find(query: string): Promise<StoreFindResult<any>>;
-  query(query: string): Promise<StoreFindResult<any>>;
-  iterate(query: string): AsyncGenerator;
+  find(query: WebdaQLString<T>): Promise<StoreFindResult<any>>;
+  query(query: WebdaQLString<T>): Promise<StoreFindResult<any>>;
+  iterate(query: WebdaQLString<T>): AsyncGenerator;
   incrementAttributes(uuid: PrimaryKey<any>, info: { property: string; value?: number }[]): Promise<Date>;
 }
 

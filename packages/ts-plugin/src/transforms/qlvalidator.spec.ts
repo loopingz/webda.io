@@ -13,7 +13,7 @@ function createTestProgram(sources: Record<string, string>): ts.Program {
     module: ts.ModuleKind.ES2022,
     strict: false,
     noEmit: true,
-    lib: ["es2022"]
+    lib: ["lib.es2022.d.ts"]
   };
   const host = ts.createCompilerHost(opts);
   const original = host.getSourceFile.bind(host);
@@ -192,5 +192,62 @@ describe("qlvalidator — attribute walk", () => {
     const { diagnostics } = runValidator(program, "test.ts");
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0].code).toBe(9001);
+  });
+});
+
+describe("qlvalidator — array depth + methods", () => {
+  it("allows depth-1 walk into array elements", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Comment = { content: string };
+        type Post = { comments: Comment[] };
+        function query(q: WebdaQLString<Post>) { return q; }
+        query("comments.content = 'x'");
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  it("emits WQL9003 on depth-2 walk through arrays", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Reply = { content: string };
+        type Comment = { replies: Reply[] };
+        type Post = { comments: Comment[] };
+        function query(q: WebdaQLString<Post>) { return q; }
+        query("comments.replies.content = 'x'");
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics.some(d => d.code === 9003)).toBe(true);
+  });
+
+  it("emits WQL9004 on method reference", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { createdAt: Date };
+        function query(q: WebdaQLString<Post>) { return q; }
+        query("createdAt.getTime = 0");
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics.some(d => d.code === 9004)).toBe(true);
+  });
+
+  it("treats Date as a terminal queryable value", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { createdAt: Date };
+        function query(q: WebdaQLString<Post>) { return q; }
+        query("createdAt = '2026-01-01'");
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics).toHaveLength(0);
   });
 });

@@ -2,6 +2,7 @@ import type { ModelRefWithCreate } from "../relations";
 import { PrimaryKeyType, SettablePrimaryKey, WEBDA_PRIMARY_KEY, type Storable, type ModelClass } from "../storable";
 import { Helpers } from "../types";
 import type { Repository } from "./repository";
+import type { WebdaQLString } from "@webda/ql";
 
 /** Global registry mapping ModelClass constructors to their Repository instances. */
 export const Repositories = new WeakMap<ModelClass, Repository<any>>();
@@ -71,7 +72,7 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
      */
     static query<T extends ModelClass>(
       this: T,
-      query: string
+      query: WebdaQLString<InstanceType<T>>
     ): Promise<{
       results: InstanceType<T>[];
       continuationToken?: string;
@@ -85,7 +86,10 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
      * @param query - the query string
      * @returns an async generator of model instances
      */
-    static async *iterate<T extends ModelClass>(this: T, query: string): AsyncGenerator<InstanceType<T>, any, any> {
+    static async *iterate<T extends ModelClass>(
+      this: T,
+      query: WebdaQLString<InstanceType<T>>
+    ): AsyncGenerator<InstanceType<T>, any, any> {
       for await (const item of useRepository(this).iterate(query)) {
         yield item as InstanceType<T>;
       }

@@ -356,7 +356,8 @@ export class ModelRelated<
    * @returns the query results with optional continuation token
    */
   async query(query: WebdaQLString<T> = "" as WebdaQLString<T>): Promise<{ results: T[]; continuationToken?: string }> {
-    return this.repoSource.query(this.getQuery(query));
+    const q = this.getQuery(query);
+    return this.repoSource.query(q);
   }
 
   /**
@@ -365,7 +366,8 @@ export class ModelRelated<
    * @returns an async iterable of linked objects
    */
   iterate(query: WebdaQLString<T>): AsyncIterable<T> {
-    return this.repoSource.iterate(this.getQuery(query));
+    const q = this.getQuery(query);
+    return this.repoSource.iterate(q);
   }
 
   /**

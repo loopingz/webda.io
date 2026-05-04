@@ -184,17 +184,7 @@ function validateLiteral(
   }
 
   for (const cmp of collectComparisons(parsed)) {
-    const head = cmp.attribute[0];
-    if (!head) continue;
-    const propSymbol = targetT.getProperty(head);
-    if (!propSymbol) {
-      const candidates = targetT.getProperties().map(p => p.name);
-      const suggestion = nearestNeighbour(head, candidates);
-      const hint = suggestion ? ` Did you mean '${suggestion}'?` : "";
-      emit(
-        makeDiagnostic(sourceFile, node, 9001, `WebdaQL: attribute '${head}' does not exist on type.` + hint)
-      );
-    }
+    walkAttributePath(ts, checker, cmp.attribute, targetT, node, sourceFile, emit);
   }
 }
 
@@ -276,4 +266,131 @@ function makeDiagnostic(
     messageText: message,
     source: "webdaql"
   };
+}
+
+/**
+ * Walk a dotted attribute path against the target type, descending through
+ * ModelRelation<U>, BelongTo<U>, plain nested objects, and array element types.
+ * Emits WQL9001 (unknown attribute), WQL9003 (nested array depth exceeded),
+ * or WQL9004 (method, not queryable) on validation failures.
+ * @param ts - the typescript module instance
+ * @param checker - the TypeScript type checker
+ * @param path - the attribute path segments to walk (e.g. ["author", "email"])
+ * @param rootType - the root type T to start walking from
+ * @param node - the AST node for diagnostic position reporting
+ * @param sourceFile - the source file for position information
+ * @param emit - callback to emit a diagnostic
+ */
+function walkAttributePath(
+  ts: typeof tsTypes,
+  checker: tsTypes.TypeChecker,
+  path: string[],
+  rootType: tsTypes.Type,
+  node: tsTypes.Node,
+  sourceFile: tsTypes.SourceFile,
+  emit: (d: tsTypes.Diagnostic) => void
+): void {
+  let current = rootType;
+  let arrayHopsUsed = 0;
+
+  for (let depth = 0; depth < path.length; depth++) {
+    const segment = path[depth];
+
+    // any/unknown short-circuits the walk
+    if (current.flags & ts.TypeFlags.Any || current.flags & ts.TypeFlags.Unknown) {
+      return;
+    }
+
+    // Peel relation wrappers and array element types before property lookup.
+    let probe = unwrapRelation(current);
+    if (isArrayLike(ts, checker, probe)) {
+      if (arrayHopsUsed >= 1) {
+        emit(
+          makeDiagnostic(
+            sourceFile,
+            node,
+            9003,
+            `WebdaQL: cannot walk past depth 1 through array attribute '${path.slice(0, depth).join(".")}'.`
+          )
+        );
+        return;
+      }
+      arrayHopsUsed++;
+      probe = elementType(ts, checker, probe) ?? probe;
+    }
+
+    const propSymbol = probe.getProperty(segment);
+    if (!propSymbol) {
+      const candidates = probe
+        .getProperties()
+        .map(p => p.name)
+        .filter(n => !n.startsWith("__"));
+      const suggestion = nearestNeighbour(segment, candidates);
+      const hint = suggestion ? ` Did you mean '${suggestion}'?` : "";
+      const prefix = path.slice(0, depth).join(".");
+      const where = prefix ? ` under '${prefix}'` : "";
+      emit(makeDiagnostic(sourceFile, node, 9001, `WebdaQL: attribute '${segment}'${where} does not exist.` + hint));
+      return;
+    }
+
+    // Reject method / non-data references.
+    if (propSymbol.flags & ts.SymbolFlags.Method) {
+      emit(
+        makeDiagnostic(
+          sourceFile,
+          node,
+          9004,
+          `WebdaQL: '${path.slice(0, depth + 1).join(".")}' is a method, not a queryable attribute.`
+        )
+      );
+      return;
+    }
+
+    current = checker.getTypeOfSymbol(propSymbol);
+  }
+}
+
+/**
+ * Unwrap a ModelRelation<U> or BelongTo<U> alias to its type argument U.
+ * Returns the type unchanged if it is not a recognised relation alias.
+ * @param type - the type to inspect
+ * @returns the unwrapped type argument, or the original type
+ */
+function unwrapRelation(type: tsTypes.Type): tsTypes.Type {
+  const aliasName = String(type.aliasSymbol?.escapedName ?? "");
+  if ((aliasName === "ModelRelation" || aliasName === "BelongTo") && type.aliasTypeArguments?.[0]) {
+    return type.aliasTypeArguments[0];
+  }
+  return type;
+}
+
+/**
+ * Return true when the type is an array, tuple, or OneToMany alias.
+ * @param ts - the typescript module instance
+ * @param checker - the TypeScript type checker
+ * @param type - the type to test
+ * @returns true if the type is array-like
+ */
+function isArrayLike(ts: typeof tsTypes, checker: tsTypes.TypeChecker, type: tsTypes.Type): boolean {
+  if (checker.isArrayType(type) || checker.isTupleType(type)) return true;
+  const aliasName = String(type.aliasSymbol?.escapedName ?? "");
+  return aliasName === "OneToMany";
+}
+
+/**
+ * Extract the element type from an array or OneToMany alias.
+ * Returns undefined when the element type cannot be determined.
+ * @param ts - the typescript module instance
+ * @param checker - the TypeScript type checker
+ * @param type - the array-like type
+ * @returns the element type, or undefined
+ */
+function elementType(
+  ts: typeof tsTypes,
+  checker: tsTypes.TypeChecker,
+  type: tsTypes.Type
+): tsTypes.Type | undefined {
+  if (type.aliasTypeArguments?.[0]) return type.aliasTypeArguments[0];
+  const numIndex = checker.getIndexTypeOfType(type, ts.IndexKind.Number);
+  return numIndex;
 }

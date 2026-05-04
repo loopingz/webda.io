@@ -134,3 +134,63 @@ describe("qlvalidator — grammar errors", () => {
     expect(diagnostics).toHaveLength(0);
   });
 });
+
+describe("qlvalidator — attribute walk", () => {
+  it("walks into ModelRelation<U>", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type ModelRelation<U> = { __relation: U };
+        type User = { uuid: string; email: string };
+        type Post = { author: ModelRelation<User> };
+        function query(q: WebdaQLString<Post>) { return q; }
+        query("author.email = 'x'");
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  it("rejects unknown attribute under a relation", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type ModelRelation<U> = { __relation: U };
+        type User = { uuid: string; email: string };
+        type Post = { author: ModelRelation<User> };
+        function query(q: WebdaQLString<Post>) { return q; }
+        query("author.bogus = 'x'");
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].code).toBe(9001);
+  });
+
+  it("walks into plain nested objects to any depth", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { meta: { author: { name: string } } };
+        function query(q: WebdaQLString<Post>) { return q; }
+        query("meta.author.name = 'x'");
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  it("walks every comparison in an AND/OR composition", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { title: string; status: string };
+        function query(q: WebdaQLString<Post>) { return q; }
+        query("title = 'x' AND bogus = 'y'");
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].code).toBe(9001);
+  });
+});

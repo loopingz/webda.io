@@ -85,3 +85,5 @@ export * from "./application/iconfiguration.js";
 export * from "./application/iapplication.js";
 export * from "./models/types.js";
 export * from "./cache/cache.js";
+export { escape, WebdaQLError } from "@webda/ql";
+export type { WebdaQLString } from "@webda/ql";

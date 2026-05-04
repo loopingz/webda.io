@@ -1,4 +1,5 @@
 import { QueryValidator } from "@webda/ql";
+import type { WebdaQLString } from "@webda/ql";
 import { AbstractService } from "../services/iservice.js";
 import type { Model, ModelClass } from "@webda/models";
 import type { Service } from "../services/service.js";
@@ -6,6 +7,17 @@ import type { Store } from "../stores/store.js";
 import type CryptoService from "../services/cryptoservice.js";
 import { CustomConstructor } from "@webda/tsc-esm";
 export { AbstractService };
+/**
+ * Registry interface augmented at build time by `.webda/session-types.d.ts`
+ * (generated from `webda.config.json#session`). The qlvalidator transformer
+ * resolves `OperationDefinition.permission`'s type parameter through this
+ * interface — when no session is configured, `session` resolves to `unknown`
+ * and the plugin emits `WQL9006` on any permission usage.
+ */
+export interface WebdaSessionRegistry {
+  session: unknown;
+}
+
 /**
  * REST transport parameters for use with `@Operation<RestParameters>()`
  */
@@ -70,7 +82,7 @@ export interface OperationDefinition {
    * WebdaQL to execute on session to know if
    * operation is available to user
    */
-  permission?: string;
+  permission?: WebdaQLString<WebdaSessionRegistry["session"]>;
   /**
    * Service implementing the operation
    *

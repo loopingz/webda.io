@@ -7,37 +7,14 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
-          "service": {
-            "enum": [
-              "Registry",
-              "CryptoService",
-              "SessionManager",
-              "DomainService",
-              "GRPCService",
-              "GraphQLService",
-              "HttpServer",
-              "HttpServerH2c",
-              "Images",
-              "Mailer",
-              "Publisher",
-              "RESTService",
-              "WebUI",
-              "TestBean"
-            ],
-            "type": "string"
-          },
-          "type": {
-            "description": "Type of the service",
-            "type": "string"
-          },
+          "service": {},
           "openapi": {
             "type": "object",
             "additionalProperties": true
           }
         },
         "required": [
-          "service",
-          "type"
+          "service"
         ],
         "type": "object",
         "title": "TestBean"
@@ -52,21 +29,14 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "type": "object",
+        "title": "Publisher",
         "properties": {
-          "type": {
-            "description": "Type of the service",
-            "type": "string"
-          },
           "openapi": {
             "type": "object",
             "additionalProperties": true
           }
-        },
-        "required": [
-          "type"
-        ],
-        "type": "object",
-        "title": "Publisher"
+        }
       },
       "Configuration": "lib/services/publisher:PublisherParameters"
     }
@@ -113,12 +83,7 @@
           "additionalProperties": false,
           "description": "Comment model for post comments",
           "properties": {
-            "author": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
+            "author": {},
             "content": {
               "description": "Comment content",
               "maxLength": 2000,
@@ -130,23 +95,12 @@
               "description": "Whether comment is edited",
               "type": "boolean"
             },
-            "post": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
-              "type": "string"
-            }
+            "post": {}
           },
           "required": [
             "author",
             "content",
-            "post",
-            "uuid"
+            "post"
           ],
           "type": "object",
           "$webda": "fromDto$auto"
@@ -156,12 +110,7 @@
           "additionalProperties": false,
           "description": "Comment model for post comments",
           "properties": {
-            "author": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
+            "author": {},
             "content": {
               "description": "Comment content",
               "maxLength": 2000,
@@ -179,21 +128,11 @@
               "description": "Whether comment is edited",
               "type": "boolean"
             },
-            "post": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
+            "post": {},
             "updatedAt": {
               "description": "Last update date",
               "format": "date-time",
               "readonly": true,
-              "type": "string"
-            },
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
               "type": "string"
             }
           },
@@ -202,8 +141,7 @@
             "content",
             "createdAt",
             "post",
-            "updatedAt",
-            "uuid"
+            "updatedAt"
           ],
           "type": "object",
           "$webda": "toDto$auto"
@@ -213,12 +151,7 @@
           "additionalProperties": false,
           "description": "Comment model for post comments",
           "properties": {
-            "author": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
+            "author": {},
             "content": {
               "description": "Comment content",
               "maxLength": 2000,
@@ -236,12 +169,7 @@
               "description": "Whether comment is edited",
               "type": "boolean"
             },
-            "post": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
+            "post": {},
             "updatedAt": {
               "description": "Last update date",
               "format": "date-time",
@@ -371,32 +299,8 @@
           "additionalProperties": false,
           "description": "Post model representing blog posts",
           "properties": {
-            "author": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
-            "comments": {
-              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
-              "items": {
-                "allOf": [
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
-                  },
-                  {
-                    "type": "object"
-                  },
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
-                  }
-                ],
-                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
-              },
-              "type": "array"
-            },
+            "author": {},
+            "comments": {},
             "content": {
               "description": "Post content (markdown)",
               "minLength": 10,
@@ -411,6 +315,12 @@
               "description": "Featured image URL",
               "format": "uri",
               "type": "string"
+            },
+            "images": {
+              "description": "Additional images for the post, stored as an array of binaries with width and height metadata. This shows how to manage multiple related binary files in a model."
+            },
+            "mainImage": {
+              "description": "Main image for the post, stored as binary data with width and height metadata. This demonstrates how to use binary data in a model, which can be useful for storing images or files directly in the database."
             },
             "slug": {
               "description": "URL-friendly slug",
@@ -430,24 +340,7 @@
               "type": "string"
             },
             "tags": {
-              "description": "PUT|GET /posts/:slug/tags to get all tags for a post with a query\nPOST /posts/:slug/tags/123 to add a tag\nDELETE /posts/:slug/tags/123 to remove a tag\nPATCH /posts/:slug to update tags with an array of tag slugs\nPUT /posts/:slug to replace tags with an array of tag slugs, if tags is not defined nothing is changed\n\nOn the other side\nPUT|GET /tags/:slug/posts to get all posts with that tag with a query\nPOST /tags/:slug/posts/:postSlug to add a post\nDELETE /tags/:slug/posts/:postSlug to remove a post\nPATCH /tags/:slug to update posts with an array of post slugs\nPUT /tags/:slug to replace posts with an array of post slugs, if posts is not defined nothing is changed\n\nThis is a many-to-many relation that demonstrates the power of composite keys and join tables\nwith full type inference and relation management.",
-              "items": {
-                "allOf": [
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
-                  },
-                  {
-                    "type": "object"
-                  },
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
-                  }
-                ],
-                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
-              },
-              "type": "array"
+              "description": "PUT|GET /posts/:slug/tags to get all tags for a post with a query\nPOST /posts/:slug/tags/123 to add a tag\nDELETE /posts/:slug/tags/123 to remove a tag\nPATCH /posts/:slug to update tags with an array of tag slugs\nPUT /posts/:slug to replace tags with an array of tag slugs, if tags is not defined nothing is changed\n\nOn the other side\nPUT|GET /tags/:slug/posts to get all posts with that tag with a query\nPOST /tags/:slug/posts/:postSlug to add a post\nDELETE /tags/:slug/posts/:postSlug to remove a post\nPATCH /tags/:slug to update posts with an array of post slugs\nPUT /tags/:slug to replace posts with an array of post slugs, if posts is not defined nothing is changed\n\nThis is a many-to-many relation that demonstrates the power of composite keys and join tables\nwith full type inference and relation management."
             },
             "title": {
               "description": "Post title",
@@ -465,6 +358,8 @@
             "author",
             "comments",
             "content",
+            "images",
+            "mainImage",
             "slug",
             "status",
             "tags",
@@ -477,146 +372,10 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "definitions": {
-            "BinariesItem<{ width: number; height: number; }>": {
-              "additionalProperties": false,
-              "description": "Define a Binary map stored in a Binaries collection",
-              "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
-                "hash": {
-                  "description": "Will be computed by the service\n\nhash of the content",
-                  "type": "string"
-                },
-                "metadata": {
-                  "$ref": "#/definitions/images%5B%5D%24metadata",
-                  "description": "Metadatas stored along with the binary"
-                },
-                "mimetype": {
-                  "description": "Mimetype of the binary",
-                  "type": "string"
-                },
-                "name": {
-                  "description": "Current name",
-                  "type": "string"
-                },
-                "originalname": {
-                  "description": "Original name",
-                  "type": "string"
-                },
-                "size": {
-                  "description": "Size of the binary",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "mimetype",
-                "name",
-                "size"
-              ],
-              "type": "object"
-            },
-            "BinaryFileInfo<{ width: number; height: number; }>": {
-              "WebdaBehavior": "Webda/Binary",
-              "additionalProperties": false,
-              "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
-              "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
-                "hash": {
-                  "description": "Hash of the binary",
-                  "type": "string"
-                },
-                "metadata": {
-                  "$ref": "#/definitions/mainImage%24metadata",
-                  "description": "Metadatas stored along with the binary"
-                },
-                "mimetype": {
-                  "description": "Mimetype",
-                  "type": "string"
-                },
-                "name": {
-                  "description": "Name of the file",
-                  "type": "string"
-                },
-                "size": {
-                  "description": "Size of the file",
-                  "type": "number"
-                }
-              },
-              "readOnly": true,
-              "required": [
-                "mimetype",
-                "name",
-                "size"
-              ],
-              "type": "object"
-            },
-            "images[]$metadata": {
-              "additionalProperties": false,
-              "properties": {
-                "height": {
-                  "type": "number"
-                },
-                "width": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "height",
-                "width"
-              ],
-              "type": "object"
-            },
-            "mainImage$metadata": {
-              "additionalProperties": false,
-              "properties": {
-                "height": {
-                  "type": "number"
-                },
-                "width": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "height",
-                "width"
-              ],
-              "type": "object"
-            }
-          },
           "description": "Post model representing blog posts",
           "properties": {
-            "author": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
-            "comments": {
-              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
-              "items": {
-                "allOf": [
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
-                  },
-                  {
-                    "type": "object"
-                  },
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
-                  }
-                ],
-                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
-              },
-              "type": "array"
-            },
+            "author": {},
+            "comments": {},
             "content": {
               "description": "Post content (markdown)",
               "minLength": 10,
@@ -639,16 +398,9 @@
               "type": "string"
             },
             "images": {
-              "WebdaBehavior": "Webda/BinariesImpl",
-              "description": "Additional images for the post, stored as an array of binaries with width and height metadata. This shows how to manage multiple related binary files in a model.",
-              "items": {
-                "$ref": "#/definitions/BinariesItem%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
-              },
-              "readOnly": true,
-              "type": "array"
+              "description": "Additional images for the post, stored as an array of binaries with width and height metadata. This shows how to manage multiple related binary files in a model."
             },
             "mainImage": {
-              "$ref": "#/definitions/BinaryFileInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E",
               "description": "Main image for the post, stored as binary data with width and height metadata. This demonstrates how to use binary data in a model, which can be useful for storing images or files directly in the database."
             },
             "publishedAt": {
@@ -675,24 +427,7 @@
               "type": "string"
             },
             "tags": {
-              "description": "PUT|GET /posts/:slug/tags to get all tags for a post with a query\nPOST /posts/:slug/tags/123 to add a tag\nDELETE /posts/:slug/tags/123 to remove a tag\nPATCH /posts/:slug to update tags with an array of tag slugs\nPUT /posts/:slug to replace tags with an array of tag slugs, if tags is not defined nothing is changed\n\nOn the other side\nPUT|GET /tags/:slug/posts to get all posts with that tag with a query\nPOST /tags/:slug/posts/:postSlug to add a post\nDELETE /tags/:slug/posts/:postSlug to remove a post\nPATCH /tags/:slug to update posts with an array of post slugs\nPUT /tags/:slug to replace posts with an array of post slugs, if posts is not defined nothing is changed\n\nThis is a many-to-many relation that demonstrates the power of composite keys and join tables\nwith full type inference and relation management.",
-              "items": {
-                "allOf": [
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
-                  },
-                  {
-                    "type": "object"
-                  },
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
-                  }
-                ],
-                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
-              },
-              "type": "array"
+              "description": "PUT|GET /posts/:slug/tags to get all tags for a post with a query\nPOST /posts/:slug/tags/123 to add a tag\nDELETE /posts/:slug/tags/123 to remove a tag\nPATCH /posts/:slug to update tags with an array of tag slugs\nPUT /posts/:slug to replace tags with an array of tag slugs, if tags is not defined nothing is changed\n\nOn the other side\nPUT|GET /tags/:slug/posts to get all posts with that tag with a query\nPOST /tags/:slug/posts/:postSlug to add a post\nDELETE /tags/:slug/posts/:postSlug to remove a post\nPATCH /tags/:slug to update posts with an array of post slugs\nPUT /tags/:slug to replace posts with an array of post slugs, if posts is not defined nothing is changed\n\nThis is a many-to-many relation that demonstrates the power of composite keys and join tables\nwith full type inference and relation management."
             },
             "title": {
               "description": "Post title",
@@ -812,32 +547,8 @@
           },
           "description": "Post model representing blog posts",
           "properties": {
-            "author": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
-            "comments": {
-              "description": "Link to a collection of objects including some additional data\n\nUses composition instead of extending Array for better maintainability,\nperformance, and type safety. Provides array-like interface through\nexplicit methods and iterators.\n\nIt does not require to have a symetric relation on the other side\nThe array contains uuid of the linked objects and additional properties defined as K\n\nSample usage:\n```typescript\nclass MyModel extends AbstractCoreModel {\n  _links: ModelLinksArray<OtherModel, { custom: string }>;\n}\n```",
-              "items": {
-                "allOf": [
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
-                  },
-                  {
-                    "type": "object"
-                  },
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
-                  }
-                ],
-                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
-              },
-              "type": "array"
-            },
+            "author": {},
+            "comments": {},
             "content": {
               "description": "Post content (markdown)",
               "minLength": 10,
@@ -896,24 +607,7 @@
               "type": "string"
             },
             "tags": {
-              "description": "PUT|GET /posts/:slug/tags to get all tags for a post with a query\nPOST /posts/:slug/tags/123 to add a tag\nDELETE /posts/:slug/tags/123 to remove a tag\nPATCH /posts/:slug to update tags with an array of tag slugs\nPUT /posts/:slug to replace tags with an array of tag slugs, if tags is not defined nothing is changed\n\nOn the other side\nPUT|GET /tags/:slug/posts to get all posts with that tag with a query\nPOST /tags/:slug/posts/:postSlug to add a post\nDELETE /tags/:slug/posts/:postSlug to remove a post\nPATCH /tags/:slug to update posts with an array of post slugs\nPUT /tags/:slug to replace posts with an array of post slugs, if posts is not defined nothing is changed\n\nThis is a many-to-many relation that demonstrates the power of composite keys and join tables\nwith full type inference and relation management.",
-              "items": {
-                "allOf": [
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
-                  },
-                  {
-                    "type": "object"
-                  },
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
-                  }
-                ],
-                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
-              },
-              "type": "array"
+              "description": "PUT|GET /posts/:slug/tags to get all tags for a post with a query\nPOST /posts/:slug/tags/123 to add a tag\nDELETE /posts/:slug/tags/123 to remove a tag\nPATCH /posts/:slug to update tags with an array of tag slugs\nPUT /posts/:slug to replace tags with an array of tag slugs, if tags is not defined nothing is changed\n\nOn the other side\nPUT|GET /tags/:slug/posts to get all posts with that tag with a query\nPOST /tags/:slug/posts/:postSlug to add a post\nDELETE /tags/:slug/posts/:postSlug to remove a post\nPATCH /tags/:slug to update posts with an array of post slugs\nPUT /tags/:slug to replace posts with an array of post slugs, if posts is not defined nothing is changed\n\nThis is a many-to-many relation that demonstrates the power of composite keys and join tables\nwith full type inference and relation management."
             },
             "title": {
               "description": "Post title",
@@ -1008,16 +702,8 @@
               "format": "date-time",
               "type": "string"
             },
-            "post": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
-            "tag": {
-              "description": "Alias for ModelLink - defines a relation to another model.",
-              "type": "string"
-            }
+            "post": {},
+            "tag": {}
           },
           "required": [
             "createdAt",
@@ -1037,16 +723,8 @@
               "format": "date-time",
               "type": "string"
             },
-            "post": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
-            "tag": {
-              "description": "Alias for ModelLink - defines a relation to another model.",
-              "type": "string"
-            }
+            "post": {},
+            "tag": {}
           },
           "required": [
             "createdAt",
@@ -1066,16 +744,8 @@
               "format": "date-time",
               "type": "string"
             },
-            "post": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
-            "tag": {
-              "description": "Alias for ModelLink - defines a relation to another model.",
-              "type": "string"
-            }
+            "post": {},
+            "tag": {}
           },
           "required": [
             "createdAt",
@@ -1157,6 +827,7 @@
               "minLength": 2,
               "type": "string"
             },
+            "posts": {},
             "slug": {
               "description": "URL-friendly slug",
               "maxLength": 50,
@@ -1167,6 +838,7 @@
           },
           "required": [
             "name",
+            "posts",
             "slug"
           ],
           "type": "object",
@@ -1193,6 +865,7 @@
               "minLength": 2,
               "type": "string"
             },
+            "posts": {},
             "slug": {
               "description": "URL-friendly slug",
               "maxLength": 50,
@@ -1203,6 +876,7 @@
           },
           "required": [
             "name",
+            "posts",
             "slug"
           ],
           "type": "object",
@@ -1229,6 +903,7 @@
               "minLength": 2,
               "type": "string"
             },
+            "posts": {},
             "slug": {
               "description": "URL-friendly slug",
               "maxLength": 50,
@@ -1239,6 +914,7 @@
           },
           "required": [
             "name",
+            "posts",
             "slug"
           ],
           "type": "object",
@@ -1343,6 +1019,7 @@
               "maxLength": 500,
               "type": "string"
             },
+            "comments": {},
             "email": {
               "description": "User's email address",
               "format": "email",
@@ -1350,6 +1027,8 @@
               "minLength": 5,
               "type": "string"
             },
+            "followers": {},
+            "following": {},
             "name": {
               "description": "User's full name",
               "maxLength": 50,
@@ -1360,16 +1039,12 @@
               "description": "User password",
               "type": "string"
             },
+            "posts": {},
             "username": {
               "description": "Unique username",
               "maxLength": 30,
               "minLength": 3,
               "pattern": "^[a-zA-Z0-9_]+$",
-              "type": "string"
-            },
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
               "type": "string"
             },
             "website": {
@@ -1379,11 +1054,14 @@
             }
           },
           "required": [
+            "comments",
             "email",
+            "followers",
+            "following",
             "name",
             "password",
-            "username",
-            "uuid"
+            "posts",
+            "username"
           ],
           "type": "object",
           "$webda": "fromDto$auto"
@@ -1398,6 +1076,7 @@
               "maxLength": 500,
               "type": "string"
             },
+            "comments": {},
             "createdAt": {
               "description": "Account creation date",
               "format": "date-time",
@@ -1411,12 +1090,15 @@
               "minLength": 5,
               "type": "string"
             },
+            "followers": {},
+            "following": {},
             "name": {
               "description": "User's full name",
               "maxLength": 50,
               "minLength": 2,
               "type": "string"
             },
+            "posts": {},
             "updatedAt": {
               "description": "Last update date",
               "format": "date-time",
@@ -1430,11 +1112,6 @@
               "pattern": "^[a-zA-Z0-9_]+$",
               "type": "string"
             },
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
-              "type": "string"
-            },
             "website": {
               "description": "User's website",
               "format": "uri",
@@ -1442,12 +1119,15 @@
             }
           },
           "required": [
+            "comments",
             "createdAt",
             "email",
+            "followers",
+            "following",
             "name",
+            "posts",
             "updatedAt",
-            "username",
-            "uuid"
+            "username"
           ],
           "type": "object",
           "$webda": "toDto$auto"
@@ -1462,6 +1142,7 @@
               "maxLength": 500,
               "type": "string"
             },
+            "comments": {},
             "createdAt": {
               "description": "Account creation date",
               "format": "date-time",
@@ -1475,6 +1156,8 @@
               "minLength": 5,
               "type": "string"
             },
+            "followers": {},
+            "following": {},
             "name": {
               "description": "User's full name",
               "maxLength": 50,
@@ -1485,6 +1168,7 @@
               "description": "User password",
               "type": "string"
             },
+            "posts": {},
             "updatedAt": {
               "description": "Last update date",
               "format": "date-time",
@@ -1510,10 +1194,14 @@
             }
           },
           "required": [
+            "comments",
             "createdAt",
             "email",
+            "followers",
+            "following",
             "name",
             "password",
+            "posts",
             "updatedAt",
             "username",
             "uuid"
@@ -1589,18 +1277,8 @@
               "format": "date-time",
               "type": "string"
             },
-            "follower": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
-            "following": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            }
+            "follower": {},
+            "following": {}
           },
           "required": [
             "createdAt",
@@ -1620,18 +1298,8 @@
               "format": "date-time",
               "type": "string"
             },
-            "follower": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
-            "following": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            }
+            "follower": {},
+            "following": {}
           },
           "required": [
             "createdAt",
@@ -1651,18 +1319,8 @@
               "format": "date-time",
               "type": "string"
             },
-            "follower": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            },
-            "following": {
-              "ModelLink": "but implies a Cascade delete",
-              "ModelParent": "Similar to",
-              "description": "Define the parent of the model\nCan only have one parent and implies a Cascade delete\n\nAlias for",
-              "type": "string"
-            }
+            "follower": {},
+            "following": {}
           },
           "required": [
             "createdAt",
@@ -1769,6 +1427,7 @@
               "maxLength": 500,
               "type": "string"
             },
+            "comments": {},
             "email": {
               "description": "User's email address",
               "format": "email",
@@ -1776,6 +1435,8 @@
               "minLength": 5,
               "type": "string"
             },
+            "followers": {},
+            "following": {},
             "name": {
               "description": "User's full name",
               "maxLength": 50,
@@ -1786,6 +1447,7 @@
               "description": "User password",
               "type": "string"
             },
+            "posts": {},
             "username": {
               "description": "Unique username",
               "maxLength": 30,
@@ -1805,9 +1467,13 @@
             }
           },
           "required": [
+            "comments",
             "email",
+            "followers",
+            "following",
             "name",
             "password",
+            "posts",
             "username",
             "uuid"
           ],
@@ -1835,6 +1501,7 @@
               "maxLength": 500,
               "type": "string"
             },
+            "comments": {},
             "email": {
               "description": "User's email address",
               "format": "email",
@@ -1842,6 +1509,8 @@
               "minLength": 5,
               "type": "string"
             },
+            "followers": {},
+            "following": {},
             "name": {
               "description": "User's full name",
               "maxLength": 50,
@@ -1852,6 +1521,7 @@
               "description": "User password",
               "type": "string"
             },
+            "posts": {},
             "username": {
               "description": "Unique username",
               "maxLength": 30,
@@ -1871,9 +1541,13 @@
             }
           },
           "required": [
+            "comments",
             "email",
+            "followers",
+            "following",
             "name",
             "password",
+            "posts",
             "username",
             "uuid"
           ],
@@ -1999,5 +1673,5 @@
     }
   },
   "behaviors": {},
-  "sourceDigest": "91400198528bcda8508aace6872eb6b8"
+  "sourceDigest": "31e0cc4acda47cfff04a1d04b9d33ecf"
 }

@@ -387,3 +387,19 @@ describe("qlvalidator — suppression and unresolved T", () => {
     expect(diagnostics.some(d => d.code === 9006)).toBe(true);
   });
 });
+
+describe("qlvalidator — aggregate throw", () => {
+  it("throws WebdaQLAggregateError after walking the file when any error is present", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { title: string };
+        function query(q: WebdaQLString<Post>) { return q; }
+        query("bogus = 'x'");
+      `
+    });
+    const factory = createQlValidatorTransformer(ts, program, {});
+    const sourceFile = program.getSourceFile("test.ts")!;
+    expect(() => ts.transform(sourceFile, [factory])).toThrow(/9001/);
+  });
+});

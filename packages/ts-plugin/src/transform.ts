@@ -5,12 +5,14 @@ import { DEFAULT_COERCIONS, CoercionRegistry } from "./coercions";
 import { createAccessorTransformer, createDeclarationAccessorTransformer } from "./transforms/accessors";
 import { createModuleGeneratorTransformer } from "./transforms/module-generator";
 import { createBehaviorTransformer } from "./transforms/behaviors";
+import { createQlValidatorTransformer } from "./transforms/qlvalidator";
 
 // Re-export for use by @webda/compiler and other consumers
 export { createAccessorTransformer, createDeclarationAccessorTransformer, computeCoercibleFields } from "./transforms/accessors";
 export type { CoercibleFieldMap, ResolvedCoercion } from "./transforms/accessors";
 export { createBehaviorTransformer, computeBehaviorMetadata, BEHAVIOR_PARENT_KEY } from "./transforms/behaviors";
 export type { BehaviorAttributeInfo, BehaviorAttributeMap, BehaviorClassSet } from "./transforms/behaviors";
+export { createQlValidatorTransformer, WebdaQLAggregateError } from "./transforms/qlvalidator";
 export { DEFAULT_COERCIONS } from "./coercions";
 export type { CoercionRegistry } from "./coercions";
 export { PerfTracker } from "./perf";
@@ -78,16 +80,17 @@ export default function transformer(
     config.accessorsForAll
   );
   const behaviorTransformer = createBehaviorTransformer(tsModule, program);
+  const qlValidatorTransformer = createQlValidatorTransformer(tsModule, program);
 
   // Compose: behavior augmentation first (adds the parent getter, toJSON,
   // and __hydrateBehaviors method), then accessor pass (which may inject
-  // WEBDA_STORAGE init and the per-field accessor pairs). Order doesn't
-  // strictly matter — both are idempotent — but running behaviors first
-  // means the accessor pass sees the final member set.
+  // WEBDA_STORAGE init and the per-field accessor pairs), then qlvalidator
+  // (validates WebdaQLString<T> call sites against the final AST).
   return context => {
     const behaviorFn = behaviorTransformer(context);
     const accessorFn = accessorTransformer(context);
-    return sourceFile => accessorFn(behaviorFn(sourceFile));
+    const qlFn = qlValidatorTransformer(context);
+    return sourceFile => qlFn(accessorFn(behaviorFn(sourceFile)));
   };
 }
 

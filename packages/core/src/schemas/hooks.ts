@@ -151,5 +151,19 @@ export function hasSchema(webdaObject: Model | string): boolean {
   if (!key) {
     return false;
   }
-  return getAjv().rawSchema[key] !== undefined;
+  if (getAjv().rawSchema[key] !== undefined) {
+    return true;
+  }
+  // Schemas baked into a package's `webda.module.json` (e.g. core's
+  // `Webda/Binary.setMetadata.input`) are loaded into the application
+  // registry but are only copied into ajv on first validation. `hasSchema`
+  // is used at operation-registration time to choose between a typed input
+  // schema and the generic `uuidRequest` fallback, so it must consult the
+  // application registry too — otherwise behaviour-action arguments lose
+  // their type info and `resolveArguments` drops every parameter past `uuid`.
+  try {
+    return useApplication()?.getSchema(key) !== undefined;
+  } catch {
+    return false;
+  }
 }

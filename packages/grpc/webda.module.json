@@ -104,7 +104,9 @@
       "title": "BinaryFile"
     }
   },
+  "behaviors": {},
   "capabilities": {
     "grpc": "Webda/GrpcService"
-  }
+  },
+  "sourceDigest": "24d74d072d43ce5568423c968a118d65"
 }

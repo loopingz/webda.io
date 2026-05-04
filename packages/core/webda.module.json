@@ -3396,6 +3396,349 @@
       ],
       "type": "object",
       "title": "BinaryFile"
+    },
+    "Webda/Binary.delete.input": {
+      "type": "object",
+      "properties": {
+        "hash": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "hash"
+      ]
+    },
+    "Webda/Binary.delete.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/Binary.attach.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Webda/Binary.attach.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/Binary.attachChallenge.input": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "additionalProperties": false,
+          "properties": {
+            "challenge": {
+              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+              "type": "string"
+            },
+            "hash": {
+              "description": "Hash of the binary",
+              "type": "string"
+            },
+            "metadata": {
+              "$ref": "#/definitions/%261%24metadata",
+              "description": "Metadatas stored along with the binary"
+            },
+            "mimetype": {
+              "description": "Mimetype",
+              "type": "string"
+            },
+            "name": {
+              "description": "Name of the file",
+              "type": "string"
+            },
+            "size": {
+              "description": "Size of the file",
+              "type": "number"
+            }
+          },
+          "required": [
+            "challenge",
+            "hash",
+            "mimetype",
+            "name",
+            "size"
+          ],
+          "type": "object"
+        }
+      },
+      "definitions": {
+        "&1$metadata": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      }
+    },
+    "Webda/Binary.attachChallenge.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "Webda/Binary.download.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Webda/Binary.download.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/Binary.downloadUrl.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Webda/Binary.downloadUrl.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "Location": {
+          "type": "string"
+        },
+        "Map": {
+          "$ref": "#/definitions/BinaryMap%3CT%3E"
+        }
+      },
+      "required": [
+        "Map"
+      ],
+      "type": "object",
+      "definitions": {
+        "BinaryMap<T>": {
+          "additionalProperties": false,
+          "class": "BinaryMap",
+          "description": "This is a map used to retrieve binary",
+          "properties": {
+            "challenge": {
+              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+              "type": "string"
+            },
+            "hash": {
+              "description": "Will be computed by the service\n\nhash of the content",
+              "type": "string"
+            },
+            "metadata": {
+              "description": "Metadatas stored along with the binary"
+            },
+            "mimetype": {
+              "description": "Mimetype of the binary",
+              "type": "string"
+            },
+            "name": {
+              "description": "Current name",
+              "type": "string"
+            },
+            "originalname": {
+              "description": "Original name",
+              "type": "string"
+            },
+            "size": {
+              "description": "Size of the binary",
+              "type": "number"
+            }
+          },
+          "required": [
+            "mimetype",
+            "name",
+            "size"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "Webda/Binary.setMetadata.input": {
+      "type": "object",
+      "properties": {
+        "hash": {
+          "type": "string"
+        },
+        "metadata": {}
+      },
+      "required": [
+        "hash",
+        "metadata"
+      ]
+    },
+    "Webda/Binary.setMetadata.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/BinariesImpl.attach.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Webda/BinariesImpl.attach.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/BinariesImpl.attachChallenge.input": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "additionalProperties": false,
+          "properties": {
+            "challenge": {
+              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+              "type": "string"
+            },
+            "hash": {
+              "description": "Hash of the binary",
+              "type": "string"
+            },
+            "metadata": {
+              "$ref": "#/definitions/%261%24metadata",
+              "description": "Metadatas stored along with the binary"
+            },
+            "mimetype": {
+              "description": "Mimetype",
+              "type": "string"
+            },
+            "name": {
+              "description": "Name of the file",
+              "type": "string"
+            },
+            "size": {
+              "description": "Size of the file",
+              "type": "number"
+            }
+          },
+          "required": [
+            "challenge",
+            "hash",
+            "mimetype",
+            "name",
+            "size"
+          ],
+          "type": "object"
+        }
+      },
+      "definitions": {
+        "&1$metadata": {
+          "additionalProperties": false,
+          "type": "object"
+        }
+      }
+    },
+    "Webda/BinariesImpl.attachChallenge.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "Webda/BinariesImpl.get.input": {
+      "type": "object",
+      "properties": {
+        "index": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "index"
+      ]
+    },
+    "Webda/BinariesImpl.get.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/BinariesImpl.getUrl.input": {
+      "type": "object",
+      "properties": {
+        "index": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "index"
+      ]
+    },
+    "Webda/BinariesImpl.getUrl.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "Location": {
+          "type": "string"
+        },
+        "Map": {
+          "$ref": "#/definitions/BinaryMap%3CT%3E"
+        }
+      },
+      "required": [
+        "Map"
+      ],
+      "type": "object",
+      "definitions": {
+        "BinaryMap<T>": {
+          "additionalProperties": false,
+          "class": "BinaryMap",
+          "description": "This is a map used to retrieve binary",
+          "properties": {
+            "challenge": {
+              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+              "type": "string"
+            },
+            "hash": {
+              "description": "Will be computed by the service\n\nhash of the content",
+              "type": "string"
+            },
+            "metadata": {
+              "description": "Metadatas stored along with the binary"
+            },
+            "mimetype": {
+              "description": "Mimetype of the binary",
+              "type": "string"
+            },
+            "name": {
+              "description": "Current name",
+              "type": "string"
+            },
+            "originalname": {
+              "description": "Original name",
+              "type": "string"
+            },
+            "size": {
+              "description": "Size of the binary",
+              "type": "number"
+            }
+          },
+          "required": [
+            "mimetype",
+            "name",
+            "size"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "Webda/BinariesImpl.deleteAt.input": {
+      "type": "object",
+      "properties": {
+        "index": {
+          "type": "number"
+        },
+        "hash": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "index",
+        "hash"
+      ]
+    },
+    "Webda/BinariesImpl.deleteAt.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/BinariesImpl.setMetadata.input": {
+      "type": "object",
+      "properties": {
+        "index": {
+          "type": "number"
+        },
+        "hash": {
+          "type": "string"
+        },
+        "metadata": {}
+      },
+      "required": [
+        "index",
+        "hash"
+      ]
+    },
+    "Webda/BinariesImpl.setMetadata.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
     }
   },
   "behaviors": {
@@ -3489,5 +3832,5 @@
     "rest-domain": "Webda/RESTOperationsTransport",
     "http-server": "Webda/HttpServer"
   },
-  "sourceDigest": "194f2f9de55b0f1edcfea8f4957e1ac2"
+  "sourceDigest": "c0c4f806db1805f8371e737eae93ab10"
 }

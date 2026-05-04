@@ -1,0 +1,13 @@
+node_modules
+lib
+
+# Test artifacts
+test-results
+playwright-report
+.playwright
+
+# Locally-generated build output
+.webda
+
+# MemoryStore + FileBinary working dir for the dev server
+data/

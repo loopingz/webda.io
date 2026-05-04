@@ -405,12 +405,24 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
   }
 
   /**
-   * Ensure empty is set correctly
+   * Ensure empty is set correctly.
+   *
+   * `BinaryFile`'s constructor calls `this.set(info)` before subclass class-field
+   * initializers run, so `this[WEBDA_STORAGE]` is still `undefined` the first
+   * time we get here when constructing a fresh `new Binary()` (the no-args
+   * path used by the transformer's `__hydrateBehaviors`). Initialize the
+   * slot lazily on the first set call to keep that boot path crash-free —
+   * the class-field initializer on `BinaryMap` will then OVERWRITE this on
+   * its way back from super, but that's fine because it preserves the
+   * shape `{ service?, empty?, ... }` and we've passed through `set` only
+   * once at this point.
+   *
    * @param info - the information object
    */
   set(info: BinaryFileInfo<T>): void {
     super.set(info);
-    (this[WEBDA_STORAGE] as any).empty = false;
+    const slot = ((this as any)[WEBDA_STORAGE] ??= {}) as { empty?: boolean };
+    slot.empty = false;
   }
 
   /**
@@ -1347,39 +1359,44 @@ export abstract class BinaryService<
     } else {
       file = fileInfo as BinaryFileInfo;
     }
-    let additionalAttr;
-    if (
-      (additionalAttr = Object.keys(file).filter(
-        k => !["name", "size", "mimetype", "hash", "challenge", "metadata"].includes(k)
-      ))
-    ) {
+    // `.filter()` always returns an array, and an empty array is truthy —
+    // the previous `if ((additionalAttr = filter(...)))` form fired on every
+    // upload (legitimate or not), throwing with an empty `properties: `
+    // suffix because `[].join(",")` is `""`. Compare length instead.
+    const additionalAttr = Object.keys(file).filter(
+      k => !["name", "size", "mimetype", "hash", "challenge", "metadata"].includes(k)
+    );
+    if (additionalAttr.length > 0) {
       throw new Error(
         "Invalid file object it should be a plain BinaryFileInfo found additional properties: " +
           additionalAttr.join(",")
       );
     }
-    const object_uid = <any>object.getUUID();
-    // Check if the file is already in the array then skip
-    if (Array.isArray(object[property]) && object[property].find(i => i.hash === file.hash)) {
-      return;
+    // Persist the BinaryFileInfo on the parent model. After the
+    // Binary→Behavior migration the cardinality lives on
+    // `Metadata.Relations.behaviors[]` (no more `Relations.binaries[]`).
+    // `Webda/BinariesImpl` ⇒ MANY (append), anything else (`Webda/Binary`)
+    // ⇒ ONE (replace).
+    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined =
+      (object as any)?.constructor?.Metadata?.Relations?.behaviors;
+    const beh = Array.isArray(behaviorRels)
+      ? behaviorRels.find(b => b.attribute === property)
+      : undefined;
+    const isCollection = beh?.behavior === "Webda/BinariesImpl";
+
+    if (isCollection) {
+      const current: BinaryFileInfo[] = Array.isArray(object[property])
+        ? [...(object[property] as BinaryFileInfo[])]
+        : [];
+      // Idempotent push — already-linked check (preserves the previous
+      // behaviour of the now-deleted early-return guard above).
+      if (!current.some(i => i.hash === file.hash)) {
+        current.push(file);
+      }
+      await object.patch(<any>{ [property]: current });
+    } else {
+      await object.patch(<any>{ [property]: file });
     }
-    // await this.emit("Binary.UploadSuccess", {
-    //   object: file,
-    //   service: this,
-    //   target: object
-    // });
-    // const relations = object.Class.Metadata.Relations;
-    // const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
-    // if (cardinality === "MANY") {
-    //   await (<CoreModelWithBinary<any>>object).Class.ref(object_uid).upsertItemToCollection(property, file);
-    // } else {
-    //   await object.patch(<any>{ [property]: file });
-    // }
-    // await this.emit("Binary.Create", {
-    //   object: file,
-    //   service: this,
-    //   target: object
-    // });
     this.metrics.upload.inc();
   }
 
@@ -1400,27 +1417,38 @@ export abstract class BinaryService<
    * @returns the result
    */
   async deleteSuccess(object: CoreModelWithBinary, property: string, index?: number) {
-    const info: BinaryMap = <BinaryMap>(index !== undefined ? object[property][index] : object[property]);
-    // TODO: Refactor
-    const relations: any = {}; //object.Class.Metadata.Relations;
-    const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
-    let update;
-    if (cardinality === "MANY") {
-      update = (<CoreModelWithBinary<any>>object).Class.ref(object.getUUID()).deleteItemFromCollection(
-        property,
-        index,
-        "hash",
-        info.hash
-      );
+    // Cardinality lives on `Metadata.Relations.behaviors[]` after the
+    // Binary→Behavior migration. `Webda/BinariesImpl` ⇒ MANY (splice),
+    // anything else (`Webda/Binary`) ⇒ ONE (clear). Mirrors the lookup in
+    // `uploadSuccess`.
+    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined =
+      (object as any)?.constructor?.Metadata?.Relations?.behaviors;
+    const beh = Array.isArray(behaviorRels)
+      ? behaviorRels.find(b => b.attribute === property)
+      : undefined;
+    const isCollection = beh?.behavior === "Webda/BinariesImpl";
+
+    const info: BinaryMap = <BinaryMap>(
+      isCollection && index !== undefined ? object[property][index] : object[property]
+    );
+
+    if (isCollection) {
+      const current: BinaryFileInfo[] = Array.isArray(object[property])
+        ? [...(object[property] as BinaryFileInfo[])]
+        : [];
+      if (index !== undefined && index >= 0 && index < current.length) {
+        current.splice(index, 1);
+      }
+      await object.patch(<any>{ [property]: current });
     } else {
-      (<Model & any>object).ref().removeAttribute(property);
+      await object.patch(<any>{ [property]: undefined });
     }
+
     await this.emit("Binary.Delete", {
       object: info,
       service: this
     });
     this.metrics.delete.inc();
-    return update;
   }
 
   /**

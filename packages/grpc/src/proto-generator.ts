@@ -34,7 +34,12 @@ export function generateProto(
     if (op.hidden) continue;
     const dotIdx = opId.indexOf(".");
     const prefix = dotIdx > 0 ? opId.substring(0, dotIdx) : "Default";
-    const rpcName = dotIdx > 0 ? opId.substring(dotIdx + 1) : opId;
+    // proto3 RPC method names must match `[A-Za-z_][A-Za-z0-9_]*` — dots are
+    // namespace separators and rejected by the parser. Behavior operations
+    // are namespaced as `<Model>.<Attribute>.<Action>` (e.g.
+    // `Post.MainImage.Delete`), so the trailing portion still carries a
+    // dot. Flatten to underscore so the parser accepts the rpc name.
+    const rpcName = (dotIdx > 0 ? opId.substring(dotIdx + 1) : opId).replace(/\./g, "_");
     if (!serviceGroups.has(prefix)) {
       serviceGroups.set(prefix, []);
     }
@@ -51,6 +56,30 @@ export function generateProto(
     return undefined;
   };
 
+  // Hoist every operation schema's local `definitions` block into the flat
+  // schema registry so $refs like `#/definitions/BinaryMap<T>` (which the
+  // schema generator emits next to its hoisted definitions block) resolve
+  // to a real shape instead of falling back to `google.protobuf.Struct`.
+  // The compiler's `normalizeSchemaDefinitions` already lifted these to the
+  // schema root; we just need to fold them into the flat registry the proto
+  // walker consults.
+  const enrichedSchemas: Record<string, JSONSchema7> = { ...schemas };
+  for (const op of Object.values(operations)) {
+    if (op.hidden) continue;
+    for (const ref of [op.input, op.output]) {
+      if (!ref || ref === "void") continue;
+      const baseRef = ref.endsWith("?") ? ref.slice(0, -1) : ref;
+      const target = enrichedSchemas[baseRef];
+      const localDefs = (target as any)?.definitions;
+      if (!localDefs) continue;
+      for (const [k, v] of Object.entries(localDefs)) {
+        if (!(k in enrichedSchemas)) {
+          enrichedSchemas[k] = v as JSONSchema7;
+        }
+      }
+    }
+  }
+
   // Generate messages for all referenced schemas
   for (const [opId, op] of Object.entries(operations)) {
     if (op.hidden) continue;
@@ -58,14 +87,14 @@ export function generateProto(
     if (inputRef) {
       const msgName = schemaToMessageName(inputRef);
       if (!messages.has(msgName)) {
-        messages.set(msgName, jsonSchemaToMessage(msgName, schemas[inputRef], schemas, messages));
+        messages.set(msgName, jsonSchemaToMessage(msgName, enrichedSchemas[inputRef], enrichedSchemas, messages));
       }
     }
     const outputRef = resolveSchemaRef(op.output);
     if (outputRef) {
       const msgName = schemaToMessageName(outputRef);
       if (!messages.has(msgName)) {
-        messages.set(msgName, jsonSchemaToMessage(msgName, schemas[outputRef], schemas, messages));
+        messages.set(msgName, jsonSchemaToMessage(msgName, enrichedSchemas[outputRef], enrichedSchemas, messages));
       }
     }
   }
@@ -106,12 +135,33 @@ export function generateProto(
  * @returns the PascalCase protobuf message name derived from the reference
  */
 function schemaToMessageName(schemaRef: string): string {
-  const name = (schemaRef.includes("/") ? schemaRef.split("/").pop() : schemaRef) ?? schemaRef;
-  // Remove dots and capitalize
-  return name
-    .split(".")
+  // JSON-Pointer escapes (`%3C%7B%7D%3E`) survive into `$ref` strings when the
+  // schema generator names a definition like `BinaryFileInfo<{}>`. Decode
+  // them first so we can strip the generic-bracket noise rather than emitting
+  // `BinaryFileInfo%3C%7B%7D%3E` as a proto identifier (which the parser
+  // rejects as an illegal token).
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(schemaRef);
+  } catch {
+    decoded = schemaRef;
+  }
+  const tail = (decoded.includes("/") ? decoded.split("/").pop() : decoded) ?? decoded;
+  // Drop generic args (`<...>`) entirely — proto3 has no generic concept and
+  // the unresolved `T` made the generated schema collapse them to `<{}>`.
+  const stripped = tail.replace(/<[^>]*>/g, "");
+  // Sanitize anything left that proto3 doesn't accept in an identifier.
+  // proto3 idents match `[A-Za-z_][A-Za-z0-9_]*`; splitting on every other
+  // char and PascalCasing keeps the original word boundaries readable.
+  const cleaned = stripped
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
     .map(s => s.charAt(0).toUpperCase() + s.slice(1))
-    .join("");
+    .join("") || "Empty";
+  // proto3 identifiers must start with a letter or underscore; underscore
+  // prefix the cleaned name when it begins with a digit (e.g. `1Metadata`
+  // from a `&1$metadata` schema-generator artefact for unbound generics).
+  return /^[A-Za-z_]/.test(cleaned) ? cleaned : `_${cleaned}`;
 }
 
 /**
@@ -217,15 +267,34 @@ function jsonTypeToProto(
   messages: Map<string, string>
 ): string {
   if (schema.$ref) {
-    const refName = schema.$ref.replace("#/definitions/", "").replace("#/components/schemas/", "");
-    const msgName = schemaToMessageName(refName);
-    // Generate the referenced message if the target schema exists and hasn't
-    // been emitted yet. Without this, proto output referenced types like
-    // `Comment` (from QueryResult.results) without ever defining them, which
-    // broke proto parsing in grpcurl clients.
-    if (!messages.has(msgName) && allSchemas[refName]) {
+    // Distinguish two ref shapes:
+    //   - `#/components/schemas/<name>` points at a top-level schema in the
+    //     OpenAPI components registry. The original behaviour was to emit
+    //     the bare message name and trust that some other schema source
+    //     defines it; preserve that to keep `componentsSchemaRef` passing.
+    //   - `#/definitions/<name>` is the typescript-json-schema shape: refs
+    //     are local to the same schema's `definitions` block. The compiler
+    //     already hoists those into `allSchemas` for us. If the lookup
+    //     misses, we have a genuinely-unresolvable inline ref (e.g. a
+    //     dropped placeholder from a generic-class method) — fall back to
+    //     `google.protobuf.Struct` so proto-loader doesn't reject the
+    //     output.
+    const isComponentsRef = schema.$ref.startsWith("#/components/schemas/");
+    const rawRefName = schema.$ref.replace("#/definitions/", "").replace("#/components/schemas/", "");
+    let decodedRefName: string;
+    try {
+      decodedRefName = decodeURIComponent(rawRefName);
+    } catch {
+      decodedRefName = rawRefName;
+    }
+    const msgName = schemaToMessageName(rawRefName);
+    const targetSchema = allSchemas[rawRefName] || allSchemas[decodedRefName];
+    if (!messages.has(msgName) && targetSchema) {
       messages.set(msgName, ""); // placeholder to break recursion cycles
-      messages.set(msgName, jsonSchemaToMessage(msgName, allSchemas[refName], allSchemas, messages));
+      messages.set(msgName, jsonSchemaToMessage(msgName, targetSchema, allSchemas, messages));
+    }
+    if (!isComponentsRef && !targetSchema && !messages.has(msgName)) {
+      return "google.protobuf.Struct";
     }
     return msgName;
   }

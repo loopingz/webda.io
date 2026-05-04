@@ -11,6 +11,7 @@ import { ServiceParameters } from "../services/serviceparameters.js";
 import { useApplication } from "../application/hooks.js";
 import { OperationDefinition } from "../core/icore.js";
 import { useModelMetadata } from "../core/hooks.js";
+import { useInstanceStorage } from "../core/instancestorage.js";
 import { registerOperation } from "../core/operations.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
 
@@ -596,14 +597,16 @@ export class DomainService<
    */
   async modelBehaviorAction(...args: any[]): Promise<any> {
     const context = useContext<OperationContext>();
-    const { model, attribute, action } = context.getExtension<{
+    const { model, attribute, action, behavior } = context.getExtension<{
       model: ModelClass<Model>;
       attribute: string;
       behavior: string;
       action: string;
     }>("operationContext");
 
-    const uuid = args[0];
+    // Parent uuid comes from the URL (`/posts/{uuid}/mainImage/...`); read it
+    // straight off the context so we don't depend on its position in `args`.
+    const uuid = (context.getParameters() || {}).uuid;
     let instance: any;
     try {
       instance = await model.ref(uuid).get();
@@ -625,7 +628,25 @@ export class DomainService<
       throw new WebdaError.NotFound(`Behavior method ${attribute}.${action} not found`);
     }
 
-    return behaviorInstance[action](...args.slice(1));
+    // `args` was built by `resolveArguments` from the operation's input
+    // schema. Two schema shapes coexist:
+    //   1. Auto-generated from the method signature (`exploreBehaviorsAction`
+    //      in the compiler) — e.g. `setMetadata(hash, metadata)` produces
+    //      `{ hash, metadata }`. No `uuid` property.
+    //   2. Legacy `uuidRequest` fallback (and hand-crafted test schemas) —
+    //      starts with `{ uuid, ... }`. The `uuid` slot exists only so the
+    //      validator accepts the URL param.
+    // When the schema starts with `uuid`, drop it before forwarding to the
+    // behavior method (whose signature never includes uuid). When it
+    // doesn't, forward as-is.
+    const operationId = context.getExtension<string>("operation");
+    const opInput = operationId ? useInstanceStorage().operations?.[operationId]?.input : undefined;
+    const inputSchema = typeof opInput === "string" ? useApplication().getSchema(opInput) : undefined;
+    const propNames = inputSchema?.properties ? Object.keys(inputSchema.properties) : [];
+    const passArgs = propNames[0] === "uuid" ? args.slice(1) : args;
+
+    void behavior; // tagged in operationContext for future use
+    return behaviorInstance[action](...passArgs);
   }
 
 }

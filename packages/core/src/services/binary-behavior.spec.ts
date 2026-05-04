@@ -303,6 +303,25 @@ class BinaryBehaviorTest extends WebdaApplicationTest {
     assert.strictEqual((b as Binary).isEmpty(), false);
   }
 
+  /**
+   * `Binary.set()` is reachable from `BinaryFile`'s constructor before
+   * the subclass class-field initializer runs, so the `[WEBDA_STORAGE]`
+   * slot is `undefined` on first hit. The lazy `??=` init in
+   * `Binary.set` guards that boot path; without it the `__hydrateBehaviors`
+   * `new Binary()` path threw `Cannot set properties of undefined
+   * (setting 'empty')` for every model load.
+   */
+  @test
+  binarySetSurvivesUndefinedStorageSlot() {
+    const b: any = Object.create(Binary.prototype);
+    // Don't seed `[WEBDA_STORAGE]` — simulate the BinaryFile constructor
+    // calling `set(info)` before the subclass field initializer ran.
+    assert.strictEqual(b[WEBDA_STORAGE], undefined);
+    (b as Binary).set({ name: "n", size: 1, mimetype: "text/plain", hash: "h" } as any);
+    assert.deepStrictEqual(b[WEBDA_STORAGE]?.empty, false, "lazy init must seed { empty: false }");
+    assert.strictEqual((b as Binary).hash, "h");
+  }
+
   // ──────────────────────────────────────────────────────────────────────────
   // Binary @Action method bodies
   // ──────────────────────────────────────────────────────────────────────────
@@ -1286,13 +1305,9 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
   }
 
   /**
-   * `uploadSuccess` rejects when the file carries unknown attributes.
-   *
-   * The current production code has a known pre-existing quirk: the
-   * `additionalAttr = Object.keys(file).filter(...)` assignment-in-condition
-   * is always truthy (empty array is truthy), so this branch fires for every
-   * call regardless of whether extra keys are present. The assertion below
-   * just verifies the throw happens — message matching is loose.
+   * `uploadSuccess` rejects when the file carries unknown attributes — the
+   * always-truthy `if (additionalAttr = filter(...))` quirk was fixed in
+   * commit 6fdf4982 so the throw now fires only when extras are present.
    */
   @test
   async uploadSuccessThrowsOnExtraAttrs() {
@@ -1304,17 +1319,164 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
 
   /**
    * `uploadSuccess` accepts an object with `toBinaryFileInfo()` — the
-   * `toBinaryFileInfo()` branch runs and then the same pre-existing
-   * `additionalAttr` quirk fires (empty array is truthy).
+   * `toBinaryFileInfo()` branch runs and then proceeds to persistence via
+   * `object.patch`. The fake target stubs `patch` so we can confirm both
+   * the conversion path and the persistence call site fire.
    */
   @test
   async uploadSuccessRunsToBinaryFileInfoBranch() {
     const svc = this.makeService();
     const file = new MemoryBinaryFile(Buffer.from("y"), { hash: "h", size: 1, name: "y", mimetype: "text/plain" });
-    const target: any = { getUUID: () => "u", y: undefined };
-    // Throws on the post-conversion validation regardless — this exercises
-    // the `toBinaryFileInfo()` call site.
-    await assert.rejects(() => svc.uploadSuccess(target, "y", file as any), /Invalid file object/);
+    const patches: any[] = [];
+    const target: any = {
+      getUUID: () => "u",
+      y: undefined,
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.uploadSuccess(target, "y", file as any);
+    assert.strictEqual(patches.length, 1);
+    assert.strictEqual(patches[0].y.hash, "h");
+    assert.strictEqual(patches[0].y.name, "y");
+  }
+
+  /**
+   * `uploadSuccess` rejects only when the file payload carries
+   * unrecognized properties. The previous always-truthy
+   * `if (additionalAttr = filter(...))` guard fired on every call;
+   * the post-fix shape compares `filter(...).length > 0`. The error
+   * message names the offending attributes so the client can fix them.
+   */
+  @test
+  async uploadSuccessRejectsExtraAttributes() {
+    const svc = this.makeService();
+    const file: any = { hash: "x", size: 1, name: "n", mimetype: "t", garbage: "extra" };
+    const target: any = { getUUID: () => "uid", x: undefined, patch: async () => {} };
+    await assert.rejects(
+      () => svc.uploadSuccess(target, "x", file),
+      (err: Error) => /Invalid file object.*garbage/.test(err.message)
+    );
+  }
+
+  /**
+   * `uploadSuccess` for a `Webda/BinariesImpl` collection appends the
+   * incoming `BinaryFileInfo` to the existing collection (deduped by
+   * hash) and patches the parent with the new array.
+   */
+  @test
+  async uploadSuccessAppendsToCollection() {
+    const svc = this.makeService();
+    const file: any = { hash: "new", size: 1, name: "new", mimetype: "t" };
+    const patches: any[] = [];
+    const target: any = {
+      constructor: {
+        Metadata: {
+          Relations: {
+            behaviors: [{ attribute: "items", behavior: "Webda/BinariesImpl" }]
+          }
+        }
+      },
+      getUUID: () => "u",
+      items: [{ hash: "existing", size: 1, name: "old", mimetype: "t" }],
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.uploadSuccess(target, "items", file);
+    assert.strictEqual(patches.length, 1);
+    assert.strictEqual(patches[0].items.length, 2);
+    assert.strictEqual(patches[0].items[0].hash, "existing");
+    assert.strictEqual(patches[0].items[1].hash, "new");
+  }
+
+  /**
+   * Same hash arriving twice is a no-op append for collections — the
+   * existing entry stays in place and the array length doesn't grow.
+   */
+  @test
+  async uploadSuccessSkipsDuplicateHashInCollection() {
+    const svc = this.makeService();
+    const file: any = { hash: "dup", size: 1, name: "x", mimetype: "t" };
+    const patches: any[] = [];
+    const target: any = {
+      constructor: {
+        Metadata: {
+          Relations: {
+            behaviors: [{ attribute: "items", behavior: "Webda/BinariesImpl" }]
+          }
+        }
+      },
+      getUUID: () => "u",
+      items: [{ hash: "dup", size: 1, name: "x", mimetype: "t" }],
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.uploadSuccess(target, "items", file);
+    assert.strictEqual(patches.length, 1);
+    assert.strictEqual(patches[0].items.length, 1);
+  }
+
+  /**
+   * `deleteSuccess` for a `Webda/BinariesImpl` collection drops the item
+   * at `index` from a fresh copy of `object[property]` and patches the
+   * parent. Mirrors the upload path's persistence shape.
+   */
+  @test
+  async deleteSuccessSplicesCollectionItem() {
+    const svc = this.makeService();
+    const patches: any[] = [];
+    const target: any = {
+      constructor: {
+        Metadata: {
+          Relations: {
+            behaviors: [{ attribute: "items", behavior: "Webda/BinariesImpl" }]
+          }
+        }
+      },
+      getUUID: () => "u",
+      items: [
+        { hash: "h0", size: 1, name: "a", mimetype: "t" },
+        { hash: "h1", size: 1, name: "b", mimetype: "t" },
+        { hash: "h2", size: 1, name: "c", mimetype: "t" }
+      ],
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.deleteSuccess(target, "items", 1);
+    assert.strictEqual(patches.length, 1);
+    assert.strictEqual(patches[0].items.length, 2);
+    assert.strictEqual(patches[0].items[0].hash, "h0");
+    assert.strictEqual(patches[0].items[1].hash, "h2");
+  }
+
+  /**
+   * `deleteSuccess` for a single `Webda/Binary` clears the attribute by
+   * patching `undefined`.
+   */
+  @test
+  async deleteSuccessClearsSingleBinary() {
+    const svc = this.makeService();
+    const patches: any[] = [];
+    const target: any = {
+      constructor: {
+        Metadata: {
+          Relations: {
+            behaviors: [{ attribute: "avatar", behavior: "Webda/Binary" }]
+          }
+        }
+      },
+      getUUID: () => "u",
+      avatar: { hash: "h", size: 1, name: "a", mimetype: "t" },
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.deleteSuccess(target, "avatar");
+    assert.strictEqual(patches.length, 1);
+    assert.strictEqual(patches[0].avatar, undefined);
   }
 
   /**

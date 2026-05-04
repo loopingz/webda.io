@@ -5,10 +5,22 @@ import { tags } from "../api.js";
 
 const html = htm.bind(h);
 
+/** Editable tag fields. Relations (`posts`, ...) are omitted so PATCH
+ *  bodies satisfy the server's `additionalProperties: false` schema. */
+const TAG_EDITABLE_FIELDS = ["name", "slug", "description", "color"];
+const TAG_DEFAULTS = { name: "", slug: "", description: "", color: "#4f8ff7" };
+
+function pickTagFormFields(source) {
+  if (!source) return { ...TAG_DEFAULTS };
+  const out = { ...TAG_DEFAULTS };
+  for (const k of TAG_EDITABLE_FIELDS) {
+    if (source[k] !== undefined) out[k] = source[k];
+  }
+  return out;
+}
+
 function TagForm({ initial, onSave, onCancel }) {
-  const [form, setForm] = useState(initial || {
-    name: "", slug: "", description: "", color: "#4f8ff7"
-  });
+  const [form, setForm] = useState(pickTagFormFields(initial));
   const set = (k, v) => setForm({ ...form, [k]: v });
 
   return html`
@@ -21,7 +33,7 @@ function TagForm({ initial, onSave, onCancel }) {
         </div>
         <div class="form-group">
           <label>Slug</label>
-          <input value=${form.slug} onInput=${(e) => set("slug", e.target.value)} placeholder="tag-slug" ${initial ? "disabled" : ""} />
+          <input value=${form.slug} onInput=${(e) => set("slug", e.target.value)} placeholder="tag-slug" disabled=${!!initial} />
         </div>
         <div class="form-group">
           <label>Description</label>

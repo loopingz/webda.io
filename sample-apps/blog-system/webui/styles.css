@@ -153,3 +153,99 @@ tr:hover { background: var(--bg-secondary); }
 .toast-success { background: var(--success); color: white; }
 .toast-error { background: var(--danger); color: white; }
 @keyframes slideIn { from { transform: translateY(1rem); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* Helpers */
+.muted { color: var(--text-muted); }
+.small { font-size: 0.75rem; }
+
+/* Media indicator dots in the posts list */
+.dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  margin-right: 4px; vertical-align: middle;
+}
+.dot-on { background: var(--success); }
+.dot-off { background: var(--border); }
+
+/* Banner / explainer */
+.banner {
+  background: rgba(79, 143, 247, 0.08);
+  border: 1px solid rgba(79, 143, 247, 0.25);
+  color: var(--text-primary);
+  padding: 0.625rem 0.75rem; border-radius: 6px;
+  font-size: 0.8125rem; line-height: 1.45;
+  margin: 0.75rem 0 0.5rem;
+}
+.banner code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.05rem 0.3rem; border-radius: 3px;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.75rem;
+}
+.banner strong { color: var(--accent); }
+
+/* Binary blocks */
+.binary-block {
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 0.75rem; margin: 0.75rem 0;
+  background: var(--bg-tertiary);
+}
+.binary-header {
+  display: flex; align-items: center; gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.binary-label {
+  font-size: 0.8125rem; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.binary-empty {
+  color: var(--text-muted); font-size: 0.8125rem;
+  padding: 0.75rem; text-align: center;
+  border: 1px dashed var(--border); border-radius: 4px;
+  background: rgba(0, 0, 0, 0.15);
+}
+.binary-preview {
+  display: flex; gap: 0.75rem; align-items: flex-start;
+  padding: 0.5rem 0;
+}
+.binary-preview img {
+  max-width: 96px; max-height: 96px;
+  border-radius: 4px; border: 1px solid var(--border);
+  background: var(--bg-primary);
+  object-fit: cover;
+}
+.binary-info {
+  font-size: 0.8125rem; line-height: 1.5;
+  word-break: break-word; flex: 1;
+}
+.binary-info .mono { font-size: 0.7rem; }
+.binary-controls {
+  display: flex; flex-direction: column; gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem; border-top: 1px dashed var(--border);
+}
+.binary-controls input[type="file"] {
+  font-size: 0.8125rem; color: var(--text-muted);
+}
+.binary-actions {
+  display: flex; flex-wrap: wrap; gap: 0.375rem;
+}
+
+/* Binaries collection list */
+.binaries-list { font-size: 0.8125rem; }
+.binaries-list th, .binaries-list td {
+  padding: 0.375rem 0.5rem;
+  font-size: 0.8125rem;
+}
+.binaries-list .small { font-size: 0.7rem; }
+.binaries-list .binaries-thumb {
+  width: 56px;
+  vertical-align: middle;
+}
+.binaries-list .binaries-thumb img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+}

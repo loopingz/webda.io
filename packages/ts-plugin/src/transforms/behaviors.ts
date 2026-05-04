@@ -693,12 +693,27 @@ function createHydrateBehaviorsMethod(
  * @param precomputed - optional pre-computed metadata
  * @param precomputed.behaviorClasses - set of class names known to be Behaviors
  * @param precomputed.modelBehaviorAttributes - map of model class → attribute → BehaviorAttributeInfo
+ * @param coercibleFields - shared coercible-field map from the accessors transformer's
+ *   pre-pass; used to detect whether accessors will inject the
+ *   `WEBDA_STORAGE` import for the same source file so we don't emit a
+ *   duplicate (which would break ESM with `Identifier 'WEBDA_STORAGE'
+ *   has already been declared`)
  * @returns the transformer factory for source files
  */
 export function createBehaviorTransformer(
   tsModule: typeof ts,
   program: ts.Program,
-  precomputed?: { behaviorClasses: BehaviorClassSet; modelBehaviorAttributes: BehaviorAttributeMap }
+  precomputed?: { behaviorClasses: BehaviorClassSet; modelBehaviorAttributes: BehaviorAttributeMap },
+  /**
+   * Coercible-field map produced by the accessors transformer's pre-pass.
+   * When a class in the current source has coercible fields, the accessors
+   * transformer will already inject `import { WEBDA_STORAGE } from "@webda/models"`
+   * into that file. Sibling `before:` transformers in TypeScript see the
+   * unmodified source, so we use this signal to skip our own duplicate
+   * injection — duplicate imports of the same name break ESM with
+   * `Identifier 'WEBDA_STORAGE' has already been declared`.
+   */
+  coercibleFields?: Map<string, unknown>
 ): ts.TransformerFactory<ts.SourceFile> {
   const meta = precomputed ?? computeBehaviorMetadata(tsModule, program);
   const { behaviorClasses, modelBehaviorAttributes } = meta;
@@ -809,7 +824,27 @@ export function createBehaviorTransformer(
 
       const newImports: ts.ImportDeclaration[] = [];
 
-      if (needsStorageImport && !hasStorageImport) {
+      // The accessors transformer (a sibling in the same `before:` array) will
+      // also inject `import { WEBDA_STORAGE } from "@webda/models"` for any
+      // file containing a class with coercible fields. TypeScript runs
+      // `before:` transformers on the original source in parallel, so we
+      // can't see accessors' added import via `transformed.statements`.
+      // If any class in this source appears in the shared coercible-field
+      // map, accessors will add the import — we must skip ours to avoid
+      // a fatal `Identifier 'WEBDA_STORAGE' has already been declared` ESM
+      // error at module load.
+      let accessorsWillAddImport = false;
+      if (coercibleFields) {
+        for (const stmt of sourceFile.statements) {
+          if (!tsModule.isClassDeclaration(stmt) || !stmt.name) continue;
+          if (coercibleFields.has(safeGetText(stmt.name, sourceFile))) {
+            accessorsWillAddImport = true;
+            break;
+          }
+        }
+      }
+
+      if (needsStorageImport && !hasStorageImport && !accessorsWillAddImport) {
         const storageSource = findStorageImportSource(tsModule, program, sourceFile);
         newImports.push(
           context.factory.createImportDeclaration(
@@ -849,9 +884,26 @@ export function createBehaviorTransformer(
               el => !el.isTypeOnly && injectedNames.has(safeGetText(el.name, sourceFile))
             );
             if (!hasConflict) return stmt;
+            const checker = program.getTypeChecker();
             const remaining = elements.filter(el => {
               if (injectedNames.has(safeGetText(el.name, sourceFile))) return false;
               if (el.isTypeOnly) return false;
+              // Drop type-only re-exports (e.g. `Binaries` is a type alias for
+              // `BinariesImpl<T>`) — TypeScript would normally erase these,
+              // but rewriting the import statement defeats its built-in
+              // elision. Keep only names that have a value at runtime.
+              // `getSymbolAtLocation` on an import specifier returns the
+              // LOCAL alias symbol; resolve through the alias to the actual
+              // exported symbol before checking its flags.
+              const localSym = checker.getSymbolAtLocation(el.name);
+              if (!localSym) return true; // can't determine — keep to be safe
+              const targetSym =
+                (localSym.flags & tsModule.SymbolFlags.Alias) !== 0
+                  ? checker.getAliasedSymbol(localSym)
+                  : localSym;
+              if ((targetSym.flags & tsModule.SymbolFlags.Value) === 0) {
+                return false;
+              }
               return true;
             });
             if (remaining.length === 0 && !stmt.importClause.name) return undefined;

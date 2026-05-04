@@ -115,5 +115,7 @@
       "Identifier": "Webda/UuidModel"
     }
   },
-  "schemas": {}
+  "schemas": {},
+  "behaviors": {},
+  "sourceDigest": "f72bcb3103eb28807c8af081447daa8a"
 }

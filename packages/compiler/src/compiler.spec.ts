@@ -412,4 +412,69 @@ class CompilerTest {
       assert.strictEqual(serveInput.required, undefined, "Optional params should not be required");
     }
   }
+
+  /**
+   * `exploreBehaviorsAction` generates `<behaviorId>.<method>.input` and
+   * `.output` schemas for every `@Action` method on a `@WebdaBehavior`
+   * class. The canonical source is `@webda/core`'s `Binary` /
+   * `BinariesImpl` — the schemas land in core's own `webda.module.json`
+   * (the consumer projects don't re-emit them because lib `.d.ts` entries
+   * are skipped by design).
+   */
+  @test
+  async behaviorActionsHaveGeneratedInputSchemas() {
+    const corePath = path.join(__dirname, "..", "..", "..", "packages", "core");
+    if (!existsSync(path.join(corePath, "webda.module.json"))) return;
+    const mod: WebdaModule = JSONUtils.loadFile(path.join(corePath, "webda.module.json"));
+
+    // setMetadata(hash, metadata) — both fields, hash required.
+    const setMetaInput = mod.schemas["Webda/Binary.setMetadata.input"];
+    assert.notStrictEqual(setMetaInput, undefined, "Webda/Binary.setMetadata.input must exist in core's module");
+    assert.deepStrictEqual(Object.keys(setMetaInput.properties), ["hash", "metadata"]);
+    assert.ok((setMetaInput.required as string[]).includes("hash"));
+
+    // Behaviors in `BinariesImpl` get the same treatment.
+    const binariesAttachChallenge = mod.schemas["Webda/BinariesImpl.attachChallenge.input"];
+    assert.notStrictEqual(binariesAttachChallenge, undefined, "BinariesImpl.attachChallenge.input must exist");
+  }
+
+  /**
+   * `normalizeSchemaDefinitions` hoists every nested `definitions` block
+   * to the schema root and prunes broken refs. Run against core's own
+   * behavior schemas (the canonical home of the generic types that
+   * triggered the original bug — `BinaryMap<T>`, `BinaryFileInfo<{}>`).
+   */
+  @test
+  async operationSchemasHoistDefinitionsToRoot() {
+    const corePath = path.join(__dirname, "..", "..", "..", "packages", "core");
+    if (!existsSync(path.join(corePath, "webda.module.json"))) return;
+    const mod: WebdaModule = JSONUtils.loadFile(path.join(corePath, "webda.module.json"));
+
+    const findNestedDefinitions = (node: any, breadcrumbs: string[] = []): string[] => {
+      if (!node || typeof node !== "object") return [];
+      const hits: string[] = [];
+      if (breadcrumbs.length > 0 && Object.prototype.hasOwnProperty.call(node, "definitions")) {
+        hits.push(breadcrumbs.join("."));
+      }
+      for (const key of Object.keys(node)) {
+        if (key === "definitions" && breadcrumbs.length === 0) continue;
+        hits.push(...findNestedDefinitions(node[key], [...breadcrumbs, key]));
+      }
+      return hits;
+    };
+
+    const candidateNames = Object.keys(mod.schemas).filter(
+      n => n.startsWith("Webda/Binary.") || n.startsWith("Webda/BinariesImpl.")
+    );
+    assert.ok(candidateNames.length > 0, "expected behavior schemas to exist");
+    for (const name of candidateNames) {
+      const schema = mod.schemas[name];
+      const nested = findNestedDefinitions(schema);
+      assert.deepStrictEqual(
+        nested,
+        [],
+        `${name} should have no nested 'definitions' blocks (found at: ${nested.join(", ")})`
+      );
+    }
+  }
 }

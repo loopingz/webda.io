@@ -5,8 +5,14 @@ import { comments } from "../api.js";
 
 const html = htm.bind(h);
 
+/** Comments only edit `content`; relations / bookkeeping are stripped so
+ *  PATCH bodies pass the server's `additionalProperties: false` schema. */
+function pickCommentFormFields(source) {
+  return { content: source?.content ?? "" };
+}
+
 function CommentForm({ initial, onSave, onCancel }) {
-  const [form, setForm] = useState(initial || { content: "" });
+  const [form, setForm] = useState(pickCommentFormFields(initial));
   const set = (k, v) => setForm({ ...form, [k]: v });
 
   return html`

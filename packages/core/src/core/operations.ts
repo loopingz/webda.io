@@ -41,7 +41,39 @@ function checkOperationPermission(
 }
 
 /**
- * Check if an operation can be executed with the current context
+ * Coerce string-shaped path/query params to the primitive type their schema
+ * declares. URL slots arrive as strings even when the operation method
+ * expects a number/boolean (e.g. `setMetadata(index: number, ...)` mounted
+ * at `{index}/{hash}` — `index` is the literal `"0"` until we coerce).
+ *
+ * We mutate `merged` in place (caller forwards the same object to
+ * `resolveArguments`). We do NOT use AJV's `coerceTypes` flag because that
+ * setting on the singleton AJV instance flips a global mode and silently
+ * widens type validation across every other call site (e.g. coercing
+ * `123` → `"123"` to satisfy a `string` schema), which is the wrong default
+ * for model validation.
+ * @param schema - operation input schema with `properties` describing the
+ * expected primitive types
+ * @param merged - merged params + body object to coerce in place
+ */
+function coerceMergedToSchema(schema: any, merged: Record<string, any>): void {
+  if (!schema?.properties) return;
+  for (const [name, propSchema] of Object.entries(schema.properties as Record<string, any>)) {
+    const value = merged[name];
+    if (typeof value !== "string") continue;
+    const target = (propSchema as any)?.type;
+    if (target === "number" || target === "integer") {
+      const n = Number(value);
+      if (!Number.isNaN(n)) merged[name] = n;
+    } else if (target === "boolean") {
+      if (value === "true") merged[name] = true;
+      else if (value === "false") merged[name] = false;
+    }
+  }
+}
+
+/**
+ * Check if an operation can be executed with the current context.
  * @param context - the execution context
  * @param operationId - the operation identifier
  */
@@ -65,7 +97,15 @@ async function checkOperation(context: OperationContext, operationId: string) {
       }
       // Merge path params with body (body overrides params for same keys)
       const merged = { ...params, ...(typeof body === "object" && body !== null ? body : {}) };
+      // Coerce string path params (e.g. `"0"`) to the primitive type the
+      // schema declares before validation runs, so AJV doesn't reject
+      // `index: "0"` against `{ type: "number" }`. Mutates `merged` in
+      // place so `resolveArguments` sees the typed value too.
+      const app = useApplication();
+      const inputSchema = app.getSchema(operations[operationId].input);
+      coerceMergedToSchema(inputSchema, merged);
       validateSchema(operations[operationId].input, merged);
+      context.setExtension("operationResolvedInput", merged);
     }
   } catch (err) {
     if (err instanceof ValidationError) {
@@ -102,16 +142,22 @@ async function checkOperation(context: OperationContext, operationId: string) {
  * @returns an array of resolved arguments to pass to the operation method
  */
 export async function resolveArguments(context: OperationContext, operation: OperationDefinition): Promise<any[]> {
-  const params = context.getParameters() || {};
+  // Prefer the merged-and-coerced object that `checkOperation` left on the
+  // context. Re-merging here would discard AJV's `coerceTypes` rewrites
+  // (e.g. string `"0"` from a `{index}` URL slot back to a `number`).
+  // Falls back to a fresh merge for code paths that bypass `checkOperation`
+  // (currently only `Test.Op` unit tests).
+  let merged = context.getExtension<any>("operationResolvedInput");
   let input: any;
   try {
     input = await context.getInput();
   } catch {
     // No input (e.g., GET request)
   }
-
-  // Merge: params + body (body overrides params for same keys)
-  const merged = { ...params, ...(typeof input === "object" && input !== null ? input : {}) };
+  if (!merged) {
+    const params = context.getParameters() || {};
+    merged = { ...params, ...(typeof input === "object" && input !== null ? input : {}) };
+  }
 
   // Use input schema properties to determine argument order
   if (operation.input && operation.input !== "void") {

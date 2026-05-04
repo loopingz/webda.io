@@ -303,6 +303,25 @@ class BinaryBehaviorTest extends WebdaApplicationTest {
     assert.strictEqual((b as Binary).isEmpty(), false);
   }
 
+  /**
+   * `Binary.set()` is reachable from `BinaryFile`'s constructor before
+   * the subclass class-field initializer runs, so the `[WEBDA_STORAGE]`
+   * slot is `undefined` on first hit. The lazy `??=` init in
+   * `Binary.set` guards that boot path; without it the `__hydrateBehaviors`
+   * `new Binary()` path threw `Cannot set properties of undefined
+   * (setting 'empty')` for every model load.
+   */
+  @test
+  binarySetSurvivesUndefinedStorageSlot() {
+    const b: any = Object.create(Binary.prototype);
+    // Don't seed `[WEBDA_STORAGE]` — simulate the BinaryFile constructor
+    // calling `set(info)` before the subclass field initializer ran.
+    assert.strictEqual(b[WEBDA_STORAGE], undefined);
+    (b as Binary).set({ name: "n", size: 1, mimetype: "text/plain", hash: "h" } as any);
+    assert.deepStrictEqual(b[WEBDA_STORAGE]?.empty, false, "lazy init must seed { empty: false }");
+    assert.strictEqual((b as Binary).hash, "h");
+  }
+
   // ──────────────────────────────────────────────────────────────────────────
   // Binary @Action method bodies
   // ──────────────────────────────────────────────────────────────────────────

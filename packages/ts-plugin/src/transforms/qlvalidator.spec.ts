@@ -251,3 +251,36 @@ describe("qlvalidator — array depth + methods", () => {
     expect(diagnostics).toHaveLength(0);
   });
 });
+
+describe("qlvalidator — template literal rewrite", () => {
+  it("rewrites a template literal into escape([...], [...])", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { title: string };
+        function query(q: WebdaQLString<Post>) { return q; }
+        const name = "alice";
+        query(\`title = '\${name}'\`);
+      `
+    });
+    const { output, diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics).toHaveLength(0);
+    expect(output).toContain("escape(");
+    expect(output).toMatch(/escape\(\s*\[\s*"title = '"\s*,\s*"'"\s*\]/);
+    expect(output).toMatch(/\[\s*name\s*\]/);
+  });
+
+  it("validates attributes inside the template literal", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { title: string };
+        function query(q: WebdaQLString<Post>) { return q; }
+        const v = "x";
+        query(\`bogus = '\${v}'\`);
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics.some(d => d.code === 9001)).toBe(true);
+  });
+});

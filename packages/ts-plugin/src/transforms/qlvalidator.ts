@@ -53,6 +53,7 @@ export function createQlValidatorTransformer(
 
   return context => sourceFile => {
     const collected: tsTypes.Diagnostic[] = [];
+    let rewroteAny = false;
     const emit = (d: tsTypes.Diagnostic) => {
       collected.push(d);
       onDiagnostic?.(d);
@@ -60,12 +61,15 @@ export function createQlValidatorTransformer(
 
     const visit = (node: tsTypes.Node): tsTypes.Node => {
       if (tsModule.isCallExpression(node)) {
-        validateCall(tsModule, checker, node, sourceFile, emit);
+        const updated = validateCall(tsModule, checker, node, sourceFile, emit);
+        if (updated !== node) rewroteAny = true;
+        return tsModule.visitEachChild(updated, visit, context);
       }
       return tsModule.visitEachChild(node, visit, context);
     };
 
-    const result = tsModule.visitNode(sourceFile, visit) as tsTypes.SourceFile;
+    let result = tsModule.visitNode(sourceFile, visit) as tsTypes.SourceFile;
+    if (rewroteAny) result = ensureEscapeImport(tsModule, result);
 
     if (throwOnError && collected.length > 0) {
       throw new WebdaQLAggregateError(collected);
@@ -75,13 +79,15 @@ export function createQlValidatorTransformer(
 }
 
 /**
- * Inspect a call expression and validate any arguments whose parameter type
- * resolves to WebdaQLString<T>.
+ * Inspect a call expression, validate any arguments whose parameter type
+ * resolves to WebdaQLString<T>, and return a possibly-updated CallExpression
+ * with template literals rewritten to escape() calls.
  * @param ts - the typescript module instance
  * @param checker - the TypeScript type checker
  * @param call - the call expression node to inspect
  * @param sourceFile - the source file containing the call
  * @param emit - callback to emit a diagnostic
+ * @returns the original or updated CallExpression
  */
 function validateCall(
   ts: typeof tsTypes,
@@ -89,18 +95,28 @@ function validateCall(
   call: tsTypes.CallExpression,
   sourceFile: tsTypes.SourceFile,
   emit: (d: tsTypes.Diagnostic) => void
-): void {
+): tsTypes.CallExpression {
   const signature = checker.getResolvedSignature(call);
-  if (!signature) return;
+  if (!signature) return call;
 
   const params = signature.getParameters();
+  let newArgs: tsTypes.Expression[] | undefined;
   for (let i = 0; i < call.arguments.length && i < params.length; i++) {
     const paramType = checker.getTypeOfSymbolAtLocation(params[i], call);
     const targetT = peelWebdaQLString(checker, paramType);
     if (!targetT) continue;
 
-    validateArgument(ts, checker, call.arguments[i], targetT, sourceFile, emit);
+    const result = validateArgument(ts, checker, call.arguments[i], targetT, sourceFile, emit);
+    if (result.rewrite) {
+      newArgs ??= [...call.arguments];
+      newArgs[i] = result.rewrite;
+    }
   }
+
+  if (newArgs) {
+    return ts.factory.updateCallExpression(call, call.expression, call.typeArguments, newArgs);
+  }
+  return call;
 }
 
 /**
@@ -133,13 +149,15 @@ export function peelWebdaQLString(
 
 /**
  * Validate a single call argument whose parameter is typed as WebdaQLString<T>.
- * Only string literals and no-substitution template literals are validated.
+ * Handles string literals, no-substitution template literals, and template expressions.
+ * For template expressions, validates the static skeleton and returns a rewrite node.
  * @param ts - the typescript module instance
  * @param checker - the TypeScript type checker
  * @param argument - the argument expression node
  * @param targetT - the target type T extracted from WebdaQLString<T>
  * @param sourceFile - the source file containing the argument
  * @param emit - callback to emit a diagnostic
+ * @returns an object with an optional rewrite expression
  */
 function validateArgument(
   ts: typeof tsTypes,
@@ -148,10 +166,54 @@ function validateArgument(
   targetT: tsTypes.Type,
   sourceFile: tsTypes.SourceFile,
   emit: (d: tsTypes.Diagnostic) => void
-): void {
+): { rewrite?: tsTypes.Expression } {
   if (ts.isStringLiteral(argument) || ts.isNoSubstitutionTemplateLiteral(argument)) {
     validateLiteral(ts, checker, argument.text, argument, targetT, sourceFile, emit);
+    return {};
   }
+  if (ts.isTemplateExpression(argument)) {
+    const parts = templateParts(argument);
+    const placeholderSource = parts.join("?");
+    validateLiteral(ts, checker, placeholderSource, argument, targetT, sourceFile, emit);
+    return { rewrite: rewriteTemplate(ts, argument, parts) };
+  }
+  return {};
+}
+
+/**
+ * Extract the static string parts from a template expression.
+ * The head text is the first part; each span's literal text follows.
+ * @param expr - the template expression node
+ * @returns array of static string parts
+ */
+function templateParts(expr: tsTypes.TemplateExpression): string[] {
+  const parts = [expr.head.text];
+  for (const span of expr.templateSpans) parts.push(span.literal.text);
+  return parts;
+}
+
+/**
+ * Rewrite a template expression into an escape([...parts], [...values]) call.
+ * @param ts - the typescript module instance
+ * @param expr - the original template expression
+ * @param parts - the static string parts extracted from the template
+ * @returns a CallExpression node for escape([...parts], [...values])
+ */
+function rewriteTemplate(
+  ts: typeof tsTypes,
+  expr: tsTypes.TemplateExpression,
+  parts: string[]
+): tsTypes.CallExpression {
+  const factory = ts.factory;
+  const partsArray = factory.createArrayLiteralExpression(
+    parts.map(p => factory.createStringLiteral(p)),
+    false
+  );
+  const valuesArray = factory.createArrayLiteralExpression(
+    expr.templateSpans.map(s => s.expression),
+    false
+  );
+  return factory.createCallExpression(factory.createIdentifier("escape"), undefined, [partsArray, valuesArray]);
 }
 
 /**
@@ -393,4 +455,37 @@ function elementType(
   if (type.aliasTypeArguments?.[0]) return type.aliasTypeArguments[0];
   const numIndex = checker.getIndexTypeOfType(type, ts.IndexKind.Number);
   return numIndex;
+}
+
+/**
+ * Ensure that the source file has an `import { escape } from "@webda/ql"` declaration.
+ * If one already exists, the source file is returned unchanged. Otherwise a new
+ * import declaration is prepended to the top of the file.
+ * @param ts - the typescript module instance
+ * @param sourceFile - the source file to check and update
+ * @returns the source file with the escape import guaranteed
+ */
+function ensureEscapeImport(ts: typeof tsTypes, sourceFile: tsTypes.SourceFile): tsTypes.SourceFile {
+  const hasIt = sourceFile.statements.some(
+    stmt =>
+      ts.isImportDeclaration(stmt) &&
+      ts.isStringLiteral(stmt.moduleSpecifier) &&
+      stmt.moduleSpecifier.text === "@webda/ql" &&
+      stmt.importClause?.namedBindings &&
+      ts.isNamedImports(stmt.importClause.namedBindings) &&
+      stmt.importClause.namedBindings.elements.some(e => e.name.text === "escape")
+  );
+  if (hasIt) return sourceFile;
+  const importDecl = ts.factory.createImportDeclaration(
+    undefined,
+    ts.factory.createImportClause(
+      false,
+      undefined,
+      ts.factory.createNamedImports([
+        ts.factory.createImportSpecifier(false, undefined, ts.factory.createIdentifier("escape"))
+      ])
+    ),
+    ts.factory.createStringLiteral("@webda/ql")
+  );
+  return ts.factory.updateSourceFile(sourceFile, [importDecl, ...sourceFile.statements]);
 }

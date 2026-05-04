@@ -90,3 +90,31 @@ describe("escape — array values", () => {
     expect(() => escape(["x = ", ""], [[[1, 2]]])).toThrow(WebdaQLError);
   });
 });
+
+describe("escape — rejected value types", () => {
+  it("rejects plain objects", () => {
+    expect(() => escape(["x = ", ""], [{ a: 1 }])).toThrow(WebdaQLError);
+  });
+
+  it("rejects functions", () => {
+    expect(() => escape(["x = ", ""], [() => 1])).toThrow(WebdaQLError);
+  });
+
+  it("rejects symbols", () => {
+    expect(() => escape(["x = ", ""], [Symbol("s")])).toThrow(WebdaQLError);
+  });
+
+  it("rejects bigints", () => {
+    expect(() => escape(["x = ", ""], [10n])).toThrow(WebdaQLError);
+  });
+
+  it("rejection message names the offending value type", () => {
+    try {
+      escape(["x = ", ""], [{ a: 1 }]);
+      throw new Error("did not throw");
+    } catch (err) {
+      expect(err).toBeInstanceOf(WebdaQLError);
+      expect((err as WebdaQLError).message).toMatch(/object/);
+    }
+  });
+});

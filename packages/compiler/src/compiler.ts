@@ -12,6 +12,7 @@ import {
   createAccessorTransformer,
   createBehaviorTransformer,
   createDeclarationAccessorTransformer,
+  createQlValidatorTransformer,
   computeCoercibleFields,
   DEFAULT_COERCIONS,
   PerfTracker
@@ -135,6 +136,10 @@ export class Compiler {
       computeCoercibleFields(ts, this.tsProgram, coercions, modelBases, accessorsForAll, perf)
     );
 
+    // Collect WQL diagnostics so they flow through the normal compiler error
+    // reporting path rather than throwing.
+    const qlDiagnostics: ts.Diagnostic[] = [];
+
     // Emit all code with accessor + behavior transforms.
     // The behaviors transformer augments `@WebdaBehavior`-tagged classes
     // (parent slot getter, toJSON) and emits a `__hydrateBehaviors(rawData)`
@@ -151,7 +156,14 @@ export class Compiler {
           // on the unmodified source, so without this signal both
           // transformers prepend their own import → duplicate ESM binding
           // → module load fails.
-          createBehaviorTransformer(ts, this.tsProgram, undefined, coercibleFields)
+          createBehaviorTransformer(ts, this.tsProgram, undefined, coercibleFields),
+          // Validate WebdaQLString<T> call sites and rewrite template literals
+          // to escape() calls. Diagnostics are forwarded through the normal
+          // compiler error path (throwOnError: false).
+          createQlValidatorTransformer(ts, this.tsProgram, {
+            throwOnError: false,
+            onDiagnostic: d => qlDiagnostics.push(d)
+          })
         ],
         afterDeclarations: [
           createDeclarationAccessorTransformer(
@@ -174,7 +186,7 @@ export class Compiler {
     // Filter out false TS2322 diagnostics for coercible property assignments
     const allDiagnostics = ts
       .getPreEmitDiagnostics(this.tsProgram)
-      .concat(diagnostics, this.configParseResult.errors)
+      .concat(diagnostics, qlDiagnostics, this.configParseResult.errors)
       .filter(
         diag =>
           !isCoercibleAssignmentError(ts, this.tsProgram, diag, coercions, modelBases, coercibleFields, accessorsForAll)

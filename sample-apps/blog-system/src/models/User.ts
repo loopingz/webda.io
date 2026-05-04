@@ -138,7 +138,7 @@ export class User extends UuidModel {
     if (target.getPrimaryKey() === this.getPrimaryKey()) {
       throw new WebdaError.BadRequest("Cannot follow yourself");
     }
-    const existing = (await this.following.query(`followingId = '${target.getPrimaryKey()}' LIMIT 1`)).results.pop();
+    const existing = (await this.following.query(`following = '${target.getPrimaryKey()}' LIMIT 1`)).results.pop();
     if (existing) {
       throw new WebdaError.BadRequest("Already following this user");
     }
@@ -157,7 +157,7 @@ export class User extends UuidModel {
 
   @Operation()
   async unfollow(target: User) {
-    const existing = (await this.following.query(`followingId = '${target.getPrimaryKey()}' LIMIT 1`)).results.pop();
+    const existing = (await this.following.query(`following = '${target.getPrimaryKey()}' LIMIT 1`)).results.pop();
     if (!existing) {
       throw new WebdaError.BadRequest("Not following this user");
     }

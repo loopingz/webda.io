@@ -64,3 +64,29 @@ describe("escape — scalar values", () => {
     expect(() => escape(["x = ", ""], [-Infinity])).toThrow(WebdaQLError);
   });
 });
+
+describe("escape — array values", () => {
+  it("emits string arrays as parenthesised, comma-separated", () => {
+    expect(escape(["tags IN ", ""], [["a", "b", "c"]])).toBe("tags IN ('a', 'b', 'c')");
+  });
+
+  it("emits number arrays the same way", () => {
+    expect(escape(["x IN ", ""], [[1, 2, 3]])).toBe("x IN (1, 2, 3)");
+  });
+
+  it("supports mixed scalar arrays", () => {
+    expect(escape(["x IN ", ""], [[1, "two", true, null]])).toBe("x IN (1, 'two', TRUE, NULL)");
+  });
+
+  it("escapes embedded quotes inside string arrays", () => {
+    expect(escape(["x IN ", ""], [["O'Brien"]])).toBe("x IN ('O''Brien')");
+  });
+
+  it("emits empty arrays as ()", () => {
+    expect(escape(["x IN ", ""], [[]])).toBe("x IN ()");
+  });
+
+  it("rejects nested arrays", () => {
+    expect(() => escape(["x = ", ""], [[[1, 2]]])).toThrow(WebdaQLError);
+  });
+});

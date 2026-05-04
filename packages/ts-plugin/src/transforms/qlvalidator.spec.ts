@@ -345,3 +345,45 @@ describe("qlvalidator — local-flow and typed opt-out", () => {
     expect(diagnostics.some(d => d.code === 9005)).toBe(true);
   });
 });
+
+describe("qlvalidator — suppression and unresolved T", () => {
+  it("respects // @webdaql-ignore-next-line", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { title: string };
+        function query(q: WebdaQLString<Post>) { return q; }
+        // @webdaql-ignore-next-line
+        query("bogus = 'x'");
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  it("respects /* @webdaql-disable */ at top of file", () => {
+    const program = createTestProgram({
+      "test.ts": `/* @webdaql-disable */
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { title: string };
+        function query(q: WebdaQLString<Post>) { return q; }
+        query("bogus = 'x'");
+        query("alsoBogus = 'y'");
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  it("emits WQL9006 when T resolves to unknown", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        function permissionCheck(p: WebdaQLString<unknown>) { return p; }
+        permissionCheck("anything = 'x'");
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics.some(d => d.code === 9006)).toBe(true);
+  });
+});

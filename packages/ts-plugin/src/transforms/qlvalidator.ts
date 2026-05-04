@@ -52,6 +52,9 @@ export function createQlValidatorTransformer(
   const checker = program.getTypeChecker();
 
   return context => sourceFile => {
+    const fullText = sourceFile.getFullText();
+    if (/\/\*\s*@webdaql-disable\s*\*\//.test(fullText)) return sourceFile;
+
     const collected: tsTypes.Diagnostic[] = [];
     const pendingRewrites = new Map<tsTypes.VariableDeclaration, tsTypes.Expression>();
     let rewroteAny = false;
@@ -117,6 +120,8 @@ function validateCall(
   emit: (d: tsTypes.Diagnostic) => void,
   pendingRewrites: Map<tsTypes.VariableDeclaration, tsTypes.Expression>
 ): tsTypes.CallExpression {
+  if (isSuppressed(ts, call, sourceFile)) return call;
+
   const signature = checker.getResolvedSignature(call);
   if (!signature) return call;
 
@@ -126,6 +131,19 @@ function validateCall(
     const paramType = checker.getTypeOfSymbolAtLocation(params[i], call);
     const targetT = peelWebdaQLString(checker, paramType);
     if (!targetT) continue;
+
+    // WQL9006: T resolved to unknown — likely missing session config or explicit T
+    if (targetT.flags & ts.TypeFlags.Unknown) {
+      emit(
+        makeDiagnostic(
+          sourceFile,
+          call,
+          9006,
+          `WebdaQL: type parameter resolves to 'unknown'. Configure 'session' in webda.config.json or supply an explicit T.`
+        )
+      );
+      continue;
+    }
 
     const result = validateArgument(ts, checker, call.arguments[i], targetT, sourceFile, emit, pendingRewrites);
     if (result.rewrite) {
@@ -516,6 +534,34 @@ function elementType(
   if (type.aliasTypeArguments?.[0]) return type.aliasTypeArguments[0];
   const numIndex = checker.getIndexTypeOfType(type, ts.IndexKind.Number);
   return numIndex;
+}
+
+/**
+ * Return true when the call expression is immediately preceded by a
+ * `// @webdaql-ignore-next-line` comment on the enclosing statement.
+ * @param ts - the typescript module instance
+ * @param call - the call expression to check
+ * @param sourceFile - the source file containing the call
+ * @returns true if the call should be suppressed
+ */
+function isSuppressed(
+  ts: typeof tsTypes,
+  call: tsTypes.CallExpression,
+  sourceFile: tsTypes.SourceFile
+): boolean {
+  // Synthesized nodes (e.g. escape() rewrites) have pos === -1 and no real source position.
+  if (call.pos < 0) return false;
+
+  // Walk up to the enclosing statement; the directive must be the comment
+  // immediately preceding it.
+  let stmt: tsTypes.Node = call;
+  while (stmt.parent && !ts.isStatement(stmt)) stmt = stmt.parent;
+  const ranges = ts.getLeadingCommentRanges(sourceFile.getFullText(), stmt.getFullStart());
+  if (!ranges) return false;
+  return ranges.some(r => {
+    const text = sourceFile.getFullText().slice(r.pos, r.end);
+    return /@webdaql-ignore-next-line/.test(text);
+  });
 }
 
 /**

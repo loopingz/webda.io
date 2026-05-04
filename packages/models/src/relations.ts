@@ -14,6 +14,7 @@ import type { JSONed, Helpers, PropertyPaths, PropertyPathType, NumericPropertyP
 import type { Repository } from "./repositories/repository";
 import { useRepository } from "./repositories/hooks";
 import * as WebdaQL from "@webda/ql";
+import type { WebdaQLString } from "@webda/ql";
 
 /** Symbol key holding the parent Storable of a relation. */
 //export const RelationParent = Symbol("RelationParent");
@@ -342,9 +343,11 @@ export class ModelRelated<
    * @param query - optional additional query filter
    * @returns the constructed query string
    */
-  getQuery(query: string = ""): string {
-    // PrependQuery
-    return WebdaQL.PrependCondition(query, `${this.attribute} = "${this.object.getPrimaryKey()}"`);
+  getQuery(query: WebdaQLString<T> | string = ""): WebdaQLString<T> {
+    return WebdaQL.PrependCondition(
+      query as string,
+      `${this.attribute} = "${this.object.getPrimaryKey()}"`
+    ) as WebdaQLString<T>;
   }
 
   /**
@@ -352,7 +355,7 @@ export class ModelRelated<
    * @param query - optional additional query filter
    * @returns the query results with optional continuation token
    */
-  async query(query: string = ""): Promise<{ results: T[]; continuationToken?: string }> {
+  async query(query: WebdaQLString<T> = "" as WebdaQLString<T>): Promise<{ results: T[]; continuationToken?: string }> {
     return this.repoSource.query(this.getQuery(query));
   }
 
@@ -361,7 +364,7 @@ export class ModelRelated<
    * @param query - the query filter
    * @returns an async iterable of linked objects
    */
-  iterate(query: string): AsyncIterable<T> {
+  iterate(query: WebdaQLString<T>): AsyncIterable<T> {
     return this.repoSource.iterate(this.getQuery(query));
   }
 

@@ -92,3 +92,45 @@ describe("qlvalidator skeleton", () => {
     expect(ts.flattenDiagnosticMessageText(diagnostics[0].messageText, "\n")).toMatch(/bogus/);
   });
 });
+
+describe("qlvalidator — grammar errors", () => {
+  it("emits WQL9002 with parser position info on syntax error", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { uuid: string; title: string };
+        function query(q: WebdaQLString<Post>) { return q; }
+        query("title === 'x'");
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].code).toBe(9002);
+  });
+
+  it("emits WQL9002 on unterminated string literal in WebdaQL", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { title: string };
+        function query(q: WebdaQLString<Post>) { return q; }
+        query("title = 'unterminated");
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics.some(d => d.code === 9002)).toBe(true);
+  });
+
+  it("does NOT emit WQL9002 on a valid AND/OR query", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { title: string; status: string };
+        function query(q: WebdaQLString<Post>) { return q; }
+        query("title = 'x' AND status = 'pub'");
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics).toHaveLength(0);
+  });
+});

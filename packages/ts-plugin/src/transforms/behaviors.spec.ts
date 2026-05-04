@@ -584,4 +584,49 @@ describe("createBehaviorTransformer — accessor coordination", () => {
     const importMatches = output.match(/import\s*\{[^}]*WEBDA_STORAGE[^}]*\}/g) || [];
     expect(importMatches.length).toBe(1);
   });
+
+  it("drops type-only aliases when rewriting an import that conflicts with an injected name", () => {
+    // Trigger the rewrite path by importing a value from the same module
+    // whose name will be re-injected by behaviors (the conflict guard
+    // requires a NAME present in both `injectedNames` and the existing
+    // import). Alongside, sneak in a pure type alias whose aliased
+    // symbol has no `Value` flag — the filter must drop it from the
+    // rewritten clause so we don't end up with `import { ..., TypeName }`
+    // which crashes ESM at module load.
+    const program = createTestProgram({
+      "shared.ts": `
+        /** @WebdaBehavior */
+        export class MFA {
+          secret!: string;
+        }
+        export type StringAlias = string;
+      `,
+      "model.ts": `
+        import { MFA, type StringAlias } from "./shared.js";
+        export class User {
+          mfa!: MFA;
+          tag!: StringAlias;
+        }
+      `
+    });
+    const factory = createBehaviorTransformer(ts, program);
+    const sourceFile = program.getSourceFile("model.ts")!;
+    const result = ts.transform(sourceFile, [factory]);
+    const output = ts.createPrinter().printFile(result.transformed[0]);
+    result.dispose();
+
+    // Find any retained import from `./shared.js`. Whether the
+    // transformer stripped the conflict and re-emitted, or kept the
+    // original, the `StringAlias` (a pure type alias) must NOT appear
+    // as a value-imported name.
+    const fromShared = output.match(/import\s*\{[^}]*\}\s*from\s*"\.\/shared\.js"/g) || [];
+    for (const stmt of fromShared) {
+      // The bare `StringAlias` (without a `type` modifier) must not
+      // survive. `type StringAlias` is fine because TypeScript erases
+      // it; the bug we're guarding against is the rewrite producing
+      // `{ StringAlias }` (no `type` modifier) which then resolves at
+      // runtime to nothing.
+      expect(stmt).not.toMatch(/(?<!type\s)\bStringAlias\b/);
+    }
+  });
 });

@@ -529,3 +529,59 @@ describe("createBehaviorTransformer", () => {
     expect(output).not.toMatch(/inst\.push\s*\(\s*item\s*\)/);
   });
 });
+
+describe("createBehaviorTransformer — accessor coordination", () => {
+  it("skips its own WEBDA_STORAGE import when accessors will inject it", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        /** @WebdaBehavior */
+        class MFA {
+          secret: string;
+        }
+        class User {
+          mfa: MFA;
+        }
+      `
+    });
+    // Mark `User` as carrying coercible fields — the signal the accessors
+    // transformer uses to inject `import { WEBDA_STORAGE } from "@webda/models"`
+    // into the same source file.
+    const coercibleFields = new Map<string, unknown>([["User", {}]]);
+    const factory = createBehaviorTransformer(ts, program, undefined, coercibleFields);
+    const sourceFile = program.getSourceFile("test.ts")!;
+    const result = ts.transform(sourceFile, [factory]);
+    const output = ts.createPrinter().printFile(result.transformed[0]);
+    result.dispose();
+
+    // Behaviors must NOT add its own WEBDA_STORAGE import — duplicate
+    // imports of the same name crash ESM with
+    // "Identifier 'WEBDA_STORAGE' has already been declared".
+    const importMatches = output.match(/import\s*\{[^}]*WEBDA_STORAGE[^}]*\}/g) || [];
+    expect(importMatches.length).toBe(0);
+  });
+
+  it("adds the WEBDA_STORAGE import itself when accessors won't", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        /** @WebdaBehavior */
+        class MFA {
+          secret: string;
+        }
+        class User {
+          mfa: MFA;
+        }
+      `
+    });
+    // Empty coercibleFields → accessors stays out → behaviors adds the
+    // import itself.
+    const coercibleFields = new Map<string, unknown>();
+    const factory = createBehaviorTransformer(ts, program, undefined, coercibleFields);
+    const sourceFile = program.getSourceFile("test.ts")!;
+    const result = ts.transform(sourceFile, [factory]);
+    const output = ts.createPrinter().printFile(result.transformed[0]);
+    result.dispose();
+
+    const importMatches = output.match(/import\s*\{[^}]*WEBDA_STORAGE[^}]*\}/g) || [];
+    expect(importMatches.length).toBe(1);
+  });
+});

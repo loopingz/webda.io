@@ -1342,6 +1342,83 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
   }
 
   /**
+   * `uploadSuccess` rejects only when the file payload carries
+   * unrecognized properties. The previous always-truthy
+   * `if (additionalAttr = filter(...))` guard fired on every call;
+   * the post-fix shape compares `filter(...).length > 0`. The error
+   * message names the offending attributes so the client can fix them.
+   */
+  @test
+  async uploadSuccessRejectsExtraAttributes() {
+    const svc = this.makeService();
+    const file: any = { hash: "x", size: 1, name: "n", mimetype: "t", garbage: "extra" };
+    const target: any = { getUUID: () => "uid", x: undefined, patch: async () => {} };
+    await assert.rejects(
+      () => svc.uploadSuccess(target, "x", file),
+      (err: Error) => /Invalid file object.*garbage/.test(err.message)
+    );
+  }
+
+  /**
+   * `uploadSuccess` for a `Webda/BinariesImpl` collection appends the
+   * incoming `BinaryFileInfo` to the existing collection (deduped by
+   * hash) and patches the parent with the new array.
+   */
+  @test
+  async uploadSuccessAppendsToCollection() {
+    const svc = this.makeService();
+    const file: any = { hash: "new", size: 1, name: "new", mimetype: "t" };
+    const patches: any[] = [];
+    const target: any = {
+      constructor: {
+        Metadata: {
+          Relations: {
+            behaviors: [{ attribute: "items", behavior: "Webda/BinariesImpl" }]
+          }
+        }
+      },
+      getUUID: () => "u",
+      items: [{ hash: "existing", size: 1, name: "old", mimetype: "t" }],
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.uploadSuccess(target, "items", file);
+    assert.strictEqual(patches.length, 1);
+    assert.strictEqual(patches[0].items.length, 2);
+    assert.strictEqual(patches[0].items[0].hash, "existing");
+    assert.strictEqual(patches[0].items[1].hash, "new");
+  }
+
+  /**
+   * Same hash arriving twice is a no-op append for collections — the
+   * existing entry stays in place and the array length doesn't grow.
+   */
+  @test
+  async uploadSuccessSkipsDuplicateHashInCollection() {
+    const svc = this.makeService();
+    const file: any = { hash: "dup", size: 1, name: "x", mimetype: "t" };
+    const patches: any[] = [];
+    const target: any = {
+      constructor: {
+        Metadata: {
+          Relations: {
+            behaviors: [{ attribute: "items", behavior: "Webda/BinariesImpl" }]
+          }
+        }
+      },
+      getUUID: () => "u",
+      items: [{ hash: "dup", size: 1, name: "x", mimetype: "t" }],
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.uploadSuccess(target, "items", file);
+    assert.strictEqual(patches.length, 1);
+    assert.strictEqual(patches[0].items.length, 1);
+  }
+
+  /**
    * `deleteSuccess` for a `Webda/BinariesImpl` collection drops the item
    * at `index` from a fresh copy of `object[property]` and patches the
    * parent. Mirrors the upload path's persistence shape.

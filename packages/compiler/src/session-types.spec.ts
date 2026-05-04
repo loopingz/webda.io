@@ -68,3 +68,39 @@ describe("generateSessionTypes", () => {
     expect(out).toContain("Session as __ResolvedSession");
   });
 });
+
+describe("generateSessionTypes — module-generator integration", () => {
+  let tmp: string;
+  beforeEach(() => {
+    tmp = mkdtempSync(join(tmpdir(), "session-types-int-"));
+  });
+  afterEach(() => {
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it("running after module generation leaves both files in .webda/", () => {
+    // Simulate state at the end of generateTypescriptLibrary: webda.module.json
+    // already exists, webda.config.json has session.
+    mkdirSync(join(tmp, ".webda"), { recursive: true });
+    writeFileSync(join(tmp, ".webda/module.d.ts"), "// existing");
+    writeFileSync(
+      join(tmp, "webda.config.json"),
+      JSON.stringify({
+        version: 3,
+        session: "WebdaSample/Session"
+      })
+    );
+    writeFileSync(
+      join(tmp, "webda.module.json"),
+      JSON.stringify({
+        models: { list: { "WebdaSample/Session": "src/models/session.ts:Session" } }
+      })
+    );
+
+    generateSessionTypes(tmp);
+
+    // module.d.ts is preserved (we don't overwrite); session-types.d.ts is added.
+    expect(readFileSync(join(tmp, ".webda/module.d.ts"), "utf-8")).toBe("// existing");
+    expect(existsSync(join(tmp, ".webda/session-types.d.ts"))).toBe(true);
+  });
+});

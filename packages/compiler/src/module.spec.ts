@@ -170,6 +170,29 @@ class NormalizeSchemaDefinitionsTest {
   }
 
   /**
+   * `pruneRefs` should also descend into arrays inside the schema —
+   * a broken `$ref` nested in `oneOf: [...]` or `anyOf: [...]` would
+   * stay alive without the `Array.isArray(node)` branch.
+   */
+  @test
+  testPrunesBrokenRefsInArrayBranches() {
+    const input = {
+      type: "object",
+      properties: {
+        choice: {
+          oneOf: [{ $ref: "#/definitions/Real" }, { $ref: "#/definitions/Bogus" }]
+        }
+      },
+      definitions: {
+        Real: { type: "string" }
+      }
+    };
+    const out = normalizeSchemaDefinitions(input);
+    assert.strictEqual(out.properties.choice.oneOf[0].$ref, "#/definitions/Real");
+    assert.strictEqual(out.properties.choice.oneOf[1].$ref, undefined, "broken ref inside array pruned");
+  }
+
+  /**
    * Root-level `definitions` are also collected during the walk (the
    * `collect` function is called on the schema itself, so the root
    * block goes into the same first-writer-wins pool). Result: the

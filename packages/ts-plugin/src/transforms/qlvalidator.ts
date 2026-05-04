@@ -53,6 +53,7 @@ export function createQlValidatorTransformer(
 
   return context => sourceFile => {
     const collected: tsTypes.Diagnostic[] = [];
+    const pendingRewrites = new Map<tsTypes.VariableDeclaration, tsTypes.Expression>();
     let rewroteAny = false;
     const emit = (d: tsTypes.Diagnostic) => {
       collected.push(d);
@@ -61,7 +62,7 @@ export function createQlValidatorTransformer(
 
     const visit = (node: tsTypes.Node): tsTypes.Node => {
       if (tsModule.isCallExpression(node)) {
-        const updated = validateCall(tsModule, checker, node, sourceFile, emit);
+        const updated = validateCall(tsModule, checker, node, sourceFile, emit, pendingRewrites);
         if (updated !== node) rewroteAny = true;
         return tsModule.visitEachChild(updated, visit, context);
       }
@@ -69,6 +70,24 @@ export function createQlValidatorTransformer(
     };
 
     let result = tsModule.visitNode(sourceFile, visit) as tsTypes.SourceFile;
+
+    if (pendingRewrites.size > 0) {
+      const rewriteVars = (node: tsTypes.Node): tsTypes.Node => {
+        if (tsModule.isVariableDeclaration(node) && pendingRewrites.has(node)) {
+          rewroteAny = true;
+          return tsModule.factory.updateVariableDeclaration(
+            node,
+            node.name,
+            node.exclamationToken,
+            node.type,
+            pendingRewrites.get(node)!
+          );
+        }
+        return tsModule.visitEachChild(node, rewriteVars, context);
+      };
+      result = tsModule.visitNode(result, rewriteVars) as tsTypes.SourceFile;
+    }
+
     if (rewroteAny) result = ensureEscapeImport(tsModule, result);
 
     if (throwOnError && collected.length > 0) {
@@ -87,6 +106,7 @@ export function createQlValidatorTransformer(
  * @param call - the call expression node to inspect
  * @param sourceFile - the source file containing the call
  * @param emit - callback to emit a diagnostic
+ * @param pendingRewrites - map of VariableDeclaration nodes to their rewrite expressions (populated during the walk)
  * @returns the original or updated CallExpression
  */
 function validateCall(
@@ -94,7 +114,8 @@ function validateCall(
   checker: tsTypes.TypeChecker,
   call: tsTypes.CallExpression,
   sourceFile: tsTypes.SourceFile,
-  emit: (d: tsTypes.Diagnostic) => void
+  emit: (d: tsTypes.Diagnostic) => void,
+  pendingRewrites: Map<tsTypes.VariableDeclaration, tsTypes.Expression>
 ): tsTypes.CallExpression {
   const signature = checker.getResolvedSignature(call);
   if (!signature) return call;
@@ -106,7 +127,7 @@ function validateCall(
     const targetT = peelWebdaQLString(checker, paramType);
     if (!targetT) continue;
 
-    const result = validateArgument(ts, checker, call.arguments[i], targetT, sourceFile, emit);
+    const result = validateArgument(ts, checker, call.arguments[i], targetT, sourceFile, emit, pendingRewrites);
     if (result.rewrite) {
       newArgs ??= [...call.arguments];
       newArgs[i] = result.rewrite;
@@ -149,14 +170,15 @@ export function peelWebdaQLString(
 
 /**
  * Validate a single call argument whose parameter is typed as WebdaQLString<T>.
- * Handles string literals, no-substitution template literals, and template expressions.
- * For template expressions, validates the static skeleton and returns a rewrite node.
+ * Handles string literals, no-substitution template literals, template expressions,
+ * and identifiers (with one-hop const type-flow). Emits WQL9005 for dynamic arguments.
  * @param ts - the typescript module instance
  * @param checker - the TypeScript type checker
  * @param argument - the argument expression node
  * @param targetT - the target type T extracted from WebdaQLString<T>
  * @param sourceFile - the source file containing the argument
  * @param emit - callback to emit a diagnostic
+ * @param pendingRewrites - map of VariableDeclaration nodes to their rewrite expressions
  * @returns an object with an optional rewrite expression
  */
 function validateArgument(
@@ -165,7 +187,8 @@ function validateArgument(
   argument: tsTypes.Expression,
   targetT: tsTypes.Type,
   sourceFile: tsTypes.SourceFile,
-  emit: (d: tsTypes.Diagnostic) => void
+  emit: (d: tsTypes.Diagnostic) => void,
+  pendingRewrites: Map<tsTypes.VariableDeclaration, tsTypes.Expression>
 ): { rewrite?: tsTypes.Expression } {
   if (ts.isStringLiteral(argument) || ts.isNoSubstitutionTemplateLiteral(argument)) {
     validateLiteral(ts, checker, argument.text, argument, targetT, sourceFile, emit);
@@ -177,6 +200,44 @@ function validateArgument(
     validateLiteral(ts, checker, placeholderSource, argument, targetT, sourceFile, emit);
     return { rewrite: rewriteTemplate(ts, argument, parts) };
   }
+  if (ts.isIdentifier(argument)) {
+    // 1. If the identifier is already typed as WebdaQLString<T>, accept (opt-out).
+    const argType = checker.getTypeAtLocation(argument);
+    if (peelWebdaQLString(checker, argType)) return {};
+
+    // 2. Type-flow one hop into the const declarator's initializer.
+    const symbol = checker.getSymbolAtLocation(argument);
+    const decl = symbol?.declarations?.find(d => ts.isVariableDeclaration(d)) as
+      | tsTypes.VariableDeclaration
+      | undefined;
+    if (decl?.parent && ts.isVariableDeclarationList(decl.parent)) {
+      const isConst = (decl.parent.flags & ts.NodeFlags.Const) !== 0;
+      if (isConst && decl.initializer) {
+        const init = decl.initializer;
+        if (ts.isStringLiteral(init) || ts.isNoSubstitutionTemplateLiteral(init)) {
+          validateLiteral(ts, checker, init.text, argument, targetT, sourceFile, emit);
+          return {};
+        }
+        if (ts.isTemplateExpression(init)) {
+          const parts = templateParts(init);
+          validateLiteral(ts, checker, parts.join("?"), argument, targetT, sourceFile, emit);
+          // Mark the const declarator's initializer for rewrite in the second visitor pass.
+          pendingRewrites.set(decl, rewriteTemplate(ts, init, parts));
+          return {};
+        }
+      }
+    }
+    // Fall through to WQL9005.
+  }
+
+  emit(
+    makeDiagnostic(
+      sourceFile,
+      argument,
+      9005,
+      `WebdaQL: argument is not a literal/template/typed local. Type it as 'WebdaQLString<T>' to opt out.`
+    )
+  );
   return {};
 }
 

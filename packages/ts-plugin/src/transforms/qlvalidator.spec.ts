@@ -284,3 +284,64 @@ describe("qlvalidator — template literal rewrite", () => {
     expect(diagnostics.some(d => d.code === 9001)).toBe(true);
   });
 });
+
+describe("qlvalidator — local-flow and typed opt-out", () => {
+  it("validates a const-bound literal initializer", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { title: string };
+        function query(q: WebdaQLString<Post>) { return q; }
+        const q = "bogus = 'x'";
+        query(q);
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics.some(d => d.code === 9001)).toBe(true);
+  });
+
+  it("rewrites a const-bound template initializer", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { title: string };
+        function query(q: WebdaQLString<Post>) { return q; }
+        const name = "alice";
+        const q = \`title = '\${name}'\`;
+        query(q);
+      `
+    });
+    const { output, diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics).toHaveLength(0);
+    expect(output).toContain("escape(");
+  });
+
+  it("accepts a WebdaQLString<T>-typed local without parsing it", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { title: string };
+        function query(q: WebdaQLString<Post>) { return q; }
+        function build(): WebdaQLString<Post> { return "title = 'x'" as WebdaQLString<Post>; }
+        const q: WebdaQLString<Post> = build();
+        query(q);
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  it("rejects a dynamic argument (WQL9005)", () => {
+    const program = createTestProgram({
+      "test.ts": `
+        type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
+        type Post = { title: string };
+        function query(q: WebdaQLString<Post>) { return q; }
+        function compute(): string { return "title = 'x'"; }
+        query(compute());
+      `
+    });
+    const { diagnostics } = runValidator(program, "test.ts");
+    expect(diagnostics.some(d => d.code === 9005)).toBe(true);
+  });
+});

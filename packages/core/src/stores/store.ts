@@ -331,6 +331,17 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * Contains the current model type
    */
   _modelType: string;
+
+  /**
+   * Override the resolved model class for this store at runtime. Used by
+   * the abstract `StoreTest` harness so test fixtures can substitute a
+   * subclass with extra fields in place of the configured model. In
+   * production this is a no-op the framework never calls.
+   * @param model - the substitute model class
+   */
+  setModelDefinitionHelper(model: ModelClass): void {
+    this._model = model;
+  }
   /**
    * Add metrics counter
    * ' UNION SELECT name, tbl_name as email, "" as col1, "" as col2, "" as col3, "" as col4, "" as col5, "" as col6, "" as col7, "" as col8 FROM sqlite_master --

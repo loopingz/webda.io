@@ -104,6 +104,14 @@ export default class PostgresPubSubService<
    * Open a fresh client, run LISTEN, and wire the notification handler.
    */
   protected async connect(): Promise<void> {
+    // Validate the channel name before opening any connection: LISTEN
+    // can't be parameterized so the channel name gets inlined into SQL,
+    // which makes it a query-injection vector. Failing fast here keeps
+    // the bad-input case independent of database reachability.
+    const ch = this.channel();
+    if (!/^[a-z_][a-z0-9_]*$/.test(ch)) {
+      throw new Error(`Invalid channel name "${ch}" — must match /^[a-z_][a-z0-9_]*$/`);
+    }
     const client = new pg.Client(this.parameters.postgresqlServer);
     client.on("notification", (msg: pg.Notification) => {
       if (msg.channel !== this.channel()) return;
@@ -112,16 +120,6 @@ export default class PostgresPubSubService<
     client.on("error", err => useLog("WARN", `PostgresPubSub client error: ${err.message}`));
     client.on("end", () => this.handleDisconnect());
     await client.connect();
-    // Use the parameterized form rather than string-interpolating the
-    // channel into the SQL: pg's escape rules for identifiers in LISTEN
-    // are subtle and getting them wrong is a vector for query injection.
-    // pg_notify is a function so it accepts a parameter directly.
-    // For LISTEN itself we must validate the channel name.
-    const ch = this.channel();
-    if (!/^[a-z_][a-z0-9_]*$/.test(ch)) {
-      await client.end();
-      throw new Error(`Invalid channel name "${ch}" — must match /^[a-z_][a-z0-9_]*$/`);
-    }
     await client.query(`LISTEN ${ch}`);
     this.client = client;
   }

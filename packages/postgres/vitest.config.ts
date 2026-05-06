@@ -1,9 +1,16 @@
 /// <reference types="vitest" />
 
 import { defineConfig } from "vite";
+import { resolve } from "path";
 
 export default defineConfig({
   clearScreen: false,
+  resolve: {
+    alias: {
+      "@webda/core/lib/stores/store.spec": resolve(__dirname, "../core/src/stores/store.spec.ts"),
+      "@webda/core/lib/test": resolve(__dirname, "../core/src/test/index.ts")
+    }
+  },
   test: {
     allowOnly: true,
     coverage: {

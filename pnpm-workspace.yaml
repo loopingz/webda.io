@@ -9,7 +9,6 @@ packages:
   - "!packages/kubernetes"
   - "!packages/elasticsearch"
   - "!packages/google-auth"
-  - "!packages/postgres"
   - "!packages/otel"
   - "!packages/hawk"
   - "!packages/mongodb"

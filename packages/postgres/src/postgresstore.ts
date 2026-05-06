@@ -1,7 +1,8 @@
-import { CoreModel, RegExpStringValidator, StoreNotFoundError, UpdateConditionFailError } from "@webda/core";
+import { InstanceCache, useApplication, useCore, useModelMetadata } from "@webda/core";
+import type { ModelClass, Repository } from "@webda/core";
 import { JSONSchema7 } from "json-schema";
 import pg, { ClientConfig, PoolConfig } from "pg";
-import { SQLResult, SQLStore, SQLStoreParameters } from "./sqlstore";
+import { PostgresRepository, SQLStore, SQLStoreParameters } from "./sqlstore.js";
 
 /*
  * Ideas:
@@ -19,7 +20,7 @@ import { SQLResult, SQLStore, SQLStoreParameters } from "./sqlstore";
  */
 export class PostgresParameters extends SQLStoreParameters {
   /**
-   * @default true
+   * @default false
    */
   usePool?: boolean;
   /**
@@ -36,18 +37,24 @@ export class PostgresParameters extends SQLStoreParameters {
    */
   viewPrefix?: string;
   /**
-   * Regexp of models to include
+   * Regexp patterns of model identifiers to include when generating views
    *
    * @default [".*"]
    */
   views?: string[];
 
-  constructor(params: any, store: PostgresStore) {
-    super(params, store);
+  /**
+   * @override
+   * @param params - raw parameters
+   * @returns this
+   */
+  load(params: any): this {
+    super.load(params);
     this.autoCreateTable ??= true;
     this.usePool ??= false;
     this.viewPrefix ??= "";
-    this.views ??= ["regex:.*"];
+    this.views ??= [".*"];
+    return this;
   }
 }
 
@@ -55,7 +62,7 @@ export class PostgresParameters extends SQLStoreParameters {
  * Store data within PostgreSQL with JSONB
  *
  * The table should be created before with
-
+ *
  * ```sql
  * CREATE TABLE IF NOT EXISTS ${tableName}
  * (
@@ -67,10 +74,7 @@ export class PostgresParameters extends SQLStoreParameters {
  *
  * @WebdaModda
  */
-export class PostgresStore<
-  T extends CoreModel = CoreModel,
-  K extends PostgresParameters = PostgresParameters
-> extends SQLStore<T, K> {
+export class PostgresStore<K extends PostgresParameters = PostgresParameters> extends SQLStore<K> {
   client: pg.Client | pg.Pool;
 
   /**
@@ -81,8 +85,8 @@ export class PostgresStore<
       this.client = new pg.Pool(this.parameters.postgresqlServer);
     } else {
       this.client = new pg.Client(this.parameters.postgresqlServer);
+      await this.client.connect();
     }
-    await this.client.connect();
     await this.checkTable();
     await super.init();
     return this;
@@ -106,58 +110,55 @@ export class PostgresStore<
 
   /**
    * Return the postgresql client
-   * @returns
+   * @returns the pg client or pool
    */
   getClient() {
     return this.client;
   }
 
   /**
-   * Execute a query on the server
-   *
-   * @param query
-   * @returns
+   * Build and return a PostgresRepository for the given model.
+   * @param model - the model class
+   * @returns a repository backed by this store's pg connection
    */
-  async executeQuery(query: string, values: any[] = []): Promise<SQLResult<T>> {
-    this.log("DEBUG", "Query", query);
-    const res = await this.client.query(query, values);
-    return {
-      rows: res.rows.map(r => this.initModel(r.data)),
-      rowCount: res.rowCount
-    };
+  @InstanceCache()
+  getRepository<T extends ModelClass>(model: T): Repository<T> {
+    const meta = useModelMetadata(model);
+    return new PostgresRepository<T>(model, meta.PrimaryKey, this.client as any, this.parameters.table) as Repository<T>;
   }
 
   /**
-   * Create views for each models
+   * Create views for each model that is stored in a PostgresStore.
    *
-   * @param [prefix=""] prefix to add to the view name
-   * @param [skips=[]] list of models to skip
+   * Creates one SQL VIEW per model (or model subclass) that maps the JSONB
+   * `data` column to typed columns based on the model's stored JSON schema.
    */
   async createViews() {
-    // CREATE VIEW my_view AS SELECT uuid,data->>'status' as status from table;
-    const webda = this.getWebda();
-    const models = webda.getModels();
-    const app = webda.getApplication();
-    const validator = new RegExpStringValidator(this.parameters.views);
+    const app = useApplication();
+    const models = app.getModels();
+    const viewPatterns: RegExp[] = (this.parameters.views ?? [".*"]).map(p => new RegExp(p));
 
-    for (const model of Object.values(models)) {
-      const store = webda.getModelStore(model);
-      if (!(store instanceof PostgresStore)) {
-        continue;
-      }
+    const modelMatches = (identifier: string): boolean => viewPatterns.some(re => re.test(identifier));
+
+    for (const model of Object.values(models) as ModelClass[]) {
+      if (!model) continue;
+      const meta = useModelMetadata(model);
+      if (!meta || !meta.Identifier) continue;
+
+      if (!modelMatches(meta.Identifier)) continue;
+
+      // Find the PostgresStore responsible for this model
+      const allServices = Object.values(useCore().getServices()).filter(s => s instanceof PostgresStore) as PostgresStore[];
+      const store = allServices.find(s => s.handleModel(model) >= 0);
+      if (!store) continue;
+
+      const schema = meta.Schemas?.Stored;
+      if (!schema || !schema.properties) continue;
+
+      const plural = meta.Plural || meta.Identifier.split("/").pop()!.toLowerCase() + "s";
+      const viewName = `${this.parameters.viewPrefix}${plural}`;
       const fields = ["uuid"];
-      const schema = model.getSchema();
-      console.log(
-        "SCHEMA",
-        schema,
-        model.getIdentifier(false),
-        validator.validate(model.getIdentifier(false)),
-        this.parameters.views
-      );
-      if (!schema || !validator.validate(model.getIdentifier(false))) {
-        continue;
-      }
-      const plural = webda.getApplication().getModelPlural(model.getIdentifier());
+
       for (const field of Object.keys(schema.properties)) {
         if (field === "uuid" || !field.match(/^[0-9a-zA-Z-_$]+$/)) {
           continue;
@@ -177,15 +178,14 @@ export class PostgresStore<
         }
         fields.push(`(data->>'${field}')${cast} as ${field}`);
       }
-      let query = `CREATE OR REPLACE VIEW ${this.parameters.viewPrefix}${plural} AS SELECT ${fields.join(",")} FROM ${
-        store.getParameters().table
-      }`;
+
+      let query = `CREATE OR REPLACE VIEW ${viewName} AS SELECT ${fields.join(",")} FROM ${store.getParameters().table}`;
       if (store.handleModel(model) > 0) {
-        query += ` WHERE (data#>>'{__types}')::jsonb ? '${app.getShortId(app.getModelName(model))}'`;
+        query += ` WHERE (data#>>'{__type}') = '${meta.ShortName || meta.Identifier}'`;
       }
       try {
-        this.log("INFO", "Dropping view");
-        await store.getClient().query(`DROP VIEW IF EXISTS ${this.parameters.viewPrefix}${plural}`);
+        this.log("INFO", `Dropping view ${viewName}`);
+        await store.getClient().query(`DROP VIEW IF EXISTS ${viewName}`);
         this.log("INFO", query);
         await store.getClient().query(query);
       } catch (err) {
@@ -195,148 +195,10 @@ export class PostgresStore<
   }
 
   /**
-   * @override
+   * Delete all rows from the table (used in tests).
    */
-  mapExpressionAttribute(attribute: string[]): string {
-    return `data#>>'{${attribute.join(",")}}'`;
-  }
-
-  /**
-   * @override
-   */
-  async _patch(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any> {
-    let query = `UPDATE ${this.parameters.table} SET data = data || $1::jsonb WHERE uuid = $2`;
-    const args = [JSON.stringify(object), this.getUuid(uid)];
-    if (itemWriteCondition) {
-      query += this.getQueryCondition(itemWriteCondition, itemWriteConditionField, args);
-    }
-    const res = await this.sqlQuery(query, args);
-    if (res.rowCount === 0) {
-      throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
-    }
-  }
-
-  /**
-   * @override
-   */
-  async _removeAttribute(
-    uuid: string,
-    attribute: string,
-    itemWriteCondition?: any,
-    itemWriteConditionField?: string
-  ): Promise<void> {
-    let query = `UPDATE ${this.parameters.table} SET data = data - $1 WHERE uuid = $2`;
-    const args = [attribute, this.getUuid(uuid)];
-    if (itemWriteCondition) {
-      query += this.getQueryCondition(itemWriteCondition, itemWriteConditionField, args);
-    }
-    const res = await this.sqlQuery(query, args);
-    if (res.rowCount === 0) {
-      if (itemWriteCondition) {
-        throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
-      } else {
-        throw new StoreNotFoundError(uuid, this.getName());
-      }
-    }
-  }
-
-  /**
-   * @override
-   */
-  getQueryCondition(itemWriteCondition: any, itemWriteConditionField: string, params: any[]) {
-    const condition = itemWriteCondition instanceof Date ? itemWriteCondition.toISOString() : itemWriteCondition;
-    params.push(condition);
-    return ` AND data->>'${itemWriteConditionField}'=$${params.length}`;
-  }
-
-  /**
-   * @override
-   */
-  async _incrementAttributes(
-    uid: string,
-    params: { property: string; value: number }[],
-    updateDate: Date
-  ): Promise<any> {
-    let data = "data";
-    const args: any[] = [this.getUuid(uid)];
-    params.forEach((p, index) => {
-      args.push(p.value);
-      data = `jsonb_set(${data}, '{${p.property}}', (COALESCE(data->>'${p.property}','0')::int + $${
-        index + 2
-      })::text::jsonb)::jsonb`;
-    });
-    const query = `UPDATE ${
-      this.parameters.table
-    } SET data = jsonb_set(${data}, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid = $1`;
-    const res = await this.sqlQuery(query, args);
-    if (res.rowCount === 0) {
-      throw new StoreNotFoundError(uid, this.getName());
-    }
-  }
-
-  /**
-   * @override
-   */
-  async _upsertItemToCollection(
-    uuid: string,
-    attribute: string,
-    item: any,
-    index: number,
-    itemWriteCondition: any,
-    itemWriteConditionField: string,
-    updateDate: Date
-  ): Promise<any> {
-    let query = `UPDATE ${this.parameters.table} SET data = jsonb_set(jsonb_set(data::jsonb, array['${attribute}'],`;
-    const args = [this.getUuid(uuid)];
-    if (index === undefined) {
-      query += `COALESCE((data->'${attribute}')::jsonb, '[]'::jsonb) || '[${JSON.stringify(item)}]'::jsonb)::jsonb`;
-    } else {
-      query += `jsonb_set(COALESCE((data->'${attribute}')::jsonb, '[]'::jsonb), '{${index}}', '${JSON.stringify(
-        item
-      )}'::jsonb)::jsonb)`;
-    }
-    query += `, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid = $1`;
-    if (itemWriteCondition) {
-      args.push(itemWriteCondition);
-      query += ` AND (data#>>'{${attribute}, ${index}}')::jsonb->>'${itemWriteConditionField}'=$${args.length}`;
-    }
-    const res = await this.sqlQuery(query, args);
-    if (res.rowCount === 0) {
-      if (itemWriteCondition) {
-        throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
-      } else {
-        throw new StoreNotFoundError(uuid, this.getName());
-      }
-    }
-  }
-
-  /**
-   * @override
-   */
-  async _deleteItemFromCollection(
-    uuid: string,
-    attribute: string,
-    index: number,
-    itemWriteCondition: any,
-    itemWriteConditionField: string,
-    updateDate: Date
-  ): Promise<any> {
-    let query = `UPDATE ${this.parameters.table} SET data = jsonb_set(jsonb_set(data::jsonb, array['${attribute}'], COALESCE(`;
-    const args = [this.getUuid(uuid)];
-    query += `((data->'${attribute}')::jsonb - ${index})`;
-    query += `, '[]'::jsonb))::jsonb, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid = $1`;
-    if (itemWriteCondition) {
-      args.push(itemWriteCondition);
-      query += ` AND (data#>>'{${attribute}, ${index}}')::jsonb->>'${itemWriteConditionField}'=$2`;
-    }
-    const res = await this.sqlQuery(query, args);
-    if (res.rowCount === 0) {
-      if (itemWriteCondition) {
-        throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
-      } else {
-        throw new StoreNotFoundError(uuid, this.getName());
-      }
-    }
+  async __clean(): Promise<void> {
+    await this.client.query(`DELETE FROM ${this.parameters.table}`);
   }
 }
 

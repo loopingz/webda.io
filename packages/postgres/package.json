@@ -11,8 +11,8 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "webda build",
-    "build:watch": "webda build --watch",
+    "build": "webdac build",
+    "build:watch": "webdac build --watch",
     "pretest": "npm run build",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
@@ -25,6 +25,8 @@
   "dependencies": {
     "@webda/core": "workspace:*",
     "@webda/ql": "workspace:*",
+    "@webda/utils": "workspace:*",
+    "@webda/workout": "workspace:*",
     "pg": "^8.20.0"
   },
   "files": [
@@ -41,12 +43,17 @@
   },
   "devDependencies": {
     "@types/node": "25.5.0",
+    "@types/pg": "^8.11.10",
+    "@vitest/coverage-v8": "^4.1.2",
     "@webda/compiler": "workspace:^",
-    "@webda/shell": "workspace:*",
+    "@webda/test": "workspace:*",
+    "@webda/tsc-esm": "workspace:*",
     "jscodeshift": "^17.3.0",
     "skott": "^0.35.8",
     "tsx": "^4.21.0",
-    "vite": "^6.0.0"
+    "typescript": "^6.0.2",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
   },
   "type": "module",
   "engines": {
@@ -54,8 +61,7 @@
   },
   "nx": {
     "implicitDependencies": [
-      "@webda/core",
-      "@webda/shell"
+      "@webda/core"
     ]
   },
   "license": "LGPL-3.0-only"

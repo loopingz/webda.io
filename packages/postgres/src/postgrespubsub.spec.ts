@@ -102,8 +102,8 @@ class PostgresPubSubTest {
 
   @test
   async subscriberOnDifferentChannelDoesNotReceive() {
-    const pub = await this.makePeer("pub", "webda_test_chanA");
-    const sub = await this.makePeer("sub", "webda_test_chanB");
+    const pub = await this.makePeer("pub", "webda_test_chan_a");
+    const sub = await this.makePeer("sub", "webda_test_chan_b");
 
     const received: string[] = [];
     const handle = sub.consume(async (msg: string) => {

@@ -132,10 +132,16 @@ export default class PostgresQueueService<
         locked_until TIMESTAMPTZ
       )
     `);
+    // PG rejects STABLE functions like now() in index predicates ("functions
+    // in index predicate must be marked IMMUTABLE"), so the partial index
+    // covers only the unlocked half. Expired locks fall back to the
+    // sequential `locked_until < now()` filter at query time, which scans
+    // the (small) set of currently-locked rows. Pending rows — the hot path
+    // for healthy receive loops — get the index.
     await this.client!.query(`
       CREATE INDEX IF NOT EXISTS ${this.table}_pending_idx
       ON ${this.table} (id)
-      WHERE locked_until IS NULL OR locked_until < now()
+      WHERE locked_until IS NULL
     `);
   }
 

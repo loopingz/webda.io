@@ -4669,28 +4669,6 @@
       "properties": {
         "project": {
           "additionalProperties": false,
-          "definitions": {
-            "ResourceAcl": {
-              "additionalProperties": false,
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
-              "properties": {
-                "length": {
-                  "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "length"
-              ],
-              "type": "object"
-            },
-            "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "additionalProperties": false,
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "object"
-            }
-          },
           "description": "Make all properties in T optional",
           "properties": {
             "acls": {
@@ -4724,7 +4702,29 @@
       },
       "required": [
         "project"
-      ]
+      ],
+      "definitions": {
+        "ResourceAcl": {
+          "additionalProperties": false,
+          "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+          "properties": {
+            "length": {
+              "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
+              "type": "number"
+            }
+          },
+          "required": [
+            "length"
+          ],
+          "type": "object"
+        },
+        "company": {
+          "ModelLink": "but implies a Cascade delete",
+          "additionalProperties": false,
+          "description": "Define the parent of the model\n\nSimilar to",
+          "type": "object"
+        }
+      }
     },
     "WebdaDemo/SubSubProject.action2.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -4736,28 +4736,6 @@
         "project": {
           "WebdaModel": true,
           "additionalProperties": false,
-          "definitions": {
-            "ResourceAcl": {
-              "additionalProperties": false,
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
-              "properties": {
-                "length": {
-                  "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "length"
-              ],
-              "type": "object"
-            },
-            "company": {
-              "ModelLink": "but implies a Cascade delete",
-              "additionalProperties": false,
-              "description": "Define the parent of the model\n\nSimilar to",
-              "type": "object"
-            }
-          },
           "properties": {
             "acls": {
               "$ref": "#/definitions/ResourceAcl"
@@ -4800,7 +4778,29 @@
       },
       "required": [
         "project"
-      ]
+      ],
+      "definitions": {
+        "ResourceAcl": {
+          "additionalProperties": false,
+          "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+          "properties": {
+            "length": {
+              "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
+              "type": "number"
+            }
+          },
+          "required": [
+            "length"
+          ],
+          "type": "object"
+        },
+        "company": {
+          "ModelLink": "but implies a Cascade delete",
+          "additionalProperties": false,
+          "description": "Define the parent of the model\n\nSimilar to",
+          "type": "object"
+        }
+      }
     },
     "WebdaDemo/SubSubProject.action3.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -4826,51 +4826,6 @@
       "properties": {
         "context": {
           "additionalProperties": false,
-          "definitions": {
-            "Error": {
-              "additionalProperties": false,
-              "properties": {
-                "message": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "stack": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "message",
-                "name"
-              ],
-              "type": "object"
-            },
-            "Promise<any>": {
-              "additionalProperties": false,
-              "description": "Represents the completion of an asynchronous operation",
-              "type": "object"
-            },
-            "Writable": {
-              "additionalProperties": false,
-              "properties": {
-                "destroyed": {
-                  "default": false,
-                  "description": "Is `true` after `writable.destroy()` has been called.",
-                  "since": "v8.0.0",
-                  "type": "boolean"
-                },
-                "writable": {
-                  "default": false,
-                  "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-                  "since": "v11.4.0",
-                  "type": "boolean"
-                }
-              },
-              "since": "v0.9.4",
-              "type": "object"
-            }
-          },
           "description": "OperationContext is used when call to an operation",
           "param": [
             "T type of input for this context",
@@ -4907,7 +4862,52 @@
       },
       "required": [
         "context"
-      ]
+      ],
+      "definitions": {
+        "Error": {
+          "additionalProperties": false,
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "stack": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message",
+            "name"
+          ],
+          "type": "object"
+        },
+        "Promise<any>": {
+          "additionalProperties": false,
+          "description": "Represents the completion of an asynchronous operation",
+          "type": "object"
+        },
+        "Writable": {
+          "additionalProperties": false,
+          "properties": {
+            "destroyed": {
+              "default": false,
+              "description": "Is `true` after `writable.destroy()` has been called.",
+              "since": "v8.0.0",
+              "type": "boolean"
+            },
+            "writable": {
+              "default": false,
+              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
+              "since": "v11.4.0",
+              "type": "boolean"
+            }
+          },
+          "since": "v0.9.4",
+          "type": "object"
+        }
+      }
     },
     "WebdaDemo/Classroom.test.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -4918,51 +4918,6 @@
       "properties": {
         "context": {
           "additionalProperties": false,
-          "definitions": {
-            "Error": {
-              "additionalProperties": false,
-              "properties": {
-                "message": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "stack": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "message",
-                "name"
-              ],
-              "type": "object"
-            },
-            "Promise<any>": {
-              "additionalProperties": false,
-              "description": "Represents the completion of an asynchronous operation",
-              "type": "object"
-            },
-            "Writable": {
-              "additionalProperties": false,
-              "properties": {
-                "destroyed": {
-                  "default": false,
-                  "description": "Is `true` after `writable.destroy()` has been called.",
-                  "since": "v8.0.0",
-                  "type": "boolean"
-                },
-                "writable": {
-                  "default": false,
-                  "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-                  "since": "v11.4.0",
-                  "type": "boolean"
-                }
-              },
-              "since": "v0.9.4",
-              "type": "object"
-            }
-          },
           "description": "OperationContext is used when call to an operation",
           "param": [
             "T type of input for this context",
@@ -4999,7 +4954,52 @@
       },
       "required": [
         "context"
-      ]
+      ],
+      "definitions": {
+        "Error": {
+          "additionalProperties": false,
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "stack": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message",
+            "name"
+          ],
+          "type": "object"
+        },
+        "Promise<any>": {
+          "additionalProperties": false,
+          "description": "Represents the completion of an asynchronous operation",
+          "type": "object"
+        },
+        "Writable": {
+          "additionalProperties": false,
+          "properties": {
+            "destroyed": {
+              "default": false,
+              "description": "Is `true` after `writable.destroy()` has been called.",
+              "since": "v8.0.0",
+              "type": "boolean"
+            },
+            "writable": {
+              "default": false,
+              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
+              "since": "v11.4.0",
+              "type": "boolean"
+            }
+          },
+          "since": "v0.9.4",
+          "type": "object"
+        }
+      }
     },
     "WebdaDemo/Hardware.globalAction.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5033,51 +5033,6 @@
       "properties": {
         "ctx": {
           "additionalProperties": false,
-          "definitions": {
-            "Error": {
-              "additionalProperties": false,
-              "properties": {
-                "message": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "stack": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "message",
-                "name"
-              ],
-              "type": "object"
-            },
-            "Promise<any>": {
-              "additionalProperties": false,
-              "description": "Represents the completion of an asynchronous operation",
-              "type": "object"
-            },
-            "Writable": {
-              "additionalProperties": false,
-              "properties": {
-                "destroyed": {
-                  "default": false,
-                  "description": "Is `true` after `writable.destroy()` has been called.",
-                  "since": "v8.0.0",
-                  "type": "boolean"
-                },
-                "writable": {
-                  "default": false,
-                  "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-                  "since": "v11.4.0",
-                  "type": "boolean"
-                }
-              },
-              "since": "v0.9.4",
-              "type": "object"
-            }
-          },
           "description": "OperationContext is used when call to an operation",
           "param": [
             "T type of input for this context",
@@ -5114,7 +5069,52 @@
       },
       "required": [
         "ctx"
-      ]
+      ],
+      "definitions": {
+        "Error": {
+          "additionalProperties": false,
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "stack": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message",
+            "name"
+          ],
+          "type": "object"
+        },
+        "Promise<any>": {
+          "additionalProperties": false,
+          "description": "Represents the completion of an asynchronous operation",
+          "type": "object"
+        },
+        "Writable": {
+          "additionalProperties": false,
+          "properties": {
+            "destroyed": {
+              "default": false,
+              "description": "Is `true` after `writable.destroy()` has been called.",
+              "since": "v8.0.0",
+              "type": "boolean"
+            },
+            "writable": {
+              "default": false,
+              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
+              "since": "v11.4.0",
+              "type": "boolean"
+            }
+          },
+          "since": "v0.9.4",
+          "type": "object"
+        }
+      }
     },
     "CustomService.testOperation.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5125,51 +5125,6 @@
       "properties": {
         "ctx": {
           "additionalProperties": false,
-          "definitions": {
-            "Error": {
-              "additionalProperties": false,
-              "properties": {
-                "message": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "stack": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "message",
-                "name"
-              ],
-              "type": "object"
-            },
-            "Promise<any>": {
-              "additionalProperties": false,
-              "description": "Represents the completion of an asynchronous operation",
-              "type": "object"
-            },
-            "Writable": {
-              "additionalProperties": false,
-              "properties": {
-                "destroyed": {
-                  "default": false,
-                  "description": "Is `true` after `writable.destroy()` has been called.",
-                  "since": "v8.0.0",
-                  "type": "boolean"
-                },
-                "writable": {
-                  "default": false,
-                  "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
-                  "since": "v11.4.0",
-                  "type": "boolean"
-                }
-              },
-              "since": "v0.9.4",
-              "type": "object"
-            }
-          },
           "description": "OperationContext is used when call to an operation",
           "param": [
             "T type of input for this context",
@@ -5206,7 +5161,52 @@
       },
       "required": [
         "ctx"
-      ]
+      ],
+      "definitions": {
+        "Error": {
+          "additionalProperties": false,
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "stack": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message",
+            "name"
+          ],
+          "type": "object"
+        },
+        "Promise<any>": {
+          "additionalProperties": false,
+          "description": "Represents the completion of an asynchronous operation",
+          "type": "object"
+        },
+        "Writable": {
+          "additionalProperties": false,
+          "properties": {
+            "destroyed": {
+              "default": false,
+              "description": "Is `true` after `writable.destroy()` has been called.",
+              "since": "v8.0.0",
+              "type": "boolean"
+            },
+            "writable": {
+              "default": false,
+              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
+              "since": "v11.4.0",
+              "type": "boolean"
+            }
+          },
+          "since": "v0.9.4",
+          "type": "object"
+        }
+      }
     },
     "CustomService.testOperationWithOutput.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5214,5 +5214,5 @@
     }
   },
   "behaviors": {},
-  "sourceDigest": "71d38c264f5a5442492df0282b528ebc"
+  "sourceDigest": "6fccadfbc6881ed8c14fadd1900f50fd"
 }

@@ -34,6 +34,9 @@
     "test:watch": "vitest",
     "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts"
   },
+  "dependencies": {
+    "@webda/ql": "workspace:*"
+  },
   "peerDependencies": {
     "ts-patch": ">=3.0.0",
     "typescript": ">=5.0.0"

@@ -38,6 +38,7 @@
     "@webda/graphql": "workspace:^",
     "@webda/grpc": "workspace:^",
     "@webda/models": "workspace:^",
+    "@webda/ql": "workspace:^",
     "@webda/utils": "workspace:^",
     "bcryptjs": "^2.4.3"
   },

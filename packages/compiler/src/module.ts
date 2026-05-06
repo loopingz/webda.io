@@ -16,6 +16,7 @@ import { EventsMetadata } from "./metadata/events";
 import { PrimaryKeyMetadata } from "./metadata/primarykey";
 import { PluralMetadata } from "./metadata/plural";
 import { SchemaGenerator } from "@webda/schema";
+import { generateSessionTypes } from "./session-types.js";
 
 /**
  * A lightweight descriptor for any class node walked during
@@ -1352,6 +1353,13 @@ export class ModuleGenerator {
     }
     writeFileSync(outPath, content);
     useLog("INFO", `Generated TypeScript library at .webda/module.d.ts`);
+
+    try {
+      generateSessionTypes(this.compiler.project.getAppPath());
+    } catch (err) {
+      useLog("ERROR", "Failed to generate session types:", err.message);
+      throw err;
+    }
   }
 }
 

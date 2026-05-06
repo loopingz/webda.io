@@ -222,6 +222,40 @@
         "title": "FileStore"
       },
       "Configuration": "lib/filestore:FileStoreParameters"
+    },
+    "Webda/SocketPubSub": {
+      "Import": "lib/socketpubsub:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Configuration for {@link SocketPubSubService}.",
+        "properties": {
+          "path": {
+            "description": "Filesystem path of the unix-domain socket. The first peer to bind this\npath becomes the broker; subsequent peers connect as clients.",
+            "type": "string"
+          },
+          "reconnectDelay": {
+            "default": 100,
+            "description": "Reconnect delay in milliseconds when the broker disconnects. A small\nrandom jitter is added on top to avoid stampedes when several clients\nrace to bind a new socket.",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "path",
+          "type"
+        ],
+        "type": "object",
+        "title": "SocketPubSubService"
+      },
+      "Configuration": "lib/socketpubsub:SocketPubSubParameters"
     }
   },
   "models": {},
@@ -270,5 +304,5 @@
     }
   },
   "behaviors": {},
-  "sourceDigest": "fd32fe1c04ff69c9e7f4599687c45fce"
+  "sourceDigest": "c604b24ba0b9ea0416461a6abf35857f"
 }

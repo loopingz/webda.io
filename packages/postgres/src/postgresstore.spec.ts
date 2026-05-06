@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import { Ident } from "@webda/core";
 import * as assert from "node:assert";
 import pg from "pg";
-import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
+import { WebdaApplicationTest } from "@webda/core/lib/test";
 import PostgresStore from "./postgresstore.js";
 
 const params = {

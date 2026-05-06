@@ -1,132 +1,145 @@
-import { describe, it, expect } from "vitest";
+import { suite, test } from "@webda/test";
+import * as assert from "assert";
 import { escape, WebdaQLError, type WebdaQLString } from "./webdaql-string.js";
 
-describe("WebdaQLString brand", () => {
-  it("is structurally a string at runtime", () => {
+@suite
+class WebdaQLStringTest {
+  @test
+  brandIsStructurallyAStringAtRuntime() {
     const q: WebdaQLString<{ name: string }> = "name = 'x'" as WebdaQLString<{ name: string }>;
-    expect(typeof q).toBe("string");
-    expect(q).toBe("name = 'x'");
-  });
-});
+    assert.strictEqual(typeof q, "string");
+    assert.strictEqual(q, "name = 'x'");
+  }
 
-describe("escape — string values", () => {
-  it("wraps strings in single quotes", () => {
-    expect(escape(["name = ", ""], ["alice"])).toBe("name = 'alice'");
-  });
+  @test
+  escapeWrapsStringsInSingleQuotes() {
+    assert.strictEqual(escape(["name = ", ""], ["alice"]), "name = 'alice'");
+  }
 
-  it("doubles embedded single quotes (SQL convention)", () => {
-    expect(escape(["name = ", ""], ["O'Brien"])).toBe("name = 'O''Brien'");
-  });
+  @test
+  escapeDoublesEmbeddedSingleQuotes() {
+    assert.strictEqual(escape(["name = ", ""], ["O'Brien"]), "name = 'O''Brien'");
+  }
 
-  it("preserves backslashes verbatim", () => {
-    expect(escape(["path = ", ""], ["a\\b"])).toBe("path = 'a\\b'");
-  });
+  @test
+  escapePreservesBackslashesVerbatim() {
+    assert.strictEqual(escape(["path = ", ""], ["a\\b"]), "path = 'a\\b'");
+  }
 
-  it("supports multi-byte / unicode strings", () => {
-    expect(escape(["x = ", ""], ["café"])).toBe("x = 'café'");
-  });
+  @test
+  escapeSupportsMultiByteUnicodeStrings() {
+    assert.strictEqual(escape(["x = ", ""], ["café"]), "x = 'café'");
+  }
 
-  it("supports multiple values", () => {
-    expect(escape(["name = ", " AND age = ", ""], ["alice", 30])).toBe(
-      "name = 'alice' AND age = 30"
-    );
-  });
-});
+  @test
+  escapeSupportsMultipleValues() {
+    assert.strictEqual(escape(["name = ", " AND age = ", ""], ["alice", 30]), "name = 'alice' AND age = 30");
+  }
 
-describe("escape — scalar values", () => {
-  it("emits numbers verbatim", () => {
-    expect(escape(["age = ", ""], [42])).toBe("age = 42");
-    expect(escape(["x = ", ""], [3.14])).toBe("x = 3.14");
-    expect(escape(["x = ", ""], [-7])).toBe("x = -7");
-  });
+  @test
+  escapeEmitsNumbersVerbatim() {
+    assert.strictEqual(escape(["age = ", ""], [42]), "age = 42");
+    assert.strictEqual(escape(["x = ", ""], [3.14]), "x = 3.14");
+    assert.strictEqual(escape(["x = ", ""], [-7]), "x = -7");
+  }
 
-  it("emits booleans as TRUE/FALSE (uppercase)", () => {
-    expect(escape(["ok = ", ""], [true])).toBe("ok = TRUE");
-    expect(escape(["ok = ", ""], [false])).toBe("ok = FALSE");
-  });
+  @test
+  escapeEmitsBooleansAsTrueFalse() {
+    assert.strictEqual(escape(["ok = ", ""], [true]), "ok = TRUE");
+    assert.strictEqual(escape(["ok = ", ""], [false]), "ok = FALSE");
+  }
 
-  it("emits null/undefined as NULL", () => {
-    expect(escape(["x = ", ""], [null])).toBe("x = NULL");
-    expect(escape(["x = ", ""], [undefined])).toBe("x = NULL");
-  });
+  @test
+  escapeEmitsNullUndefinedAsNull() {
+    assert.strictEqual(escape(["x = ", ""], [null]), "x = NULL");
+    assert.strictEqual(escape(["x = ", ""], [undefined]), "x = NULL");
+  }
 
-  it("emits Date as ISO string in single quotes", () => {
+  @test
+  escapeEmitsDateAsIsoStringInSingleQuotes() {
     const d = new Date("2026-05-03T12:00:00.000Z");
-    expect(escape(["t = ", ""], [d])).toBe("t = '2026-05-03T12:00:00.000Z'");
-  });
+    assert.strictEqual(escape(["t = ", ""], [d]), "t = '2026-05-03T12:00:00.000Z'");
+  }
 
-  it("rejects NaN", () => {
-    expect(() => escape(["x = ", ""], [NaN])).toThrow(WebdaQLError);
-  });
+  @test
+  escapeRejectsNaN() {
+    assert.throws(() => escape(["x = ", ""], [NaN]), WebdaQLError);
+  }
 
-  it("rejects Infinity", () => {
-    expect(() => escape(["x = ", ""], [Infinity])).toThrow(WebdaQLError);
-    expect(() => escape(["x = ", ""], [-Infinity])).toThrow(WebdaQLError);
-  });
-});
+  @test
+  escapeRejectsInfinity() {
+    assert.throws(() => escape(["x = ", ""], [Infinity]), WebdaQLError);
+    assert.throws(() => escape(["x = ", ""], [-Infinity]), WebdaQLError);
+  }
 
-describe("escape — array values", () => {
-  it("emits string arrays as parenthesised, comma-separated", () => {
-    expect(escape(["tags IN ", ""], [["a", "b", "c"]])).toBe("tags IN ('a', 'b', 'c')");
-  });
+  @test
+  escapeEmitsStringArraysAsParenthesisedCommaSeparated() {
+    assert.strictEqual(escape(["tags IN ", ""], [["a", "b", "c"]]), "tags IN ('a', 'b', 'c')");
+  }
 
-  it("emits number arrays the same way", () => {
-    expect(escape(["x IN ", ""], [[1, 2, 3]])).toBe("x IN (1, 2, 3)");
-  });
+  @test
+  escapeEmitsNumberArraysTheSameWay() {
+    assert.strictEqual(escape(["x IN ", ""], [[1, 2, 3]]), "x IN (1, 2, 3)");
+  }
 
-  it("supports mixed scalar arrays", () => {
-    expect(escape(["x IN ", ""], [[1, "two", true, null]])).toBe("x IN (1, 'two', TRUE, NULL)");
-  });
+  @test
+  escapeSupportsMixedScalarArrays() {
+    assert.strictEqual(escape(["x IN ", ""], [[1, "two", true, null]]), "x IN (1, 'two', TRUE, NULL)");
+  }
 
-  it("escapes embedded quotes inside string arrays", () => {
-    expect(escape(["x IN ", ""], [["O'Brien"]])).toBe("x IN ('O''Brien')");
-  });
+  @test
+  escapeEscapesEmbeddedQuotesInsideStringArrays() {
+    assert.strictEqual(escape(["x IN ", ""], [["O'Brien"]]), "x IN ('O''Brien')");
+  }
 
-  it("emits empty arrays as ()", () => {
-    expect(escape(["x IN ", ""], [[]])).toBe("x IN ()");
-  });
+  @test
+  escapeEmitsEmptyArraysAsParens() {
+    assert.strictEqual(escape(["x IN ", ""], [[]]), "x IN ()");
+  }
 
-  it("rejects nested arrays", () => {
-    expect(() => escape(["x = ", ""], [[[1, 2]]])).toThrow(WebdaQLError);
-  });
-});
+  @test
+  escapeRejectsNestedArrays() {
+    assert.throws(() => escape(["x = ", ""], [[[1, 2]]]), WebdaQLError);
+  }
 
-describe("escape — rejected value types", () => {
-  it("rejects plain objects", () => {
-    expect(() => escape(["x = ", ""], [{ a: 1 }])).toThrow(WebdaQLError);
-  });
+  @test
+  escapeRejectsPlainObjects() {
+    assert.throws(() => escape(["x = ", ""], [{ a: 1 }]), WebdaQLError);
+  }
 
-  it("rejects functions", () => {
-    expect(() => escape(["x = ", ""], [() => 1])).toThrow(WebdaQLError);
-  });
+  @test
+  escapeRejectsFunctions() {
+    assert.throws(() => escape(["x = ", ""], [() => 1]), WebdaQLError);
+  }
 
-  it("rejects symbols", () => {
-    expect(() => escape(["x = ", ""], [Symbol("s")])).toThrow(WebdaQLError);
-  });
+  @test
+  escapeRejectsSymbols() {
+    assert.throws(() => escape(["x = ", ""], [Symbol("s")]), WebdaQLError);
+  }
 
-  it("rejects bigints", () => {
-    expect(() => escape(["x = ", ""], [10n])).toThrow(WebdaQLError);
-  });
+  @test
+  escapeRejectsBigints() {
+    assert.throws(() => escape(["x = ", ""], [10n]), WebdaQLError);
+  }
 
-  it("rejection message names the offending value type", () => {
+  @test
+  escapeRejectionMessageNamesTheOffendingValueType() {
     try {
       escape(["x = ", ""], [{ a: 1 }]);
       throw new Error("did not throw");
     } catch (err) {
-      expect(err).toBeInstanceOf(WebdaQLError);
-      expect((err as WebdaQLError).message).toMatch(/object/);
+      assert.ok(err instanceof WebdaQLError);
+      assert.match((err as WebdaQLError).message, /object/);
     }
-  });
-});
+  }
 
-describe("public API surface", () => {
-  it("re-exports WebdaQLString, escape, WebdaQLError from package root", async () => {
+  @test
+  async publicApiSurfaceReExportsFromPackageRoot() {
     const mod = await import("./index.js");
-    expect(mod.escape).toBeDefined();
-    expect(mod.WebdaQLError).toBeDefined();
+    assert.ok(mod.escape !== undefined);
+    assert.ok(mod.WebdaQLError !== undefined);
     // WebdaQLString is a type — verify via runtime no-op
-    const q: import("./index.js").WebdaQLString<{ x: string }> =
-      "x = 'a'" as any;
-    expect(q).toBe("x = 'a'");
-  });
-});
+    const q: import("./index.js").WebdaQLString<{ x: string }> = "x = 'a'" as any;
+    assert.strictEqual(q, "x = 'a'");
+  }
+}

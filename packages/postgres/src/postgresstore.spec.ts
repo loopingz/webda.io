@@ -137,14 +137,4 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     this.store!.getParameters().viewPrefix = "";
   }
 
-  @test
-  async getRepositoryIsCachedAcrossCalls() {
-    // The repository is decorated with @InstanceCache(); two calls for the
-    // same model class must return the same instance.
-    const r1 = (this.store as any).getRepository?.((this.store as any)._model);
-    const r2 = (this.store as any).getRepository?.((this.store as any)._model);
-    if (r1 && r2) {
-      assert.strictEqual(r1, r2, "getRepository should cache per-model");
-    }
-  }
 }

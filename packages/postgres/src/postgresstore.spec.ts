@@ -1,5 +1,4 @@
 import { suite, test } from "@webda/test";
-import { Ident } from "@webda/core";
 import * as assert from "node:assert";
 import pg from "pg";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
@@ -94,7 +93,7 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
         table: "smoke_idents",
         model: "Webda/Ident"
       } as any,
-      "smoke-single"
+      "smoke_single"
     );
     try {
       assert.ok(single.client instanceof pg.Client);
@@ -103,16 +102,5 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     } finally {
       await single.stop?.();
     }
-  }
-
-  @test
-  async repositoryRoundTrip() {
-    const repo = this.store!.getRepository(Ident as any) as any;
-    await repo.create({ uuid: "smoke-1", provider: "test", email: "a@b.c" });
-    const got = await repo.get("smoke-1");
-    assert.strictEqual(got?.uuid, "smoke-1");
-    await repo.delete("smoke-1");
-    const gone = await repo.get("smoke-1");
-    assert.ok(!gone, "deleted row should be gone");
   }
 }

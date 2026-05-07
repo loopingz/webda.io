@@ -7,7 +7,13 @@ export default defineConfig({
   clearScreen: false,
   resolve: {
     alias: {
-      "@webda/core/lib/test": resolve(__dirname, "../core/src/test/index.ts")
+      "@webda/core/lib/test": resolve(__dirname, "../core/src/test/index.ts"),
+      // store.spec.ts is compiled to lib (via tsconfig files[]) for cross-
+      // package use, but @webda/core has no exports field so Node ESM
+      // strict resolution refuses the subpath. Aliasing it to the lib
+      // file (NOT to src — src would re-introduce the class-identity
+      // mismatch we just resolved) lets vitest find it.
+      "@webda/core/lib/stores/store.spec": resolve(__dirname, "../core/lib/stores/store.spec.js")
     }
   },
   test: {

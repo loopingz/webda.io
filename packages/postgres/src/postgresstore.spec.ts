@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import { Ident } from "@webda/core";
-import { StoreTest } from "@webda/core/lib/stores/store.spec.js";
+import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import * as assert from "node:assert";
 import pg from "pg";
 import PostgresStore from "./postgresstore.js";

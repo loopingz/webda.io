@@ -367,8 +367,17 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     queries: Histogram;
   };
 
-  /** Compute and register repositories for all known models based on available stores */
-  @InstanceCache()
+  /**
+   * Compute and register repositories for all known models based on available stores.
+   *
+   * Called from `Store.init()` so each store's init triggers a recompute.
+   * Cannot be cached: the FIRST store to init (typically `Registry`) would
+   * claim every model with its fallback repository, and subsequent
+   * stores wouldn't get a chance to claim their configured models.
+   * Re-running is idempotent — `registerRepository` overwrites map entries
+   * in place, and the resolution loop is deterministic per current
+   * service/model state.
+   */
   static computeStores() {
     // Gather all stores and register Repository
     const stores = Object.values(useCore().getServices()).filter(s => s instanceof Store);

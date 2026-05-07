@@ -383,14 +383,22 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     const stores = Object.values(useCore().getServices()).filter(s => s instanceof Store);
     const models = Object.values(useApplication().getModels());
     const registry = useCore().getService<Store>("Registry");
+    useLog("INFO", `[computeStores] stores: ${stores.map(s => s.getName()).join(",")} models: ${models.length}`);
     // Check each available models
     for (const model of models) {
       // Model can be null?
-      if (!model) continue;
-      if (!model.Metadata || !Array.isArray(model.Metadata.PrimaryKey)) {
-        useLog("WARN", `${useModelId(model)} does not have Metadata or PrimaryKey defined`);
+      if (!model) {
+        useLog("INFO", `[computeStores] skip null model`);
         continue;
       }
+      if (!model.Metadata || !Array.isArray(model.Metadata.PrimaryKey)) {
+        useLog(
+          "INFO",
+          `[computeStores] SKIP ${(model as any).name}: Metadata=${!!model.Metadata} PrimaryKey=${JSON.stringify(model.Metadata?.PrimaryKey)}`
+        );
+        continue;
+      }
+      useLog("INFO", `[computeStores] iterate ${useModelId(model)} pk=${JSON.stringify(model.Metadata.PrimaryKey)}`);
       let currentValue = -1;
       let currentStore: Store = undefined;
       for (const store of stores) {
@@ -406,8 +414,9 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         currentStore = registry;
       }
       // Register the repository
-      registerRepository(model, currentStore.getRepository(model) as any);
-      useLog("DEBUG", `${useModelId(model)} using store ${currentStore.getName()}`);
+      const repo = currentStore.getRepository(model) as any;
+      registerRepository(model, repo);
+      useLog("INFO", `[computeStores] register ${useModelId(model)} -> ${currentStore.getName()} (${repo?.constructor?.name})`);
     }
   }
 

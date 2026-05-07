@@ -397,8 +397,10 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         currentStore = registry;
       }
       // Register the repository
-      registerRepository(model, currentStore.getRepository(model) as any);
-      useLog("DEBUG", `${useModelId(model)} using store ${currentStore.getName()}`);
+      const repo = currentStore.getRepository(model) as any;
+      registerRepository(model, repo);
+      // eslint-disable-next-line no-console
+      console.log(`[computeStores] ${useModelId(model)} -> ${currentStore.getName()} hierarchy=${JSON.stringify(currentStore._modelsHierarchy)}`);
     }
   }
 

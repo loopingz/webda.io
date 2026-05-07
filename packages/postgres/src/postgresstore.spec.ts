@@ -1,5 +1,5 @@
 import { suite, test } from "@webda/test";
-import { Ident } from "@webda/core";
+import { Ident, User } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import * as assert from "node:assert";
 import pg from "pg";
@@ -18,6 +18,20 @@ const params = {
 
 @suite
 export class PostgresTest extends StoreTest<PostgresStore<any>> {
+  /**
+   * The bare TestApplication used by WebdaApplicationTest only registers
+   * WebdaTest models via tweakApp. Our store config references the
+   * canonical Webda/Ident and Webda/User classes, so we register them
+   * here so they're discoverable by useModel() before StoreTest's
+   * beforeEach builds the stores.
+   * @param app - the test application
+   */
+  async tweakApp(app: any) {
+    await super.tweakApp(app);
+    app.addModel("Webda/Ident", Ident as any);
+    app.addModel("Webda/User", User as any);
+  }
+
   async getIdentStore(): Promise<PostgresStore<any>> {
     return this.addService(
       PostgresStore,

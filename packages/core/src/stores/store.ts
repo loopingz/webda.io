@@ -6,9 +6,10 @@ import { ServiceParameters } from "../services/serviceparameters.js";
 import { Service } from "../services/service.js";
 import * as WebdaQL from "@webda/ql";
 import type { WebdaQLString } from "@webda/ql";
-import { useApplication, useModelId } from "../application/hooks.js";
+import { useApplication, useModel, useModelId } from "../application/hooks.js";
 import { useLog } from "../loggers/hooks.js";
-import { useCore } from "../core/hooks.js";
+import { useCore, useModelMetadata } from "../core/hooks.js";
+import type { ModelMetadata } from "@webda/compiler";
 import { InstanceCache } from "../cache/cache.js";
 
 /** Error thrown when an item is not found in a store */
@@ -269,6 +270,14 @@ export class StoreParameters extends ServiceParameters {
   noCache?: boolean;
 
   /**
+   * True when `model` was explicitly provided in the raw configuration.
+   * Stores that use the default model (RegistryEntry) without explicit
+   * configuration will not claim any model hierarchy.
+   * @internal
+   */
+  _modelExplicit?: boolean;
+
+  /**
    * Load store parameters with defaults for model type, strict mode, and aliases
    * @param params - the service parameters
    * @returns the result
@@ -279,6 +288,7 @@ export class StoreParameters extends ServiceParameters {
       throw new Error("Expose is not supported anymore, use DomainService instead");
     }
     // END_REFACTOR
+    this._modelExplicit = !!(params.model || (params.additionalModels && params.additionalModels.length > 0));
     super.load(params);
     this.model ??= "Webda/RegistryEntry";
     this.strict ??= false;
@@ -323,6 +333,10 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * Contains the current model
    */
   _model: ModelClass;
+  /**
+   * Contains the current model metadata
+   */
+  _modelMetadata: ModelMetadata;
   /**
    * Store the manager hierarchy with their depth
    */
@@ -389,54 +403,89 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   }
 
   /**
-   * Retrieve the Model
+   * Retrieve the Model and build the models hierarchy map.
    *
-   * @throws Error if model is not found
+   * If the configured model cannot be found, or if no model was explicitly
+   * configured (store uses the default RegistryEntry fallback), the hierarchy
+   * stays empty and the store will not claim any model — preserving the
+   * pre-migration fallback behaviour for test-only or misconfigured stores.
    */
   computeParameters(): void {
-    /*
     super.computeParameters();
-    const app = useApplication();
-    this._model = useModel(this.parameters.model);
+
+    // Stores without an explicit model configuration (i.e. using the default
+    // "Webda/RegistryEntry") should not participate in the model hierarchy to
+    // avoid accidentally claiming RegistryEntry over the real Registry service.
+    if (!this.parameters._modelExplicit) {
+      return;
+    }
+
+    // Guard: useModel throws on undefined and may return undefined/null for
+    // unknown models. Catch both so test-only or misconfigured stores stay
+    // harmless.
+    try {
+      this._model = useModel(this.parameters.model);
+    } catch {
+      this._model = undefined;
+    }
     if (!this._model) {
-      throw new Error(`Model not found: ${this.parameters.model}`);
+      useLog("TRACE", `Store ${this.getName?.() ?? "unknown"}: model not found: ${this.parameters.model}`);
+      return;
     }
     this._modelMetadata = useModelMetadata(this._model);
     if (!this._modelMetadata) {
-      throw new Error(`Model Metadata not found: ${this.parameters.model}`);
+      useLog("WARN", `Store ${this.getName?.() ?? "unknown"}: model metadata not found for ${this.parameters.model}`);
+      return;
     }
     useLog("TRACE", "METADATA", this._modelMetadata);
     this._modelType = this._modelMetadata.Identifier;
-    const recursive = (tree: ModelClass[], depth) => {
-      for (const model of tree) {
-        this._modelsHierarchy[this._modelMetadata.Identifier] ??= depth;
-        this._modelsHierarchy[this._modelMetadata.Identifier] = Math.min(
-          depth,
-          this._modelsHierarchy[this._modelMetadata.Identifier]
-        );
-        recursive(this._modelMetadata.Subclasses, depth + 1);
+
+    // Recursively populate _modelsHierarchy for a model's subclass tree.
+    // Each subclass identifier in meta.Subclasses is a string that we resolve
+    // via useModel. We keep the minimum depth seen for each identifier.
+    const recursive = (subclassIds: string[], depth: number) => {
+      for (const id of subclassIds) {
+        this._modelsHierarchy[id] = Math.min(depth, this._modelsHierarchy[id] ?? depth);
+        let subModel: ModelClass | undefined;
+        try {
+          subModel = useModel(id);
+        } catch {
+          continue;
+        }
+        if (!subModel) continue;
+        const subMeta = useModelMetadata(subModel);
+        if (!subMeta) continue;
+        recursive(subMeta.Subclasses ?? [], depth + 1);
       }
     };
-    // Compute the hierarchy
+
+    // Compute the hierarchy — reset first so re-resolve is idempotent
+    this._modelsHierarchy = {};
     this._modelsHierarchy[this._modelMetadata.Identifier] = 0;
-    // Strict Store only store their model
+    // Strict Store only stores their exact model
     if (!this.parameters.strict) {
-      recursive(this._modelMetadata.Subclasses, 1);
+      recursive(this._modelMetadata.Subclasses ?? [], 1);
     }
-    // Add additional models
-    if (this.parameters.additionalModels.length) {
-      // Strict mode is to only allow one model per store
+    // Add additional models (each treated as depth-0 roots with their own subtree)
+    if ((this.parameters.additionalModels ?? []).length) {
       if (this.parameters.strict) {
-        this.log("ERROR", "Cannot add additional models in strict mode");
+        useLog("ERROR", "Cannot add additional models in strict mode");
       } else {
-        for (const modelType of this.parameters.additionalModels) {
-          const model = useModel(modelType);
-          this._modelsHierarchy[this._modelMetadata.Identifier] = 0;
-          recursive(this._modelMetadata.Subclasses, 1);
+        for (const modelType of this.parameters.additionalModels!) {
+          let addModel: ModelClass | undefined;
+          try {
+            addModel = useModel(modelType);
+          } catch {
+            continue;
+          }
+          if (!addModel) continue;
+          const addMeta = useModelMetadata(addModel);
+          if (!addMeta) continue;
+          this._modelsHierarchy[addMeta.Identifier] = 0;
+          recursive(addMeta.Subclasses ?? [], 1);
         }
       }
     }
-    */
   }
 
   /**

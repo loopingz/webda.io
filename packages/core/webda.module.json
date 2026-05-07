@@ -1318,6 +1318,12 @@
         },
         "description": "Memory store",
         "properties": {
+          "_modelExplicit": {
+            "default": false,
+            "description": "True when `model` was explicitly provided in the raw configuration.\nStores that use the default model (RegistryEntry) without explicit\nconfiguration will not claim any model hierarchy.",
+            "internal": true,
+            "type": "boolean"
+          },
           "additionalModels": {
             "default": [],
             "description": "Additional models\n\nAllow this store to manage other models",
@@ -3832,5 +3838,5 @@
     "rest-domain": "Webda/RESTOperationsTransport",
     "http-server": "Webda/HttpServer"
   },
-  "sourceDigest": "0673f6b90ee5f6760da07f9d9c0685bf"
+  "sourceDigest": "4593cc6fee30ccbd94f5f86a42952573"
 }

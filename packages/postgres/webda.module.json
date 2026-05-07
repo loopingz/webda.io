@@ -2207,9 +2207,22 @@
           "new () => ClientBase": {
             "additionalProperties": false,
             "type": "object"
+          },
+          "tables": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.\nWhen not specified, defaults are: primary model → `table`, others → identifier lowercased with \"/\" → \"_\".",
+            "type": "object"
           }
         },
         "properties": {
+          "_modelExplicit": {
+            "default": false,
+            "description": "True when `model` was explicitly provided in the raw configuration.\nStores that use the default model (RegistryEntry) without explicit\nconfiguration will not claim any model hierarchy.",
+            "internal": true,
+            "type": "boolean"
+          },
           "additionalModels": {
             "default": [],
             "description": "Additional models\n\nAllow this store to manage other models",
@@ -2273,6 +2286,10 @@
           },
           "table": {
             "type": "string"
+          },
+          "tables": {
+            "$ref": "#/definitions/tables",
+            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.\nWhen not specified, defaults are: primary model → `table`, others → identifier lowercased with \"/\" → \"_\"."
           },
           "type": {
             "description": "Type of the service",
@@ -2358,5 +2375,5 @@
     }
   },
   "behaviors": {},
-  "sourceDigest": "a5f7f4c46153158b973f49ed63a9a6d7"
+  "sourceDigest": "29d5516c000ff464267b110fae968aa0"
 }

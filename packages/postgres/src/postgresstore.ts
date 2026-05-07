@@ -1,8 +1,9 @@
-import { InstanceCache, useApplication, useCore, useModelMetadata } from "@webda/core";
+import { InstanceCache, useApplication, useCore, useModel, useModelMetadata } from "@webda/core";
 import type { ModelClass, Repository } from "@webda/core";
 import { JSONSchema7 } from "json-schema";
 import pg, { ClientConfig, PoolConfig } from "pg";
 import { PostgresRepository, SQLStore, SQLStoreParameters } from "./sqlstore.js";
+import { useLog } from "@webda/workout";
 
 /*
  * Ideas:
@@ -44,6 +45,13 @@ export class PostgresParameters extends SQLStoreParameters {
   views?: string[];
 
   /**
+   * Per-model table name overrides.
+   * Maps a model identifier (e.g. "Webda/User") to a custom table name.
+   * When not specified, defaults are: primary model → `table`, others → identifier lowercased with "/" → "_".
+   */
+  tables?: { [modelIdentifier: string]: string };
+
+  /**
    * @override
    * @param params - raw parameters
    * @returns this
@@ -54,6 +62,7 @@ export class PostgresParameters extends SQLStoreParameters {
     this.usePool ??= false;
     this.viewPrefix ??= "";
     this.views ??= [".*"];
+    this.tables ??= {};
     return this;
   }
 }
@@ -93,19 +102,62 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
   }
 
   /**
-   * Ensure your table exists
+   * Resolve the table name for a given model class.
+   *
+   * Resolution order:
+   * 1. `parameters.tables[meta.Identifier]` — explicit per-model override
+   * 2. Primary model (matching `_modelMetadata.Identifier`) → `parameters.table`
+   * 3. Default — model identifier lowercased with "/" replaced by "_"
+   *
+   * @param model - the model class to resolve the table for
+   * @returns the table name
+   */
+  resolveTable(model: ModelClass): string {
+    const meta = useModelMetadata(model);
+    if (!meta) {
+      return this.parameters.table;
+    }
+    // Explicit per-model override
+    if (this.parameters.tables?.[meta.Identifier]) {
+      return this.parameters.tables[meta.Identifier];
+    }
+    // Primary model uses the configured table name
+    if (this._modelMetadata && meta.Identifier === this._modelMetadata.Identifier) {
+      return this.parameters.table;
+    }
+    // Default: identifier lowercased, "/" → "_"
+    return meta.Identifier.toLowerCase().replace(/\//g, "_");
+  }
+
+  /**
+   * Ensure all managed model tables exist (one per model in the hierarchy).
+   * When `autoCreateTable` is false, this is a no-op.
    */
   async checkTable() {
     if (!this.parameters.autoCreateTable) {
       return;
     }
-    this.log(
-      "DEBUG",
-      `CREATE TABLE IF NOT EXISTS ${this.parameters.table} (uuid VARCHAR(255) NOT NULL, data jsonb, CONSTRAINT ${this.parameters.table}_pkey PRIMARY KEY (uuid))`
-    );
-    await this.client.query(
-      `CREATE TABLE IF NOT EXISTS ${this.parameters.table} (uuid VARCHAR(255) NOT NULL, data jsonb, CONSTRAINT ${this.parameters.table}_pkey PRIMARY KEY (uuid))`
-    );
+    // Collect the set of unique table names across all managed models
+    const tables = new Set<string>();
+    // Always include the primary configured table
+    tables.add(this.parameters.table);
+    // Also include tables for all models in the hierarchy
+    for (const modelId of Object.keys(this._modelsHierarchy ?? {})) {
+      try {
+        const model = useModel(modelId);
+        if (model) {
+          tables.add(this.resolveTable(model));
+        }
+      } catch {
+        // Model may not be resolvable — skip
+      }
+    }
+    for (const table of tables) {
+      useLog("DEBUG", `CREATE TABLE IF NOT EXISTS ${table} (...)`);
+      await this.client.query(
+        `CREATE TABLE IF NOT EXISTS ${table} (uuid VARCHAR(255) NOT NULL, data jsonb, CONSTRAINT ${table}_pkey PRIMARY KEY (uuid))`
+      );
+    }
   }
 
   /**
@@ -117,14 +169,18 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
   }
 
   /**
-   * Build and return a PostgresRepository for the given model.
+   * Build and return a PostgresRepository for the given model, using the
+   * per-model table name resolved by `resolveTable`.
+   *
+   * The result is cached per model class via `@InstanceCache`.
    * @param model - the model class
    * @returns a repository backed by this store's pg connection
    */
   @InstanceCache()
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     const meta = useModelMetadata(model);
-    return new PostgresRepository<T>(model, meta.PrimaryKey, this.client as any, this.parameters.table) as Repository<T>;
+    const table = this.resolveTable(model);
+    return new PostgresRepository<T>(model, meta.PrimaryKey, this.client as any, table) as Repository<T>;
   }
 
   /**
@@ -179,7 +235,7 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
         fields.push(`(data->>'${field}')${cast} as ${field}`);
       }
 
-      let query = `CREATE OR REPLACE VIEW ${viewName} AS SELECT ${fields.join(",")} FROM ${store.getParameters().table}`;
+      let query = `CREATE OR REPLACE VIEW ${viewName} AS SELECT ${fields.join(",")} FROM ${store.resolveTable(model)}`;
       if (store.handleModel(model) > 0) {
         query += ` WHERE (data#>>'{__type}') = '${meta.ShortName || meta.Identifier}'`;
       }
@@ -195,10 +251,23 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
   }
 
   /**
-   * Delete all rows from the table (used in tests).
+   * Delete all rows from all managed tables (used in tests).
    */
   async __clean(): Promise<void> {
-    await this.client.query(`DELETE FROM ${this.parameters.table}`);
+    const tables = new Set<string>([this.parameters.table]);
+    for (const modelId of Object.keys(this._modelsHierarchy ?? {})) {
+      try {
+        const model = useModel(modelId);
+        if (model) {
+          tables.add(this.resolveTable(model));
+        }
+      } catch {
+        // skip unreachable models
+      }
+    }
+    for (const table of tables) {
+      await this.client.query(`DELETE FROM ${table}`);
+    }
   }
 }
 

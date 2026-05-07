@@ -11,6 +11,14 @@
   "repository": "git://github.com/loopingz/webda.io.git",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./lib/*": "./lib/*.js",
+    "./lib/*.js": "./lib/*.js"
+  },
   "bin": {
     "webda": "./lib/bin/launcher.js"
   },

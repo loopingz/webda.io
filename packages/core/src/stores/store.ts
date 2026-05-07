@@ -383,24 +383,24 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     const stores = Object.values(useCore().getServices()).filter(s => s instanceof Store);
     const models = Object.values(useApplication().getModels());
     const registry = useCore().getService<Store>("Registry");
-    // eslint-disable-next-line no-console
+     
     console.log(`[computeStores] stores: ${stores.map(s => s.getName()).join(",")} models: ${models.length}`);
     // Check each available models
     for (const model of models) {
       // Model can be null?
       if (!model) {
-        // eslint-disable-next-line no-console
+         
         console.log(`[computeStores] skip null model`);
         continue;
       }
       if (!model.Metadata || !Array.isArray(model.Metadata.PrimaryKey)) {
-        // eslint-disable-next-line no-console
+         
         console.log(
           `[computeStores] SKIP ${(model as any).name}: Metadata=${!!model.Metadata} PrimaryKey=${JSON.stringify(model.Metadata?.PrimaryKey)}`
         );
         continue;
       }
-      // eslint-disable-next-line no-console
+       
       console.log(`[computeStores] iterate ${useModelId(model)} pk=${JSON.stringify(model.Metadata.PrimaryKey)}`);
       let currentValue = -1;
       let currentStore: Store = undefined;
@@ -419,7 +419,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       // Register the repository
       const repo = currentStore.getRepository(model) as any;
       registerRepository(model, repo);
-      // eslint-disable-next-line no-console
+       
       console.log(`[computeStores] register ${useModelId(model)} -> ${currentStore.getName()} (${repo?.constructor?.name})`);
     }
   }
@@ -435,10 +435,17 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   computeParameters(): void {
     super.computeParameters();
 
+    // eslint-disable-next-line no-console
+    console.log(
+      `[computeParameters] ${this.getName?.()} _modelExplicit=${this.parameters._modelExplicit} model=${this.parameters.model}`
+    );
+
     // Stores without an explicit model configuration (i.e. using the default
     // "Webda/RegistryEntry") should not participate in the model hierarchy to
     // avoid accidentally claiming RegistryEntry over the real Registry service.
     if (!this.parameters._modelExplicit) {
+      // eslint-disable-next-line no-console
+      console.log(`[computeParameters] ${this.getName?.()} bail: not explicit`);
       return;
     }
 
@@ -447,18 +454,30 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     // harmless.
     try {
       this._model = useModel(this.parameters.model);
-    } catch {
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(`[computeParameters] ${this.getName?.()} useModel threw: ${(e as Error).message}`);
       this._model = undefined;
     }
     if (!this._model) {
-      useLog("TRACE", `Store ${this.getName?.() ?? "unknown"}: model not found: ${this.parameters.model}`);
+      // eslint-disable-next-line no-console
+      console.log(
+        `[computeParameters] ${this.getName?.()} bail: model not found for ${this.parameters.model}`
+      );
       return;
     }
     this._modelMetadata = useModelMetadata(this._model);
     if (!this._modelMetadata) {
-      useLog("WARN", `Store ${this.getName?.() ?? "unknown"}: model metadata not found for ${this.parameters.model}`);
+      // eslint-disable-next-line no-console
+      console.log(
+        `[computeParameters] ${this.getName?.()} bail: metadata missing for ${this.parameters.model}`
+      );
       return;
     }
+    // eslint-disable-next-line no-console
+    console.log(
+      `[computeParameters] ${this.getName?.()} resolved model=${this.parameters.model} identifier=${this._modelMetadata.Identifier}`
+    );
     useLog("TRACE", "METADATA", this._modelMetadata);
     this._modelType = this._modelMetadata.Identifier;
 

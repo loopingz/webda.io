@@ -8,7 +8,13 @@ export default defineConfig({
   resolve: {
     alias: {
       "@webda/core/lib/stores/store.spec": resolve(__dirname, "../core/src/stores/store.spec.ts"),
-      "@webda/core/lib/test": resolve(__dirname, "../core/src/test/index.ts")
+      "@webda/core/lib/test": resolve(__dirname, "../core/src/test/index.ts"),
+      // Route bare @webda/core through src too: StoreTest internals load
+      // from source via the alias above, so without this the bare import
+      // would resolve to compiled lib and class identities (User, Ident,
+      // etc.) would diverge between the two — breaking the Repositories
+      // WeakMap lookups in useRepository.
+      "@webda/core": resolve(__dirname, "../core/src/index.ts")
     }
   },
   test: {

@@ -16,11 +16,23 @@
       "types": "./lib/index.d.ts",
       "default": "./lib/index.js"
     },
-    "./lib/*": {
-      "types": "./lib/*.d.ts",
-      "default": "./lib/*.js"
+    "./lib/stores/store.spec": {
+      "types": "./lib/stores/store.spec.d.ts",
+      "default": "./lib/stores/store.spec.js"
     },
-    "./lib/*.js": {
+    "./lib/queues/queue.spec": {
+      "types": "./lib/queues/queue.spec.d.ts",
+      "default": "./lib/queues/queue.spec.js"
+    },
+    "./lib/services/binary.spec": {
+      "types": "./lib/services/binary.spec.d.ts",
+      "default": "./lib/services/binary.spec.js"
+    },
+    "./lib/test": {
+      "types": "./lib/test/index.d.ts",
+      "default": "./lib/test/index.js"
+    },
+    "./lib/*": {
       "types": "./lib/*.d.ts",
       "default": "./lib/*.js"
     },

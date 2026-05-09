@@ -2232,8 +2232,8 @@
         },
         "properties": {
           "additionalModels": {
-            "deprecated": true,
-            "description": "Additional models managed by this Store.",
+            "default": [],
+            "description": "Additional models\n\nAllow this store to manage other models",
             "items": {
               "type": "string"
             },
@@ -2258,23 +2258,13 @@
             "type": "boolean"
           },
           "model": {
-            "deprecated": true,
-            "description": "Webda model to use within the Store.",
+            "default": "Webda/CoreModel",
+            "description": "Webda model to use within the Store",
             "type": "string"
           },
           "modelAliases": {
             "$ref": "#/definitions/modelAliases",
             "description": "Model Aliases to allow easier rename of Model"
-          },
-          "models": {
-            "default": [
-              "Webda/RegistryEntry"
-            ],
-            "description": "Models managed by this Store.",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
           },
           "noCache": {
             "default": false,
@@ -2400,5 +2390,5 @@
     }
   },
   "behaviors": {},
-  "sourceDigest": "d9dfe066ac2e66d394a64fc06189b747"
+  "sourceDigest": "b978479cb9042a8fefb9146a86c95666"
 }

@@ -1,12 +1,12 @@
-import { test } from "@webda/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { stub } from "sinon";
 import { randomUUID } from "crypto";
 import { TestIdent } from "../test/objects.js";
-import { Ident, OperationContext, Store, User } from "../index.js";
+import { Ident, MemoryStore, OperationContext, Store, User } from "../index.js";
 import { CoreModel } from "../models/coremodel.js";
 import { WebdaApplicationTest } from "../test/application.js";
-import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store.js";
+import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store.js";
 import { UuidModel } from "@webda/models";
 
 /**
@@ -650,6 +650,103 @@ abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
     }
     await (ref as any).upsert({ test: "true" });
     await (ref as any).upsert({ test: "false" });
+  }
+}
+
+@suite
+class StoreParametersTest {
+  @test
+  acceptsModelsArrayOnly() {
+    const p = new StoreParameters().load({ models: ["MyApp/User", "MyApp/Task"] });
+    assert.deepStrictEqual(p.models, ["MyApp/User", "MyApp/Task"]);
+  }
+
+  @test
+  mapsLegacyModelToModelsArray() {
+    const p = new StoreParameters().load({ model: "MyApp/User" });
+    assert.deepStrictEqual(p.models, ["MyApp/User"]);
+  }
+
+  @test
+  mapsModelPlusAdditionalToFlatArray() {
+    const p = new StoreParameters().load({
+      model: "MyApp/User",
+      additionalModels: ["MyApp/Task", "MyApp/Order"]
+    });
+    assert.deepStrictEqual(p.models, ["MyApp/User", "MyApp/Task", "MyApp/Order"]);
+  }
+
+  @test
+  throwsWhenBothModelAndModelsSet() {
+    assert.throws(
+      () => new StoreParameters().load({ model: "MyApp/User", models: ["MyApp/User"] }),
+      /ambiguous/i
+    );
+  }
+
+  @test
+  defaultsToRegistryEntryWhenNeitherSet() {
+    const p = new StoreParameters().load({});
+    assert.deepStrictEqual(p.models, ["Webda/RegistryEntry"]);
+  }
+
+  @test
+  mapsAdditionalModelsAloneToRegistryFallback() {
+    const p = new StoreParameters().load({ additionalModels: ["MyApp/Task"] });
+    assert.deepStrictEqual(p.models, ["Webda/RegistryEntry", "MyApp/Task"]);
+  }
+
+  @test
+  throwsWhenModelsCombinedWithEmptyAdditionalModels() {
+    assert.throws(
+      () => new StoreParameters().load({ models: ["X"], additionalModels: [] }),
+      /ambiguous/i
+    );
+  }
+}
+
+@suite
+class StoreFieldsMigrationTest extends WebdaApplicationTest {
+  @test
+  async populatesModelsArrayAndMetadatas() {
+    const store = new MemoryStore("multi", { models: ["Webda/Ident", "Webda/User"] });
+    // filterParameters strips unknown fields from the pre-schema-regen module; set models directly
+    // to exercise computeParameters() via the canonical models[] path (not the legacy shim).
+    store.getParameters().models = ["Webda/Ident", "Webda/User"];
+    store.resolve();
+    assert.strictEqual((store as any)._models.length, 2);
+    assert.strictEqual((store as any)._modelMetadatas.size, 2);
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/Ident"], 0);
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
+    assert.strictEqual(store.getModels().length, 2);
+  }
+
+  @test
+  async getModelReturnsFirstForBackCompat() {
+    const store = new MemoryStore("primaryModel", { model: "Webda/User" });
+    store.resolve();
+    assert.strictEqual(store.getModel()?.name, "User");
+  }
+
+  @test
+  async walksSubclassHierarchyForNonStrictStore() {
+    // Webda/User has Webda/SimpleUser as a subclass (verified via webda.module.json).
+    // In non-strict mode the recursive walk should add the subclass at depth 1.
+    const store = new MemoryStore("hierarchical", { models: ["Webda/User"] });
+    store.getParameters().models = ["Webda/User"];
+    store.resolve();
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/SimpleUser"], 1);
+  }
+
+  @test
+  async strictStoreSkipsSubclassWalk() {
+    // Same Webda/User parent, but strict: true should not add SimpleUser.
+    const store = new MemoryStore("strict", { models: ["Webda/User"], strict: true });
+    store.getParameters().models = ["Webda/User"];
+    store.resolve();
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/SimpleUser"], undefined);
   }
 }
 

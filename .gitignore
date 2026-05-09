@@ -51,3 +51,4 @@ package-lock.json
 .vite-custom
 docs/superpowers
 pnpm-lock.yaml
+.worktrees

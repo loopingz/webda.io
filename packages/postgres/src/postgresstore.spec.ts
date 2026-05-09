@@ -2,6 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
+import { useModel } from "@webda/core";
 import PostgresStore from "./postgresstore.js";
 
 const params = {
@@ -146,5 +147,44 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     });
     this.store!.getParameters().views = [".*"];
     this.store!.getParameters().viewPrefix = "";
+  }
+
+}
+
+/**
+ * Unit tests for resolveTable() that do not require a live PostgreSQL connection.
+ * Extends WebdaApplicationTest only for its model registry (useModel / useModelMetadata),
+ * but does NOT call addService() — so the DB-connect path is never triggered.
+ */
+@suite
+export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
+  @test
+  async resolveTableSingleModelUsesParametersTable() {
+    const store = new PostgresStore("singleTable", { models: ["Webda/Ident"], table: "idents" });
+    // Bypass resolve()/init() — we only test the table-name resolution logic.
+    // Set parameters.models directly (schema workaround: Task 7 regenerates it).
+    store.getParameters().models = ["Webda/Ident"];
+    assert.strictEqual(store.resolveTable(useModel("Webda/Ident")), "idents");
+  }
+
+  @test
+  async resolveTableMultiModelIgnoresParametersTable() {
+    const store = new PostgresStore("multiTable", {
+      models: ["Webda/Ident", "Webda/User"],
+      table: "idents"
+    });
+    store.getParameters().models = ["Webda/Ident", "Webda/User"];
+    assert.strictEqual(store.resolveTable(useModel("Webda/Ident")), "webda_ident");
+    assert.strictEqual(store.resolveTable(useModel("Webda/User")), "webda_user");
+  }
+
+  @test
+  async resolveTableExplicitTablesMapWins() {
+    const store = new PostgresStore("explicitTable", {
+      models: ["Webda/User"],
+      tables: { "Webda/User": "users_v2" }
+    });
+    store.getParameters().models = ["Webda/User"];
+    assert.strictEqual(store.resolveTable(useModel("Webda/User")), "users_v2");
   }
 }

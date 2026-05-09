@@ -1,6 +1,8 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { existsSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync, rmSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import pkg from "fs-extra";
 import * as sinon from "sinon";
 import { CoreModel, Store, StoreNotFoundError, UpdateConditionFailError, User } from "@webda/core";
@@ -147,6 +149,49 @@ class FileStoreTest extends StoreTest<FileStore<any>> {
     removeSync(usersStore.getParameters().folder);
     usersStore.computeParameters();
     assert.ok(existsSync(usersStore.getParameters().folder));
+  }
+
+  @test
+  async strictModeRejectsForeignType() {
+    const tmpFolder = join(tmpdir(), `webda-fs-strict-reject-${Date.now()}`);
+    mkdirSync(tmpFolder);
+    try {
+      const store: FileStore<any> = await this.addService(
+        FileStore,
+        { folder: tmpFolder, models: ["Webda/Ident"], strict: true },
+        "StrictRejectStore"
+      );
+      // Write a file directly with a __type that is NOT the configured model.
+      const uid = "strict-reject-test-uid";
+      writeFileSync(join(tmpFolder, `${uid}.json`), JSON.stringify({ __type: "Webda/User", uuid: uid }));
+      // _get should return undefined because Webda/User is not at depth 0 in _modelsHierarchy
+      const result = await store["_get"](uid, false);
+      assert.strictEqual(result, undefined, "strict mode should reject a file whose __type is not the configured model");
+    } finally {
+      rmSync(tmpFolder, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async strictModeAcceptsConfiguredType() {
+    const tmpFolder = join(tmpdir(), `webda-fs-strict-accept-${Date.now()}`);
+    mkdirSync(tmpFolder);
+    try {
+      const store: FileStore<any> = await this.addService(
+        FileStore,
+        { folder: tmpFolder, models: ["Webda/Ident"], strict: true },
+        "StrictAcceptStore"
+      );
+      // Write a file directly with the matching __type.
+      const uid = "strict-accept-test-uid";
+      writeFileSync(join(tmpFolder, `${uid}.json`), JSON.stringify({ __type: "Webda/Ident", uuid: uid }));
+      // _get should return the data because Webda/Ident is at depth 0 in _modelsHierarchy
+      const result = await store["_get"](uid, false);
+      assert.ok(result !== undefined, "strict mode should accept a file whose __type matches the configured model");
+      assert.strictEqual(result.__type, "Webda/Ident");
+    } finally {
+      rmSync(tmpFolder, { recursive: true, force: true });
+    }
   }
 }
 

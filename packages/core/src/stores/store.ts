@@ -491,7 +491,6 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         useLog("WARN", `Store ${this.getName?.() ?? "unknown"}: model metadata not found for ${id}`);
         continue;
       }
-      useLog("TRACE", "METADATA", meta);
       this._models.push(model);
       this._modelMetadatas.set(meta.Identifier, meta);
       this._modelsHierarchy[meta.Identifier] = 0;

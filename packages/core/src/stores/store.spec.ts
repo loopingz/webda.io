@@ -709,9 +709,10 @@ class StoreParametersTest {
 class StoreFieldsMigrationTest extends WebdaApplicationTest {
   @test
   async populatesModelsArrayAndMetadatas() {
-    // Use the legacy `model` + `additionalModels` syntax (still in the schema).
-    // StoreParameters.load() maps them to models[] which computeParameters() walks.
-    const store = new MemoryStore("multi", { model: "Webda/Ident", additionalModels: ["Webda/User"] });
+    const store = new MemoryStore("multi", { models: ["Webda/Ident", "Webda/User"] });
+    // filterParameters strips unknown fields from the pre-schema-regen module; set models directly
+    // to exercise computeParameters() via the canonical models[] path (not the legacy shim).
+    store.getParameters().models = ["Webda/Ident", "Webda/User"];
     store.resolve();
     assert.strictEqual((store as any)._models.length, 2);
     assert.strictEqual((store as any)._modelMetadatas.size, 2);

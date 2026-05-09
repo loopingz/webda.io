@@ -689,6 +689,20 @@ class StoreParametersTest {
     const p = new StoreParameters().load({});
     assert.deepStrictEqual(p.models, ["Webda/RegistryEntry"]);
   }
+
+  @test
+  mapsAdditionalModelsAloneToRegistryFallback() {
+    const p = new StoreParameters().load({ additionalModels: ["MyApp/Task"] });
+    assert.deepStrictEqual(p.models, ["Webda/RegistryEntry", "MyApp/Task"]);
+  }
+
+  @test
+  throwsWhenModelsCombinedWithEmptyAdditionalModels() {
+    assert.throws(
+      () => new StoreParameters().load({ models: ["X"], additionalModels: [] }),
+      /ambiguous/i
+    );
+  }
 }
 
 export { StoreTest };

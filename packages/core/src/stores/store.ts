@@ -289,9 +289,14 @@ export class StoreParameters extends ServiceParameters {
     // Deprecation mapping: model + additionalModels → models[]
     const hasModels = Array.isArray(params.models);
     const hasModel = typeof params.model === "string";
-    const hasAdditional = Array.isArray(params.additionalModels) && params.additionalModels.length > 0;
+    // Presence check (not length) used for the conflict guard so that
+    // `{ models: [...], additionalModels: [] }` is still detected as ambiguous.
+    const hasAdditionalKey = Array.isArray(params.additionalModels);
+    // Length check used for the deprecation branch: an empty additionalModels
+    // alongside a bare `model` is unambiguous and should not warn on its own.
+    const hasAdditional = hasAdditionalKey && params.additionalModels.length > 0;
 
-    if (hasModels && (hasModel || hasAdditional)) {
+    if (hasModels && (hasModel || hasAdditionalKey)) {
       throw new Error(
         "StoreParameters: `models` and `model`/`additionalModels` are mutually exclusive — ambiguous configuration"
       );
@@ -309,7 +314,10 @@ export class StoreParameters extends ServiceParameters {
       this.models = ["Webda/RegistryEntry"];
     }
 
-    // Keep deprecated fields populated for any code that still reads them in this PR.
+    // When the caller passed `models[]` (or nothing at all), backfill the deprecated
+    // fields from the canonical `models[]` so any code still reading `parameters.model`
+    // or `parameters.additionalModels` keeps working. In the legacy-input branch
+    // `super.load(params)` already set both via Object.assign, so the `??=` is a no-op.
     this.model ??= this.models[0];
     this.additionalModels ??= this.models.slice(1);
 

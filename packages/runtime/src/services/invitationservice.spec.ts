@@ -97,7 +97,7 @@ class InvitationTest extends WebdaInternalTest {
     await super.before();
 
     this.store = this.webda.getService<Store>("Companies");
-    this.store._model = <any>MyCompany;
+    this.store.setModelDefinitionHelper(<any>MyCompany);
 
     this.service = await this.addService(
       InvitationService,

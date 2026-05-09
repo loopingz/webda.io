@@ -295,8 +295,8 @@ class FileBackedMapTest {
   @test
   async getWithStrictMode() {
     const strictStore = createFileStore(this.tmpDir, { strict: true });
-    // @ts-ignore - set _modelType for strict filtering
-    strictStore._modelType = "MyModel";
+    // @ts-ignore - configure hierarchy directly to mimic computeParameters()
+    strictStore._modelsHierarchy = { MyModel: 0 };
     const data = { uuid: "strict1", __type: "OtherModel" };
     fs.writeFileSync(path.join(this.tmpDir, "strict1.json"), JSON.stringify(data));
     const result = await strictStore._get("strict1");

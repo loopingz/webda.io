@@ -1319,8 +1319,8 @@
         "description": "Memory store",
         "properties": {
           "additionalModels": {
-            "default": [],
-            "description": "Additional models\n\nAllow this store to manage other models",
+            "deprecated": true,
+            "description": "Additional models managed by this Store.",
             "items": {
               "type": "string"
             },
@@ -1337,13 +1337,23 @@
             "type": "boolean"
           },
           "model": {
-            "default": "Webda/CoreModel",
-            "description": "Webda model to use within the Store",
+            "deprecated": true,
+            "description": "Webda model to use within the Store.",
             "type": "string"
           },
           "modelAliases": {
             "$ref": "#/definitions/modelAliases",
             "description": "Model Aliases to allow easier rename of Model"
+          },
+          "models": {
+            "default": [
+              "Webda/RegistryEntry"
+            ],
+            "description": "Models managed by this Store.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "noCache": {
             "default": false,
@@ -3832,5 +3842,5 @@
     "rest-domain": "Webda/RESTOperationsTransport",
     "http-server": "Webda/HttpServer"
   },
-  "sourceDigest": "6d6c8cbfa29410b7b9d07a680a68daf2"
+  "sourceDigest": "7139a4d4ffe747dc8a98f426b613b6b9"
 }

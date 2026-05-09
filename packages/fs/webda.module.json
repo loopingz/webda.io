@@ -153,8 +153,8 @@
         "description": "Configuration parameters for the JSON-file-backed store.",
         "properties": {
           "additionalModels": {
-            "default": [],
-            "description": "Additional models\n\nAllow this store to manage other models",
+            "deprecated": true,
+            "description": "Additional models managed by this Store.",
             "items": {
               "type": "string"
             },
@@ -182,13 +182,23 @@
             "type": "boolean"
           },
           "model": {
-            "default": "Webda/CoreModel",
-            "description": "Webda model to use within the Store",
+            "deprecated": true,
+            "description": "Webda model to use within the Store.",
             "type": "string"
           },
           "modelAliases": {
             "$ref": "#/definitions/modelAliases",
             "description": "Model Aliases to allow easier rename of Model"
+          },
+          "models": {
+            "default": [
+              "Webda/RegistryEntry"
+            ],
+            "description": "Models managed by this Store.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "noCache": {
             "default": false,
@@ -304,5 +314,5 @@
     }
   },
   "behaviors": {},
-  "sourceDigest": "c604b24ba0b9ea0416461a6abf35857f"
+  "sourceDigest": "aeb3db279a38d6f834e626b0cee3d51e"
 }

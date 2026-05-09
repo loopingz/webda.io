@@ -1,6 +1,6 @@
 {
   "name": "@webda/decorators",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0",
   "description": "Decorators utils",
   "keywords": [],
   "author": "Remi Cattiau <remi@cattiau.com>",

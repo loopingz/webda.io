@@ -1,6 +1,6 @@
 {
   "name": "@webda/graphql",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0",
   "description": "GraphQL endpoint for your Webda Application",
   "main": "lib/index.js",
   "type": "module",

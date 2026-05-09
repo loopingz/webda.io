@@ -1,6 +1,6 @@
 {
   "name": "@webda/grpc",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0",
   "description": "gRPC transport for Webda.io — exposes operations as gRPC services",
   "type": "module",
   "main": "lib/index.js",

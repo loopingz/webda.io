@@ -718,6 +718,7 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
     assert.strictEqual((store as any)._modelMetadatas.size, 2);
     assert.strictEqual((store as any)._modelsHierarchy["Webda/Ident"], 0);
     assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
+    assert.strictEqual(store.getModels().length, 2);
   }
 
   @test
@@ -725,6 +726,27 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
     const store = new MemoryStore("primaryModel", { model: "Webda/User" });
     store.resolve();
     assert.strictEqual(store.getModel()?.name, "User");
+  }
+
+  @test
+  async walksSubclassHierarchyForNonStrictStore() {
+    // Webda/User has Webda/SimpleUser as a subclass (verified via webda.module.json).
+    // In non-strict mode the recursive walk should add the subclass at depth 1.
+    const store = new MemoryStore("hierarchical", { models: ["Webda/User"] });
+    store.getParameters().models = ["Webda/User"];
+    store.resolve();
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/SimpleUser"], 1);
+  }
+
+  @test
+  async strictStoreSkipsSubclassWalk() {
+    // Same Webda/User parent, but strict: true should not add SimpleUser.
+    const store = new MemoryStore("strict", { models: ["Webda/User"], strict: true });
+    store.getParameters().models = ["Webda/User"];
+    store.resolve();
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/SimpleUser"], undefined);
   }
 }
 

@@ -2,6 +2,7 @@ import { MessageReceipt, Queue, QueueParameters } from "@webda/core";
 import { JSONUtils } from "@webda/utils";
 import { useLog } from "@webda/workout";
 import pg, { ClientConfig, PoolConfig } from "pg";
+import { acquirePool, releasePool } from "./pgpool.js";
 
 /**
  * Configuration for {@link PostgresQueueService}.
@@ -11,6 +12,11 @@ export class PostgresQueueParameters extends QueueParameters {
    * Table name backing the queue. Auto-created on init if missing.
    *
    * @default "webda_queue"
+   * @pattern /^[a-zA-Z_][a-zA-Z0-9_]*$/
+   * @example "myapp_queue"
+   * @example "user_notifications"
+   * @example "cache_invalidation"
+   * @example "orders"
    */
   table?: string;
   /**
@@ -88,6 +94,11 @@ export default class PostgresQueueService<
    * locks rotate across connections and benefit from concurrency.
    */
   protected client?: pg.Client | pg.Pool;
+  /**
+   * True when {@link client} is a shared pool acquired from the registry.
+   * Drives the matching {@link releasePool} call in {@link stop}.
+   */
+  protected ownsPool = false;
 
   /**
    * Resolved table identifier. Validated at init to keep the table name
@@ -107,10 +118,11 @@ export default class PostgresQueueService<
     if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(this.table)) {
       throw new Error(`Invalid table name "${this.table}" — must match /^[a-zA-Z_][a-zA-Z0-9_]*$/`);
     }
-    this.client = this.parameters.usePool
-      ? new pg.Pool(this.parameters.postgresqlServer as PoolConfig)
-      : new pg.Client(this.parameters.postgresqlServer as ClientConfig);
-    if (this.client instanceof pg.Client) {
+    if (this.parameters.usePool) {
+      this.client = acquirePool(this.parameters.postgresqlServer as PoolConfig);
+      this.ownsPool = true;
+    } else {
+      this.client = new pg.Client(this.parameters.postgresqlServer as ClientConfig);
       await this.client.connect();
     }
     if (this.parameters.autoCreateTable) {
@@ -241,13 +253,13 @@ export default class PostgresQueueService<
   async stop(): Promise<void> {
     if (this.client) {
       const client = this.client;
+      const owned = this.ownsPool;
       this.client = undefined;
-      if (client instanceof pg.Pool) {
-        await client.end().catch(() => {
-          /* already ended */
-        });
+      this.ownsPool = false;
+      if (owned) {
+        await releasePool(this.parameters.postgresqlServer as PoolConfig);
       } else {
-        await client.end().catch(() => {
+        await (client as pg.Client).end().catch(() => {
           /* already ended */
         });
       }

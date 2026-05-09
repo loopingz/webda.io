@@ -1,7 +1,8 @@
 import { PubSubService, ServiceParameters } from "@webda/core";
 import { CancelablePromise, JSONUtils } from "@webda/utils";
 import { useLog } from "@webda/workout";
-import pg, { ClientConfig } from "pg";
+import pg, { ClientConfig, PoolConfig } from "pg";
+import { acquirePool, releasePool } from "./pgpool.js";
 
 /**
  * NOTIFY's payload limit is 8000 bytes (the underlying NAMEDATALEN /
@@ -17,6 +18,11 @@ export class PostgresPubSubParameters extends ServiceParameters {
   /**
    * Channel name passed to LISTEN / NOTIFY. Must be a valid Postgres
    * identifier (lowercased, no quoting). Defaults to the service name.
+   * @pattern /^[a-z_][a-z0-9_]*$/
+   * @example "myapp_events"
+   * @example "user_notifications"
+   * @example "cache_invalidation"
+   * @example "orders"
    */
   channel?: string;
   /**
@@ -68,9 +74,18 @@ export default class PostgresPubSubService<
   K extends PostgresPubSubParameters = PostgresPubSubParameters
 > extends PubSubService<T, K> {
   /**
-   * Long-lived listener client. One per service instance.
+   * Long-lived listener client. One per service instance because LISTEN is
+   * scoped to the connection that issued it — a pool would silently rotate
+   * and drop the subscription.
    */
   protected client?: pg.Client;
+  /**
+   * Shared pool used for the publish side (`pg_notify`). Acquired from
+   * the per-config pool registry so multiple services that target the
+   * same database share connections instead of each spinning up their
+   * own pool. Subscribe-only services skip this and never publish.
+   */
+  protected publishPool?: pg.Pool;
   /**
    * Local callback registrations. Notifications dispatch to all of them.
    */
@@ -180,7 +195,14 @@ export default class PostgresPubSubService<
       );
     }
     this.metrics?.messages_sent?.inc();
-    await this.client.query("SELECT pg_notify($1, $2)", [this.channel(), payload]);
+    // Lazily acquire a shared publish pool: subscribe-only services never
+    // call sendMessage and so never pay the connection cost. Acquired
+    // pools are reference-counted in the registry, so multiple postgres
+    // services pointing at the same database share connections.
+    if (!this.publishPool) {
+      this.publishPool = acquirePool(this.parameters.postgresqlServer as PoolConfig);
+    }
+    await this.publishPool.query("SELECT pg_notify($1, $2)", [this.channel(), payload]);
   }
 
   /**
@@ -231,6 +253,10 @@ export default class PostgresPubSubService<
       await client.end().catch(() => {
         /* already ended */
       });
+    }
+    if (this.publishPool) {
+      this.publishPool = undefined;
+      await releasePool(this.parameters.postgresqlServer as PoolConfig);
     }
     await super.stop();
   }

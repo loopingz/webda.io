@@ -2,6 +2,7 @@ import { InstanceCache, useApplication, useCore, useModel, useModelMetadata } fr
 import type { ModelClass, Repository } from "@webda/core";
 import { JSONSchema7 } from "json-schema";
 import pg, { ClientConfig, PoolConfig } from "pg";
+import { acquirePool, releasePool } from "./pgpool.js";
 import { PostgresRepository, SQLStore, SQLStoreParameters } from "./sqlstore.js";
 import { useLog } from "@webda/workout";
 
@@ -35,6 +36,11 @@ export class PostgresParameters extends SQLStoreParameters {
   autoCreateTable?: boolean;
   /**
    * View name prefix
+   * @default ""
+   * @pattern /^[a-zA-Z_][a-zA-Z0-9_]*$/
+   * @example "app_"
+   * @example "v_"
+   * @example "view_"
    */
   viewPrefix?: string;
   /**
@@ -85,13 +91,19 @@ export class PostgresParameters extends SQLStoreParameters {
  */
 export class PostgresStore<K extends PostgresParameters = PostgresParameters> extends SQLStore<K> {
   client: pg.Client | pg.Pool;
+  /**
+   * True when {@link client} is a shared pool acquired from the registry.
+   * Tracked so {@link stop} only releases pools it took a refcount on.
+   */
+  protected ownsPool = false;
 
   /**
    * @override
    */
   async init(): Promise<this> {
     if (this.parameters.usePool) {
-      this.client = new pg.Pool(this.parameters.postgresqlServer);
+      this.client = acquirePool(this.parameters.postgresqlServer as PoolConfig);
+      this.ownsPool = true;
     } else {
       this.client = new pg.Client(this.parameters.postgresqlServer);
       await this.client.connect();
@@ -99,6 +111,22 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
     await this.checkTable();
     await super.init();
     return this;
+  }
+
+  /**
+   * @override
+   */
+  async stop(): Promise<void> {
+    if (this.ownsPool) {
+      this.ownsPool = false;
+      await releasePool(this.parameters.postgresqlServer as PoolConfig);
+    } else if (this.client && "end" in this.client) {
+      await (this.client as pg.Client).end().catch(() => {
+        /* already ended */
+      });
+    }
+    this.client = undefined as any;
+    await super.stop();
   }
 
   /**

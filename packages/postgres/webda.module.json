@@ -621,6 +621,13 @@
         "properties": {
           "channel": {
             "description": "Channel name passed to LISTEN / NOTIFY. Must be a valid Postgres\nidentifier (lowercased, no quoting). Defaults to the service name.",
+            "example": [
+              "myapp_events",
+              "user_notifications",
+              "cache_invalidation",
+              "orders"
+            ],
+            "pattern": "/^[a-z_][a-z0-9_]*$/",
             "type": "string"
           },
           "postgresqlServer": {
@@ -1425,6 +1432,13 @@
           "table": {
             "default": "webda_queue",
             "description": "Table name backing the queue. Auto-created on init if missing.",
+            "example": [
+              "myapp_queue",
+              "user_notifications",
+              "cache_invalidation",
+              "orders"
+            ],
+            "pattern": "/^[a-zA-Z_][a-zA-Z0-9_]*$/",
             "type": "string"
           },
           "type": {
@@ -2217,12 +2231,6 @@
           }
         },
         "properties": {
-          "_modelExplicit": {
-            "default": false,
-            "description": "True when `model` was explicitly provided in the raw configuration.\nStores that use the default model (RegistryEntry) without explicit\nconfiguration will not claim any model hierarchy.",
-            "internal": true,
-            "type": "boolean"
-          },
           "additionalModels": {
             "default": [],
             "description": "Additional models\n\nAllow this store to manage other models",
@@ -2300,7 +2308,14 @@
             "type": "boolean"
           },
           "viewPrefix": {
+            "default": "",
             "description": "View name prefix",
+            "example": [
+              "app_",
+              "v_",
+              "view_"
+            ],
+            "pattern": "/^[a-zA-Z_][a-zA-Z0-9_]*$/",
             "type": "string"
           },
           "views": {
@@ -2375,5 +2390,5 @@
     }
   },
   "behaviors": {},
-  "sourceDigest": "29d5516c000ff464267b110fae968aa0"
+  "sourceDigest": "b978479cb9042a8fefb9146a86c95666"
 }

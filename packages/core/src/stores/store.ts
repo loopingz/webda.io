@@ -358,22 +358,12 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   K,
   E
 > {
-  /**
-   * Contains the current model
-   */
-  _model: ModelClass;
-  /**
-   * Contains the current model metadata
-   */
-  _modelMetadata: ModelMetadata;
-  /**
-   * Store the manager hierarchy with their depth
-   */
+  /** All model classes managed by this store. Index 0 is the legacy "primary" model. */
+  _models: ModelClass[] = [];
+  /** Metadata for each model in `_models`, keyed by Identifier. */
+  _modelMetadatas: Map<string, ModelMetadata> = new Map();
+  /** Store the manager hierarchy with their depth */
   _modelsHierarchy: { [key: string]: number } = {};
-  /**
-   * Contains the current model type
-   */
-  _modelType: string;
 
   /**
    * Override the resolved model class for this store at runtime. Used by
@@ -383,7 +373,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * @param model - the substitute model class
    */
   setModelDefinitionHelper(model: ModelClass): void {
-    this._model = model;
+    this._models[0] = model;
   }
   /**
    * Add metrics counter
@@ -441,93 +431,72 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   }
 
   /**
-   * Retrieve the Model and build the models hierarchy map.
+   * Retrieve the Models and build the models hierarchy map.
    *
-   * If the configured model cannot be found, or if no model was explicitly
-   * configured (store uses the default RegistryEntry fallback), the hierarchy
-   * stays empty and the store will not claim any model — preserving the
-   * pre-migration fallback behaviour for test-only or misconfigured stores.
+   * Walks `parameters.models[]` (the canonical flat list introduced in Task 1).
+   * If the list is empty or contains only the default "Webda/RegistryEntry"
+   * fallback, the hierarchy stays empty and the store will not claim any model
+   * — preserving the pre-migration fallback behaviour for test-only or
+   * misconfigured stores.
    */
   computeParameters(): void {
     super.computeParameters();
 
-    // Stores left with the default "Webda/RegistryEntry" model (and no
-    // additionalModels) should not participate in the hierarchy — they are
-    // typically the Registry fallback or test-only stores. Checking the
-    // resolved model directly avoids relying on a flag set by
-    // StoreParameters.load: addService bypasses subclass load() and
-    // constructs its parameters via the generic ServiceParameters.load,
-    // which never runs the StoreParameters override.
-    const isDefaultModel = !this.parameters.model || this.parameters.model === "Webda/RegistryEntry";
-    const hasAdditional = (this.parameters.additionalModels?.length ?? 0) > 0;
-    if (isDefaultModel && !hasAdditional) {
+    const ids = this.parameters.models ?? [];
+    // Empty / default RegistryEntry → leave hierarchy empty (preserves test-only / fallback behaviour).
+    const isOnlyDefault = ids.length === 1 && ids[0] === "Webda/RegistryEntry";
+    if (ids.length === 0 || isOnlyDefault) {
       return;
     }
 
-    // Guard: useModel throws on undefined and may return undefined/null for
-    // unknown models. Catch both so test-only or misconfigured stores stay
-    // harmless.
-    try {
-      this._model = useModel(this.parameters.model);
-    } catch {
-      this._model = undefined;
-    }
-    if (!this._model) {
-      useLog("TRACE", `Store ${this.getName?.() ?? "unknown"}: model not found: ${this.parameters.model}`);
-      return;
-    }
-    this._modelMetadata = useModelMetadata(this._model);
-    if (!this._modelMetadata) {
-      useLog("WARN", `Store ${this.getName?.() ?? "unknown"}: model metadata not found for ${this.parameters.model}`);
-      return;
-    }
-    useLog("TRACE", "METADATA", this._modelMetadata);
-    this._modelType = this._modelMetadata.Identifier;
+    this._models = [];
+    this._modelMetadatas = new Map();
+    this._modelsHierarchy = {};
 
-    // Recursively populate _modelsHierarchy for a model's subclass tree.
-    // Each subclass identifier in meta.Subclasses is a string that we resolve
-    // via useModel. We keep the minimum depth seen for each identifier.
-    const recursive = (subclassIds: string[], depth: number) => {
-      for (const id of subclassIds) {
-        this._modelsHierarchy[id] = Math.min(depth, this._modelsHierarchy[id] ?? depth);
+    // Subclasses in ModelMetadata are resolved to ModelClass objects at runtime
+    // (see Application.setModelMetadata). Accept both string IDs and ModelClass
+    // references so the hierarchy is keyed by string identifier throughout.
+    const recursive = (subclasses: (string | ModelClass)[], depth: number) => {
+      for (const entry of subclasses) {
         let subModel: ModelClass | undefined;
-        try {
-          subModel = useModel(id);
-        } catch {
-          continue;
+        let subId: string | undefined;
+        if (typeof entry === "string") {
+          subId = entry;
+          try { subModel = useModel(entry); } catch { continue; }
+        } else {
+          subModel = entry as ModelClass;
+          subId = useModelId(subModel);
         }
-        if (!subModel) continue;
+        if (!subId || !subModel) continue;
+        this._modelsHierarchy[subId] = Math.min(depth, this._modelsHierarchy[subId] ?? depth);
         const subMeta = useModelMetadata(subModel);
         if (!subMeta) continue;
         recursive(subMeta.Subclasses ?? [], depth + 1);
       }
     };
 
-    // Compute the hierarchy — reset first so re-resolve is idempotent
-    this._modelsHierarchy = {};
-    this._modelsHierarchy[this._modelMetadata.Identifier] = 0;
-    // Strict Store only stores their exact model
-    if (!this.parameters.strict) {
-      recursive(this._modelMetadata.Subclasses ?? [], 1);
-    }
-    // Add additional models (each treated as depth-0 roots with their own subtree)
-    if ((this.parameters.additionalModels ?? []).length) {
-      if (this.parameters.strict) {
-        useLog("ERROR", "Cannot add additional models in strict mode");
-      } else {
-        for (const modelType of this.parameters.additionalModels!) {
-          let addModel: ModelClass | undefined;
-          try {
-            addModel = useModel(modelType);
-          } catch {
-            continue;
-          }
-          if (!addModel) continue;
-          const addMeta = useModelMetadata(addModel);
-          if (!addMeta) continue;
-          this._modelsHierarchy[addMeta.Identifier] = 0;
-          recursive(addMeta.Subclasses ?? [], 1);
-        }
+    for (const id of ids) {
+      let model: ModelClass | undefined;
+      try {
+        model = useModel(id);
+      } catch {
+        model = undefined;
+      }
+      if (!model) {
+        useLog("TRACE", `Store ${this.getName?.() ?? "unknown"}: model not found: ${id}`);
+        continue;
+      }
+      const meta = useModelMetadata(model);
+      if (!meta) {
+        useLog("WARN", `Store ${this.getName?.() ?? "unknown"}: model metadata not found for ${id}`);
+        continue;
+      }
+      useLog("TRACE", "METADATA", meta);
+      this._models.push(model);
+      this._modelMetadatas.set(meta.Identifier, meta);
+      this._modelsHierarchy[meta.Identifier] = 0;
+      if (!this.parameters.strict) {
+        recursive(meta.Subclasses ?? [], 1);
       }
     }
   }
@@ -580,11 +549,20 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   }
 
   /**
-   * Return Store current model
+   * Return Store current model.
+   * @deprecated Use `getModels()` instead. Returns the first model for back-compat.
    * @returns the result
    */
-  getModel(): ModelClass {
-    return this._model;
+  getModel(): ModelClass | undefined {
+    return this._models[0];
+  }
+
+  /**
+   * All models managed by this store.
+   * @returns the array of model classes managed by this store
+   */
+  getModels(): ModelClass[] {
+    return this._models;
   }
 
   /**

@@ -265,6 +265,23 @@ class AdditionalMemoryTest extends WebdaApplicationTest {
     });
   }
 
+  @test
+  async populatesModelsArrayAndMetadatas() {
+    const store = new MemoryStore("multi", { models: ["WebdaDemo/Project", "WebdaDemo/SubProject"] });
+    store.resolve();
+    assert.strictEqual((store as any)._models.length, 2);
+    assert.strictEqual((store as any)._modelMetadatas.size, 2);
+    assert.strictEqual((store as any)._modelsHierarchy["WebdaDemo/Project"], 0);
+    assert.strictEqual((store as any)._modelsHierarchy["WebdaDemo/SubProject"], 0);
+  }
+
+  @test
+  async getModelReturnsFirstForBackCompat() {
+    const store = new MemoryStore("first-model", { models: ["WebdaDemo/Project"] });
+    store.resolve();
+    assert.strictEqual(store.getModel()?.name, "Project");
+  }
+
   getTestConfiguration() {
     return "../../sample-app/webda.config.jsonc";
   }

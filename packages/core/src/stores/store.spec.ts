@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { stub } from "sinon";
 import { randomUUID } from "crypto";
 import { TestIdent } from "../test/objects.js";
-import { Ident, OperationContext, Store, User } from "../index.js";
+import { Ident, MemoryStore, OperationContext, Store, User } from "../index.js";
 import { CoreModel } from "../models/coremodel.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store.js";
@@ -702,6 +702,28 @@ class StoreParametersTest {
       () => new StoreParameters().load({ models: ["X"], additionalModels: [] }),
       /ambiguous/i
     );
+  }
+}
+
+@suite
+class StoreFieldsMigrationTest extends WebdaApplicationTest {
+  @test
+  async populatesModelsArrayAndMetadatas() {
+    // Use the legacy `model` + `additionalModels` syntax (still in the schema).
+    // StoreParameters.load() maps them to models[] which computeParameters() walks.
+    const store = new MemoryStore("multi", { model: "Webda/Ident", additionalModels: ["Webda/User"] });
+    store.resolve();
+    assert.strictEqual((store as any)._models.length, 2);
+    assert.strictEqual((store as any)._modelMetadatas.size, 2);
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/Ident"], 0);
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
+  }
+
+  @test
+  async getModelReturnsFirstForBackCompat() {
+    const store = new MemoryStore("primaryModel", { model: "Webda/User" });
+    store.resolve();
+    assert.strictEqual(store.getModel()?.name, "User");
   }
 }
 

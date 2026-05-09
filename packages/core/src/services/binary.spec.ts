@@ -52,18 +52,27 @@ abstract class BinaryTest<T extends BinaryService = BinaryService> extends Webda
    * @returns
    */
   tweakApp(app: TestApplication): Promise<void> {
-    app.addModel("ImageUser", ImageUser);
-    // Add the binaries relationship
-    app.getRelations("WebdaDemo/ImageUser").binaries = [
-      {
-        attribute: "images",
-        cardinality: "MANY"
+    // Register ImageUser with Relations.behaviors so that Binary/Binaries
+    // cardinality detection in uploadSuccess/deleteSuccess works correctly.
+    // (Previously used the now-removed app.getRelations() API.)
+    app.addModel("ImageUser", ImageUser, {
+      Identifier: "WebdaDemo/ImageUser",
+      Ancestors: [],
+      Subclasses: [],
+      Relations: {
+        behaviors: [
+          { attribute: "images", behavior: "Webda/BinariesImpl" },
+          { attribute: "profile", behavior: "Webda/Binary" }
+        ]
       },
-      {
-        attribute: "profile",
-        cardinality: "ONE"
-      }
-    ];
+      PrimaryKey: ["uuid"],
+      Events: [],
+      Schemas: {},
+      Actions: {},
+      Import: "",
+      Plural: "ImageUsers",
+      Reflection: {}
+    });
     return super.tweakApp(app);
   }
 
@@ -71,9 +80,9 @@ abstract class BinaryTest<T extends BinaryService = BinaryService> extends Webda
     return process.cwd() + "/test/Dockerfile.txt";
   }
 
-  async beforeEach(init: boolean = true) {
+  async beforeEach() {
     this.cleanFiles.push("./downloadTo.tmp");
-    await super.beforeEach(init);
+    await super.beforeEach();
     this.binary = await this.getBinary();
     assert.notStrictEqual(this.binary, undefined);
     await this.binary.__clean();
@@ -156,7 +165,7 @@ abstract class BinaryTest<T extends BinaryService = BinaryService> extends Webda
     await user1.refresh();
     const ctx = await this.newContext();
     if (withLogin) {
-      ctx.getSession().login(user1.getUuid(), "fake");
+      ctx.getSession().login(user1.getUUID(), "fake");
     }
     return { binary, user1, ctx };
   }

@@ -26,13 +26,14 @@ export class PermissionModel extends CoreModel {
  * Use a custom model for the test
  */
 export class UserTest extends User {
-  uuid: string;
+  declare uuid: string;
   name: string;
   counter: number;
   idents: any[];
 }
 
 export class IdentTest extends Ident {
+  _lastUpdate: Date;
   counter: number;
   counter2: number;
   counter3: number;
@@ -88,7 +89,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
     };
   }
 
-  getModelClass(): ModelDefinition {
+  getModelClass(): any {
     return TestIdent;
   }
 
@@ -114,18 +115,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
   /**
    * Fill the Store with data to be queried
    */
-  async fillForQuery(): Promise<
-    ModelDefinition<
-      CoreModelAny<{
-        state: string;
-        team: {
-          id: number;
-        };
-        role: number;
-        order: number;
-      }>
-    >
-  > {
+  async fillForQuery(): Promise<any> {
     User.prototype.canAct = async () => true;
     //this.webda.getApplication().getModel("Webda/User").prototype.canAct = async () => true;
     //userStore._model.prototype.canAct = async () => true;
@@ -259,7 +249,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
 
   @test
   async collection() {
-    const Ident: ModelDefinition<CoreModelAny> = this.getModelClass();
+    const Ident = this.getModelClass();
     let ident = await Ident.create(<any>{
       test: "plop"
     });
@@ -357,12 +347,12 @@ abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
     const user3 = await UserTest.create({
       name: "test3"
     });
-    let users = await userStore.getAll();
+    let users = await (userStore as any).getAll();
     assert.strictEqual(users.length, 3);
     assert.strictEqual(users[0] instanceof userStore._model, true);
     assert.strictEqual(users[1] instanceof userStore._model, true);
     assert.strictEqual(users[2] instanceof userStore._model, true);
-    users = await userStore.getAll([user1.uuid, user3.uuid, randomUUID()]);
+    users = await (userStore as any).getAll([user1.uuid, user3.uuid, randomUUID()]);
     assert.strictEqual(users.length, 2);
     assert.strictEqual(users[0] instanceof userStore._model, true);
     assert.strictEqual(users[1] instanceof userStore._model, true);
@@ -432,21 +422,21 @@ abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
     this.log("DEBUG", "Retrieved object", object);
     assert.strictEqual(object.test, "plop2");
     assert.strictEqual(object.details.plop, "plop2");
-    getter = await identStore.get(object.uuid);
+    getter = await (identStore as any).get(object.uuid);
     assert.strictEqual(eventFired, 2);
     assert.strictEqual(getter.test, "plop2");
     await this.sleep(10);
     this.log("DEBUG", "Increment attribute");
     await IdentTest.ref(ident1.uuid).incrementAttribute("counter", 1);
-    let ident = await identStore.get(ident1.uuid);
+    let ident = await (identStore as any).get(ident1.uuid);
 
     // Verify lastUpdate is updated too
     this.assertLastUpdateNotEqual(ident._lastUpdate, ident1._lastUpdate, "lastUpdate after incrementAttribute failed");
     assert.strictEqual(ident.counter, 1);
     await IdentTest.ref(ident1.uuid).incrementAttribute("counter", 3);
-    ident1 = await identStore.get(ident1.uuid);
+    ident1 = await (identStore as any).get(ident1.uuid);
     assert.strictEqual(ident1.counter, 4);
-    await identStore.incrementAttributes(ident1.uuid, [
+    await (identStore as any).incrementAttributes(ident1.uuid, [
       { property: "counter", value: -6 },
       { property: "counter2", value: 10 }
     ]);
@@ -543,7 +533,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
     const store = this.userStore;
     let model = await UserTest.create({ counter: 1 });
     // Delete with condition
-    await assert.rejects(() => store.delete(model.getUuid(), 4, "counter"), UpdateConditionFailError);
+    await assert.rejects(() => (store as any).delete(model.getUuid(), 4, "counter"), UpdateConditionFailError);
 
     await model.delete("counter", 1);
     // Test without condition
@@ -551,7 +541,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
     await model.delete();
 
     // Deleting a non-existing object should be ignored
-    await store.delete(randomUUID());
+    await (store as any).delete(randomUUID());
   }
 
   async deleteConcurrent() {
@@ -611,7 +601,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
     await model.save();
     model.saveInnerMethod = true;
     await model.save();
-    await IdentTest.ref(model.getUuid()).setAttribute("_lastUpdate", new Date(100));
+    await (IdentTest.ref(model.getUuid()) as any).setAttribute("_lastUpdate", new Date(100));
     model.test = "yop";
     // Delete with condition
     await assert.rejects(() => model.save(), UpdateConditionFailError);
@@ -654,12 +644,12 @@ abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
 
   @test
   async upsert() {
-    const ref = IdentTest.ref(getUuid());
+    const ref = IdentTest.ref(randomUUID());
     if (await ref.exists()) {
       await ref.delete();
     }
-    await ref.upsert({ test: "true" });
-    await ref.upsert({ test: "false" });
+    await (ref as any).upsert({ test: "true" });
+    await (ref as any).upsert({ test: "false" });
   }
 }
 

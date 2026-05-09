@@ -24,6 +24,34 @@
   * devDependencies
     * @webda/tsc-esm bumped from ^1.2.0 to ^1.3.0
 
+## [4.0.0](https://github.com/loopingz/webda.io/compare/workout-v4.0.0-beta.1...workout-v4.0.0) (2026-05-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove node 18 support
+
+### Features
+
+* add a non-interactive fallback for InteractiveConsoleLogger ([908956b](https://github.com/loopingz/webda.io/commit/908956b1be673a6095f8de3d070b2353e2a74664))
+* add codemod system ([bbc3086](https://github.com/loopingz/webda.io/commit/bbc3086c1bd4e5c9a7ec9a2ed14772cd8edbf477))
+* add formatting for context ([54dee1e](https://github.com/loopingz/webda.io/commit/54dee1e09da052c5daba778bc45bccff15d033f4))
+* add logger context ([316189b](https://github.com/loopingz/webda.io/commit/316189b2e661d6c6b0c090e541570110652596dd))
+* add simpler interactive console ([0e89d48](https://github.com/loopingz/webda.io/commit/0e89d48be66d611f68fe3baf897d8bc7e25bedee))
+* improve workout ([dd9a4a9](https://github.com/loopingz/webda.io/commit/dd9a4a952d524a73079dd0df9fb66ac1b28695d7))
+* move to node 22 ([21daf46](https://github.com/loopingz/webda.io/commit/21daf46c54d4e3912ad1b545e1ce89b9a6a84c35))
+* move to pnpm and disable many modules for now ([ea953b7](https://github.com/loopingz/webda.io/commit/ea953b7faaa47d70bc8136b39e9a3d3336655214))
+* move to the Fork util from @webda/workout ([a43b10b](https://github.com/loopingz/webda.io/commit/a43b10b3d23f5234e35ed27bfeab5e4cfc23d1dc))
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+* router auto-instantiation, request routing, and --watch mode ([#747](https://github.com/loopingz/webda.io/issues/747)) ([5cc4a19](https://github.com/loopingz/webda.io/commit/5cc4a1913355a856362e6c58755f37e4d2d5229c))
+
+
+### Bug Fixes
+
+* flush forkee messages before exiting ([09d7255](https://github.com/loopingz/webda.io/commit/09d7255009343eed1aa540ddd4f8d9536940be7b))
+* interactive logger ([8c30ee9](https://github.com/loopingz/webda.io/commit/8c30ee9f9dd5c40fba149fa0cadba54e1239db81))
+* unit test models relations ([2d160f1](https://github.com/loopingz/webda.io/commit/2d160f18d2139b362e8a12f935e15eaad27a808a))
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/workout-v3.2.0...workout-v4.0.0-beta.1) (2024-08-14)
 
 

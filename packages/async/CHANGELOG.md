@@ -105,6 +105,43 @@
   * dependencies
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0](https://github.com/loopingz/webda.io/compare/async-v4.0.0-beta.1...async-v4.0.0) (2026-05-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove node 18 support
+* remove expose for Store
+
+### Features
+
+* add codemod system ([bbc3086](https://github.com/loopingz/webda.io/commit/bbc3086c1bd4e5c9a7ec9a2ed14772cd8edbf477))
+* add formatting for context ([54dee1e](https://github.com/loopingz/webda.io/commit/54dee1e09da052c5daba778bc45bccff15d033f4))
+* enhance debug panels ([#759](https://github.com/loopingz/webda.io/issues/759)) ([63e6e0c](https://github.com/loopingz/webda.io/commit/63e6e0c3bd7d72fb06b148c7344eb3021d186ae9))
+* move to node 22 ([21daf46](https://github.com/loopingz/webda.io/commit/21daf46c54d4e3912ad1b545e1ce89b9a6a84c35))
+* move to pnpm and disable many modules for now ([ea953b7](https://github.com/loopingz/webda.io/commit/ea953b7faaa47d70bc8136b39e9a3d3336655214))
+* operations system — decouple operations from transport ([#753](https://github.com/loopingz/webda.io/issues/753)) ([54f3151](https://github.com/loopingz/webda.io/commit/54f3151686b9115221790e90c3ee723fb0b8c873))
+* remove expose for Store ([c8a36b1](https://github.com/loopingz/webda.io/commit/c8a36b19c81b830e9c03195388b402e53f987e6e))
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+
+
+### Bug Fixes
+
+* unit test models relations ([2d160f1](https://github.com/loopingz/webda.io/commit/2d160f18d2139b362e8a12f935e15eaad27a808a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0
+    * @webda/ql bumped to 4.0.0
+    * @webda/workout bumped to 4.0.0
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0
+    * @webda/test bumped to 4.0.0
+    * @webda/tsc-esm bumped to 4.0.0
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/async-v3.7.2...async-v4.0.0-beta.1) (2024-08-14)
 
 

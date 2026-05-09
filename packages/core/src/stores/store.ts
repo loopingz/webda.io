@@ -218,17 +218,21 @@ export interface StoreInterface<T = any> {
  */
 export class StoreParameters extends ServiceParameters {
   /**
-   * Webda model to use within the Store
+   * Models managed by this Store.
    *
-   * @default "Webda/CoreModel"
+   * @default ["Webda/RegistryEntry"]
+   */
+  models?: string[];
+
+  /**
+   * Webda model to use within the Store.
+   * @deprecated Use `models: [model]` instead. Will be removed in 5.x.
    */
   model?: string;
+
   /**
-   * Additional models
-   *
-   * Allow this store to manage other models
-   *
-   * @default []
+   * Additional models managed by this Store.
+   * @deprecated Merge into `models[]` instead. Will be removed in 5.x.
    */
   additionalModels?: string[];
 
@@ -281,13 +285,39 @@ export class StoreParameters extends ServiceParameters {
     }
     // END_REFACTOR
     super.load(params);
-    this.model ??= "Webda/RegistryEntry";
+
+    // Deprecation mapping: model + additionalModels → models[]
+    const hasModels = Array.isArray(params.models);
+    const hasModel = typeof params.model === "string";
+    const hasAdditional = Array.isArray(params.additionalModels) && params.additionalModels.length > 0;
+
+    if (hasModels && (hasModel || hasAdditional)) {
+      throw new Error(
+        "StoreParameters: `models` and `model`/`additionalModels` are mutually exclusive — ambiguous configuration"
+      );
+    }
+
+    if (hasModels) {
+      this.models = [...params.models];
+    } else if (hasModel || hasAdditional) {
+      useLog(
+        "WARN",
+        `StoreParameters: \`model\` and \`additionalModels\` are deprecated. Use \`models: [...]\` instead.`
+      );
+      this.models = [params.model ?? "Webda/RegistryEntry", ...(params.additionalModels ?? [])];
+    } else {
+      this.models = ["Webda/RegistryEntry"];
+    }
+
+    // Keep deprecated fields populated for any code that still reads them in this PR.
+    this.model ??= this.models[0];
+    this.additionalModels ??= this.models.slice(1);
+
     this.strict ??= false;
     this.defaultModel ??= true;
     this.forceModel ??= false;
     this.slowQueryThreshold ??= 30000;
     this.modelAliases ??= {};
-    this.additionalModels ??= [];
     return this;
   }
 }

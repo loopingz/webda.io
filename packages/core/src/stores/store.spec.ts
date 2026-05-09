@@ -1,4 +1,4 @@
-import { test } from "@webda/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { stub } from "sinon";
 import { randomUUID } from "crypto";
@@ -6,7 +6,7 @@ import { TestIdent } from "../test/objects.js";
 import { Ident, OperationContext, Store, User } from "../index.js";
 import { CoreModel } from "../models/coremodel.js";
 import { WebdaApplicationTest } from "../test/application.js";
-import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store.js";
+import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store.js";
 import { UuidModel } from "@webda/models";
 
 /**
@@ -650,6 +650,44 @@ abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
     }
     await (ref as any).upsert({ test: "true" });
     await (ref as any).upsert({ test: "false" });
+  }
+}
+
+@suite
+class StoreParametersTest {
+  @test
+  acceptsModelsArrayOnly() {
+    const p = new StoreParameters().load({ models: ["MyApp/User", "MyApp/Task"] });
+    assert.deepStrictEqual(p.models, ["MyApp/User", "MyApp/Task"]);
+  }
+
+  @test
+  mapsLegacyModelToModelsArray() {
+    const p = new StoreParameters().load({ model: "MyApp/User" });
+    assert.deepStrictEqual(p.models, ["MyApp/User"]);
+  }
+
+  @test
+  mapsModelPlusAdditionalToFlatArray() {
+    const p = new StoreParameters().load({
+      model: "MyApp/User",
+      additionalModels: ["MyApp/Task", "MyApp/Order"]
+    });
+    assert.deepStrictEqual(p.models, ["MyApp/User", "MyApp/Task", "MyApp/Order"]);
+  }
+
+  @test
+  throwsWhenBothModelAndModelsSet() {
+    assert.throws(
+      () => new StoreParameters().load({ model: "MyApp/User", models: ["MyApp/User"] }),
+      /ambiguous/i
+    );
+  }
+
+  @test
+  defaultsToRegistryEntryWhenNeitherSet() {
+    const p = new StoreParameters().load({});
+    assert.deepStrictEqual(p.models, ["Webda/RegistryEntry"]);
   }
 }
 

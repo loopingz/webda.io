@@ -225,18 +225,6 @@ export class StoreParameters extends ServiceParameters {
   models?: string[];
 
   /**
-   * Webda model to use within the Store.
-   * @deprecated Use `models: [model]` instead. Will be removed in 5.x.
-   */
-  model?: string;
-
-  /**
-   * Additional models managed by this Store.
-   * @deprecated Merge into `models[]` instead. Will be removed in 5.x.
-   */
-  additionalModels?: string[];
-
-  /**
    * Allow to load object that does not have the type data
    *
    * If set to true, then the Store will only managed the defined _model and no
@@ -318,9 +306,6 @@ export class StoreParameters extends ServiceParameters {
     // fields from the canonical `models[]` so any code still reading `parameters.model`
     // or `parameters.additionalModels` keeps working. In the legacy-input branch
     // `super.load(params)` already set both via Object.assign, so the `??=` is a no-op.
-    this.model ??= this.models[0];
-    this.additionalModels ??= this.models.slice(1);
-
     this.strict ??= false;
     this.defaultModel ??= true;
     this.forceModel ??= false;
@@ -545,15 +530,6 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       name: "queries",
       help: "Query duration"
     });
-  }
-
-  /**
-   * Return Store current model.
-   * @deprecated Use `getModels()` instead. Returns the first model for back-compat.
-   * @returns the result
-   */
-  getModel(): ModelClass | undefined {
-    return this._models[0];
   }
 
   /**

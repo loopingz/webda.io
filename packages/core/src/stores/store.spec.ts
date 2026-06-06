@@ -722,13 +722,6 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
   }
 
   @test
-  async getModelReturnsFirstForBackCompat() {
-    const store = new MemoryStore("primaryModel", { model: "Webda/User" });
-    store.resolve();
-    assert.strictEqual(store.getModel()?.name, "User");
-  }
-
-  @test
   async walksSubclassHierarchyForNonStrictStore() {
     // Webda/User has Webda/SimpleUser as a subclass (verified via webda.module.json).
     // In non-strict mode the recursive walk should add the subclass at depth 1.

@@ -723,6 +723,11 @@ class StoreParametersTest {
   }
 
   @test
+  throwsOnExposeParameter() {
+    assert.throws(() => new StoreParameters().load({ expose: true }), /Expose is not supported/);
+  }
+
+  @test
   emitsDeprecationWarnOnLegacyModel() {
     const warnings = this.captureWarnings(() => new StoreParameters().load({ model: "MyApp/User" }));
     assert.ok(
@@ -788,6 +793,26 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
     store.resolve();
     assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
     assert.strictEqual((store as any)._modelsHierarchy["Webda/SimpleUser"], undefined);
+  }
+
+  @test
+  async ignoresUnknownModelId() {
+    // A models[] entry that resolves to no model class is skipped (TRACE) and
+    // leaves the store claiming nothing — it should not throw at resolve().
+    const store = new MemoryStore("unknown", { models: ["DoesNot/Exist"] });
+    store.getParameters().models = ["DoesNot/Exist"];
+    store.resolve();
+    assert.strictEqual(store.getModels().length, 0);
+    assert.deepStrictEqual((store as any)._modelsHierarchy, {});
+  }
+
+  @test
+  async setModelDefinitionHelperOverridesFirstModel() {
+    const store = new MemoryStore("override", { models: ["Webda/User"] });
+    store.getParameters().models = ["Webda/User"];
+    store.resolve();
+    store.setModelDefinitionHelper(Ident as any);
+    assert.strictEqual(store.getModels()[0], Ident);
   }
 }
 

@@ -290,7 +290,7 @@ class CoreModelTest extends WebdaApplicationTest {
 
   @test async ref() {
     this.webda.getApplication().addModel("webdatest", TestMask);
-    await this.addService<MemoryStore>(MemoryStore, { forceModel: false, model: "webdatest" }, "MemoryUsers");
+    await this.addService<MemoryStore>(MemoryStore, { forceModel: false, models: ["webdatest"] }, "MemoryUsers");
     useConfiguration().parameters!["defaultStore"] = "MemoryUsers";
     assert.strictEqual(await TestMask.ref("unit1").exists(), false);
     console.log("LOAD OR CREATE");

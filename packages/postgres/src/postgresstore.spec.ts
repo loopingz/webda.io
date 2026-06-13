@@ -53,7 +53,7 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
         ...params,
         autoCreateTable: true,
         table: "smoke_idents",
-        model: "Webda/Ident"
+        models: ["Webda/Ident"]
       } as any,
       "smoke"
     );
@@ -112,7 +112,7 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
         usePool: false,
         autoCreateTable: false,
         table: "smoke_idents",
-        model: "Webda/Ident"
+        models: ["Webda/Ident"]
       } as any,
       "smoke_single"
     );

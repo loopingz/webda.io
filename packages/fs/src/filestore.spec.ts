@@ -22,12 +22,12 @@ interface TestUser extends User {
 @suite
 class FileStoreTest extends StoreTest<FileStore<any>> {
   async getUserStore(): Promise<FileStore<any>> {
-    return this.addService(FileStore, { folder: "./test/data/idents", model: "Webda/User" }, "Users");
+    return this.addService(FileStore, { folder: "./test/data/idents", models: ["Webda/User"] }, "Users");
   }
 
   async getIdentStore(): Promise<FileStore<any>> {
     const identStore = new FileStore("Idents", {
-      model: "WebdaTest/Ident",
+      models: ["WebdaTest/Ident"],
       folder: "./test/data/idents"
     });
     // @ts-ignore

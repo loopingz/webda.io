@@ -8,6 +8,7 @@ import { CoreModel } from "../models/coremodel.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store.js";
 import { UuidModel } from "@webda/models";
+import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 
 /**
  * Fake model that refuse the half of the items
@@ -701,6 +702,53 @@ class StoreParametersTest {
     assert.throws(
       () => new StoreParameters().load({ models: ["X"], additionalModels: [] }),
       /ambiguous/i
+    );
+  }
+
+  /**
+   * Capture the WARN logs emitted while running `fn` against the global WorkerOutput.
+   */
+  private captureWarnings(fn: () => void): string[] {
+    const memoryLogger = new MemoryLogger(useWorkerOutput());
+    try {
+      fn();
+    } finally {
+      memoryLogger.close();
+    }
+    return memoryLogger
+      .getLogs()
+      .map(l => l.log)
+      .filter(l => l?.level === "WARN")
+      .map(l => (l?.args ?? []).join(" "));
+  }
+
+  @test
+  emitsDeprecationWarnOnLegacyModel() {
+    const warnings = this.captureWarnings(() => new StoreParameters().load({ model: "MyApp/User" }));
+    assert.ok(
+      warnings.some(w => /deprecated/i.test(w)),
+      `expected a deprecation WARN, got: ${JSON.stringify(warnings)}`
+    );
+  }
+
+  @test
+  emitsDeprecationWarnOnLegacyAdditionalModels() {
+    const warnings = this.captureWarnings(
+      () => new StoreParameters().load({ additionalModels: ["MyApp/Task"] })
+    );
+    assert.ok(
+      warnings.some(w => /deprecated/i.test(w)),
+      `expected a deprecation WARN, got: ${JSON.stringify(warnings)}`
+    );
+  }
+
+  @test
+  noDeprecationWarnOnModelsArray() {
+    const warnings = this.captureWarnings(() => new StoreParameters().load({ models: ["MyApp/User"] }));
+    assert.strictEqual(
+      warnings.filter(w => /deprecated/i.test(w)).length,
+      0,
+      `expected no deprecation WARN, got: ${JSON.stringify(warnings)}`
     );
   }
 }

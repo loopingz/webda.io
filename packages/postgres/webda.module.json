@@ -2231,14 +2231,6 @@
           }
         },
         "properties": {
-          "additionalModels": {
-            "default": [],
-            "description": "Additional models\n\nAllow this store to manage other models",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
           "autoCreateTable": {
             "default": true,
             "description": "Auto create table if not exists",
@@ -2257,14 +2249,19 @@
             "description": "If set, Store will ignore the __type",
             "type": "boolean"
           },
-          "model": {
-            "default": "Webda/CoreModel",
-            "description": "Webda model to use within the Store",
-            "type": "string"
-          },
           "modelAliases": {
             "$ref": "#/definitions/modelAliases",
             "description": "Model Aliases to allow easier rename of Model"
+          },
+          "models": {
+            "default": [
+              "Webda/RegistryEntry"
+            ],
+            "description": "Models managed by this Store.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "noCache": {
             "default": false,
@@ -2390,5 +2387,5 @@
     }
   },
   "behaviors": {},
-  "sourceDigest": "b978479cb9042a8fefb9146a86c95666"
+  "sourceDigest": "d9dfe066ac2e66d394a64fc06189b747"
 }

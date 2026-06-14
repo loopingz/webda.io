@@ -679,10 +679,7 @@ class StoreParametersTest {
 
   @test
   throwsWhenBothModelAndModelsSet() {
-    assert.throws(
-      () => new StoreParameters().load({ model: "MyApp/User", models: ["MyApp/User"] }),
-      /ambiguous/i
-    );
+    assert.throws(() => new StoreParameters().load({ model: "MyApp/User", models: ["MyApp/User"] }), /ambiguous/i);
   }
 
   @test
@@ -699,10 +696,7 @@ class StoreParametersTest {
 
   @test
   throwsWhenModelsCombinedWithEmptyAdditionalModels() {
-    assert.throws(
-      () => new StoreParameters().load({ models: ["X"], additionalModels: [] }),
-      /ambiguous/i
-    );
+    assert.throws(() => new StoreParameters().load({ models: ["X"], additionalModels: [] }), /ambiguous/i);
   }
 
   /**
@@ -738,9 +732,7 @@ class StoreParametersTest {
 
   @test
   emitsDeprecationWarnOnLegacyAdditionalModels() {
-    const warnings = this.captureWarnings(
-      () => new StoreParameters().load({ additionalModels: ["MyApp/Task"] })
-    );
+    const warnings = this.captureWarnings(() => new StoreParameters().load({ additionalModels: ["MyApp/Task"] }));
     assert.ok(
       warnings.some(w => /deprecated/i.test(w)),
       `expected a deprecation WARN, got: ${JSON.stringify(warnings)}`
@@ -763,9 +755,6 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
   @test
   async populatesModelsArrayAndMetadatas() {
     const store = new MemoryStore("multi", { models: ["Webda/Ident", "Webda/User"] });
-    // filterParameters strips unknown fields from the pre-schema-regen module; set models directly
-    // to exercise computeParameters() via the canonical models[] path (not the legacy shim).
-    store.getParameters().models = ["Webda/Ident", "Webda/User"];
     store.resolve();
     assert.strictEqual((store as any)._models.length, 2);
     assert.strictEqual((store as any)._modelMetadatas.size, 2);
@@ -779,7 +768,6 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
     // Webda/User has Webda/SimpleUser as a subclass (verified via webda.module.json).
     // In non-strict mode the recursive walk should add the subclass at depth 1.
     const store = new MemoryStore("hierarchical", { models: ["Webda/User"] });
-    store.getParameters().models = ["Webda/User"];
     store.resolve();
     assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
     assert.strictEqual((store as any)._modelsHierarchy["Webda/SimpleUser"], 1);
@@ -789,7 +777,6 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
   async strictStoreSkipsSubclassWalk() {
     // Same Webda/User parent, but strict: true should not add SimpleUser.
     const store = new MemoryStore("strict", { models: ["Webda/User"], strict: true });
-    store.getParameters().models = ["Webda/User"];
     store.resolve();
     assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
     assert.strictEqual((store as any)._modelsHierarchy["Webda/SimpleUser"], undefined);
@@ -800,7 +787,6 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
     // A models[] entry that resolves to no model class is skipped (TRACE) and
     // leaves the store claiming nothing — it should not throw at resolve().
     const store = new MemoryStore("unknown", { models: ["DoesNot/Exist"] });
-    store.getParameters().models = ["DoesNot/Exist"];
     store.resolve();
     assert.strictEqual(store.getModels().length, 0);
     assert.deepStrictEqual((store as any)._modelsHierarchy, {});
@@ -809,7 +795,6 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
   @test
   async setModelDefinitionHelperOverridesFirstModel() {
     const store = new MemoryStore("override", { models: ["Webda/User"] });
-    store.getParameters().models = ["Webda/User"];
     store.resolve();
     store.setModelDefinitionHelper(Ident as any);
     assert.strictEqual(store.getModels()[0], Ident);

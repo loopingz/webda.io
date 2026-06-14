@@ -148,7 +148,6 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     this.store!.getParameters().views = [".*"];
     this.store!.getParameters().viewPrefix = "";
   }
-
 }
 
 /**
@@ -161,9 +160,6 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
   @test
   async resolveTableSingleModelUsesParametersTable() {
     const store = new PostgresStore("singleTable", { models: ["Webda/Ident"], table: "idents" });
-    // Bypass resolve()/init() — we only test the table-name resolution logic.
-    // Set parameters.models directly (schema workaround: Task 7 regenerates it).
-    store.getParameters().models = ["Webda/Ident"];
     assert.strictEqual(store.resolveTable(useModel("Webda/Ident")), "idents");
   }
 
@@ -173,7 +169,6 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
       models: ["Webda/Ident", "Webda/User"],
       table: "idents"
     });
-    store.getParameters().models = ["Webda/Ident", "Webda/User"];
     assert.strictEqual(store.resolveTable(useModel("Webda/Ident")), "webda_ident");
     assert.strictEqual(store.resolveTable(useModel("Webda/User")), "webda_user");
   }
@@ -184,7 +179,6 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
       models: ["Webda/User"],
       tables: { "Webda/User": "users_v2" }
     });
-    store.getParameters().models = ["Webda/User"];
     assert.strictEqual(store.resolveTable(useModel("Webda/User")), "users_v2");
   }
 }

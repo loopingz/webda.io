@@ -166,7 +166,11 @@ class FileStoreTest extends StoreTest<FileStore<any>> {
       writeFileSync(join(tmpFolder, `${uid}.json`), JSON.stringify({ __type: "Webda/User", uuid: uid }));
       // _get should return undefined because Webda/User is not at depth 0 in _modelsHierarchy
       const result = await store["_get"](uid, false);
-      assert.strictEqual(result, undefined, "strict mode should reject a file whose __type is not the configured model");
+      assert.strictEqual(
+        result,
+        undefined,
+        "strict mode should reject a file whose __type is not the configured model"
+      );
     } finally {
       rmSync(tmpFolder, { recursive: true, force: true });
     }

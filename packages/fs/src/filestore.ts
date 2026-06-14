@@ -202,7 +202,7 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
       .sort();
 
     // Use the repository for this store's model to simulate a find
-    const repo = this.getRepository(this._model) as MemoryRepository<any>;
+    const repo = this.getRepository(this._models[0]) as MemoryRepository<any>;
     return MemoryRepository.simulateFind(query as any, files, repo as any);
   }
 
@@ -389,7 +389,7 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
     const res = await this._exists(uid);
     if (res) {
       const data = JSON.parse(fs.readFileSync(this.file(uid)).toString());
-      if (data.__type !== this._modelType && this.parameters.strict) {
+      if (this.parameters.strict && this._modelsHierarchy[data.__type] !== 0) {
         return undefined;
       }
       return data;

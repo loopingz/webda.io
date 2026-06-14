@@ -54,11 +54,11 @@ class OAuthServiceTest extends WebdaApplicationTest {
         },
         Idents: {
           type: "MemoryStore",
-          model: "Webda/Ident"
+          models: ["Webda/Ident"]
         },
         Users: {
           type: "MemoryStore",
-          model: "Webda/User"
+          models: ["Webda/User"]
         }
       }
     };

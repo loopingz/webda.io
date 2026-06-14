@@ -101,6 +101,12 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
    * @override
    */
   async init(): Promise<this> {
+    if (this.parameters.table && (this.parameters.models?.length ?? 0) > 1) {
+      useLog(
+        "WARN",
+        `PostgresStore "${this.getName()}": parameters.table is ignored when more than one model is configured. Use parameters.tables[id] instead.`
+      );
+    }
     if (this.parameters.usePool) {
       this.client = acquirePool(this.parameters.postgresqlServer as PoolConfig);
       this.ownsPool = true;
@@ -134,7 +140,7 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
    *
    * Resolution order:
    * 1. `parameters.tables[meta.Identifier]` — explicit per-model override
-   * 2. Primary model (matching `_modelMetadata.Identifier`) → `parameters.table`
+   * 2. Single-model back-compat: when only one model is configured, `parameters.table` maps to it
    * 3. Default — model identifier lowercased with "/" replaced by "_"
    *
    * @param model - the model class to resolve the table for
@@ -149,11 +155,11 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
     if (this.parameters.tables?.[meta.Identifier]) {
       return this.parameters.tables[meta.Identifier];
     }
-    // Primary model uses the configured table name
-    if (this._modelMetadata && meta.Identifier === this._modelMetadata.Identifier) {
+    // Single-model back-compat: parameters.table maps to the one model
+    if (this.parameters.models?.length === 1 && this.parameters.table) {
       return this.parameters.table;
     }
-    // Default: identifier lowercased, "/" → "_"
+    // Default derivation
     return meta.Identifier.toLowerCase().replace(/\//g, "_");
   }
 

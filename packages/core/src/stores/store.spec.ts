@@ -1,13 +1,14 @@
-import { test } from "@webda/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { stub } from "sinon";
 import { randomUUID } from "crypto";
 import { TestIdent } from "../test/objects.js";
-import { Ident, OperationContext, Store, User } from "../index.js";
+import { Ident, MemoryStore, OperationContext, Store, User } from "../index.js";
 import { CoreModel } from "../models/coremodel.js";
 import { WebdaApplicationTest } from "../test/application.js";
-import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store.js";
+import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store.js";
 import { UuidModel } from "@webda/models";
+import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 
 /**
  * Fake model that refuse the half of the items
@@ -650,6 +651,153 @@ abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
     }
     await (ref as any).upsert({ test: "true" });
     await (ref as any).upsert({ test: "false" });
+  }
+}
+
+@suite
+class StoreParametersTest {
+  @test
+  acceptsModelsArrayOnly() {
+    const p = new StoreParameters().load({ models: ["MyApp/User", "MyApp/Task"] });
+    assert.deepStrictEqual(p.models, ["MyApp/User", "MyApp/Task"]);
+  }
+
+  @test
+  mapsLegacyModelToModelsArray() {
+    const p = new StoreParameters().load({ model: "MyApp/User" });
+    assert.deepStrictEqual(p.models, ["MyApp/User"]);
+  }
+
+  @test
+  mapsModelPlusAdditionalToFlatArray() {
+    const p = new StoreParameters().load({
+      model: "MyApp/User",
+      additionalModels: ["MyApp/Task", "MyApp/Order"]
+    });
+    assert.deepStrictEqual(p.models, ["MyApp/User", "MyApp/Task", "MyApp/Order"]);
+  }
+
+  @test
+  throwsWhenBothModelAndModelsSet() {
+    assert.throws(() => new StoreParameters().load({ model: "MyApp/User", models: ["MyApp/User"] }), /ambiguous/i);
+  }
+
+  @test
+  defaultsToRegistryEntryWhenNeitherSet() {
+    const p = new StoreParameters().load({});
+    assert.deepStrictEqual(p.models, ["Webda/RegistryEntry"]);
+  }
+
+  @test
+  mapsAdditionalModelsAloneToRegistryFallback() {
+    const p = new StoreParameters().load({ additionalModels: ["MyApp/Task"] });
+    assert.deepStrictEqual(p.models, ["Webda/RegistryEntry", "MyApp/Task"]);
+  }
+
+  @test
+  throwsWhenModelsCombinedWithEmptyAdditionalModels() {
+    assert.throws(() => new StoreParameters().load({ models: ["X"], additionalModels: [] }), /ambiguous/i);
+  }
+
+  /**
+   * Capture the WARN logs emitted while running `fn` against the global WorkerOutput.
+   */
+  private captureWarnings(fn: () => void): string[] {
+    const memoryLogger = new MemoryLogger(useWorkerOutput());
+    try {
+      fn();
+    } finally {
+      memoryLogger.close();
+    }
+    return memoryLogger
+      .getLogs()
+      .map(l => l.log)
+      .filter(l => l?.level === "WARN")
+      .map(l => (l?.args ?? []).join(" "));
+  }
+
+  @test
+  throwsOnExposeParameter() {
+    assert.throws(() => new StoreParameters().load({ expose: true }), /Expose is not supported/);
+  }
+
+  @test
+  emitsDeprecationWarnOnLegacyModel() {
+    const warnings = this.captureWarnings(() => new StoreParameters().load({ model: "MyApp/User" }));
+    assert.ok(
+      warnings.some(w => /deprecated/i.test(w)),
+      `expected a deprecation WARN, got: ${JSON.stringify(warnings)}`
+    );
+  }
+
+  @test
+  emitsDeprecationWarnOnLegacyAdditionalModels() {
+    const warnings = this.captureWarnings(() => new StoreParameters().load({ additionalModels: ["MyApp/Task"] }));
+    assert.ok(
+      warnings.some(w => /deprecated/i.test(w)),
+      `expected a deprecation WARN, got: ${JSON.stringify(warnings)}`
+    );
+  }
+
+  @test
+  noDeprecationWarnOnModelsArray() {
+    const warnings = this.captureWarnings(() => new StoreParameters().load({ models: ["MyApp/User"] }));
+    assert.strictEqual(
+      warnings.filter(w => /deprecated/i.test(w)).length,
+      0,
+      `expected no deprecation WARN, got: ${JSON.stringify(warnings)}`
+    );
+  }
+}
+
+@suite
+class StoreFieldsMigrationTest extends WebdaApplicationTest {
+  @test
+  async populatesModelsArrayAndMetadatas() {
+    const store = new MemoryStore("multi", { models: ["Webda/Ident", "Webda/User"] });
+    store.resolve();
+    assert.strictEqual((store as any)._models.length, 2);
+    assert.strictEqual((store as any)._modelMetadatas.size, 2);
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/Ident"], 0);
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
+    assert.strictEqual(store.getModels().length, 2);
+  }
+
+  @test
+  async walksSubclassHierarchyForNonStrictStore() {
+    // Webda/User has Webda/SimpleUser as a subclass (verified via webda.module.json).
+    // In non-strict mode the recursive walk should add the subclass at depth 1.
+    const store = new MemoryStore("hierarchical", { models: ["Webda/User"] });
+    store.resolve();
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/SimpleUser"], 1);
+  }
+
+  @test
+  async strictStoreSkipsSubclassWalk() {
+    // Same Webda/User parent, but strict: true should not add SimpleUser.
+    const store = new MemoryStore("strict", { models: ["Webda/User"], strict: true });
+    store.resolve();
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
+    assert.strictEqual((store as any)._modelsHierarchy["Webda/SimpleUser"], undefined);
+  }
+
+  @test
+  async ignoresUnknownModelId() {
+    // A models[] entry that resolves to no model class is skipped (TRACE) and
+    // leaves the store claiming nothing — it should not throw at resolve().
+    const store = new MemoryStore("unknown", { models: ["DoesNot/Exist"] });
+    store.resolve();
+    assert.strictEqual(store.getModels().length, 0);
+    assert.deepStrictEqual((store as any)._modelsHierarchy, {});
+  }
+
+  @test
+  async setModelDefinitionHelperOverridesFirstModel() {
+    const store = new MemoryStore("override", { models: ["Webda/User"] });
+    store.resolve();
+    store.setModelDefinitionHelper(Ident as any);
+    assert.strictEqual(store.getModels()[0], Ident);
   }
 }
 

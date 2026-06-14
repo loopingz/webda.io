@@ -32,7 +32,7 @@ class MemoryStoreTest extends StoreTest<MemoryStore> {
   }
 
   async getIdentStore(): Promise<MemoryStore<any>> {
-    const identStore = new MemoryStore("Idents", { model: "WebdaTest/Ident" });
+    const identStore = new MemoryStore("Idents", { models: ["WebdaTest/Ident"] });
     // @ts-ignore
     const original = identStore._get.bind(identStore);
     // @ts-ignore
@@ -44,7 +44,7 @@ class MemoryStoreTest extends StoreTest<MemoryStore> {
   }
 
   async getUserStore(): Promise<MemoryStore<any>> {
-    return this.addService(MemoryStore, { model: "Webda/User" }, "Users");
+    return this.addService(MemoryStore, { models: ["Webda/User"] }, "Users");
   }
 
   @test
@@ -205,7 +205,7 @@ class AdditionalMemoryTest extends WebdaApplicationTest {
   async multiModel() {
     const identStore: MemoryStore = await this.addService(
       MemoryStore,
-      { model: "Webda/Ident", strict: false },
+      { models: ["Webda/Ident"], strict: false },
       "Idents"
     );
     await identStore.create("user", new User().setUuid("user"));
@@ -225,7 +225,7 @@ class AdditionalMemoryTest extends WebdaApplicationTest {
   async migration() {
     (<Application>useApplication()).addModel("Webda/User", User);
     (<Application>useApplication()).addModel("WebdaDemo/User", DemoUser);
-    const usersStore: MemoryStore<any> = await this.addService(MemoryStore, { model: "Webda/User" });
+    const usersStore: MemoryStore<any> = await this.addService(MemoryStore, { models: ["Webda/User"] });
     for (let i = 0; i < 1200; i++) {
       await usersStore.create(`id_${i}`, { id: i });
       if (i % 10 === 0) {

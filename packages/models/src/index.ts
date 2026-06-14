@@ -5,5 +5,6 @@ export * from "./repositories/hooks";
 export * from "./repositories/repository";
 export * from "./repositories/abstract";
 export * from "./repositories/memory";
+export * from "./repositories/event";
 export * from "./storable";
 export * from "./mock.js";

@@ -30,7 +30,11 @@ class CoreTest extends WebdaInternalTest {
   async registry() {
     const registry = useRegistry();
     await registry.put("test", { anyData: "plop" });
-    const test = JSON.parse((<MemoryRepository<any>>registry.getRepository())["storage"].get("test")!);
+    // getRepository() now returns an EventRepository wrapping the MemoryRepository;
+    // unwrap to reach the backing storage map.
+    const repo: any = registry.getRepository();
+    const backing = (repo.repository ?? repo) as MemoryRepository<any>;
+    const test = JSON.parse(backing["storage"].get("test")!);
     assert.strictEqual(test.$serializer?.type, "@webda/models/Webda/RegistryEntry");
     assert.strictEqual((await registry.get("test")).anyData, "plop");
   }

@@ -801,4 +801,19 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
   }
 }
 
+@suite
+class StoreRepositoryEventsTest extends WebdaApplicationTest {
+  @test
+  async repositoryEmitsTypedCreatedEvent() {
+    const store = new MemoryStore("evtCreated", { models: ["Webda/User"] });
+    store.resolve();
+    const repo = store.getRepository(User);
+    const seen: any[] = [];
+    repo.on("Created", payload => seen.push(payload));
+    await repo.create({ uuid: "evt-user-1" } as any);
+    assert.strictEqual(seen.length, 1);
+    assert.strictEqual(seen[0].object_id, "evt-user-1");
+  }
+}
+
 export { StoreTest };

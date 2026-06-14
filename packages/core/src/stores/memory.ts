@@ -5,7 +5,7 @@ import { Readable, Writable } from "node:stream";
 import { createGzip } from "node:zlib";
 import { GunzipConditional } from "@webda/utils";
 import { Store, StoreParameters } from "./store.js";
-import { MemoryRepository, type ModelClass, type Repository } from "@webda/models";
+import { EventRepository, MemoryRepository, type ModelClass, type Repository } from "@webda/models";
 import { InstanceCache } from "../cache/cache.js";
 import { useModelMetadata } from "../core/hooks.js";
 
@@ -334,6 +334,10 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
   @InstanceCache()
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     // Use our own storage to allow persistence
-    return new MemoryRepository<T>(model, useModelMetadata(model).PrimaryKey, undefined, this.storage);
+    const pks = useModelMetadata(model).PrimaryKey;
+    const inner = new MemoryRepository<T>(model, pks, undefined, this.storage);
+    // Wrap in EventRepository so typed CRUD events (Created/Updated/...) fire;
+    // consumers reach them via useRepository(model).on(...).
+    return new EventRepository<T>(model, pks, inner) as unknown as Repository<T>;
   }
 }

@@ -7,7 +7,7 @@ import { Ident, MemoryStore, OperationContext, Store, User } from "../index.js";
 import { CoreModel } from "../models/coremodel.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store.js";
-import { UuidModel } from "@webda/models";
+import { UuidModel, useRepository } from "@webda/models";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 
 /**
@@ -813,6 +813,18 @@ class StoreRepositoryEventsTest extends WebdaApplicationTest {
     await repo.create({ uuid: "evt-user-1" } as any);
     assert.strictEqual(seen.length, 1);
     assert.strictEqual(seen[0].object_id, "evt-user-1");
+  }
+
+  @test
+  async useRepositoryListenerFiresOnModelCreate() {
+    // The consumer contract: listen on the registered repository via
+    // useRepository(Model) and receive typed events from Model.create().
+    await this.addService(MemoryStore, { models: ["Webda/User"] }, "UserEvents");
+    const seen: any[] = [];
+    useRepository(User).on("Created", payload => seen.push(payload));
+    await User.create({ uuid: "evt-int-user" } as any);
+    assert.strictEqual(seen.length, 1);
+    assert.strictEqual(seen[0].object_id, "evt-int-user");
   }
 }
 

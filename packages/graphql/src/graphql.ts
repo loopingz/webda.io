@@ -1047,12 +1047,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     }
     // Source events from the model's repository; authorization above still
     // consults the store via authorizeClientEvent.
-    return new EventIterator(
-      useRepository(model as any) as any,
-      eventsMap,
-      identifier,
-      { logout: { evt: "nok?" } }
-    ).iterate();
+    return new EventIterator(useRepository(model as any) as any, eventsMap, identifier, {
+      logout: { evt: "nok?" }
+    }).iterate();
   }
 
   /**

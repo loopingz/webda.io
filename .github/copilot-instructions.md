@@ -65,7 +65,7 @@ webda new-deployment          # Create deployment configuration
   "imports": ["./webda.import.jsonc"],  // Modular config loading
   "services": {
     "myStore": {
-      "model": "MyApp/MyModel",
+      "models": ["MyApp/MyModel"],    // flat models[] (replaces deprecated model + additionalModels)
       "type": "MemoryStore"           // Auto-resolves to Webda/MemoryStore
     }
   },

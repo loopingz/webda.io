@@ -23,7 +23,7 @@ export * from "./core/hooks.js";
 export * from "./cache/cache.js";
 export * from "./stores/istore.js";
 export * from "./stores/memory.js";
-export { MemoryRepository, EventRepository } from "@webda/models";
+export { MemoryRepository, EventRepository, useRepository } from "@webda/models";
 export type { ModelClass, Repository } from "@webda/models";
 export * from "./stores/store.js";
 export * from "./utils/abstractdeployer.js";

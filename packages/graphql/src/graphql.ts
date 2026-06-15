@@ -10,7 +10,8 @@ import {
   useApplication,
   useCore,
   useCoreEvents,
-  useModelMetadata
+  useModelMetadata,
+  useRepository
 } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
 import * as WebdaQL from "@webda/ql";
@@ -934,14 +935,14 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       };
     };
     const events = {
-      "Store.Updated": updatedCallback,
+      Updated: updatedCallback,
       // Deleted is different as we need to return null
-      "Store.Deleted": async evt => {
+      Deleted: async evt => {
         if (!result.results.find(e => evt.object_id === e.getUUID())) return;
         result = await model.query(query);
         return result;
       },
-      "Store.Saved": async evt => {
+      Created: async evt => {
         // If object match the query and is not in the result and can be read by the user
         if (queryInfo.eval(evt.object) && !queryInfo.getOffset() && evt.object.canAct(context, "get")) {
           // Should check with the order by of the query to see if we need to recompute
@@ -950,10 +951,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         }
         return;
       },
-      "Store.PatchUpdated": updatedCallback,
-      "Store.PartialUpdated": updatedCallback
+      Patched: updatedCallback,
+      PartialUpdated: updatedCallback
     };
-    return new EventIterator(useCore().getModelStore(model as any) as unknown as EventEmitter, events, plural, result).iterate();
+    // Listen on the model's repository typed events (Created/Updated/...) instead
+    // of the legacy Store.* events.
+    return new EventIterator(useRepository(model as any) as unknown as EventEmitter, events, plural, result).iterate();
   }
 
   /**
@@ -979,14 +982,14 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       return model.ref(evt.object_id).get();
     };
     const events = {
-      "Store.Updated": updatedCallback,
+      Updated: updatedCallback,
       // Deleted is different as we need to return null
-      "Store.Deleted": evt => {
+      Deleted: evt => {
         if (evt.object_id !== uuid) return;
         return null;
       },
-      "Store.PatchUpdated": updatedCallback,
-      "Store.PartialUpdated": updatedCallback
+      Patched: updatedCallback,
+      PartialUpdated: updatedCallback
     };
     const modelInstance = await model.ref(uuid).get();
     // Ensure we have the permission to get the object
@@ -997,8 +1000,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         }
       });
     }
+    // Listen on the model's repository typed events instead of legacy Store.* events.
     return new EventIterator(
-      useCore().getModelStore(model as any) as any,
+      useRepository(model as any) as any,
       events,
       identifier || useModelMetadata(model as any)?.Identifier,
       modelInstance
@@ -1041,8 +1045,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         }
       });
     }
+    // Source events from the model's repository; authorization above still
+    // consults the store via authorizeClientEvent.
     return new EventIterator(
-      useCore().getModelStore(model as any) as any,
+      useRepository(model as any) as any,
       eventsMap,
       identifier,
       { logout: { evt: "nok?" } }

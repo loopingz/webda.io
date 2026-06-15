@@ -2,8 +2,9 @@ import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
-import { useModel } from "@webda/core";
+import { EventRepository, useModel } from "@webda/core";
 import PostgresStore from "./postgresstore.js";
+import { PostgresRepository } from "./sqlstore.js";
 
 const params = {
   postgresqlServer: {
@@ -180,5 +181,22 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
       tables: { "Webda/User": "users_v2" }
     });
     assert.strictEqual(store.resolveTable(useModel("Webda/User")), "users_v2");
+  }
+
+  @test
+  async getRepositoryWrapsInEventRepository() {
+    const store = new PostgresStore("reposWrap", { models: ["Webda/Ident"], table: "idents", strict: true });
+    store.resolve();
+    const repo = store.getRepository(useModel("Webda/Ident"));
+    assert.ok(repo instanceof EventRepository);
+  }
+
+  @test
+  async getRepositoriesReturnsUnwrappedPostgresRepositories() {
+    const store = new PostgresStore("reposUnwrap", { models: ["Webda/Ident"], table: "idents", strict: true });
+    store.resolve();
+    const repos = store.getRepositories();
+    assert.ok(repos.length >= 1);
+    assert.ok(repos.every(r => r instanceof PostgresRepository));
   }
 }

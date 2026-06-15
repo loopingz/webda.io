@@ -4,7 +4,13 @@ import { Helpers } from "../types";
 import type { Repository } from "./repository";
 import type { WebdaQLString } from "@webda/ql";
 
-/** Global registry mapping ModelClass constructors to their Repository instances. */
+/**
+ * Global registry mapping ModelClass constructors to their Repository instances.
+ *
+ * @internal — Populated by `Store.computeStores()`; not for app code. App code
+ * reaches a repository via `useRepository(Model)` or static model methods
+ * (`Model.create()`, `Model.query()`, `Model.ref()`).
+ */
 export const Repositories = new WeakMap<ModelClass, Repository<any>>();
 
 /**
@@ -25,6 +31,8 @@ export function useRepository<T extends ModelClass>(arg: T): Repository<T> {
 
 /**
  * Register a repository
+ *
+ * @internal — Called by `Store.computeStores()`; not for app code.
  * @param model - the model class to register for
  * @param repository - the repository instance
  */

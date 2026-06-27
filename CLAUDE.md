@@ -89,15 +89,17 @@ export class TaskNotificationService extends Service {
 **CRITICAL**: ALWAYS use dependency injection. NEVER manually instantiate services.
 
 ```typescript
-// ✅ CORRECT: Use dependency injection
+// ✅ CORRECT: Use dependency injection for services
 @Bean
 export class MyService extends Service {
-  @Inject("myStore")
-  store: Store;
-
   @Inject("mailer")
   mailer: Mailer;
+
+  @Inject("myQueue")
+  queue: Queue;
 }
+// Note: for persistence, do NOT @Inject a Store — use the model directly
+// (Task.create(), Task.ref(uuid).get()) or useRepository(Task). See "Repository Pattern" below.
 
 // ❌ WRONG: Manual instantiation
 const store = new MemoryStore(); // NEVER do this
@@ -153,7 +155,7 @@ Configuration follows a resolution hierarchy:
   "services": {
     "myStore": {
       "type": "MemoryStore",
-      "model": "MyApp/MyModel"
+      "models": ["MyApp/MyModel"]
     }
   },
   "parameters": {
@@ -471,37 +473,47 @@ export class MyModel extends CoreModel {
 
 ## Common Patterns
 
-### 1. Store Pattern (Database Abstraction)
+### 1. Repository Pattern (Database Abstraction)
+
+Repositories are the canonical persistence API. Each model class has exactly one Repository, produced and registered by a Store service that owns the underlying backend.
 
 ```typescript
-// Define store in configuration
+// Define stores in configuration — internal infrastructure
 {
   "services": {
-    "taskStore": {
-      "type": "MemoryStore",  // or DynamoStore, MongoStore, PostgresStore
-      "model": "MyApp/Task"
+    "db": {
+      "type": "MemoryStore",  // or DynamoStore, MongoStore, PostgresStore, FileStore
+      "models": ["MyApp/Task", "MyApp/User"]
     }
   }
 }
 
-// Use in service
+// In app code — never reference the store, use the model
 @Bean
 export class TaskService extends Service {
-  @Inject("taskStore")
-  store: Store<Task>;
-
   async getTask(uuid: string): Promise<Task> {
-    return this.store.get(uuid);
+    return Task.ref(uuid).get();
   }
 
   async createTask(data: Partial<Task>): Promise<Task> {
-    const task = new Task();
-    Object.assign(task, data);
-    await this.store.save(task);
-    return task;
+    return Task.create(data);
+  }
+
+  async findOpenTasks(): Promise<Task[]> {
+    const result = await Task.query("status = 'open'");
+    return result.results;
+  }
+
+  // Need the Repository directly (e.g. to register a listener)?
+  async onTaskCreated(): Promise<void> {
+    useRepository(Task).on("Created", evt => {
+      /* react to evt.object_id / evt.object */
+    });
   }
 }
 ```
+
+> **Stores are internal.** App code uses `Model.ref/create/query` or `useRepository(Model)`. `@Inject("storeName")` for stores is deprecated for app code; the `Store` class and `StoreParameters` are `@internal`. Repository typed events (`Created`/`Updated`/`Patched`/`Deleted`/`PartialUpdated`) are reached via `useRepository(Model).on(...)`.
 
 ### 2. Event Pattern
 
@@ -571,7 +583,7 @@ export class Document extends CoreModel {
   "services": {
     "documentStore": {
       "type": "FileStore",
-      "model": "MyApp/Document",
+      "models": ["MyApp/Document"],
       "folder": "./uploads"
     },
     "binaryService": {

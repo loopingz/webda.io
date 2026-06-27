@@ -277,6 +277,44 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   }
 
   /**
+   * Max-listeners hint kept for Node `EventEmitter` API compatibility. Not
+   * enforced — repositories use an unbounded `Set` per event.
+   */
+  protected maxListeners = 100;
+
+  /**
+   * EventEmitter-compatibility alias for {@link off}. Consumers that treat a
+   * repository as a Node `EventEmitter` (e.g. `@webda/runtime` `EventIterator`)
+   * call `removeListener`.
+   * @param event - the event name
+   * @param listener - the listener to remove
+   */
+  removeListener<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
+    event: K,
+    listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void
+  ): void {
+    this.off(event, listener);
+  }
+
+  /**
+   * EventEmitter-compatibility shim. Returns the max-listeners hint.
+   * @returns the current max-listeners hint
+   */
+  getMaxListeners(): number {
+    return this.maxListeners;
+  }
+
+  /**
+   * EventEmitter-compatibility shim. Records the max-listeners hint (no enforcement).
+   * @param n - the new hint value
+   * @returns this for chaining
+   */
+  setMaxListeners(n: number): this {
+    this.maxListeners = n;
+    return this;
+  }
+
+  /**
    * Emit an event to all registered listeners and await their completion.
    * @param event - The event name to emit
    * @param data - The event payload

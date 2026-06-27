@@ -7,6 +7,7 @@ import {
   StoreParameters,
   UpdateConditionFailError,
   MemoryRepository,
+  EventRepository,
   ModelClass,
   Repository,
   InstanceCache,
@@ -425,7 +426,11 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     const meta = useModelMetadata(model);
     const storage = new FileBackedMap(this.parameters.folder, FileStore.EXTENSION);
-    return new MemoryRepository<T>(model, meta.PrimaryKey, undefined, storage as any) as Repository<T>;
+    const inner = new MemoryRepository<T>(model, meta.PrimaryKey, undefined, storage as any);
+    // Wrap in EventRepository so typed CRUD events fire; consumers reach them
+    // via useRepository(model).on(...). simulateFind() only calls repo.get(),
+    // which EventRepository proxies, so find() is unaffected.
+    return new EventRepository<T>(model, meta.PrimaryKey, inner) as unknown as Repository<T>;
   }
 
   /**

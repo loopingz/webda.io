@@ -565,8 +565,10 @@ class FileBackedMapTest {
       const repo = this.store.getRepository(MockModel);
       assert.ok(repo);
 
-      // Test the underlying FileBackedMap through the repo's storage
-      const storage = (repo as any).storage;
+      // Test the underlying FileBackedMap through the repo's storage.
+      // getRepository() returns an EventRepository wrapping the MemoryRepository,
+      // so unwrap to reach the backing storage.
+      const storage = (repo as any).repository.storage;
       assert.ok(storage);
 
       // Test set/get
@@ -617,7 +619,7 @@ class FileBackedMapTest {
       };
 
       const repo = this.store.getRepository(MockModel);
-      const storage = (repo as any).storage;
+      const storage = (repo as any).repository.storage;
 
       // Test clear on empty folder
       storage.clear();
@@ -629,6 +631,24 @@ class FileBackedMapTest {
       storage.clear();
       assert.ok(fs.existsSync(path.join(this.tmpDir, "readme.txt")));
       assert.ok(!fs.existsSync(path.join(this.tmpDir, "item1.json")));
+    });
+  }
+
+  @test
+  async repositoryEmitsTypedCreatedEvent() {
+    await runWithInstanceStorage({}, async () => {
+      const MockModel: any = class MockModel {};
+      MockModel.Metadata = {
+        Identifier: "Test/MockEvt",
+        PrimaryKey: ["uuid"],
+        Subclasses: []
+      };
+      const repo = this.store.getRepository(MockModel);
+      const seen: any[] = [];
+      repo.on("Created", (p: any) => seen.push(p));
+      await repo.create({ uuid: "evt1" } as any);
+      assert.strictEqual(seen.length, 1);
+      assert.strictEqual(seen[0].object_id, "evt1");
     });
   }
 
@@ -647,7 +667,7 @@ class FileBackedMapTest {
       };
 
       const repo = store.getRepository(MockModel);
-      const storage = (repo as any).storage;
+      const storage = (repo as any).repository.storage;
 
       // keys() on non-existent folder returns empty
       const keys = [...storage.keys()];

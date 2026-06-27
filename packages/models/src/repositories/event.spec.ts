@@ -105,4 +105,24 @@ class EventClearTest {
     await eventRepo.create({ uuid: "test2", name: "test2", age: 2, collection: [] } as any);
     assert.strictEqual(count, 1); // unchanged - listener was removed
   }
+
+  @test
+  async eventEmitterCompatibilityShim() {
+    // Consumers like @webda/runtime EventIterator treat a repository as a Node
+    // EventEmitter: getMaxListeners/setMaxListeners + removeListener must exist.
+    const repo = new EventRepository(SubClassModel, ["uuid"], new MemoryRepository(SubClassModel, ["uuid"]));
+    assert.strictEqual(typeof repo.getMaxListeners(), "number");
+    repo.setMaxListeners(repo.getMaxListeners() + 5);
+    assert.strictEqual(repo.getMaxListeners(), 105);
+
+    let count = 0;
+    const listener = () => count++;
+    repo.on("Created" as any, listener);
+    await repo.create({ uuid: "rm1", name: "n", age: 1, collection: [] } as any);
+    assert.strictEqual(count, 1);
+    // removeListener is the EventEmitter alias for off()
+    repo.removeListener("Created" as any, listener);
+    await repo.create({ uuid: "rm2", name: "n", age: 1, collection: [] } as any);
+    assert.strictEqual(count, 1);
+  }
 }

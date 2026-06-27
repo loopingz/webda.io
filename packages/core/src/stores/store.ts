@@ -159,6 +159,8 @@ export interface EventStorePartialUpdated<T extends Model = Model> {
 
 /**
  * Represent a query result on the Store
+ *
+ * @internal — Store-internal type. App code queries via `Model.query()` / `useRepository(Model).query()`.
  */
 export interface StoreFindResult<T> {
   /**
@@ -183,6 +185,8 @@ export interface StoreFindResult<T> {
  * A Store is low-level storage service
  *
  * It does not handle any business logic, only CRUD operations
+ *
+ * @internal — Store-internal contract. App code uses `Repository<T>` from `@webda/models`.
  */
 export interface StoreInterface<T = any> {
   create(uuid: PrimaryKey<any>, object: any): Promise<any>;
@@ -215,6 +219,9 @@ export interface StoreInterface<T = any> {
 
 /**
  * Store parameter
+ *
+ * @internal — Store configuration schema. Authored in `webda.config`/deployment
+ * files; not consumed by app code directly.
  */
 export class StoreParameters extends ServiceParameters {
   /**
@@ -315,6 +322,12 @@ export class StoreParameters extends ServiceParameters {
   }
 }
 
+/**
+ * Aggregate `Store.*` event map.
+ *
+ * @internal — Store-internal type. App code listens on typed repository events
+ * via `useRepository(Model).on("Created" | "Updated" | ...)`.
+ */
 export type StoreEvents = {
   "Store.PartialUpdated": EventStorePartialUpdated;
   "Store.Created": EventStoreCreated;
@@ -337,6 +350,9 @@ export type StoreEvents = {
  *   Store.Action: When an action will be done on an object
  *   Store.Actioned: When an action has been done on an object
  *
+ * @internal — Subclassed by store packages only. App code never references a
+ * Store directly: use `useRepository(Model)` or static model methods
+ * (`Model.create()`, `Model.query()`, `Model.ref()`).
  * @category CoreServices
  */
 abstract class Store<K extends StoreParameters = StoreParameters, E extends StoreEvents = StoreEvents> extends Service<

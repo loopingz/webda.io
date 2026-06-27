@@ -1,8 +1,20 @@
 ---
-sidebar_position: 4
+sidebar_position: 5
 ---
 
-# Stores
+# Stores (storage backends — advanced)
+
+:::note
+
+`Store` is the **internal infrastructure** that owns a backend instance (a DB
+connection or pool, a bucket) and produces [Repositories](./Repositories.md).
+**Application code uses [Repositories](./Repositories.md)** —
+`Model.create()` / `Model.ref(uuid).get()` / `Model.query()` or
+`useRepository(Model)` — and never references a Store by name. This page is for
+store-package authors and power-user paths. The `Store` class and
+`StoreParameters` are tagged `@internal`.
+
+:::
 
 The store services allow you to store object in a NoSQL database it handles for you mapping between objects. Objects are mapped to a model to allow security policy and schema verification.
 

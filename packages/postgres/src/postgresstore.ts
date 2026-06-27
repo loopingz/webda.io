@@ -1,4 +1,4 @@
-import { InstanceCache, useApplication, useCore, useModel, useModelMetadata } from "@webda/core";
+import { EventRepository, InstanceCache, useApplication, useCore, useModel, useModelMetadata } from "@webda/core";
 import type { ModelClass, Repository } from "@webda/core";
 import { JSONSchema7 } from "json-schema";
 import pg, { ClientConfig, PoolConfig } from "pg";
@@ -171,26 +171,16 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
     if (!this.parameters.autoCreateTable) {
       return;
     }
-    // Collect the set of unique table names across all managed models
-    const tables = new Set<string>();
-    // Always include the primary configured table
-    tables.add(this.parameters.table);
-    // Also include tables for all models in the hierarchy
-    for (const modelId of Object.keys(this._modelsHierarchy ?? {})) {
-      try {
-        const model = useModel(modelId);
-        if (model) {
-          tables.add(this.resolveTable(model));
-        }
-      } catch {
-        // Model may not be resolvable — skip
+    // Delegate the per-model DDL to each PostgresRepository.setupTable().
+    // Deduplicate by table name so shared-table models don't issue redundant DDL.
+    const done = new Set<string>();
+    for (const repo of this.getRepositories()) {
+      const table = repo.getTable();
+      if (done.has(table)) {
+        continue;
       }
-    }
-    for (const table of tables) {
-      useLog("DEBUG", `CREATE TABLE IF NOT EXISTS ${table} (...)`);
-      await this.client.query(
-        `CREATE TABLE IF NOT EXISTS ${table} (uuid VARCHAR(255) NOT NULL, data jsonb, CONSTRAINT ${table}_pkey PRIMARY KEY (uuid))`
-      );
+      done.add(table);
+      await repo.setupTable();
     }
   }
 
@@ -214,7 +204,33 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     const meta = useModelMetadata(model);
     const table = this.resolveTable(model);
-    return new PostgresRepository<T>(model, meta.PrimaryKey, this.client as any, table) as Repository<T>;
+    const inner = new PostgresRepository<T>(model, meta.PrimaryKey, this.client as any, table);
+    // Wrap in EventRepository so typed CRUD events fire; consumers reach them
+    // via useRepository(model).on(...).
+    return new EventRepository<T>(model, meta.PrimaryKey, inner) as unknown as Repository<T>;
+  }
+
+  /**
+   * Return the underlying PostgresRepository for each model this store manages,
+   * unwrapping the EventRepository produced by {@link getRepository}.
+   * @returns the per-model PostgresRepository instances
+   */
+  getRepositories(): PostgresRepository<any>[] {
+    const repos: PostgresRepository<any>[] = [];
+    for (const modelId of Object.keys(this._modelsHierarchy ?? {})) {
+      let model: ModelClass | undefined;
+      try {
+        model = useModel(modelId);
+      } catch {
+        continue;
+      }
+      if (!model) {
+        continue;
+      }
+      const repo: any = this.getRepository(model);
+      repos.push((repo.repository ?? repo) as PostgresRepository<any>);
+    }
+    return repos;
   }
 
   /**

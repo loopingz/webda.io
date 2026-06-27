@@ -100,6 +100,26 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
   }
 
   /**
+   * The backing table name for this repository's model.
+   * @returns the table name
+   * @internal Not part of the @webda/models Repository interface.
+   */
+  getTable(): string {
+    return this.table;
+  }
+
+  /**
+   * Ensure the backing table for this repository's model exists.
+   * Owns the per-model DDL previously held by PostgresStore.checkTable().
+   * @internal Not part of the @webda/models Repository interface.
+   */
+  async setupTable(): Promise<void> {
+    await this.client.query(
+      `CREATE TABLE IF NOT EXISTS ${this.table} (uuid VARCHAR(255) NOT NULL, data jsonb, CONSTRAINT ${this.table}_pkey PRIMARY KEY (uuid))`
+    );
+  }
+
+  /**
    * Map an expression attribute path array to a JSONB path expression.
    * @param attribute - the attribute path
    * @returns the JSONB path expression

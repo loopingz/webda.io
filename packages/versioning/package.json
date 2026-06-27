@@ -1,8 +1,15 @@
 {
   "name": "@webda/versioning",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0",
   "description": "Diff, patch, and 3-way merge for JSON-serializable objects with git-style conflicts",
-  "keywords": ["diff", "patch", "merge", "conflict", "versioning", "webda"],
+  "keywords": [
+    "diff",
+    "patch",
+    "merge",
+    "conflict",
+    "versioning",
+    "webda"
+  ],
   "author": "Remi Cattiau <remi@cattiau.com>",
   "repository": "git://github.com/loopingz/webda.io.git",
   "main": "lib/index.js",
@@ -43,8 +50,12 @@
     "@webda/models": "workspace:*"
   },
   "peerDependenciesMeta": {
-    "@webda/core": { "optional": true },
-    "@webda/models": { "optional": true }
+    "@webda/core": {
+      "optional": true
+    },
+    "@webda/models": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "25.5.0",
@@ -56,10 +67,16 @@
     "vite": "^6.0.0",
     "vitest": "^4.1.2"
   },
-  "files": ["lib"],
+  "files": [
+    "lib"
+  ],
   "homepage": "https://webda.io",
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "license": "LGPL-3.0-only"
 }

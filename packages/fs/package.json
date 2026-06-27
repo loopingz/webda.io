@@ -1,6 +1,6 @@
 {
   "name": "@webda/fs",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0",
   "description": "Filesystem-based implementations of Store, Binary, and Queue for Webda",
   "author": "Remi Cattiau <remi@cattiau.com>",
   "repository": "git://github.com/loopingz/webda.io.git",

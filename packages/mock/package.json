@@ -1,8 +1,14 @@
 {
   "name": "@webda/mock",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0",
   "description": "Coherent mock-data generation for @webda/models classes",
-  "keywords": ["webda", "mock", "fixtures", "faker", "seed"],
+  "keywords": [
+    "webda",
+    "mock",
+    "fixtures",
+    "faker",
+    "seed"
+  ],
   "author": "Remi Cattiau <remi@cattiau.com>",
   "repository": "git://github.com/loopingz/webda.io.git",
   "main": "lib/index.js",
@@ -44,8 +50,12 @@
     "@webda/core": "workspace:*"
   },
   "peerDependenciesMeta": {
-    "@anthropic-ai/sdk": { "optional": true },
-    "@webda/core": { "optional": true }
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "@webda/core": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.30.0",
@@ -57,9 +67,15 @@
     "vite": "^6.0.0",
     "vitest": "^4.1.2"
   },
-  "files": ["lib"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "lib"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "license": "LGPL-3.0-only"
 }

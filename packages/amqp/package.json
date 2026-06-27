@@ -1,6 +1,6 @@
 {
   "name": "@webda/amqp",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0",
   "description": "Implements AMQP on webda",
   "keywords": [
     "activemq",

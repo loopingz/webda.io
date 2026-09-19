@@ -1,5 +1,5 @@
 import { Model, WEBDA_PRIMARY_KEY, BelongTo } from "@webda/models";
-import type { User } from "./User";
+import type { User } from "./User.model.js";
 
 /**
  * UserFollow represents a follower relationship between users

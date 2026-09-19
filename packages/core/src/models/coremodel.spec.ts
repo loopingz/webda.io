@@ -14,7 +14,7 @@ import {
 import { Task } from "../test/objects.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { Constructor } from "@webda/tsc-esm";
-import { CoreModel } from "./coremodel.js";
+import { CoreModel } from "./coremodel.model.js";
 import {
   Action,
   ModelLink,

@@ -13,7 +13,7 @@ import {
   BinaryService,
   LocalBinaryFile,
   MemoryBinaryFile
-} from "./binary.js";
+} from "./binary.service.js";
 import { Action } from "../models/decorator.js";
 import { WEBDA_STORAGE } from "@webda/models";
 import { OperationContext } from "../contexts/operationcontext.js";

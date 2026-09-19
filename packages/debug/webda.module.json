@@ -4,7 +4,7 @@
   "deployers": {},
   "moddas": {
     "Webda/DebugService": {
-      "Import": "lib/debugservice:DebugService",
+      "Import": "lib/debugservice.service:DebugService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -38,7 +38,7 @@
         "type": "object",
         "title": "DebugService"
       },
-      "Configuration": "lib/debugservice:DebugServiceParameters",
+      "Configuration": "lib/debugservice.service:DebugServiceParameters",
       "commands": {
         "debug": {
           "description": "Start dev server with debug dashboard",
@@ -116,5 +116,5 @@
     }
   },
   "behaviors": {},
-  "sourceDigest": "5058ce68e9a29deb9f042f509e7de801"
+  "sourceDigest": "797b68b6ff02b63649f2aa4e43054aa7"
 }

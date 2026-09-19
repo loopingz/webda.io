@@ -2,7 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import { FileBinary } from "@webda/core";
 import { WebdaSimpleTest } from "@webda/core/lib/test";
 import * as assert from "assert";
-import { BinaryModel } from "./binarymodel";
+import { BinaryModel } from "./binarymodel.model.js";
 
 interface TestData {
   test: string;

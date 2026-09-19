@@ -4,7 +4,7 @@ import { AbstractService } from "../services/iservice.js";
 import type { Model, ModelClass } from "@webda/models";
 import type { Service } from "../services/service.js";
 import type { Store } from "../stores/store.js";
-import type CryptoService from "../services/cryptoservice.js";
+import type CryptoService from "../services/cryptoservice.service.js";
 import { CustomConstructor } from "@webda/tsc-esm";
 export { AbstractService };
 /**

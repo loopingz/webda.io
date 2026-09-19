@@ -1,7 +1,7 @@
 import { ConsoleLogger, useWorkerOutput, WorkerLogLevel } from "@webda/workout";
 import { register } from "prom-client";
 
-import { PrometheusService } from "../services/prometheus.js";
+import { PrometheusService } from "../services/prometheus.service.js";
 import { FileUtils } from "@webda/utils";
 
 // Separation on purpose to keep application import separated
@@ -9,7 +9,7 @@ import { Service } from "../services/service.js";
 import { UnpackedConfiguration } from "../application/iconfiguration.js";
 import type { ModelMetadata } from "@webda/compiler";
 import { Core } from "../core/core.js";
-import { DebugMailer } from "../services/debugmailer.js";
+import { DebugMailer } from "../services/debugmailer.service.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { runWithContext, useContext } from "../contexts/execution.js";

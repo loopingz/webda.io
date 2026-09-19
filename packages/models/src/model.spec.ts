@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { DirtyModelMixin, ExceptPartial, Model, UuidModel, WEBDA_DELETED } from "./model";
+import { DirtyModelMixin, ExceptPartial, Model, UuidModel, WEBDA_DELETED } from "./model.model.js";
 import { isStorable, isModelClass, PrimaryKeyEquals, ModelClass, WEBDA_PRIMARY_KEY } from "./storable";
 import { MemoryRepository } from "./repositories/memory";
 import { SelfJSONed, WebdaFieldsMixIn } from "./types";

@@ -17,7 +17,7 @@ import { Kind } from "graphql";
 import { createClient } from "graphql-ws";
 import * as path from "path";
 import WebSocket from "ws";
-import { GraphQLService } from "./graphql";
+import { GraphQLService } from "./graphql.service.js";
 import { AnyScalarType } from "./types/any";
 import { DateScalar } from "./types/date";
 import { GraphQLLong } from "./types/long";

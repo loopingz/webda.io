@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as WebdaError from "../errors/errors.js";
 import { FileUtils } from "@webda/utils";
-import { ConfigurationService, ConfigurationServiceParameters } from "./configuration.js";
+import { ConfigurationService, ConfigurationServiceParameters } from "./configuration.service.js";
 import { useApplication } from "../application/hooks.js";
 
 /**

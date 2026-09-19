@@ -1,14 +1,14 @@
 import bcrypt from "bcryptjs";
 import { Counter } from "../metrics/metrics.js";
 import * as WebdaError from "../errors/errors.js";
-import { Ident } from "../models/ident.js";
-import type { User } from "../models/user.js";
+import { Ident } from "../models/ident.model.js";
+import type { User } from "../models/user.model.js";
 import { Inject, Service } from "../services/service.js";
 import { Route } from "../rest/irest.js";
 import type { OperationContext } from "../contexts/operationcontext.js";
 import { type HttpMethodType } from "../contexts/httpcontext.js";
-import type { CryptoService } from "./cryptoservice.js";
-import type { Mailer } from "./mailer.js";
+import type { CryptoService } from "./cryptoservice.service.js";
+import type { Mailer } from "./mailer.service.js";
 import { runAsSystem } from "../contexts/execution.js";
 import { EventWithContext } from "../events/events.js";
 import { ServiceParameters } from "./serviceparameters.js";

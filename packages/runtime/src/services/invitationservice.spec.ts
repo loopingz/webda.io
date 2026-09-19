@@ -10,7 +10,7 @@ import { Store } from "../stores/store";
 import { WebdaInternalTest, WebdaTest } from "../test";
 import { OperationContext } from "../utils/context";
 import { Authentication } from "./authentication";
-import { InvitationService, InvitationParameters } from "./invitationservice";
+import { InvitationService, InvitationParameters } from "./invitationservice.service.js";
 import { Mailer } from "./mailer";
 
 class MyCompany extends AclModel {

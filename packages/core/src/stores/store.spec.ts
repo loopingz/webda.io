@@ -4,7 +4,7 @@ import { stub } from "sinon";
 import { randomUUID } from "crypto";
 import { TestIdent } from "../test/objects.js";
 import { Ident, MemoryStore, OperationContext, Store, User } from "../index.js";
-import { CoreModel } from "../models/coremodel.js";
+import { CoreModel } from "../models/coremodel.model.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store.js";
 import { UuidModel, useRepository } from "@webda/models";

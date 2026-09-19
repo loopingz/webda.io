@@ -10,7 +10,7 @@ import { useLog } from "../loggers/hooks.js";
 import { Service } from "./service.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { Route } from "../rest/irest.js";
-import { useRegistry } from "../models/registry.js";
+import { useRegistry } from "../models/registry.model.js";
 
 /** Wraps a secret string value, masking it in logs and inspect output */
 export class SecretString {

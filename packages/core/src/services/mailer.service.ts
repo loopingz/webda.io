@@ -2,11 +2,11 @@ import Email from "email-templates";
 import * as fs from "fs";
 import * as nodemailer from "nodemailer";
 import * as path from "path";
-import { NotificationService } from "./notificationservice.js";
+import { NotificationService } from "./notificationservice.service.js";
 import { Service } from "./service.js";
 import { Counter } from "../metrics/metrics.js";
-import type { User } from "../models/user.js";
-import type { Ident } from "../models/ident.js";
+import type { User } from "../models/user.model.js";
+import type { Ident } from "../models/ident.model.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { ServicePartialParameters } from "./iservice.js";
 

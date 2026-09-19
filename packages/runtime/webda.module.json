@@ -4,7 +4,7 @@
   "deployers": {},
   "moddas": {
     "Webda/ClusterService": {
-      "Import": "lib/services/cluster:ClusterService",
+      "Import": "lib/services/cluster.service:ClusterService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -41,10 +41,10 @@
         "type": "object",
         "title": "ClusterService"
       },
-      "Configuration": "lib/services/cluster:ClusterServiceParameters"
+      "Configuration": "lib/services/cluster.service:ClusterServiceParameters"
     },
     "Webda/EchoService": {
-      "Import": "lib/services/echo:EchoService",
+      "Import": "lib/services/echo.service:EchoService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -78,10 +78,10 @@
         "type": "object",
         "title": "EchoService"
       },
-      "Configuration": "lib/services/echo:EchoServiceParameters"
+      "Configuration": "lib/services/echo.service:EchoServiceParameters"
     },
     "Webda/InvitationService": {
-      "Import": "lib/services/invitationservice:InvitationService",
+      "Import": "lib/services/invitationservice.service:InvitationService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -162,10 +162,10 @@
         "type": "object",
         "title": "InvitationService"
       },
-      "Configuration": "lib/services/invitationservice:InvitationParameters"
+      "Configuration": "lib/services/invitationservice.service:InvitationParameters"
     },
     "Webda/MigrationStore": {
-      "Import": "lib/stores/migration:MigrationStore",
+      "Import": "lib/stores/migration.service:MigrationStore",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -244,10 +244,10 @@
         "type": "object",
         "title": "MigrationStore"
       },
-      "Configuration": "lib/stores/migration:MigrationStoreParameters"
+      "Configuration": "lib/stores/migration.service:MigrationStoreParameters"
     },
     "Webda/PasswordEncryptionService": {
-      "Import": "lib/utils/password:PasswordEncryptionService",
+      "Import": "lib/utils/password.service:PasswordEncryptionService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "PasswordEncryptionService",
@@ -261,7 +261,7 @@
       "Configuration": "node_modules/@webda/core/lib/services/serviceparameters:ServiceParameters"
     },
     "Webda/ProxyService": {
-      "Import": "lib/services/proxy:ProxyService",
+      "Import": "lib/services/proxy.service:ProxyService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -301,10 +301,10 @@
         "type": "object",
         "title": "ProxyService"
       },
-      "Configuration": "lib/services/proxy:ProxyParameters"
+      "Configuration": "lib/services/proxy.service:ProxyParameters"
     },
     "Webda/VersionService": {
-      "Import": "lib/services/version:VersionService",
+      "Import": "lib/services/version.service:VersionService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -333,13 +333,13 @@
         "type": "object",
         "title": "VersionService"
       },
-      "Configuration": "lib/services/version:VersionServiceParameters"
+      "Configuration": "lib/services/version.service:VersionServiceParameters"
     }
   },
   "models": {
     "Webda/BinaryModel": {
       "Plural": "BinaryModels",
-      "Import": "lib/models/binarymodel:BinaryModel",
+      "Import": "lib/models/binarymodel.model:BinaryModel",
       "Relations": {
         "behaviors": [
           {
@@ -606,5 +606,5 @@
     }
   },
   "behaviors": {},
-  "sourceDigest": "3172fd49bd7a280c09154c1a0ab3eb7a"
+  "sourceDigest": "f3a2338c48a2fe0fa9da148394a43de8"
 }

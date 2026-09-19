@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
-import { PostgresPubSubService, PostgresPubSubParameters } from "./postgrespubsub.js";
+import { PostgresPubSubService, PostgresPubSubParameters } from "./postgrespubsub.service.js";
 
 const params = {
   postgresqlServer: {

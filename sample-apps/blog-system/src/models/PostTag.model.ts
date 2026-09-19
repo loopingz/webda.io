@@ -1,6 +1,6 @@
 import { Model, WEBDA_PRIMARY_KEY, BelongTo, ModelClass, RelateTo } from "@webda/models";
-import type { Post } from "./Post";
-import type { Tag } from "./Tag";
+import type { Post } from "./Post.model.js";
+import type { Tag } from "./Tag.model.js";
 
 /**
  * PostTag join table demonstrating composite primary keys

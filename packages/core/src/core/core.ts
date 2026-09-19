@@ -3,7 +3,7 @@ import { deepmerge } from "deepmerge-ts";
 import type { Application } from "../application/application.js";
 import { UnpackedApplication } from "../application/unpackedapplication.js";
 import { Configuration } from "../application/iconfiguration.js";
-import { BinaryService } from "../services/binary.js";
+import { BinaryService } from "../services/binary.service.js";
 import { Model, type ModelClass } from "@webda/models";
 import * as WebdaError from "../errors/errors.js";
 import { Store } from "../stores/store.js";
@@ -18,7 +18,7 @@ import { InstanceCache } from "../cache/cache.js";
 import { CustomConstructor } from "@webda/tsc-esm";
 import { AsyncLocalStorage } from "node:async_hooks";
 import * as jsondiffpatch from "jsondiffpatch";
-import { ConfigurationService } from "../configurations/configuration.js";
+import { ConfigurationService } from "../configurations/configuration.service.js";
 
 export type CoreStates =
   | "initial"

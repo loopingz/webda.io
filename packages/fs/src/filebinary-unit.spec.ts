@@ -4,7 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import { Readable } from "stream";
-import { FileBinary, FileBinaryParameters } from "./filebinary.js";
+import { FileBinary, FileBinaryParameters } from "./filebinary.service.js";
 import { BinaryNotFoundError } from "@webda/core";
 
 /**

@@ -6,16 +6,16 @@ import * as nodeOs from "node:os";
 import * as nodePath from "node:path";
 import { PassThrough } from "node:stream";
 import { WebdaApplicationTest } from "../test/index.js";
-import { HttpServer, HttpServerParameters } from "./httpserver.js";
+import { HttpServer, HttpServerParameters } from "./httpserver.service.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { ContextProvider, ContextProviderInfo } from "../contexts/icontext.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { WebContext } from "../contexts/webcontext.js";
-import { Router, RouterParameters } from "../rest/router.js";
-import { RESTOperationsTransport, RESTOperationsTransportParameters } from "../rest/restoperationstransport.js";
+import { Router, RouterParameters } from "../rest/router.service.js";
+import { RESTOperationsTransport, RESTOperationsTransportParameters } from "../rest/restoperationstransport.service.js";
 import { HttpContext } from "../contexts/httpcontext.js";
 import { createChecker } from "is-in-subnet";
-import { SessionManager } from "../session/manager.js";
+import { SessionManager } from "../session/manager.model.js";
 import { Session } from "../session/session.js";
 import { Context } from "../contexts/icontext.js";
 import { Service } from "./service.js";
@@ -482,7 +482,7 @@ class HttpServerTest extends WebdaApplicationTest {
   @test
   async httpServerParametersLoad() {
     // Directly test the HttpServerParameters.load method
-    const { HttpServer: HS } = await import("./httpserver.js");
+    const { HttpServer: HS } = await import("./httpserver.service.js");
     // Use HttpServer.createConfiguration if available, otherwise test the parameter class
     // The HttpServerParameters class is not exported, but we can test it via HttpServer
     const server = new HS("test-params", new ServiceParameters().load({

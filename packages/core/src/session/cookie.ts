@@ -2,7 +2,7 @@ import { type SerializeOptions as CookieSerializeOptions, serialize as cookieSer
 import type { JWTOptions } from "../services/icryptoservice.js";
 import type { HttpContext } from "../contexts/httpcontext.js";
 import { isWebContext, IWebContext } from "../contexts/icontext.js";
-import { useCrypto } from "../services/cryptoservice.js";
+import { useCrypto } from "../services/cryptoservice.service.js";
 import { useLog } from "../loggers/hooks.js";
 import { Duration } from "@webda/utils";
 

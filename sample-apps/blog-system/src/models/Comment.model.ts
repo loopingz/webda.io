@@ -1,6 +1,6 @@
 import { UuidModel, BelongTo } from "@webda/models";
-import type { User } from "./User";
-import type { Post } from "./Post";
+import type { User } from "./User.model.js";
+import type { Post } from "./Post.model.js";
 
 /**
  * Comment model for post comments

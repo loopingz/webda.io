@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
 import { useApplication, useModel } from "../application/hooks.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
-import { DomainService, DomainServiceParameters } from "./domainservice.js";
+import { DomainService, DomainServiceParameters } from "./domainservice.service.js";
 import { callOperation, listFullOperations } from "../core/operations.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { hasSchema, registerSchema, validateModelSchema, ValidationError } from "../schemas/hooks.js";

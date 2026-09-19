@@ -1,8 +1,8 @@
 import { Query } from "@webda/ql";
-import { OwnerModel } from "../models/ownermodel.js";
+import { OwnerModel } from "../models/ownermodel.model.js";
 import { Store, StoreFindResult, StoreParameters } from "../stores/store.js";
 import { Service } from "../services/service.js";
-import { Ident as WebdaIdent } from "../models/ident.js";
+import { Ident as WebdaIdent } from "../models/ident.model.js";
 import { UnpackedApplication } from "../application/unpackedapplication.js";
 import { CachedModule, SectionEnum, UnpackedConfiguration } from "../application/iconfiguration.js";
 import { WorkerOutput } from "@webda/workout";

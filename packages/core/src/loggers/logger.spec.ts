@@ -3,9 +3,9 @@ import { WorkerOutput } from "@webda/workout";
 import * as assert from "assert";
 import { WebdaTest } from "../test/core.js";
 import { Logger } from "./ilogger.js";
-import { FileLoggerService } from "./file.js";
-import { ConsoleLoggerService } from "./console.js";
-import { MemoryLoggerService } from "./memory.js";
+import { FileLoggerService } from "./file.service.js";
+import { ConsoleLoggerService } from "./console.service.js";
+import { MemoryLoggerService } from "./memory.service.js";
 import { LoggerService } from "./logger.js";
 import {
   LoggerServiceParameters,

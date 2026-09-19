@@ -1,6 +1,6 @@
-import type { Ident } from "./ident.js";
+import type { Ident } from "./ident.model.js";
 import type { Helpers, ModelRelated, Settable } from "@webda/models";
-import { User } from "./user.js";
+import { User } from "./user.model.js";
 
 /**
  * Simple user offers groups and roles management

@@ -2,12 +2,12 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { stub } from "sinon";
 import { TestApplication, WebdaInternalSimpleTest } from "../test/index.js";
-import { ConfigurationProvider, ConfigurationService, ConfigurationServiceParameters } from "./configuration.js";
+import { ConfigurationProvider, ConfigurationService, ConfigurationServiceParameters } from "./configuration.service.js";
 import { UnpackedConfiguration } from "../application/iconfiguration.js";
 import { useService } from "../core/hooks.js";
 import { Service } from "../services/service.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
-import { Authentication } from "../services/authentication.js";
+import { Authentication } from "../services/authentication.service.js";
 import { useCoreEvents } from "../events/events.js";
 
 class TestConfigurationProvider extends Service implements ConfigurationProvider {

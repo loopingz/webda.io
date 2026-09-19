@@ -1,9 +1,9 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { CoreModel } from "../models/coremodel.js";
+import { CoreModel } from "../models/coremodel.model.js";
 import { WebdaTest } from "../test/core.js";
-import { BinaryFile, BinaryMap, BinaryMetadata, CoreModelWithBinary } from "./binary.js";
+import { BinaryFile, BinaryMap, BinaryMetadata, CoreModelWithBinary } from "./binary.service.js";
 import { CloudBinary, CloudBinaryParameters } from "./cloudbinary.js";
 import { MemoryRepository } from "@webda/models";
 import { registerRepository } from "@webda/models";

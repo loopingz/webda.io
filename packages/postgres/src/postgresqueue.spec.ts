@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
-import { PostgresQueueService, PostgresQueueParameters } from "./postgresqueue.js";
+import { PostgresQueueService, PostgresQueueParameters } from "./postgresqueue.service.js";
 
 const params = {
   postgresqlServer: {

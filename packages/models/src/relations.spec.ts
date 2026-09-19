@@ -1,4 +1,4 @@
-import { UuidModel } from "./model";
+import { UuidModel } from "./model.model.js";
 import {
   ModelLink,
   ModelLinksArray,

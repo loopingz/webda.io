@@ -47,6 +47,54 @@ const BUILTINS: Record<string, BuiltinRule> = Object.fromEntries(
 /** Class names treated as model bases. */
 const MODEL_BASES = new Set(["Model", "UuidModel", "CoreModel"]);
 
+/**
+ * Whether a class is a model, following the base chain through the checker.
+ *
+ * The direct `extends` clause is not enough. In `@webda/core`, `Ident extends
+ * OwnerModel` and `SimpleUser extends User` are both models, several links away
+ * from `UuidModel`; matching only the written base name silently skips them and
+ * their fields are never coerced. The chain is walked with the checker so it also
+ * crosses package boundaries into `@webda/models`.
+ * @param ctx - analysis context
+ * @param sf - file declaring the class
+ * @param cls - the class declaration
+ * @returns true when the class derives from a known model base
+ */
+function isModelClass(ctx: AnalysisContext, sf: any, cls: any): boolean {
+  // Cheap syntactic hit first: most models name a known base directly.
+  if (ctx.baseNames(sf, cls).some(b => MODEL_BASES.has(b))) return true;
+
+  // `getTypeAtLocation` on a class declaration yields the static side, whose
+  // base types are constructor types — the instance chain is what we need.
+  const symbol = cls.name ? ctx.checker.getSymbolAtLocation(cls.name) : undefined;
+  const declared = symbol ? ctx.checker.getDeclaredTypeOfSymbol(symbol) : undefined;
+  if (!declared) return false;
+
+  const seen = new Set<unknown>();
+  const queue: any[] = [declared];
+  while (queue.length) {
+    const type = queue.shift();
+    if (!type) continue;
+
+    const symbol = type.getSymbol?.() ?? type.symbol;
+    const name = symbol?.name;
+    if (name && MODEL_BASES.has(name)) return true;
+    if (seen.has(name ?? type)) continue;
+    seen.add(name ?? type);
+
+    // Guard against pathological hierarchies rather than trusting the graph.
+    if (seen.size > 64) return false;
+
+    // `getBaseTypes()` hands back instantiated references whose own bases are
+    // empty, so a generic link such as `AbstractOwnerModel<T> extends UuidModel`
+    // terminates the walk. Re-resolving each base through its symbol gets the
+    // declared type, which does carry the next link.
+    const resolved = symbol ? (ctx.checker.getDeclaredTypeOfSymbol(symbol) ?? type) : type;
+    for (const base of resolved.getBaseTypes?.() ?? type.getBaseTypes?.() ?? []) queue.push(base);
+  }
+  return false;
+}
+
 /** Runtime class name that needs an initializer rather than an accessor. */
 const RELATION_CONTAINER = "ModelRelated";
 
@@ -217,8 +265,7 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
         let needsStorage = false;
 
         for (const cls of classesOf(sf)) {
-          const bases = ctx.baseNames(sf, cls);
-          const eligible = options.accessorsForAll || bases.some(b => MODEL_BASES.has(b));
+          const eligible = options.accessorsForAll || isModelClass(ctx, sf, cls);
           if (!eligible) continue;
 
           // Never clobber an explicitly written accessor.

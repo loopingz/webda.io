@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "strict": false,
+    "declaration": true,
+    "outDir": "./lib",
+    "rootDir": "./src",
+    "useDefineForClassFields": true,
+    "skipLibCheck": true,
+    "strictPropertyInitialization": false,
+    "sourceMap": true,
+    "declarationMap": true
+  },
+  "include": [
+    "src/**/*"
+  ]
+}

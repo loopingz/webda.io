@@ -1,0 +1,11 @@
+{
+  "name": "webda-content-mapper",
+  "version": "1.0.0",
+  "type": "module",
+  "typescript": {
+    "contentMapper": {
+      "exec": ["node", "server.js"],
+      "compilerOptions": ["module", "target"]
+    }
+  }
+}

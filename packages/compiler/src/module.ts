@@ -166,14 +166,105 @@ export function normalizeSchemaDefinitions(schema: any): any {
  * With compiled program, analyze the program and generate module
  *
  */
+/**
+ * Suffixes the content mapper is registered for.
+ *
+ * A file is acceptable if it carries *any* of these, not the one matching its
+ * section: the mapper claims every listed extension and transforms whatever it
+ * finds inside. That matters for the handful of files that declare a model and
+ * a service together — they need a valid suffix, not two.
+ */
+const MAPPED_SUFFIXES = [".model.ts", ".service.ts"];
+
+/** Suffix suggested for a section when a file has none of {@link MAPPED_SUFFIXES}. */
+const SECTION_SUFFIX: Record<string, string> = {
+  models: ".model.ts",
+  moddas: ".service.ts",
+  beans: ".service.ts",
+  deployers: ".service.ts"
+};
+
+/** A Webda class declared in a file that does not follow the naming convention. */
+export interface NamingViolation {
+  /** Absolute path of the offending source file. */
+  fileName: string;
+  /** Class that triggered the requirement. */
+  className: string;
+  /** Section it was classified into. */
+  section: string;
+  /** Suffix the file is required to carry. */
+  expectedSuffix: string;
+}
+
+/** Builds `webda.module.json` by walking the program for Webda objects. */
 export class ModuleGenerator {
   typeChecker: ts.TypeChecker;
   schemaGenerator: SchemaGenerator;
+  /**
+   * Webda classes found in wrongly named files.
+   *
+   * Under TypeScript 7 the accessor and `loadParameters` generation runs as a
+   * content mapper, and a content mapper can only claim files by extension — it
+   * cannot claim plain `.ts` (TS100021). A model declared in `user.ts` instead of
+   * `user.model.ts` is therefore never transformed, compiles cleanly, and fails
+   * only at runtime. This is the guard against that, and it is deliberately
+   * driven by the same type resolution that classifies the object rather than by
+   * a filename heuristic.
+   *
+   * See `docs/contribute/TypeScript 7 Content Mappers.md` §8.
+   */
+  namingViolations: NamingViolation[] = [];
 
   /** Create a new ModuleGenerator.
    * @param compiler - the compiler instance
    */
   constructor(protected compiler: Compiler) {}
+
+  /**
+   * Record a Webda class whose file does not carry the required suffix.
+   *
+   * Only project sources are checked: dependencies are already built, and their
+   * naming is their own package's problem.
+   * @param sourceFile - file declaring the class
+   * @param section - section the class was classified into
+   * @param className - the class name, for the report
+   */
+  protected checkFileNaming(sourceFile: ts.SourceFile, section: string, className: string): void {
+    const expectedSuffix = SECTION_SUFFIX[section];
+    if (!expectedSuffix) return;
+    if (!this.compiler.tsProgram.getRootFileNames().includes(sourceFile.fileName)) return;
+    if (MAPPED_SUFFIXES.some(suffix => sourceFile.fileName.endsWith(suffix))) return;
+    if (this.namingViolations.some(v => v.fileName === sourceFile.fileName)) return;
+    this.namingViolations.push({ fileName: sourceFile.fileName, className, section, expectedSuffix });
+  }
+
+  /**
+   * Report files that must be renamed before the content mapper can transform them.
+   *
+   * Fails the build by default: an unmapped Webda class compiles cleanly and
+   * breaks only at runtime, which is precisely the failure mode the content
+   * mapper architecture was chosen to avoid. Set `WEBDA_STRICT_FILE_NAMING=0`
+   * to downgrade to a warning while migrating an existing application.
+   * @throws when a Webda class is declared in a file the mapper cannot claim
+   */
+  protected reportNamingViolations(): void {
+    if (!this.namingViolations.length) return;
+    const strict = process.env.WEBDA_STRICT_FILE_NAMING !== "0";
+    const lines = this.namingViolations.map(
+      v =>
+        ` - ${relative(this.compiler.project.getAppPath(), v.fileName)} declares ${v.section.replace(/s$/, "")} '${
+          v.className
+        }' but is not a mapped file; rename it to '${v.expectedSuffix}'`
+    );
+    const message =
+      `${this.namingViolations.length} Webda class(es) are in files the content mapper cannot claim:\n` +
+      `${lines.join("\n")}\n` +
+      `A content mapper cannot register the built-in '.ts' extension, so these files are never transformed.`;
+    if (strict) {
+      throw new Error(message);
+    }
+    useLog("WARN", message);
+  }
 
   /**
    * Return the model schema
@@ -575,6 +666,7 @@ export class ModuleGenerator {
             useLog("WARN", `WebdaObjects need to be exported ${classNode.name.escapedText} in ${sourceFile.fileName}`);
             return;
           }
+          this.checkFileNaming(sourceFile, section, classNode.name?.escapedText.toString() ?? exportName);
           const info: WebdaSearchResult = {
             type,
             symbol,
@@ -1264,6 +1356,7 @@ export class ModuleGenerator {
       log: (...args) => useLog("DEBUG", ...args)
     });
     const objects = this.searchForWebdaObjects();
+    this.reportNamingViolations();
     this.exploreModelsAction(objects.models, objects.schemas);
     this.exploreServices(objects.moddas, objects.schemas);
     this.exploreServices(objects.beans, objects.schemas);

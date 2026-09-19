@@ -236,11 +236,63 @@ fires in CI rather than at the compiler, and the local loop is wrong until then.
 Two further costs:
 
 - every semantic change drags generated churn into the diff, degrading review quality
-- today the module generator runs on the **untransformed** program (`compiler.ts:217` runs
-  after `program.emit()`, and transformers do not mutate the Program's AST), so
-  `@webda/schema` currently sees plain properties. Committing accessors into the source
-  would change what it sees — a silent, repo-wide schema change. Mode D preserves today's
-  behaviour.
+- committing accessors changes the generated metadata — measured below
+
+### Measured: in-place codegen changes `webda.module.json`
+
+Today the module generator runs on the **untransformed** program (`compiler.ts:217` runs
+after `program.emit()`, and transformers do not mutate the Program's AST), so
+`@webda/schema` sees plain properties. If the accessors are committed into the source, it
+sees accessors instead.
+
+This was tested rather than assumed. Method: take `sample-app`, confirm
+`webdac build --force` reproduces the committed `webda.module.json` byte for byte, apply the
+**shipping** in-place morpher (`packages/compiler/src/morpher/accessors.ts`) to
+`Project.test: Date`, rebuild, and diff.
+
+It is not neutral. Two distinct effects:
+
+**1. `Reflection` loses the field entirely.** Four models lose their entry:
+
+```diff
+- "Reflection": { "test": { "type": "Date" }, ... }
++ "Reflection": { ... }
+```
+
+Accessors are simply not recorded as fields. Anything introspecting model metadata stops
+seeing `test`. This is an unambiguous regression.
+
+**2. Input schemas widen to the setter type.** Four model `Schemas.Input` entries plus one
+action input schema embedding a `Project`:
+
+```diff
+  "test": {
+-   "type": "string",
+-   "format": "date-time"
++   "anyOf": [
++     { "type": "string" },
++     { "type": "number" },
++     { "type": "string", "format": "date-time" }
++   ]
+  }
+```
+
+This one is arguably _more_ correct — the setter genuinely accepts `string | number | Date`,
+so the input schema now matches runtime behaviour. But it is still a silent, repo-wide change
+to API validation and to anything generated from these schemas.
+
+`Schemas.Stored` and `Schemas.Output` were unaffected, so there is no stored-data integrity
+issue.
+
+Net: option B requires fixing `@webda/schema` to treat an accessor pair as a field (reading
+the getter for `Stored`/`Output` and the setter for `Input`) before it could ship. Option D
+avoids the question entirely, because the authored source keeps plain properties and the
+module generator sees exactly what it sees today.
+
+Reproduce: `packages/compiler/src/morpher/accessors.ts` exports `transformAccessors`; drive
+it over a ts-morph `Project` built from `sample-app/tsconfig.json`, then `webdac build
+--force`. Note `webdac code` will not do this for you — it constructs `new Project(undefined)`
+(`morpher.ts:58`), so it walks zero source files and silently does nothing.
 
 ### Mode D has the same failure class — but it is containable
 

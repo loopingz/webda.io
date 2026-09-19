@@ -14,6 +14,10 @@ export default defineWorkspace([
     test: { name: "compiler", root: "packages/compiler" }
   },
   {
+    extends: "packages/content-mapper/vitest.config.ts",
+    test: { name: "content-mapper", root: "packages/content-mapper" }
+  },
+  {
     extends: "packages/core/vitest.config.ts",
     test: { name: "core", root: "packages/core" }
   },

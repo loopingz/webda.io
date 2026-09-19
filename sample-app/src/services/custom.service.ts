@@ -9,7 +9,7 @@ import {
   useRouter,
   WebContext
 } from "@webda/core";
-import { MyInterface } from "./compiler";
+import { MyInterface } from "./compiler.service.js";
 
 /**
  * @WebdaSchema testInput

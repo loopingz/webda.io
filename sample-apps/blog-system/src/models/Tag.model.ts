@@ -1,5 +1,5 @@
 import { UuidModel, RelateTo, Model, WEBDA_PRIMARY_KEY, OneToMany } from "@webda/models";
-import type { Post } from "./Post";
+import type { Post } from "./Post.model.js";
 
 /**
  * Tag model for categorizing posts

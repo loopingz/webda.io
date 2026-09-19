@@ -3,7 +3,7 @@ import { Service } from "@webda/core";
 import { WebdaSimpleTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import Sinon from "sinon";
-import { ClusterService } from "./cluster";
+import { ClusterService } from "./cluster.service.js";
 
 class FakePubSub extends Service {
   consume() {}

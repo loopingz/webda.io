@@ -1,6 +1,6 @@
 import type { LoadParameters, SelfJSONed, Settable } from "@webda/models";
-import { OwnerModel } from "./ownermodel.js";
-import type { User } from "./user.js";
+import { OwnerModel } from "./ownermodel.model.js";
+import type { User } from "./user.model.js";
 
 /** OAuth tokens associated with an identity provider */
 export class IdentTokens {

@@ -6,7 +6,7 @@
   "models": {
     "Webda/Model": {
       "Plural": "Models",
-      "Import": "lib/model:Model",
+      "Import": "lib/model.model:Model",
       "Relations": {},
       "Ancestors": [],
       "Subclasses": [
@@ -43,7 +43,7 @@
     },
     "Webda/UuidModel": {
       "Plural": "UuidModels",
-      "Import": "lib/model:UuidModel",
+      "Import": "lib/model.model:UuidModel",
       "Relations": {},
       "Ancestors": [
         "Webda/Model"
@@ -117,5 +117,5 @@
   },
   "schemas": {},
   "behaviors": {},
-  "sourceDigest": "bae2f5fdf68ee69bf6303d268e2ab488"
+  "sourceDigest": "0d0dd9a7a7eadbe1f770807b919e5a74"
 }

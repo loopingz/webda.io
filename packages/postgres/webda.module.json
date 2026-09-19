@@ -4,7 +4,7 @@
   "deployers": {},
   "moddas": {
     "Webda/PostgresPubSub": {
-      "Import": "lib/postgrespubsub:default",
+      "Import": "lib/postgrespubsub.service:default",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -26,6 +26,10 @@
               },
               "database": {
                 "type": "string"
+              },
+              "enableChannelBinding": {
+                "default": false,
+                "type": "boolean"
               },
               "fallback_application_name": {
                 "type": "string"
@@ -52,6 +56,10 @@
               "password": {
                 "type": "string"
               },
+              "pipeline": {
+                "default": false,
+                "type": "boolean"
+              },
               "port": {
                 "type": "number"
               },
@@ -67,6 +75,13 @@
                     "type": "boolean"
                   }
                 ]
+              },
+              "sslnegotiation": {
+                "enum": [
+                  "postgres",
+                  "direct"
+                ],
+                "type": "string"
               },
               "statement_timeout": {
                 "anyOf": [
@@ -654,10 +669,10 @@
         "type": "object",
         "title": "PostgresPubSubService"
       },
-      "Configuration": "lib/postgrespubsub:PostgresPubSubParameters"
+      "Configuration": "lib/postgrespubsub.service:PostgresPubSubParameters"
     },
     "Webda/PostgresQueue": {
-      "Import": "lib/postgresqueue:default",
+      "Import": "lib/postgresqueue.service:default",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -679,6 +694,10 @@
               },
               "database": {
                 "type": "string"
+              },
+              "enableChannelBinding": {
+                "default": false,
+                "type": "boolean"
               },
               "fallback_application_name": {
                 "type": "string"
@@ -705,6 +724,10 @@
               "password": {
                 "type": "string"
               },
+              "pipeline": {
+                "default": false,
+                "type": "boolean"
+              },
               "port": {
                 "type": "number"
               },
@@ -720,6 +743,13 @@
                     "type": "boolean"
                   }
                 ]
+              },
+              "sslnegotiation": {
+                "enum": [
+                  "postgres",
+                  "direct"
+                ],
+                "type": "string"
               },
               "statement_timeout": {
                 "anyOf": [
@@ -1257,6 +1287,10 @@
               "database": {
                 "type": "string"
               },
+              "enableChannelBinding": {
+                "default": false,
+                "type": "boolean"
+              },
               "fallback_application_name": {
                 "type": "string"
               },
@@ -1297,6 +1331,10 @@
               "password": {
                 "type": "string"
               },
+              "pipeline": {
+                "default": false,
+                "type": "boolean"
+              },
               "port": {
                 "type": "number"
               },
@@ -1312,6 +1350,13 @@
                     "type": "boolean"
                   }
                 ]
+              },
+              "sslnegotiation": {
+                "enum": [
+                  "postgres",
+                  "direct"
+                ],
+                "type": "string"
               },
               "statement_timeout": {
                 "anyOf": [
@@ -1475,10 +1520,10 @@
         "type": "object",
         "title": "PostgresQueueService"
       },
-      "Configuration": "lib/postgresqueue:PostgresQueueParameters"
+      "Configuration": "lib/postgresqueue.service:PostgresQueueParameters"
     },
     "Webda/PostgresStore": {
-      "Import": "lib/postgresstore:PostgresStore",
+      "Import": "lib/postgresstore.service:PostgresStore",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -1500,6 +1545,10 @@
               },
               "database": {
                 "type": "string"
+              },
+              "enableChannelBinding": {
+                "default": false,
+                "type": "boolean"
               },
               "fallback_application_name": {
                 "type": "string"
@@ -1526,6 +1575,10 @@
               "password": {
                 "type": "string"
               },
+              "pipeline": {
+                "default": false,
+                "type": "boolean"
+              },
               "port": {
                 "type": "number"
               },
@@ -1541,6 +1594,13 @@
                     "type": "boolean"
                   }
                 ]
+              },
+              "sslnegotiation": {
+                "enum": [
+                  "postgres",
+                  "direct"
+                ],
+                "type": "string"
               },
               "statement_timeout": {
                 "anyOf": [
@@ -2078,6 +2138,10 @@
               "database": {
                 "type": "string"
               },
+              "enableChannelBinding": {
+                "default": false,
+                "type": "boolean"
+              },
               "fallback_application_name": {
                 "type": "string"
               },
@@ -2118,6 +2182,10 @@
               "password": {
                 "type": "string"
               },
+              "pipeline": {
+                "default": false,
+                "type": "boolean"
+              },
               "port": {
                 "type": "number"
               },
@@ -2133,6 +2201,13 @@
                     "type": "boolean"
                   }
                 ]
+              },
+              "sslnegotiation": {
+                "enum": [
+                  "postgres",
+                  "direct"
+                ],
+                "type": "string"
               },
               "statement_timeout": {
                 "anyOf": [
@@ -2338,7 +2413,7 @@
         "type": "object",
         "title": "PostgresStore"
       },
-      "Configuration": "lib/postgresstore:PostgresParameters"
+      "Configuration": "lib/postgresstore.service:PostgresParameters"
     }
   },
   "models": {},
@@ -2387,5 +2462,5 @@
     }
   },
   "behaviors": {},
-  "sourceDigest": "7814fa2b6a7d73374b53eda471d6f598"
+  "sourceDigest": "c8b5000aa83b939fed75fcf18cc9b878"
 }

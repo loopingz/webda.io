@@ -1,7 +1,7 @@
 import { BelongTo, Contains, ManyToMany, Model, WEBDA_PRIMARY_KEY, WEBDA_EVENTS, ModelEvents } from "@webda/models";
-import type { User } from "./User";
-import type { Comment } from "./Comment";
-import type { Tag } from "./Tag";
+import type { User } from "./User.model.js";
+import type { Comment } from "./Comment.model.js";
+import type { Tag } from "./Tag.model.js";
 import { Binaries, Binary, Operation } from "@webda/core";
 
 export class PostEvents<T extends Post> {

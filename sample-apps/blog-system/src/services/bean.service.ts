@@ -1,9 +1,9 @@
 import { Bean, InstanceCache, Operation, RestParameters, Service, ServiceName, useApplication, useLog } from "@webda/core";
-import { User } from "../models/User";
-import { Post } from "../models/Post";
-import { Comment } from "../models/Comment";
-import { Tag } from "../models/Tag";
-import { UserFollow } from "../models/UserFollow";
+import { User } from "../models/User.model.js";
+import { Post } from "../models/Post.model.js";
+import { Comment } from "../models/Comment.model.js";
+import { Tag } from "../models/Tag.model.js";
+import { UserFollow } from "../models/UserFollow.model.js";
 import { track } from "@webda/utils";
 import { setupRepositories } from "../repositories/setup";
 

@@ -1,10 +1,10 @@
 import { registerRepository, MemoryRepository } from "@webda/models";
-import { User } from "../models/User";
-import { Post } from "../models/Post";
-import { Comment } from "../models/Comment";
-import { Tag } from "../models/Tag";
-import { PostTag } from "../models/PostTag";
-import { UserFollow } from "../models/UserFollow";
+import { User } from "../models/User.model.js";
+import { Post } from "../models/Post.model.js";
+import { Comment } from "../models/Comment.model.js";
+import { Tag } from "../models/Tag.model.js";
+import { PostTag } from "../models/PostTag.model.js";
+import { UserFollow } from "../models/UserFollow.model.js";
 
 /**
  * Setup repositories for all models

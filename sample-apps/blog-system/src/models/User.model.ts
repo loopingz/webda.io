@@ -1,8 +1,8 @@
 import { UuidModel, OneToMany, WEBDA_EVENTS, ModelEvents } from "@webda/models";
 import bcrypt from "bcryptjs";
-import type { Post } from "./Post";
-import type { Comment } from "./Comment";
-import type { UserFollow } from "./UserFollow";
+import type { Post } from "./Post.model.js";
+import type { Comment } from "./Comment.model.js";
+import type { UserFollow } from "./UserFollow.model.js";
 import { Operation, useContext, WebdaError } from "@webda/core";
 
 export class Password {

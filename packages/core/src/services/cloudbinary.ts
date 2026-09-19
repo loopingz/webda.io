@@ -1,6 +1,6 @@
 import { join } from "path";
 import { OperationContext } from "../contexts/operationcontext.js";
-import { BinaryMap, CoreModelWithBinary, BinaryParameters, BinaryService } from "./binary.js";
+import { BinaryMap, CoreModelWithBinary, BinaryParameters, BinaryService } from "./binary.service.js";
 
 /**
  * Default binary parameters

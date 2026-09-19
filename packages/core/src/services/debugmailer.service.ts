@@ -1,5 +1,5 @@
 import { ServiceParameters } from "./serviceparameters.js";
-import { AbstractMailer } from "./mailer.js";
+import { AbstractMailer } from "./mailer.service.js";
 
 /**
  * Fake Service to help debug mail expedition

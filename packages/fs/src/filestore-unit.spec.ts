@@ -3,7 +3,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { FileStore, FileStoreParameters } from "./filestore.js";
+import { FileStore, FileStoreParameters } from "./filestore.service.js";
 import { StoreNotFoundError, UpdateConditionFailError, runWithInstanceStorage } from "@webda/core";
 
 /**

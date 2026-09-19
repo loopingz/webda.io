@@ -1,7 +1,7 @@
 import { ServiceName, useDynamicService, useService } from "../core/hooks.js";
 import { AbstractService } from "../core/icore.js";
-import type { Ident } from "../models/ident.js";
-import type { User } from "../models/user.js";
+import type { Ident } from "../models/ident.model.js";
+import type { User } from "../models/user.model.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { Service } from "./service.js";
 

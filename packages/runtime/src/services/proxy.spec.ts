@@ -7,7 +7,7 @@ import * as http from "http";
 import sinon from "sinon";
 import { WritableStreamBuffer } from "stream-buffers";
 import { WebSocket, WebSocketServer } from "ws";
-import { ProxyService, createHttpHeader } from "./proxy";
+import { ProxyService, createHttpHeader } from "./proxy.service.js";
 
 @suite
 class WSProxyTest extends WebdaTest {

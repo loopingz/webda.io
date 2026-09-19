@@ -1,5 +1,5 @@
 import { useDynamicService } from "../core/hooks.js";
-import { Router } from "./router.js";
+import { Router } from "./router.service.js";
 
 /**
  * Return the Router service

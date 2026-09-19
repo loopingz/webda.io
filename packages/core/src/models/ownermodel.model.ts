@@ -1,6 +1,6 @@
 //import { UuidModel } from "./uuid.js";
 import { type ModelClass, ModelLink, type PrimaryKeyType, UuidModel } from "@webda/models";
-import { User } from "./user.js";
+import { User } from "./user.model.js";
 import { IOperationContext } from "../contexts/icontext.js";
 
 /**

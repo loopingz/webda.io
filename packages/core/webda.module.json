@@ -4,7 +4,7 @@
   "deployers": {},
   "moddas": {
     "Webda/AuditService": {
-      "Import": "lib/services/audit:AuditService",
+      "Import": "lib/services/audit.model:AuditService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -50,10 +50,10 @@
         "type": "object",
         "title": "AuditService"
       },
-      "Configuration": "lib/services/audit:AuditServiceParameters"
+      "Configuration": "lib/services/audit.model:AuditServiceParameters"
     },
     "Webda/Authentication": {
-      "Import": "lib/services/authentication:Authentication",
+      "Import": "lib/services/authentication.service:Authentication",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -174,10 +174,10 @@
         "type": "object",
         "title": "Authentication"
       },
-      "Configuration": "lib/services/authentication:AuthenticationParameters"
+      "Configuration": "lib/services/authentication.service:AuthenticationParameters"
     },
     "Webda/Binary": {
-      "Import": "lib/services/binary:BinaryService",
+      "Import": "lib/services/binary.service:BinaryService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -221,10 +221,10 @@
         "type": "object",
         "title": "BinaryService"
       },
-      "Configuration": "lib/services/binary:BinaryParameters"
+      "Configuration": "lib/services/binary.service:BinaryParameters"
     },
     "Webda/ConfigurationService": {
-      "Import": "lib/configurations/configuration:ConfigurationService",
+      "Import": "lib/configurations/configuration.service:ConfigurationService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -274,10 +274,10 @@
         "type": "object",
         "title": "ConfigurationService"
       },
-      "Configuration": "lib/configurations/configuration:ConfigurationServiceParameters"
+      "Configuration": "lib/configurations/configuration.service:ConfigurationServiceParameters"
     },
     "Webda/ConsoleLogger": {
-      "Import": "lib/loggers/console:ConsoleLoggerService",
+      "Import": "lib/loggers/console.service:ConsoleLoggerService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -322,7 +322,7 @@
       "Configuration": "lib/loggers/params:ConsoleLoggerServiceParameters"
     },
     "Webda/CookieSessionManager": {
-      "Import": "lib/session/manager:CookieSessionManager",
+      "Import": "lib/session/manager.model:CookieSessionManager",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -496,10 +496,10 @@
         "type": "object",
         "title": "CookieSessionManager"
       },
-      "Configuration": "lib/session/manager:CookieSessionParameters"
+      "Configuration": "lib/session/manager.model:CookieSessionParameters"
     },
     "Webda/CronService": {
-      "Import": "lib/services/cron:CronService",
+      "Import": "lib/services/cron.service:CronService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -523,7 +523,7 @@
       "Configuration": "lib/services/serviceparameters:ServiceParameters"
     },
     "Webda/CryptoService": {
-      "Import": "lib/services/cryptoservice:CryptoService",
+      "Import": "lib/services/cryptoservice.service:CryptoService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -748,7 +748,7 @@
       "Configuration": "lib/services/icryptoservice:CryptoServiceParameters"
     },
     "Webda/DebugMailer": {
-      "Import": "lib/services/debugmailer:DebugMailer",
+      "Import": "lib/services/debugmailer.service:DebugMailer",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -772,7 +772,7 @@
       "Configuration": "lib/services/serviceparameters:ServiceParameters"
     },
     "Webda/DomainService": {
-      "Import": "lib/services/domainservice:DomainService",
+      "Import": "lib/services/domainservice.service:DomainService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -836,10 +836,10 @@
         "type": "object",
         "title": "DomainService"
       },
-      "Configuration": "lib/services/domainservice:DomainServiceParameters"
+      "Configuration": "lib/services/domainservice.service:DomainServiceParameters"
     },
     "Webda/FileConfiguration": {
-      "Import": "lib/configurations/fileconfiguration:FileConfigurationService",
+      "Import": "lib/configurations/fileconfiguration.service:FileConfigurationService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -889,10 +889,10 @@
         "type": "object",
         "title": "FileConfigurationService"
       },
-      "Configuration": "lib/configurations/configuration:ConfigurationServiceParameters"
+      "Configuration": "lib/configurations/configuration.service:ConfigurationServiceParameters"
     },
     "Webda/FileLogger": {
-      "Import": "lib/loggers/file:FileLoggerService",
+      "Import": "lib/loggers/file.service:FileLoggerService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -946,7 +946,7 @@
       "Configuration": "lib/loggers/params:FileLoggerServiceParameters"
     },
     "Webda/HttpServer": {
-      "Import": "lib/services/httpserver:HttpServer",
+      "Import": "lib/services/httpserver.service:HttpServer",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -1033,7 +1033,7 @@
         "type": "object",
         "title": "HttpServer"
       },
-      "Configuration": "lib/services/httpserver:HttpServerParameters",
+      "Configuration": "lib/services/httpserver.service:HttpServerParameters",
       "commands": {
         "serve": {
           "description": "Start the HTTP server",
@@ -1054,7 +1054,7 @@
       }
     },
     "Webda/KubernetesConfigurationService": {
-      "Import": "lib/configurations/kubernetesconfiguration:KubernetesConfigurationService",
+      "Import": "lib/configurations/kubernetesconfiguration.service:KubernetesConfigurationService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -1104,10 +1104,10 @@
         "type": "object",
         "title": "KubernetesConfigurationService"
       },
-      "Configuration": "lib/configurations/kubernetesconfiguration:KubernetesConfigurationParameters"
+      "Configuration": "lib/configurations/kubernetesconfiguration.service:KubernetesConfigurationParameters"
     },
     "Webda/Mailer": {
-      "Import": "lib/services/mailer:Mailer",
+      "Import": "lib/services/mailer.service:Mailer",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -1153,10 +1153,10 @@
         "type": "object",
         "title": "Mailer"
       },
-      "Configuration": "lib/services/mailer:MailerParameters"
+      "Configuration": "lib/services/mailer.service:MailerParameters"
     },
     "Webda/MemoryLogger": {
-      "Import": "lib/loggers/memory:MemoryLoggerService",
+      "Import": "lib/loggers/memory.service:MemoryLoggerService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -1201,7 +1201,7 @@
       "Configuration": "lib/loggers/params:MemoryLoggerServiceParameters"
     },
     "Webda/MemoryQueue": {
-      "Import": "lib/queues/memoryqueue:MemoryQueue",
+      "Import": "lib/queues/memoryqueue.service:MemoryQueue",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -1266,10 +1266,10 @@
         "type": "object",
         "title": "MemoryQueue"
       },
-      "Configuration": "lib/queues/memoryqueue:MemoryQueueParameters"
+      "Configuration": "lib/queues/memoryqueue.service:MemoryQueueParameters"
     },
     "Webda/MemoryStore": {
-      "Import": "lib/stores/memory:MemoryStore",
+      "Import": "lib/stores/memory.service:MemoryStore",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -1376,10 +1376,10 @@
         "type": "object",
         "title": "MemoryStore"
       },
-      "Configuration": "lib/stores/memory:MemoryStoreParameters"
+      "Configuration": "lib/stores/memory.service:MemoryStoreParameters"
     },
     "Webda/MultiNotificationService": {
-      "Import": "lib/services/notificationservice:default",
+      "Import": "lib/services/notificationservice.service:default",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -1418,10 +1418,10 @@
         "type": "object",
         "title": "MultiNotificationService"
       },
-      "Configuration": "lib/services/notificationservice:MultiNotificationParameters"
+      "Configuration": "lib/services/notificationservice.service:MultiNotificationParameters"
     },
     "Webda/PrometheusService": {
-      "Import": "lib/services/prometheus:PrometheusService",
+      "Import": "lib/services/prometheus.service:PrometheusService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -1486,10 +1486,10 @@
         "type": "object",
         "title": "PrometheusService"
       },
-      "Configuration": "lib/services/prometheus:PrometheusParameters"
+      "Configuration": "lib/services/prometheus.service:PrometheusParameters"
     },
     "Webda/RESTOperationsTransport": {
-      "Import": "lib/rest/restoperationstransport:RESTOperationsTransport",
+      "Import": "lib/rest/restoperationstransport.service:RESTOperationsTransport",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -1563,10 +1563,10 @@
         "type": "object",
         "title": "RESTOperationsTransport"
       },
-      "Configuration": "lib/rest/restoperationstransport:RESTOperationsTransportParameters"
+      "Configuration": "lib/rest/restoperationstransport.service:RESTOperationsTransportParameters"
     },
     "Webda/ResourceService": {
-      "Import": "lib/services/resource:ResourceService",
+      "Import": "lib/services/resource.service:ResourceService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -1627,10 +1627,10 @@
         "type": "object",
         "title": "ResourceService"
       },
-      "Configuration": "lib/services/resource:ResourceServiceParameters"
+      "Configuration": "lib/services/resource.service:ResourceServiceParameters"
     },
     "Webda/Router": {
-      "Import": "lib/rest/router:Router",
+      "Import": "lib/rest/router.service:Router",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -1656,7 +1656,7 @@
         "type": "object",
         "title": "Router"
       },
-      "Configuration": "lib/rest/router:RouterParameters",
+      "Configuration": "lib/rest/router.service:RouterParameters",
       "commands": {
         "openapi": {
           "description": "Export the OpenAPI definition",
@@ -1682,7 +1682,7 @@
   "models": {
     "Webda/AbstractOwnerModel": {
       "Plural": "AbstractOwnerModels",
-      "Import": "lib/models/ownermodel:AbstractOwnerModel",
+      "Import": "lib/models/ownermodel.model:AbstractOwnerModel",
       "Relations": {
         "links": [
           {
@@ -1841,7 +1841,7 @@
     },
     "Webda/AuditEntry": {
       "Plural": "AuditEntries",
-      "Import": "lib/models/auditentry:AuditEntry",
+      "Import": "lib/models/auditentry.model:AuditEntry",
       "Relations": {},
       "Ancestors": [],
       "Subclasses": [],
@@ -2069,7 +2069,7 @@
     },
     "Webda/CoreModel": {
       "Plural": "CoreModels",
-      "Import": "lib/models/coremodel:CoreModel",
+      "Import": "lib/models/coremodel.model:CoreModel",
       "Relations": {},
       "Ancestors": [],
       "Subclasses": [],
@@ -2153,7 +2153,7 @@
     },
     "Webda/Ident": {
       "Plural": "Idents",
-      "Import": "lib/models/ident:Ident",
+      "Import": "lib/models/ident.model:Ident",
       "Relations": {
         "links": [
           {
@@ -2519,7 +2519,7 @@
     },
     "Webda/OwnerModel": {
       "Plural": "OwnerModels",
-      "Import": "lib/models/ownermodel:OwnerModel",
+      "Import": "lib/models/ownermodel.model:OwnerModel",
       "Relations": {
         "links": [
           {
@@ -2662,7 +2662,7 @@
     },
     "Webda/RegistryEntry": {
       "Plural": "RegistryEntries",
-      "Import": "lib/models/registry:RegistryEntry",
+      "Import": "lib/models/registry.model:RegistryEntry",
       "Relations": {},
       "Ancestors": [],
       "Subclasses": [],
@@ -2746,7 +2746,7 @@
     },
     "Webda/RoleModel": {
       "Plural": "RoleModels",
-      "Import": "lib/models/rolemodel:RoleModel",
+      "Import": "lib/models/rolemodel.model:RoleModel",
       "Relations": {},
       "Ancestors": [],
       "Subclasses": [],
@@ -2794,7 +2794,7 @@
     },
     "Webda/SessionModel": {
       "Plural": "SessionModels",
-      "Import": "lib/session/manager:SessionModel",
+      "Import": "lib/session/manager.model:SessionModel",
       "Relations": {},
       "Ancestors": [],
       "Subclasses": [],
@@ -2902,7 +2902,7 @@
     },
     "Webda/SimpleUser": {
       "Plural": "SimpleUsers",
-      "Import": "lib/models/simpleuser:SimpleUser",
+      "Import": "lib/models/simpleuser.model:SimpleUser",
       "Relations": {
         "queries": [
           {
@@ -3159,7 +3159,7 @@
     },
     "Webda/User": {
       "Plural": "Users",
-      "Import": "lib/models/user:User",
+      "Import": "lib/models/user.model:User",
       "Relations": {},
       "Ancestors": [],
       "Subclasses": [
@@ -3741,7 +3741,7 @@
   "behaviors": {
     "Webda/Binary": {
       "Identifier": "Webda/Binary",
-      "Import": "lib/services/binary:Binary",
+      "Import": "lib/services/binary.service:Binary",
       "Actions": {
         "delete": {
           "rest": {
@@ -3783,7 +3783,7 @@
     },
     "Webda/BinariesImpl": {
       "Identifier": "Webda/BinariesImpl",
-      "Import": "lib/services/binary:BinariesImpl",
+      "Import": "lib/services/binary.service:BinariesImpl",
       "Actions": {
         "attach": {
           "rest": {
@@ -3829,5 +3829,5 @@
     "rest-domain": "Webda/RESTOperationsTransport",
     "http-server": "Webda/HttpServer"
   },
-  "sourceDigest": "16c757f0259e323af35ee4fea3962930"
+  "sourceDigest": "e955a103d3bed22823d8fec627a16bed"
 }

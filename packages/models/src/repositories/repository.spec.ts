@@ -3,7 +3,7 @@ import { MemoryRepository } from "./memory";
 import { SubClassModel, TestModel } from "../model.spec";
 import * as assert from "assert";
 import { PrimaryKeyEquals, SelfJSONed, StorableClass, WEBDA_DIRTY, WEBDA_PRIMARY_KEY } from "../storable";
-import { Model, UuidModel } from "../model";
+import { Model, UuidModel } from "../model.model.js";
 import { Repository, WEBDA_TEST } from "./repository";
 import { registerRepository, Repositories } from "./hooks";
 

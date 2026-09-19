@@ -4,7 +4,7 @@ import { getMetadata } from "@webda/decorators";
 import * as nodeFs from "node:fs";
 import * as nodeOs from "node:os";
 import * as nodePath from "node:path";
-import { ResourceServiceParameters } from "./resource.js";
+import { ResourceServiceParameters } from "./resource.service.js";
 
 /**
  * Unit coverage for the @Route decorators and parameter loading on
@@ -26,7 +26,7 @@ class ResourceUnitTest {
   @test
   async serveRoutesAreRegisteredViaDecorator() {
     // Import triggers the decorators on _serve
-    const mod = await import("./resource.js");
+    const mod = await import("./resource.service.js");
     const routes: Record<string, any[]> =
       getMetadata(mod.ResourceService as any)?.["webda.route"] || {};
     assert.ok(routes["."], "Expected @Route(\".\") on _serve");
@@ -37,7 +37,7 @@ class ResourceUnitTest {
 
   @test
   async initRegistersRootRedirectRouteOnlyWhenEnabled() {
-    const mod = await import("./resource.js");
+    const mod = await import("./resource.service.js");
     const tmpDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), "webda-resource-"));
     try {
       // Without rootRedirect → init adds no programmatic routes
@@ -68,7 +68,7 @@ class ResourceUnitTest {
 
   @test
   async redirectHandlerSetsCacheControlAndLocation() {
-    const mod = await import("./resource.js");
+    const mod = await import("./resource.service.js");
     const svc: any = new (mod.ResourceService as any)(
       "ResourceRedirect",
       new ResourceServiceParameters({ url: "/r", folder: nodeOs.tmpdir(), rootRedirect: true })

@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Ident } from "./ident.js";
+import { Ident } from "./ident.model.js";
 import { WebdaApplicationTest } from "../test/application.js";
 
 @suite

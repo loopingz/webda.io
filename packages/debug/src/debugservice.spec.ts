@@ -153,7 +153,7 @@ function createTestWsServer(): Promise<{
 // ---------------------------------------------------------------------------
 
 // Dynamic import so mocks are set up first
-const { DebugService, isAllowedOrigin } = await import("./debugservice.js");
+const { DebugService, isAllowedOrigin } = await import("./debugservice.service.js");
 
 @suite
 class DebugServiceHandleRequestTest {

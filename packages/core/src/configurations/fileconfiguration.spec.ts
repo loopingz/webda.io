@@ -3,9 +3,9 @@ import * as assert from "assert";
 import { existsSync, unlinkSync, writeFileSync } from "fs";
 import { WebdaApplicationTest } from "../test/application.js";
 import { getCommonJS } from "@webda/utils";
-import { FileConfigurationService } from "./fileconfiguration.js";
+import { FileConfigurationService } from "./fileconfiguration.service.js";
 import { useService } from "../core/hooks.js";
-import { Authentication } from "../services/authentication.js";
+import { Authentication } from "../services/authentication.service.js";
 import { useCoreEvents } from "../events/events.js";
 const { __dirname } = getCommonJS(import.meta.url);
 

@@ -1,8 +1,8 @@
 import { CoreModel, OperationContext } from "@webda/core";
 import { ModelRelated } from "@webda/models";
 import { NotEnumerable } from "@webda/tsc-esm";
-import type { Project } from "./project";
-import type { User } from "./user";
+import type { Project } from "./project.model.js";
+import type { User } from "./user.model.js";
 import { WEBDA_PLURAL } from "@webda/models";
 
 export type Permission = "PRODUCT_1" | "PRODUCT_2" | "PRODUCT_3";

@@ -1,5 +1,5 @@
 import { ResourceAcl, Operation as Action, OperationContext, Store } from "@webda/core";
-import type { Company } from "./company";
+import type { Company } from "./company.model.js";
 import { Model, ModelParent, WEBDA_PRIMARY_KEY } from "@webda/models";
 
 /** Base model providing proxy and authorization stubs for the sample app. */

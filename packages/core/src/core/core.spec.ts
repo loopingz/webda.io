@@ -167,7 +167,7 @@ class CoreTest extends WebdaInternalTest {
    */
   @test
   async getBinaryStoreCachedPicksHighestScoreInstance() {
-    const { BinaryService } = await import("../services/binary.js");
+    const { BinaryService } = await import("../services/binary.service.js");
     const services = this.webda.getServices();
     // Seed two stand-in BinaryService instances. We don't bother giving
     // them real parameters — `getBinaryStoreCached` only calls

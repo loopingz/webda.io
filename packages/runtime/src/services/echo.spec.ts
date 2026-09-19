@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import { WebdaSimpleTest } from "@webda/core/lib/test";
 import * as assert from "assert";
-import { EchoService } from "./echo";
+import { EchoService } from "./echo.service.js";
 
 @suite
 class EchoTest extends WebdaSimpleTest {

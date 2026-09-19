@@ -1,5 +1,5 @@
 import * as WebdaError from "../errors/errors.js";
-import type { Authentication } from "./authentication.js";
+import type { Authentication } from "./authentication.service.js";
 import { Service } from "./service.js";
 import { getUuid } from "@webda/utils";
 import { RequestFilter, Route } from "../rest/irest.js";

@@ -5,7 +5,7 @@ import { Service } from "../services/service.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { Inject } from "../services/service.js";
 import { Store } from "../stores/store.js";
-import { CoreModel } from "../models/coremodel.js";
+import { CoreModel } from "../models/coremodel.model.js";
 
 /**
  * Represents a single audit log entry

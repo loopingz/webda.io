@@ -1,13 +1,13 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
-import { RESTOperationsTransport, RESTOperationsTransportParameters } from "./restoperationstransport.js";
+import { RESTOperationsTransport, RESTOperationsTransportParameters } from "./restoperationstransport.service.js";
 import { useRouter } from "./hooks.js";
 import { listOperations } from "../core/operations.js";
 import * as WebdaError from "../errors/errors.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
-import { Router, RouterParameters } from "./router.js";
+import { Router, RouterParameters } from "./router.service.js";
 import { runWithContext } from "../contexts/execution.js";
 
 // Minimal Swagger HTML for testing

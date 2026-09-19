@@ -1,4 +1,4 @@
-export * from "./model";
+export * from "./model.model.js";
 export * from "./relations";
 export * from "./types";
 export * from "./repositories/hooks";

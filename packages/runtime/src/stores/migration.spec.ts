@@ -2,7 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import { MemoryStore } from "@webda/core";
 import { WebdaSimpleTest } from "@webda/core/lib/test";
 import * as assert from "assert";
-import { MigrationStore } from "./migration";
+import { MigrationStore } from "./migration.service.js";
 
 @suite
 class MigrationTest extends WebdaSimpleTest {

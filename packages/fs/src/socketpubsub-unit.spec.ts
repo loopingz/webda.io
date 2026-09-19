@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { existsSync, mkdtempSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { SocketPubSubParameters, SocketPubSubService } from "./socketpubsub.js";
+import { SocketPubSubParameters, SocketPubSubService } from "./socketpubsub.service.js";
 
 /**
  * Wait for `predicate()` to return true, polling every `intervalMs` for up

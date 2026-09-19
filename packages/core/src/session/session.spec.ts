@@ -1,10 +1,10 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { MemoryStore } from "../stores/memory.js";
+import { MemoryStore } from "../stores/memory.service.js";
 import { WebdaSimpleTest } from "../test/test.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { UnknownSession } from "./session.js";
-import { CookieSessionManager } from "./manager.js";
+import { CookieSessionManager } from "./manager.model.js";
 
 @suite
 class SessionTest {

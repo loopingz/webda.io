@@ -120,3 +120,21 @@ describe("WarmSession", () => {
     }
   });
 });
+
+describe("model detection", () => {
+  it("follows the base chain through generic intermediates", () => {
+    // `DeepChild extends Owner extends AbstractOwner<T> extends UuidModel`.
+    // Matching only the written base name, or walking base types without
+    // re-resolving them through their symbol, stops at the generic link and
+    // silently leaves the field uncoerced.
+    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js" });
+    try {
+      const file = join(fixture, "src", "deep.model.ts");
+      const out = session.transform(file, readFileSync(file, "utf8"));
+      expect(out.text).toContain("get seenAt(): Date");
+      expect(out.text).toContain("set seenAt(value: string | number | Date)");
+    } finally {
+      session.dispose();
+    }
+  });
+});

@@ -22,6 +22,11 @@
       "types": "./lib/transform.d.ts",
       "import": "./lib/transform.js",
       "require": "./lib/transform.js"
+    },
+    "./coercions": {
+      "types": "./lib/coercions.d.ts",
+      "import": "./lib/coercions.js",
+      "require": "./lib/coercions.js"
     }
   },
   "scripts": {

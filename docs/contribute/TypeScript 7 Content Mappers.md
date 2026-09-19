@@ -292,7 +292,7 @@ module generator sees exactly what it sees today.
 Reproduce: `packages/compiler/src/morpher/accessors.ts` exports `transformAccessors`; drive
 it over a ts-morph `Project` built from `sample-app/tsconfig.json`, then `webdac build
 --force`. Note `webdac code` will not do this for you — it constructs `new Project(undefined)`
-(`morpher.ts:58`), so it walks zero source files and silently does nothing.
+(`morpher/morpher.ts:60`), so it walks zero source files and silently does nothing.
 
 ### Mode D has the same failure class — but it is containable
 
@@ -458,16 +458,88 @@ Stated plainly, because none of these are solved:
 - Unmeasured: many files open and edited simultaneously, invalidation storms from editing a
   shared file, and mapper memory growth over a long session.
 
-## 11. Migration checklist
+## 11. Target package layout
 
-1. Port the accessor and `loadParameters` generators onto the TS7 API — done in the prototype.
-2. Rename model and service sources to `.model.ts` / `.service.ts`.
-3. Add the naming check to `ModuleGenerator.searchForWebdaObjects()`.
-4. Port the module generator to the TS7 API (already a standalone pass — lowest risk).
-5. Port `@webda/schema` (highest risk; leans on checker internals).
-6. Port the WebdaQL validator and rewrite.
-7. Replace `@webda/tsc-esm` with `rewriteRelativeImportExtensions` or `transpileModule`.
-8. Delete `@webda/ts-plugin` and `ts-patch`.
+`@webda/ts-plugin` is today two things under one name: the language-service plugin, **and**
+the transform library `@webda/compiler` consumes. Only the first half disappears outright —
+`packages/compiler/package.json` currently declares `"@webda/ts-plugin": "workspace:^"` and
+`compiler.ts:17-20` imports `DEFAULT_COERCIONS`, `PerfTracker` and the accessor transformers
+from `@webda/ts-plugin/transform`.
+
+### Where the code ends up
+
+```
+@webda/content-mapper    thin: generators + plan + spans + mapper server
+        ▲                the only thing spawned per project
+        │
+@webda/compiler          webdac: two-pass build, webda.module.json,
+                         schema, operations — reuses the same generators
+```
+
+The mapper is deliberately **not** folded into `@webda/compiler`. It is spawned as a process
+per project and its startup sits on the build's critical path — roughly 60ms of the 320ms
+build in §9.1 is Node spawn plus module load. `@webda/compiler` pulls `ts-morph`,
+`@webda/schema`, `tsquery`, `yargs`, `diff` and `accept-language`, and `transform` needs none
+of them.
+
+Deployment detail: tsconfig names the mapper by package (`"package": "@webda/content-mapper"`),
+so it must resolve from the **application**, not merely transitively through the compiler. It
+belongs in the app template's `devDependencies`.
+
+### Fate of `@webda/ts-plugin`
+
+| file                                     | lines | fate                                                    |
+| ---------------------------------------- | ----: | ------------------------------------------------------- |
+| `index.ts` — language-service plugin     |   413 | delete — made unnecessary by real accessors             |
+| `transform.ts` — transformer wiring      |   331 | delete                                                  |
+| `transforms/accessors.ts`                |  1324 | delete once the mapper generators land                  |
+| `transforms/module-generator.ts`         |   513 | delete — scaffold duplicate of `compiler/src/module.ts` |
+| `analyzer.ts` — `computeCoercibleFields` |   258 | delete — replaced by the TS7 analyzer                   |
+| `transforms/behaviors.ts`                |   959 | **port**                                                |
+| `transforms/qlvalidator.ts`              |   598 | **port**                                                |
+| `coercions.ts`                           |    29 | move into `@webda/content-mapper`                       |
+| `perf.ts`                                |   122 | move into `@webda/compiler`                             |
+
+Roughly 2.8k lines are deleted and 1.6k must be ported first.
+
+> `qlvalidator` is the one to be careful with. It is the WebdaQL compile-time validator, a
+> user-facing feature rather than error suppression. Removing `@webda/ts-plugin` before it is
+> ported is a straight regression. `behaviors` is rated low difficulty because the technique
+> carries over, not because it is small.
+
+### Order of work
+
+`@webda/compiler` depends on `@webda/ts-plugin`, so the dependency has to be inverted before
+anything is deleted.
+
+1. Create `@webda/content-mapper`: accessors + `loadParameters` generators, plan model, span
+   builder, mapper server, plus `coercions`. Done in the prototype.
+2. Point `@webda/compiler` at it and drop the `@webda/ts-plugin/transform` import.
+3. Rename model and service sources to `.model.ts` / `.service.ts`.
+4. Add the naming check to `ModuleGenerator.searchForWebdaObjects()` (§8).
+5. Port `transforms/behaviors.ts`.
+6. Port `transforms/qlvalidator.ts` — validation half is pure analysis; the rewrite half is
+   local and mechanical.
+7. Port the module generator to the TS7 API — already a standalone pass, so lowest risk.
+8. Port `@webda/schema` — highest risk, leans on checker internals. Note §7: it must also
+   learn to treat an accessor pair as a field if in-place output is ever produced.
+9. Replace `@webda/tsc-esm` with native `rewriteRelativeImportExtensions`, or 7.1
+   `transpileModule`. Used by `sample-app` and `packages/postgres`.
+10. Delete `@webda/ts-plugin` and `ts-patch`.
+
+### Cleanup that is easy to forget
+
+- **Comment-only references** to `@webda/ts-plugin` in four packages — they do not break the
+  build, they just go stale: `core/src/application/application.ts:100,744`,
+  `models/src/types.ts:284`, `ql/src/webdaql-string.ts:3`,
+  `serialize/src/builtin/object.ts:89`.
+- **Three tsconfigs** declare the plugin: `packages/core`, `packages/models`,
+  `sample-apps/blog-system`.
+- **`.vscode/settings.json`** sets `js/ts.tsdk.path` to `node_modules/typescript/lib` to load
+  the plugin today. It must point at the tsgo tsdk instead — same mechanism, different target.
+- **`webdac code` is currently a no-op**: `WebdaMorpher` builds `new Project(undefined)`
+  (`morpher/morpher.ts:60`), so it walks zero source files. Either fix or remove it; leaving
+  a command that silently does nothing is worse than either.
 
 ## References
 

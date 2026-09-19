@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "useDefineForClassFields": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "contentMappers": [
+    { "package": "webda-content-mapper", "extensions": [".model.ts"], "options": { "storageModule": "../runtime.js" } }
+  ],
+  "include": ["src/**/*"]
+}

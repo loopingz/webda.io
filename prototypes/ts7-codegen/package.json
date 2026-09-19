@@ -1,0 +1,27 @@
+{
+  "name": "@webda/ts7-codegen-prototype",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Prototype: TypeScript 7 compatible replacement for Webda's emit-time accessor transformer",
+  "bin": {
+    "webda-codegen": "./lib/cli.js",
+    "webda-build": "./lib/build-cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "demo": "node lib/cli.js --project fixture/tsconfig.json --rootDir fixture/src --outDir fixture/.webda/gen --storageModule ./models.js",
+    "demo:wrapper": "node lib/build-cli.js --project fixture/tsconfig.json --storageModule ./models.js",
+    "demo:lsp": "node lsp-test.mjs raw && node lsp-test.mjs inject",
+    "demo:lsp:model": "node lsp-test2.mjs raw && node lsp-test2.mjs inject",
+    "demo:lsp:edit": "node lsp-test3.mjs",
+    "demo:lsp:hover": "node hover-type.mjs raw && node hover-type.mjs inject",
+    "demo:twopass": "node twopass-run.mjs",
+    "demo:twopass:verify": "node twopass-verify.mjs && node fixture2/runtime-check.mjs",
+    "demo:twopass:real": "node realbench.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^7.1.0-dev.20260918.1"
+  }
+}

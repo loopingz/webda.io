@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "strict": true,
+    "noEmit": true
+  },
+  "contentMappers": [
+    {
+      "package": "webda-content-mapper",
+      "extensions": [
+        ".wts",
+        ".model.ts"
+      ]
+    }
+  ],
+  "include": [
+    "src"
+  ]
+}

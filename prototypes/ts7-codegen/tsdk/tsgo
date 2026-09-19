@@ -1,0 +1,8 @@
+#!/bin/sh
+# VS Code's TypeScript 7 extension resolves its server by looking for an
+# executable named `tsc` or `tsgo` in the configured tsdk directory
+# (_extension/src/util.ts, packagedExeBaseNames) and spawns it as
+# `<exe> --lsp --stdio` (_extension/src/client.ts).
+#
+# Point `js/ts.tsdk.path` at this directory to install the injecting middleware.
+exec node "$(dirname "$0")/../lib/lsp-inject.js" "$@"

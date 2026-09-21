@@ -256,9 +256,35 @@ function isTypeOnlyImport(sf: SourceFile, name: string): boolean {
  */
 function referencesResolve(ctx: AnalysisContext, sf: SourceFile, snippet: string, location: any): boolean {
   const skip = new Set([
-    "string", "number", "boolean", "any", "unknown", "never", "void", "null", "undefined",
-    "object", "symbol", "bigint", "this", "value", "readonly", "get", "set", "new", "return",
-    "if", "else", "const", "instanceof", "true", "false", "Date", "Record", "Array", "Promise",
+    "string",
+    "number",
+    "boolean",
+    "any",
+    "unknown",
+    "never",
+    "void",
+    "null",
+    "undefined",
+    "object",
+    "symbol",
+    "bigint",
+    "this",
+    "value",
+    "readonly",
+    "get",
+    "set",
+    "new",
+    "return",
+    "if",
+    "else",
+    "const",
+    "instanceof",
+    "true",
+    "false",
+    "Date",
+    "Record",
+    "Array",
+    "Promise",
     // Injected by this generator, so not yet resolvable in the authored text.
     "WEBDA_STORAGE"
   ]);
@@ -445,10 +471,15 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
             const builtin = BUILTINS[head];
             if (builtin) {
               resolved = {
-                name, typeText, kind: "builtin",
-                setterType: builtin.setterType, coerce: builtin.coerce,
+                name,
+                typeText,
+                kind: "builtin",
+                setterType: builtin.setterType,
+                coerce: builtin.coerce,
                 defaultExpr,
-                start, end: m.end, indent
+                start,
+                end: m.end,
+                indent
               };
             } else {
               const runtimeClass = resolveRuntimeClass(ctx, m.type);
@@ -461,8 +492,14 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
                   if (!ctorArg) continue;
                 }
                 resolved = {
-                  name, typeText, kind: "relation-initializer",
-                  runtimeClass, ctorArg, start, end: m.end, indent
+                  name,
+                  typeText,
+                  kind: "relation-initializer",
+                  runtimeClass,
+                  ctorArg,
+                  start,
+                  end: m.end,
+                  indent
                 };
               } else {
                 const param = autoSetterParamType(ctx, m.type);
@@ -473,10 +510,16 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
                     if (!ctorArg) continue;
                   }
                   resolved = {
-                    name, typeText, kind: "set-method",
+                    name,
+                    typeText,
+                    kind: "set-method",
                     setterType: `${param} | ${typeText}`,
-                    runtimeClass, ctorArg, defaultExpr,
-                    start, end: m.end, indent
+                    runtimeClass,
+                    ctorArg,
+                    defaultExpr,
+                    start,
+                    end: m.end,
+                    indent
                   };
                 }
               }
@@ -503,7 +546,8 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
         if (edits.length) {
           if (needsStorage && !new RegExp(`\\bWEBDA_STORAGE\\b`).test(sf.text)) {
             edits.push({
-              start: 0, end: 0,
+              start: 0,
+              end: 0,
               text: `import { WEBDA_STORAGE } from ${JSON.stringify(storageModule)};\n`,
               source: "accessors"
             });

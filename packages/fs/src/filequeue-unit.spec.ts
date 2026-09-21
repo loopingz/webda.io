@@ -3,7 +3,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { FileQueue, FileQueueParameters } from "./filequeue.js";
+import { FileQueue, FileQueueParameters } from "./filequeue.service.js";
 
 /**
  * Helper to create a FileQueue instance with proper parameters,

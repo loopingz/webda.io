@@ -1,9 +1,9 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { RouteInfo } from "./router.js";
+import { RouteInfo } from "./router.service.js";
 import { TestApplication, WebdaTest } from "../test/index.js";
 import { HttpContext } from "../contexts/httpcontext.js";
-import { RESTOperationsTransport } from "./restoperationstransport.js";
+import { RESTOperationsTransport } from "./restoperationstransport.service.js";
 import { ImageUser } from "../services/binary.spec.js";
 
 /**

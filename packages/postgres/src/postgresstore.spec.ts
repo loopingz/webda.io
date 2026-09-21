@@ -3,7 +3,7 @@ import * as assert from "node:assert";
 import pg from "pg";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import { EventRepository, useModel } from "@webda/core";
-import PostgresStore from "./postgresstore.js";
+import PostgresStore from "./postgresstore.service.js";
 import { PostgresRepository } from "./sqlstore.js";
 
 const params = {

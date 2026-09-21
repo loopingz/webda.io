@@ -3,7 +3,7 @@ import { Core } from "@webda/core";
 import { WebdaSimpleTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import sinon from "sinon";
-import { PasswordEncryptionService } from "./password";
+import { PasswordEncryptionService } from "./password.service.js";
 
 @suite
 class PasswordEncrypterTest extends WebdaSimpleTest {

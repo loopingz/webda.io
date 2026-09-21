@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaInternalTest } from "../test/index.js";
-import { DebugMailer } from "./debugmailer.js";
+import { DebugMailer } from "./debugmailer.service.js";
 import { UnpackedConfiguration } from "../application/application.js";
 
 @suite

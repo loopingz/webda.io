@@ -1,0 +1,9 @@
+node_modules/
+lib/
+fixture/lib/
+fixture/.webda/gen/
+fixture/.webda/build/
+fixture2/lib/
+contentmapper/lib/
+contentmapper/bench/src/models/
+contentmapper/bench/src/index.ts

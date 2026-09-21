@@ -1,0 +1,74 @@
+import { Binaries, Binary, CoreModel, OperationContext } from "@webda/core";
+import { ModelLink } from "@webda/models";
+import type { User } from "./user.model.js";
+
+/**
+ * @WebdaModel Contact
+ * Not sure what this jsdoc does
+ *
+ * Another comment
+ *
+ * @SchemaAdditionalProperties Allow mine
+ */
+//@Expose()
+export default class Contact extends CoreModel {
+  /**
+   * Contact firstname
+   */
+  firstName: string;
+  /**
+   * Contact lastname
+   */
+  lastName: string;
+  /**
+   * Contact type
+   */
+  type: "PERSONAL" | "PROFESSIONAL";
+  /**
+   * Contact age
+   *
+   * @minimum 0
+   */
+  age: number;
+  /**
+   * @SchemaIgnore
+   */
+  custom: string;
+  /**
+   * To indicate a property that will be set by server,
+   * similar to @SchemaOptional
+   *
+   * @readOnly
+   */
+  readonly: number;
+  /**
+   * Useful to auto complete on the creation side without
+   * forcing UI to push the attribute
+   *
+   * @SchemaOptional
+   */
+  optional: string;
+  /**
+   * Contact avatar
+   */
+  avatar: Binary;
+  /**
+   * Contact photos
+   */
+  photos: Binaries<{ location: { lat: number; lng: number } }>;
+
+  /**
+   * Contact owner
+   */
+  owner: ModelLink<User>;
+
+  /**
+   * Allow all manipulations
+   * @param _context - the operation context
+   * @param _action - the action to check
+   * @returns true
+   */
+  canAct(_context: OperationContext<any, any>, _action: string): Promise<string | boolean> {
+    return Promise.resolve(true);
+  }
+}

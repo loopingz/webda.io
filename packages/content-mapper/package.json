@@ -1,0 +1,80 @@
+{
+  "name": "@webda/content-mapper",
+  "version": "4.0.0-beta.1",
+  "description": "Webda compile-time code generation as a TypeScript 7.1 content mapper",
+  "keywords": [
+    "webda",
+    "typescript",
+    "content-mapper",
+    "codegen"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "node": "./lib/index.js"
+    },
+    "./coercions": {
+      "types": "./lib/coercions.d.ts",
+      "import": "./lib/coercions.js",
+      "require": "./lib/coercions.js",
+      "node": "./lib/coercions.js"
+    },
+    "./server": {
+      "types": "./lib/server.d.ts",
+      "import": "./lib/server.js",
+      "node": "./lib/server.js"
+    }
+  },
+  "typescript": {
+    "contentMapper": {
+      "exec": [
+        "node",
+        "lib/server.js"
+      ],
+      "compilerOptions": [
+        "module",
+        "target"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:watch": "tsc -p tsconfig.json --watch",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "pretest": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "peerDependencies": {
+    "typescript": ">=7.1.0-dev"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "@webda/compiler": "workspace:*",
+    "@webda/ts-plugin": "workspace:*",
+    "typescript": "7.1.0-dev.20260918.1",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
+  },
+  "files": [
+    "lib"
+  ],
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "license": "LGPL-3.0-only"
+}

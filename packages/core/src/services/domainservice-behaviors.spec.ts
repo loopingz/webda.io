@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
 import { WebdaApplicationTest } from "../test/index.js";
-import { DomainService, DomainServiceParameters } from "./domainservice.js";
+import { DomainService, DomainServiceParameters } from "./domainservice.service.js";
 import { callOperation, listFullOperations } from "../core/operations.js";
 import { useApplication, useModel } from "../application/hooks.js";
 import { useInstanceStorage } from "../core/instancestorage.js";

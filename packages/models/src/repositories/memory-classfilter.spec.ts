@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { UuidModel } from "../model";
+import { UuidModel } from "../model.model.js";
 import { MemoryRepository } from "./memory";
 import { registerRepository, Repositories, useRepository } from "./hooks";
 

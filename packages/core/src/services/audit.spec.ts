@@ -4,7 +4,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
 import { TestApplication } from "../test/objects.js";
-import { AuditEntry, AuditService, AuditServiceParameters } from "./audit.js";
+import { AuditEntry, AuditService, AuditServiceParameters } from "./audit.model.js";
 import { callOperation, registerOperation } from "../core/operations.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { Service } from "./service.js";

@@ -1,0 +1,562 @@
+import { createCipheriv, createDecipheriv, createHash, createHmac, generateKeyPairSync, randomBytes } from "crypto";
+import jwt from "jsonwebtoken";
+import { pem2jwk } from "pem-jwk";
+import * as util from "util";
+import { JSONUtils } from "@webda/utils";
+
+import { CryptoServiceParameters, JWTOptions, KeysDefinition } from "./icryptoservice.js";
+import { getMachineId, useCore, useService } from "../core/hooks.js";
+import { useLog } from "../loggers/hooks.js";
+import { Service } from "./service.js";
+import { OperationContext } from "../contexts/operationcontext.js";
+import { Route } from "../rest/irest.js";
+import { useRegistry } from "../models/registry.model.js";
+
+/** Wraps a secret string value, masking it in logs and inspect output */
+export class SecretString {
+  /** Create a new SecretString
+   * @param str - the secret value
+   * @param encrypter - the encrypter service name
+   */
+  constructor(
+    protected str: string,
+    protected encrypter: string
+  ) {}
+
+  /**
+   * Extract the plain string value, warning if the string is not encrypted
+   * @param value - the value to set
+   * @param path - the path
+   * @returns the result string
+   */
+  static from(value: string | SecretString, path?: string): string {
+    if (value instanceof SecretString) {
+      return value.getValue();
+    }
+    useLog("WARN", "A secret string is not encrypted", value);
+
+    return value;
+  }
+
+  /**
+   * Get the underlying secret value
+   * @returns the result string
+   */
+  getValue(): string {
+    return this.str;
+  }
+  /**
+   * Return a masked representation to prevent secret leakage
+   * @returns the result string
+   */
+  toString(): string {
+    return "********";
+  }
+  /**
+   * Custom inspect handler to mask the secret in Node.js util.inspect
+   * @param depth - the depth level
+   * @param options - the options
+   * @param inspect - the inspect function
+   * @returns the result
+   */
+  [util.inspect.custom](depth, options, inspect) {
+    return "********";
+  }
+}
+
+export type KeysRegistry = {
+  /**
+   * Contains the instanceId of the last
+   * service who rotated
+   */
+  rotationInstance: string;
+  /**
+   * Key storage
+   */
+  [keys: `key_${string}`]: {
+    publicKey: string;
+    privateKey: string;
+    symetric: string;
+  };
+  /**
+   * Current key
+   */
+  current: string;
+};
+
+/**
+ * Encrypt/Decrypt string
+ */
+export interface StringEncrypter {
+  /**
+   * Encrypt a string
+   * @param data
+   * @returns
+   */
+  encrypt(data: string, options?: any): Promise<string>;
+  /**
+   * Decrypt a string
+   * @param data
+   * @returns
+   */
+  decrypt(data: string, options?: any): Promise<string>;
+}
+
+/**
+ * @WebdaModda
+ */
+export class CryptoService<T extends CryptoServiceParameters = CryptoServiceParameters>
+  extends Service<T>
+  implements StringEncrypter
+{
+  private static encrypters: { [key: string]: StringEncrypter } = {};
+
+  /**
+   * Register an encrypter for configuration
+   * @param name - the name to use
+   * @param encrypter - the encrypter implementation
+   * @param encrypter.encrypt - the encrypter.encrypt
+   * @param encrypter.decrypt - the encrypter.decrypt
+   */
+  static registerEncrypter(
+    name: string,
+    encrypter: { encrypt: (data: string) => Promise<string>; decrypt: (data: string) => Promise<string> }
+  ) {
+    if (CryptoService.encrypters[name]) {
+      console.error("Encrypter", name, "already registered");
+    }
+    CryptoService.encrypters[name] = encrypter;
+  }
+  currentSymetricKey: string;
+  currentAsymetricKey: { publicKey: string; privateKey: string };
+  current: string;
+  age: number;
+  keys: {
+    [key: string]: KeysDefinition;
+  };
+  /**
+   * JWKS cache
+   */
+  jwks: {
+    [key: string]: {
+      n: string;
+      e: string;
+    };
+  } = {};
+
+  /**
+   * @override
+   */
+  async init(): Promise<this> {
+    await super.init();
+    CryptoService.encrypters["self"] = this;
+    // Load keys
+    if (this.parameters.autoCreate && !(await this.load())) {
+      await this.rotate();
+    }
+    return this;
+  }
+
+  /**
+   *
+   * @param context - the execution context
+   */
+  @Route(".", ["GET"], {
+    description: "Serve JWKS keys",
+    get: {
+      operationId: "getJWKS"
+    }
+  })
+  async serveJWKS(context: OperationContext) {
+    context.write({
+      keys: Object.keys(this.keys).map(k => {
+        if (!this.jwks[k]) {
+          /*
+            when Node >= 16
+            this.jwks[k] = createPublicKey(this.keys[k].publicKey).export({ format: "jwk" });
+            and remove pem-jwk
+            */
+          this.jwks[k] = pem2jwk(this.keys[k].publicKey);
+        }
+        return {
+          kty: "RSA",
+          kid: k,
+          n: this.jwks[k].n,
+          e: this.jwks[k].e
+        };
+      })
+    });
+  }
+
+  /**
+   * Load keys from registry
+   * @returns true if the condition is met
+   */
+  async load(): Promise<boolean> {
+    let load;
+    try {
+      load = await useRegistry().get<KeysRegistry>("keys");
+    } catch (err) {}
+    if (!load || !load.current) {
+      return false;
+    }
+    this.keys = {};
+    Object.keys(load)
+      .filter(k => k.startsWith("key_"))
+      .forEach(k => {
+        this.keys[k.substring(4)] = load[k];
+      });
+    this.current = load.current.startsWith("init-") ? undefined : load.current;
+    this.age = parseInt(this.current, 36);
+    return true;
+  }
+
+  /**
+   * Generate asymetric key
+   * @returns the result
+   */
+  generateAsymetricKeys(): { publicKey: string; privateKey: string } {
+    const { publicKey, privateKey } = generateKeyPairSync(
+      // @ts-ignore
+      this.parameters.asymetricType,
+      this.parameters.asymetricOptions
+    );
+    return { publicKey: publicKey as string, privateKey: privateKey as string };
+  }
+
+  /**
+   * Generate symetric key
+   * @returns the result string
+   */
+  generateSymetricKey(): string {
+    return randomBytes(this.parameters.symetricKeyLength / 8).toString("base64");
+  }
+
+  /**
+   * Return current key set
+   * @returns the result
+   */
+  async getCurrentKeys(): Promise<{ id: string; keys: KeysDefinition }> {
+    if (!this.keys || !this.current || !this.keys[this.current]) {
+      let msg = "";
+      if (!this.keys) {
+        msg = ": No keys";
+      } else if (!this.current) {
+        msg = ": No current key";
+      } else if (!this.keys[this.current]) {
+        msg = ": Current key does not match";
+        msg += " (current=" + this.current + ", keys=[" + Object.keys(this.keys).join(",") + "])";
+      }
+      throw new Error("CryptoService not initialized" + msg);
+    }
+    return { keys: this.keys[this.current], id: this.current };
+  }
+
+  /**
+   * Retrieve a HMAC for a string
+   * @param data - the data to process
+   * @param keyId to use
+   * @returns the result string
+   */
+  public async hmac(data: string | any, keyId?: string): Promise<string> {
+    if (typeof data !== "string") {
+      data = JSONUtils.stringify(data);
+    }
+    const key = keyId ? { id: keyId, keys: this.keys[keyId] } : await this.getCurrentKeys();
+    return key.id + "." + createHmac("sha256", key.keys.symetric).update(data).digest("hex");
+  }
+
+  /**
+   * Verify a HMAC for a string
+   * @param data - the data to process
+   * @param hmac - the HMAC instance
+   * @returns true if the condition is met
+   */
+  public async hmacVerify(data: string | any, hmac: string): Promise<boolean> {
+    if (typeof data !== "string") {
+      data = JSONUtils.stringify(data);
+    }
+    const [keyId, mac] = hmac.split(".");
+    if (!(await this.checkKey(keyId))) {
+      return false;
+    }
+    return createHmac("sha256", this.keys[keyId].symetric).update(data).digest("hex") === mac;
+  }
+
+  /**
+   * JWT token generation
+   * @param data - the data to process
+   * @param options - the options
+   * @returns the result string
+   */
+  public async jwtSign(data: any, options?: JWTOptions): Promise<string> {
+    const res = { ...this.parameters.jwt, ...options };
+    let key = res.secretOrPublicKey;
+    // Default to our current private key
+    if (!res.secretOrPublicKey) {
+      const keyInfo = await this.getCurrentKeys();
+      // Depending on the algo fallback to the right key
+      if (res.algorithm.startsWith("HS")) {
+        key = keyInfo.keys.symetric;
+        res.keyid = "S" + keyInfo.id;
+      } else {
+        key = keyInfo.keys.privateKey;
+        res.keyid = "A" + keyInfo.id;
+      }
+    }
+    delete res.secretOrPublicKey;
+    return jwt.sign(data, key, res);
+  }
+
+  /**
+   *
+   * @param keyId - the key identifier
+   * @returns true if the condition is met
+   */
+  async checkKey(keyId: string): Promise<boolean> {
+    if (!this.keys[keyId]) {
+      // Key is more recent than current one so try to reload
+      if (parseInt(keyId, 36) > this.age) {
+        await this.load();
+      }
+      // Key is still not found
+      if (!this.keys[keyId]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Get JWT key based on kid
+   * @param header - the JWT header
+   * @param callback - the callback function
+   */
+  public async getJWTKey(header, callback) {
+    if (!header.kid) {
+      callback(new Error("Unknown key"));
+      return;
+    }
+    const keyId = header.kid.substring(1);
+    if (!(await this.checkKey(keyId))) {
+      callback(new Error("Unknown key"));
+      return;
+    }
+    // Check first letter that define Symetric or Asymetric
+    if (header.kid.startsWith("S")) {
+      callback(null, this.keys[keyId].symetric);
+    } else if (header.kid.startsWith("A")) {
+      callback(null, this.keys[keyId].publicKey);
+    } else {
+      callback(new Error("Unknown key"));
+    }
+  }
+
+  /**
+   * JWT token verification
+   * @param token - the token
+   * @param options - the options
+   * @returns the result
+   */
+  public async jwtVerify(token: string, options?: JWTOptions): Promise<string | any> {
+    return new Promise((resolve, reject) => {
+      jwt.verify(
+        token,
+        options?.secretOrPublicKey || this.getJWTKey.bind(this),
+        {
+          ...options,
+          secretOrPublicKey: undefined
+        },
+        (err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        }
+      );
+    });
+  }
+
+  /**
+   * Encrypt data
+   * @param data - the data to process
+   * @returns the result string
+   */
+  public async encrypt(data: any): Promise<string> {
+    const key = await this.getCurrentKeys();
+    // Initialization Vector
+    const iv = randomBytes(16);
+    const symKey = new Uint8Array(Buffer.from(key.keys.symetric, "base64"));
+    const cipher = createCipheriv(this.parameters.symetricCipher, symKey, new Uint8Array(iv));
+    const updated = cipher.update(new Uint8Array(Buffer.from(JSON.stringify(data))));
+    const final = cipher.final();
+    const encrypted = Buffer.concat([new Uint8Array(iv), new Uint8Array(updated), new Uint8Array(final)]).toString(
+      "base64"
+    );
+    return this.jwtSign(encrypted, {
+      keyid: `S${key.id}`,
+      secretOrPublicKey: key.keys.symetric
+    });
+  }
+
+  /**
+   * Parse the JWT header section
+   * @param token - the token
+   * @returns the result
+   */
+  getJWTHeader(token: string) {
+    return JSON.parse(Buffer.from(token.split(".")[0], "base64").toString());
+  }
+
+  /**
+   * Encrypt configuration
+   * @param data - the data to process
+   * @returns the result
+   */
+  public static async encryptConfiguration(data: any) {
+    if (data instanceof Object) {
+      for (const i in data) {
+        data[i] = await CryptoService.encryptConfiguration(data[i]);
+      }
+    } else if (typeof data === "string") {
+      if (data.startsWith("encrypt:") || data.startsWith("sencrypt:")) {
+        let str = data.substring(data.indexOf(":") + 1);
+        const type = str.substring(0, str.indexOf(":"));
+        str = str.substring(str.indexOf(":") + 1);
+        if (!CryptoService.encrypters[type]) {
+          throw new Error("Unknown encrypter " + type);
+        }
+        if (data.startsWith("s")) {
+          data = `scrypt:${type}:` + (await CryptoService.encrypters[type].encrypt(str));
+        } else {
+          data = `crypt:${type}:` + (await CryptoService.encrypters[type].encrypt(str));
+        }
+      }
+    }
+    return data;
+  }
+
+  /**
+   *
+   * @param data - the data to process
+   * @returns the result
+   */
+  public static async decryptConfiguration(data: any): Promise<any> {
+    if (data instanceof Object) {
+      for (const i in data) {
+        data[i] = await CryptoService.decryptConfiguration(data[i]);
+      }
+    } else if (typeof data === "string") {
+      if (data.startsWith("crypt:") || data.startsWith("scrypt:")) {
+        let str = data.substring(data.indexOf(":") + 1);
+        const type = str.substring(0, str.indexOf(":"));
+        str = str.substring(str.indexOf(":") + 1);
+        if (!CryptoService.encrypters[type]) {
+          throw new Error("Unknown encrypter " + type);
+        }
+        // We keep the ability to map to a simple string for incompatible module
+        if (data.startsWith("scrypt:")) {
+          return await CryptoService.encrypters[type].decrypt(str);
+        } else {
+          return new SecretString(await CryptoService.encrypters[type].decrypt(str), type);
+        }
+      }
+    }
+    return data;
+  }
+
+  /**
+   * Decrypt data
+   * @param token - the token
+   * @returns the result
+   */
+  public async decrypt(token: string): Promise<any> {
+    const input = Buffer.from(await this.jwtVerify(token), "base64");
+    const header = this.getJWTHeader(token);
+    const iv = input.subarray(0, 16);
+    const decipher = createDecipheriv(
+      this.parameters.symetricCipher,
+      new Uint8Array(Buffer.from(this.keys[header.kid.substring(1)].symetric, "base64")),
+      new Uint8Array(iv)
+    );
+    return JSON.parse(decipher.update(new Uint8Array(input.subarray(16))).toString() + decipher.final().toString());
+  }
+
+  /**
+   * Get next id
+   * @returns the result
+   */
+  getNextId(): { id: string; age: number } {
+    // Should be good for years as 8char
+    const age = Math.floor(Date.now() / 1000);
+    return { age, id: age.toString(36) };
+  }
+
+  /**
+   * Rotate keys
+   */
+  async rotate() {
+    const { age, id } = this.getNextId();
+    const registry = useRegistry();
+    const next: KeysRegistry = {
+      current: id,
+      rotationInstance: useCore().getInstanceId()
+    };
+    next[`key_${id}`] = {
+      ...this.generateAsymetricKeys(),
+      symetric: this.generateSymetricKey()
+    };
+    if (!(await registry.exists("keys"))) {
+      this.current = `init-${useCore().getInstanceId()}`;
+      await registry.put("keys", { current: this.current });
+    }
+    try {
+      await registry.patch("keys", next, "current", this.current);
+      this.keys ??= {};
+      this.keys[id] = next[`key_${id}`];
+      this.current = id;
+      this.age = age;
+    } catch (err) {
+      useLog("TRACE", "Failed to rotate keys", err);
+      // Reload as something else has modified
+      await this.load();
+      await this.getCurrentKeys();
+    }
+  }
+}
+
+/**
+ * Encrypt data with local machine id
+ */
+CryptoService.registerEncrypter("local", {
+  encrypt: async (data: string) => {
+    // Initialization Vector
+    const iv = randomBytes(16);
+    const key = createHash("sha256").update(getMachineId()).digest();
+    const cipher = createCipheriv("aes-256-ctr", new Uint8Array(key), new Uint8Array(iv));
+    const updated = cipher.update(new Uint8Array(Buffer.from(data)));
+    const final = cipher.final();
+    return Buffer.concat([new Uint8Array(iv), new Uint8Array(updated), new Uint8Array(final)]).toString("base64");
+  },
+  decrypt: async (data: string) => {
+    const input = Buffer.from(data, "base64");
+    const iv = input.subarray(0, 16);
+    const key = createHash("sha256").update(getMachineId()).digest();
+    const decipher = createDecipheriv("aes-256-ctr", new Uint8Array(key), new Uint8Array(iv));
+    return decipher.update(new Uint8Array(input.subarray(16))).toString() + decipher.final().toString();
+  }
+});
+
+export default CryptoService;
+
+/**
+ * Return the CryptoService
+ *
+ * As it is a service, it can be used with the useService hook
+ *
+ * @returns the result
+ */
+export function useCrypto() {
+  return useService("CryptoService");
+}

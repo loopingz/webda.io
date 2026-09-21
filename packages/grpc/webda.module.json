@@ -4,7 +4,7 @@
   "deployers": {},
   "moddas": {
     "Webda/GrpcService": {
-      "Import": "lib/grpcservice:GrpcService",
+      "Import": "lib/grpcservice.service:GrpcService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -45,7 +45,7 @@
         "type": "object",
         "title": "GrpcService"
       },
-      "Configuration": "lib/grpcservice:GrpcServiceParameters",
+      "Configuration": "lib/grpcservice.service:GrpcServiceParameters",
       "commands": {
         "build": {
           "description": "Generate protobuf definition from operations",
@@ -108,5 +108,5 @@
   "capabilities": {
     "grpc": "Webda/GrpcService"
   },
-  "sourceDigest": "d117ec051bdfa4a79013d8b3e4f19c19"
+  "sourceDigest": "572beadf510ceab9b097342ccac7ddae"
 }

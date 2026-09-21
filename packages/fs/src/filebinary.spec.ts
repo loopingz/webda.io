@@ -21,7 +21,7 @@ import {
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import { FileUtils } from "@webda/utils";
 import { BinaryTest, TestBinaryService } from "@webda/core/lib/services/binary.spec";
-import { FileBinary } from "./filebinary.js";
+import { FileBinary } from "./filebinary.service.js";
 const { removeSync } = pkg;
 
 class FaultyBinaryFile extends BinaryFile {

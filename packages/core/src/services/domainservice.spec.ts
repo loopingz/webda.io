@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
-import { DomainServiceParameters, DomainService } from "./domainservice.js";
+import { DomainServiceParameters, DomainService } from "./domainservice.service.js";
 import { callOperation, listOperations } from "../core/operations.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import * as WebdaError from "../errors/errors.js";
@@ -544,7 +544,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     // object from URL params when the body lacks those fields. Call modelUpdate
     // directly to bypass the schema validator and hit the pk-assembly code.
     const { Brand } = this.setupBrandRepo();
-    const service = new (await import("./domainservice.js")).DomainService(
+    const service = new (await import("./domainservice.service.js")).DomainService(
       "DomainService",
       new DomainServiceParameters().load({})
     );
@@ -565,7 +565,7 @@ class DomainServiceTest extends WebdaApplicationTest {
   async modelPatchWithSingleNonUuidPkField() {
     // pkFields=["slug"] triggers the single-field branch with a non-uuid PK.
     const { Brand } = this.setupBrandRepo();
-    const service = new (await import("./domainservice.js")).DomainService(
+    const service = new (await import("./domainservice.service.js")).DomainService(
       "DomainService",
       new DomainServiceParameters().load({})
     );
@@ -587,7 +587,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     // When the first arg is a scalar, modelCreate detects it isn't an object
     // and falls back to context.getInput().
     const { Brand } = this.setupBrandRepo();
-    const service = new (await import("./domainservice.js")).DomainService(
+    const service = new (await import("./domainservice.service.js")).DomainService(
       "DomainService",
       new DomainServiceParameters().load({})
     );
@@ -608,7 +608,7 @@ class DomainServiceTest extends WebdaApplicationTest {
   async loadModelWithObjectPkSerializesForEvent() {
     // loadModel receives a non-string PK — on NotFound, the emitted event uses
     // JSON.stringify of the object so the event bus gets a loggable key.
-    const service = new (await import("./domainservice.js")).DomainService(
+    const service = new (await import("./domainservice.service.js")).DomainService(
       "DomainService",
       new DomainServiceParameters().load({})
     );

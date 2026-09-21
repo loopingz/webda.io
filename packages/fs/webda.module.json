@@ -4,7 +4,7 @@
   "deployers": {},
   "moddas": {
     "Webda/FileBinary": {
-      "Import": "lib/filebinary:FileBinary",
+      "Import": "lib/filebinary.service:FileBinary",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -65,10 +65,10 @@
         "type": "object",
         "title": "FileBinary"
       },
-      "Configuration": "lib/filebinary:FileBinaryParameters"
+      "Configuration": "lib/filebinary.service:FileBinaryParameters"
     },
     "Webda/FileQueue": {
-      "Import": "lib/filequeue:FileQueue",
+      "Import": "lib/filequeue.service:FileQueue",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -134,10 +134,10 @@
         "type": "object",
         "title": "FileQueue"
       },
-      "Configuration": "lib/filequeue:FileQueueParameters"
+      "Configuration": "lib/filequeue.service:FileQueueParameters"
     },
     "Webda/FileStore": {
-      "Import": "lib/filestore:FileStore",
+      "Import": "lib/filestore.service:FileStore",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -218,10 +218,10 @@
         "type": "object",
         "title": "FileStore"
       },
-      "Configuration": "lib/filestore:FileStoreParameters"
+      "Configuration": "lib/filestore.service:FileStoreParameters"
     },
     "Webda/SocketPubSub": {
-      "Import": "lib/socketpubsub:default",
+      "Import": "lib/socketpubsub.service:default",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
@@ -252,7 +252,7 @@
         "type": "object",
         "title": "SocketPubSubService"
       },
-      "Configuration": "lib/socketpubsub:SocketPubSubParameters"
+      "Configuration": "lib/socketpubsub.service:SocketPubSubParameters"
     }
   },
   "models": {},
@@ -301,5 +301,5 @@
     }
   },
   "behaviors": {},
-  "sourceDigest": "75841b583653710bf13da471c5a02e7f"
+  "sourceDigest": "bd020f6238abdf3dd00fb28f180e1734"
 }

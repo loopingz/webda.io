@@ -134,7 +134,7 @@ vi.mock("@grpc/proto-loader", () => ({
 }));
 
 // Dynamic import so mocks are applied first
-const { GrpcService, GrpcServiceParameters } = await import("./grpcservice.js");
+const { GrpcService, GrpcServiceParameters } = await import("./grpcservice.service.js");
 const { GrpcStatus } = await import("./grpc-stream.js");
 
 @suite

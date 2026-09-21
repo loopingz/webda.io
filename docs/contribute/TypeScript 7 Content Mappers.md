@@ -619,6 +619,42 @@ Both are central to how Webda models are written, not edge cases:
 
 It is also fast: 85ms for a run that costs `@webda/schema` 371ms just to build its program.
 
+#### The `dto-in` / `dto-out` modes cannot be wrapped around it
+
+These modes are accessor-aware property selection, and they are the same asymmetric-accessor
+semantics the content mapper produces: input uses the **setter** parameter type, output uses
+the **getter** return type (`generator.ts:444-471`).
+
+Measured on `class User { name; get createdAt(): Date; set createdAt(v: string|number|Date);
+get computed(): string; readonly id; }`:
+
+|                           | properties                            | `createdAt`                                          |
+| ------------------------- | ------------------------------------- | ---------------------------------------------------- |
+| `@webda/schema` `dto-in`  | `createdAt`, `name`                   | `anyOf[string, number, date-time]` — the setter type |
+| `@webda/schema` `dto-out` | `computed`, `createdAt`, `id`, `name` | `date-time` — the getter type                        |
+| native generator          | `id`, `name`                          | **absent**                                           |
+
+The native generator does not emit accessor-backed properties at all, and has no flag to. So
+this is not a mode that can be layered on top: the information never reaches the output, and
+no amount of pre- or post-processing recovers a property that was never emitted.
+
+That matters more than it looks. After the content mapper transform, every coerced model
+field _is_ an accessor — so on the native generator every coerced field would silently vanish
+from the schema.
+
+So the gap list is two missing node kinds plus one missing feature:
+
+1. `KindThisType` — a node kind.
+2. `ComputedPropertyName` — a node kind.
+3. **Accessor support with a read/write type distinction** — a feature touching the parser,
+   the formatter and the CLI surface.
+
+The next question to answer, and it is cheap: does the **TypeScript** reference
+`ts-json-schema-generator` handle accessors? The Go port mirrors it module for module, so if
+the reference does and the port does not, (3) is a port bug worth reporting. If neither does,
+(3) is a feature contribution — and that is the point at which a fork, rather than an issue,
+becomes the honest option.
+
 So the sequence is: report both gaps upstream, and until they close, either carry the
 hand-written port or keep `@webda/schema` behind the worker boundary. Two further things to
 check before committing either way — whether the native generator can express the

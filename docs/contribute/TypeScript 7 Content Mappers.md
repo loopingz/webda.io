@@ -516,13 +516,39 @@ group of packages**, not incremental within them:
   `tsProgram.emit(undefined, writer, undefined, false, { before, afterDeclarations })`
   (`compiler.ts:150-168`) — plus `ts.createProgram`, `ts.factory` and `ts.createSourceFile`.
   None of these exist in TypeScript 7.
-- `@webda/compiler` and `@webda/schema` **exchange TypeScript objects**: `module.ts:1354`
+- `@webda/compiler` and `@webda/schema` are coupled at the type level: `module.ts:1354`
   passes `this.compiler.tsProgram` into `new SchemaGenerator({ program })`, typed `ts.Program`
-  at `schema/src/generator.ts:211`. Objects from two TypeScript majors are not
-  interchangeable, so these two packages must move together.
+  at `schema/src/generator.ts:211`. The signature names `ts.Program`, so the two cannot be
+  typed against different majors.
+
+  The coupling is weaker than it looks, though, and an earlier version of this page
+  overstated it. The passed program is **discarded**:
+
+  ```ts
+  // generator.ts:261-266
+  options.project ??= options.program ? options.program.getCurrentDirectory() : process.cwd();
+  if (options.project) {
+    // always true after the line above
+    this.program = this.createLanguageService(this.options.project!).getProgram()!;
+  } else {
+    this.program = options.program!; // dead
+  }
+  ```
+
+  Measured: passing a 367-file program for `packages/models` returns a **170-file program for
+  `packages/schema`** — whatever project sits at the process cwd — after 371ms of rebuilding.
+  In production it works by accident, because `webdac build` runs with cwd at the application
+  root. But the program is built twice per build, and schemas are generated from a different
+  view of the code than the one that was type-checked. This needs fixing, and the order
+  matters — see below.
+
 - `@webda/schema` builds its own language service (`generator.ts:602`,
-  `ts.createLanguageService` + `ts.createDocumentRegistry`). TypeScript 7 replaces that with
-  `project.languageService`, a different model. This is a redesign, not an import swap.
+  `ts.createLanguageService` + `ts.createDocumentRegistry`). This too was overstated here
+  earlier as a redesign. It appears exactly once, at `generator.ts:263`, and only to call
+  `.getProgram()` — it is a Program factory with extra steps, replaceable by
+  `api.createSnapshot({ openProjects: [tsconfig] }).getProjects()[0].program`. The real work
+  in porting `@webda/schema` is its 2,400 lines of type-to-JSON-Schema conversion, which lean
+  on `objectFlags`, `elementFlags` and `intrinsicName`.
 
 So the atomic unit is **compiler + schema + tsc-esm, with ts-plugin deleted in the same
 change** — roughly 9,200 non-spec lines of surface. Most of it is mechanical: `ts.Node`,

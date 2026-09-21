@@ -6,7 +6,8 @@
   "types": "lib/index.d.ts",
   "type": "module",
   "bin": {
-    "webda-schema-generator": "lib/cli.js"
+    "webda-schema-generator": "lib/cli.js",
+    "webda-schema-worker": "./lib/worker-cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -41,5 +42,17 @@
   },
   "engines": {
     "node": ">=22.0.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.js"
+    },
+    "./worker": {
+      "types": "./lib/worker.d.ts",
+      "import": "./lib/worker.js"
+    },
+    "./package.json": "./package.json"
   }
 }

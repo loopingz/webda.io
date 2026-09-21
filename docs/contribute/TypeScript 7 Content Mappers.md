@@ -587,6 +587,45 @@ otherwise a big-bang with no feedback until it lands.
 9. **Atomic switch:** move compiler, schema and tsc-esm to 7.1; delete `@webda/ts-plugin` and
    `ts-patch`.
 
+### `@webda/schema` and the native generator
+
+`@webda/schema` is a reimplementation of
+[`vega/ts-json-schema-generator`](https://github.com/vega/ts-json-schema-generator) — its test
+suite replays that project's fixture corpus from `packages/schema/test/vega-fixtures`, with a
+blacklist for the cases it does not yet match.
+
+Vega now ships
+[`ts-json-schema-generator-go`](https://github.com/vega/ts-json-schema-generator-go): the same
+generator implemented in Go on `typescript-go`, distributed as a single binary with no Node
+dependency, verified against 251 golden fixtures plus the full vega-lite and Mosaic schemas.
+It installs as `ts-json-schema-generator@native` and exposes `generateSchema(config)` over a
+process boundary — the same shape as `packages/schema/src/worker.ts`.
+
+If it worked on Webda's sources it would remove the entire port: TypeScript 7 everywhere, no
+TypeScript 6, no hand-written conversion. **It does not, yet.** Measured against
+`3.0.0-native.5`:
+
+| target                          | result                                                          |
+| ------------------------------- | --------------------------------------------------------------- |
+| `packages/models` → `UuidModel` | `Error: unknown node kind=KindThisType (model.model.ts:67:32)`  |
+| `sample-app` → `Company`        | `Error: Unhandled case in Node.Text: *ast.ComputedPropertyName` |
+
+Both are central to how Webda models are written, not edge cases:
+
+- `[WEBDA_EVENTS]?: ModelEvents<this>` — `this` types appear in `Store`, `Service`,
+  `IService`, `MemoryStore` and `OperationsTransport` as well.
+- `[WEBDA_PRIMARY_KEY]`, `[WEBDA_STORAGE]`, `[WEBDA_EVENTS]` — symbol-keyed slots are the
+  mechanism the whole accessor design rests on.
+
+It is also fast: 85ms for a run that costs `@webda/schema` 371ms just to build its program.
+
+So the sequence is: report both gaps upstream, and until they close, either carry the
+hand-written port or keep `@webda/schema` behind the worker boundary. Two further things to
+check before committing either way — whether the native generator can express the
+Webda-specific layer (`$webda` provenance markers, the `dto-in` / `dto-out` / `output` modes,
+`WebdaModel` and `class` flags, Buffer mapping), and how many of the vega fixtures
+`@webda/schema` currently blacklists, since those are cases where the two already disagree.
+
 ### Transition option: run the new pipeline out-of-process
 
 Stages 4 to 8 leave `@webda/content-mapper` unused, which means no feedback until stage 9.

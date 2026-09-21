@@ -24,10 +24,30 @@ export interface Edit {
   source: string;
 }
 
-/** All edits for one file. */
+/**
+ * A diagnostic produced by a generator, reported against the authored source.
+ *
+ * The content mapper protocol carries these in `TransformResult.diagnostics`,
+ * so a generator can report a problem in the original file rather than only
+ * rewriting it. Positions are offsets into the authored text.
+ */
+export interface GeneratedDiagnostic {
+  /** Offset into the authored file. */
+  start: number;
+  /** Length in characters. */
+  length: number;
+  /** Diagnostic code, e.g. 9001 for an unknown WebdaQL attribute. */
+  code: number;
+  /** Human-readable message. */
+  messageText: string;
+}
+
+/** All edits for one file, plus anything the generator wants to report. */
 export interface FileEdits {
   fileName: string;
   edits: Edit[];
+  /** Problems found while analysing this file. */
+  diagnostics?: GeneratedDiagnostic[];
 }
 
 /** What a generator receives. */

@@ -20,7 +20,8 @@
         ".service.ts"
       ],
       "options": {
-        "storageModule": "./runtime.js"
+        "storageModule": "./runtime.js",
+        "qlModule": "./runtime.js"
       }
     }
   ]

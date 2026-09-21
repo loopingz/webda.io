@@ -22,13 +22,15 @@ export { baseNames, classesOf, isStatic, memberName, openSession, textOf, trivia
 export type { Session } from "./context.ts";
 
 export { applyEdits, mergePlan } from "./plan.ts";
-export type { AnalysisContext, Edit, FileEdits, Generator } from "./plan.ts";
+export type { AnalysisContext, Edit, FileEdits, GeneratedDiagnostic, Generator } from "./plan.ts";
 
 export { accessorsGenerator } from "./generators/accessors.ts";
 export type { AccessorOptions } from "./generators/accessors.ts";
 export { behaviorsGenerator, BEHAVIOR_PARENT_KEY } from "./generators/behaviors.ts";
 export type { BehaviorOptions } from "./generators/behaviors.ts";
 export { loadParametersGenerator } from "./generators/loadparameters.ts";
+export { qlValidatorGenerator, WQL_CODES } from "./generators/qlvalidator.ts";
+export type { QlValidatorOptions } from "./generators/qlvalidator.ts";
 
 export { buildMappedText, SpanMapKind } from "./spans.ts";
 export type { MappedText, SpanMapping } from "./spans.ts";

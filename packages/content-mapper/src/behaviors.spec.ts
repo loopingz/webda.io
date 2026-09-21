@@ -16,7 +16,7 @@ const configFile = join(fixture, "tsconfig.json");
  * @returns generated text
  */
 function transform(name: string): string {
-  const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js" });
+  const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js", qlModule: "./runtime.js" });
   try {
     const file = join(fixture, "src", name);
     return session.transform(file, readFileSync(file, "utf8")).text;
@@ -52,7 +52,7 @@ describe("behaviours", () => {
   it("produces code that type-checks, which emit-time transforms never had to", () => {
     // The original ran after checking, so implicit-any indexing was invisible.
     // Generated source is checked like any other, and was not clean at first.
-    const result = runTwoPass({ configFile, rootDir: join(fixture, "src"), storageModule: "./runtime.js" });
+    const result = runTwoPass({ configFile, rootDir: join(fixture, "src"), storageModule: "./runtime.js", qlModule: "./runtime.js" });
     expect(result.diagnostics).toEqual([]);
     expect(result.editCounts.behaviors).toBeGreaterThan(0);
   });

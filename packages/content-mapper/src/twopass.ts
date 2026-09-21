@@ -19,6 +19,7 @@
 import { openSession } from "./context.ts";
 import { accessorsGenerator, type AccessorOptions } from "./generators/accessors.ts";
 import { behaviorsGenerator } from "./generators/behaviors.ts";
+import { qlValidatorGenerator } from "./generators/qlvalidator.ts";
 import { loadParametersGenerator } from "./generators/loadparameters.ts";
 import { applyEdits, mergePlan, type Edit, type Generator } from "./plan.ts";
 
@@ -31,6 +32,8 @@ export interface TwoPassOptions extends AccessorOptions {
   generators?: Generator[];
   /** Emit rather than only type-check. */
   emit?: boolean;
+  /** Module specifier providing the WebdaQL `escape` helper. */
+  qlModule?: string;
 }
 
 export interface TwoPassResult {
@@ -56,6 +59,7 @@ export function runTwoPass(options: TwoPassOptions): TwoPassResult {
   const generators = options.generators ?? [
     accessorsGenerator({ accessorsForAll: options.accessorsForAll, storageModule: options.storageModule }),
     behaviorsGenerator({ storageModule: options.storageModule }),
+    qlValidatorGenerator({ qlModule: options.qlModule }),
     loadParametersGenerator()
   ];
 

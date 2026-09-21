@@ -65,7 +65,8 @@ function handle(message: any): void {
         const session = new WarmSession({
           configFile: params.configFileName,
           cwd: params.configFileName.replace(/[/\\][^/\\]+$/, ""),
-          storageModule: (params.options?.storageModule as string) ?? "./runtime.js",
+          storageModule: (params.options?.storageModule as string) ?? "@webda/models",
+          qlModule: params.options?.qlModule as string,
           accessorsForAll: !!params.options?.accessorsForAll
         });
         projects.set(params.projectHandle, { session, transforms: 0, timings: [] });
@@ -90,7 +91,14 @@ function handle(message: any): void {
           `(snapshot=${t.snapshotMs.toFixed(1)} analyze=${t.analyzeMs.toFixed(1)} splice=${t.spliceMs.toFixed(2)})`,
           t.changed ? "changed" : "cached"
         );
-        result = { text: outcome.text, extension: ".ts", mappings: outcome.mappings };
+        // `diagnostics` reports problems against the *authored* file, which is
+        // how a generator surfaces something it cannot fix by rewriting.
+        result = {
+          text: outcome.text,
+          extension: ".ts",
+          mappings: outcome.mappings,
+          ...(outcome.diagnostics.length ? { diagnostics: outcome.diagnostics } : {})
+        };
         break;
       }
 

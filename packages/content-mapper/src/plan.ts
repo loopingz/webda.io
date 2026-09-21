@@ -100,11 +100,17 @@ export function mergePlan(all: FileEdits[]): {
  * @returns the rewritten text
  */
 export function applyEdits(text: string, edits: Edit[]): string {
-  // Back-to-front so earlier offsets stay valid.
-  const ordered = [...edits].sort((a, b) => b.start - a.start || b.end - a.end);
-  let out = text;
-  for (const e of ordered) {
-    out = out.slice(0, e.start) + e.text + out.slice(e.end);
+  // Forward, matching `buildMappedText` exactly. An earlier version spliced
+  // back-to-front, which reverses insertions sharing an offset — so the build
+  // and the editor emitted the same members in a different order. Both paths
+  // must walk edits identically or they drift silently.
+  const ordered = [...edits].sort((a, b) => a.start - b.start || a.end - b.end);
+  let out = "";
+  let cursor = 0;
+  for (const edit of ordered) {
+    if (edit.start < cursor) continue;
+    out += text.slice(cursor, edit.start) + edit.text;
+    cursor = edit.end;
   }
-  return out;
+  return out + text.slice(cursor);
 }

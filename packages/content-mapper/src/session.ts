@@ -22,6 +22,7 @@ import { createFileSystemLayer } from "typescript/unstable/fs";
 import type { SourceFile } from "typescript/unstable/ast";
 import { baseNames, textOf, triviaOf } from "./context.ts";
 import { accessorsGenerator } from "./generators/accessors.ts";
+import { behaviorsGenerator } from "./generators/behaviors.ts";
 import { loadParametersGenerator } from "./generators/loadparameters.ts";
 import { mergePlan, type Edit, type Generator } from "./plan.ts";
 import { buildMappedText, type MappedText } from "./spans.ts";
@@ -82,6 +83,7 @@ export class WarmSession {
     this.options = options;
     this.generators = options.generators ?? [
       accessorsGenerator({ accessorsForAll: options.accessorsForAll, storageModule: options.storageModule }),
+      behaviorsGenerator({ storageModule: options.storageModule }),
       loadParametersGenerator()
     ];
 

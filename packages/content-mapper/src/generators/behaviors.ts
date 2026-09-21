@@ -17,6 +17,7 @@
  * replaced.
  */
 import type { SourceFile } from "typescript/unstable/ast";
+import { SymbolFlags } from "typescript/unstable/sync";
 import * as is from "typescript/unstable/ast/is";
 import { classesOf, isStatic, memberName } from "../context.ts";
 import type { AnalysisContext, Edit, FileEdits, Generator } from "../plan.ts";
@@ -77,6 +78,11 @@ function resolveBehaviorClass(ctx: AnalysisContext, sf: SourceFile, typeNode: an
   if (!owner || !/@WebdaBehavior\b/.test(ctx.triviaOf(owner, node))) return undefined;
 
   if (isTypeOnlyImport(sf, name)) return undefined;
+
+  // The symbol name can differ from what the file imports — `@webda/core`
+  // exposes `Binaries` while the declaration is `BinariesImpl`, and
+  // `new BinariesImpl()` is TS2304 here. Emit only what resolves as a value.
+  if (!ctx.checker.resolveName(name, SymbolFlags.Value, typeNode)) return undefined;
   return name;
 }
 

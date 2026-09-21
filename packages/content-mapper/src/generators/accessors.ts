@@ -80,8 +80,15 @@ function isModelClass(ctx: AnalysisContext, sf: any, cls: any): boolean {
     const symbol = type.getSymbol?.() ?? type.symbol;
     const name = symbol?.name;
     if (name && MODEL_BASES.has(name)) return true;
-    if (seen.has(name ?? type)) continue;
-    seen.add(name ?? type);
+    // Keyed by declaration: a model may legitimately share its base's name,
+    // e.g. sample-app's `User extends User` from `@webda/core`. Guarding on the
+    // name alone stops the walk one link short and the class is never detected.
+    const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.[0];
+    const owner = declaration?.resolve(ctx.project);
+    const file = (owner as any)?.getSourceFile?.()?.fileName ?? (owner as any)?._sourceFile?.fileName ?? "";
+    const key = name ? `${name}@${file}` : type;
+    if (seen.has(key)) continue;
+    seen.add(key);
 
     // Guard against pathological hierarchies rather than trusting the graph.
     if (seen.size > 64) return false;
@@ -228,6 +235,44 @@ function isTypeOnlyImport(sf: SourceFile, name: string): boolean {
     }
   }
   return false;
+}
+
+/**
+ * Whether every identifier a generated snippet references is usable here.
+ *
+ * The emit-time transformer erased types, so a printed type could name classes
+ * the file never imported and nothing noticed. Generated *source* is checked,
+ * so `set x(value: string | Classroom | ...)` is TS2304 when `Classroom` is not
+ * in scope, and `new BinariesImpl()` is TS2304 when the file imports the public
+ * alias instead of the implementation.
+ *
+ * Conservative on purpose: anything not clearly resolvable means the property
+ * is skipped and keeps today's behaviour.
+ * @param ctx - analysis context
+ * @param sf - file the snippet will live in
+ * @param snippet - generated text to check
+ * @param location - node used for scope resolution
+ * @returns true when every referenced name resolves
+ */
+function referencesResolve(ctx: AnalysisContext, sf: SourceFile, snippet: string, location: any): boolean {
+  const skip = new Set([
+    "string", "number", "boolean", "any", "unknown", "never", "void", "null", "undefined",
+    "object", "symbol", "bigint", "this", "value", "readonly", "get", "set", "new", "return",
+    "if", "else", "const", "instanceof", "true", "false", "Date", "Record", "Array", "Promise",
+    // Injected by this generator, so not yet resolvable in the authored text.
+    "WEBDA_STORAGE"
+  ]);
+  for (const match of snippet.matchAll(/\b[A-Z][\w$]*\b/g)) {
+    const name = match[0];
+    if (skip.has(name)) continue;
+    // A type-only import is legitimate inside a type annotation, so the test is
+    // simply whether the name means anything here at all. Value positions are
+    // checked separately by the caller, where the distinction matters.
+    const asValue = ctx.checker.resolveName(name, SymbolFlags.Value, location);
+    const asType = ctx.checker.resolveName(name, SymbolFlags.Type, location);
+    if (!asValue && !asType) return false;
+  }
+  return true;
 }
 
 /**
@@ -438,8 +483,20 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
             }
 
             if (!resolved) continue;
+            const rendered = render(resolved);
+            // Everything the generated members mention must exist here...
+            if (!referencesResolve(ctx, sf, rendered, m)) continue;
+            // ...and the runtime class is used with `new` and `instanceof`, so
+            // it must survive emit rather than merely be known to the checker.
+            if (
+              resolved.runtimeClass &&
+              (isTypeOnlyImport(sf, resolved.runtimeClass) ||
+                !ctx.checker.resolveName(resolved.runtimeClass, SymbolFlags.Value, m))
+            ) {
+              continue;
+            }
             if (resolved.kind !== "relation-initializer") needsStorage = true;
-            edits.push({ start, end: m.end, text: render(resolved), source: "accessors" });
+            edits.push({ start, end: m.end, text: rendered, source: "accessors" });
           }
         }
 

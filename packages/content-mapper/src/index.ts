@@ -35,6 +35,9 @@ export type { QlValidatorOptions } from "./generators/qlvalidator.ts";
 export { buildMappedText, SpanMapKind } from "./spans.ts";
 export type { MappedText, SpanMapping } from "./spans.ts";
 
+export { discoverWebdaObjects } from "./module-discovery.ts";
+export type { DiscoveredObject, DiscoveryOptions, Section } from "./module-discovery.ts";
+
 export { WarmSession } from "./session.ts";
 export type { TransformOutcome, TransformTiming, WarmSessionOptions } from "./session.ts";
 

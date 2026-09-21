@@ -26,13 +26,33 @@ const TARGETS = ["packages/core", "packages/models", "packages/runtime", "sample
  * @param _root - project root
  * @returns model name to Schemas object, or undefined
  */
-async function generateSchemas(_root) {
-  try {
-    const module = await import("../lib/schema-generator.js");
-    return module.generateModelSchemas(_root);
-  } catch {
+async function generateSchemas(root, committed) {
+  const { spawnSync } = await import("node:child_process");
+  const worker = join(repo, "packages", "schema", "lib", "worker-cli.js");
+
+  // Discovery already knows which class each module entry came from; here the
+  // Import path is enough to recover it.
+  const requests = [];
+  for (const [id, model] of Object.entries(committed.models ?? {})) {
+    if (!model.Schemas) continue;
+    const [path, exportName] = model.Import.split(":");
+    const file = join(root, path.replace(/^lib\//, "src/")) + ".ts";
+    requests.push({ id, kind: "model", file, className: exportName === "default" ? undefined : exportName });
+  }
+
+  const run = spawnSync(process.execPath, [worker], {
+    cwd: root,
+    input: JSON.stringify({ project: root, requests: requests.filter(r => r.className) }),
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024
+  });
+  if (run.status !== 0) {
+    console.log("  worker failed:", (run.stderr || "").split("\n").slice(0, 3).join(" | "));
     return undefined;
   }
+  const response = JSON.parse(run.stdout);
+  if (verbose) for (const [id, message] of Object.entries(response.errors)) console.log(`  error ${id}: ${message}`);
+  return response.results;
 }
 
 /**
@@ -64,7 +84,7 @@ for (const relative of TARGETS) {
   const expected = Object.entries(committed.models ?? {}).filter(([, model]) => model.Schemas);
   grandTotal += expected.length;
 
-  const generated = await generateSchemas(root);
+  const generated = await generateSchemas(root, committed);
   if (!generated) {
     console.log(`${relative.padEnd(18)} ${String(expected.length).padStart(3)} model schemas to reproduce (generator not ported)`);
     continue;

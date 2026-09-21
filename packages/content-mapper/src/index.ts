@@ -26,6 +26,8 @@ export type { AnalysisContext, Edit, FileEdits, Generator } from "./plan.ts";
 
 export { accessorsGenerator } from "./generators/accessors.ts";
 export type { AccessorOptions } from "./generators/accessors.ts";
+export { behaviorsGenerator, BEHAVIOR_PARENT_KEY } from "./generators/behaviors.ts";
+export type { BehaviorOptions } from "./generators/behaviors.ts";
 export { loadParametersGenerator } from "./generators/loadparameters.ts";
 
 export { buildMappedText, SpanMapKind } from "./spans.ts";

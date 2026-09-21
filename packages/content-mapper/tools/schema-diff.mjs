@@ -44,6 +44,9 @@ const crossCheck = !argv.includes("--no-cross-check");
 /** Packages carrying a committed module to compare against. */
 const TARGETS = ["packages/core", "packages/models", "packages/runtime", "sample-app"];
 
+/** Request id under which the whole top-level `schemas` map is returned. */
+const TOP_LEVEL_ID = "\u0000topLevel";
+
 /**
  * Committed schemas the port deliberately does not reproduce.
  *
@@ -181,6 +184,14 @@ function plan(root, committed) {
       }
     }
   }
+  if (only === "all" || only === "top") {
+    // One request, one answer: these entries record no provenance, so the
+    // port has to rediscover them rather than be told what to generate.
+    requests.push({ id: TOP_LEVEL_ID, kind: "topLevel" });
+    for (const [name, schema] of Object.entries(committed.schemas ?? {})) {
+      expected.set(`${TOP_LEVEL_ID}:${name}`, { group: "top", schema, member: name });
+    }
+  }
   if (only === "all" || only === "models") {
     for (const [id, entry] of Object.entries(committed.models ?? {})) {
       if (!entry.Schemas) continue;
@@ -265,43 +276,102 @@ function render(diffs) {
 }
 
 /**
- * Whether two sets of model schemas differ only by the relation correction.
+ * A 6.x generic that never resolved, which converts to the empty schema.
  *
- * Compared per property rather than per leaf: correcting one relation moves
- * several things at once — the property becomes `type: "string"`, whatever
- * described it before disappears, and a definition that existed only to hold
- * it is no longer emitted.
- * @param got - the port's schemas
- * @param want - the reference schemas
- * @returns true when nothing but relation properties differ
+ * `OperationContext<P, U>` declares `parameters: U`; 6.x leaves `U`
+ * unsubstituted, hits its type-parameter branch and emits `{}` — no
+ * constraint at all. 7.1 substitutes it and emits the real shape.
+ *
+ * Accepting this is safe in one direction only, and that is the reason it is
+ * accepted: the reference said "anything", so the port can only be narrowing
+ * a contract that validated everything. It can never be the port loosening
+ * one, which is the failure that would matter.
  */
-function isRelationOnly(got, want) {
-  let corrected = 0;
-  for (const view of ["Input", "Output", "Stored"]) {
-    const mine = got?.[view] ?? {};
-    const theirs = want?.[view] ?? {};
-
-    // Everything outside `properties` and `definitions` must be untouched.
-    const outside = schema => Object.fromEntries(
-      Object.entries(schema).filter(([key]) => key !== "properties" && key !== "definitions")
-    );
-    if (canonical(outside(mine)) !== canonical(outside(theirs))) return false;
-
-    const names = new Set([...Object.keys(mine.properties ?? {}), ...Object.keys(theirs.properties ?? {})]);
-    for (const name of names) {
-      const a = mine.properties?.[name];
-      const b = theirs.properties?.[name];
-      if (canonical(a) === canonical(b)) continue;
-      if (!RELATION_SERIALISATION.matches(a, b, theirs.definitions)) return false;
-      corrected++;
-    }
-
-    // Definitions may only disappear — a new one would be something else.
-    for (const key of Object.keys(mine.definitions ?? {})) {
-      if (canonical(mine.definitions[key]) !== canonical(theirs.definitions?.[key])) return false;
-    }
+const GENERIC_SUBSTITUTION = {
+  reason: "6.x left a generic unsubstituted and emitted `{}`; 7.1 resolves it",
+  /**
+   * Whether one difference is an unconstrained reference schema made concrete.
+   * @param got - the port's schema
+   * @param want - the reference schema
+   * @returns true when the reference constrained nothing and the port does
+   */
+  matches(got, want) {
+    return !!want && typeof want === "object" && Object.keys(want).length === 0 && !!got;
   }
-  return corrected > 0;
+};
+
+/**
+ * Whether every difference between two schema documents is a known kind.
+ *
+ * Walks both trees together rather than diffing leaves, because one
+ * correction moves several leaves at once: a relation property becomes
+ * `type: "string"`, whatever described it before disappears, and a
+ * definition that existed only to hold it is no longer emitted. Judging
+ * leaves individually cannot tell that apart from three unrelated changes.
+ * @param got - the port's document
+ * @param want - the reference document
+ * @param reasons - accumulator for the kinds encountered
+ * @returns true when nothing unexplained differs
+ */
+function isKnownDivergence(got, want, reasons = new Set()) {
+  const ok = walkSchemas(got, want, want, reasons);
+  return ok && reasons.size > 0 ? [...reasons] : undefined;
+}
+
+/**
+ * Recursive half of {@link isKnownDivergence}.
+ * @param got - the port's node
+ * @param want - the reference node
+ * @param scope - nearest enclosing reference node carrying `definitions`
+ * @param reasons - accumulator
+ * @returns true when this subtree is fully explained
+ */
+function walkSchemas(got, want, scope, reasons) {
+  if (canonical(got) === canonical(want)) return true;
+
+  const plain = value => value && typeof value === "object" && !Array.isArray(value);
+  if (!plain(got) || !plain(want)) return false;
+
+  const definitions = want.definitions ?? scope?.definitions;
+  const nextScope = want.definitions ? want : scope;
+
+  for (const key of new Set([...Object.keys(got), ...Object.keys(want)])) {
+    const mine = got[key];
+    const theirs = want[key];
+    if (canonical(mine) === canonical(theirs)) continue;
+
+    if (key === "properties" && plain(mine) && plain(theirs)) {
+      for (const name of new Set([...Object.keys(mine), ...Object.keys(theirs)])) {
+        if (canonical(mine[name]) === canonical(theirs[name])) continue;
+        if (RELATION_SERIALISATION.matches(mine[name], theirs[name], definitions)) {
+          reasons.add(RELATION_SERIALISATION.reason);
+          continue;
+        }
+        if (GENERIC_SUBSTITUTION.matches(mine[name], theirs[name])) {
+          reasons.add(GENERIC_SUBSTITUTION.reason);
+          continue;
+        }
+        if (!walkSchemas(mine[name], theirs[name], nextScope, reasons)) return false;
+      }
+      continue;
+    }
+
+    if (key === "definitions") {
+      // A definition may appear or disappear as collateral of a corrected
+      // property; one that changes shape on both sides is something else.
+      for (const name of new Set([...Object.keys(mine ?? {}), ...Object.keys(theirs ?? {})])) {
+        const a = mine?.[name];
+        const b = theirs?.[name];
+        if (canonical(a) === canonical(b)) continue;
+        if (a === undefined || b === undefined) continue;
+        if (!walkSchemas(a, b, nextScope, reasons)) return false;
+      }
+      continue;
+    }
+
+    if (!walkSchemas(mine, theirs, nextScope, reasons)) return false;
+  }
+  return true;
 }
 
 /**
@@ -328,28 +398,25 @@ function isRelationOnly(got, want) {
  */
 function explain(id, group, got, want, fromOracle) {
   if (baseline !== "committed") {
-    return group === "models" && isRelationOnly(got, want) ? RELATION_SERIALISATION.reason : undefined;
+    return group === "services" ? undefined : (isKnownDivergence(got, want) ?? []).join("; ") || undefined;
   }
   if (impl !== "ts7") return undefined;
   if (KNOWN_DEFECTS.ids.has(id) && KNOWN_DEFECTS.matches(got, want)) return KNOWN_DEFECTS.reason;
-  if (group !== "models") return undefined;
+  if (group === "services") return undefined;
 
   // Diff against the oracle, not the artefact: that separates "the committed
   // file is stale" from "the port disagrees with the oracle", and a schema
-  // can be both at once — a stale artefact *and* carry the relation change.
-  if (fromOracle !== undefined) {
-    if (canonical(got) === canonical(fromOracle)) {
-      return "committed artefact is stale; the port and the TypeScript 6 oracle agree";
-    }
-    if (isRelationOnly(got, fromOracle)) return RELATION_SERIALISATION.reason;
-    return undefined;
+  // can be both at once — a stale artefact *and* carry a correction.
+  const reference = fromOracle ?? want;
+  if (fromOracle !== undefined && canonical(got) === canonical(fromOracle)) {
+    return "committed artefact is stale; the port and the TypeScript 6 oracle agree";
   }
-  if (isRelationOnly(got, want)) return RELATION_SERIALISATION.reason;
-  return undefined;
+  const reasons = isKnownDivergence(got, reference);
+  return reasons ? reasons.join("; ") : undefined;
 }
 
 const blank = () => ({ match: 0, total: 0, known: 0 });
-const totals = { services: blank(), models: blank() };
+const totals = { services: blank(), models: blank(), top: blank() };
 let unexpected = 0;
 
 for (const relative of TARGETS) {
@@ -386,12 +453,21 @@ for (const relative of TARGETS) {
     }
   }
 
-  const scores = { services: blank(), models: blank() };
-  for (const [id, { group, schema }] of expected) {
+  const scores = { services: blank(), models: blank(), top: blank() };
+  const produced = response.results[TOP_LEVEL_ID];
+  if (produced && (only === "all" || only === "top")) {
+    // Keys the port invents are as wrong as keys it misses, and only this
+    // direction catches them.
+    for (const name of Object.keys(produced)) {
+      const key = `${TOP_LEVEL_ID}:${name}`;
+      if (!expected.has(key)) expected.set(key, { group: "top", schema: undefined, member: name });
+    }
+  }
+  for (const [id, { group, schema, member }] of expected) {
     scores[group].total++;
     totals[group].total++;
-    const got = response.results[id];
-    if (got !== undefined && canonical(got) === canonical(schema)) {
+    const got = member === undefined ? response.results[id] : produced?.[member];
+    if (schema !== undefined && got !== undefined && canonical(got) === canonical(schema)) {
       scores[group].match++;
       totals[group].match++;
       continue;
@@ -406,8 +482,8 @@ for (const relative of TARGETS) {
     unexpected++;
     if (diffOne && id !== diffOne) continue;
     if (verbose || diffOne) {
-      const reason = response.errors[id];
-      console.log(`  MISMATCH ${id}${reason ? ` — ${reason}` : ""}`);
+      const reason = response.errors[member === undefined ? id : TOP_LEVEL_ID];
+      console.log(`  MISMATCH ${member ?? id}${reason ? ` — ${reason}` : ""}`);
       if (got !== undefined) for (const line of render(differences(got, schema))) console.log(`    ${line}`);
     }
   }
@@ -418,11 +494,11 @@ for (const relative of TARGETS) {
     const suffix = known ? ` (+${known} known)` : "";
     return `${group} ${match + known === total ? "IDENTICAL" : `${match}/${total}`}${suffix}`;
   };
-  console.log(`${relative.padEnd(18)} ${score("services").padEnd(28)} ${score("models")}`);
+  console.log(`${relative.padEnd(18)} ${score("services").padEnd(28)} ${score("models").padEnd(26)} ${score("top")}`);
 }
 
 console.log("");
-for (const group of ["services", "models"]) {
+for (const group of ["services", "models", "top"]) {
   const { match, total, known } = totals[group];
   if (total === 0) continue;
   const note = known ? ` + ${known} known divergence${known === 1 ? "" : "s"}` : "";

@@ -740,7 +740,7 @@ the TypeScript 6 worker, so the target is calibrated rather than hypothetical.
 2. **Done.** Then model `Schemas` (3,350 nodes), which need the `dto-in` / `dto-out` /
    `output` modes: input takes the setter parameter type, output the getter return type.
    See §7.2 below.
-3. Then top-level action schemas (804 nodes).
+3. **Done.** Then top-level action schemas (804 nodes). See §7.3 below.
 4. Delete `@webda/schema` and the worker together.
 
 Generate from the **untransformed** view first, so the output is byte-identical to today and
@@ -929,6 +929,82 @@ the syntax — the `UnionTypeNode` behind the alias or the property, or the memb
 node packages/content-mapper/tools/schema-diff.mjs                    # both groups
 node packages/content-mapper/tools/schema-diff.mjs --baseline=worker  # port vs oracle
 node packages/content-mapper/tools/schema-diff.mjs --diff=WebdaDemo/Computer
+```
+
+### Stage 7.3 result: top-level schemas
+
+`node tools/schema-diff.mjs` reports `IDENTICAL` for all three groups across all four
+packages. Top-level: 47 of 50 byte-identical, 3 proven divergences.
+
+These entries are different in kind from the first two stages: the key is all there is, so
+there is no provenance to look them up by. Reproducing them means reproducing the
+**discovery** as well as the conversion, and the worker answers one request with the whole
+map. Two sorts share it:
+
+- **`<Namespace>/<Name>`** for a type tagged `@WebdaSchema`. Found across the *whole
+  program*, dependencies included — the 6.x walk tests the tag before it tests whether the
+  file belongs to the project, which is why `@webda/core`'s `BinaryFile` reappears in every
+  downstream module under that application's namespace. Restricting the walk to project
+  sources silently drops it.
+- **`<Root>.<method>.input` / `.output`** for `@Action` or `@Operation` methods. The root is
+  *not* computed uniformly, and the inconsistency is load-bearing rather than incidental: a
+  model uses its namespaced name, a modda or bean uses its **raw class name**, a behaviour
+  uses its `@WebdaBehavior` payload. `.webda/operations.json` depends on the middle case —
+  it recovers service operations by matching `^([^.]+)\.` against the short class name, so a
+  namespaced key would never be found.
+
+#### `.input` is not a generated document
+
+It is a hand-built wrapper whose properties are one generated document per parameter, each
+stripped of its `$schema`. Everything odd about it follows from that, and all of it is in
+the committed artefact:
+
+|                     | `.input`                              | `.output`              |
+| ------------------- | ------------------------------------- | ---------------------- |
+| `$schema`           | absent                                | present                |
+| `additionalProperties` | absent                             | `false`                |
+| key order           | declaration order                     | sorted                 |
+| `required`          | declaration order, omitted when empty | sorted                 |
+
+Every parameter is included, with no filter for `context` / `ctx`, so an `OperationContext`
+argument is expanded in full — `Writable`, `Promise<any>` and `Error` definitions and all.
+That is strange for something called an operation *input*, and it is reproduced rather than
+improved, because improving it is a separate decision.
+
+#### One more syntactic rule, found by the harness
+
+A property written `T | undefined` is optional **even though the checker says otherwise**.
+Most Webda packages compile with `strict: false`, where `string | undefined` folds back to
+`string`; `@webda/schema` therefore checks the *syntax* of the declaration rather than the
+type. Missing it made `Location` required in `Binary.downloadUrl.output`.
+
+The rule applies to properties only. A *parameter* written `| undefined` is still
+positionally required, and the two paths genuinely differ — both are pinned by tests.
+
+#### The three divergences
+
+Two are the relation correction from §7.2, reaching action inputs through an embedded
+model. The third is a new member of the same family: 6.x left `OperationContext<P, U>`'s
+`parameters: U` unsubstituted, hit its type-parameter branch and emitted `{}`; 7.1
+substitutes it and emits the real shape.
+
+The harness accepts that one under a rule that is safe in a single direction: the reference
+said "anything", so the port can only be *narrowing* a contract that validated everything.
+The reverse — the port loosening a contract — is never accepted, which is the case that
+would matter.
+
+#### The classifier is not a suppression list
+
+Worth stating plainly, because "12 known divergences" invites the question. The three
+recognised kinds are each checked structurally, per run, and everything else fails the
+build. Verified by deliberately regressing the converter — removing the automatic
+`default: false` on booleans — which the harness reports across all three groups and exits
+1 on:
+
+```
+services   20/39 + 6 known divergences
+models     15/29 + 7 known divergences
+top        44/50 + 2 known divergences
 ```
 
 ### Transition option: run the new pipeline out-of-process

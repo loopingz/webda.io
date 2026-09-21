@@ -5,6 +5,7 @@ import * as is from "typescript/unstable/ast/is";
 import type { ClassDeclaration } from "typescript/unstable/ast";
 import { openSession, type Session } from "../context.ts";
 import { generateModelSchemas } from "./model.ts";
+import { generateTopLevelSchemas } from "./project.ts";
 import { findParametersNode, generateServiceSchema } from "./service.ts";
 import { SchemaConverter } from "./converter.ts";
 import { SchemaConversionError, type JSONSchema7 } from "./types.ts";
@@ -267,6 +268,75 @@ describe("model schemas", () => {
     for (const view of ["Input", "Output", "Stored"] as const) {
       expect(invoice[view].properties!.customer.type, view).toBe("string");
     }
+  });
+});
+
+describe("top-level schemas", () => {
+  const schemas = generateTopLevelSchemas(session.ctx, {
+    appPath: fixture,
+    rootDir: join(fixture, "src"),
+    outDir: join(fixture, "lib"),
+    namespace: "Test"
+  });
+
+  it("publishes a @WebdaSchema type under its namespaced name", () => {
+    expect(schemas["Test/Ticket"]).toBeDefined();
+    expect(schemas["Test/Ticket"].WebdaSchema).toBe(true);
+    expect(schemas["Test/Ticket"].title).toBe("Ticket");
+  });
+
+  it("honours an explicit name on the tag, keeping the declaration as the title", () => {
+    expect(schemas["Test/renamedPayload"]).toBeDefined();
+    expect(schemas["Test/renamedPayload"].title).toBe("Payload");
+    expect(schemas["Test/Payload"]).toBeUndefined();
+  });
+
+  it("marks a property written `| undefined` optional", () => {
+    // Syntactic, not type-driven: most packages compile with `strict: false`,
+    // where the checker folds `string | undefined` back to `string`.
+    expect(schemas["Test/Ticket"].required).toEqual(["subject"]);
+  });
+
+  it("builds .input by hand, so it carries no $schema", () => {
+    const input = schemas["Test/Desk.open.input"];
+    expect(input.$schema).toBeUndefined();
+    expect(input.additionalProperties).toBeUndefined();
+    expect(input.type).toBe("object");
+  });
+
+  it("keeps .input parameters and required in declaration order", () => {
+    const input = schemas["Test/Desk.open.input"];
+    expect(Object.keys(input.properties!)).toEqual(["subject", "priority", "tags"]);
+    // `priority` is `?`, `tags` has an initialiser; neither is required.
+    expect(input.required).toEqual(["subject"]);
+  });
+
+  it("omits required entirely when nothing is required", () => {
+    expect(schemas["Test/Desk.ping.input"]).toEqual({ type: "object", properties: {} });
+  });
+
+  it("keeps a parameter written `| undefined` required", () => {
+    // The opposite of the property rule above: a parameter still has to be
+    // passed, even as `undefined`.
+    expect(schemas["Test/Desk.close.input"].required).toEqual(["reason"]);
+  });
+
+  it("unwraps Promise for .output and keeps its $schema", () => {
+    expect(schemas["Test/Desk.close.output"]).toEqual({
+      $schema: "http://json-schema.org/draft-07/schema#",
+      type: "number"
+    });
+  });
+
+  it("represents a void return as `not: {}`", () => {
+    expect(schemas["Test/Desk.ping.output"]).toEqual({
+      $schema: "http://json-schema.org/draft-07/schema#",
+      not: {}
+    });
+  });
+
+  it("ignores undecorated methods", () => {
+    expect(schemas["Test/Desk.helper.input"]).toBeUndefined();
   });
 });
 

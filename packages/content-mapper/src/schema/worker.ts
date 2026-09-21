@@ -27,6 +27,7 @@ import type { ClassDeclaration } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
 import { openSession } from "../context.ts";
 import { generateModelSchemas } from "./model.ts";
+import { generateTopLevelSchemas, namespaceOf } from "./project.ts";
 import { generateServiceSchema } from "./service.ts";
 import type { JSONSchema7 } from "./types.ts";
 
@@ -34,8 +35,8 @@ import type { JSONSchema7 } from "./types.ts";
 export interface SchemaRequest {
   /** Caller-chosen key, echoed in the response. */
   id: string;
-  /** What to generate. */
-  kind: "service" | "model";
+  /** What to generate. `topLevel` needs no class and answers with a map. */
+  kind: "service" | "model" | "topLevel";
   /** Absolute path of the file declaring the class. */
   file: string;
   /** Class to generate for. */
@@ -44,6 +45,12 @@ export interface SchemaRequest {
   addOpenApi?: boolean;
   /** Base type the parameters derive from; `DeployerResources` for deployers. */
   parametersBase?: string;
+  /** Source root, for a `topLevel` request. */
+  rootDir?: string;
+  /** Output root, for a `topLevel` request. */
+  outDir?: string;
+  /** Namespace prefix, for a `topLevel` request. */
+  namespace?: string;
 }
 
 /** A batch of requests against one project. */
@@ -78,6 +85,17 @@ export function handle(request: WorkerRequest): WorkerResponse {
   try {
     for (const item of request.requests) {
       try {
+        if (item.kind === "topLevel") {
+          // Answers with the whole map: these entries record no provenance,
+          // so the caller cannot name them one at a time.
+          response.results[item.id] = generateTopLevelSchemas(session.ctx, {
+            appPath: request.project,
+            rootDir: item.rootDir ?? join(request.project, "src"),
+            outDir: item.outDir ?? join(request.project, "lib"),
+            namespace: item.namespace ?? namespaceOf(request.project)
+          }) as unknown as JSONSchema7;
+          continue;
+        }
         const declaration = findClass(session.ctx.program, item.file, item.className);
         if (!declaration) {
           response.errors[item.id] = `class ${item.className} not found in ${item.file}`;

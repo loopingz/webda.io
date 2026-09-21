@@ -3,7 +3,14 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { openSession } from "./context.ts";
-import { buildModelMetadata, discoverWebdaObjects, type Section } from "./module-discovery.ts";
+
+import {
+  buildModelMetadata,
+  buildRelations,
+  discoverWebdaObjects,
+  reflectAttributes,
+  type Section
+} from "./module-discovery.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, "..", "..", "..");
@@ -53,6 +60,8 @@ describe.each([["core", "packages/core"], ["runtime", "packages/runtime"], ["mod
 
       const session = openSession(join(root, "tsconfig.json"), join(root, "src"));
       let discovered;
+      const reflections: Record<string, any> = {};
+      const relations: Record<string, any> = {};
       try {
         discovered = discoverWebdaObjects(session.ctx, {
           appPath: root,
@@ -60,8 +69,26 @@ describe.each([["core", "packages/core"], ["runtime", "packages/runtime"], ["mod
           outDir: join(root, "lib"),
           namespace: namespaceOf(manifest)
         });
+        const byClass = new Map(discovered.filter(o => o.section === "models").map(o => [o.className, o.name]));
+        for (const object of discovered.filter(o => o.section === "models")) {
+          const sf = session.ctx.sourceFiles.find(f => f.fileName === object.fileName);
+          const cls = sf?.statements.find((s: any) => s.name?.text === object.className);
+          if (!sf || !cls) continue;
+          reflections[object.name] = reflectAttributes(session.ctx, sf, cls);
+          relations[object.name] = buildRelations(session.ctx, sf, cls, n => byClass.get(n));
+        }
       } finally {
         session.dispose();
+      }
+
+      // Reflection and Relations, against the same committed artefact.
+      for (const [name, expected] of Object.entries<any>(committed.models ?? {})) {
+        if (reflections[name]) expect(reflections[name], `${name} Reflection`).toEqual(expected.Reflection);
+        const actualRelations = relations[name];
+        if (!actualRelations) continue;
+        for (const group of ["parent", "links", "queries"] as const) {
+          expect(actualRelations[group], `${name} Relations.${group}`).toEqual(expected.Relations?.[group]);
+        }
       }
 
       // Structural metadata, compared against the same committed artefact.

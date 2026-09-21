@@ -528,7 +528,9 @@ export class SchemaConverter {
       if (readonly && this.isInputMode()) continue;
 
       let optional = outcome.optional;
-      if (hasQuestionToken(declaration) || propSchema.SchemaOptional) optional = true;
+      if (hasQuestionToken(declaration) || writesUndefined(declaration) || propSchema.SchemaOptional) {
+        optional = true;
+      }
 
       // `@param` documents a callback's arguments, not the property, and is
       // not a JSON Schema keyword. It reaches the schema through the generic
@@ -1412,6 +1414,22 @@ function hasQuestionToken(node: Node | undefined): boolean {
   const postfix = (node as { postfixToken?: { kind: SyntaxKind } }).postfixToken;
   if (postfix) return postfix.kind === SyntaxKind.QuestionToken;
   return (node as { questionToken?: unknown }).questionToken !== undefined;
+}
+
+/**
+ * Whether a property is written as `T | undefined`.
+ *
+ * Checked on the syntax rather than the type because most Webda packages
+ * compile with `strict: false`, where the checker folds `string | undefined`
+ * back to `string` and the property would otherwise be required. The author
+ * wrote `| undefined`, so the schema says optional.
+ * @param node - the property declaration
+ * @returns true when `undefined` appears in a written union
+ */
+function writesUndefined(node: Node | undefined): boolean {
+  const typeNode = node && (node as { type?: Node }).type;
+  if (!typeNode || !is.isUnionTypeNode(typeNode)) return false;
+  return typeNode.types.some(member => member.kind === SyntaxKind.UndefinedKeyword);
 }
 
 /**

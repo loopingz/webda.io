@@ -164,6 +164,23 @@ describe("SchemaConverter", () => {
     expect(properties.sampled.examples).toEqual(["a", ["b"]]);
   });
 
+  it("excludes a property tagged @readonly, the lowercase spelling", () => {
+    // Only `@readOnly` is a JSON Schema keyword; `@readonly` reaches the
+    // schema through the generic tag path. Both have to exclude the property
+    // from an input schema, and the corpus mostly uses the lowercase one.
+    expect(properties.createdAt).toBeUndefined();
+  });
+
+  it("ignores an @enum payload, which 6.x parsed as a type expression", () => {
+    // `parseEnumTag` omits braces, so the payload never reached the comment
+    // text. Letting it through would populate `enum` from the tag — a
+    // behaviour change, not a port.
+    // `true` is what an empty tag payload becomes, and is what the
+    // committed schemas contain.
+    expect(properties.channel.enum).toBe(true);
+    expect(properties.channel.type).toBe("string");
+  });
+
   it("excludes private members and methods", () => {
     expect(properties.secret).toBeUndefined();
     expect(properties.helper).toBeUndefined();

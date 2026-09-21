@@ -23,6 +23,20 @@ import type { AnalysisContext } from "./plan.ts";
 /** Sections recorded in `webda.module.json`. */
 export type Section = "models" | "moddas" | "deployers" | "beans";
 
+/** Structural metadata recorded for a model. */
+export interface ModelMetadata {
+  /** Namespaced name, repeated as the entry's own identifier. */
+  Identifier: string;
+  /** Pluralised display name. */
+  Plural: string;
+  /** Namespaced ancestors, nearest first. */
+  Ancestors: string[];
+  /** Namespaced direct subclasses. */
+  Subclasses: string[];
+  /** Attributes forming the primary key. */
+  PrimaryKey: string[];
+}
+
 /** One discovered Webda object. */
 export interface DiscoveredObject {
   /** Namespaced name, as used for the section key. */
@@ -35,6 +49,12 @@ export interface DiscoveredObject {
   importTarget: string;
   /** File declaring it. */
   fileName: string;
+  /** Name of the class as written, before any @Webda* tag renaming. */
+  className: string;
+  /** Names of the classes it derives from, nearest first. */
+  baseNames: string[];
+  /** Primary key attributes, when declared. */
+  primaryKey: string[];
 }
 
 /** Discovery options. */
@@ -257,7 +277,10 @@ export function discoverWebdaObjects(ctx: AnalysisContext, options: DiscoveryOpt
         exportName,
         section,
         importTarget: `${outputTarget(sf.fileName, options)}:${exportName}`,
-        fileName: sf.fileName
+        fileName: sf.fileName,
+        className: cls.name.text,
+        baseNames: chain.slice(1).map((type: any) => (type.getSymbol?.() ?? type.symbol)?.name).filter(Boolean),
+        primaryKey: primaryKeyOfChain(ctx, sf, cls, chain)
       });
     }
   }
@@ -276,4 +299,103 @@ export function discoverWebdaObjects(ctx: AnalysisContext, options: DiscoveryOpt
     unique.push(object);
   }
   return unique;
+}
+
+/**
+ * Primary key attributes declared on a model.
+ *
+ * Recognises the two forms `@webda/core` uses: a `readonly ["uuid"]` type
+ * annotation and an `= ["uuid"] as const` initialiser, both keyed by the
+ * `WEBDA_PRIMARY_KEY` symbol.
+ * @param ctx - analysis context
+ * @param sf - containing file
+ * @param cls - the class declaration
+ * @returns key attribute names
+ */
+function primaryKeyOf(ctx: AnalysisContext, sf: any, cls: any): string[] {
+  for (const member of cls.members ?? []) {
+    const name = (member as any).name;
+    if (!name || !/WEBDA_PRIMARY_KEY/.test(ctx.textOf(sf, name))) continue;
+    const text = ctx.textOf(sf, member);
+    const keys = [...text.matchAll(/["']([A-Za-z_$][\w$]*)["']/g)].map(match => match[1]);
+    if (keys.length) return keys;
+  }
+  return [];
+}
+
+/**
+ * Primary key for a class, inherited when it declares none.
+ *
+ * `UuidModel` declares `["uuid"]` and every subclass inherits it, including
+ * across package boundaries — a sample-app model inherits from `@webda/models`.
+ * Looking only at the class's own members reports an empty key for all of them.
+ * @param ctx - analysis context
+ * @param sf - file declaring the class
+ * @param cls - the class declaration
+ * @param chain - the class's type chain, nearest first
+ * @returns key attribute names
+ */
+function primaryKeyOfChain(ctx: AnalysisContext, sf: any, cls: any, chain: any[]): string[] {
+  const own = primaryKeyOf(ctx, sf, cls);
+  if (own.length) return own;
+
+  for (const type of chain.slice(1)) {
+    const symbol = type.getSymbol?.() ?? type.symbol;
+    const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.[0];
+    const node = declaration?.resolve(ctx.project);
+    if (!node) continue;
+    const owner = (node as any).getSourceFile?.() ?? (node as any)._sourceFile;
+    if (!owner) continue;
+    const inherited = primaryKeyOf(ctx, owner, node);
+    if (inherited.length) return inherited;
+  }
+  return [];
+}
+
+/**
+ * Build the structural half of each model's `webda.module.json` entry.
+ *
+ * Ancestors and subclasses are resolved among the discovered models, so they
+ * carry namespaced names rather than raw class names.
+ * @param objects - discovered objects
+ * @param plural - pluralisation function, supplied by the host
+ * @returns metadata per model name
+ */
+export function buildModelMetadata(
+  objects: DiscoveredObject[],
+  plural: (name: string) => string
+): Record<string, ModelMetadata> {
+  const models = objects.filter(object => object.section === "models");
+  const byClassName = new Map<string, DiscoveredObject>();
+  for (const model of models) byClassName.set(model.className, model);
+
+  const result: Record<string, ModelMetadata> = {};
+  for (const model of models) {
+    const ancestors: string[] = [];
+    for (const base of model.baseNames) {
+      const ancestor = byClassName.get(base);
+      // Bases outside the discovered set — `Model` itself, or a class from a
+      // dependency — are not module entries and are not recorded.
+      if (ancestor && ancestor.name !== model.name) ancestors.push(ancestor.name);
+    }
+
+    result[model.name] = {
+      Identifier: model.name,
+      Plural: plural(model.name.split("/").pop() ?? model.name),
+      Ancestors: ancestors,
+      Subclasses: [],
+      PrimaryKey: model.primaryKey
+    };
+  }
+
+  // Subclasses are the inverse of the immediate ancestor relation.
+  for (const model of models) {
+    const immediate = model.baseNames.map(base => byClassName.get(base)).find(Boolean);
+    if (immediate && immediate.name !== model.name) {
+      result[immediate.name]?.Subclasses.push(model.name);
+    }
+  }
+  for (const entry of Object.values(result)) entry.Subclasses.sort();
+
+  return result;
 }

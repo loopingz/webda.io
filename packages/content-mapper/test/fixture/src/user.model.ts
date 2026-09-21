@@ -1,5 +1,5 @@
 import { ManyToOne, ModelLink, ModelRelated, OneToMany, UuidModel } from "./runtime.js";
-import type { Team } from "./team.model.js";
+import { Team } from "./team.model.js";
 
 /** Model exercising every coercion kind. */
 export class User extends UuidModel {

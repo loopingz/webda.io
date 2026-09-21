@@ -138,3 +138,37 @@ describe("model detection", () => {
     }
   });
 });
+
+describe("constructor arguments and initialisers", () => {
+  it("passes the type parameter's constraint, never the parameter itself", () => {
+    // `new ModelLink(T)` compiles but throws ReferenceError at runtime, which is
+    // what the emit-time transformer this replaces actually produces.
+    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js" });
+    try {
+      const file = join(fixture, "src", "generic.model.ts");
+      const out = session.transform(file, readFileSync(file, "utf8"));
+      expect(out.text).toContain("new ModelLink(Team)");
+      expect(out.text).not.toMatch(/new ModelLink\(T\)/);
+
+      // A target reachable only through `import type` is erased at emit, so
+      // referencing it would be TS1361. The field is left alone instead.
+      expect(out.text).toContain("link: ModelLink<TypeOnlyTarget>;");
+      expect(out.text).not.toContain("new ModelLink(TypeOnlyTarget)");
+    } finally {
+      session.dispose();
+    }
+  });
+
+  it("relocates an initialiser into the getter instead of dropping the field", () => {
+    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js" });
+    try {
+      const file = join(fixture, "src", "generic.model.ts");
+      const out = session.transform(file, readFileSync(file, "utf8"));
+      expect(out.text).toContain("get seenAt(): Date");
+      // the author's default survives as a fallback on read
+      expect(out.text).toMatch(/return this\[WEBDA_STORAGE\]\["seenAt"\] \?\? new Date\(0\)/);
+    } finally {
+      session.dispose();
+    }
+  });
+});

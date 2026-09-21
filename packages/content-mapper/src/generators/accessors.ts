@@ -15,6 +15,7 @@
  * any compiler produces the right `.js` and `.d.ts` with no plugin.
  */
 import { SymbolFlags } from "typescript/unstable/sync";
+import type { SourceFile } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
 import { DEFAULT_COERCIONS } from "../coercions.ts";
 import { classesOf, isStatic, memberName } from "../context.ts";
@@ -118,6 +119,10 @@ interface Resolved {
   coerce?: (v: string) => string;
   /** Runtime constructor name, for `set-method` / `relation-initializer`. */
   runtimeClass?: string;
+  /** Argument for that constructor, when it requires one. */
+  ctorArg?: string;
+  /** Author's initialiser, relocated into the getter as a fallback. */
+  defaultExpr?: string;
   start: number;
   end: number;
   indent: string;
@@ -200,6 +205,103 @@ function zeroArgConstructible(ctx: AnalysisContext, className: string, location:
 }
 
 /**
+ * Whether a name reaches this file only through a type-only import.
+ *
+ * `import type { Team }` is erased at emit, so referencing `Team` as a value
+ * produces TS1361. `Checker.resolveName` still resolves it — it answers about
+ * the symbol, not about what survives emit — so the import form has to be
+ * inspected directly.
+ * @param sf - the file that will contain the generated reference
+ * @param name - identifier to be used as a value
+ * @returns true when the name is imported for types only
+ */
+function isTypeOnlyImport(sf: SourceFile, name: string): boolean {
+  for (const statement of sf.statements) {
+    if (!is.isImportDeclaration(statement)) continue;
+    const clause: any = (statement as any).importClause;
+    if (!clause) continue;
+    const bindings = clause.namedBindings;
+    if (!bindings?.elements) continue;
+    for (const element of bindings.elements) {
+      if (element.name?.text !== name) continue;
+      if (clause.isTypeOnly || element.isTypeOnly) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Smallest number of arguments the class's constructor accepts.
+ * @param ctx - analysis context
+ * @param className - runtime class name
+ * @param location - node used for scope resolution
+ * @returns the minimum arity, or undefined when it cannot be determined
+ */
+function requiredConstructorArity(ctx: AnalysisContext, className: string, location: any): number | undefined {
+  if (!/^[A-Za-z_$][\w$]*$/.test(className)) return undefined;
+  const symbol = ctx.checker.resolveName(className, SymbolFlags.Value, location);
+  if (!symbol) return undefined;
+  const ctorType = ctx.checker.getTypeOfSymbol(symbol);
+  if (!ctorType) return undefined;
+  // 1 === SignatureKind.Construct
+  const arities = ctx.checker
+    .getSignaturesOfType(ctorType, 1 as any)
+    .map(sig => (sig as any).minArgumentCount ?? ((sig as any).parameters ?? []).length);
+  return arities.length ? Math.min(...arities) : undefined;
+}
+
+/**
+ * Resolve the runtime class to pass to a relation constructor.
+ *
+ * `ModelLink<T>` needs its target model at runtime (`new ModelLink(User)`).
+ * When the property is declared on a generic class the written argument is a
+ * type parameter, which does not exist at runtime — emitting it produces
+ * `new ModelLink(T)` and a `ReferenceError` on first use. The type parameter's
+ * default, then its constraint, is the most specific class that does exist,
+ * which is the same fallback `morpher/loadparameters.ts` applies.
+ *
+ * Returns undefined when nothing usable is in scope as a *value*, so the caller
+ * skips the property rather than generating a reference that cannot resolve.
+ * @param ctx - analysis context
+ * @param sf - file that will contain the generated reference
+ * @param typeNode - the property's type node
+ * @param location - node used for scope resolution
+ * @param runtimeClass - relation class being constructed
+ * @returns a class name safe to reference at runtime
+ */
+function runtimeTypeArgument(
+  ctx: AnalysisContext,
+  sf: SourceFile,
+  typeNode: any,
+  location: any,
+  runtimeClass: string
+): string | undefined {
+  // Only the single-argument shape is understood. `ModelRelated<Ident, User,
+  // "_user">` needs three, and guessing the rest produces TS2554; leave those
+  // to keep today's behaviour instead of emitting code that will not compile.
+  if (requiredConstructorArity(ctx, runtimeClass, location) !== 1) return undefined;
+
+  const type = ctx.checker.getTypeFromTypeNode(typeNode);
+  if (!type) return undefined;
+
+  let arg = (ctx.checker as any).getTypeArguments?.(type)?.[0];
+  if (arg?.isTypeParameter?.()) {
+    arg =
+      (ctx.checker as any).getDefaultFromTypeParameter?.(arg) ??
+      (ctx.checker as any).getConstraintOfTypeParameter?.(arg) ??
+      undefined;
+  }
+  if (!arg) return undefined;
+
+  const name = (arg.getSymbol?.() ?? arg.symbol)?.name;
+  if (!name || !/^[A-Za-z_$][\w$]*$/.test(name)) return undefined;
+
+  // A type-only import is erased, so the name must survive to runtime.
+  if (isTypeOnlyImport(sf, name)) return undefined;
+  return ctx.checker.resolveName(name, SymbolFlags.Value, location) ? name : undefined;
+}
+
+/**
  * Indentation of the line containing an offset.
  * @param text - file text
  * @param offset - offset within the line
@@ -222,12 +324,12 @@ function render(r: Resolved): string {
 
   if (r.kind === "relation-initializer") {
     // Not assignable, so no accessor pair — just a readonly initialised field.
-    return `readonly ${r.name}: ${r.typeText} = new ${r.runtimeClass}();`;
+    return `readonly ${r.name}: ${r.typeText} = new ${r.runtimeClass}(${r.ctorArg ?? ""});`;
   }
 
   const lines: string[] = [];
   lines.push(`get ${r.name}(): ${r.typeText} {`);
-  lines.push(`${i}  return ${slot};`);
+  lines.push(r.defaultExpr === undefined ? `${i}  return ${slot};` : `${i}  return ${slot} ?? ${r.defaultExpr};`);
   lines.push(`${i}}`);
   lines.push(`${i}set ${r.name}(value: ${r.setterType}) {`);
 
@@ -238,7 +340,7 @@ function render(r: Resolved): string {
     lines.push(`${i}    ${slot} = value;`);
     lines.push(`${i}    return;`);
     lines.push(`${i}  }`);
-    lines.push(`${i}  const current: ${r.typeText} = ${slot} ?? new ${r.runtimeClass}();`);
+    lines.push(`${i}  const current: ${r.typeText} = ${slot} ?? new ${r.runtimeClass}(${r.ctorArg ?? ""});`);
     lines.push(`${i}  current.set(value as any);`);
     lines.push(`${i}  ${slot} = current;`);
   }
@@ -282,8 +384,11 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
             const name = memberName(m);
             if (!name || existing.has(name)) continue;
             if (!m.type) continue;
-            // An initialiser means the author already controls construction.
-            if ((m as any).initializer) continue;
+            // An initialiser is preserved by moving it into the getter as a
+            // fallback. The observable trade-off is that an explicit
+            // `undefined` now reads back as the default.
+            const initializer = (m as any).initializer;
+            const defaultExpr = initializer ? ctx.textOf(sf, initializer) : undefined;
 
             const typeText = ctx.textOf(sf, m.type);
             const start = (m as any).getStart();
@@ -297,24 +402,36 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
               resolved = {
                 name, typeText, kind: "builtin",
                 setterType: builtin.setterType, coerce: builtin.coerce,
+                defaultExpr,
                 start, end: m.end, indent
               };
             } else {
               const runtimeClass = resolveRuntimeClass(ctx, m.type);
               if (runtimeClass === RELATION_CONTAINER) {
-                if (!zeroArgConstructible(ctx, runtimeClass, m)) continue;
+                // An author-written initialiser wins for a readonly field.
+                if (defaultExpr !== undefined) continue;
+                let ctorArg: string | undefined;
+                if (!zeroArgConstructible(ctx, runtimeClass, m)) {
+                  ctorArg = runtimeTypeArgument(ctx, sf, m.type, m, runtimeClass);
+                  if (!ctorArg) continue;
+                }
                 resolved = {
                   name, typeText, kind: "relation-initializer",
-                  runtimeClass, start, end: m.end, indent
+                  runtimeClass, ctorArg, start, end: m.end, indent
                 };
               } else {
                 const param = autoSetterParamType(ctx, m.type);
                 if (param && runtimeClass) {
-                  if (!zeroArgConstructible(ctx, runtimeClass, m)) continue;
+                  let ctorArg: string | undefined;
+                  if (!zeroArgConstructible(ctx, runtimeClass, m)) {
+                    ctorArg = runtimeTypeArgument(ctx, sf, m.type, m, runtimeClass);
+                    if (!ctorArg) continue;
+                  }
                   resolved = {
                     name, typeText, kind: "set-method",
                     setterType: `${param} | ${typeText}`,
-                    runtimeClass, start, end: m.end, indent
+                    runtimeClass, ctorArg, defaultExpr,
+                    start, end: m.end, indent
                   };
                 }
               }

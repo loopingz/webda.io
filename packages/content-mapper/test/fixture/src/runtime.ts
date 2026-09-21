@@ -37,6 +37,13 @@ export class ModelLink<T> {
   uuid: string = "";
 
   /**
+   * Mirrors the real ModelLink, which requires its target model class so it can
+   * resolve the link at runtime.
+   * @param model - the target model class
+   */
+  constructor(protected model: new (...args: any[]) => T) {}
+
+  /**
    * Absorb a raw value.
    * @WebdaAutoSetter
    * @param value - the target uuid

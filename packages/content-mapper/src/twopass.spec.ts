@@ -12,7 +12,7 @@ const rootDir = join(fixture, "src");
 
 describe("runTwoPass", () => {
   it("type-checks the generated code with no diagnostics", () => {
-    const result = runTwoPass({ configFile, rootDir, storageModule: "./runtime.js" });
+    const result = runTwoPass({ configFile, rootDir, storageModule: "./runtime.js", qlModule: "./runtime.js" });
 
     // The point of the exercise: the rewritten sources must be valid TypeScript.
     expect(result.diagnostics).toEqual([]);
@@ -21,13 +21,13 @@ describe("runTwoPass", () => {
   });
 
   it("runs both generators and reports their edits separately", () => {
-    const result = runTwoPass({ configFile, rootDir, storageModule: "./runtime.js" });
+    const result = runTwoPass({ configFile, rootDir, storageModule: "./runtime.js", qlModule: "./runtime.js" });
     expect(result.editCounts.accessors).toBeGreaterThan(0);
     expect(result.editCounts.loadParameters).toBeGreaterThan(0);
   });
 
   it("generates loadParameters only where it is missing", () => {
-    const result = runTwoPass({ configFile, rootDir, storageModule: "./runtime.js" });
+    const result = runTwoPass({ configFile, rootDir, storageModule: "./runtime.js", qlModule: "./runtime.js" });
     const mailer = [...result.injected.entries()].find(([f]) => f.endsWith("mailer.service.ts"));
     expect(mailer).toBeDefined();
     const text = mailer![1];
@@ -40,8 +40,8 @@ describe("runTwoPass", () => {
   });
 
   it("agrees with WarmSession, so the build and the editor cannot drift", () => {
-    const result = runTwoPass({ configFile, rootDir, storageModule: "./runtime.js" });
-    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js" });
+    const result = runTwoPass({ configFile, rootDir, storageModule: "./runtime.js", qlModule: "./runtime.js" });
+    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js", qlModule: "./runtime.js" });
     try {
       for (const [fileName, buildText] of result.injected) {
         const original = readFileSync(fileName, "utf8");

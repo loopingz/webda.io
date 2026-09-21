@@ -54,9 +54,21 @@ function check(config: string, externalCode: boolean): string {
 describe("content mapper under tsgo", () => {
   it("is spawned by tsgo and produces type-correct output", () => {
     const output = check("tsconfig.mapper.json", true);
-    // Nothing at all: the widened setter accepts the string assignment in
-    // consumer.ts, and every generated accessor type-checks.
-    expect(output).toBe("");
+    // The widened setter accepts the string assignment in consumer.ts, and
+    // every generated accessor and behaviour member type-checks. The only
+    // thing reported is the deliberately wrong query in query.service.ts.
+    const lines = output.split("\n").filter(Boolean);
+    for (const line of lines) expect(line).toMatch(/query\.service\.ts/);
+  }, 60_000);
+
+  it("reports generator diagnostics against the authored file", () => {
+    // WebdaQL validation has no fix to apply, so it travels through the
+    // protocol's `diagnostics` channel rather than as a rewrite. This is the
+    // only end-to-end proof that channel works.
+    const output = check("tsconfig.mapper.json", true);
+    expect(output).toContain("query.service.ts");
+    expect(output).toMatch(/titel/);
+    expect(output).toMatch(/Did you mean 'title'\?/);
   }, 60_000);
 
   it("without the mapper, the same sources fail — proving the transform is what fixes them", () => {

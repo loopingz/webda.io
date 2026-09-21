@@ -55,7 +55,7 @@ describe("coercions", () => {
 
 describe("WarmSession", () => {
   it("resolves coercions through the checker and rewrites them", () => {
-    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js" });
+    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js", qlModule: "./runtime.js" });
     try {
       const original = readFileSync(userModel, "utf8");
       const out = session.transform(userModel, original);
@@ -88,7 +88,7 @@ describe("WarmSession", () => {
   });
 
   it("is idempotent, so generated source can be re-processed safely", () => {
-    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js" });
+    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js", qlModule: "./runtime.js" });
     try {
       const original = readFileSync(userModel, "utf8");
       const first = session.transform(userModel, original);
@@ -101,7 +101,7 @@ describe("WarmSession", () => {
   });
 
   it("sees unsaved buffer text, not what is on disk", () => {
-    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js" });
+    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js", qlModule: "./runtime.js" });
     try {
       const original = readFileSync(userModel, "utf8");
       session.transform(userModel, original);
@@ -127,7 +127,7 @@ describe("model detection", () => {
     // Matching only the written base name, or walking base types without
     // re-resolving them through their symbol, stops at the generic link and
     // silently leaves the field uncoerced.
-    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js" });
+    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js", qlModule: "./runtime.js" });
     try {
       const file = join(fixture, "src", "deep.model.ts");
       const out = session.transform(file, readFileSync(file, "utf8"));
@@ -143,7 +143,7 @@ describe("constructor arguments and initialisers", () => {
   it("passes the type parameter's constraint, never the parameter itself", () => {
     // `new ModelLink(T)` compiles but throws ReferenceError at runtime, which is
     // what the emit-time transformer this replaces actually produces.
-    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js" });
+    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js", qlModule: "./runtime.js" });
     try {
       const file = join(fixture, "src", "generic.model.ts");
       const out = session.transform(file, readFileSync(file, "utf8"));
@@ -160,7 +160,7 @@ describe("constructor arguments and initialisers", () => {
   });
 
   it("relocates an initialiser into the getter instead of dropping the field", () => {
-    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js" });
+    const session = new WarmSession({ configFile, cwd: fixture, storageModule: "./runtime.js", qlModule: "./runtime.js" });
     try {
       const file = join(fixture, "src", "generic.model.ts");
       const out = session.transform(file, readFileSync(file, "utf8"));

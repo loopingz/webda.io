@@ -106,3 +106,13 @@ export class Service<T extends ServiceParameters = ServiceParameters> {
     return this;
   }
 }
+
+/**
+ * Stand-in for `escape` from `@webda/ql`.
+ * @param parts - static query fragments
+ * @param values - interpolated values
+ * @returns the assembled query
+ */
+export function escape(parts: string[], values: unknown[]): string {
+  return parts.reduce((acc, part, i) => acc + part + (i < values.length ? String(values[i]) : ""), "");
+}

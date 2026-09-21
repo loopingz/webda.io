@@ -23,8 +23,9 @@ import type { SourceFile } from "typescript/unstable/ast";
 import { baseNames, textOf, triviaOf } from "./context.ts";
 import { accessorsGenerator } from "./generators/accessors.ts";
 import { behaviorsGenerator } from "./generators/behaviors.ts";
+import { qlValidatorGenerator } from "./generators/qlvalidator.ts";
 import { loadParametersGenerator } from "./generators/loadparameters.ts";
-import { mergePlan, type Edit, type Generator } from "./plan.ts";
+import { mergePlan, type Edit, type GeneratedDiagnostic, type Generator } from "./plan.ts";
 import { buildMappedText, type MappedText } from "./spans.ts";
 
 /** How to open the resident program. */
@@ -37,6 +38,8 @@ export interface WarmSessionOptions {
   storageModule?: string;
   /** Treat every class as eligible, not just models. */
   accessorsForAll?: boolean;
+  /** Module specifier providing the WebdaQL `escape` helper. */
+  qlModule?: string;
   /** Override the generator set (tests). */
   generators?: Generator[];
 }
@@ -58,6 +61,8 @@ export interface TransformTiming {
 export interface TransformOutcome extends MappedText {
   timing: TransformTiming;
   editCount: number;
+  /** Generator diagnostics, for `TransformResult.diagnostics`. */
+  diagnostics: GeneratedDiagnostic[];
 }
 
 const ms = (from: bigint) => Number(process.hrtime.bigint() - from) / 1e6;
@@ -84,6 +89,7 @@ export class WarmSession {
     this.generators = options.generators ?? [
       accessorsGenerator({ accessorsForAll: options.accessorsForAll, storageModule: options.storageModule }),
       behaviorsGenerator({ storageModule: options.storageModule }),
+      qlValidatorGenerator({ qlModule: options.qlModule }),
       loadParametersGenerator()
     ];
 
@@ -166,6 +172,7 @@ export class WarmSession {
     const produced = ctx.sourceFiles.length ? this.generators.flatMap(g => g.analyze(ctx as any)) : [];
     const { plan } = mergePlan(produced);
     const edits: Edit[] = plan.get(fileName) ?? [];
+    const diagnostics = produced.filter(f => f.fileName === fileName).flatMap(f => f.diagnostics ?? []);
     const analyzeMs = ms(t1);
 
     const t2 = process.hrtime.bigint();
@@ -174,6 +181,7 @@ export class WarmSession {
 
     return {
       ...mapped,
+      diagnostics,
       editCount: edits.length,
       timing: { snapshotMs, analyzeMs, spliceMs, totalMs: ms(t0), changed }
     };

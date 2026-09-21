@@ -103,6 +103,19 @@ export function mergePlan(all: FileEdits[]): {
   const conflicts: { fileName: string; a: Edit; b: Edit }[] = [];
   for (const [fileName, edits] of plan) {
     edits.sort((x, y) => x.start - y.start || x.end - y.end);
+
+    // Generators are independent, so several can reach the same conclusion —
+    // every one that needs WEBDA_STORAGE injects the same import at offset 0.
+    // Emitting it twice is TS2300.
+    const seen = new Set<string>();
+    const deduped = edits.filter(edit => {
+      const key = `${edit.start}:${edit.end}:${edit.text}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    edits.length = 0;
+    edits.push(...deduped);
     for (let i = 1; i < edits.length; i++) {
       const prev = edits[i - 1];
       const cur = edits[i];

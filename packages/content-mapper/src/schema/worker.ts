@@ -113,7 +113,9 @@ export function handle(request: WorkerRequest): WorkerResponse {
           checker: session.ctx.checker,
           addOpenApi: item.addOpenApi,
           parametersBase: item.parametersBase,
-          title: item.className
+          // The declaration's own name, not the requested one: a default
+          // export is requested as `"default"` but titled after the class.
+          title: declaration.name?.text ?? item.className
         });
         if (!schema) {
           response.errors[item.id] = `no parameters type found on ${item.className}`;

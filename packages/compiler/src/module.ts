@@ -16,6 +16,12 @@ import { EventsMetadata } from "./metadata/events";
 import { PrimaryKeyMetadata } from "./metadata/primarykey";
 import { PluralMetadata } from "./metadata/plural";
 import { SchemaGenerator } from "@webda/schema";
+import {
+  generateSchemasWithTypeScript7,
+  useTypeScript7Schemas,
+  type SchemaBatch,
+  type SchemaTarget
+} from "./schema-backend.js";
 import { generateSessionTypes } from "./session-types.js";
 
 /**
@@ -200,6 +206,13 @@ export interface NamingViolation {
 export class ModuleGenerator {
   typeChecker: ts.TypeChecker;
   schemaGenerator: SchemaGenerator;
+  /**
+   * Schemas from the TypeScript 7 port, when `WEBDA_SCHEMA_BACKEND=ts7`.
+   *
+   * Populated once per build, before the `store` is flushed, so every
+   * producer below can read from it instead of calling the local generator.
+   */
+  ts7Schemas?: SchemaBatch;
   /**
    * Webda classes found in wrongly named files.
    *
@@ -1346,6 +1359,40 @@ export class ModuleGenerator {
   }
 
   /**
+   * Ask the TypeScript 7 port for every schema this build needs.
+   *
+   * Targets are named by file and class, which is all that survives a
+   * process boundary — the port resolves them in its own program. Top-level
+   * schemas are not named at all: they carry no provenance, so the port
+   * rediscovers them and returns the whole map.
+   * @param objects - the discovered Webda objects
+   * @param objects.moddas - discovered moddas
+   * @param objects.beans - discovered beans
+   * @param objects.models - discovered models
+   * @returns the generated schemas
+   */
+  requestTypeScript7Schemas(objects: {
+    moddas: WebdaSearchResults;
+    beans: WebdaSearchResults;
+    models: WebdaSearchResults;
+  }): SchemaBatch {
+    const targets = (results: WebdaSearchResults): SchemaTarget[] =>
+      Object.values(results)
+        .filter(entry => !entry.lib && (entry.node as ts.ClassDeclaration)?.name)
+        .map(entry => ({
+          name: entry.name,
+          fileName: entry.node.getSourceFile().fileName,
+          className: (entry.node as ts.ClassDeclaration).name!.escapedText.toString()
+        }));
+
+    return generateSchemasWithTypeScript7(
+      this.compiler.project.getAppPath(),
+      [...targets(objects.moddas), ...targets(objects.beans)],
+      targets(objects.models)
+    );
+  }
+
+  /**
    * Generate the module
    * @returns the generated Webda module
    */
@@ -1361,6 +1408,9 @@ export class ModuleGenerator {
     this.exploreServices(objects.moddas, objects.schemas);
     this.exploreServices(objects.beans, objects.schemas);
     this.exploreBehaviorsAction(objects.allClasses, objects.schemas);
+    if (useTypeScript7Schemas()) {
+      this.ts7Schemas = this.requestTypeScript7Schemas(objects);
+    }
     const jsOnly = a => ({
       Import: a.jsFile,
       Schema: {}
@@ -1534,13 +1584,22 @@ class WebdaSchemaResults {
         if (!results[section][name] && section !== "schemas") {
           return;
         }
+        const ts7 = moduleGenerator.ts7Schemas;
+
         if (section === "schemas") {
+          // Under the TypeScript 7 backend the whole top-level map comes from
+          // the port's own discovery and is written below, so nothing to do.
+          if (ts7) return;
           // @ts-ignore
           results[section][name] = schemaNode ? moduleGenerator.generateSchema(schemaNode, title || name) : link;
           return;
         }
 
         if (section === "models") {
+          if (ts7) {
+            if (ts7.models[name]) results[section][name].Schemas = ts7.models[name];
+            return;
+          }
           try {
             // Generate Model schemas
             results[section][name].Schemas = moduleGenerator.generateModelSchemas(schemaNode as ts.Node, title || name);
@@ -1552,7 +1611,9 @@ class WebdaSchemaResults {
         }
 
         if (schemaNode) {
-          results[section][name].Schema = moduleGenerator.generateSchema(schemaNode as ts.Node, title || name);
+          results[section][name].Schema = ts7
+            ? (ts7.services[name] ?? results[section][name].Schema)
+            : moduleGenerator.generateSchema(schemaNode as ts.Node, title || name);
           let exportName = "";
           try {
             const type = moduleGenerator.typeChecker.getTypeAtLocation(schemaNode as ts.Node);
@@ -1572,7 +1633,9 @@ class WebdaSchemaResults {
           } catch (err) {
             useLog("WARN", "Cannot guess export name for service configuration:", err.stack);
           }
-          if (addOpenApi && results[section][name]) {
+          // The port already injects `openapi`; doing it again here would be
+          // harmless but makes the two paths textually different.
+          if (!ts7 && addOpenApi && results[section][name]) {
             results[section][name].Schema.properties ??= {};
             results[section][name].Schema.properties["openapi"] = {
               type: "object",
@@ -1581,8 +1644,11 @@ class WebdaSchemaResults {
           }
         }
       });
-    // Add schemas
-    for (const [name, schema] of Object.entries(this.schemas)) {
+    // Add schemas. Under the TypeScript 7 backend the port discovered these
+    // itself — `@WebdaSchema` types and every `@Action` input/output — so its
+    // map replaces the locally accumulated one wholesale.
+    const source = moduleGenerator.ts7Schemas ? moduleGenerator.ts7Schemas.topLevel : this.schemas;
+    for (const [name, schema] of Object.entries(source)) {
       results.schemas[name] = schema;
     }
   }

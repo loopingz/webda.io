@@ -1082,12 +1082,60 @@ reachable in that order, for two reasons:
    artefact is stale" only because the port and the 6.x oracle agree under equal
    conditions. Deleting the oracle deletes the proof.
 2. **The artefacts have to be regenerated first**, and that means `webdac build` producing
-   them — which means wiring `@webda/compiler` to the new pipeline out-of-process (the
-   option below). Only then do the divergences collapse to zero and the oracle become
-   redundant.
+   them — which is stage 7.5 below. Only then do the divergences collapse to zero and the
+   oracle become redundant.
 
 Regenerating is also the point at which the relation change becomes real for users, across
 26 committed modules. It belongs in its own commit.
+
+### Stage 7.5: the compiler can drive the port
+
+`WEBDA_SCHEMA_BACKEND=ts7` makes `webdac build` generate every schema through
+`@webda/content-mapper` instead of `@webda/schema`. Off by default; the TypeScript 6 path
+is untouched otherwise.
+
+The two majors never meet. `@webda/compiler` spawns `lib/schema/worker-cli.js` as a
+subprocess and exchanges JSON — the same shape `@webda/content-mapper` already uses to
+drive `tsgo`. One spawn per build, batched, because opening the program is the expensive
+part: 34 requests in 351ms for `packages/core`. `@webda/content-mapper` is deliberately
+*not* a declared dependency of the compiler — it peers on `typescript@>=7.1.0-dev`, which
+would collide with the compiler's own TypeScript 6 the moment a package manager tried to
+satisfy it. `WEBDA_SCHEMA_WORKER` points at the worker directly, which is how the whole
+monorepo was exercised without first adding the package to twelve applications.
+
+#### What this validates that the harness cannot
+
+The harness derives schema names from the committed artefact. A real build derives them
+from **discovery**, so the two can disagree about which schemas exist at all — and only a
+build catches that. Measured across six packages, the build changes exactly the entries
+the harness predicts, with no key added or removed:
+
+| package                 | harness predicts | build changes |
+| ----------------------- | ---------------: | ------------: |
+| `packages/core`         |                2 |             2 |
+| `packages/fs`           |                0 |             0 |
+| `packages/postgres`     |                3 |             3 |
+| `packages/runtime`      |                1 |             1 |
+| `sample-app`            |               18 |            18 |
+| `sample-apps/blog-system` |             10 |            10 |
+
+It immediately found two defects the harness had been hiding:
+
+- **The harness skipped `:default`-exported services.** Two of the three services in
+  `packages/postgres` were never compared — the gap had been fixed for models and not for
+  services. The build changed three entries where the score claimed one.
+- **The port titled a default-exported service `"default"`.** With the skip removed, the
+  title came from the *requested* name rather than the declaration's. Both fixed.
+
+#### What has not been done
+
+The artefacts are **not** regenerated. Running a real build with the flag confirms the
+change is exactly the 32 proven divergences; committing that is a separate, deliberate
+step, because it changes API validation for every model relation across 26 modules.
+
+One wrinkle for whoever does it: `sourceDigest` hashes the compiler package itself, so
+changing the compiler at all rewrites the digest in every module on next build. It should
+be regenerated everywhere at once rather than package by package.
 
 ### Transition option: run the new pipeline out-of-process
 

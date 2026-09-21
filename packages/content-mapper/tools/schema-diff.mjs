@@ -229,7 +229,10 @@ function plan(root, committed) {
       for (const [id, entry] of Object.entries(committed[section] ?? {})) {
         if (!entry.Schema) continue;
         const { file, exportName } = sourceOf(root, entry.Import);
-        if (!exportName || exportName === "default") continue;
+        // `:default` is a real export name here, not a gap — the worker
+        // finds a default-exported class by its modifier. Skipping these
+        // quietly hid two of the three services in packages/postgres.
+        if (!exportName) continue;
         requests.push({ id, kind: "service", file, className: exportName, addOpenApi: true });
         expected.set(id, { group: "services", schema: entry.Schema });
       }

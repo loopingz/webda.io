@@ -714,9 +714,9 @@ the TypeScript 6 worker, so the target is calibrated rather than hypothetical.
 
 #### Order
 
-1. Convert **service parameter** schemas first (modda `Schema`, 1,589 nodes). Plain config
-   objects, no accessors, no model semantics — the easiest third of the corpus and it
-   exercises the whole pipeline.
+1. **Done.** Convert **service parameter** schemas first (modda `Schema`, 1,589 nodes). Plain
+   config objects, no accessors, no model semantics — the easiest third of the corpus and it
+   exercises the whole pipeline. See §7.1 below.
 2. Then model `Schemas` (3,350 nodes), which need the `dto-in` / `dto-out` / `output` modes:
    input takes the setter parameter type, output the getter return type.
 3. Then top-level action schemas (804 nodes).
@@ -751,6 +751,87 @@ The RPC-backed API bit every generator ported so far; expect the same here.
 User` is ordinary and a name-keyed guard stops one link short.
 - Reflection-style walks must use the **type's** properties, not the class's own members, or
   inherited attributes vanish.
+
+### Stage 7.1 result: service parameter schemas
+
+`node tools/schema-diff.mjs --only=services` reports `IDENTICAL` for all four packages — 33
+of 39 byte-identical, plus 6 deliberate divergences described below. The harness now scores
+both groups and takes `--impl=ts7|worker`, so the TypeScript 6 oracle and the port answer
+the same requests and the score is a regression test rather than a claim. Model schemas are
+unchanged at 22/29 through the worker.
+
+The converter is ~900 lines in `packages/content-mapper/src/schema/`, against
+`@webda/schema`'s 2,200.
+
+#### What the 7.1 checker does not tell you
+
+Four differences account for every mismatch found, and all four fail **silently** — each
+produces a valid schema that is quietly wrong, which is exactly the failure class the hard
+constraint exists for.
+
+| symptom                                    | cause                                                                                       |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| every `enum` reordered                     | `UnionType.getTypes()` returns constituents alphabetically, not by type id                  |
+| descriptions missing on inline object types | `getDocumentationComment` no longer walks a type literal up to its parent property          |
+| descriptions missing on documented bases    | it no longer inherits through `extends` / `implements`                                      |
+| `{@link X}` flattened to `X`               | links are rendered rather than returned in source form                                       |
+
+The first is restored by sorting on `Type.id`: both checkers canonicalise a union by id, and
+ids are issued as types are created, so for the literals of one union that ordering **is**
+declaration order. The other three are reimplemented on the AST in `schema/jsdoc.ts` — the
+6.x services layer answered a wider question than 7.1 does, and the committed schemas were
+generated against the wider one.
+
+Two further traps, both caught by fixtures rather than by the corpus:
+
+- **`Symbol.getSymbolAtLocation` no longer accepts a declaration node.** It did not in
+  TypeScript 6 either — a plausible-looking "fix" here double-applies every JSDoc tag, which
+  turns `default: "all"` into `default: ["all", "all"]`. Worth knowing before it is
+  rediscovered.
+- **`string` carries a numeric index signature**, so a template literal or `Uppercase<T>`
+  reads as array-like and would emit `type: "array"`. Both now throw.
+
+#### The six divergences are a fix, and a visible one
+
+For a service that names no parameters type of its own — `class SimpleService extends
+Service` — the committed `Schema` has no `type` and no properties beyond the injected
+`openapi`. That is not what `@webda/schema` computes; it is what falls out of the
+discarded-program bug in §11. Instrumenting a real `webdac build` shows it directly:
+
+```
+[PROBE] node=TypeReference "ServiceParameters" file=service.d.ts
+        type=ServiceParameters flags=1 props=0
+```
+
+`flags=1` is `TypeFlags.Any` — the error type, printed under the name it failed to resolve.
+The node comes from `@webda/compiler`'s program while the checker comes from the one
+`@webda/schema` built for itself, and the import inside `@webda/core`'s `service.d.ts` does
+not resolve across that boundary. Given a consistent program the same 6.x generator produces
+the full schema, so this is corruption rather than behaviour and reproducing it is neither
+possible nor desirable.
+
+The TypeScript 7 pipeline has one program, so these six services gain the real
+`ServiceParameters` schema — **including a required `type` property in configuration
+validation**. `tools/schema-diff.mjs` records them by id and asserts the shape of both
+sides, so the exemption lapses the moment either changes.
+
+Affected: `Webda/PasswordEncryptionService`, `WebdaDemo/SimpleService`,
+`WebdaDemo/TestCommandService`, `WebdaDemo/ThirdOtherService`, `WebdaDemo/BeanService`,
+`WebdaDemo/SampleAppGoodBean`.
+
+#### Faithfully reproduced oddities
+
+Byte-identical output means porting the quirks too. These are commented at their definitions
+so they are not "tidied" later:
+
+- an unclassified JSDoc tag becomes a keyword of its own name, so `@see` and `@returns` reach
+  the schema and `@type number | string` **overwrites** the structural `type`
+- a repeated tag collects into an array, and because the first value may already be an array
+  the second nests inside it (`@examples ["a"]` then `["b"]` → `["a", ["b"]]`)
+- an unresolved `{@link Foo}` renders with a trailing space — `{@link Foo }` — because 6.x
+  only omitted it when the target resolved
+
+Each is a behaviour change if altered, so any of them is a separate, visible commit.
 
 ### Transition option: run the new pipeline out-of-process
 

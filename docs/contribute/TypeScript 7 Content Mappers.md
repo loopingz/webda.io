@@ -507,25 +507,70 @@ Roughly 2.8k lines are deleted and 1.6k must be ported first.
 > ported is a straight regression. `behaviors` is rated low difficulty because the technique
 > carries over, not because it is small.
 
+### The constraint that dictates the order
+
+A package can declare only one `typescript`. That makes the switch to 7.1 **atomic across a
+group of packages**, not incremental within them:
+
+- `@webda/compiler` drives emit with transformers —
+  `tsProgram.emit(undefined, writer, undefined, false, { before, afterDeclarations })`
+  (`compiler.ts:150-168`) — plus `ts.createProgram`, `ts.factory` and `ts.createSourceFile`.
+  None of these exist in TypeScript 7.
+- `@webda/compiler` and `@webda/schema` **exchange TypeScript objects**: `module.ts:1354`
+  passes `this.compiler.tsProgram` into `new SchemaGenerator({ program })`, typed `ts.Program`
+  at `schema/src/generator.ts:211`. Objects from two TypeScript majors are not
+  interchangeable, so these two packages must move together.
+- `@webda/schema` builds its own language service (`generator.ts:602`,
+  `ts.createLanguageService` + `ts.createDocumentRegistry`). TypeScript 7 replaces that with
+  `project.languageService`, a different model. This is a redesign, not an import swap.
+
+So the atomic unit is **compiler + schema + tsc-esm, with ts-plugin deleted in the same
+change** — roughly 9,200 non-spec lines of surface. Most of it is mechanical: `ts.Node`,
+`ts.ClassDeclaration` and friends map onto `typescript/unstable/ast`, the `ts.isX` predicates
+onto `typescript/unstable/ast/is`, and `SyntaxKind` / `TypeFlags` / `SymbolFlags` /
+`ObjectFlags` are exported from `typescript/unstable/sync`. The genuinely hard spots are the
+five removed APIs listed above.
+
+An earlier version of this section put "point `@webda/compiler` at the content mapper" as step
+two. That is not reachable: the moment compiler imports `@webda/content-mapper` it inherits
+the `>=7.1.0-dev` peer while still needing TypeScript 6 for its own transformers.
+
 ### Order of work
 
-`@webda/compiler` depends on `@webda/ts-plugin`, so the dependency has to be inverted before
-anything is deleted.
+Each stage is verifiable on its own, which matters because the atomic switch at the end is
+otherwise a big-bang with no feedback until it lands.
 
-1. Create `@webda/content-mapper`: accessors + `loadParameters` generators, plan model, span
-   builder, mapper server, plus `coercions`. Done in the prototype.
-2. Point `@webda/compiler` at it and drop the `@webda/ts-plugin/transform` import.
-3. Rename model and service sources to `.model.ts` / `.service.ts`.
-4. Add the naming check to `ModuleGenerator.searchForWebdaObjects()` (§8).
-5. Port `transforms/behaviors.ts`.
-6. Port `transforms/qlvalidator.ts` — validation half is pure analysis; the rewrite half is
-   local and mechanical.
-7. Port the module generator to the TS7 API — already a standalone pass, so lowest risk.
-8. Port `@webda/schema` — highest risk, leans on checker internals. Note §7: it must also
-   learn to treat an accessor pair as a field if in-place output is ever produced.
-9. Replace `@webda/tsc-esm` with native `rewriteRelativeImportExtensions`, or 7.1
+1. **Done.** Create `@webda/content-mapper` — accessors and `loadParameters` generators, plan
+   model, span builder, mapper server, coercion registry.
+2. **Done.** Rename sources to `.model.ts` / `.service.ts`.
+3. **Done.** Naming guardrail in `ModuleGenerator.searchForWebdaObjects()` (§8).
+4. Port `transforms/behaviors.ts` into a content-mapper generator. It is written against
+   `ts.factory`; the target is text generation through the existing plan model.
+   _Verified by:_ unit tests, plus parity against the emitted output of the current transform.
+5. Port `transforms/qlvalidator.ts`. The validation half is pure analysis; the rewrite half
+   (template literal to `escape()` call) is local and mechanical.
+6. Port module generation to the TypeScript 7 API. Already a standalone post-emit pass, so it
+   carries the least structural risk.
+   _Verified by:_ **byte-diffing `webda.module.json`** against the TypeScript 6 output across
+   real packages. It is a committed artefact, so an identical diff is objective proof.
+7. Port `@webda/schema`, replacing `createLanguageService` with `project.languageService`.
+   _Verified by:_ byte-diffing generated schemas. Note §7 — it must also learn to treat an
+   accessor pair as a field if in-place output is ever produced.
+8. Replace `@webda/tsc-esm` with native `rewriteRelativeImportExtensions`, or 7.1
    `transpileModule`. Used by `sample-app` and `packages/postgres`.
-10. Delete `@webda/ts-plugin` and `ts-patch`.
+9. **Atomic switch:** move compiler, schema and tsc-esm to 7.1; delete `@webda/ts-plugin` and
+   `ts-patch`.
+
+### Transition option: run the new pipeline out-of-process
+
+Stages 4 to 8 leave `@webda/content-mapper` unused, which means no feedback until stage 9.
+That can be avoided: the TypeScript 7 API already works by spawning `tsgo` as a subprocess, so
+`webdac build` can shell out to a build binary in `@webda/content-mapper` rather than
+importing it. No shared `typescript`, so both majors coexist, and the new pipeline can be
+exercised on real packages — behind a flag — long before the switch.
+
+Verified working: `runTwoPass({ emit: true })` emits 16 files for the package fixture with
+zero diagnostics, and the generated accessors are present in the emitted JavaScript.
 
 ### Cleanup that is easy to forget
 

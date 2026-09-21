@@ -163,7 +163,8 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
         if (edits.length || diagnostics.length) {
           if (needsEscape && !new RegExp(`\\bescape\\b`).test(sf.text)) {
             edits.push({
-              start: 0, end: 0,
+              start: 0,
+              end: 0,
               text: `import { escape } from ${JSON.stringify(qlModule)};\n`,
               source: "qlvalidator"
             });
@@ -222,9 +223,7 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
             const parts = [argument.head.text, ...argument.templateSpans.map((span: any) => span.literal.text)];
             validateQuery(parts.join("?"), argument, target);
 
-            const values = argument.templateSpans
-              .map((span: any) => ctx.textOf(sf, span.expression))
-              .join(", ");
+            const values = argument.templateSpans.map((span: any) => ctx.textOf(sf, span.expression)).join(", ");
             const partsLiteral = parts.map(part => JSON.stringify(part)).join(", ");
             edits.push({
               start: (argument as any).getStart(),
@@ -251,7 +250,8 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
               options.parse(query);
             } catch (error: any) {
               diagnostics.push({
-                start, length,
+                start,
+                length,
                 code: WQL_GRAMMAR_ERROR,
                 messageText: `WebdaQL grammar error: ${String(error?.message ?? error)}`
               });
@@ -265,7 +265,8 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
             if (known.includes(attribute)) continue;
             const suggestion = nearestNeighbour(attribute, known);
             diagnostics.push({
-              start, length,
+              start,
+              length,
               code: WQL_UNKNOWN_ATTRIBUTE,
               messageText:
                 `Unknown attribute '${attribute}' in WebdaQL query` +

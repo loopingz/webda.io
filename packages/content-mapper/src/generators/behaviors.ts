@@ -239,14 +239,16 @@ export function behaviorsGenerator(options: BehaviorOptions = {}): Generator {
             needsStorage = true;
             if (!hasStorageSlot(ctx, sf, cls)) {
               edits.push({
-                start: openPos, end: openPos,
+                start: openPos,
+                end: openPos,
                 text: `\n${memberIndent}[WEBDA_STORAGE]: Record<string, any> = {};`,
                 source: "behaviors"
               });
             }
             if (!existing.has("parent")) {
               edits.push({
-                start: closePos, end: closePos,
+                start: closePos,
+                end: closePos,
                 text: `${memberIndent}get parent() { return this[WEBDA_STORAGE][${JSON.stringify(
                   BEHAVIOR_PARENT_KEY
                 )}]; }\n`,
@@ -256,7 +258,8 @@ export function behaviorsGenerator(options: BehaviorOptions = {}): Generator {
             // An author-written toJSON wins; replacing it would drop their shape.
             if (!existing.has("toJSON")) {
               edits.push({
-                start: closePos, end: closePos,
+                start: closePos,
+                end: closePos,
                 text: `${renderToJSON(memberIndent)}\n`,
                 source: "behaviors"
               });
@@ -278,7 +281,8 @@ export function behaviorsGenerator(options: BehaviorOptions = {}): Generator {
 
           needsStorage = true;
           edits.push({
-            start: closePos, end: closePos,
+            start: closePos,
+            end: closePos,
             text:
               `${memberIndent}protected __hydrateBehaviors(rawData?: any): void {\n` +
               `${blocks.join("\n")}\n` +
@@ -290,7 +294,8 @@ export function behaviorsGenerator(options: BehaviorOptions = {}): Generator {
         if (edits.length) {
           if (needsStorage && !/\bWEBDA_STORAGE\b/.test(sf.text)) {
             edits.push({
-              start: 0, end: 0,
+              start: 0,
+              end: 0,
               text: `import { WEBDA_STORAGE } from ${JSON.stringify(storageModule)};\n`,
               source: "behaviors"
             });

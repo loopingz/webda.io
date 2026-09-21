@@ -123,7 +123,11 @@ function renderComment(parts: readonly CommentPart[], checker: Checker, project:
   for (const part of parts) {
     out += part.kind === SyntaxKind.JSDocText ? part.text : renderLink(part, checker, project);
   }
-  return out;
+  // A block closed by a blank `*` line, or one followed by tags, leaves a
+  // trailing newline in the 7.1 AST that 6.x trimmed before handing the
+  // comment out. Keeping it would put `\n` at the end of a third of the
+  // descriptions in the corpus.
+  return out.replace(/\s+$/, "");
 }
 
 /**

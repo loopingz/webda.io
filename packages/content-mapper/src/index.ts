@@ -53,6 +53,8 @@ export type { TwoPassOptions, TwoPassResult } from "./twopass.ts";
 
 export { SchemaConverter } from "./schema/converter.ts";
 export type { BufferStrategy, ConverterOptions, SchemaMode } from "./schema/converter.ts";
+export { generateModelSchemas } from "./schema/model.ts";
+export type { ModelSchemaOptions, ModelSchemas } from "./schema/model.ts";
 export { findParametersNode, generateServiceSchema } from "./schema/service.ts";
 export type { ServiceSchemaOptions } from "./schema/service.ts";
 export { SchemaConversionError } from "./schema/types.ts";

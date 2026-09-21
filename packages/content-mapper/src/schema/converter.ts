@@ -25,7 +25,7 @@
  * reproduced and commented rather than corrected. Changing any of it is a
  * separate, visible commit.
  */
-import { IndexKind, ObjectFlags, SymbolFlags, TypeFlags } from "typescript/unstable/sync";
+import { IndexKind, ObjectFlags, SignatureKind, SymbolFlags, TypeFlags } from "typescript/unstable/sync";
 import type {
   Checker,
   LiteralType,
@@ -218,6 +218,15 @@ export class SchemaConverter {
     if (node) applyDocs(definition, this.checker.getSymbolAtLocation(node), this.checker, this.project);
     this.inheritAliasDocs(definition, node);
 
+    // Checked before the shape dispatch so it also covers array-typed
+    // attributes whose element class carries the marker — `Binaries<T>`
+    // extends `Array`, so the class branch below never sees it.
+    if (path !== "/" && this.mode === "dto-in") {
+      const context = node ?? this.targetNode;
+      if (this.hasReadOnlyTag(type)) return SKIP;
+      if (context && this.resolveFromDto(type, context) === "skip") return SKIP;
+    }
+
     const flags = type.flags;
 
     if (flags & TypeFlags.StringLiteral) {
@@ -312,7 +321,7 @@ export class SchemaConverter {
       return KEEP;
     }
     if (type.isClassOrInterface()) return this.objectLike(type, definition, path, typeName, node, depth);
-    if (type.isUnionType()) return this.union(type, definition, path, depth);
+    if (type.isUnionType()) return this.union(type, definition, path, node, depth);
     if (type.isIntersectionType()) return this.intersection(type, definition, path, depth);
     if (this.isArrayLike(type)) return this.array(type, definition, path, depth);
     if (type.isTypeParameter()) {
@@ -400,15 +409,42 @@ export class SchemaConverter {
     node: Node | undefined,
     depth: number
   ): PropertyOutcome {
-    // `toJSON()` states the serialised form, so it wins over the class shape.
+    // A nested class states its own serialised form, and that beats its
+    // structural shape. Which method is consulted depends on the direction
+    // the schema describes.
     if (path !== "/") {
-      const serialized = this.toJsonReturnType(type, node);
+      const context = node ?? this.targetNode;
+
+      if (this.mode === "dto-in" && context) {
+        // A class tagged `@readOnly`, or one whose `fromDto` takes `never`,
+        // is never user-supplied — the attribute leaves the Input schema.
+        if (this.hasReadOnlyTag(type)) return SKIP;
+        const accepted = this.resolveFromDto(type, context);
+        if (accepted === "skip") return SKIP;
+        if (accepted) {
+          this.property(accepted, definition, path, node, depth + 1);
+          return KEEP;
+        }
+      }
+
+      if (this.mode === "dto-out" && context) {
+        const produced = this.methodReturnType(type, ["toDTO", "toDto"], context);
+        if (produced) {
+          if (produced.flags & (TypeFlags.Void | TypeFlags.Undefined | TypeFlags.Null | TypeFlags.Never)) return SKIP;
+          this.property(this.simplifyIntersection(produced), definition, path, node, depth + 1);
+          return KEEP;
+        }
+      }
+
+      const serialized = context ? this.methodReturnType(type, ["toJSON"], context) : undefined;
       if (serialized) {
         const flags = serialized.flags;
         if (flags & (TypeFlags.Void | TypeFlags.Undefined | TypeFlags.Null | TypeFlags.Never)) return SKIP;
         const returned = this.checker.typeToString(serialized);
+        // A `toJSON(): this` says nothing new; only a concrete return type is
+        // worth substituting for the class shape.
         if (returned !== typeName && !(flags & TypeFlags.Any)) {
-          this.property(serialized, definition, path, node, depth + 1);
+          this.property(this.simplifyIntersection(serialized), definition, path, node, depth + 1);
           return KEEP;
         }
       }
@@ -565,22 +601,240 @@ export class SchemaConverter {
     slot.$ref = `#/definitions/${encodeURIComponent(key)}`;
   }
 
+  // ------------------------------------------------------------ dto modes --
+
   /**
-   * Resolve `toJSON()`'s return type, when the type declares one.
+   * The return type of the first of `methodNames` the type declares.
+   *
+   * The apparent type is consulted first so a generic instantiation carries
+   * its type arguments into the signature.
    * @param type - the type to inspect
-   * @param node - resolution context
-   * @returns the return type, or undefined
+   * @param methodNames - names to try, in order
+   * @param location - resolution context
+   * @returns the return type, or undefined when no method matches
    */
-  private toJsonReturnType(type: Type, node: Node | undefined): Type | undefined {
-    const location = node ?? this.targetNode;
-    if (!location) return undefined;
-    const symbol = this.checker.getApparentType(type).getProperty("toJSON") ?? type.getProperty("toJSON");
-    if (!symbol) return undefined;
-    const signatures = this.checker.getTypeOfSymbolAtLocation(symbol, location).getCallSignatures();
-    return signatures.length ? signatures[0].getReturnType() : undefined;
+  private methodReturnType(type: Type, methodNames: string[], location: Node): Type | undefined {
+    const apparent = this.checker.getApparentType(type);
+    const parentArguments = apparent.isTypeReference() ? this.checker.getTypeArguments(apparent) : [];
+
+    for (const name of methodNames) {
+      const symbol = apparent.getProperty(name) ?? type.getProperty(name);
+      if (!symbol) continue;
+
+      const methodType =
+        this.checker.getTypeOfPropertyOfType(apparent, name) ??
+        this.checker.getTypeOfSymbolAtLocation(symbol, location);
+      const signatures = this.checker.getSignaturesOfType(methodType, SignatureKind.Call);
+      if (signatures.length === 0) continue;
+
+      const returned = this.checker.getReturnTypeOfSignature(signatures[0]);
+      // Depending on traversal order the method type can keep the parent's
+      // own type parameter (`BinaryFileInfo<T>`) rather than the substituted
+      // argument. There is no usable return type then, so fall back to the
+      // parent's structural shape instead of emitting a schema for `T`.
+      if (parentArguments.length > 0 && this.mentionsTypeParameter(returned)) return undefined;
+      return returned;
+    }
+    return undefined;
+  }
+
+  /**
+   * Whether a type still contains an unsubstituted type parameter.
+   * @param type - the type to inspect
+   * @param seen - types already visited, guarding cycles
+   * @returns true when a type parameter is reachable
+   */
+  private mentionsTypeParameter(type: Type, seen = new Set<number>()): boolean {
+    if (seen.has(type.id)) return false;
+    seen.add(type.id);
+    if (type.flags & TypeFlags.TypeParameter) return true;
+    if (type.isTypeReference()) {
+      if (this.checker.getTypeArguments(type).some(argument => this.mentionsTypeParameter(argument, seen))) return true;
+    }
+    if (type.flags & (TypeFlags.Union | TypeFlags.Intersection)) {
+      return (type as UnionOrIntersectionType).getTypes().some(member => this.mentionsTypeParameter(member, seen));
+    }
+    return false;
+  }
+
+  /**
+   * The value a class accepts through `fromDto`, for the Input schema.
+   *
+   * Static and instance declarations both count, because `fromDto` is
+   * normally static. A first parameter of `never` is the explicit way to say
+   * "this attribute is never supplied".
+   * @param type - the type to inspect
+   * @param location - resolution context
+   * @returns the accepted type, `"skip"`, or undefined when absent
+   */
+  private resolveFromDto(type: Type, location: Node): Type | "skip" | undefined {
+    for (const name of ["fromDTO", "fromDto"]) {
+      let symbol = type.getProperty(name);
+      if (!symbol) {
+        const classSymbol = type.getSymbol();
+        const declaration = this.declarationOf(classSymbol);
+        if (classSymbol && declaration) {
+          symbol = this.checker.getTypeOfSymbolAtLocation(classSymbol, declaration).getProperty(name);
+        }
+      }
+      if (!symbol) continue;
+
+      const methodType = this.checker.getTypeOfSymbolAtLocation(symbol, location);
+      const signatures = this.checker.getSignaturesOfType(methodType, SignatureKind.Call);
+      if (signatures.length === 0) continue;
+
+      const parameters = signatures[0].getParameters();
+      if (parameters.length === 0) continue;
+      const parameterDeclaration = this.declarationOf(parameters[0]);
+      const parameterType = parameterDeclaration
+        ? this.checker.getTypeAtLocation(parameterDeclaration)
+        : this.checker.getParameterType(signatures[0], 0);
+
+      return parameterType.flags & TypeFlags.Never ? "skip" : parameterType;
+    }
+    return undefined;
+  }
+
+  /**
+   * Whether a class is tagged `@readOnly`, opting its attributes out of Input.
+   * @param type - the type to inspect
+   * @returns true when the tag is present
+   */
+  private hasReadOnlyTag(type: Type): boolean {
+    for (const symbol of [type.getSymbol(), type.getAliasSymbol()]) {
+      if (!symbol) continue;
+      if (symbol.getJsDocTags(this.checker).some(tag => tag.name === "readOnly")) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Reduce an intersection to the constituent that carries the data.
+   *
+   * `string & { __brand: x }` is a string, and `T & { toString(): string }`
+   * is `T` — an `allOf` of the parts would be technically true and useless.
+   * @param type - the type to simplify
+   * @returns the simplified type, or the original
+   */
+  private simplifyIntersection(type: Type): Type {
+    if (!type.isIntersectionType()) return type;
+    const members = type.getTypes();
+
+    const primitives =
+      TypeFlags.String |
+      TypeFlags.Number |
+      TypeFlags.Boolean |
+      TypeFlags.StringLiteral |
+      TypeFlags.NumberLiteral |
+      TypeFlags.BooleanLiteral;
+    const primitive = members.find(member => member.flags & primitives);
+    if (primitive) return primitive;
+
+    const withData = members.filter(member =>
+      this.checker.getPropertiesOfType(member).some(property => {
+        const declaration = this.declarationOf(property);
+        return !declaration || !isMethodLike(declaration);
+      })
+    );
+    return withData.length === 1 ? withData[0] : type;
   }
 
   // --------------------------------------------------------------- unions --
+
+  /**
+   * Union constituents in the order `webda.module.json` records them.
+   *
+   * `UnionType.getTypes()` returns them alphabetically, so without this every
+   * `enum` and every `type: [..]` in the corpus is reordered.
+   *
+   * TypeScript 6 exposed a union's constituents sorted by type id, and ids
+   * are issued as types are created. That has two regimes, and reproducing
+   * both is what makes this correct rather than lucky:
+   *
+   * - **Primitives** are interned when the checker starts, in a fixed order,
+   *   so they always sort ahead of everything else and among themselves by
+   *   that order. `number | string` is recorded as `["string", "number"]`.
+   * - **Literals** are interned on first use, so their ids follow the source.
+   *
+   * Sorting on 7.1's ids reproduces neither reliably: they are assigned as
+   * the session happens to query, so `"SUCCESS" | "ERROR"` came back reversed
+   * whenever something earlier in the batch had already interned `"ERROR"` —
+   * the score depended on which requests shared a worker. Primitives are
+   * ranked from the table instead, and literals from the syntax.
+   * @param type - the union type
+   * @param node - the declaration the union was reached through
+   * @returns the constituents, in the recorded order
+   */
+  private unionOrder(type: UnionOrIntersectionType, node: Node | undefined): readonly Type[] {
+    const members = [...type.getTypes()];
+    const declared = this.declaredUnionOrder(type, node);
+    const idRank = new Map(
+      [...members].sort((left, right) => left.id - right.id).map((member, index) => [member.id, index])
+    );
+
+    const rankOf = (member: Type): number => {
+      const primitive = primitiveRank(member);
+      if (primitive !== undefined) return primitive;
+      const position = declared?.indexOf(member.id) ?? -1;
+      // Anything the syntax does not mention — a synthesised constituent with
+      // no declaration order to recover — falls back to id order, after
+      // everything it does mention.
+      return PRIMITIVE_RANKS + (position >= 0 ? position : PRIMITIVE_RANKS + idRank.get(member.id)!);
+    };
+
+    return members
+      .map((member, index) => ({ member, index }))
+      .sort((left, right) => rankOf(left.member) - rankOf(right.member) || left.index - right.index)
+      .map(entry => entry.member);
+  }
+
+  /**
+   * Type ids of a union's constituents, in the order the syntax lists them.
+   * @param type - the union type
+   * @param node - the declaration the union was reached through
+   * @returns the ids, or undefined when there is no syntax to read
+   */
+  private declaredUnionOrder(type: UnionOrIntersectionType, node: Node | undefined): number[] | undefined {
+    const enumDeclaration = this.declarationOf(type.getSymbol());
+    if (enumDeclaration && is.isEnumDeclaration(enumDeclaration)) {
+      return enumDeclaration.members.map(member => this.checker.getTypeAtLocation(member).id);
+    }
+
+    const typeNode = this.unionTypeNode(type, node);
+    if (!typeNode) return undefined;
+
+    const ids: number[] = [];
+    const collect = (union: { types: readonly Node[] }): void => {
+      for (const member of union.types) {
+        const resolved = this.checker.getTypeFromTypeNode(member as never);
+        // A member may itself be a union — TypeScript flattens those, so the
+        // nested constituents have to be expanded to line up with `getTypes`.
+        if (resolved.isUnionType()) {
+          for (const nested of this.unionOrder(resolved, undefined)) ids.push(nested.id);
+        } else {
+          ids.push(resolved.id);
+        }
+      }
+    };
+    collect(typeNode);
+    return ids;
+  }
+
+  /**
+   * The `UnionTypeNode` a union type was written as, if there is one.
+   * @param type - the union type
+   * @param node - the declaration the union was reached through
+   * @returns the syntax node
+   */
+  private unionTypeNode(type: UnionOrIntersectionType, node: Node | undefined): { types: readonly Node[] } | undefined {
+    const aliasDeclaration = this.declarationOf(type.getAliasSymbol());
+    if (aliasDeclaration && is.isTypeAliasDeclaration(aliasDeclaration) && is.isUnionTypeNode(aliasDeclaration.type)) {
+      return aliasDeclaration.type;
+    }
+    const declared = node && (node as { type?: Node }).type;
+    if (declared && is.isUnionTypeNode(declared)) return declared;
+    return undefined;
+  }
 
   /**
    * Convert a union into `anyOf`, then simplify.
@@ -591,10 +845,17 @@ export class SchemaConverter {
    * @param type - the union type
    * @param definition - schema to populate
    * @param path - schema path
+   * @param node - the declaration the union was reached through
    * @param depth - recursion depth
    * @returns keep, and whether `undefined` was a member
    */
-  private union(type: UnionOrIntersectionType, definition: JSONSchema7, path: string, depth: number): PropertyOutcome {
+  private union(
+    type: UnionOrIntersectionType,
+    definition: JSONSchema7,
+    path: string,
+    node: Node | undefined,
+    depth: number
+  ): PropertyOutcome {
     const branches: JSONSchema7[] = [];
     let optional = false;
 
@@ -604,7 +865,7 @@ export class SchemaConverter {
     let lastValue = -1;
 
     let index = 0;
-    for (const member of unionOrder(type)) {
+    for (const member of this.unionOrder(type, node)) {
       index++;
       if (member.flags & TypeFlags.Undefined) {
         optional = true;
@@ -1008,21 +1269,38 @@ function objectFlagsOf(type: Type): ObjectFlags {
   return type.isObjectType() ? type.objectFlags : 0;
 }
 
+/** Ranks reserved for primitives; anything else sorts after them. */
+const PRIMITIVE_RANKS = 100;
+
 /**
- * Union constituents in the order the enums were declared.
+ * Where a primitive sits in the checker's intrinsic-type creation order.
  *
- * `enum` arrays in `webda.module.json` follow declaration order, and losing it
- * would be a diff on every enum in the corpus. Both checkers canonicalise a
- * union by sorting on type id, and ids are handed out as types are created —
- * so for the literals of one union that ordering *is* source order. The 7.1
- * API returns constituents in a different order (alphabetical, for string
- * literals), so the id ordering is restored here rather than reconstructed
- * from the AST, which would have to cope with aliases and nesting.
- * @param type - the union type
- * @returns its constituents, ordered by type id
+ * Taken from `initializeTypeChecker`, which interns these before any user
+ * type, so in TypeScript 6 they always carried the lowest ids and therefore
+ * came first in a union. Boolean literals are ranked by value because 7.1
+ * leaves `intrinsicName` empty on them.
+ * @param type - the constituent to rank
+ * @returns its rank, or undefined when it is not a primitive
  */
-function unionOrder(type: UnionOrIntersectionType): readonly Type[] {
-  return [...type.getTypes()].sort((left, right) => left.id - right.id);
+function primitiveRank(type: Type): number | undefined {
+  const flags = type.flags;
+  if (flags & TypeFlags.Any) return 0;
+  if (flags & TypeFlags.Unknown) return 1;
+  if (flags & TypeFlags.Undefined) return 2;
+  if (flags & TypeFlags.Null) return 3;
+  if (flags & TypeFlags.StringLiteral) return undefined;
+  if (flags & TypeFlags.String) return 4;
+  if (flags & TypeFlags.NumberLiteral) return undefined;
+  if (flags & TypeFlags.Number) return 5;
+  if (flags & TypeFlags.BigIntLiteral) return undefined;
+  if (flags & TypeFlags.BigInt) return 6;
+  if (flags & TypeFlags.BooleanLiteral) return (type as LiteralType).value === true ? 8 : 7;
+  if (flags & TypeFlags.Boolean) return 9;
+  if (flags & TypeFlags.ESSymbol) return 10;
+  if (flags & TypeFlags.Void) return 11;
+  if (flags & TypeFlags.Never) return 12;
+  if (flags & TypeFlags.NonPrimitive) return 13;
+  return undefined;
 }
 
 /**

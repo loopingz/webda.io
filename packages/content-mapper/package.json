@@ -28,6 +28,11 @@
       "types": "./lib/server.d.ts",
       "import": "./lib/server.js",
       "node": "./lib/server.js"
+    },
+    "./schema-worker": {
+      "types": "./lib/schema/worker.d.ts",
+      "import": "./lib/schema/worker.js",
+      "node": "./lib/schema/worker.js"
     }
   },
   "typescript": {

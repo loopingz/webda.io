@@ -50,3 +50,10 @@ export type { TransformOutcome, TransformTiming, WarmSessionOptions } from "./se
 
 export { runTwoPass } from "./twopass.ts";
 export type { TwoPassOptions, TwoPassResult } from "./twopass.ts";
+
+export { SchemaConverter } from "./schema/converter.ts";
+export type { BufferStrategy, ConverterOptions, SchemaMode } from "./schema/converter.ts";
+export { findParametersNode, generateServiceSchema } from "./schema/service.ts";
+export type { ServiceSchemaOptions } from "./schema/service.ts";
+export { SchemaConversionError } from "./schema/types.ts";
+export type { JSONSchema7 } from "./schema/types.ts";

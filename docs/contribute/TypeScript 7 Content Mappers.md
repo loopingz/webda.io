@@ -662,6 +662,96 @@ Webda-specific layer (`$webda` provenance markers, the `dto-in` / `dto-out` / `o
 `WebdaModel` and `class` flags, Buffer mapping), and how many of the vega fixtures
 `@webda/schema` currently blacklists, since those are cases where the two already disagree.
 
+### Stage 7 plan: a purpose-built converter, not a port
+
+Three options were considered and two were rejected on evidence.
+
+**Rejected — port `@webda/schema` to 7.1.** 2,200 lines targeting the vega corpus: conditional
+types, mapped types, intersections, tuples, template literals. Its own suite blacklists
+fixtures it cannot match, so the thing being ported is not fully correct to begin with. Every
+API it needs does exist in 7.1 (audited above), so this remains the fallback — but it is the
+most work for the least certainty.
+
+**Rejected for now — adopt `ts-json-schema-generator-go`.** Right architecture, wrong
+capabilities today: two missing node kinds and, decisively, no accessor support at all. Keep
+it on the table; the harness verifies either implementation. Revisit if upstream adds
+accessors.
+
+**Chosen — write a converter for the shapes Webda actually uses**, in
+`@webda/content-mapper`, on the TypeScript 7 checker it already drives.
+
+#### Why it is smaller than it sounds
+
+The committed corpus is narrow. Measured across core, models, runtime and sample-app:
+
+|                             |                                                                                                                                                                                          |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| total                       | 4,154 schema nodes, max depth 9                                                                                                                                                          |
+| by origin                   | model `Schemas` 3,350 · modda `Schema` 1,589 · top-level 804 · bean `Schema` 41                                                                                                          |
+| keywords used               | `type` 876 · `description` 525 · `additionalProperties` 225 · `properties` 171 · `required` 156 · `$ref` 98 · `$webda` 87 · `format` 77 · `items` 38 · `enum` 19 · `allOf` 8 · `title` 6 |
+| distinct `$ref` definitions | 27                                                                                                                                                                                       |
+
+Twelve keywords. No `oneOf`, no `not`, no `patternProperties`, no conditionals. Webda models
+and service parameters are ordinary object shapes, not arbitrary TypeScript — which is the
+whole reason a general-purpose generator is overkill here.
+
+#### The hard constraint
+
+**It must throw on any type it cannot convert, naming the type and the property.** Never a
+best-effort schema.
+
+Every bug found in stages 4 to 6 produced plausible output that type-checked. A schema
+converter that silently degrades is the worst version of that failure: valid JSON that
+validates real payloads against the wrong contract. Loud failure is what makes the 29/29
+target mean something, and it gives user code with exotic types a clear error instead of a
+quietly wrong API surface.
+
+#### Definition of done
+
+`node packages/content-mapper/tools/schema-diff.mjs` reports `IDENTICAL` for all four
+packages — 29 model schemas. The harness already exists and currently reports 22/29 through
+the TypeScript 6 worker, so the target is calibrated rather than hypothetical.
+
+#### Order
+
+1. Convert **service parameter** schemas first (modda `Schema`, 1,589 nodes). Plain config
+   objects, no accessors, no model semantics — the easiest third of the corpus and it
+   exercises the whole pipeline.
+2. Then model `Schemas` (3,350 nodes), which need the `dto-in` / `dto-out` / `output` modes:
+   input takes the setter parameter type, output the getter return type.
+3. Then top-level action schemas (804 nodes).
+4. Delete `@webda/schema` and the worker together.
+
+Generate from the **untransformed** view first, so the output is byte-identical to today and
+the port is proven. Switching to the transformed view is a separate commit — it widens every
+coerced field's Input schema, which is a real behaviour change and, as §7 shows, a fix: today
+the Input schema says `date-time` while the runtime accepts `string | number | Date`.
+
+#### What it plugs into
+
+Already built and verified, so the converter is the only missing piece:
+
+- `openSession` / `WarmSession` — a resident 7.1 `Program` and `Checker`.
+- `discoverWebdaObjects`, `buildModelMetadata`, `reflectAttributes`, `buildRelations` — the
+  rest of `webda.module.json`, byte-identical.
+- `packages/schema/src/worker.ts` — the oracle to diff against while porting, deleted at the
+  end.
+- `tools/schema-diff.mjs` — the scoreboard.
+
+#### Traps already paid for
+
+The RPC-backed API bit every generator ported so far; expect the same here.
+
+- `Symbol.declarations` are handles — `.resolve(project)` to reach the node.
+- `Signature.parameters` are raw handles, not symbols — use `Checker.getParameterType`.
+- Some calls **throw rather than return undefined**, e.g. `getConstraintOfTypeParameter` on a
+  non-parameter.
+- `Node.getChildren()` does not exist; read structured properties instead.
+- Walking a type's base chain must key on **declaration, not name** — `class User extends
+User` is ordinary and a name-keyed guard stops one link short.
+- Reflection-style walks must use the **type's** properties, not the class's own members, or
+  inherited attributes vanish.
+
 ### Transition option: run the new pipeline out-of-process
 
 Stages 4 to 8 leave `@webda/content-mapper` unused, which means no feedback until stage 9.

@@ -78,7 +78,18 @@ function findClass(program: ts.Program, file: string, className: string): ts.Cla
   let found: ts.ClassDeclaration | undefined;
   sourceFile.forEachChild(node => {
     if (found) return;
-    if (ts.isClassDeclaration(node) && node.name?.escapedText.toString() === className) found = node;
+    if (!ts.isClassDeclaration(node)) return;
+    if (node.name?.escapedText.toString() === className) found = node;
+    // `webda.module.json` records a default export as `:default`, so there is
+    // no name to match on. Without this the oracle cannot answer for a
+    // default-exported model at all, which leaves a hole in the diff harness
+    // exactly where a cross-check is most useful.
+    else if (
+      className === "default" &&
+      (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Default) !== 0
+    ) {
+      found = node;
+    }
   });
   return found;
 }

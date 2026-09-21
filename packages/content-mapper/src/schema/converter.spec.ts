@@ -4,6 +4,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import * as is from "typescript/unstable/ast/is";
 import type { ClassDeclaration } from "typescript/unstable/ast";
 import { openSession, type Session } from "../context.ts";
+import { generateModelSchemas } from "./model.ts";
 import { findParametersNode, generateServiceSchema } from "./service.ts";
 import { SchemaConverter } from "./converter.ts";
 import { SchemaConversionError, type JSONSchema7 } from "./types.ts";
@@ -204,6 +205,68 @@ describe("the refusal contract", () => {
     // `{ type: "string" }` would be a valid document that accepts values the
     // TypeScript type rejects. That is the failure this contract exists for.
     expect(() => schemaOf("exotic.service.ts", "TemplateService")).toThrow(/no JSON Schema form/);
+  });
+});
+
+describe("model schemas", () => {
+  const invoice = generateModelSchemas(classOf("dto.model.ts", "Invoice"), {
+    project: session.ctx.project,
+    checker: session.ctx.checker
+  });
+
+  it("records which of the explicit method or the class shape applied", () => {
+    // `$webda` is part of the committed artefact, so the provenance marker is
+    // output, not diagnostics.
+    expect(invoice.Input.$webda).toBe("fromDto$auto");
+    expect(invoice.Output.$webda).toBe("toDto$auto");
+    expect(invoice.Stored.$webda).toBe("toJSON$auto");
+
+    const receipt = generateModelSchemas(classOf("dto.model.ts", "Receipt"), {
+      project: session.ctx.project,
+      checker: session.ctx.checker
+    });
+    expect(receipt.Stored.$webda).toBe("toJSON$return");
+    expect(receipt.Stored.properties!.amount.type).toBe("number");
+  });
+
+  it("takes the setter parameter type for Input and the getter type for Output", () => {
+    // The asymmetric accessor is what the content mapper generates, so the
+    // two directions genuinely differ: wide in, narrow out.
+    expect(invoice.Input.properties!.issuedAt.anyOf).toEqual([
+      { type: "string" },
+      { type: "number" },
+      { type: "string", format: "date-time" }
+    ]);
+    expect(invoice.Output.properties!.issuedAt).toMatchObject({ type: "string", format: "date-time" });
+  });
+
+  it("drops a getter-only property from Input but keeps it in Output", () => {
+    expect(invoice.Input.properties!.label).toBeUndefined();
+    expect(invoice.Output.properties!.label.type).toBe("string");
+  });
+
+  it("drops an attribute whose class takes never in fromDto", () => {
+    expect(invoice.Input.properties!.computed).toBeUndefined();
+    expect(invoice.Output.properties!.computed).toBeDefined();
+  });
+
+  it("drops an attribute whose class is tagged @readOnly", () => {
+    expect(invoice.Input.properties!.audit).toBeUndefined();
+    expect(invoice.Stored.properties!.audit).toBeDefined();
+  });
+
+  it("uses toDto for Output and the class shape for Stored", () => {
+    expect(invoice.Output.properties!.total.type).toBe("string");
+    expect(invoice.Stored.properties!.total.$ref).toBe("#/definitions/Money");
+  });
+
+  it("serialises a relation through toJSON in every view", () => {
+    // The correction that matters most: a relation is its key, not an empty
+    // object. `ModelLink.toJSON()` returns `PrimaryKeyType<T>`, which is the
+    // uuid string.
+    for (const view of ["Input", "Output", "Stored"] as const) {
+      expect(invoice[view].properties!.customer.type, view).toBe("string");
+    }
   });
 });
 

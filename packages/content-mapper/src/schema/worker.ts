@@ -22,9 +22,11 @@
  * ```
  */
 import { join } from "node:path";
+import { ModifierFlags } from "typescript/unstable/ast";
 import type { ClassDeclaration } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
 import { openSession } from "../context.ts";
+import { generateModelSchemas } from "./model.ts";
 import { generateServiceSchema } from "./service.ts";
 import type { JSONSchema7 } from "./types.ts";
 
@@ -32,7 +34,7 @@ import type { JSONSchema7 } from "./types.ts";
 export interface SchemaRequest {
   /** Caller-chosen key, echoed in the response. */
   id: string;
-  /** What to generate. Only `service` is implemented so far. */
+  /** What to generate. */
   kind: "service" | "model";
   /** Absolute path of the file declaring the class. */
   file: string;
@@ -81,8 +83,11 @@ export function handle(request: WorkerRequest): WorkerResponse {
           response.errors[item.id] = `class ${item.className} not found in ${item.file}`;
           continue;
         }
-        if (item.kind !== "service") {
-          response.errors[item.id] = `kind ${item.kind} is not implemented yet`;
+        if (item.kind === "model") {
+          response.results[item.id] = generateModelSchemas(declaration, {
+            project: session.ctx.project,
+            checker: session.ctx.checker
+          }) as unknown as JSONSchema7;
           continue;
         }
         const schema = generateServiceSchema(declaration, {
@@ -131,7 +136,11 @@ function findClass(program: SourceFileLookup, file: string, className: string): 
   if (!sourceFile) return undefined;
   for (const statement of sourceFile.statements) {
     const node = statement as ClassDeclaration;
-    if (is.isClassDeclaration(node) && node.name?.text === className) return node;
+    if (!is.isClassDeclaration(node)) continue;
+    if (node.name?.text === className) return node;
+    // `webda.module.json` records a default export as `:default`, so there is
+    // no name to match on — the modifier is the only handle.
+    if (className === "default" && (node.modifierFlags & ModifierFlags.Default) !== 0) return node;
   }
   return undefined;
 }

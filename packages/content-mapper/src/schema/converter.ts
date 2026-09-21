@@ -523,8 +523,12 @@ export class SchemaConverter {
       applyDocs(propSchema, prop, this.checker, this.project);
       if (outcome.decision === "skip" || propSchema.SchemaIgnore === true) continue;
 
-      // `@readOnly` on the property is equivalent to the modifier.
-      const readonly = (modifiers & ModifierFlags.Readonly) !== 0 || propSchema.readOnly === true;
+      // `@readOnly` on the property is equivalent to the modifier — and so is
+      // `@readonly`, which is the spelling most of the corpus actually uses.
+      // Only the first is a JSON Schema keyword; the second arrives through
+      // the generic tag handling, so both have to be checked.
+      const readonly =
+        (modifiers & ModifierFlags.Readonly) !== 0 || propSchema.readOnly === true || propSchema.readonly === true;
       if (readonly && this.isInputMode()) continue;
 
       let optional = outcome.optional;

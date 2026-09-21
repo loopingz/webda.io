@@ -45,6 +45,27 @@ export const Annotations = {
   ]
 } as const;
 
+/**
+ * Tags whose payload TypeScript consumes as a type expression, braces or not.
+ *
+ * `parseEnumTag` and `parseThisTag` call `parseJSDocTypeExpression` with
+ * `mayOmitBraces: true`, so `@enum ["draft", "published"]` parses the array
+ * as a *type* and leaves the comment empty. The 6.x services layer reported
+ * that empty text; 7.1 hands back the raw payload instead.
+ *
+ * Reproducing 6.x here is deliberate. Webda's annotation layer turns an
+ * unrecognised tag into a keyword of its own name, so the raw payload would
+ * start populating `enum` — which is arguably what the author meant, and is
+ * also a behaviour change that produces nonsense where the union already
+ * supplied an `enum` (the two get concatenated). It belongs in its own
+ * commit, not in a port whose contract is byte-identical output.
+ *
+ * `@type` is deliberately absent: `parseTypeTag` requires braces, so
+ * `@type number | string` keeps its text in both versions — and the
+ * committed schemas contain it.
+ */
+const TYPE_EXPRESSION_TAGS = ["enum", "this"];
+
 /** A JSDoc comment and its tags, already rendered to text. */
 export interface SymbolDocs {
   /** The free-text comment, empty when absent. */
@@ -67,7 +88,9 @@ export interface SymbolDocs {
 export function readDocs(symbol: TsSymbol, checker: Checker, project: Project): SymbolDocs {
   return {
     comment: documentationOf(symbol, checker, project),
-    tags: symbol.getJsDocTags(checker).map(tag => ({ name: tag.name, text: tag.text ?? "" }))
+    tags: symbol
+      .getJsDocTags(checker)
+      .map(tag => ({ name: tag.name, text: TYPE_EXPRESSION_TAGS.includes(tag.name) ? "" : (tag.text ?? "") }))
   };
 }
 

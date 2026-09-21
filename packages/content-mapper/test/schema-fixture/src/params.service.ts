@@ -72,6 +72,18 @@ export class BroadParameters extends ServiceParameters implements Retryable {
   sampled: string;
   /** @deprecated */
   legacy: string;
+  /**
+   * Server-owned. The lowercase spelling is the one the corpus uses, and it
+   * is not a JSON Schema keyword — it arrives through the generic tag path.
+   * @readonly
+   */
+  createdAt: string;
+  /**
+   * TypeScript parses this payload as a type expression, so 6.x saw an empty
+   * tag. Reproduced, or the value would land in `enum`.
+   * @enum ["a", "b"]
+   */
+  channel: string;
   /** Never reaches the schema. */
   private secret: string;
   /** Nor does a method. */

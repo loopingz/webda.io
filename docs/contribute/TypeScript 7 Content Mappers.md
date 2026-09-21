@@ -1007,6 +1007,88 @@ models     15/29 + 7 known divergences
 top        44/50 + 2 known divergences
 ```
 
+### Stage 7.4: validated across the monorepo
+
+Four packages were never the target — they were what the harness happened to list. Before
+`@webda/schema` can go, the port has to hold everywhere, so the harness now discovers every
+directory carrying a committed module. It reports `IDENTICAL` for all three groups across
+all twelve comparable targets: **127 of 159 schemas byte-identical, 32 proven divergences,
+nothing unexplained.**
+
+This found five bugs the four-package corpus never exercised, and two categories of
+artefact that should not have been compared at all.
+
+#### Thirteen modules are not comparable, for two different reasons
+
+| reason                              | count | which                                                                                 |
+| ----------------------------------- | ----: | ------------------------------------------------------------------------------------- |
+| pre-format: no `$schema`, `moddas` are bare strings | 11 | amqp, async, aws, cloudevents, elasticsearch, gcp, google-auth, hawk, kubernetes, mongodb, otel |
+| no installed dependencies           |     2 | `test/compiler`, `test/compiler-operations`                                            |
+
+The first set was never produced by the generator being replaced — ten of the eleven are
+also `!`-excluded in `pnpm-workspace.yaml` as "not yet ready". The second are compiler test
+fixtures with no `node_modules`, so `@webda/core` cannot resolve and no class can be
+classified; they are regenerated inside the compiler's own tests, which set resolution up
+differently. Both sets are skipped with the reason printed, not silently dropped.
+
+#### What the wider corpus found
+
+- **`@readonly` is not `@readOnly`.** Only the second is a JSON Schema keyword; the first
+  arrives through the generic tag handling. `@webda/schema` checks both, and the corpus
+  mostly uses the lowercase spelling — so `createdAt` and `updatedAt` were appearing in
+  Input schemas that should exclude them.
+- **`@enum` payloads are invisible in 6.x.** `parseEnumTag` calls `parseJSDocTypeExpression`
+  with `mayOmitBraces: true`, so `@enum ["draft", "published"]` is parsed as a *type* and
+  the comment is empty. 7.1 returns the raw payload. Reproduced deliberately: letting it
+  through would start populating `enum` from the tag, which is arguably what the author
+  meant and is also a behaviour change. `@type` is unaffected — `parseTypeTag` requires
+  braces, which is why `@type number | string` does reach the committed schemas.
+- **The id-based exemption list was already wrong.** It missed `WebdaSample/Publisher` and
+  `WebdaSample/TestBean` — the same unresolved-parameters defect in a package the list had
+  never seen. Replaced by a shape check keyed on the invariant that actually holds: the
+  reference is missing the `type` property every `ServiceParameters` subclass inherits.
+- **`anyOf` order is not always recoverable.** For *literals* it is — that is what the
+  primitive-rank table and syntax order reconstruct. For object types drawn from library
+  declarations it is not: 6.x ordered them by when each type happened to be created across
+  the whole program. `ConnectionOptions.ALPNProtocols` puts `Uint8Array` ahead of `string[]`
+  for no reason visible in the source. Accepted as a divergence, because `anyOf` is an
+  unordered set and the member sets are compared. Deliberately **not** extended to `enum`,
+  where order is reproducible and visible downstream.
+- **Diffing was broken for top-level entries.** `--diff=<key>` matched the internal request
+  id rather than the schema name, so it silently printed nothing.
+
+#### The classifier is adversarially tested
+
+Three kinds of divergence are recognised — unresolved parameters, relation serialisation,
+generic substitution — plus `anyOf` reordering. Each is checked structurally on every run.
+Two deliberate regressions confirm the harness is not a rubber stamp:
+
+| injected fault                      | result                                    |
+| ----------------------------------- | ----------------------------------------- |
+| drop the automatic `default: false` | 24/48, 15/35, 67/76 — exit 1              |
+| silently drop two real properties   | 27/48 — exit 1                            |
+
+The second is the important one. Accepting a *removed* property is the most dangerous rule
+in the classifier, so it is allowed only when the reference schema for that property was
+literally `{}` — it constrained nothing, so nothing it expressed can have been lost. A
+property with a real schema disappearing still fails.
+
+#### Why `@webda/schema` cannot be deleted yet
+
+Stage 7's fourth step is "delete `@webda/schema` and the worker together". It is not
+reachable in that order, for two reasons:
+
+1. **The worker is the evidence.** Eighteen divergences are classified as "committed
+   artefact is stale" only because the port and the 6.x oracle agree under equal
+   conditions. Deleting the oracle deletes the proof.
+2. **The artefacts have to be regenerated first**, and that means `webdac build` producing
+   them — which means wiring `@webda/compiler` to the new pipeline out-of-process (the
+   option below). Only then do the divergences collapse to zero and the oracle become
+   redundant.
+
+Regenerating is also the point at which the relation change becomes real for users, across
+26 committed modules. It belongs in its own commit.
+
 ### Transition option: run the new pipeline out-of-process
 
 Stages 4 to 8 leave `@webda/content-mapper` unused, which means no feedback until stage 9.

@@ -1,40 +1,35 @@
-import { suite, test } from "@webda/test";
-import * as assert from "assert";
-import { normalizeSchemaDefinitions } from "./module.js";
+import assert from "node:assert";
+import { describe, it } from "vitest";
+import { normalizeDefinitions } from "./action.ts";
 
-@suite
-class NormalizeSchemaDefinitionsTest {
-  /**
-   * Schemas without nested definitions or refs round-trip unchanged.
-   */
-  @test
-  testFlatSchemaUnchanged() {
+/**
+ * Moved here from `@webda/compiler` when schema generation did.
+ *
+ * `normalizeDefinitions` hoists every nested `definitions` block to the root
+ * and prunes `$ref`s that point at nothing. Both cases came from real AJV
+ * crashes, not tidiness: a bound generic keeps its `definitions` on a
+ * sub-schema where a root-relative `$ref` cannot see it, and an unbound one
+ * produces a definition whose key does not match the `$ref` naming it.
+ */
+describe("normalizeDefinitions", () => {
+  it("flat schema unchanged", () => {
     const schema = {
       type: "object",
       properties: { name: { type: "string" } },
       required: ["name"]
     };
-    const out = normalizeSchemaDefinitions(JSON.parse(JSON.stringify(schema)));
+    const out = normalizeDefinitions(JSON.parse(JSON.stringify(schema)));
     assert.deepStrictEqual(out, schema);
-  }
+  });
 
-  /**
-   * Falsy / non-object inputs fall through to the no-op early return.
-   */
-  @test
-  testNonObjectInputs() {
-    assert.strictEqual(normalizeSchemaDefinitions(null), null);
-    assert.strictEqual(normalizeSchemaDefinitions(undefined), undefined);
-    assert.strictEqual(normalizeSchemaDefinitions("string"), "string");
-    assert.strictEqual(normalizeSchemaDefinitions(42), 42);
-  }
+  it("non object inputs", () => {
+    assert.strictEqual(normalizeDefinitions(null), null);
+    assert.strictEqual(normalizeDefinitions(undefined), undefined);
+    assert.strictEqual(normalizeDefinitions("string"), "string");
+    assert.strictEqual(normalizeDefinitions(42), 42);
+  });
 
-  /**
-   * Definitions nested inside a `properties.body` shape get hoisted to
-   * the schema root, and the original nested block is removed.
-   */
-  @test
-  testHoistsNestedDefinitions() {
+  it("hoists nested definitions", () => {
     const input = {
       type: "object",
       properties: {
@@ -49,19 +44,13 @@ class NormalizeSchemaDefinitionsTest {
         }
       }
     };
-    const out = normalizeSchemaDefinitions(input);
+    const out = normalizeDefinitions(input);
     assert.deepStrictEqual(out.definitions, { Inner: { type: "string" } });
     assert.strictEqual(out.properties.body.definitions, undefined, "nested definitions removed");
     assert.strictEqual(out.properties.body.properties.field.$ref, "#/definitions/Inner");
-  }
+  });
 
-  /**
-   * When the same definition name appears in multiple nested blocks,
-   * first-writer wins. Sibling nesting paths describe the same source
-   * type, so duplicate keys carry the same body.
-   */
-  @test
-  testDefinitionsFirstWriterWins() {
+  it("definitions first writer wins", () => {
     const input = {
       type: "object",
       properties: {
@@ -69,17 +58,12 @@ class NormalizeSchemaDefinitionsTest {
         b: { definitions: { Shared: { type: "number", title: "second" } } }
       }
     };
-    const out = normalizeSchemaDefinitions(input);
+    const out = normalizeDefinitions(input);
     assert.strictEqual(out.definitions.Shared.title, "first");
     assert.strictEqual(out.definitions.Shared.type, "string");
-  }
+  });
 
-  /**
-   * Nested `definitions` inside arrays get hoisted just like nested
-   * objects.
-   */
-  @test
-  testHoistsFromArrayItems() {
+  it("hoists from array items", () => {
     const input = {
       type: "object",
       properties: {
@@ -92,19 +76,12 @@ class NormalizeSchemaDefinitionsTest {
         }
       }
     };
-    const out = normalizeSchemaDefinitions(input);
+    const out = normalizeDefinitions(input);
     assert.deepStrictEqual(out.definitions, { ItemDef: { type: "boolean" } });
     assert.strictEqual(out.properties.list.items.definitions, undefined);
-  }
+  });
 
-  /**
-   * `$ref`s pointing at definitions that exist after hoisting are
-   * preserved. The decoded form (matching the literal definition key)
-   * also resolves — cf. typescript-json-schema's
-   * `BinaryFileInfo<{}>` → `BinaryFileInfo%3C%7B%7D%3E` round trip.
-   */
-  @test
-  testRefsToHoistedDefinitionsArePreserved() {
+  it("refs to hoisted definitions are preserved", () => {
     const input = {
       type: "object",
       properties: {
@@ -118,24 +95,16 @@ class NormalizeSchemaDefinitionsTest {
         }
       }
     };
-    const out = normalizeSchemaDefinitions(input);
+    const out = normalizeDefinitions(input);
     assert.ok(out.definitions["BinaryFileInfo<{}>"], "definition was hoisted");
     assert.strictEqual(
       out.properties.body.properties.map.$ref,
       "#/definitions/BinaryFileInfo%3C%7B%7D%3E",
       "ref kept verbatim because the decoded name resolves in the hoisted map"
     );
-  }
+  });
 
-  /**
-   * `$ref`s that point at definitions we couldn't resolve (the
-   * unbound-generic case where the def name and the ref name diverge —
-   * `&1$metadata` vs `&1(NaN)$metadata`) are dropped from the property
-   * so AJV doesn't crash trying to compile them. Other constraints on
-   * the property are left intact.
-   */
-  @test
-  testBrokenRefsArePruned() {
+  it("broken refs are pruned", () => {
     const input = {
       type: "object",
       properties: {
@@ -145,18 +114,12 @@ class NormalizeSchemaDefinitionsTest {
         }
       }
     };
-    const out = normalizeSchemaDefinitions(input);
+    const out = normalizeDefinitions(input);
     assert.strictEqual(out.properties.meta.$ref, undefined, "broken ref removed");
     assert.strictEqual(out.properties.meta.description, "should remain after the ref is dropped");
-  }
+  });
 
-  /**
-   * External refs (anything that doesn't start with `#/definitions/`)
-   * are out of scope for this normalizer — they're left in place so
-   * external resolvers can handle them downstream.
-   */
-  @test
-  testExternalRefsLeftAlone() {
+  it("external refs left alone", () => {
     const input = {
       type: "object",
       properties: {
@@ -164,18 +127,12 @@ class NormalizeSchemaDefinitionsTest {
         components: { $ref: "#/components/schemas/SomeShape" }
       }
     };
-    const out = normalizeSchemaDefinitions(input);
+    const out = normalizeDefinitions(input);
     assert.strictEqual(out.properties.external.$ref, "https://example.com/schema.json");
     assert.strictEqual(out.properties.components.$ref, "#/components/schemas/SomeShape");
-  }
+  });
 
-  /**
-   * `pruneRefs` should also descend into arrays inside the schema —
-   * a broken `$ref` nested in `oneOf: [...]` or `anyOf: [...]` would
-   * stay alive without the `Array.isArray(node)` branch.
-   */
-  @test
-  testPrunesBrokenRefsInArrayBranches() {
+  it("prunes broken refs in array branches", () => {
     const input = {
       type: "object",
       properties: {
@@ -187,19 +144,12 @@ class NormalizeSchemaDefinitionsTest {
         Real: { type: "string" }
       }
     };
-    const out = normalizeSchemaDefinitions(input);
+    const out = normalizeDefinitions(input);
     assert.strictEqual(out.properties.choice.oneOf[0].$ref, "#/definitions/Real");
     assert.strictEqual(out.properties.choice.oneOf[1].$ref, undefined, "broken ref inside array pruned");
-  }
+  });
 
-  /**
-   * Root-level `definitions` are also collected during the walk (the
-   * `collect` function is called on the schema itself, so the root
-   * block goes into the same first-writer-wins pool). Result: the
-   * root entry wins on collision because it's seen first.
-   */
-  @test
-  testMergesRootAndNestedDefinitions() {
+  it("merges root and nested definitions", () => {
     const input = {
       type: "object",
       definitions: {
@@ -214,10 +164,10 @@ class NormalizeSchemaDefinitionsTest {
         }
       }
     };
-    const out = normalizeSchemaDefinitions(input);
+    const out = normalizeDefinitions(input);
     // New comes from the nested block.
     assert.deepStrictEqual(out.definitions.New, { type: "number" });
     // Existing was seen first at the root, so the root entry wins.
     assert.strictEqual(out.definitions.Existing.title, "from-root");
-  }
-}
+  });
+});

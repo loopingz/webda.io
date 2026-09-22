@@ -138,10 +138,15 @@ function isOptionalParameter(parameter: TsSymbol, project: Project): boolean {
  * it, and an unbound generic produces a definition whose key does not match
  * the `$ref` pointing at it. Hoisting fixes the first; pruning the `$ref` —
  * leaving an unconstrained `{}` — contains the second.
+ * Accepts any JSON value: the guard against non-objects is deliberate, so
+ * callers never have to check before flattening.
  * @param schema - the schema to flatten, mutated in place
- * @returns the same schema
+ * @returns the same value
+ * @typeParam T - the value type, preserved
  */
-export function normalizeDefinitions(schema: JSONSchema7): JSONSchema7 {
+export function normalizeDefinitions<T>(schema: T): T {
+  if (!schema || typeof schema !== "object") return schema;
+  const target = schema as JSONSchema7;
   const collected: Record<string, JSONSchema7> = {};
 
   const collect = (node: unknown): void => {
@@ -164,9 +169,9 @@ export function normalizeDefinitions(schema: JSONSchema7): JSONSchema7 {
       collect(record[key]);
     }
   };
-  collect(schema);
+  collect(target);
 
-  if (Object.keys(collected).length > 0) schema.definitions = { ...schema.definitions, ...collected };
+  if (Object.keys(collected).length > 0) target.definitions = { ...target.definitions, ...collected };
 
   const resolvable = (ref: string): boolean => {
     if (!ref.startsWith("#/definitions/")) return true;
@@ -190,7 +195,7 @@ export function normalizeDefinitions(schema: JSONSchema7): JSONSchema7 {
     if (typeof record.$ref === "string" && !resolvable(record.$ref)) delete record.$ref;
     for (const key of Object.keys(record)) prune(record[key]);
   };
-  prune(schema);
+  prune(target);
 
   return schema;
 }

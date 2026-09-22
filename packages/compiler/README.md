@@ -46,7 +46,7 @@ webdac build --appPath /path/to/app
 What it does:
 1. Runs `tsc` via `@webda/tsc-esm` to compile TypeScript → ES modules in `lib/`
 2. Analyzes the compiled program to discover models, services, deployers, and beans
-3. Generates per-model JSON Schemas (input, output, stored) using `@webda/schema`
+3. Generates per-model JSON Schemas (input, output, stored) using `@webda/content-mapper`
 4. Writes `webda.module.json` at the project root
 5. Merges dependency modules from `node_modules`
 6. Writes `.webda-config-schema.json` and `.webda-deployment-schema.json`

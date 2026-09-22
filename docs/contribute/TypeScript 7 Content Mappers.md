@@ -582,10 +582,11 @@ otherwise a big-bang with no feedback until it lands.
 7. Port `@webda/schema`, replacing `createLanguageService` with `project.languageService`.
    _Verified by:_ byte-diffing generated schemas. Note §7 — it must also learn to treat an
    accessor pair as a field if in-place output is ever produced.
-8. Replace `@webda/tsc-esm` with native `rewriteRelativeImportExtensions`, or 7.1
-   `transpileModule`. Used by `sample-app` and `packages/postgres`.
-9. **Atomic switch:** move compiler, schema and tsc-esm to 7.1; delete `@webda/ts-plugin` and
-   `ts-patch`.
+8. **Done.** Replace the `@webda/tsc-esm` binary. See "Stage 8" below — it was not the
+   drop-in this line assumed.
+9. **In progress.** Atomic switch: move the compiler to 7.1; delete `@webda/ts-plugin` and
+   `ts-patch`. Split into 9a (emit) and 9b (analysis); see "Stage 9" below — 9a is blocked
+   on generator parity that stages 4–5 did not actually reach.
 
 ### `@webda/schema` and the native generator
 
@@ -1198,6 +1199,111 @@ the program dominates and the caller batches.
 - `@webda/content-mapper` peers on `typescript@>=7.1.0-dev`. In the workspace it resolves
   from its own tree; a published consumer has to provide it, which is already true of the
   content mapper itself and belongs in the application template.
+
+### Stage 8: the `tsc-esm` binary
+
+Six packages built with the `tsc-esm` binary; they now build with plain `tsc` under `nodenext`.
+The ten `webdac`-built packages were moved to `nodenext` in a follow-up, under the current
+compiler, so the extension change could be proven independently of the emitter change.
+
+**It was not a drop-in.** `rewriteRelativeImportExtensions` rewrites `.ts` to `.js`; it never
+*adds* an extension. The packages wrote extensionless imports under `bundler` resolution and
+`tsc-esm`'s writer appended `.js` after emit, by regex. So the sources had to change, and they
+now use `.js` — the repo convention — which needs no rewrite flag at all.
+
+**The regex writer was shipping broken modules**, and no test noticed because vitest runs from
+`src/`:
+
+- `cloudevents` imported the directory `./filters`; the writer made it `./filters.js`.
+  `lib/models/subscription.js` failed with `ERR_MODULE_NOT_FOUND`.
+- `cloudevents`' SQL filter deep-imported `antlr4ts/tree` and `antlr4ts/Lexer` into a package
+  with no `exports` map. The writer only touches relative specifiers, so these shipped as-is and
+  failed with `ERR_UNSUPPORTED_DIR_IMPORT`.
+
+`scripts/add-import-extensions.mjs` replaces the writer. It resolves each specifier against the
+real tree (`./dir` → `./dir/index.js`, never `./dir.js`), leaves packages with an `exports`
+map alone, and exits 1 naming file and line rather than guessing. It runs as part of both
+ANTLR `grammar` scripts, so regenerating a parser keeps the fix.
+
+Verified by emit diff, not by tests: across 16 packages, every emitted file is byte-identical
+to a fresh `tsc-esm` build except specifier extensions and empty modules gaining `export {};`.
+
+Found and not fixed: `webdac build` reports "Cache up-to-date; skipping build" after `lib/` is
+deleted — the cache checks the source digest, never that the output exists.
+
+### Stage 9: where it actually stands
+
+The plan treated the switch as mechanical: point the compiler's emit at the two-pass tsgo
+build, delete `@webda/ts-plugin`. Measuring first says otherwise.
+
+Stage 9 splits in two:
+
+- **9a — emit.** Build application JavaScript through `runTwoPass` instead of `tsProgram.emit`
+  with four `@webda/ts-plugin` transformers. This is what lets `@webda/ts-plugin` and
+  `ts-patch` go.
+- **9b — analysis.** Port the compiler's own checker use — module generation and six metadata
+  plugins, about 320 `ts.` call sites — to the 7.1 API.
+
+#### The emitter is not the problem
+
+For packages with no generated code, tsgo's emit is **byte-identical** to tsc 6: `models`,
+`debug`, `fs`, `grpc`, `graphql` and `postgres`. Whatever differs is the generators.
+
+#### The generators are not at parity
+
+`tools/emit-twopass.mjs` emits a package through the two-pass build without touching `lib/`;
+`tools/emit-classdiff.mjs` compares the result against the shipped TypeScript 6 build
+class by class. Byte-identity is the wrong bar — the generators rewrite accessors in place,
+with their JSDoc, where the transformers appended them — so member order and comments are
+ignored and everything else is reported.
+
+Across `core`, `runtime`, `sample-app` and `blog-system`:
+
+| count | cause                                         | effect if shipped                        |
+| ----: | --------------------------------------------- | ---------------------------------------- |
+|  32+1 | accessor not generated                        | `Date` / relation coercion missing       |
+|    20 | `toJSON()` not generated                      | accessor-backed fields vanish from JSON  |
+|     8 | constructor differs                           | includes a `ReferenceError`, below       |
+|     3 | `__hydrateBehaviors` differs                  | behaviours not wired on hydration        |
+|     1 | `ModelRelated` initialiser not generated      | relation is `undefined`                  |
+|     1 | `ModelLink` setter body differs               | not yet analysed                         |
+|    50 | import differences                            | 13 are a TS6 bug, below                  |
+
+Stages 4–5 verified the generators against a small fixture, not against the shipped output of
+real packages, which is where these hid. Every row is a *silent* failure: the code compiles
+and loads, and the data is wrong.
+
+Three details worth recording:
+
+- **`toJSON` is load-bearing.** `Model.toJSON()` returns `this`, and `JSON.stringify` skips
+  symbol-keyed properties, so without the injected `toJSON` that merges `WEBDA_STORAGE`, every
+  generated accessor's value is dropped from serialisation.
+- **tsgo crashes on `Binary`, and TS6 is wrong about it too.** `Binary`'s constructor calls
+  `super()` inside `if`/`else`. tsgo emits the decorator `__runInitializers(this, …)` *before*
+  `super()` — `new Binary()` throws `ReferenceError`, verified. TS6 does not crash only because
+  it silently drops the initialisers, so `@Action` decorators registering `addInitializer`
+  never run for `Binary`. A single top-level `super()` would fix both; that is a change to
+  shipping code and should be reviewed as one.
+- **TS6 emits monorepo-relative imports.** For value imports it synthesises, the transformer
+  maps `node_modules` paths to package names — but workspace packages are symlinks, so
+  `@webda/models` becomes `"../../../models/lib/relations.js"`, which only resolves inside this
+  repository. The generators reuse the specifier the author wrote, which is correct.
+
+#### Done so far
+
+- `loadParameters` is no longer generated by default. Nothing calls it — parameters come from
+  `createConfiguration` — and TS6 never emitted it, so generating it added a dead method to 17
+  shipped services. Both hosts now take their defaults from one list in `defaults.ts`, so the
+  editor and the build cannot drift apart.
+
+#### Next, in order
+
+1. Close the generator gaps above until `emit-classdiff` reports nothing across all ten
+   packages. `toJSON` and the missing accessors first; they are the widest and the quietest.
+2. Resolve `Binary`'s conditional `super()` in source.
+3. Drive the emit from `@webda/compiler` through a worker, as schemas are; delete
+   `@webda/ts-plugin`, `ts-patch` and the three tsconfig `plugins` entries.
+4. 9b.
 
 ### Transition option: run the new pipeline out-of-process
 

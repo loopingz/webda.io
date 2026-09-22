@@ -48,6 +48,8 @@ export type {
 export { WarmSession } from "./session.ts";
 export type { TransformOutcome, TransformTiming, WarmSessionOptions } from "./session.ts";
 
+export { defaultGenerators } from "./defaults.ts";
+export type { DefaultGeneratorOptions } from "./defaults.ts";
 export { runTwoPass } from "./twopass.ts";
 export type { TwoPassOptions, TwoPassResult } from "./twopass.ts";
 

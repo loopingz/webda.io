@@ -18,9 +18,8 @@
  */
 import { openSession } from "./context.ts";
 import { accessorsGenerator, type AccessorOptions } from "./generators/accessors.ts";
-import { behaviorsGenerator } from "./generators/behaviors.ts";
-import { qlValidatorGenerator } from "./generators/qlvalidator.ts";
 import { loadParametersGenerator } from "./generators/loadparameters.ts";
+import { defaultGenerators } from "./defaults.ts";
 import { applyEdits, mergePlan, type Edit, type Generator } from "./plan.ts";
 
 export interface TwoPassOptions extends AccessorOptions {
@@ -56,12 +55,7 @@ export interface TwoPassResult {
  * @returns the result of pass 2, plus the plan that produced it
  */
 export function runTwoPass(options: TwoPassOptions): TwoPassResult {
-  const generators = options.generators ?? [
-    accessorsGenerator({ accessorsForAll: options.accessorsForAll, storageModule: options.storageModule }),
-    behaviorsGenerator({ storageModule: options.storageModule }),
-    qlValidatorGenerator({ qlModule: options.qlModule }),
-    loadParametersGenerator()
-  ];
+  const generators = options.generators ?? defaultGenerators(options);
 
   // ---- Pass 1: typed analysis over the original sources ----
   const t0 = process.hrtime.bigint();

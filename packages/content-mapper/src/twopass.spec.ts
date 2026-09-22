@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { runTwoPass } from "./twopass.ts";
 import { WarmSession } from "./session.ts";
+import { defaultGenerators } from "./defaults.ts";
+import { loadParametersGenerator } from "./generators/loadparameters.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixture = join(here, "..", "test", "fixture");
@@ -20,14 +22,27 @@ describe("runTwoPass", () => {
     expect(result.injected.size).toBeGreaterThan(0);
   });
 
-  it("runs both generators and reports their edits separately", () => {
+  it("reports edits per generator", () => {
     const result = runTwoPass({ configFile, rootDir, storageModule: "./runtime.js", qlModule: "./runtime.js" });
     expect(result.editCounts.accessors).toBeGreaterThan(0);
-    expect(result.editCounts.loadParameters).toBeGreaterThan(0);
   });
 
-  it("generates loadParameters only where it is missing", () => {
+  it("does not generate loadParameters by default", () => {
+    // Nothing calls it — parameters come from `createConfiguration` — and the
+    // TypeScript 6 pipeline never emitted it. See `defaults.ts`.
     const result = runTwoPass({ configFile, rootDir, storageModule: "./runtime.js", qlModule: "./runtime.js" });
+    expect(result.editCounts.loadParameters).toBeUndefined();
+    expect(defaultGenerators().map(g => g.name)).not.toContain("loadParameters");
+  });
+
+  it("generates loadParameters only where it is missing, when asked", () => {
+    const result = runTwoPass({
+      configFile,
+      rootDir,
+      storageModule: "./runtime.js",
+      qlModule: "./runtime.js",
+      generators: [...defaultGenerators({ storageModule: "./runtime.js", qlModule: "./runtime.js" }), loadParametersGenerator()]
+    });
     const mailer = [...result.injected.entries()].find(([f]) => f.endsWith("mailer.service.ts"));
     expect(mailer).toBeDefined();
     const text = mailer![1];

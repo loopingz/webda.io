@@ -1,4 +1,0 @@
-/**
- * @customEmptyAnnotation
- */
-export interface MyObject {}

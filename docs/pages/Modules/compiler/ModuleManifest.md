@@ -111,7 +111,7 @@ Models have multiple schema views generated:
 | `output` | Validates response serialization |
 | `stored` | Represents the on-disk/database format |
 
-Each view is generated with `@webda/schema`'s `SchemaGenerator` using the `accessorMode` option.
+Each view is generated with `@webda/content-mapper`'s `SchemaGenerator` using the `accessorMode` option.
 
 ## Dependency module merging
 
@@ -172,4 +172,4 @@ models: [ 'WebdaSample/Post', 'WebdaSample/User', 'WebdaSample/Comment', 'WebdaS
 - [Build](./Build.md) — `webdac build` produces this file
 - [Code Generation](./CodeGen.md) — `webdac code` prepares source files before build
 - [Plugins](./Plugins.md) — extending the manifest generation pipeline
-- [@webda/schema JSON Schema](../schema/JSON-Schema.md) — how model schemas are generated
+- [@webda/content-mapper JSON Schema](../schema/JSON-Schema.md) — how model schemas are generated

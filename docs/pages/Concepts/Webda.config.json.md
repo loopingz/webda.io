@@ -29,5 +29,4 @@ to `type = name`, and add default namespace if it does not have a namespace.
 
 ## See also
 
-- [JSON-Schema Validation](../Modules/schema/JSON-Schema.md)
 - [Configuration concept](./Configuration.md)

@@ -20,6 +20,7 @@ import type { SourceFile } from "typescript/unstable/ast";
 import { SymbolFlags } from "typescript/unstable/sync";
 import * as is from "typescript/unstable/ast/is";
 import { classesOf, isStatic, memberName } from "../context.ts";
+import { ValueImports } from "./imports.ts";
 import type { AnalysisContext, Edit, FileEdits, Generator } from "../plan.ts";
 
 /**
@@ -54,9 +55,7 @@ function hasBehaviorTag(ctx: AnalysisContext, sf: SourceFile, cls: any): boolean
 /**
  * Resolve a property's type to a Behaviour class name.
  *
- * Returns undefined for primitives, for classes without the tag, and for names
- * that reach the file only through a type-only import — referencing those as a
- * value is erased at emit and produces TS1361.
+ * Returns undefined for primitives and for classes without the tag.
  * @param ctx - analysis context
  * @param sf - file holding the property
  * @param typeNode - the property's type node
@@ -77,12 +76,11 @@ function resolveBehaviorClass(ctx: AnalysisContext, sf: SourceFile, typeNode: an
   const owner = (node as any).getSourceFile?.() ?? (node as any)._sourceFile;
   if (!owner || !/@WebdaBehavior\b/.test(ctx.triviaOf(owner, node))) return undefined;
 
-  if (isTypeOnlyImport(sf, name)) return undefined;
-
   // The symbol name can differ from what the file imports — `@webda/core`
-  // exposes `Binaries` while the declaration is `BinariesImpl`, and
-  // `new BinariesImpl()` is TS2304 here. Emit only what resolves as a value.
-  if (!ctx.checker.resolveName(name, SymbolFlags.Value, typeNode)) return undefined;
+  // exposes the alias `Binaries` while the class is `BinariesImpl`. Whether it
+  // can be made a runtime value here is the caller's decision, through
+  // `ValueImports`, which promotes or adds the import or refuses.
+  void sf;
   return name;
 }
 
@@ -184,10 +182,23 @@ function renderToJSON(i: string): string {
  * @param property - property name
  * @param behaviorClass - Behaviour class to instantiate
  * @param i - indentation of the method body
+ * @param arrayLike - fill an Array-derived behaviour item by item
  * @returns generated source
  */
-function renderHydrationBlock(property: string, behaviorClass: string, i: string): string {
+function renderHydrationBlock(property: string, behaviorClass: string, i: string, arrayLike = false): string {
   const key = JSON.stringify(property);
+  // An Array-derived behaviour (`BinariesImpl`) is filled item by item, as
+  // the TypeScript 6 transformer does. `Object.assign` onto an array copies
+  // indices but is not what ships, and the oracle holds it to what ships.
+  const fill = arrayLike
+    ? [
+        `${i}    if (Array.isArray(v)) {`,
+        `${i}      for (const item of v) {`,
+        `${i}        inst.push(item);`,
+        `${i}      }`,
+        `${i}    }`
+      ]
+    : [`${i}    if (v !== undefined && v !== null) {`, `${i}      Object.assign(inst, v);`, `${i}    }`];
   return [
     `${i}{`,
     `${i}  let v: any = this.${property};`,
@@ -196,9 +207,7 @@ function renderHydrationBlock(property: string, behaviorClass: string, i: string
     `${i}  }`,
     `${i}  if (!(v instanceof ${behaviorClass})) {`,
     `${i}    const inst = new ${behaviorClass}();`,
-    `${i}    if (v !== undefined && v !== null) {`,
-    `${i}      Object.assign(inst, v);`,
-    `${i}    }`,
+    ...fill,
     `${i}    v = inst;`,
     `${i}  }`,
     `${i}  (v as any)[WEBDA_STORAGE] = (v as any)[WEBDA_STORAGE] || {};`,
@@ -223,6 +232,7 @@ export function behaviorsGenerator(options: BehaviorOptions = {}): Generator {
 
       for (const sf of ctx.sourceFiles) {
         const edits: Edit[] = [];
+        const imports = new ValueImports(ctx, sf, "behaviors");
         let needsStorage = false;
 
         for (const cls of classesOf(sf)) {
@@ -273,9 +283,15 @@ export function behaviorsGenerator(options: BehaviorOptions = {}): Generator {
             if (!is.isPropertyDeclaration(member) || isStatic(member)) continue;
             const name = memberName(member);
             if (!name || !(member as any).type) continue;
-            const behaviorClass = resolveBehaviorClass(ctx, sf, (member as any).type);
+            const typeNode = (member as any).type;
+            const behaviorClass = resolveBehaviorClass(ctx, sf, typeNode);
             if (!behaviorClass) continue;
-            blocks.push(renderHydrationBlock(name, behaviorClass, `${memberIndent}  `));
+            // `new BinariesImpl()` needs a binding. `Binaries<...>` names the
+            // alias, so its module is where the class is looked for.
+            const via = [...new Set(ctx.textOf(sf, typeNode).match(/[A-Za-z_$][\w$]*/g) ?? [])];
+            if (!imports.ensure(behaviorClass, typeNode, via)) continue;
+            const arrayLike = ctx.checker.isArrayLikeType(ctx.checker.getTypeFromTypeNode(typeNode));
+            blocks.push(renderHydrationBlock(name, behaviorClass, `${memberIndent}  `, arrayLike));
           }
           if (!blocks.length) continue;
 
@@ -292,6 +308,7 @@ export function behaviorsGenerator(options: BehaviorOptions = {}): Generator {
         }
 
         if (edits.length) {
+          edits.push(...imports.collect());
           if (needsStorage && !/\bWEBDA_STORAGE\b/.test(sf.text)) {
             edits.push({
               start: 0,

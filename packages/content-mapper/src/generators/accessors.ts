@@ -20,6 +20,7 @@ import * as is from "typescript/unstable/ast/is";
 import { DEFAULT_COERCIONS } from "../coercions.ts";
 import { classesOf, isStatic, memberName } from "../context.ts";
 import type { AnalysisContext, Edit, FileEdits, Generator } from "../plan.ts";
+import { ValueImports } from "./imports.ts";
 
 /** Widened setter type + coercion expression for registry types. */
 interface BuiltinRule {
@@ -126,8 +127,10 @@ interface Resolved {
   coerce?: (v: string) => string;
   /** Runtime constructor name, for `set-method` / `relation-initializer`. */
   runtimeClass?: string;
-  /** Argument for that constructor, when it requires one. */
+  /** Argument list for that constructor, as source text. */
   ctorArg?: string;
+  /** Identifiers `ctorArg` uses as runtime values. */
+  ctorValues?: string[];
   /** Author's initialiser, relocated into the getter as a fallback. */
   defaultExpr?: string;
   start: number;
@@ -184,34 +187,6 @@ function autoSetterParamType(ctx: AnalysisContext, typeNode: any): string | unde
 }
 
 /**
- * Whether `new <className>()` is valid at this location.
- *
- * The real `ModelLink<T>` takes a required `ModelClass<T>` argument
- * (`packages/models/src/relations.ts:58`), so the naive `?? new ModelLink()`
- * fallback produces TS2554. The production transform resolves the type argument
- * and emits `new ModelLink(Target)`; until that is implemented here, skip the
- * property rather than generate code that does not compile.
- * @param ctx - analysis context
- * @param className - runtime class name
- * @param location - node used for scope resolution
- * @returns true when constructible with no arguments
- */
-function zeroArgConstructible(ctx: AnalysisContext, className: string, location: any): boolean {
-  if (!/^[A-Za-z_$][\w$]*$/.test(className)) return false;
-  const symbol = ctx.checker.resolveName(className, SymbolFlags.Value, location);
-  if (!symbol) return false;
-  const ctorType = ctx.checker.getTypeOfSymbol(symbol);
-  if (!ctorType) return false;
-  // 1 === SignatureKind.Construct
-  const ctors = ctx.checker.getSignaturesOfType(ctorType, 1 as any);
-  return ctors.some(sig => {
-    const params = (sig as any).parameters ?? [];
-    const minArgs = (sig as any).minArgumentCount ?? params.length;
-    return minArgs === 0;
-  });
-}
-
-/**
  * Whether a name reaches this file only through a type-only import.
  *
  * `import type { Team }` is erased at emit, so referencing `Team` as a value
@@ -252,9 +227,16 @@ function isTypeOnlyImport(sf: SourceFile, name: string): boolean {
  * @param sf - file the snippet will live in
  * @param snippet - generated text to check
  * @param location - node used for scope resolution
+ * @param provided - names the caller has just made available through imports
  * @returns true when every referenced name resolves
  */
-function referencesResolve(ctx: AnalysisContext, sf: SourceFile, snippet: string, location: any): boolean {
+function referencesResolve(
+  ctx: AnalysisContext,
+  sf: SourceFile,
+  snippet: string,
+  location: any,
+  provided: Set<string> = new Set()
+): boolean {
   const skip = new Set([
     "string",
     "number",
@@ -290,7 +272,7 @@ function referencesResolve(ctx: AnalysisContext, sf: SourceFile, snippet: string
   ]);
   for (const match of snippet.matchAll(/\b[A-Z][\w$]*\b/g)) {
     const name = match[0];
-    if (skip.has(name)) continue;
+    if (skip.has(name) || provided.has(name)) continue;
     // A type-only import is legitimate inside a type annotation, so the test is
     // simply whether the name means anything here at all. Value positions are
     // checked separately by the caller, where the distinction matters.
@@ -302,74 +284,103 @@ function referencesResolve(ctx: AnalysisContext, sf: SourceFile, snippet: string
 }
 
 /**
- * Smallest number of arguments the class's constructor accepts.
+ * How many parameters the runtime class's constructor declares.
+ *
+ * Read from the property's *type*, not by looking the class name up in the
+ * file: `BelongTo<User>` resolves to `ModelLink`, which the file usually does
+ * not import at all.
  * @param ctx - analysis context
- * @param className - runtime class name
- * @param location - node used for scope resolution
- * @returns the minimum arity, or undefined when it cannot be determined
+ * @param typeNode - the property's type node
+ * @returns the largest declared parameter count, or undefined
  */
-function requiredConstructorArity(ctx: AnalysisContext, className: string, location: any): number | undefined {
-  if (!/^[A-Za-z_$][\w$]*$/.test(className)) return undefined;
-  const symbol = ctx.checker.resolveName(className, SymbolFlags.Value, location);
-  if (!symbol) return undefined;
+function constructorParameterCount(ctx: AnalysisContext, typeNode: any): number | undefined {
+  const symbol = (ctx.checker.getTypeFromTypeNode(typeNode) as any)?.getSymbol?.();
+  if (!symbol || !(symbol.flags & SymbolFlags.Class)) return undefined;
   const ctorType = ctx.checker.getTypeOfSymbol(symbol);
-  if (!ctorType) return undefined;
   // 1 === SignatureKind.Construct
-  const arities = ctx.checker
-    .getSignaturesOfType(ctorType, 1 as any)
-    .map(sig => (sig as any).minArgumentCount ?? ((sig as any).parameters ?? []).length);
-  return arities.length ? Math.min(...arities) : undefined;
+  const counts = ctx.checker.getSignaturesOfType(ctorType, 1 as any).map(sig => sig.parameters.length);
+  return counts.length ? Math.max(...counts) : undefined;
+}
+
+/** Constructor arguments for a relation, and the names they need at runtime. */
+interface ConstructorArguments {
+  /** The argument list, as source text. */
+  text: string;
+  /** Identifiers the arguments use as values. */
+  values: string[];
 }
 
 /**
- * Resolve the runtime class to pass to a relation constructor.
+ * The runtime class a type argument names, falling back from a type parameter.
  *
- * `ModelLink<T>` needs its target model at runtime (`new ModelLink(User)`).
- * When the property is declared on a generic class the written argument is a
- * type parameter, which does not exist at runtime — emitting it produces
- * `new ModelLink(T)` and a `ReferenceError` on first use. The type parameter's
- * default, then its constraint, is the most specific class that does exist,
- * which is the same fallback `morpher/loadparameters.ts` applies.
- *
- * Returns undefined when nothing usable is in scope as a *value*, so the caller
- * skips the property rather than generating a reference that cannot resolve.
+ * On a generic class the written argument can be a type parameter, which does
+ * not exist at runtime — `new ModelLink(T)` is a ReferenceError on first use,
+ * and it is exactly what the TypeScript 6 transformer emits for
+ * `AbstractOwnerModel<T extends User>`. The parameter's default, then its
+ * constraint, is the most specific class that does exist.
  * @param ctx - analysis context
- * @param sf - file that will contain the generated reference
- * @param typeNode - the property's type node
- * @param location - node used for scope resolution
- * @param runtimeClass - relation class being constructed
- * @returns a class name safe to reference at runtime
+ * @param arg - the type argument
+ * @returns a class name, or undefined
  */
-function runtimeTypeArgument(
-  ctx: AnalysisContext,
-  sf: SourceFile,
-  typeNode: any,
-  location: any,
-  runtimeClass: string
-): string | undefined {
-  // Only the single-argument shape is understood. `ModelRelated<Ident, User,
-  // "_user">` needs three, and guessing the rest produces TS2554; leave those
-  // to keep today's behaviour instead of emitting code that will not compile.
-  if (requiredConstructorArity(ctx, runtimeClass, location) !== 1) return undefined;
-
-  const type = ctx.checker.getTypeFromTypeNode(typeNode);
-  if (!type) return undefined;
-
-  let arg = (ctx.checker as any).getTypeArguments?.(type)?.[0];
+function runtimeClassOf(ctx: AnalysisContext, arg: any): string | undefined {
   if (arg?.isTypeParameter?.()) {
     arg =
       (ctx.checker as any).getDefaultFromTypeParameter?.(arg) ??
       (ctx.checker as any).getConstraintOfTypeParameter?.(arg) ??
       undefined;
   }
-  if (!arg) return undefined;
+  const name = arg?.getSymbol?.()?.name;
+  return name && /^[A-Za-z_$][\w$]*$/.test(name) ? name : undefined;
+}
 
-  const name = (arg.getSymbol?.() ?? arg.symbol)?.name;
-  if (!name || !/^[A-Za-z_$][\w$]*$/.test(name)) return undefined;
+/**
+ * Constructor arguments for a relation class, derived from its type arguments.
+ *
+ * Decided by the kind of coercion, as the TypeScript 6 transformer decides it
+ * — not by constructor arity, which the 7.1 API does not report reliably
+ * (`minArgumentCount` is absent, so defaulted parameters count as required):
+ *
+ * - set-method (`ModelLink<T>`, `ModelLinksSimpleArray<T>`, ...): `(Target)`
+ * - relation container (`ModelRelated<Target, Owner, "attribute">`):
+ *   `(Target, this)`, plus the attribute when the author wrote one — a
+ *   defaulted third parameter resolves to `""`, which is not what was written
+ * @param ctx - analysis context
+ * @param typeNode - the property's type node
+ * @param kind - which coercion is being generated
+ * @returns the arguments, or undefined when the target cannot be named
+ */
+function constructorArguments(
+  ctx: AnalysisContext,
+  typeNode: any,
+  kind: "set-method" | "relation-initializer"
+): ConstructorArguments | undefined {
+  // A class whose constructor declares no parameters takes no arguments.
+  // Parameter *count* is reliable in 7.1 where the minimum arity is not.
+  if (constructorParameterCount(ctx, typeNode) === 0) return { text: "", values: [] };
+  const type = ctx.checker.getTypeFromTypeNode(typeNode);
+  const args = type?.isTypeReference?.() ? ctx.checker.getTypeArguments(type as any) : [];
+  // The name as written, when it is a plain identifier naming a class: a
+  // default export's symbol is called `default`, which is not what the file
+  // binds it to. The symbol is only consulted for a type parameter, whose
+  // written name does not exist at runtime — and only when it provably names
+  // the same class as the resolved argument, since an alias may reorder its
+  // parameters.
+  const written = typeNode?.typeArguments?.[0];
+  const writtenName = written && is.isTypeReferenceNode(written) ? (written.typeName as any)?.text : undefined;
+  const resolvedSymbol = args[0]?.isTypeParameter?.() ? undefined : args[0]?.getSymbol?.();
+  const sameClass =
+    !!resolvedSymbol &&
+    (resolvedSymbol.flags & SymbolFlags.Class) !== 0 &&
+    (resolvedSymbol.name === writtenName || resolvedSymbol.name === "default");
+  const target = writtenName && sameClass ? writtenName : runtimeClassOf(ctx, args[0]);
+  if (!target || target === "default") return undefined;
 
-  // A type-only import is erased, so the name must survive to runtime.
-  if (isTypeOnlyImport(sf, name)) return undefined;
-  return ctx.checker.resolveName(name, SymbolFlags.Value, location) ? name : undefined;
+  if (kind === "set-method") return { text: target, values: [target] };
+
+  const writtenCount = typeNode?.typeArguments?.length ?? 0;
+  if (writtenCount <= 2) return { text: `${target}, this`, values: [target] };
+  if (!args[2]?.isStringLiteralType?.()) return undefined;
+  return { text: `${target}, this, ${JSON.stringify(args[2].value)}`, values: [target] };
 }
 
 /**
@@ -395,7 +406,7 @@ function render(r: Resolved): string {
 
   if (r.kind === "relation-initializer") {
     // Not assignable, so no accessor pair — just a readonly initialised field.
-    return `readonly ${r.name}: ${r.typeText} = new ${r.runtimeClass}(${r.ctorArg ?? ""});`;
+    return `readonly ${r.name}: ${r.typeText} = new ${r.runtimeClass}(${r.ctorArg ?? ""}) as ${r.typeText};`;
   }
 
   const lines: string[] = [];
@@ -407,17 +418,49 @@ function render(r: Resolved): string {
   if (r.kind === "builtin") {
     lines.push(`${i}  ${slot} = value !== undefined && value !== null ? ${r.coerce!("value")} : value;`);
   } else {
+    // The TypeScript 6 transformer's exact structure, so the emit-parity
+    // oracle proves equivalence instead of it being argued. `null` /
+    // `undefined` clear the relation rather than being wrapped in a new one.
     lines.push(`${i}  if (value instanceof ${r.runtimeClass}) {`);
     lines.push(`${i}    ${slot} = value;`);
-    lines.push(`${i}    return;`);
+    lines.push(`${i}  } else if (value != null) {`);
+    lines.push(`${i}    const inst: ${r.typeText} = ${slot} || new ${r.runtimeClass}(${r.ctorArg ?? ""});`);
+    lines.push(`${i}    inst.set(value as any);`);
+    lines.push(`${i}    ${slot} = inst;`);
+    lines.push(`${i}  } else {`);
+    lines.push(`${i}    ${slot} = value;`);
     lines.push(`${i}  }`);
-    lines.push(`${i}  const current: ${r.typeText} = ${slot} ?? new ${r.runtimeClass}(${r.ctorArg ?? ""});`);
-    lines.push(`${i}  current.set(value as any);`);
-    lines.push(`${i}  ${slot} = current;`);
   }
 
   lines.push(`${i}}`);
   return lines.join("\n");
+}
+
+/**
+ * The `toJSON` the TypeScript 6 transformer injected, as source.
+ *
+ * Own properties first, then the storage slot, over whatever the parent
+ * produced — so a subclass of a class that already merges storage is
+ * unaffected, and the order matches what ships today.
+ * @param i - indentation of the class members
+ * @returns the method source, framed by newlines
+ */
+function renderToJson(i: string): string {
+  return [
+    "",
+    `${i}/** Generated by @webda/content-mapper: include values held in WEBDA_STORAGE. */`,
+    `${i}toJSON(): any {`,
+    // `as unknown` keeps the runtime check — a base may not define toJSON —
+    // without TS2774 under `strict`; it erases to TS6's exact JavaScript.
+    `${i}  const result: any = (super.toJSON as unknown) ? super.toJSON() : {};`,
+    `${i}  for (const key of Object.keys(this)) {`,
+    `${i}    result[key] = (this as any)[key];`,
+    `${i}  }`,
+    `${i}  Object.assign(result, (this as any)[WEBDA_STORAGE]);`,
+    `${i}  return result;`,
+    `${i}}`,
+    ""
+  ].join("\n");
 }
 
 /**
@@ -435,11 +478,13 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
 
       for (const sf of ctx.sourceFiles) {
         const edits: Edit[] = [];
+        const imports = new ValueImports(ctx, sf, "accessors");
         let needsStorage = false;
 
         for (const cls of classesOf(sf)) {
           const eligible = options.accessorsForAll || isModelClass(ctx, sf, cls);
           if (!eligible) continue;
+          let transformed = false;
 
           // Never clobber an explicitly written accessor.
           const existing = new Set<string>();
@@ -484,38 +529,32 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
             } else {
               const runtimeClass = resolveRuntimeClass(ctx, m.type);
               if (runtimeClass === RELATION_CONTAINER) {
+                const ctor = constructorArguments(ctx, m.type, "relation-initializer");
                 // An author-written initialiser wins for a readonly field.
-                if (defaultExpr !== undefined) continue;
-                let ctorArg: string | undefined;
-                if (!zeroArgConstructible(ctx, runtimeClass, m)) {
-                  ctorArg = runtimeTypeArgument(ctx, sf, m.type, m, runtimeClass);
-                  if (!ctorArg) continue;
-                }
+                if (defaultExpr !== undefined || !ctor) continue;
                 resolved = {
                   name,
                   typeText,
                   kind: "relation-initializer",
                   runtimeClass,
-                  ctorArg,
+                  ctorArg: ctor.text,
+                  ctorValues: ctor.values,
                   start,
                   end: m.end,
                   indent
                 };
               } else {
                 const param = autoSetterParamType(ctx, m.type);
-                if (param && runtimeClass) {
-                  let ctorArg: string | undefined;
-                  if (!zeroArgConstructible(ctx, runtimeClass, m)) {
-                    ctorArg = runtimeTypeArgument(ctx, sf, m.type, m, runtimeClass);
-                    if (!ctorArg) continue;
-                  }
+                const ctor = param && runtimeClass ? constructorArguments(ctx, m.type, "set-method") : undefined;
+                if (param && runtimeClass && ctor) {
                   resolved = {
                     name,
                     typeText,
                     kind: "set-method",
                     setterType: `${param} | ${typeText}`,
                     runtimeClass,
-                    ctorArg,
+                    ctorArg: ctor.text,
+                    ctorValues: ctor.values,
                     defaultExpr,
                     start,
                     end: m.end,
@@ -527,23 +566,48 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
 
             if (!resolved) continue;
             const rendered = render(resolved);
-            // Everything the generated members mention must exist here...
-            if (!referencesResolve(ctx, sf, rendered, m)) continue;
-            // ...and the runtime class is used with `new` and `instanceof`, so
-            // it must survive emit rather than merely be known to the checker.
+            // Whatever the generated members construct or test with
+            // `instanceof` must survive emit as a value. Promoted or added
+            // imports are rolled back if any name cannot be made available, so
+            // a skipped property leaves nothing behind.
+            const rollback = imports.checkpoint();
+            const runtimeNames = [resolved.runtimeClass, ...(resolved.ctorValues ?? [])].filter(Boolean) as string[];
+            // `BelongTo<User>` names the alias; the module that exports it is
+            // where `ModelLink` is looked for.
+            const via = [head, ...new Set(typeText.match(/[A-Za-z_$][\w$]*/g) ?? [])];
+            // Then everything else they mention must already exist here. The
+            // runtime names were just made available, so they count.
+            // Types the printed setter signature names but the file lacks
+            // (`PrimaryKeyType<User>`) get an erased `import type`.
+            const typeNames = [...new Set(resolved.setterType?.match(/\b[A-Z][\w$]*\b/g) ?? [])];
             if (
-              resolved.runtimeClass &&
-              (isTypeOnlyImport(sf, resolved.runtimeClass) ||
-                !ctx.checker.resolveName(resolved.runtimeClass, SymbolFlags.Value, m))
+              !runtimeNames.every(runtime => imports.ensure(runtime, m, via)) ||
+              !typeNames.every(typeName => runtimeNames.includes(typeName) || imports.ensureType(typeName, m, via)) ||
+              !referencesResolve(ctx, sf, rendered, m, new Set([...runtimeNames, ...typeNames]))
             ) {
+              rollback();
               continue;
             }
             if (resolved.kind !== "relation-initializer") needsStorage = true;
+            transformed = true;
             edits.push({ start, end: m.end, text: rendered, source: "accessors" });
+          }
+
+          // Any class this generator touched gets the TypeScript 6
+          // transformer's `toJSON`, unless it declares one. It is not
+          // optional: `Model.toJSON()` returns `this`, `JSON.stringify` skips
+          // the symbol-keyed storage, and without this every generated
+          // accessor's value would be silently dropped from serialisation.
+          if (transformed && !cls.members.some((member: any) => memberName(member) === "toJSON")) {
+            needsStorage = true;
+            const close = cls.end - 1;
+            const indent = indentAt(sf.text, (cls.members[0] as any)?.getStart?.() ?? close);
+            edits.push({ start: close, end: close, text: renderToJson(indent), source: "accessors" });
           }
         }
 
         if (edits.length) {
+          edits.push(...imports.collect());
           if (needsStorage && !new RegExp(`\\bWEBDA_STORAGE\\b`).test(sf.text)) {
             edits.push({
               start: 0,

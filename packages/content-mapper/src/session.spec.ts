@@ -150,10 +150,14 @@ describe("constructor arguments and initialisers", () => {
       expect(out.text).toContain("new ModelLink(Team)");
       expect(out.text).not.toMatch(/new ModelLink\(T\)/);
 
-      // A target reachable only through `import type` is erased at emit, so
-      // referencing it would be TS1361. The field is left alone instead.
-      expect(out.text).toContain("link: ModelLink<TypeOnlyTarget>;");
-      expect(out.text).not.toContain("new ModelLink(TypeOnlyTarget)");
+      // A target reachable only through `import type` would be erased at
+      // emit, so the import is promoted to a value import — the module the
+      // author chose — rather than the field being left uncoerced, which is
+      // what shipped under TypeScript 6 only because its transformer
+      // synthesised a monorepo-relative path instead.
+      expect(out.text).toContain("new ModelLink(TypeOnlyTarget)");
+      expect(out.text).toMatch(/import \{ TypeOnlyTarget \} from "\.\/typeonly\.model\.js"/);
+      expect(out.text).not.toMatch(/import type \{ TypeOnlyTarget \}/);
     } finally {
       session.dispose();
     }

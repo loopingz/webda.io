@@ -37,9 +37,9 @@ import { JSONSchema7 } from "json-schema";
 import { nextTick } from "process";
 import { EventEmitter } from "stream";
 import { WebSocketServer } from "ws";
-import { AnyScalarType } from "./types/any";
-import { DateScalar } from "./types/date";
-import { GraphQLLong } from "./types/long";
+import { AnyScalarType } from "./types/any.js";
+import { DateScalar } from "./types/date.js";
+import { GraphQLLong } from "./types/long.js";
 
 const GraphIQL = `
 <!doctype html>

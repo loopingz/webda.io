@@ -4,5 +4,5 @@ export * from "./services/echo.service.js";
 export * from "./services/proxy.service.js";
 export * from "./services/version.service.js";
 export * from "./stores/migration.service.js";
-export * from "./utils/iterators";
+export * from "./utils/iterators.js";
 export * from "./utils/password.service.js";

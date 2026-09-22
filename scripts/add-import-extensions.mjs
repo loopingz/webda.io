@@ -22,8 +22,13 @@
  * Covers static imports, re-exports, side-effect imports, dynamic `import()`
  * and `vi.mock()` / `vi.importActual()` / `vi.doMock()`.
  *
- * Usage: node scripts/add-import-extensions.mjs <dir>... [--check]
- *   --check   report what would change and exit 1 if anything would; for CI
+ * Usage: node scripts/add-import-extensions.mjs <dir>... [--check] [--skip-specs]
+ *   --check       report what would change and exit 1 if anything would; for CI
+ *   --skip-specs  leave `*.spec.ts` alone. Specs are normally outside the
+ *                 tsconfig program and run by vitest, which resolves
+ *                 extensionless specifiers itself, so they do not affect emit.
+ *   --exclude=<path>  skip a file or directory; repeatable. For sources a
+ *                 tsconfig deliberately leaves out of the program.
  */
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -124,19 +129,24 @@ function resolveBare(fromFile, spec) {
  * @param directory - root to walk
  * @returns absolute paths
  */
-function sources(directory) {
+function sources(directory, skipSpecs) {
   const out = [];
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     if (entry.name === "node_modules" || entry.name === "lib") continue;
     const path = join(directory, entry.name);
-    if (entry.isDirectory()) out.push(...sources(path));
-    else if (SOURCE.test(entry.name) && !entry.name.endsWith(".d.ts")) out.push(path);
+    if (entry.isDirectory()) out.push(...sources(path, skipSpecs));
+    else if (SOURCE.test(entry.name) && !entry.name.endsWith(".d.ts")) {
+      if (skipSpecs && /\.spec\.[cm]?tsx?$/.test(entry.name)) continue;
+      out.push(path);
+    }
   }
   return out.sort();
 }
 
 const argv = process.argv.slice(2);
 const check = argv.includes("--check");
+const skipSpecs = argv.includes("--skip-specs");
+const excluded = argv.filter(arg => arg.startsWith("--exclude=")).map(arg => resolve(arg.slice("--exclude=".length)));
 // Absolute: `createRequire` rejects a relative path.
 const roots = argv.filter(arg => !arg.startsWith("--")).map(root => resolve(root));
 if (roots.length === 0) {
@@ -149,7 +159,8 @@ let changedFiles = 0;
 const failures = [];
 
 for (const root of roots) {
-  for (const file of sources(root)) {
+  for (const file of sources(root, skipSpecs)) {
+    if (excluded.some(path => file === path || file.startsWith(path + "/"))) continue;
     const text = readFileSync(file, "utf8");
     const updated = text.replace(SPECIFIER, (match, lead, quote, spec, offset) => {
       if (HAS_EXTENSION.test(spec) || spec.startsWith("node:") || spec.startsWith("#")) return match;

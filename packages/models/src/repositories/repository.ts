@@ -7,9 +7,9 @@ import type {
   WEBDA_EVENTS,
   ModelClass,
   PrimaryKeyAttributes
-} from "../storable";
-import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types";
-import type { ModelRefWithCreate } from "../relations";
+} from "../storable.js";
+import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types.js";
+import type { ModelRefWithCreate } from "../relations.js";
 
 /** Symbol key for test utilities on a repository (e.g. `clear()`). */
 export const WEBDA_TEST = Symbol("webda_test");

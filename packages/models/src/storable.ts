@@ -1,7 +1,7 @@
 import type { FilterAttributes, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
 import { WEBDA_DIRTY } from "@webda/utils";
-import type { ModelRefWithCreate, ModelRelated } from "./relations";
-import type { JSONed, Settable } from "./types";
+import type { ModelRefWithCreate, ModelRelated } from "./relations.js";
+import type { JSONed, Settable } from "./types.js";
 
 /**
  * Define the model primary key

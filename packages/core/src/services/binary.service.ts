@@ -346,20 +346,28 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
    * @param model - the parent model (legacy form)
    */
   constructor(attribute?: string, model?: Model) {
-    if (attribute !== undefined && model !== undefined) {
-      // Legacy eager wiring: resolve the service and load existing data so
-      // callers can `isEmpty()` / `.hash` / `.size` right after construction.
-      super(<any>useCore().getBinaryStore(model, attribute), model[attribute] || {});
-      (this[WEBDA_STORAGE] as any).empty = model[attribute] === undefined;
-      (this[WEBDA_STORAGE] as any)["__parent__"] = { instance: model, attribute };
-    } else {
-      // Behavior-hydration path: no args. The transformer's
-      // `__hydrateBehaviors` stamps `__parent__` into WEBDA_STORAGE after
-      // construction, so we leave service/parent unresolved and the public
-      // API resolves them lazily via `getService()` and `this.parent`.
-      super(undefined as any, {} as any);
-      (this[WEBDA_STORAGE] as any).empty = true;
-    }
+    // `super()` must be the constructor's first statement, unconditionally.
+    // The decorator runtime injects instance initialisers right after it, and
+    // with `super()` inside `if`/`else` there is nowhere correct to put them:
+    // TypeScript 6 silently dropped them — so `@Action` `addInitializer` hooks
+    // never ran for Binary — and tsgo runs them before `super()`, which throws
+    // ReferenceError on `new Binary()`. TypeScript 6 also drops them when
+    // any statement precedes `super()`, hence the repeated condition.
+    //
+    // Legacy eager wiring resolves the service and loads the existing data, so
+    // callers can use `isEmpty()` / `.hash` / `.size` right away. The hydration
+    // path (no arguments) leaves both unresolved: the generated
+    // `__hydrateBehaviors` stamps `__parent__` afterwards and the public API
+    // resolves the service lazily through `getService()`.
+    super(
+      attribute !== undefined && model !== undefined
+        ? <any>useCore().getBinaryStore(model, attribute)
+        : (undefined as any),
+      attribute !== undefined && model !== undefined ? model[attribute] || {} : ({} as any)
+    );
+    const eager = attribute !== undefined && model !== undefined;
+    (this[WEBDA_STORAGE] as any).empty = eager ? model[attribute] === undefined : true;
+    if (eager) (this[WEBDA_STORAGE] as any)["__parent__"] = { instance: model, attribute };
   }
 
   /**

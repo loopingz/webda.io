@@ -28,7 +28,6 @@ class UnpackedApplicationTest extends WebdaApplicationTest {
     const expectedModules = [
       "/packages/amqp/webda.module.json",
       "/packages/core/webda.module.json",
-      "/packages/schema/webda.module.json",
       "/packages/models/webda.module.json",
       "/packages/compiler/webda.module.json",
       "/packages/shell/webda.module.json",

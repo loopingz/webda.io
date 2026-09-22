@@ -741,7 +741,7 @@ the TypeScript 6 worker, so the target is calibrated rather than hypothetical.
    `output` modes: input takes the setter parameter type, output the getter return type.
    See §7.2 below.
 3. **Done.** Then top-level action schemas (804 nodes). See §7.3 below.
-4. Delete `@webda/schema` and the worker together.
+4. **Done.** Delete `@webda/schema` and the worker together. See §7.6.
 
 Generate from the **untransformed** view first, so the output is byte-identical to today and
 the port is proven. Switching to the transformed view is a separate commit — it widens every
@@ -1136,6 +1136,68 @@ step, because it changes API validation for every model relation across 26 modul
 One wrinkle for whoever does it: `sourceDigest` hashes the compiler package itself, so
 changing the compiler at all rewrites the digest in every module on next build. It should
 be regenerated everywhere at once rather than package by package.
+
+### Stage 7.6: artefacts regenerated, `@webda/schema` deleted
+
+`webdac build` now generates every schema through `@webda/content-mapper`. There is no
+flag and no TypeScript 6 path: `@webda/schema` is gone, along with its CLI, its 183 tests
+and its documentation pages.
+
+`node tools/schema-diff.mjs` reports **IDENTICAL for all three groups, 164/164, with no
+divergences**. The classifier that explained the previous 32 is deleted with them — it
+existed because the committed artefacts predated the port, and they no longer do.
+
+#### The order this had to happen in
+
+Deleting first was not possible, and the sequence is worth recording because the
+dependency is not obvious:
+
+1. Make the generator the only path in `@webda/compiler` — otherwise a default build
+   reverts the artefacts and the tree is permanently dirty.
+2. Regenerate through a real `webdac build`, so the artefacts are produced by the
+   supported route rather than hand-patched.
+3. Only then delete `@webda/schema`, because until step 2 it was the only evidence that
+   18 of the divergences were stale artefacts rather than port bugs.
+
+Regeneration changed **34 schemas across 10 packages, and no keys** — exactly the 34 the
+harness had predicted (11 services, 18 models, 5 top-level).
+
+#### What changed for users
+
+The relation correction from §7.2, now real: `ModelLink`-typed attributes are `type:
+"string"` in `Input`, `Output` and `Stored` rather than an object with no properties.
+Anything generated from these schemas — API validation, client types — changes with them.
+Six services also gain the `type` property they inherit from `ServiceParameters`, which
+the old pipeline lost.
+
+One fixed by regenerating rather than by anyone editing it: `packages/compiler`'s
+`compileSampleApp` test had been failing on `Binary attribute Contact.avatar must be
+absent from Input`. The port excludes it correctly.
+
+#### How the two majors coexist
+
+`@webda/compiler` depends on `@webda/content-mapper` and spawns
+`@webda/content-mapper/schema-worker-cli` as a subprocess, exchanging JSON. It never
+imports it, so the compiler keeps TypeScript 6 and the generator keeps 7.1 — which is the
+same trick `@webda/content-mapper` already uses on `tsgo`. A dedicated export entry exists
+because the package's `exports` map otherwise blocks resolving a path inside it.
+`WEBDA_SCHEMA_WORKER` overrides the resolved worker, for running a generator that is not
+the installed one.
+
+Cost is one spawn per build — 34 requests in 477ms for `packages/core` — because opening
+the program dominates and the caller batches.
+
+#### Still outstanding
+
+- **Thirteen modules were not regenerated**: eleven pre-format ones (ten of which
+  `pnpm-workspace.yaml` marks "not yet ready") and two compiler fixtures with no installed
+  dependencies. They were not comparable before either. Whoever revives those packages
+  regenerates them.
+- **`sourceDigest` hashes the compiler package**, so every module's digest moved. They
+  were regenerated together, which is the only way that stays consistent.
+- `@webda/content-mapper` peers on `typescript@>=7.1.0-dev`. In the workspace it resolves
+  from its own tree; a published consumer has to provide it, which is already true of the
+  content mapper itself and belongs in the application template.
 
 ### Transition option: run the new pipeline out-of-process
 

@@ -1,7 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "bootstrap-sha": "bcea7b61edda56452f03ab7f25e3cc97a23ba909",
-  "plugins": ["node-workspace"],
+  "plugins": [
+    "node-workspace"
+  ],
   "versioning": "prerelease",
   "packages": {
     "packages/amqp": {},
@@ -28,7 +30,6 @@
     "packages/postgres": {},
     "packages/ql": {},
     "packages/runtime": {},
-    "packages/schema": {},
     "packages/serialize": {},
     "packages/test": {},
     "packages/ts-plugin": {},

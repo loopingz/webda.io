@@ -19,5 +19,4 @@ At runtime you cannot add new services, nor you can change the services types. I
 ## See also
 
 - [Core Architecture](../Modules/core/Architecture.md)
-- [JSON-Schema Validation](../Modules/schema/JSON-Schema.md)
 - [webda.config.json reference](./Webda.config.json.md)

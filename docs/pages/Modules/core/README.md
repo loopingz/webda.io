@@ -207,7 +207,7 @@ throw new WebdaError.Redirect("https://example.com/new-location");
 | `@webda/cloudevents` | CloudEvents filtering |
 | `@webda/cache` | Caching decorators |
 | `@webda/serialize` | Serialization framework |
-| `@webda/schema` | JSON Schema generator |
+| `@webda/content-mapper` | JSON Schema generator |
 
 ## Deep-dive sub-pages
 

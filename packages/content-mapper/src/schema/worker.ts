@@ -1,15 +1,16 @@
 /**
  * Out-of-process schema generation on the TypeScript 7.1 checker.
  *
- * Deliberately protocol-compatible with `packages/schema/src/worker.ts`, the
- * TypeScript 6 generator this replaces. That worker is the oracle for stage 7:
- * `tools/schema-diff.mjs` drives either implementation over the same requests
- * and diffs both against the committed `webda.module.json`, so a regression is
- * visible as a score rather than as a surprise later. It is deleted once this
- * one reaches parity.
+ * `@webda/compiler` drives this as a subprocess rather than importing it.
+ * That is not indirection for its own sake: the compiler still runs on
+ * TypeScript 6 and this package needs 7.1, a package can declare only one
+ * `typescript`, and a process boundary is the only thing that lets the two
+ * coexist until the atomic switch.
  *
- * A process boundary is also what lets the two coexist: `@webda/schema` needs
- * TypeScript 6 and this package needs 7.1, and a package can declare only one.
+ * It began as a way to diff against `@webda/schema`, which generated these
+ * schemas before and has since been deleted; the protocol shape is
+ * unchanged from that comparison, which is why it names things rather than
+ * passing them.
  *
  * Protocol: one JSON request on stdin, one JSON response on stdout.
  *

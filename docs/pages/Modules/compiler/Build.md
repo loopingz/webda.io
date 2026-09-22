@@ -41,7 +41,7 @@ flowchart TD
    - Services (beans, moddas)
    - Deployers
    - Operations (`@Operation()` methods)
-4. **Schema generation** — `@webda/schema`'s `SchemaGenerator` produces JSON Schemas for each model (input, output, stored views) and each service's parameters.
+4. **Schema generation** — `@webda/content-mapper`'s `SchemaGenerator` produces JSON Schemas for each model (input, output, stored views) and each service's parameters.
 5. **Module merge** — walks `node_modules` for `webda.module.json` files from Webda dependencies and merges their `moddas`, `deployers`, and `schemas` sections into the local manifest.
 6. **Write outputs** — writes `webda.module.json` and `.webda-config-schema.json`.
 
@@ -159,4 +159,4 @@ ls -la sample-apps/blog-system/webda.module.json
 - [Code Generation](./CodeGen.md) — `webdac code` for boilerplate method generation
 - [Module Manifest](./ModuleManifest.md) — the structure and purpose of `webda.module.json`
 - [Plugins](./Plugins.md) — extending the compiler with custom morpher modules
-- [@webda/schema JSON Schema](../schema/JSON-Schema.md) — schema generation details
+- [@webda/content-mapper JSON Schema](../schema/JSON-Schema.md) — schema generation details

@@ -71,7 +71,7 @@ When `getPrimaryKey()` is called on a composite-key model, it returns an object 
 
 ## Field validation via JSDoc
 
-All standard `@webda/schema` JSDoc tags are recognized and embedded in the JSON Schema, which the runtime validates against incoming payloads:
+All standard `@webda/content-mapper` JSDoc tags are recognized and embedded in the JSON Schema, which the runtime validates against incoming payloads:
 
 ```typescript
 export class User extends UuidModel {
@@ -111,7 +111,7 @@ export class User extends UuidModel {
 }
 ```
 
-Supported JSDoc tags: `@minLength`, `@maxLength`, `@pattern`, `@format`, `@minimum`, `@maximum`, `@readonly`, `@enum`, `@default`. See [@webda/schema Validation](../schema/Validation.md).
+Supported JSDoc tags: `@minLength`, `@maxLength`, `@pattern`, `@format`, `@minimum`, `@maximum`, `@readonly`, `@enum`, `@default`. See [@webda/content-mapper Validation](../schema/Validation.md).
 
 ## Plural form
 
@@ -231,4 +231,4 @@ pnpm test
 - [Lifecycle](./Lifecycle.md) — save/update/delete hooks and events
 - [Actions](./Actions.md) — `@Operation` decorator
 - [Permissions](./Permissions.md) — `canAct` and access control
-- [@webda/schema Validation](../schema/Validation.md) — JSDoc constraint tags
+- [@webda/content-mapper Validation](../schema/Validation.md) — JSDoc constraint tags

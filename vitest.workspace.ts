@@ -34,10 +34,6 @@ export default defineWorkspace([
     test: { name: "ql", root: "packages/ql" }
   },
   {
-    extends: "packages/schema/vitest.config.ts",
-    test: { name: "schema", root: "packages/schema" }
-  },
-  {
     extends: "packages/serialize/vitest.config.ts",
     test: { name: "serialize", root: "packages/serialize" }
   },

@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { JSONCParser } from "./jsoncparser";
+import { JSONCParser } from "./jsoncparser.js";
 
 @suite
 class JSONCParserTest {

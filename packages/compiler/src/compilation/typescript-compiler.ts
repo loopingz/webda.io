@@ -1,9 +1,9 @@
 import ts from "typescript";
 import { writer } from "@webda/tsc-esm";
 import { useLog } from "@webda/workout";
-import { WebdaProject } from "../definition";
-import { TsConfigLoader } from "../config/tsconfig-loader";
-import { CompilationError, TsConfigParseResult } from "../types";
+import { WebdaProject } from "../definition.js";
+import { TsConfigLoader } from "../config/tsconfig-loader.js";
+import { CompilationError, TsConfigParseResult } from "../types.js";
 
 /**
  * TypeScript compilation results

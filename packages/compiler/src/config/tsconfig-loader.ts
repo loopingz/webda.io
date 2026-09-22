@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { dirname } from "path";
-import { WebdaProject } from "../definition";
-import { TsConfigParseResult } from "../types";
+import { WebdaProject } from "../definition.js";
+import { TsConfigParseResult } from "../types.js";
 
 /**
  * TypeScript configuration loader

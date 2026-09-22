@@ -1,33 +1,33 @@
 // Generated from src/models/filters/sql/CESQLParser.g4 by ANTLR 4.9.0-SNAPSHOT
 
-import { ParseTreeVisitor } from "antlr4ts/tree/ParseTreeVisitor";
+import { ParseTreeVisitor } from "antlr4ts/tree/ParseTreeVisitor.js";
 
-import { FunctionInvocationExpressionContext } from "./CESQLParserParser";
-import { UnaryLogicExpressionContext } from "./CESQLParserParser";
-import { UnaryNumericExpressionContext } from "./CESQLParserParser";
-import { LikeExpressionContext } from "./CESQLParserParser";
-import { ExistsExpressionContext } from "./CESQLParserParser";
-import { InExpressionContext } from "./CESQLParserParser";
-import { BinaryMultiplicativeExpressionContext } from "./CESQLParserParser";
-import { BinaryAdditiveExpressionContext } from "./CESQLParserParser";
-import { BinaryComparisonExpressionContext } from "./CESQLParserParser";
-import { BinaryLogicExpressionContext } from "./CESQLParserParser";
-import { SubExpressionContext } from "./CESQLParserParser";
-import { AtomExpressionContext } from "./CESQLParserParser";
-import { BooleanAtomContext } from "./CESQLParserParser";
-import { IntegerAtomContext } from "./CESQLParserParser";
-import { StringAtomContext } from "./CESQLParserParser";
-import { IdentifierAtomContext } from "./CESQLParserParser";
-import { CesqlContext } from "./CESQLParserParser";
-import { ExpressionContext } from "./CESQLParserParser";
-import { AtomContext } from "./CESQLParserParser";
-import { IdentifierContext } from "./CESQLParserParser";
-import { FunctionIdentifierContext } from "./CESQLParserParser";
-import { BooleanLiteralContext } from "./CESQLParserParser";
-import { StringLiteralContext } from "./CESQLParserParser";
-import { IntegerLiteralContext } from "./CESQLParserParser";
-import { FunctionParameterListContext } from "./CESQLParserParser";
-import { SetExpressionContext } from "./CESQLParserParser";
+import { FunctionInvocationExpressionContext } from "./CESQLParserParser.js";
+import { UnaryLogicExpressionContext } from "./CESQLParserParser.js";
+import { UnaryNumericExpressionContext } from "./CESQLParserParser.js";
+import { LikeExpressionContext } from "./CESQLParserParser.js";
+import { ExistsExpressionContext } from "./CESQLParserParser.js";
+import { InExpressionContext } from "./CESQLParserParser.js";
+import { BinaryMultiplicativeExpressionContext } from "./CESQLParserParser.js";
+import { BinaryAdditiveExpressionContext } from "./CESQLParserParser.js";
+import { BinaryComparisonExpressionContext } from "./CESQLParserParser.js";
+import { BinaryLogicExpressionContext } from "./CESQLParserParser.js";
+import { SubExpressionContext } from "./CESQLParserParser.js";
+import { AtomExpressionContext } from "./CESQLParserParser.js";
+import { BooleanAtomContext } from "./CESQLParserParser.js";
+import { IntegerAtomContext } from "./CESQLParserParser.js";
+import { StringAtomContext } from "./CESQLParserParser.js";
+import { IdentifierAtomContext } from "./CESQLParserParser.js";
+import { CesqlContext } from "./CESQLParserParser.js";
+import { ExpressionContext } from "./CESQLParserParser.js";
+import { AtomContext } from "./CESQLParserParser.js";
+import { IdentifierContext } from "./CESQLParserParser.js";
+import { FunctionIdentifierContext } from "./CESQLParserParser.js";
+import { BooleanLiteralContext } from "./CESQLParserParser.js";
+import { StringLiteralContext } from "./CESQLParserParser.js";
+import { IntegerLiteralContext } from "./CESQLParserParser.js";
+import { FunctionParameterListContext } from "./CESQLParserParser.js";
+import { SetExpressionContext } from "./CESQLParserParser.js";
 
 /**
  * This interface defines a complete generic visitor for a parse tree produced

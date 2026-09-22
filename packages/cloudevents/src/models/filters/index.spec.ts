@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { CloudEvent } from "cloudevents";
-import { FiltersHelper, FilterImplementation } from ".";
+import { FiltersHelper, FilterImplementation } from "./index.js";
 
 test("PrefixFilter", () => {
   const event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });

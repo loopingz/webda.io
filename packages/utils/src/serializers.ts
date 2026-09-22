@@ -14,8 +14,8 @@ import { Readable, Transform, TransformCallback, Writable } from "stream";
 import * as yaml from "yaml";
 import { createGunzip, gunzipSync, gzipSync } from "zlib";
 import { useLog } from "@webda/workout";
-import { YAMLProxy } from "./yamlproxy";
-import { JSONCParser as JSONC } from "./jsoncparser";
+import { YAMLProxy } from "./yamlproxy.js";
+import { JSONCParser as JSONC } from "./jsoncparser.js";
 import { dirname } from "node:path";
 
 /** Options controlling directory traversal behaviour. */

@@ -15,8 +15,8 @@
   },
   "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc-esm",
-    "build:watch": "tsc-esm --watch",
+    "build": "tsc -p tsconfig.json",
+    "build:watch": "tsc -p tsconfig.json --watch",
     "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
@@ -33,6 +33,7 @@
     "@types/json-schema": "^7.0.15",
     "@webda/content-mapper": "workspace:*",
     "@webda/ts-plugin": "workspace:^",
+    "@webda/tsc-esm": "workspace:*",
     "@webda/utils": "workspace:^",
     "@webda/workout": "workspace:*",
     "accept-language": "^3.0.20",
@@ -44,7 +45,6 @@
   "devDependencies": {
     "@types/node": "25.5.0",
     "@webda/test": "workspace:*",
-    "@webda/tsc-esm": "workspace:*",
     "eslint": "^10.1.0",
     "eslint-plugin-import": "^2.32.0",
     "prettier": "^3.8.1",

@@ -1,8 +1,8 @@
 import { ANTLRInputStream, CommonTokenStream } from "antlr4ts";
-import { AbstractParseTreeVisitor } from "antlr4ts/tree";
+import { AbstractParseTreeVisitor } from "antlr4ts/tree/index.js";
 import { CloudEvent } from "cloudevents";
-import { FilterImplementation } from "./abstract";
-import { CESQLParserLexer } from "./sql/CESQLParserLexer";
+import { FilterImplementation } from "./abstract.js";
+import { CESQLParserLexer } from "./sql/CESQLParserLexer.js";
 import {
   BinaryAdditiveExpressionContext,
   BinaryComparisonExpressionContext,
@@ -23,10 +23,10 @@ import {
   SubExpressionContext,
   UnaryLogicExpressionContext,
   UnaryNumericExpressionContext
-} from "./sql/CESQLParserParser";
-import { CESQLParserVisitor } from "./sql/CESQLParserVisitor";
-import type { ExactFilter, PrefixFilter, SuffixFilter } from "./types";
-import { ExactFilterImplementation, PrefixFilterImplementation, SuffixFilterImplementation } from "./string";
+} from "./sql/CESQLParserParser.js";
+import { CESQLParserVisitor } from "./sql/CESQLParserVisitor.js";
+import type { ExactFilter, PrefixFilter, SuffixFilter } from "./types.js";
+import { ExactFilterImplementation, PrefixFilterImplementation, SuffixFilterImplementation } from "./string.js";
 
 /**
  * Use of this MUST have a string value, representing a CloudEvents SQL Expression.

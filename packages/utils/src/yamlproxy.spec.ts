@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { YAMLProxy } from "./yamlproxy";
+import { YAMLProxy } from "./yamlproxy.js";
 
 @suite
 class YAMLProxyTest {

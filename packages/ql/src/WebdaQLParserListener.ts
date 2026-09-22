@@ -1,6 +1,6 @@
 // Generated from src/stores/webdaql/WebdaQLParser.g4 by ANTLR 4.9.0-SNAPSHOT
 
-import { ParseTreeListener } from "antlr4ts/tree/ParseTreeListener";
+import { ParseTreeListener } from "antlr4ts/tree/ParseTreeListener.js";
 
 import {
   AndLogicExpressionContext,
@@ -29,7 +29,7 @@ import {
   ValuesAtomContext,
   ValuesContext,
   WebdaqlContext
-} from "./WebdaQLParserParser";
+} from "./WebdaQLParserParser.js";
 
 /**
  * This interface defines a complete listener for a parse tree produced by

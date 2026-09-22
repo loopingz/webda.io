@@ -1,5 +1,5 @@
 import { CloudEvent, EmitterFunction, emitterFor, httpTransport } from "cloudevents";
-import { Filter, FilterImplementation, FiltersHelper } from "./filters";
+import { Filter, FilterImplementation, FiltersHelper } from "./filters/index.js";
 import { randomUUID } from "crypto";
 
 /**

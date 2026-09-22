@@ -1,5 +1,5 @@
 import { suite, test } from "@webda/test";
-import { getPlural } from "./plural";
+import { getPlural } from "./plural.js";
 import * as assert from "assert";
 
 @suite

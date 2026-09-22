@@ -1,5 +1,5 @@
 import { ClassDeclaration, Scope, SourceFile, StructureKind, SyntaxKind } from "ts-morph";
-import { upsertMethod } from "./utils";
+import { upsertMethod } from "./utils.js";
 
 /**
  * Resolve the parameters type name for a Service subclass by walking its type argument chain

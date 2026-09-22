@@ -1,5 +1,5 @@
-import type { WebdaModule } from "../definition";
-import type { ModuleGenerator, WebdaObjects } from "../module";
+import type { WebdaModule } from "../definition.js";
+import type { ModuleGenerator, WebdaObjects } from "../module.js";
 
 /** Base class for compiler plugins that extract metadata from Webda module types */
 export abstract class MetadataPlugin {

@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { State } from "./state";
+import { State } from "./state.js";
 import { suite, test } from "@webda/test";
 
 const MyState: typeof State<"running" | "initializing" | "resolved" | "resolving" | "errored"> = State;

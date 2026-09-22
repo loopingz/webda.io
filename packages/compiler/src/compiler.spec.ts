@@ -3,9 +3,9 @@ import { getCommonJS, JSONUtils } from "@webda/utils";
 import * as assert from "assert";
 import { existsSync } from "node:fs";
 import * as path from "path";
-import { Compiler } from "./index";
-import { WebdaModule, WebdaProject } from "./definition";
-import { generateOperations } from "./operations";
+import { Compiler } from "./index.js";
+import { WebdaModule, WebdaProject } from "./definition.js";
+import { generateOperations } from "./operations.js";
 import { FileLogger, MemoryLogger, useWorkerOutput, WorkerOutput } from "@webda/workout";
 const { __dirname } = getCommonJS(import.meta.url);
 

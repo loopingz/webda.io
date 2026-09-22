@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isCloudEvent } from "./cloudevent";
+import { isCloudEvent } from "./cloudevent.js";
 
 const VALID_EVENT = {
   specversion: "1.0",

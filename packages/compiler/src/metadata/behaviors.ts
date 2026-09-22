@@ -1,7 +1,7 @@
 import * as ts from "typescript";
-import type { BehaviorMetadata, WebdaModule } from "../definition";
-import type { WebdaObjects } from "../module";
-import { MetadataPlugin } from "./plugin";
+import type { BehaviorMetadata, WebdaModule } from "../definition.js";
+import type { WebdaObjects } from "../module.js";
+import { MetadataPlugin } from "./plugin.js";
 
 /**
  * Behaviors metadata plugin

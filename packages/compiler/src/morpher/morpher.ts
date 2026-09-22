@@ -1,9 +1,9 @@
 import { Project, ProjectOptions, SourceFile } from "ts-morph";
-import { setLoadParameters } from "./loadparameters";
-import { updateImports } from "./imports";
-import { deserializer } from "./deserialize";
-import { transformAccessors } from "./accessors";
-import { removeFilterRegistrations } from "./capabilities";
+import { setLoadParameters } from "./loadparameters.js";
+import { updateImports } from "./imports.js";
+import { deserializer } from "./deserialize.js";
+import { transformAccessors } from "./accessors.js";
+import { removeFilterRegistrations } from "./capabilities.js";
 import { useLog, useWorkerOutput } from "@webda/workout";
 import { diffLines } from "diff";
 import { EventEmitter } from "stream";

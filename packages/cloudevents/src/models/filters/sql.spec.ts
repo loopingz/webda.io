@@ -1,10 +1,10 @@
 import { expect, test, vi } from "vitest";
 import { CloudEvent } from "cloudevents";
 import { ANTLRInputStream, CommonTokenStream } from "antlr4ts";
-import { ParseTreeWalker } from "antlr4ts/tree";
-import { FiltersHelper } from ".";
-import { SqlFilterImplementation, LikeExpression, AttributeExpression, InExpression, ValueExpression } from "./sql";
-import { CESQLParserLexer } from "./sql/CESQLParserLexer";
+import { ParseTreeWalker } from "antlr4ts/tree/index.js";
+import { FiltersHelper } from "./index.js";
+import { SqlFilterImplementation, LikeExpression, AttributeExpression, InExpression, ValueExpression } from "./sql.js";
+import { CESQLParserLexer } from "./sql/CESQLParserLexer.js";
 import {
   CESQLParserParser,
   CesqlContext,
@@ -33,8 +33,8 @@ import {
   IntegerLiteralContext,
   FunctionParameterListContext,
   SetExpressionContext
-} from "./sql/CESQLParserParser";
-import type { CESQLParserListener } from "./sql/CESQLParserListener";
+} from "./sql/CESQLParserParser.js";
+import type { CESQLParserListener } from "./sql/CESQLParserListener.js";
 
 const event: CloudEvent<any> = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
 const event2: CloudEvent<any> = new CloudEvent({

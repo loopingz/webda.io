@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import assert from "assert";
-import { Duration } from "./duration";
+import { Duration } from "./duration.js";
 
 @suite
 export class DurationSpec {

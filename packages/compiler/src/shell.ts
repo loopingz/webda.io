@@ -1,21 +1,21 @@
 #!/usr/bin/env node
 import yargs from "yargs";
-import { WebdaProject } from "./definition";
-import { Compiler } from "./compiler";
-import { generateConfigurationSchemas, ConfigSchemaApplication } from "./configuration";
-import { generateOperations } from "./operations";
+import { WebdaProject } from "./definition.js";
+import { Compiler } from "./compiler.js";
+import { generateConfigurationSchemas, ConfigSchemaApplication } from "./configuration.js";
+import { generateOperations } from "./operations.js";
 import { useWorkerOutput, Fork, InteractiveConsoleLogger } from "@webda/workout";
 import { FileUtils, listConfiguredServiceTypes } from "@webda/utils";
 import { resolve, join } from "path";
 import { runWithCurrentDirectory } from "@webda/utils";
 import { existsSync, mkdirSync, readdirSync, lstatSync, realpathSync, writeFileSync } from "node:fs";
 import { bold, italic, yellow } from "yoctocolors";
-import { WebdaMorpher } from "./morpher/morpher";
+import { WebdaMorpher } from "./morpher/morpher.js";
 import {
   shouldDispatchBuildHooks,
   spawnWebdaBuild,
   WEBDA_BUILD_DISPATCH_ENV
-} from "./shell-build-dispatch";
+} from "./shell-build-dispatch.js";
 
 /**
  * Scan a single node_modules directory for webda.module.json files

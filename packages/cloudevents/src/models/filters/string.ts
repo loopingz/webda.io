@@ -1,8 +1,8 @@
 import { CloudEvent } from "cloudevents";
-import { FilterImplementation } from "./abstract";
-import type { Filter, ExactFilter, PrefixFilter, SuffixFilter } from "./types";
+import { FilterImplementation } from "./abstract.js";
+import type { Filter, ExactFilter, PrefixFilter, SuffixFilter } from "./types.js";
 
-export type { ExactFilter, PrefixFilter, SuffixFilter } from "./types";
+export type { ExactFilter, PrefixFilter, SuffixFilter } from "./types.js";
 
 /**
  * Abstract class to read CloudEvent specified property

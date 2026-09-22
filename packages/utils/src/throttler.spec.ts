@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Throttler } from "./throttler";
+import { Throttler } from "./throttler.js";
 
 @suite
 class ThrottlerTest {

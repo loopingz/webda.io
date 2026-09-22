@@ -1,8 +1,8 @@
 import { CloudEvent } from "cloudevents";
-import { FilterImplementation } from "./abstract";
-import type { AllFilter, AnyFilter, Filter } from "./types";
-import { SqlFilterImplementation } from "./sql";
-import { ExactFilterImplementation, PrefixFilterImplementation, SuffixFilterImplementation } from "./string";
+import { FilterImplementation } from "./abstract.js";
+import type { AllFilter, AnyFilter, Filter } from "./types.js";
+import { SqlFilterImplementation } from "./sql.js";
+import { ExactFilterImplementation, PrefixFilterImplementation, SuffixFilterImplementation } from "./string.js";
 
 interface FilterImplementationConstructor {
   new (definition: any): FilterImplementation<Filter>;

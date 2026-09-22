@@ -1,6 +1,6 @@
 import { CharStreams, CommonTokenStream, RecognitionException, Recognizer, Token } from "antlr4ts";
 import { AbstractParseTreeVisitor, ParseTree, TerminalNode } from "antlr4ts/tree/index.js";
-import { WebdaQLLexer } from "./WebdaQLLexer";
+import { WebdaQLLexer } from "./WebdaQLLexer.js";
 import {
   AndLogicExpressionContext,
   BinaryComparisonExpressionContext,
@@ -19,8 +19,8 @@ import {
   SubExpressionContext,
   WebdaQLParserParser,
   WebdaqlContext
-} from "./WebdaQLParserParser";
-import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor";
+} from "./WebdaQLParserParser.js";
+import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor.js";
 
 /**
  * Primitive value types supported by WebdaQL expressions

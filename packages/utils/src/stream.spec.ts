@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Readable } from "stream";
-import { streamToBuffer, sanitizeFilename } from "./stream";
+import { streamToBuffer, sanitizeFilename } from "./stream.js";
 
 @suite
 export class StreamTest {

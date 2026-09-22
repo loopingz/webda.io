@@ -8,7 +8,7 @@ import { Lexer } from "antlr4ts/Lexer.js";
 import { Vocabulary } from "antlr4ts/Vocabulary.js";
 import { VocabularyImpl } from "antlr4ts/VocabularyImpl.js";
 
-import * as Utils from "antlr4ts/misc/Utils";
+import * as Utils from "antlr4ts/misc/Utils.js";
 
 export class WebdaQLParserLexer extends Lexer {
   public static readonly SPACE = 1;

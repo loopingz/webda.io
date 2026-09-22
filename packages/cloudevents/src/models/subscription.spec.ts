@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { CloudEvent } from "cloudevents";
 import { Server } from "http";
-import { SubscriptionMixIn } from "./subscription";
+import { SubscriptionMixIn } from "./subscription.js";
 
 class Subscription extends SubscriptionMixIn(Object) {}
 

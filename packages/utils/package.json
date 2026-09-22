@@ -17,14 +17,14 @@
     }
   },
   "scripts": {
-    "build": "tsc-esm",
-    "build:watch": "tsc-esm --watch",
+    "build": "tsc -p tsconfig.json",
+    "build:watch": "tsc -p tsconfig.json --watch",
     "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "pretest": "tsc-esm",
+    "pretest": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -36,10 +36,10 @@
   "devDependencies": {
     "@types/node": "25.5.0",
     "@webda/test": "workspace:*",
-    "@webda/tsc-esm": "workspace:*",
-    "vitest": "^4.1.2",
+    "skott": "^0.35.8",
+    "typescript": "^6.0.2",
     "vite": "^6.0.0",
-    "skott": "^0.35.8"
+    "vitest": "^4.1.2"
   },
   "files": [
     "lib"

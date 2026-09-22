@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import assert from "assert";
-import { TransformCase, TransformCaseType } from "./index";
+import { TransformCase, TransformCaseType } from "./index.js";
 
 @suite
 class CaseTest {

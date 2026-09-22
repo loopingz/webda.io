@@ -1,2 +1,2 @@
-export * from "./models/cloudevent";
-export * from "./models/subscription";
+export * from "./models/cloudevent.js";
+export * from "./models/subscription.js";

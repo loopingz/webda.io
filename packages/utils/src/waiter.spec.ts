@@ -10,7 +10,7 @@ import {
   WaitExponentialDelay,
   WaitFor,
   WaitLinearDelay
-} from "./waiter";
+} from "./waiter.js";
 
 @suite
 class WaiterTest {

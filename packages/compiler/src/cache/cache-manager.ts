@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { FileUtils } from "@webda/utils";
 import { useLog } from "@webda/workout";
-import { WebdaProject } from "../definition";
-import { WebdaCacheData } from "../types";
+import { WebdaProject } from "../definition.js";
+import { WebdaCacheData } from "../types.js";
 
 /**
  * Manages compilation cache for Webda projects

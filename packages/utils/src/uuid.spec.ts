@@ -1,6 +1,6 @@
 import assert from "assert";
 import { suite, test } from "@webda/test";
-import { getUuid } from "./uuid";
+import { getUuid } from "./uuid.js";
 
 @suite
 class UuidTest  {

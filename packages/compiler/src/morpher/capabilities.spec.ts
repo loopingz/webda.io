@@ -1,6 +1,6 @@
 import { Project } from "ts-morph";
 import { suite, test, expect } from "vitest";
-import { removeFilterRegistrations } from "./capabilities";
+import { removeFilterRegistrations } from "./capabilities.js";
 
 suite("removeFilterRegistrations", () => {
   function transform(source: string): string {

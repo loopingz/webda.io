@@ -1,7 +1,7 @@
 import { suite, test, expect } from "vitest";
 import * as ts from "typescript";
-import { CommandsMetadata } from "./commands";
-import type { WebdaModule } from "../definition";
+import { CommandsMetadata } from "./commands.js";
+import type { WebdaModule } from "../definition.js";
 
 /**
  * Helper: compile a source string and return the class node + type checker

@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { shouldDispatchBuildHooks } from "./shell-build-dispatch";
+import { shouldDispatchBuildHooks } from "./shell-build-dispatch.js";
 
 @suite
 class ShellBuildDispatchTest {

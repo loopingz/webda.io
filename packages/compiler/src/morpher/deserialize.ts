@@ -10,7 +10,7 @@ import {
   TypeChecker,
   TypeReferenceNode
 } from "ts-morph";
-import { upsertMethod } from "./utils";
+import { upsertMethod } from "./utils.js";
 
 /**
  * Check whether a type reference points to a class with an explicit constructor or a built-in constructible type

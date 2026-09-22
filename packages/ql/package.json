@@ -10,8 +10,8 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc-esm",
-    "grammar": "antlr4ts -visitor src/WebdaQLLexer.g4 src/WebdaQLParser.g4 && pnpm run lint:fix",
+    "build": "tsc -p tsconfig.json",
+    "grammar": "antlr4ts -visitor src/WebdaQLLexer.g4 src/WebdaQLParser.g4 && node ../../scripts/add-import-extensions.mjs src && pnpm run lint:fix",
     "pretest": "npm run build",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
@@ -27,7 +27,6 @@
   "devDependencies": {
     "@types/node": "25.5.0",
     "@webda/test": "workspace:^",
-    "@webda/tsc-esm": "workspace:*",
     "antlr4ts-cli": "0.5.0-alpha.4",
     "c8": "^11.0.0",
     "jscodeshift": "^17.3.0",

@@ -1,11 +1,11 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import * as WebdaQL from "./query";
+import * as WebdaQL from "./query.js";
 import { CharStreams, CommonTokenStream } from "antlr4ts";
 import { ParseTreeWalker } from "antlr4ts/tree/index.js";
-import { WebdaQLLexer } from "./WebdaQLLexer";
-import { WebdaQLParserParser } from "./WebdaQLParserParser";
-import type { WebdaQLParserListener } from "./WebdaQLParserListener";
+import { WebdaQLLexer } from "./WebdaQLLexer.js";
+import { WebdaQLParserParser } from "./WebdaQLParserParser.js";
+import type { WebdaQLParserListener } from "./WebdaQLParserListener.js";
 
 const targets = [
   {

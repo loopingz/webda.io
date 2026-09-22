@@ -1,10 +1,10 @@
 import ts from "typescript";
 import { dirname } from "path";
-import { WebdaProject } from "./definition";
+import { WebdaProject } from "./definition.js";
 
 import { writer } from "@webda/tsc-esm";
 import { useLog } from "@webda/workout";
-import { generateModule as generateModule } from "./module";
+import { generateModule as generateModule } from "./module.js";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { FileUtils } from "@webda/utils";

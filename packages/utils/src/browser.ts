@@ -5,13 +5,13 @@
  * while excluding any that rely on Node.js-specific APIs or modules.
  * This allows bundlers to automatically use this version of the utils when targeting browsers.
  */
-export * from "./case";
-export * from "./dirty";
-export * from "./debounce";
-export * from "./duration";
-export * from "./filesize";
-export * from "./freeze";
-export * from "./jsoncparser";
-export * from "./regexp";
-export * from "./throttler";
-export * from "./yamlproxy";
+export * from "./case.js";
+export * from "./dirty.js";
+export * from "./debounce.js";
+export * from "./duration.js";
+export * from "./filesize.js";
+export * from "./freeze.js";
+export * from "./jsoncparser.js";
+export * from "./regexp.js";
+export * from "./throttler.js";
+export * from "./yamlproxy.js";

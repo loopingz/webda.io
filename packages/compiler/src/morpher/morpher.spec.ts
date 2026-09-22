@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { suite, test, expect } from "vitest";
-import { WebdaMorpher } from "./morpher";
+import { WebdaMorpher } from "./morpher.js";
 import { join, resolve } from "node:path";
 
 suite(import.meta.dirname, () => {

@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { RegExpStringValidator } from "./index";
+import { RegExpStringValidator } from "./index.js";
 
 @suite
 class RegExpStringValidatorTest {

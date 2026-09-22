@@ -9,7 +9,7 @@ import { Parser } from "antlr4ts/Parser.js";
 import { ParserRuleContext } from "antlr4ts/ParserRuleContext.js";
 import { RecognitionException } from "antlr4ts/RecognitionException.js";
 import { RuleContext } from "antlr4ts/RuleContext.js";
-//import { RuleVersion } from "antlr4ts/RuleVersion";
+//import { RuleVersion } from "antlr4ts/RuleVersion.js";
 import { Token } from "antlr4ts/Token.js";
 import { TokenStream } from "antlr4ts/TokenStream.js";
 import { TerminalNode } from "antlr4ts/tree/TerminalNode.js";
@@ -18,8 +18,8 @@ import { VocabularyImpl } from "antlr4ts/VocabularyImpl.js";
 
 import * as Utils from "antlr4ts/misc/Utils.js";
 
-import { WebdaQLParserListener } from "./WebdaQLParserListener";
-import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor";
+import { WebdaQLParserListener } from "./WebdaQLParserListener.js";
+import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor.js";
 
 export class WebdaQLParserParser extends Parser {
   public static readonly SPACE = 1;

@@ -22,7 +22,7 @@ import {
   NDJSonReader as NDJSONReader,
   NDJSONStream,
   YAMLUtils
-} from "./serializers";
+} from "./serializers.js";
 import { Readable } from "node:stream";
 import { getCommonJS } from "./esm.js";
 

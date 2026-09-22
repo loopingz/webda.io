@@ -1,5 +1,5 @@
 import { JSONSchema7 } from "json-schema";
-import { WebdaModule, ModelMetadata } from "./definition";
+import { WebdaModule, ModelMetadata } from "./definition.js";
 import { useLog } from "@webda/workout";
 
 /**

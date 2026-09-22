@@ -1,5 +1,5 @@
 import { suite, test } from "@webda/test";
-import { FileSize } from "./filesize";
+import { FileSize } from "./filesize.js";
 import * as assert from "assert";
 
 @suite

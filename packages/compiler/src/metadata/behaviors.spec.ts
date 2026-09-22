@@ -1,8 +1,8 @@
 import { suite, test, expect } from "vitest";
 import * as ts from "typescript";
-import { BehaviorsMetadata } from "./behaviors";
-import type { WebdaModule } from "../definition";
-import { ModuleGenerator } from "../module";
+import { BehaviorsMetadata } from "./behaviors.js";
+import type { WebdaModule } from "../definition.js";
+import { ModuleGenerator } from "../module.js";
 
 /**
  * Helper: compile a source string and return the class nodes + type checker.

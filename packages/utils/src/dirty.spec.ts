@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { DirtyMixIn, DirtyState, track, WEBDA_DIRTY } from "./dirty";
+import { DirtyMixIn, DirtyState, track, WEBDA_DIRTY } from "./dirty.js";
 
 /** Simple class used as the base for mixin tests */
 class Base {

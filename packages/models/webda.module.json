@@ -14,19 +14,19 @@
       ],
       "Reflection": {},
       "Schemas": {
-        "Input": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
-          "additionalProperties": false,
-          "description": "Model object definition\n\nThis is the core of many application",
-          "type": "object",
-          "$webda": "fromDto$auto"
-        },
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
           "description": "Model object definition\n\nThis is the core of many application",
           "type": "object",
           "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Model object definition\n\nThis is the core of many application",
+          "type": "object",
+          "$webda": "fromDto$auto"
         },
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -55,23 +55,6 @@
         }
       },
       "Schemas": {
-        "Input": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
-          "additionalProperties": false,
-          "description": "Simple model with a UUID",
-          "properties": {
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          "required": [
-            "uuid"
-          ],
-          "type": "object",
-          "$webda": "fromDto$auto"
-        },
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
@@ -88,6 +71,23 @@
           ],
           "type": "object",
           "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Simple model with a UUID",
+          "properties": {
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
         },
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -117,5 +117,5 @@
   },
   "schemas": {},
   "behaviors": {},
-  "sourceDigest": "0d0dd9a7a7eadbe1f770807b919e5a74"
+  "sourceDigest": "cb5e0e6bc3ef507f16e370d5995a18a4"
 }

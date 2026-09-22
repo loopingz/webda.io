@@ -15,13 +15,7 @@ import { CommandsMetadata } from "./metadata/commands";
 import { EventsMetadata } from "./metadata/events";
 import { PrimaryKeyMetadata } from "./metadata/primarykey";
 import { PluralMetadata } from "./metadata/plural";
-import { SchemaGenerator } from "@webda/schema";
-import {
-  generateSchemasWithTypeScript7,
-  useTypeScript7Schemas,
-  type SchemaBatch,
-  type SchemaTarget
-} from "./schema-backend.js";
+import { generateSchemasWithTypeScript7, type SchemaBatch, type SchemaTarget } from "./schema-backend.js";
 import { generateSessionTypes } from "./session-types.js";
 
 /**
@@ -87,88 +81,6 @@ function hasNotEnumerableDecorator(symbol: ts.Symbol): boolean {
 }
 
 /**
- * Walk a JSON schema, hoist every nested `definitions` block to the schema
- * root, then drop any `$ref`s that point at definitions we couldn't resolve.
- *
- * The schema generator (typescript-json-schema) emits a `definitions` block
- * at every level where it inlines a complex sub-type, and uses absolute
- * `#/definitions/...` references inside that level. When we wrap the result
- * under `parametersSchema.properties[paramName]`, the inner refs end up
- * pointing at a root that no longer holds the definitions, so AJV fails to
- * compile the schema with errors like
- * `can't resolve reference #/definitions/Map$metadata`.
- *
- * Hoisting fixes the bound-generic case (e.g. `BinaryFileInfo<{}>`).
- * Pruning fixes the unbound-generic case where the def name and the ref
- * name diverge (e.g. ref `&1$metadata` vs def `&1(NaN)$metadata`) — there's
- * no valid resolution there, so we drop the ref entirely and let validation
- * accept whatever value the caller sends. Both situations would otherwise
- * crash AJV at registration time.
- * @param schema - schema produced by `schemaGenerator.getSchemaFromType`
- * @returns the same schema, mutated in place, with definitions hoisted and
- *   unresolvable refs removed
- */
-export function normalizeSchemaDefinitions(schema: any): any {
-  if (!schema || typeof schema !== "object") return schema;
-
-  const allDefs: Record<string, any> = {};
-  const collect = (node: any) => {
-    if (!node || typeof node !== "object") return;
-    if (Array.isArray(node)) {
-      node.forEach(collect);
-      return;
-    }
-    if (node.definitions && typeof node.definitions === "object") {
-      for (const [k, v] of Object.entries(node.definitions)) {
-        // First-writer wins — sibling definitions with the same key always
-        // describe the same type because the generator stamps the source
-        // type's name into the key.
-        if (!(k in allDefs)) allDefs[k] = v;
-      }
-      delete node.definitions;
-    }
-    for (const key of Object.keys(node)) {
-      if (key === "$ref") continue;
-      collect(node[key]);
-    }
-  };
-  collect(schema);
-
-  if (Object.keys(allDefs).length > 0) {
-    schema.definitions = { ...(schema.definitions || {}), ...allDefs };
-  }
-
-  const refExists = (ref: string): boolean => {
-    if (!ref.startsWith("#/definitions/")) return true; // external refs are out of scope
-    const raw = ref.substring("#/definitions/".length);
-    let decoded: string;
-    try {
-      decoded = decodeURIComponent(raw);
-    } catch {
-      decoded = raw;
-    }
-    return raw in allDefs || decoded in allDefs;
-  };
-
-  const pruneRefs = (node: any) => {
-    if (!node || typeof node !== "object") return;
-    if (Array.isArray(node)) {
-      node.forEach(pruneRefs);
-      return;
-    }
-    if (typeof node.$ref === "string" && !refExists(node.$ref)) {
-      delete node.$ref;
-    }
-    for (const key of Object.keys(node)) {
-      pruneRefs(node[key]);
-    }
-  };
-  pruneRefs(schema);
-
-  return schema;
-}
-
-/**
  * With compiled program, analyze the program and generate module
  *
  */
@@ -205,14 +117,14 @@ export interface NamingViolation {
 /** Builds `webda.module.json` by walking the program for Webda objects. */
 export class ModuleGenerator {
   typeChecker: ts.TypeChecker;
-  schemaGenerator: SchemaGenerator;
   /**
-   * Schemas from the TypeScript 7 port, when `WEBDA_SCHEMA_BACKEND=ts7`.
+   * Every schema this build needs, from `@webda/content-mapper`.
    *
-   * Populated once per build, before the `store` is flushed, so every
-   * producer below can read from it instead of calling the local generator.
+   * Fetched once, before the `store` is flushed, so each producer below is a
+   * lookup rather than a conversion. `@webda/schema` used to do this
+   * in-process; it needs TypeScript 6, which the toolchain no longer has.
    */
-  ts7Schemas?: SchemaBatch;
+  schemas: SchemaBatch;
   /**
    * Webda classes found in wrongly named files.
    *
@@ -277,102 +189,6 @@ export class ModuleGenerator {
       throw new Error(message);
     }
     useLog("WARN", message);
-  }
-
-  /**
-   * Return the model schema
-   * @param node - the model AST node
-   * @param title - optional schema title
-   * @returns input, output, and stored schemas
-   */
-  generateModelSchemas(
-    node: ts.Node,
-    title?: string
-  ): {
-    Input: JSONSchema7;
-    Output: JSONSchema7;
-    Stored: JSONSchema7;
-  } {
-    useLog("INFO", `Generating model schemas for ${title}`);
-    const res = {
-      Input: {},
-      Output: {},
-      Stored: {}
-    };
-    const classType = this.typeChecker.getTypeAtLocation(node);
-    const getSignature = (methodName: string): ts.Signature | undefined => {
-      const apparent = this.typeChecker.getApparentType(classType);
-      const symbol = apparent.getProperty(methodName) || classType.getProperty(methodName);
-      if (!symbol) return undefined;
-      const methodType = this.typeChecker.getTypeOfSymbolAtLocation(symbol, node);
-      const sigs = this.typeChecker.getSignaturesOfType(methodType, ts.SignatureKind.Call);
-      return sigs.length ? sigs[0] : undefined;
-    };
-    const toDtoSig = getSignature("toDto");
-    const fromDtoSig = getSignature("fromDto");
-    const toJSONSig = getSignature("toJSON");
-    if (toDtoSig) {
-      // Get the return type of toDto (inherited or local)
-      const toDtoType = this.typeChecker.getReturnTypeOfSignature(toDtoSig);
-      res.Output = this.schemaGenerator.getSchemaFromType(toDtoType, { type: "dto-out", asRef: false });
-      // @ts-ignore
-      res.Output.$webda = "toDto$return";
-    } else {
-      res.Output = this.schemaGenerator.getSchemaFromNodes([node], { type: "dto-out", asRef: false });
-      // @ts-ignore
-      res.Output.$webda = "toDto$auto";
-    }
-    if (fromDtoSig) {
-      // Get the parameter type of fromDto's first param
-      const firstParam = fromDtoSig.parameters[0];
-      const paramDecl = (firstParam as any).valueDeclaration || firstParam.declarations?.[0];
-      const fromDtoParamType = paramDecl
-        ? this.typeChecker.getTypeAtLocation(paramDecl)
-        : this.typeChecker.getTypeOfSymbolAtLocation(firstParam, node);
-      res.Input = this.schemaGenerator.getSchemaFromType(fromDtoParamType, { type: "dto-in", asRef: false });
-      // @ts-ignore
-      res.Input.$webda = "fromDto$param";
-    } else {
-      res.Input = this.schemaGenerator.getSchemaFromNodes([node], { type: "dto-in", asRef: false });
-      // @ts-ignore
-      res.Input.$webda = "fromDto$auto";
-    }
-    if (toJSONSig) {
-      // Get the return type of toJSON (inherited or local)
-      const toJsonType = this.typeChecker.getReturnTypeOfSignature(toJSONSig);
-      res.Stored = this.schemaGenerator.getSchemaFromType(toJsonType, { type: "output", asRef: false });
-      // @ts-ignore
-      res.Stored.$webda = "toJSON$return";
-    } else {
-      res.Stored = this.schemaGenerator.getSchemaFromNodes([node], { type: "output", asRef: false });
-      // @ts-ignore
-      res.Stored.$webda = "toJSON$auto";
-    }
-    return res;
-  }
-
-  /**
-   * Generate a single schema
-   * @param schemaNode - the AST node to generate schema from
-   * @param title - optional schema title
-   * @returns the generated JSON schema
-   */
-  generateSchema(schemaNode: ts.Node, title?: string): JSONSchema7 {
-    let res: JSONSchema7;
-    try {
-      useLog("INFO", "Generating schema for " + title);
-      res = this.schemaGenerator.getSchemaFromNodes([schemaNode], {
-        log: (...args: any) => {
-          useLog("DEBUG", ...args);
-        }
-      });
-      if (title) {
-        res.title = title;
-      }
-    } catch (err) {
-      useLog("WARN", `Cannot generate schema for ${schemaNode.getText().split("\n")[0]}`, err);
-    }
-    return res;
   }
 
   /**
@@ -1156,224 +972,23 @@ export class ModuleGenerator {
   }
 
   /**
-   * Explore models for @Action and @Operation decorated methods
-   * Handles both instance and static methods
-   * @param models - the discovered models
-   * @param schemas - schema results to populate
-   */
-  exploreModelsAction(models: WebdaSearchResults, schemas: WebdaSchemaResults) {
-    Object.values(models).forEach(model => {
-      // Instance methods (via type system)
-      model.type
-        .getProperties()
-        .filter(
-          prop =>
-            prop.valueDeclaration?.kind === ts.SyntaxKind.MethodDeclaration &&
-            this.hasOperationDecorator(<ts.MethodDeclaration>prop.valueDeclaration)
-        )
-        .map(prop => prop.valueDeclaration)
-        .forEach((method: ts.MethodDeclaration) => {
-          this.checkMethodForContext(model.name, method, schemas);
-        });
-
-      // Static methods (not on instance type, scan class declaration directly)
-      if (ts.isClassDeclaration(model.node as ts.Node)) {
-        (<ts.ClassDeclaration>model.node).members
-          .filter(
-            (member): member is ts.MethodDeclaration =>
-              ts.isMethodDeclaration(member) &&
-              member.modifiers?.some(m => m.kind === ts.SyntaxKind.StaticKeyword) &&
-              this.hasOperationDecorator(member)
-          )
-          .forEach((method: ts.MethodDeclaration) => {
-            this.checkMethodForContext(model.name, method, schemas);
-          });
-      }
-    });
-  }
-
-  /**
-   * Explore Behavior classes (those carrying the `@WebdaBehavior` JSDoc tag)
-   * for `@Action` / `@Operation` instance methods and generate
-   * `<behaviorIdentifier>.<methodName>.input` / `.output` schemas.
-   *
-   * Without this, `DomainService.addBehaviorOperations` falls back to the
-   * generic `uuidRequest` input schema, which causes `resolveArguments` to
-   * drop every argument after `uuid` (e.g., the `{hash}` URL param and
-   * request body for `Binary.setMetadata`).
-   * @param allClasses - every class entry collected by `searchForWebdaObjects`
-   * @param schemas - schema results to populate
-   */
-  exploreBehaviorsAction(allClasses: WebdaClassEntry[], schemas: WebdaSchemaResults) {
-    for (const cls of allClasses) {
-      // Only emit schemas for project-owned Behavior sources; lib `.d.ts`
-      // entries already had their schemas emitted by the package that owns
-      // them.
-      if (cls.lib) continue;
-      if (!ts.isClassDeclaration(cls.node) && !ts.isClassExpression(cls.node)) continue;
-      const behaviorTag = ts
-        .getJSDocTags(cls.node)
-        .find(tag => tag.tagName.escapedText.toString() === "WebdaBehavior");
-      if (!behaviorTag) continue;
-
-      // Resolve the Behavior identifier the same way BehaviorsMetadata does:
-      // honour an optional payload override (`@WebdaBehavior Auth/MFA`),
-      // otherwise fall back to the namespaced class name.
-      let identifier: string | undefined;
-      const override = ts.getTextOfJSDocComment(behaviorTag.comment)?.trim();
-      if (override) {
-        identifier = override.split(/\s+/).shift();
-      }
-      if (!identifier) {
-        const project = (this.compiler as any)?.project;
-        if (project && typeof project.completeNamespace === "function") {
-          identifier = project.completeNamespace(cls.name);
-        } else {
-          identifier = cls.name.includes("/") ? cls.name : `Webda/${cls.name}`;
-        }
-      }
-
-      cls.type
-        .getProperties()
-        .filter(
-          prop =>
-            prop.valueDeclaration?.kind === ts.SyntaxKind.MethodDeclaration &&
-            this.hasOperationDecorator(<ts.MethodDeclaration>prop.valueDeclaration)
-        )
-        .map(prop => prop.valueDeclaration)
-        .forEach((method: ts.MethodDeclaration) => {
-          this.checkMethodForContext(identifier!, method, schemas);
-        });
-    }
-  }
-
-  /**
-   * Explore services or beans for @Operation and @Route methods
-   * @param services - the discovered services
-   * @param schemas - schema results to populate
-   */
-  exploreServices(services: WebdaSearchResults, schemas: WebdaSchemaResults) {
-    Object.values(services).forEach(service => {
-      service.type
-        .getProperties()
-        .filter(
-          prop =>
-            prop.valueDeclaration?.kind === ts.SyntaxKind.MethodDeclaration &&
-            this.hasOperationDecorator(<ts.MethodDeclaration>prop.valueDeclaration)
-        )
-        .map(prop => prop.valueDeclaration)
-        .forEach((method: ts.MethodDeclaration) => {
-          this.checkMethodForContext(service.type.getSymbol().getName(), method, schemas);
-        });
-    });
-  }
-
-  /**
-   * Ensure each method that are supposed to have a context have one
-   * And detect their input/output schema
-   *
-   * @param rootName - the owning class name
-   * @param method - the method declaration
-   * @param schemas - schema results to populate
-   */
-  checkMethodForContext(rootName: string, method: ts.MethodDeclaration, schemas: WebdaSchemaResults) {
-    this.compiler.typeChecker ??= this.compiler.tsProgram.getTypeChecker();
-    [".input", ".output"].forEach(suffix => {
-      const name = rootName + "." + method.name.getText() + suffix;
-      const schema =
-        suffix === ".input" ? this.getMethodParametersSchema(method) : this.getMethodReturnType(method);
-      if (schema !== null) {
-        useLog("INFO", `Adding schema for ${name}`);
-        schemas.addSchema(name, schema);
-      }
-    });
-  }
-
-  /**
-   * Return the method parameters schema
-   * @param method - the method declaration
-   * @returns the parameters JSON schema
-   */
-  getMethodParametersSchema(method: ts.MethodDeclaration): JSONSchema7 {
-    // Get the type of the action method
-    const actionMethodType = this.compiler.typeChecker.getTypeAtLocation(method); //this.compiler.typeChecker.getTypeOfSymbolAtLocation(actionType, node) as ts.Type;
-    const signatures = this.compiler.typeChecker.getSignaturesOfType(actionMethodType, ts.SignatureKind.Call);
-    // action(email: string, data: { info: string; test: string }): Promise<{ success: boolean; results: ModelA[] }>
-    const parametersSchema: any = {
-      type: "object",
-      properties: {}
-    };
-    const required: string[] = [];
-    for (const param of signatures[0]!.parameters) {
-      const paramName = param.getName();
-      parametersSchema.properties![paramName] = this.schemaGenerator.getSchemaFromType(
-        this.compiler.typeChecker.getTypeOfSymbolAtLocation(param, method.parent),
-        {
-          asRef: false,
-          type: "input"
-        }
-      );
-      delete parametersSchema.properties![paramName]["$schema"];
-      // Check if parameter is required (no ? modifier and no default value)
-      const isOptional =
-        (param.flags & ts.SymbolFlags.Optional) !== 0 ||
-        param.declarations?.some(
-          d => ts.isParameter(d) && (d.questionToken !== undefined || d.initializer !== undefined)
-        );
-      if (!isOptional) {
-        required.push(paramName);
-      }
-    }
-    if (required.length > 0) {
-      parametersSchema.required = required;
-    }
-    return normalizeSchemaDefinitions(parametersSchema);
-  }
-
-  /**
-   * Get the return type schema for a method
-   *
-   * For async methods (returning Promise<T>), extracts and returns the schema for T.
-   * For non-async methods, returns the schema for the return type directly.
-   * @param method - the method declaration
-   * @returns the return type JSON schema
-   */
-  getMethodReturnType(method: ts.MethodDeclaration): JSONSchema7 {
-    const actionType = this.compiler.typeChecker.getApparentType(this.compiler.typeChecker.getTypeAtLocation(method));
-    const signatures = this.compiler.typeChecker.getSignaturesOfType(actionType, ts.SignatureKind.Call);
-    const returnType = this.compiler.typeChecker.getReturnTypeOfSignature(signatures[0]!);
-    // Check if return type is a Promise by verifying the symbol name
-    const typeRef = returnType as ts.TypeReference;
-    const typeName = typeRef.symbol?.getName() ?? "";
-    const isPromise = typeName === "Promise" && typeRef.typeArguments?.length > 0;
-    const resolvedType = isPromise ? typeRef.typeArguments[0] : returnType;
-    if (!resolvedType) {
-      useLog("WARN", `Cannot determine return type for method ${method.name.getText()}`);
-      return undefined;
-    }
-    const schema = this.schemaGenerator.getSchemaFromType(resolvedType, {
-      asRef: false,
-      type: "output"
-    });
-    return normalizeSchemaDefinitions(schema);
-  }
-
-  /**
-   * Ask the TypeScript 7 port for every schema this build needs.
+   * Ask `@webda/content-mapper` for every schema this build needs.
    *
    * Targets are named by file and class, which is all that survives a
-   * process boundary — the port resolves them in its own program. Top-level
-   * schemas are not named at all: they carry no provenance, so the port
-   * rediscovers them and returns the whole map.
+   * process boundary — the generator resolves them in its own program. Top
+   * level schemas are not named at all: they carry no provenance, so the
+   * generator rediscovers them and returns the whole map.
    * @param objects - the discovered Webda objects
    * @param objects.moddas - discovered moddas
    * @param objects.beans - discovered beans
+   * @param objects.deployers - discovered deployers
    * @param objects.models - discovered models
    * @returns the generated schemas
    */
-  requestTypeScript7Schemas(objects: {
+  requestSchemas(objects: {
     moddas: WebdaSearchResults;
     beans: WebdaSearchResults;
+    deployers: WebdaSearchResults;
     models: WebdaSearchResults;
   }): SchemaBatch {
     const targets = (results: WebdaSearchResults): SchemaTarget[] =>
@@ -1387,7 +1002,13 @@ export class ModuleGenerator {
 
     return generateSchemasWithTypeScript7(
       this.compiler.project.getAppPath(),
-      [...targets(objects.moddas), ...targets(objects.beans)],
+      [
+        ...targets(objects.moddas),
+        ...targets(objects.beans),
+        // A deployer's parameters derive from `DeployerResources`, not
+        // `ServiceParameters`, so it has to say which.
+        ...targets(objects.deployers).map(target => ({ ...target, parametersBase: "DeployerResources" }))
+      ],
       targets(objects.models)
     );
   }
@@ -1398,19 +1019,9 @@ export class ModuleGenerator {
    */
   generate() {
     this.typeChecker = this.compiler.tsProgram.getTypeChecker();
-    this.schemaGenerator = new SchemaGenerator({
-      program: this.compiler.tsProgram,
-      log: (...args) => useLog("DEBUG", ...args)
-    });
     const objects = this.searchForWebdaObjects();
     this.reportNamingViolations();
-    this.exploreModelsAction(objects.models, objects.schemas);
-    this.exploreServices(objects.moddas, objects.schemas);
-    this.exploreServices(objects.beans, objects.schemas);
-    this.exploreBehaviorsAction(objects.allClasses, objects.schemas);
-    if (useTypeScript7Schemas()) {
-      this.ts7Schemas = this.requestTypeScript7Schemas(objects);
-    }
+    this.schemas = this.requestSchemas(objects);
     const jsOnly = a => ({
       Import: a.jsFile,
       Schema: {}
@@ -1584,36 +1195,23 @@ class WebdaSchemaResults {
         if (!results[section][name] && section !== "schemas") {
           return;
         }
-        const ts7 = moduleGenerator.ts7Schemas;
+        const generated = moduleGenerator.schemas;
 
+        // Top-level entries record no provenance — the key is all there is —
+        // so the generator discovers them itself and they are written
+        // wholesale below rather than looked up by name.
         if (section === "schemas") {
-          // Under the TypeScript 7 backend the whole top-level map comes from
-          // the port's own discovery and is written below, so nothing to do.
-          if (ts7) return;
-          // @ts-ignore
-          results[section][name] = schemaNode ? moduleGenerator.generateSchema(schemaNode, title || name) : link;
+          void link;
           return;
         }
 
         if (section === "models") {
-          if (ts7) {
-            if (ts7.models[name]) results[section][name].Schemas = ts7.models[name];
-            return;
-          }
-          try {
-            // Generate Model schemas
-            results[section][name].Schemas = moduleGenerator.generateModelSchemas(schemaNode as ts.Node, title || name);
-          } catch (err) {
-            useLog("WARN", `Cannot generate schemas for model ${name}:`, err.message);
-            useLog("TRACE", err.stack);
-          }
+          if (generated.models[name]) results[section][name].Schemas = generated.models[name];
           return;
         }
 
         if (schemaNode) {
-          results[section][name].Schema = ts7
-            ? (ts7.services[name] ?? results[section][name].Schema)
-            : moduleGenerator.generateSchema(schemaNode as ts.Node, title || name);
+          results[section][name].Schema = generated.services[name] ?? results[section][name].Schema;
           let exportName = "";
           try {
             const type = moduleGenerator.typeChecker.getTypeAtLocation(schemaNode as ts.Node);
@@ -1633,22 +1231,14 @@ class WebdaSchemaResults {
           } catch (err) {
             useLog("WARN", "Cannot guess export name for service configuration:", err.stack);
           }
-          // The port already injects `openapi`; doing it again here would be
-          // harmless but makes the two paths textually different.
-          if (!ts7 && addOpenApi && results[section][name]) {
-            results[section][name].Schema.properties ??= {};
-            results[section][name].Schema.properties["openapi"] = {
-              type: "object",
-              additionalProperties: true
-            };
-          }
+          // `openapi` is injected by the generator, which is told per
+          // request whether the section wants it.
+          void addOpenApi;
         }
       });
-    // Add schemas. Under the TypeScript 7 backend the port discovered these
-    // itself — `@WebdaSchema` types and every `@Action` input/output — so its
-    // map replaces the locally accumulated one wholesale.
-    const source = moduleGenerator.ts7Schemas ? moduleGenerator.ts7Schemas.topLevel : this.schemas;
-    for (const [name, schema] of Object.entries(source)) {
+    // `@WebdaSchema` types and every `@Action` input/output, discovered by
+    // the generator rather than named by the caller.
+    for (const [name, schema] of Object.entries(moduleGenerator.schemas.topLevel)) {
       results.schemas[name] = schema;
     }
   }

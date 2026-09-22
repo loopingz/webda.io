@@ -250,13 +250,23 @@
       "Import": "lib/utils/password.service:PasswordEncryptionService",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "PasswordEncryptionService",
+        "additionalProperties": false,
+        "description": "Interface to specify the Service parameters",
         "properties": {
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true
           }
-        }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "PasswordEncryptionService"
       },
       "Configuration": "node_modules/@webda/core/lib/services/serviceparameters:ServiceParameters"
     },
@@ -359,34 +369,6 @@
         }
       },
       "Schemas": {
-        "Input": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
-          "additionalProperties": false,
-          "description": "Binary Model is a model that store its data in a binary file",
-          "properties": {
-            "__data": {},
-            "__dataUpdated": {
-              "default": false,
-              "type": "boolean"
-            },
-            "data": {
-              "description": "Proxied accessor that marks the model as dirty on any mutation\nReplace the underlying data and mark it for upload",
-              "returns": "a Proxy wrapping the underlying data that tracks writes"
-            },
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          "required": [
-            "__data",
-            "data",
-            "uuid"
-          ],
-          "type": "object",
-          "$webda": "fromDto$auto"
-        },
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
@@ -462,6 +444,34 @@
           ],
           "type": "object",
           "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Binary Model is a model that store its data in a binary file",
+          "properties": {
+            "__data": {},
+            "__dataUpdated": {
+              "default": false,
+              "type": "boolean"
+            },
+            "data": {
+              "description": "Proxied accessor that marks the model as dirty on any mutation\nReplace the underlying data and mark it for upload",
+              "returns": "a Proxy wrapping the underlying data that tracks writes"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__data",
+            "data",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
         },
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -606,5 +616,5 @@
     }
   },
   "behaviors": {},
-  "sourceDigest": "f3a2338c48a2fe0fa9da148394a43de8"
+  "sourceDigest": "d26247f9d77afd537c47de955da0e5dc"
 }

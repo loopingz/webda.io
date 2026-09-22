@@ -31,7 +31,7 @@
   "dependencies": {
     "@phenomnomnominal/tsquery": "^6.1.4",
     "@types/json-schema": "^7.0.15",
-    "@webda/schema": "workspace:^",
+    "@webda/content-mapper": "workspace:*",
     "@webda/ts-plugin": "workspace:^",
     "@webda/utils": "workspace:^",
     "@webda/workout": "workspace:*",

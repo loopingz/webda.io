@@ -11,10 +11,6 @@
  * the committed `webda.module.json` files cannot be regenerated through a
  * real `webdac build`.
  *
- * **Opt-in, and off by default.** Set `WEBDA_SCHEMA_BACKEND=ts7`. The
- * TypeScript 6 path is untouched otherwise, so enabling it is a one-variable
- * experiment rather than a migration.
- *
  * Verified equivalent per schema by
  * `packages/content-mapper/tools/schema-diff.mjs`, which scores both
  * implementations against the committed artefacts. What this adds is the
@@ -43,6 +39,8 @@ export interface SchemaTarget {
   fileName: string;
   /** Exported class name. */
   className: string;
+  /** Base type the parameters derive from; `DeployerResources` for deployers. */
+  parametersBase?: string;
 }
 
 /** Everything one build needs, answered in a single round trip. */
@@ -53,14 +51,6 @@ export interface SchemaBatch {
   models: Record<string, ModelSchemas>;
   /** The whole top-level `schemas` map, discovered by the port itself. */
   topLevel: Record<string, JSONSchema7>;
-}
-
-/**
- * Whether the TypeScript 7 backend was asked for.
- * @returns true when `WEBDA_SCHEMA_BACKEND=ts7`
- */
-export function useTypeScript7Schemas(): boolean {
-  return process.env.WEBDA_SCHEMA_BACKEND === "ts7";
 }
 
 /**
@@ -75,29 +65,29 @@ export function useTypeScript7Schemas(): boolean {
  * @throws when the package is not installed
  */
 function resolveWorker(projectRoot: string): string {
-  // Explicit override, for exercising the port across a monorepo without
-  // adding the package to every application first.
+  // Explicit override, for running a generator that is not the installed
+  // one — bisecting a schema change, or exercising a build from source.
   const override = process.env.WEBDA_SCHEMA_WORKER;
   if (override) {
     if (!existsSync(override)) throw new Error(`WEBDA_SCHEMA_WORKER does not exist: ${override}`);
     return override;
   }
 
+  // The application first, so an app can pin a generator version, then the
+  // compiler's own tree.
   const bases = [projectRoot, dirname(new URL(import.meta.url).pathname)];
   for (const base of bases) {
     try {
-      const require_ = createRequire(join(base, "index.js"));
-      const manifest = require_.resolve("@webda/content-mapper/package.json");
-      const worker = join(dirname(manifest), "lib", "schema", "worker-cli.js");
+      const worker = createRequire(join(base, "index.js")).resolve("@webda/content-mapper/schema-worker-cli");
       if (existsSync(worker)) return worker;
     } catch {
-      // Try the next base.
+      // Not resolvable from here; try the next base.
     }
   }
   throw new Error(
-    "WEBDA_SCHEMA_BACKEND=ts7 requires @webda/content-mapper to be installed and built " +
-      "(lib/schema/worker-cli.js). Install it in the application, point WEBDA_SCHEMA_WORKER " +
-      "at the worker, or unset WEBDA_SCHEMA_BACKEND."
+    "Schema generation requires @webda/content-mapper to be installed and built " +
+      "(lib/schema/worker-cli.js). Install it alongside @webda/compiler, or point " +
+      "WEBDA_SCHEMA_WORKER at the worker."
   );
 }
 
@@ -124,7 +114,8 @@ export function generateSchemasWithTypeScript7(
       kind: "service",
       file: target.fileName,
       className: target.className,
-      addOpenApi: true
+      addOpenApi: target.parametersBase === undefined,
+      parametersBase: target.parametersBase
     })),
     ...models.map(target => ({
       id: `model:${target.name}`,
@@ -143,11 +134,11 @@ export function generateSchemasWithTypeScript7(
     maxBuffer: 256 * 1024 * 1024
   });
   if (run.status !== 0) {
-    throw new Error(`TypeScript 7 schema worker failed (${run.status}): ${(run.stderr || "").trim().slice(0, 2000)}`);
+    throw new Error(`Schema worker failed (${run.status}): ${(run.stderr || "").trim().slice(0, 2000)}`);
   }
 
   const response = JSON.parse(run.stdout);
-  useLog("INFO", `TypeScript 7 schemas: ${requests.length} requests in ${Date.now() - started}ms`);
+  useLog("INFO", `Generated ${requests.length} schema requests in ${Date.now() - started}ms`);
 
   // The converter refuses rather than degrading, so an error here means a
   // type it will not guess at. Surfacing it is the whole point; swallowing
@@ -155,7 +146,7 @@ export function generateSchemasWithTypeScript7(
   const errors = Object.entries(response.errors ?? {});
   if (errors.length > 0) {
     throw new Error(
-      `TypeScript 7 schema generation failed for ${errors.length} target(s):\n` +
+      `Schema generation failed for ${errors.length} target(s):\n` +
         errors.map(([id, message]) => `  ${id}: ${message}`).join("\n")
     );
   }

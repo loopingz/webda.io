@@ -33,6 +33,10 @@
       "types": "./lib/schema/worker.d.ts",
       "import": "./lib/schema/worker.js",
       "node": "./lib/schema/worker.js"
+    },
+    "./schema-worker-cli": {
+      "import": "./lib/schema/worker-cli.js",
+      "node": "./lib/schema/worker-cli.js"
     }
   },
   "typescript": {

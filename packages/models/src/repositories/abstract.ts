@@ -1,8 +1,8 @@
-import type { PK, PrimaryKey, PrimaryKeyAttributes, PrimaryKeyType, ModelClass } from "../storable";
-import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types";
-import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS } from "../storable";
-import { ModelRefWithCreate } from "../relations";
-import { Repository } from "./repository";
+import type { PK, PrimaryKey, PrimaryKeyAttributes, PrimaryKeyType, ModelClass } from "../storable.js";
+import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types.js";
+import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS } from "../storable.js";
+import { ModelRefWithCreate } from "../relations.js";
+import { Repository } from "./repository.js";
 import type { ArrayElement } from "@webda/tsc-esm";
 
 /**

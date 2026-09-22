@@ -7,15 +7,15 @@ import {
   WEBDA_PRIMARY_KEY_SEPARATOR,
   WEBDA_STORAGE,
   ModelClass
-} from "./storable";
+} from "./storable.js";
 import { DirtyState, WEBDA_DIRTY } from "@webda/utils";
-import type { Helpers, SelfJSONed } from "./types";
+import type { Helpers, SelfJSONed } from "./types.js";
 import { randomUUID } from "crypto";
-import type { ModelRef } from "./relations";
-import type { Repository } from "./repositories/repository";
+import type { ModelRef } from "./relations.js";
+import type { Repository } from "./repositories/repository.js";
 import { ObjectSerializer, registerSerializer } from "@webda/serialize";
-import { LoadParameters } from "./types";
-import { RepositoryStorageClassMixIn } from "./repositories/hooks";
+import { LoadParameters } from "./types.js";
+import { RepositoryStorageClassMixIn } from "./repositories/hooks.js";
 
 /**
  * Make all properties optional except those in K.

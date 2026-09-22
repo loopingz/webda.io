@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "preserve",
+    "module": "nodenext",
     "outDir": "./lib",
     "rootDir": "./src",
     "strict": false,
@@ -10,7 +10,7 @@
     "isolatedModules": true,
     "experimentalDecorators": false,
     "esModuleInterop": true,
-    "moduleResolution": "bundler",
+    "moduleResolution": "nodenext",
     "types": ["node"],
     "skipLibCheck": true,
     "declarationMap": true,

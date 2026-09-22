@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es2020",
     "lib": ["es2019", "DOM"],
-    "module": "preserve",
+    "module": "nodenext",
     "outDir": "./lib",
     "rootDir": "./src",
     "strict": true,
@@ -10,7 +10,7 @@
     "sourceMap": true,
     "experimentalDecorators": false,
     "esModuleInterop": true,
-    "moduleResolution": "bundler",
+    "moduleResolution": "nodenext",
     "skipLibCheck": true,
     "types": ["node"]
   },

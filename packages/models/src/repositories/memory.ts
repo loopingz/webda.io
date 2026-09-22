@@ -1,9 +1,9 @@
 import type { ArrayElement } from "@webda/tsc-esm";
-import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable";
-import type { Helpers, JSONed, SelfJSONed, PropertyPaths, NumericPropertyPaths } from "../types";
+import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable.js";
+import type { Helpers, JSONed, SelfJSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";
 import { deserialize, serialize, serializeRaw } from "@webda/serialize";
-import { AbstractRepository } from "./abstract";
-import { Repository, WEBDA_TEST } from "./repository";
+import { AbstractRepository } from "./abstract.js";
+import { Repository, WEBDA_TEST } from "./repository.js";
 
 /**
  * Parsed query structure expected from the WebdaQL parser.

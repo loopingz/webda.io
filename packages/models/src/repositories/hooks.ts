@@ -1,7 +1,7 @@
-import type { ModelRefWithCreate } from "../relations";
-import { PrimaryKeyType, SettablePrimaryKey, WEBDA_PRIMARY_KEY, type Storable, type ModelClass } from "../storable";
-import { Helpers } from "../types";
-import type { Repository } from "./repository";
+import type { ModelRefWithCreate } from "../relations.js";
+import { PrimaryKeyType, SettablePrimaryKey, WEBDA_PRIMARY_KEY, type Storable, type ModelClass } from "../storable.js";
+import { Helpers } from "../types.js";
+import type { Repository } from "./repository.js";
 import type { WebdaQLString } from "@webda/ql";
 
 /**

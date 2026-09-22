@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "module": "preserve",
+    "module": "nodenext",
     "outDir": "./lib",
     "rootDir": "./src",
     "strict": true,
@@ -9,7 +9,7 @@
     "sourceMap": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "moduleResolution": "bundler",
+    "moduleResolution": "nodenext",
     "skipLibCheck": true,
     "declarationMap": true,
     "useDefineForClassFields": false,

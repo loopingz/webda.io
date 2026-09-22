@@ -9,10 +9,10 @@ import {
   PrimaryKeyAttributes,
   WEBDA_PRIMARY_KEY,
   ModelClass
-} from "./storable";
-import type { JSONed, Helpers, PropertyPaths, PropertyPathType, NumericPropertyPaths } from "./types";
-import type { Repository } from "./repositories/repository";
-import { useRepository } from "./repositories/hooks";
+} from "./storable.js";
+import type { JSONed, Helpers, PropertyPaths, PropertyPathType, NumericPropertyPaths } from "./types.js";
+import type { Repository } from "./repositories/repository.js";
+import { useRepository } from "./repositories/hooks.js";
 import * as WebdaQL from "@webda/ql";
 import type { WebdaQLString } from "@webda/ql";
 

@@ -5,7 +5,7 @@ import { Comment } from "../models/Comment.model.js";
 import { Tag } from "../models/Tag.model.js";
 import { UserFollow } from "../models/UserFollow.model.js";
 import { track } from "@webda/utils";
-import { setupRepositories } from "../repositories/setup";
+import { setupRepositories } from "../repositories/setup.js";
 
 export class TestBeanParameters extends Service.Parameters {
   service: ServiceName;

@@ -21,10 +21,7 @@ import { API, type Checker, type Program, type Project } from "typescript/unstab
 import { createFileSystemLayer } from "typescript/unstable/fs";
 import type { SourceFile } from "typescript/unstable/ast";
 import { baseNames, textOf, triviaOf } from "./context.ts";
-import { accessorsGenerator } from "./generators/accessors.ts";
-import { behaviorsGenerator } from "./generators/behaviors.ts";
-import { qlValidatorGenerator } from "./generators/qlvalidator.ts";
-import { loadParametersGenerator } from "./generators/loadparameters.ts";
+import { defaultGenerators } from "./defaults.ts";
 import { mergePlan, type Edit, type GeneratedDiagnostic, type Generator } from "./plan.ts";
 import { buildMappedText, type MappedText } from "./spans.ts";
 
@@ -86,12 +83,7 @@ export class WarmSession {
    */
   constructor(options: WarmSessionOptions) {
     this.options = options;
-    this.generators = options.generators ?? [
-      accessorsGenerator({ accessorsForAll: options.accessorsForAll, storageModule: options.storageModule }),
-      behaviorsGenerator({ storageModule: options.storageModule }),
-      qlValidatorGenerator({ qlModule: options.qlModule }),
-      loadParametersGenerator()
-    ];
+    this.generators = options.generators ?? defaultGenerators(options);
 
     const t0 = process.hrtime.bigint();
     this.api = new API({ cwd: options.cwd });

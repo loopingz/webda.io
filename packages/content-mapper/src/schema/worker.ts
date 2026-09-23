@@ -25,7 +25,10 @@
  * `{ "id": "m", "kind": "module" }` answers with
  * `{ module, namingViolations, errors }` — see `../module.ts`.
  */
-import { join } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { formatDiagnostics } from "typescript/unstable/sync";
+import { runTwoPass } from "../twopass.ts";
 import { ModifierFlags } from "typescript/unstable/ast";
 import type { ClassDeclaration } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
@@ -45,7 +48,7 @@ export interface SchemaRequest {
    * `module` needs no class and answers with the whole `webda.module.json`
    * (minus `sourceDigest`) as `{ module, namingViolations, errors }`.
    */
-  kind: "service" | "model" | "topLevel" | "module";
+  kind: "service" | "model" | "topLevel" | "module" | "emit";
   /** Absolute path of the file declaring the class. */
   file: string;
   /** Class to generate for. */
@@ -107,6 +110,10 @@ export function handle(request: WorkerRequest): WorkerResponse {
           }) as unknown as JSONSchema7;
           continue;
         }
+        if (item.kind === "emit") {
+          response.results[item.id] = emitProject(configFile, item.rootDir ?? join(request.project, "src")) as never;
+          continue;
+        }
         if (item.kind === "module") {
           // The whole module in one answer; naming violations and errors
           // travel with it so the caller decides how to report them.
@@ -165,6 +172,51 @@ interface SourceFileLookup {
    * @returns the source file, when the program owns it
    */
   getSourceFile(name: string): unknown;
+}
+
+/** What an `emit` request reports. */
+export interface EmitReport {
+  /** Pass-2 diagnostics, formatted as `tsc` would print them. */
+  diagnostics: string;
+  /** Number of diagnostics; nothing is written unless it is zero. */
+  diagnosticCount: number;
+  /** Files written. */
+  written: number;
+  /** Edits per generator, for the build log. */
+  editCounts: Record<string, number>;
+}
+
+/**
+ * Build a project through the two-pass tsgo pipeline and write its output.
+ *
+ * Replaces `tsProgram.emit` with the four `@webda/ts-plugin` transformers.
+ * Pass 1 plans the generated code over the authored sources; pass 2 type-
+ * checks and emits the rewritten text, so what ships is exactly what was
+ * checked. If pass 2 reports anything, nothing is written — the old emit
+ * wrote files even when `getPreEmitDiagnostics` failed.
+ * @param configFile - absolute tsconfig path
+ * @param rootDir - source root
+ * @returns diagnostics and what was written
+ */
+export function emitProject(configFile: string, rootDir: string): EmitReport {
+  const result = runTwoPass({ configFile, rootDir, emit: true });
+  const conflicts = result.conflicts.map(c => `${c.fileName}: overlapping edits from ${c.a.source} and ${c.b.source}`);
+  const diagnostics =
+    formatDiagnostics(result.diagnostics, {
+      getCanonicalFileName: name => name,
+      getCurrentDirectory: () => dirname(configFile),
+      getNewLine: () => "\n"
+    }) + conflicts.join("\n");
+  const diagnosticCount = result.diagnostics.length + conflicts.length;
+  let written = 0;
+  if (diagnosticCount === 0) {
+    for (const [path, text] of result.emitted) {
+      mkdirSync(dirname(path), { recursive: true });
+      writeFileSync(path, text);
+      written++;
+    }
+  }
+  return { diagnostics, diagnosticCount, written, editCounts: result.editCounts };
 }
 
 /**

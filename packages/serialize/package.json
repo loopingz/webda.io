@@ -55,9 +55,9 @@
     "@types/node": "25.5.0",
     "@vitest/coverage-v8": "^4.1.2",
     "@webda/test": "workspace:^",
-    "typescript": "^6.0.2",
-    "vite": "^6.0.0",
-    "skott": "^0.35.8"
+    "skott": "^0.35.8",
+    "typescript": "7.1.0-dev.20260918.1",
+    "vite": "^6.0.0"
   },
   "type": "module",
   "engines": {

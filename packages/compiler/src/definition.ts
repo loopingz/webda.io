@@ -5,7 +5,6 @@ import { existsSync, globSync, readFileSync } from "fs";
 import type { JSONSchema7 } from "json-schema";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import ts from "typescript";
 
 /**
  * Resolve the running @webda/compiler installation root and its lib/ dir.
@@ -828,7 +827,10 @@ export class WebdaProject {
     const current = createHash("md5");
     const tsCfg = readFileSync(this.getAppPath("tsconfig.json"));
     current.update(tsCfg as BinaryLike);
-    const tsParsed = ts.parseConfigFileTextToJson("tsconfig.json", tsCfg.toString()).config;
+    // Only `include` / `exclude` are read. FileUtils.load parses the JSONC a
+    // tsconfig is written in, and agrees with TypeScript's own parser on
+    // every tsconfig in the repository, so the digest is unchanged.
+    const tsParsed = FileUtils.load(this.getAppPath("tsconfig.json"));
     // Maybe just use the mtime of tsconfig + all files?
     globSync(tsParsed.include || ["**/*"], {
       cwd: this.getAppPath(""),

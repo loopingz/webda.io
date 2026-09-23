@@ -281,7 +281,7 @@ type SetMethodParam<T> = T extends { set(value: infer V): any } ? V : never;
 
 /**
  * Coercion rules: widen known types that accept alternate input forms.
- * Mirrors DEFAULT_COERCIONS from @webda/ts-plugin.
+ * Mirrors DEFAULT_COERCIONS from @webda/content-mapper.
  */
 type Coerce<T> = T extends Date ? string | number | Date : never;
 

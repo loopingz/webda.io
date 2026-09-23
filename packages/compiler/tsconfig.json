@@ -13,11 +13,6 @@
     "moduleResolution": "nodenext",
     "skipLibCheck": true,
     "declarationMap": true,
-    "paths": {
-      "@webda/ts-plugin/transform": [
-        "../ts-plugin/lib/transform"
-      ]
-    },
     "useDefineForClassFields": true,
     "types": [
       "node"

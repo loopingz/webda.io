@@ -86,7 +86,7 @@ export class ObjectSerializer implements Serializer<any> {
    * After populating the new instance, this method invokes
    * `__hydrateBehaviors(rawData)` on the instance when present. Webda model
    * classes that carry Behavior-typed properties get this method emitted at
-   * compile time by `@webda/ts-plugin`'s behaviors transformer; calling it
+   * compile time by `@webda/content-mapper`'s behaviours generator; calling it
    * here ensures store-load paths (which route through this serializer)
    * apply the same Behavior coercion as the user-driven `model.load(...)`
    * path. Instances without the method (plain objects, non-Webda classes)

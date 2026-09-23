@@ -5,7 +5,6 @@
   "keywords": [
     "webda"
   ],
-  "bin": "./lib/bin.js",
   "type": "module",
   "author": "Remi Cattiau <remi@cattiau.com>",
   "homepage": "https://github.com/loopingz/webda.io/tree/master/packages/codemod#readme",
@@ -26,7 +25,7 @@
     "url": "git+https://github.com/loopingz/webda.io.git"
   },
   "scripts": {
-    "build": "tsc && chmod +x lib/bin.js",
+    "build": "tsc",
     "build:watch": "tsc --watch",
     "format": "prettier --check src/**/*",
     "lint": "eslint",
@@ -46,7 +45,6 @@
     "access": "public"
   },
   "dependencies": {
-    "typescript": "^6.0.2",
     "@webda/decorators": "workspace:^"
   },
   "devDependencies": {
@@ -56,8 +54,9 @@
     "openapi-types": "^12.1.3",
     "skott": "^0.35.8",
     "tsx": "^4.21.0",
-    "vitest": "^4.1.2",
-    "vite": "^6.0.0"
+    "typescript": "7.1.0-dev.20260918.1",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
   },
   "engines": {
     "node": ">=22.0.0"

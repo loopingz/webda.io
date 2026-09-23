@@ -21,12 +21,16 @@
  * ]}
  * -> { "results": { "Webda/Store": { } }, "errors": { } }
  * ```
+ *
+ * `{ "id": "m", "kind": "module" }` answers with
+ * `{ module, namingViolations, errors }` — see `../module.ts`.
  */
 import { join } from "node:path";
 import { ModifierFlags } from "typescript/unstable/ast";
 import type { ClassDeclaration } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
 import { openSession } from "../context.ts";
+import { generateWebdaModule } from "../module.ts";
 import { generateModelSchemas } from "./model.ts";
 import { generateTopLevelSchemas, namespaceOf } from "./project.ts";
 import { generateServiceSchema } from "./service.ts";
@@ -36,8 +40,12 @@ import type { JSONSchema7 } from "./types.ts";
 export interface SchemaRequest {
   /** Caller-chosen key, echoed in the response. */
   id: string;
-  /** What to generate. `topLevel` needs no class and answers with a map. */
-  kind: "service" | "model" | "topLevel";
+  /**
+   * What to generate. `topLevel` needs no class and answers with a map;
+   * `module` needs no class and answers with the whole `webda.module.json`
+   * (minus `sourceDigest`) as `{ module, namingViolations, errors }`.
+   */
+  kind: "service" | "model" | "topLevel" | "module";
   /** Absolute path of the file declaring the class. */
   file: string;
   /** Class to generate for. */
@@ -46,12 +54,14 @@ export interface SchemaRequest {
   addOpenApi?: boolean;
   /** Base type the parameters derive from; `DeployerResources` for deployers. */
   parametersBase?: string;
-  /** Source root, for a `topLevel` request. */
+  /** Source root, for a `topLevel` or `module` request. */
   rootDir?: string;
-  /** Output root, for a `topLevel` request. */
+  /** Output root, for a `topLevel` or `module` request. */
   outDir?: string;
-  /** Namespace prefix, for a `topLevel` request. */
+  /** Namespace prefix, for a `topLevel` or `module` request. */
   namespace?: string;
+  /** Top-level `capabilities`, for a `module` request; defaults to package.json `webda.capabilities`. */
+  capabilities?: Record<string, string>;
 }
 
 /** A batch of requests against one project. */
@@ -94,6 +104,18 @@ export function handle(request: WorkerRequest): WorkerResponse {
             rootDir: item.rootDir ?? join(request.project, "src"),
             outDir: item.outDir ?? join(request.project, "lib"),
             namespace: item.namespace ?? namespaceOf(request.project)
+          }) as unknown as JSONSchema7;
+          continue;
+        }
+        if (item.kind === "module") {
+          // The whole module in one answer; naming violations and errors
+          // travel with it so the caller decides how to report them.
+          response.results[item.id] = generateWebdaModule(session.ctx, {
+            appPath: request.project,
+            rootDir: item.rootDir ?? join(request.project, "src"),
+            outDir: item.outDir ?? join(request.project, "lib"),
+            namespace: item.namespace ?? namespaceOf(request.project),
+            capabilities: item.capabilities
           }) as unknown as JSONSchema7;
           continue;
         }

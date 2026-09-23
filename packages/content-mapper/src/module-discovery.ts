@@ -19,6 +19,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import * as is from "typescript/unstable/ast/is";
 import type { AnalysisContext } from "./plan.ts";
+import { classPropertiesInTs6Order } from "./property-order.ts";
 
 /** Sections recorded in `webda.module.json`. */
 export type Section = "models" | "moddas" | "deployers" | "beans";
@@ -67,6 +68,12 @@ export interface DiscoveryOptions {
   outDir: string;
   /** Namespace prefix applied to unqualified names. */
   namespace?: string;
+  /**
+   * Return every classified class, including several resolving to the same
+   * namespaced name. The caller then owns deduplication — the module
+   * generator reproduces TypeScript 6's last-in-program-order-wins rule.
+   */
+  keepDuplicates?: boolean;
 }
 
 /** Cache of directory to owning package name. */
@@ -79,7 +86,7 @@ const packageNameCache = new Map<string, string | undefined>();
  * @param fileName - file to attribute
  * @returns the package name, when one is found
  */
-function packageOf(fileName: string): string | undefined {
+export function packageOf(fileName: string): string | undefined {
   let folder = dirname(fileName);
   while (folder.length > 2) {
     if (packageNameCache.has(folder)) return packageNameCache.get(folder);
@@ -111,7 +118,7 @@ function packageOf(fileName: string): string | undefined {
  * @param cls - the class declaration
  * @returns the type chain, nearest first
  */
-function classTree(ctx: AnalysisContext, cls: any): any[] {
+export function classTree(ctx: AnalysisContext, cls: any): any[] {
   const symbol = cls.name ? ctx.checker.getSymbolAtLocation(cls.name) : undefined;
   const declared = symbol ? ctx.checker.getDeclaredTypeOfSymbol(symbol) : undefined;
   if (!declared) return [];
@@ -148,7 +155,7 @@ function classTree(ctx: AnalysisContext, cls: any): any[] {
  * @param symbolName - class name
  * @returns true on a match
  */
-function chainExtends(ctx: AnalysisContext, chain: any[], packageName: string, symbolName: string): boolean {
+export function chainExtends(ctx: AnalysisContext, chain: any[], packageName: string, symbolName: string): boolean {
   for (const type of chain) {
     const symbol = type.getSymbol?.() ?? type.symbol;
     if (symbol?.name !== symbolName) continue;
@@ -183,7 +190,7 @@ function tagsOf(ctx: AnalysisContext, sf: any, node: any): Record<string, string
  * @param options - discovery options
  * @returns path relative to the application root
  */
-function outputTarget(fileName: string, options: DiscoveryOptions): string {
+export function outputTarget(fileName: string, options: DiscoveryOptions): string {
   const fromRoot = relative(options.rootDir, fileName);
   return relative(options.appPath, join(options.outDir, fromRoot)).replace(/\.tsx?$/, "");
 }
@@ -200,7 +207,7 @@ function outputTarget(fileName: string, options: DiscoveryOptions): string {
  * @param cls - the class declaration
  * @returns the exported name, or undefined when not exported
  */
-function exportedName(ctx: AnalysisContext, sf: any, cls: any): string | undefined {
+export function exportedName(ctx: AnalysisContext, sf: any, cls: any): string | undefined {
   const className = cls.name?.text;
   if (!className) return undefined;
 
@@ -286,6 +293,7 @@ export function discoverWebdaObjects(ctx: AnalysisContext, options: DiscoveryOpt
   }
 
   found.sort((a, b) => a.section.localeCompare(b.section) || a.name.localeCompare(b.name));
+  if (options.keepDuplicates) return found;
 
   // Two classes can resolve to the same namespaced name — `@webda/core` has
   // AuditEntry in both models/ and services/. Keep the first in sorted order so
@@ -426,13 +434,10 @@ export interface ReflectedAttribute {
 export function reflectAttributes(ctx: AnalysisContext, sf: any, cls: any): Record<string, ReflectedAttribute> {
   const reflection: Record<string, ReflectedAttribute> = {};
 
-  const symbol = cls.name ? ctx.checker.getSymbolAtLocation(cls.name) : undefined;
-  const declared = symbol ? ctx.checker.getDeclaredTypeOfSymbol(symbol) : undefined;
-  if (!declared) return reflection;
-
   // Properties of the *type*, so inherited attributes are included — `uuid`
-  // comes from UuidModel and is recorded on every subclass.
-  for (const property of (declared as any).getProperties?.() ?? []) {
+  // comes from UuidModel and is recorded on every subclass. In TypeScript 6
+  // order, which is the key order of the committed artefact.
+  for (const property of classPropertiesInTs6Order(ctx, cls) as any[]) {
     const name = property.name;
     // Symbol-keyed slots surface as `__@WEBDA_STORAGE@123`. Ordinary
     // double-underscore attributes such as `__password` are real and recorded.
@@ -540,11 +545,7 @@ export function buildRelations(
 ): ModelRelations {
   const relations: ModelRelations = {};
 
-  const symbol = cls.name ? ctx.checker.getSymbolAtLocation(cls.name) : undefined;
-  const declared = symbol ? ctx.checker.getDeclaredTypeOfSymbol(symbol) : undefined;
-  if (!declared) return relations;
-
-  for (const property of (declared as any).getProperties?.() ?? []) {
+  for (const property of classPropertiesInTs6Order(ctx, cls) as any[]) {
     const attribute = property.name;
     if (typeof attribute !== "string" || attribute.startsWith("__@")) continue;
 

@@ -32,7 +32,6 @@
     "packages/runtime": {},
     "packages/serialize": {},
     "packages/test": {},
-    "packages/ts-plugin": {},
     "packages/tsc-esm": {},
     "packages/utils": {},
     "packages/versioning": {},

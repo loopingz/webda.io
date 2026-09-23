@@ -58,7 +58,12 @@ class RESTBehaviorsTest extends WebdaApplicationTest {
    *
    * @param FakeMFA - the behavior class to register; defaults to a no-op stub
    */
-  private patchUserWithMfaBehavior(_FakeMFA: any = class FakeMFA { verify() {} set() {} }): () => void {
+  private patchUserWithMfaBehavior(
+    _FakeMFA: any = class FakeMFA {
+      verify() {}
+      set() {}
+    }
+  ): () => void {
     const app = useApplication<Application>() as any;
     const previousBehavior = app.behaviors["Test/MFA"];
     app.behaviors["Test/MFA"] = {
@@ -122,11 +127,7 @@ class RESTBehaviorsTest extends WebdaApplicationTest {
    * Execute an HTTP request through the Router and return the parsed body.
    * Mirrors the helper in restoperationstransport.spec.ts.
    */
-  private async routerHttp<T = any>(options: {
-    method: HttpMethodType;
-    url: string;
-    body?: any;
-  }): Promise<T> {
+  private async routerHttp<T = any>(options: { method: HttpMethodType; url: string; body?: any }): Promise<T> {
     const httpContext = new HttpContext("test.webda.io", options.method, options.url, "http", 80, {});
     if (options.body !== undefined) {
       httpContext.setBody(options.body);
@@ -315,7 +316,7 @@ class RESTBehaviorsTest extends WebdaApplicationTest {
    * given hint (or none, if `rest` is undefined). Returns a restore() fn,
    * the User model, and the spun-up transport instance.
    *
-   * Hand-rolled metadata (rather than running the ts-plugin transformer on
+   * Hand-rolled metadata (rather than running the `@webda/content-mapper` generators on
    * inline sources) is the same trick `patchUserWithMfaBehavior` uses — the
    * test environment does not run the compiler.
    */
@@ -395,12 +396,7 @@ class RESTBehaviorsTest extends WebdaApplicationTest {
    */
   @test
   async restRouteDotMapsToBareAttributeGet() {
-    const { restore } = await this.setupBehaviorWithRest(
-      "get",
-      { route: ".", method: "GET" },
-      "RESTRestDot",
-      "/r1/"
-    );
+    const { restore } = await this.setupBehaviorWithRest("get", { route: ".", method: "GET" }, "RESTRestDot", "/r1/");
     try {
       const doc = useRouter().exportOpenAPI(true);
       const path = "/r1/companies/{pid.0}/users/{uuid}/mfa";

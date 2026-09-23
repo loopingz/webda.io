@@ -1,82 +1,96 @@
 /**
- * Optional TypeScript 7 backend for schema generation.
+ * The TypeScript 7.1 build, driven out of process.
  *
- * `@webda/compiler` runs on TypeScript 6 and `@webda/content-mapper` on 7.1;
- * a package can declare only one `typescript`, so the two cannot be linked.
- * They can still cooperate across a process boundary — the port is driven as
- * a subprocess, exactly as `@webda/content-mapper` itself drives `tsgo`.
+ * `webdac build` used to emit with `tsProgram.emit` and four
+ * `@webda/ts-plugin` transformers, then walk the TypeScript 6 program to
+ * generate `webda.module.json`. TypeScript 7 removed emit transformers, so
+ * both halves now run in `@webda/content-mapper` on the 7.1 checker:
  *
- * This is the transition described in `docs/contribute/TypeScript 7 Content
- * Mappers.md`: without it the port stays unused until the atomic switch, and
- * the committed `webda.module.json` files cannot be regenerated through a
- * real `webdac build`.
+ * - **emit** — the two-pass build: generate accessors, behaviours and
+ *   WebdaQL rewrites into the source, type-check that, and write what was
+ *   checked. Nothing is written when pass 2 reports a diagnostic.
+ * - **module** — every section of `webda.module.json` except
+ *   `sourceDigest`, byte for byte as the TypeScript 6 generator produced it.
  *
- * Verified equivalent per schema by
- * `packages/content-mapper/tools/schema-diff.mjs`, which scores both
- * implementations against the committed artefacts. What this adds is the
- * integration the harness cannot see: that the names the compiler discovers
- * and the names the port produces are the same names.
+ * It is spawned rather than imported: the content mapper peers on
+ * `typescript@>=7.1.0-dev`, and a process boundary is what lets it run
+ * whatever TypeScript this package resolves. One spawn per build, because
+ * opening the program dominates.
  */
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { JSONSchema7 } from "json-schema";
 import { useLog } from "@webda/workout";
 
-/** The three views of a model. */
-export interface ModelSchemas {
-  Input: JSONSchema7;
-  Output: JSONSchema7;
-  Stored: JSONSchema7;
-}
-
-/** A class the backend should generate for. */
-export interface SchemaTarget {
-  /** Key the result is returned under. */
-  name: string;
-  /** Absolute path of the declaring file. */
+/** A Webda class declared in a file the content mapper cannot claim. */
+export interface NamingViolation {
+  /** Absolute path of the offending source file. */
   fileName: string;
-  /** Exported class name. */
+  /** Class that triggered the requirement. */
   className: string;
-  /** Base type the parameters derive from; `DeployerResources` for deployers. */
-  parametersBase?: string;
+  /** Section it was classified into. */
+  section: string;
+  /** Suffix the file is required to carry. */
+  expectedSuffix: string;
 }
 
-/** Everything one build needs, answered in a single round trip. */
-export interface SchemaBatch {
-  /** Modda and bean parameter schemas, by module name. */
-  services: Record<string, JSONSchema7>;
-  /** Model Input/Output/Stored, by module name. */
-  models: Record<string, ModelSchemas>;
-  /** The whole top-level `schemas` map, discovered by the port itself. */
-  topLevel: Record<string, JSONSchema7>;
+/** What the generator answers for `webda.module.json`. */
+export interface GeneratedModule {
+  /** Every section except `sourceDigest`. */
+  module: Record<string, unknown>;
+  /** Classes in files the mapper cannot claim. */
+  namingViolations: NamingViolation[];
+  /** Conditions the TypeScript 6 generator threw on. */
+  errors: string[];
+}
+
+/** What the emit reports. */
+export interface EmitReport {
+  /** Pass-2 diagnostics, formatted as `tsc` prints them. */
+  diagnostics: string;
+  /** Number of diagnostics; nothing was written unless it is zero. */
+  diagnosticCount: number;
+  /** Files written. */
+  written: number;
+  /** Edits per generator. */
+  editCounts: Record<string, number>;
+}
+
+/** One build's answer. */
+export interface BuildResult {
+  emit: EmitReport;
+  /** Absent when `emit` failed, since the module is not generated then. */
+  module?: GeneratedModule;
+}
+
+/** Options the build passes through to the generator. */
+export interface BuildOptions {
+  /** Namespace prefix for unqualified names. */
+  namespace?: string;
+  /** `webda.capabilities` from the application's package.json. */
+  capabilities?: unknown;
+  /** Skip module generation; emit only. */
+  emitOnly?: boolean;
 }
 
 /**
- * Locate the content mapper's schema worker.
+ * Locate the content mapper's worker.
  *
- * Resolved rather than imported, and deliberately not a declared dependency:
- * `@webda/content-mapper` peers on `typescript@>=7.1.0-dev`, which would
- * conflict with the compiler's own TypeScript 6 the moment a package manager
- * tried to satisfy it. Spawning sidesteps the question entirely.
- * @param projectRoot - application root, searched first
+ * `WEBDA_SCHEMA_WORKER` overrides it, for running a generator that is not the
+ * installed one — bisecting a change, or building from source. Otherwise the
+ * application is searched first, so it can pin a version, then this package.
+ * @param projectRoot - application root
  * @returns absolute path of the worker entry point
  * @throws when the package is not installed
  */
 function resolveWorker(projectRoot: string): string {
-  // Explicit override, for running a generator that is not the installed
-  // one — bisecting a schema change, or exercising a build from source.
   const override = process.env.WEBDA_SCHEMA_WORKER;
   if (override) {
     if (!existsSync(override)) throw new Error(`WEBDA_SCHEMA_WORKER does not exist: ${override}`);
     return override;
   }
-
-  // The application first, so an app can pin a generator version, then the
-  // compiler's own tree.
-  const bases = [projectRoot, dirname(new URL(import.meta.url).pathname)];
-  for (const base of bases) {
+  for (const base of [projectRoot, dirname(new URL(import.meta.url).pathname)]) {
     try {
       const worker = createRequire(join(base, "index.js")).resolve("@webda/content-mapper/schema-worker-cli");
       if (existsSync(worker)) return worker;
@@ -85,74 +99,40 @@ function resolveWorker(projectRoot: string): string {
     }
   }
   throw new Error(
-    "Schema generation requires @webda/content-mapper to be installed and built " +
-      "(lib/schema/worker-cli.js). Install it alongside @webda/compiler, or point " +
-      "WEBDA_SCHEMA_WORKER at the worker."
+    "Building requires @webda/content-mapper to be installed and built (lib/schema/worker-cli.js). " +
+      "Install it alongside @webda/compiler, or point WEBDA_SCHEMA_WORKER at the worker."
   );
 }
 
 /**
- * Generate every schema a build needs through the TypeScript 7 port.
- *
- * One spawn per build: the worker opens its own program, which is the
- * expensive part, so the caller batches rather than asking per class.
+ * Emit a project and generate its module, in one worker round trip.
  * @param projectRoot - application root, used as cwd and project path
- * @param services - moddas and beans
- * @param models - models
- * @returns the generated schemas
- * @throws when the worker cannot be run, or reports an error
+ * @param options - namespace and capabilities
+ * @returns the emit report and, when it succeeded, the generated module
+ * @throws when the worker cannot be run or rejects a request outright
  */
-export function generateSchemasWithTypeScript7(
-  projectRoot: string,
-  services: SchemaTarget[],
-  models: SchemaTarget[]
-): SchemaBatch {
-  const worker = resolveWorker(projectRoot);
-  const requests = [
-    ...services.map(target => ({
-      id: `service:${target.name}`,
-      kind: "service",
-      file: target.fileName,
-      className: target.className,
-      addOpenApi: target.parametersBase === undefined,
-      parametersBase: target.parametersBase
-    })),
-    ...models.map(target => ({
-      id: `model:${target.name}`,
-      kind: "model",
-      file: target.fileName,
-      className: target.className
-    })),
-    { id: "topLevel", kind: "topLevel" }
-  ];
+export function build(projectRoot: string, options: BuildOptions = {}): BuildResult {
+  const requests: object[] = [{ id: "emit", kind: "emit" }];
+  if (!options.emitOnly) {
+    requests.push({ id: "module", kind: "module", namespace: options.namespace, capabilities: options.capabilities });
+  }
 
   const started = Date.now();
-  const run = spawnSync(process.execPath, [worker], {
+  const run = spawnSync(process.execPath, [resolveWorker(projectRoot)], {
     cwd: projectRoot,
     input: JSON.stringify({ project: projectRoot, requests }),
     encoding: "utf8",
     maxBuffer: 256 * 1024 * 1024
   });
   if (run.status !== 0) {
-    throw new Error(`Schema worker failed (${run.status}): ${(run.stderr || "").trim().slice(0, 2000)}`);
+    throw new Error(`Build worker failed (${run.status}): ${(run.stderr || "").trim().slice(0, 4000)}`);
   }
-
   const response = JSON.parse(run.stdout);
-  useLog("INFO", `Generated ${requests.length} schema requests in ${Date.now() - started}ms`);
-
-  // The converter refuses rather than degrading, so an error here means a
-  // type it will not guess at. Surfacing it is the whole point; swallowing
-  // it would put a silently wrong contract into the module.
-  const errors = Object.entries(response.errors ?? {});
-  if (errors.length > 0) {
-    throw new Error(
-      `Schema generation failed for ${errors.length} target(s):\n` +
-        errors.map(([id, message]) => `  ${id}: ${message}`).join("\n")
-    );
+  const failed = Object.entries(response.errors ?? {});
+  if (failed.length) {
+    throw new Error(`Build worker rejected ${failed.map(([id, message]) => `${id}: ${message}`).join("; ")}`);
   }
-
-  const batch: SchemaBatch = { services: {}, models: {}, topLevel: response.results.topLevel ?? {} };
-  for (const target of services) batch.services[target.name] = response.results[`service:${target.name}`];
-  for (const target of models) batch.models[target.name] = response.results[`model:${target.name}`];
-  return batch;
+  const emit: EmitReport = response.results.emit;
+  useLog("DEBUG", `Build worker: ${emit.written} files, edits ${JSON.stringify(emit.editCounts)}, ${Date.now() - started}ms`);
+  return { emit, module: emit.diagnosticCount === 0 ? response.results.module : undefined };
 }

@@ -11,12 +11,7 @@
     "experimentalDecorators": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "declarationMap": true,
-    "plugins": [
-      {
-        "name": "@webda/ts-plugin"
-      }
-    ]
+    "declarationMap": true
   },
   "include": ["src/**/*", ".webda/module.d.ts"],
   "exclude": ["**/node_modules", "**/*.spec.ts"]

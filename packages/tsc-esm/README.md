@@ -58,7 +58,7 @@ After compilation, all relative import/export specifiers in the emitted `.js` fi
 
 - API reference: see the auto-generated typedoc at `docs/pages/Modules/tsc-esm/`.
 - Source: [`packages/tsc-esm`](https://github.com/loopingz/webda.io/tree/main/packages/tsc-esm)
-- Related: [`@webda/ts-plugin`](../ts-plugin) for the ts-patch-based alternative that also generates `webda.module.json`; [`@webda/compiler`](../compiler) for the full `webdac build` pipeline.
+- Related: [`@webda/content-mapper`](../content-mapper), which generates accessors, behaviours and `webda.module.json` on TypeScript 7.1; [`@webda/compiler`](../compiler) for the full `webdac build` pipeline.
 
 <!-- README_FOOTER -->
 ## Sponsors

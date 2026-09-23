@@ -97,7 +97,7 @@ export class Application {
    *
    * The Behavior class itself is NOT loaded at runtime: the per-model
    * `__hydrateBehaviors` method emitted at compile time by
-   * `@webda/ts-plugin` holds a static import to the class, so the runtime
+   * `@webda/content-mapper` holds a static import to the class, so the runtime
    * never needs to look it up by identifier.
    */
   protected behaviors: { [key: string]: { metadata: BehaviorMetadata } } = {};
@@ -144,7 +144,7 @@ export class Application {
     }
     // Check if file is a file or folder
     if (lstatSync(file).isDirectory()) {
-      file = FileUtils.getConfigurationFile(join(file, "webda.config"))
+      file = FileUtils.getConfigurationFile(join(file, "webda.config"));
     }
     this.configurationFile = file;
     this.applicationPath = resolve(dirname(file));
@@ -218,10 +218,7 @@ export class Application {
     }
     const cm = this.baseConfiguration.cachedModules;
     return (
-      cm.schemas[type] ||
-      cm.models?.[type]?.Schemas?.Input ||
-      cm.moddas?.[type]?.Schema ||
-      cm.beans?.[type]?.Schema
+      cm.schemas[type] || cm.models?.[type]?.Schemas?.Input || cm.moddas?.[type]?.Schema || cm.beans?.[type]?.Schema
     );
   }
 
@@ -741,7 +738,7 @@ export class Application {
     }
     // Behaviors are registered by metadata only — the runtime never imports
     // the Behavior class. The per-model `__hydrateBehaviors(rawData)` method
-    // emitted at compile time by `@webda/ts-plugin` holds the static
+    // emitted at compile time by `@webda/content-mapper` holds the static
     // imports needed to coerce raw values into Behavior instances, so the
     // application registry just needs to retain the metadata blob (action
     // shapes, identifier, etc.) for `DomainService` operation registration

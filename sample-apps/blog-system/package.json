@@ -21,7 +21,7 @@
     "debug": "webda debug",
     "debug:web": "webda debug --web",
     "webda": "webda",
-    "test": "echo 'Tests disabled — needs CLI and Core.on migration'",
+    "test": "echo 'Tests disabled \u2014 needs CLI and Core.on migration'",
     "test:api": "vitest run test/api-test.ts",
     "test:cli": "vitest run test/cli-test.ts",
     "test:e2e": "playwright test",
@@ -48,11 +48,11 @@
     "@webda/compiler": "workspace:^",
     "@webda/debug": "workspace:^",
     "@webda/test": "workspace:*",
+    "skott": "^0.35.8",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.2",
+    "typescript": "7.1.0-dev.20260918.1",
     "vite": "^6.0.0",
-    "skott": "^0.35.8"
+    "vitest": "^4.1.2"
   },
   "type": "module",
   "license": "LGPL-3.0-only",

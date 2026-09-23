@@ -1,32 +1,7 @@
-import { mkdirSync, realpathSync, writeFileSync } from "fs";
-import { dirname } from "path";
+import { realpathSync } from "fs";
 import { createPropertyDecorator } from "@webda/decorators";
 
 export { createClassDecorator, createPropertyDecorator, createMethodDecorator } from "@webda/decorators";
-/**
- * Write a TypeScript-compiled file to disk, appending `.js` to all relative
- * and scoped-package import/export specifiers so the output is valid ESM.
- *
- * @param fileName - Destination file path
- * @param text - Compiled JavaScript source content to write
- */
-export function writer(fileName: string, text: string) {
-  mkdirSync(dirname(fileName), { recursive: true });
-  // Add the ".js" -> if module
-  // Issue with .mjs
-  writeFileSync(
-    fileName,
-    text
-      .replace(/^(import [^;]* from "\..*?)(\.js)?";/gm, '$1.js";')
-      .replace(/^(import [^;]* from '\..*?)(\.js)?';/gm, "$1.js';")
-      .replace(/^(export [^;]* from "\..*?)(\.js)?";/gm, '$1.js";')
-      .replace(/^(export [^;]* from '\..*?)(\.js)?';/gm, "$1.js';")
-      // Dynamic imports
-      .replace(/\bimport\("(\.[^"]*?)(\.js)?"\)/gm, 'import("$1.js")')
-      .replace(/\bimport\('(\.[^']*?)(\.js)?'\)/gm, "import('$1.js')")
-  );
-}
-
 /**
  * Attribute of an object
  *

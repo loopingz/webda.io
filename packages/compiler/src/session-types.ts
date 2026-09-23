@@ -10,7 +10,7 @@ import { useLog } from "@webda/workout";
  *
  * The augmentation is a plain `.d.ts` file under the project — it is picked
  * up by `tsc` via the user's standard tsconfig include, so editor feedback
- * works without our ts-plugin loaded.
+ * works without a content mapper loaded.
  *
  * @param projectRoot absolute path to the project root (where webda.config.json lives)
  */

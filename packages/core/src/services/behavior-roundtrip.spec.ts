@@ -21,14 +21,14 @@ import type { Application } from "../application/application.js";
  *    record."
  *
  * After Rework-C, Behavior hydration is driven by a per-model
- * `__hydrateBehaviors(rawData)` method that the `@webda/ts-plugin`
+ * `__hydrateBehaviors(rawData)` method that the `@webda/content-mapper`
  * transformer emits at compile time. There is no longer a runtime registry
  * of Behavior classes, no `@Behavior()` decorator, and no
  * `ModelObjectSerializer` subclass — the base `ObjectSerializer.deserializer`
  * in `@webda/serialize` calls `instance.__hydrateBehaviors?.(rawData)` for
  * every Webda-model deserialization.
  *
- * Because vitest does not run `@webda/ts-plugin` on inline test fixtures,
+ * Because vitest does not run `@webda/content-mapper` on inline test fixtures,
  * the helpers below hand-roll the post-transformer shape: each fixture
  * Behavior class manually carries a `[WEBDA_STORAGE]` slot and a `parent`
  * getter, and the User class is patched with a `__hydrateBehaviors` method
@@ -52,7 +52,7 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
 
   /**
    * Hand-roll a `__hydrateBehaviors(rawData)` method onto the model class's
-   * prototype, mirroring the body the `@webda/ts-plugin` transformer emits
+   * prototype, mirroring the body the `@webda/content-mapper` generator emits
    * at compile time. For each `(attribute, BehaviorClass)` pair the method:
    *
    *   1. Reads the candidate value from `this[attribute]` (already populated
@@ -70,10 +70,7 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
    * @param ModelClass - the model class to patch
    * @param attrs - the (attribute, Behavior class) pairs to wire
    */
-  private installHydrateBehaviors(
-    ModelClass: any,
-    attrs: Array<{ attribute: string; Class: any }>
-  ): () => void {
+  private installHydrateBehaviors(ModelClass: any, attrs: Array<{ attribute: string; Class: any }>): () => void {
     const previous = Object.getOwnPropertyDescriptor(ModelClass.prototype, "__hydrateBehaviors");
     Object.defineProperty(ModelClass.prototype, "__hydrateBehaviors", {
       value: function __hydrateBehaviors(rawData?: any) {
@@ -163,16 +160,19 @@ class BehaviorRoundtripTest extends WebdaApplicationTest {
     // (patched) `getStaticProperties()` snapshot. The base
     // ObjectSerializer.deserializer handles `__hydrateBehaviors` invocation.
     User.registerSerializer(true, User.Metadata?.Identifier);
-    const previousRepo = Repositories.get(User);
-    const repo = new MemoryRepository(User, ["uuid"]);
-    registerRepository(User, repo);
-    return () => {
-      if (previousRepo) {
-        Repositories.set(User, previousRepo);
-      } else {
-        Repositories.delete(User);
-      }
-    };
+    // A model's reverse relations (`computers: ModelRelated<Computer, ...>`)
+    // resolve their repository when the instance is constructed, so every
+    // queried model needs one too. This used to be unnecessary only because
+    // the TypeScript 6 transformer never recognised sample-app's
+    // `User extends WebdaUser` as a model — its base-chain guard was keyed on
+    // class name — and left these relations uninitialised.
+    const related = (User.Metadata?.Relations?.queries ?? []).map((query: { model: string }) => useModel(query.model));
+    const restores = [User, ...related].map((model: any) => {
+      const previous = Repositories.get(model);
+      registerRepository(model, new MemoryRepository(model, ["uuid"]));
+      return () => (previous ? Repositories.set(model, previous) : Repositories.delete(model));
+    });
+    return () => restores.forEach(restore => restore());
   }
 
   /**

@@ -1,6 +1,6 @@
 /**
  * Marker brand for WebdaQL query strings. `T` is the type whose attributes
- * `@webda/ts-plugin` validates the query against — typically the model class
+ * `@webda/content-mapper` validates the query against — typically the model class
  * for `Store.query` and the configured session type for
  * `OperationDefinition.permission`.
  *

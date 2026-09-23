@@ -85,7 +85,7 @@ export class Post extends Model {
 
 ### `accessors`
 
-Generates getter/setter pairs for properties managed by the `@webda/ts-plugin` accessor transformer. These properties are backed by `WEBDA_STORAGE` and support dirty-tracking.
+Generates getter/setter pairs for coerced properties, as `webdac build` does through `@webda/content-mapper`. These properties are backed by `WEBDA_STORAGE` and support dirty-tracking.
 
 **Before:**
 

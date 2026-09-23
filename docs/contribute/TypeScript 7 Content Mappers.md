@@ -584,9 +584,8 @@ otherwise a big-bang with no feedback until it lands.
    accessor pair as a field if in-place output is ever produced.
 8. **Done.** Replace the `@webda/tsc-esm` binary. See "Stage 8" below — it was not the
    drop-in this line assumed.
-9. **In progress.** Atomic switch: move the compiler to 7.1; delete `@webda/ts-plugin` and
-   `ts-patch`. Split into 9a (emit) and 9b (analysis); see "Stage 9" below — 9a is blocked
-   on generator parity that stages 4–5 did not actually reach.
+9. **Done.** Atomic switch: move the compiler to 7.1; delete `@webda/ts-plugin` and
+   `ts-patch`. See "Stage 9 result" below.
 
 ### `@webda/schema` and the native generator
 
@@ -1304,6 +1303,67 @@ Three details worth recording:
 3. Drive the emit from `@webda/compiler` through a worker, as schemas are; delete
    `@webda/ts-plugin`, `ts-patch` and the three tsconfig `plugins` entries.
 4. 9b.
+
+### Stage 9 result: the switch
+
+Done, in the order the measurements forced:
+
+1. **`Binary`'s constructor** now calls `super()` first and unconditionally. tsgo ran decorator
+   initialisers before a conditional `super()`, so `new Binary()` threw. TS6 avoided the crash
+   only by hanging them on a `[WEBDA_STORAGE]` field its transformer injected, which replaced
+   the storage `BinaryMap` had just populated: with a stub core, the shipped
+   `new Binary(attribute, model)` lost its `BinaryService`.
+2. **Generator parity.** One root cause covered most of the gap: a name the generated code
+   needs at runtime that the file does not import as a value. `generators/imports.ts` allows two
+   moves — promote an `import type`, or add a named import from a module the file already uses
+   once the checker confirms it exports the name — and refuses anything else. Plus `toJSON`,
+   relation constructors decided by kind rather than arity (7.1 reports no
+   `minArgumentCount`), default-export targets, and array behaviours. `emit-classdiff` now
+   reports nothing where tsgo is wrong; `emit-importid` loads both outputs and confirms all 22
+   rebound imports resolve to the identical object.
+3. **Module generation** moved to `@webda/content-mapper` (`generateWebdaModule`),
+   byte-identical across all ten packages by `tools/module-diff.mjs`.
+4. **The compiler** makes one worker round trip per build — two-pass emit, then module — and
+   keeps only the digest, the naming guard and the `.webda/module.d.ts` writer. About 13,800
+   lines were deleted, including a dead island of TS6 code nothing reached.
+5. **The toolchain.** Every workspace package builds itself with 7.1. Each `tsc`-built package
+   was compiled with tsgo and diffed against its TS6 output before the version bump.
+
+#### What TypeScript 6 was getting wrong
+
+The switch changes shipped behaviour, and every change is a correction, verified against the
+output it replaces:
+
+| TypeScript 6 behaviour                                    | consequence                                   |
+| --------------------------------------------------------- | --------------------------------------------- |
+| `AuditEntry.timestamp: number` coerced to `Date`          | a numeric timestamp became a `Date`           |
+| `new ModelLink(T)` on a type parameter                    | `ReferenceError` on first raw-uuid assignment |
+| `[WEBDA_STORAGE]` injected into `Binary`                  | `new Binary(attribute, model)` lost its service |
+| base-chain guard keyed on class name                      | `User extends WebdaUser` not a model; relations `undefined` |
+| value imports synthesised from symlinked paths            | `../../../models/lib/relations.js` breaks once installed |
+| `.d.ts` referencing unimported `PrimaryKeyType`, bare `BelongTo` | invalid declarations                  |
+| strict naming violation logged, build still succeeded     | the guard never stopped a build               |
+
+Module generation still reproduces four TS6 bugs exactly, because `webda.module.json` is a
+committed artefact and changing it is its own decision: dependency models never resolve
+(`moduleInfo.models.list` no longer exists), inherited generic links lose their target, two
+same-named models resolve silently, and `Webda/CoreModel` is hard-excluded from `Ancestors`.
+
+#### What is still on TypeScript 6
+
+The workspace root keeps `typescript@6` as a tooling dependency, and only that:
+`typescript-eslint` 8.68 peers on `<6.1.0` and builds programs through the classic API, as
+does `typedoc` in `docs/`. Neither runs on 7.1 yet. `compiler/documentation/` and three dev
+scripts in `scripts/` also use the classic API; none is built or referenced.
+
+#### Known failures, not caused by the switch
+
+- `postgres`: 21 tests need a server on `:5432`.
+- `blog-system`: `openApiStdout` parses stdout as JSON, and `@webda/grpc` logs to stdout first
+  (added 2026-09-19); two spec files fail to load — one imports `router.js`, renamed in stage
+  2, and one is a Playwright spec vitest should not collect.
+- Eleven packages are `!`-excluded from the workspace and were not migrated; their committed
+  modules predate the current format.
 
 ### Transition option: run the new pipeline out-of-process
 

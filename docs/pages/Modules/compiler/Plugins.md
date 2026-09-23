@@ -74,31 +74,46 @@ Key methods:
 - `generateModelSchemas(node)` — produces input/output/stored JSON Schemas for a model
 - `generateModule()` — main entry point; writes `webda.module.json`
 
-## Compile-time TypeScript plugin — `@webda/ts-plugin`
+## Code generation — `@webda/content-mapper`
 
-The `@webda/ts-plugin` package implements a TypeScript language service plugin that runs at compile time to generate accessor getters/setters for model fields. It is registered in `tsconfig.json`:
+Webda models are written with plain properties, and the build generates what makes them work
+at runtime: `WEBDA_STORAGE`-backed accessors that coerce assigned values (`Date`, relation
+links), relation initialisers, `toJSON`, behaviour hydration, and WebdaQL query rewrites.
 
-```json
+This happens inside `webdac build` and needs no configuration. The build runs on TypeScript
+7.1 in two passes: the first analyses your sources and plans the generated code; the second
+type-checks the rewritten sources and emits exactly what was checked. If the second pass
+reports any error, nothing is written.
+
+### The file-naming rule
+
+Generation applies to files named `*.model.ts` and `*.service.ts`. A model or service
+declared in any other file is never transformed, so `webdac build` fails and names it:
+
+```
+1 Webda class(es) are in files the content mapper cannot claim:
+ - src/user.ts declares model 'User' but is not a mapped file; rename it to 'user.model.ts'
+```
+
+Set `WEBDA_STRICT_FILE_NAMING=0` to downgrade this to a warning while migrating.
+
+### Editor support
+
+To see the generated accessors in your editor — hover, go-to-definition, and no false errors
+when assigning a string to a `Date` field — register the content mapper in `tsconfig.json`:
+
+```jsonc
 {
-  "compilerOptions": {
-    "plugins": [
-      { "name": "@webda/ts-plugin" }
-    ]
-  }
+  "contentMappers": [
+    { "package": "@webda/content-mapper", "extensions": [".model.ts", ".service.ts"] }
+  ]
 }
 ```
 
-The plugin uses `createAccessorTransformer` and `createDeclarationAccessorTransformer` from `@webda/ts-plugin/transform`. These are available as a public API:
+Content mappers run external code, so TypeScript asks you to trust them: `tsc --runExternalCode`
+on the command line, and `initializationOptions.runExternalCode` for the language server.
 
-```typescript
-import {
-  createAccessorTransformer,
-  computeCoercibleFields,
-  DEFAULT_COERCIONS
-} from "@webda/ts-plugin/transform";
-```
-
-See `packages/ts-plugin/src/` for details.
+See `docs/contribute/TypeScript 7 Content Mappers.md` for how this works and why.
 
 ## Build hooks
 

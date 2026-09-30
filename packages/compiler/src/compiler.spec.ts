@@ -1,7 +1,8 @@
 import { suite, test } from "@webda/test";
 import { getCommonJS, JSONUtils } from "@webda/utils";
 import * as assert from "assert";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import * as path from "path";
 import { Compiler } from "./index.js";
 import { WebdaModule, WebdaProject } from "./definition.js";
@@ -475,6 +476,41 @@ class CompilerTest {
         [],
         `${name} should have no nested 'definitions' blocks (found at: ${nested.join(", ")})`
       );
+    }
+  }
+
+  /**
+   * The cache must not report "up to date" when an emitted file is gone:
+   * the digests only describe the inputs.
+   */
+  @test
+  async requireCompilationChecksOutputs() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webdac-cache-"));
+    try {
+      const project = {
+        getAppPath: (p: string = "") => path.join(dir, p),
+        getDigest: () => "digest"
+      } as unknown as WebdaProject;
+      const mod = JSON.stringify({
+        moddas: { "Test/Svc": { Import: "lib/services/svc.service:Svc" } },
+        models: { "Test/Model": { Import: "lib/models/model.model:Model" } },
+        sourceDigest: "digest"
+      });
+      writeFileSync(path.join(dir, "webda.module.json"), mod);
+      mkdirSync(path.join(dir, ".webda"));
+      mkdirSync(path.join(dir, "lib", "services"), { recursive: true });
+      mkdirSync(path.join(dir, "lib", "models"));
+      writeFileSync(path.join(dir, "lib", "services", "svc.service.js"), "");
+      writeFileSync(path.join(dir, "lib", "models", "model.model.js"), "");
+      const compiler = new Compiler(project);
+      (compiler as any).updateCache();
+      assert.strictEqual(compiler.requireCompilation(), false);
+      rmSync(path.join(dir, "lib", "models", "model.model.js"));
+      assert.strictEqual(compiler.requireCompilation(), true, "a single missing output must trigger a build");
+      rmSync(path.join(dir, "lib"), { recursive: true });
+      assert.strictEqual(compiler.requireCompilation(), true, "a deleted lib/ must trigger a build");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
     }
   }
 }

@@ -74,8 +74,9 @@ export class Compiler {
     }
     // The module file must declare the same source digest it was generated
     // against, which catches replacement files carrying a cached content hash.
+    let moduleContent: Record<string, any>;
     try {
-      const moduleContent = FileUtils.load(modulePath, "json") as { sourceDigest?: string };
+      moduleContent = FileUtils.load(modulePath, "json");
       if (moduleContent.sourceDigest !== currentDigest) {
         return true;
       }
@@ -83,12 +84,38 @@ export class Compiler {
       return true;
     }
     // The output has to exist too. The digests only describe the inputs, so
-    // without this a deleted `lib/` was reported as up to date.
-    if (!existsSync(this.project.getAppPath("lib"))) {
+    // without this a deleted `lib/` — or a single deleted file in it — was
+    // reported as up to date.
+    if (this.missingOutputs(moduleContent)) {
       return true;
     }
     useLog("DEBUG", "Skipping compilation as nothing changed");
     return false;
+  }
+
+  /**
+   * Whether an emitted file the module points at is missing.
+   *
+   * Every `Import` in `webda.module.json` names an emitted file
+   * (`lib/services/audit.model:AuditService`), so checking them follows the
+   * configured `outDir` and catches a partially deleted output. A module that
+   * declares nothing falls back to `lib/` existing.
+   * @param mod - the parsed `webda.module.json`
+   * @returns true if at least one output is missing
+   */
+  private missingOutputs(mod: Record<string, any>): boolean {
+    const files = new Set<string>();
+    for (const section of ["beans", "deployers", "moddas", "models", "behaviors"]) {
+      for (const entry of Object.values<any>(mod[section] ?? {})) {
+        if (typeof entry?.Import === "string") {
+          files.add(entry.Import.split(":")[0]);
+        }
+      }
+    }
+    if (files.size === 0) {
+      return !existsSync(this.project.getAppPath("lib"));
+    }
+    return [...files].some(file => !existsSync(this.project.getAppPath(`${file}.js`)));
   }
 
   /**

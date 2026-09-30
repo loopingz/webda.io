@@ -69,7 +69,7 @@
   "devDependencies": {
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:*",
-    "typescript": "7.1.0-dev.20260918.1",
+    "typescript": "7.1.0-dev.20260929.1",
     "vite": "^6.0.0",
     "vitest": "^4.1.2"
   },

@@ -36,7 +36,7 @@
     "accept-language": "^3.0.20",
     "diff": "^8.0.4",
     "ts-morph": "^27.0.2",
-    "typescript": "7.1.0-dev.20260918.1",
+    "typescript": "7.1.0-dev.20260929.1",
     "yargs": "^18.0.0",
     "yoctocolors": "^1.0.0"
   },

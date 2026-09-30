@@ -63,7 +63,7 @@
     "@webda/models": "workspace:*",
     "@webda/test": "workspace:*",
     "fast-check": "^3.23.2",
-    "typescript": "7.1.0-dev.20260918.1",
+    "typescript": "7.1.0-dev.20260929.1",
     "vite": "^6.0.0",
     "vitest": "^4.1.2"
   },

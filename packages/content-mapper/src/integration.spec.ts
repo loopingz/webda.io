@@ -81,6 +81,8 @@ describe("content mapper under tsgo", () => {
 
   it("refuses to run content mappers without --runExternalCode", () => {
     const output = check("tsconfig.mapper.json", false);
-    expect(output).toContain("TS100024");
+    // Match the message: the diagnostic code moves between dev builds
+    // (TS100024 in 20260918, TS18068 in 20260929)
+    expect(output).toContain("Content mappers require the '--runExternalCode' command line flag");
   }, 60_000);
 });

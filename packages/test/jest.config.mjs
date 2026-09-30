@@ -3,20 +3,7 @@ const config = {
   testMatch: ["**/?(*.)+(spec|test).ts"],
   extensionsToTreatAsEsm: [".ts"],
   transform: {
-    "^.+\\.tsx?$": [
-      "ts-jest",
-      {
-        useESM: true,
-        tsconfig: {
-          target: "es2022",
-          module: "nodenext",
-          moduleResolution: "nodenext",
-          experimentalDecorators: false,
-          esModuleInterop: true,
-          verbatimModuleSyntax: false
-        }
-      }
-    ]
+    "^.+\\.tsx?$": "<rootDir>/jest.transform.mjs"
   },
   transformIgnorePatterns: [
     "node_modules/(?!(@webda)/)"

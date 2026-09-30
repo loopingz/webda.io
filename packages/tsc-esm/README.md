@@ -15,44 +15,41 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 # @webda/tsc-esm
 
-> ESM-aware TypeScript compiler wrapper — compiles your TypeScript to ESM and automatically rewrites bare specifiers (`./myclass`) to their `.js` equivalents so the output works in Node.js without manual import path edits.
+> Shared TypeScript utility types and decorator helpers used across the Webda packages.
 
-## When to use it
-
-- You write TypeScript imports without `.js` extensions (`import { X } from './myclass'`) but need valid ESM output where Node.js requires `'./myclass.js'`.
-- You want a drop-in `tsc` replacement that handles the long-standing [TypeScript ESM import extension issue](https://github.com/microsoft/TypeScript/issues/16577) automatically.
-- Your package has `"type": "module"` in `package.json` and you are tired of adding `.js` to every local import.
+This package used to ship a `tsc-esm` binary that appended `.js` to relative imports after
+`tsc` emitted them. That binary is gone: Webda packages now build with plain `tsc` under
+`"module": "nodenext"` and write `.js` extensions in their sources. What remains is the library.
 
 ## Install
 
 ```bash
-pnpm add -D @webda/tsc-esm
+pnpm add @webda/tsc-esm
 ```
-
-## Configuration
-
-No extra config needed beyond your existing `tsconfig.json`. The wrapper reads the same config file that `tsc` would use.
 
 ## Usage
 
-```json
-// package.json — replace "tsc" with "tsc-esm" in your build script
-{
-  "scripts": {
-    "build": "tsc-esm"
-  }
+```typescript
+import type { Attributes, DeepPartial, FilterAttributes, Merge } from "@webda/tsc-esm";
+import { NotEnumerable, isMainModule } from "@webda/tsc-esm";
+
+class Session {
+  // Kept out of enumeration, so it is skipped by JSON serialisation and Object.keys
+  @NotEnumerable
+  dirty: boolean;
 }
+
+type SessionAttributes = Attributes<Session>; // every non-method key
 ```
 
-```bash
-# Run directly
-pnpm exec tsc-esm
+It provides:
 
-# Pass tsconfig options through (same flags as tsc)
-pnpm exec tsc-esm --project tsconfig.build.json
-```
-
-After compilation, all relative import/export specifiers in the emitted `.js` files will have `.js` extensions appended automatically — no source changes required.
+- **Type utilities** — `Attributes`, `Methods`, `FilterAttributes`, `FilterOutAttributes`,
+  `PickByType`, `OmitByType`, `OmitByTypeRecursive`, `DeepPartial`, `Merge`, `SetOptional`,
+  `ReadonlyKeys`, `IsUnion`, `ArrayElement` and the `Constructor` family.
+- **Decorator helpers** — `createClassDecorator`, `createPropertyDecorator` and
+  `createMethodDecorator` (re-exported from `@webda/decorators`), and `NotEnumerable`.
+- **Runtime helpers** — `isMainModule`, `getFileName`, `assertUnreachable`, `StaticInterface`.
 
 ## Reference
 

@@ -63,7 +63,7 @@ webdac build --appPath /path/to/my-app
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--watch` / `-w` | `false` | Watch for file changes and rebuild |
-| `--code` / `-c` | — | Pre-run `webdac code` before compiling |
+| `--force` / `-f` | `false` | Recompile even when the cache reports nothing changed |
 | `--appPath` | `.` | Path to the application root (must contain `tsconfig.json`) |
 
 ## Real build output (blog-system)

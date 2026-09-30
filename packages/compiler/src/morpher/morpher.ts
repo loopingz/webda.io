@@ -1,8 +1,5 @@
 import { Project, ProjectOptions, SourceFile } from "ts-morph";
-import { setLoadParameters } from "./loadparameters.js";
 import { updateImports } from "./imports.js";
-import { deserializer } from "./deserialize.js";
-import { transformAccessors } from "./accessors.js";
 import { removeFilterRegistrations } from "./capabilities.js";
 import { useLog, useWorkerOutput } from "@webda/workout";
 import { diffLines } from "diff";
@@ -33,6 +30,9 @@ const replacePackages = {
 // TODO Ensure tsconfig.json does not have experimentalDecorators true
 // TODO Auto add .js for local imports
 
+// Only source migrations belong here. Accessors, loadParameters and
+// deserializers used to be written into the source as well; `webdac build`
+// generates what is still needed through `@webda/content-mapper`.
 type WebdaMorpherOptions = {
   project?: ProjectOptions;
   pretend?: boolean;
@@ -42,13 +42,10 @@ type WebdaMorpherOptions = {
   modules?: string[];
 };
 
-/** Applies a set of code transformation modules (deserializer, loadParameters, etc.) to project source files */
+/** Applies a set of source migration modules (import moves, capability registrations) to project source files */
 export class WebdaMorpher {
   project: Project;
   modules: { [key: string]: (sourceFile: SourceFile) => void } = {
-    unserializer: sourceFile => deserializer(sourceFile, this.project.getTypeChecker()),
-    loadParameters: setLoadParameters,
-    accessors: transformAccessors,
     updateImports: sourceFile => updateImports(sourceFile, replacePackages),
     capabilities: removeFilterRegistrations
   };

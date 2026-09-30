@@ -119,15 +119,11 @@ const argv = yargs(process.argv.slice(2))
         describe: "Recompile even when the cache reports nothing changed",
         type: "boolean",
         default: false
-    })
-        .option("code", {
-        alias: "c",
-        describe: "Prerun code before compiling"
     });
 })
-    .command("code", "Analyzes the code and generate methods for you", yargs => {
+    .command("code", "Migrate the application sources to the current Webda version", yargs => {
     yargs.option("module", {
-        describe: "Generate migration code",
+        describe: "Run only these migration modules",
         type: "array"
     });
 })
@@ -145,7 +141,10 @@ const command = argv._[0];
 new InteractiveConsoleLogger(useWorkerOutput());
 Fork(async () => {
     if (isCodeCommand(argv)) {
-        const morpher = new WebdaMorpher();
+        const morpher = new WebdaMorpher({
+            project: { tsConfigFilePath: join(targetDir, "tsconfig.json") },
+            modules: argv.module?.map(String)
+        });
         await morpher.check();
     }
     else if (isBuildCommand(argv)) {

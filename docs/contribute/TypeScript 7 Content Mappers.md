@@ -303,7 +303,7 @@ silent bug appears. What changes is frequency and detectability:
 | --------------------------- | ----------------------------- | --------------------------- |
 | when it can happen          | **every edit**                | only when creating a file   |
 | what the guard must do      | re-run the generator and diff | check a filename            |
-| missing `--runExternalCode` | n/a                           | **hard error** (`TS100024`) |
+| missing `--runExternalCode` | n/a                           | **hard error** (`TS18068`)  |
 
 ## 8. Guardrails
 
@@ -1227,8 +1227,9 @@ ANTLR `grammar` scripts, so regenerating a parser keeps the fix.
 Verified by emit diff, not by tests: across 16 packages, every emitted file is byte-identical
 to a fresh `tsc-esm` build except specifier extensions and empty modules gaining `export {};`.
 
-Found and not fixed: `webdac build` reports "Cache up-to-date; skipping build" after `lib/` is
-deleted — the cache checks the source digest, never that the output exists.
+Found here and fixed with the switch: `webdac build` reported "Cache up-to-date; skipping build"
+after `lib/` was deleted, because the cache checked the source digest and never the output. It now
+checks every file an `Import` in `webda.module.json` points at, so one deleted output is enough.
 
 ### Stage 9: where it actually stands
 
@@ -1326,7 +1327,8 @@ Done, in the order the measurements forced:
 4. **The compiler** makes one worker round trip per build — two-pass emit, then module — and
    keeps only the digest, the naming guard and the `.webda/module.d.ts` writer. About 13,800
    lines were deleted, including a dead island of TS6 code nothing reached.
-5. **The toolchain.** Every workspace package builds itself with 7.1. Each `tsc`-built package
+5. **The toolchain.** Every workspace package builds itself with 7.1 — pinned to
+   `7.1.0-dev.20260929.1` since 2026-09-29, the newest 7.1 build; `latest` on npm is still 7.0. Each `tsc`-built package
    was compiled with tsgo and diffed against its TS6 output before the version bump.
 
 #### What TypeScript 6 was getting wrong
@@ -1349,11 +1351,40 @@ committed artefact and changing it is its own decision: dependency models never 
 (`moduleInfo.models.list` no longer exists), inherited generic links lose their target, two
 same-named models resolve silently, and `Webda/CoreModel` is hard-excluded from `Ancestors`.
 
+Rechecked on 2026-09-29; all four still reproduce, and they are not equally harmless:
+
+- **Two same-named models** is a real bug today. `core` has two `AuditEntry` classes:
+  `services/audit.model.ts` (extends `CoreModel`, the one `AuditService` constructs and saves) and
+  `models/auditentry.model.ts` (extends `UuidModel`, the one `Webda/AuditEntry` registers). The
+  saved class has no model id and its stored schema describes the other class; `audit.spec.ts`
+  mocks `save`, so nothing notices. Fix the source collision, then make the generator reject
+  duplicates.
+- **Dependency models never resolve.** Only `Ancestors` is wrong in the committed modules, and
+  `Ancestors` is only displayed — but an application declaring `ModelParent`, `ModelRelated` or
+  `ModelsMapped` against a model from another package fails `webdac build`. The fix walks from the
+  class's `.d.ts` to its package's `webda.module.json`; it changes `Ancestors` in core, runtime,
+  sample-app and blog-system.
+- **`Webda/CoreModel` excluded from `Ancestors`** made sense when `CoreModel` was the root; it now
+  sits between `UuidModel` and application models. On its own removing it changes nothing; it
+  belongs with the fix above.
+- **Inherited generic links** leave `_user` without a target on `Webda/OwnerModel` and
+  `Webda/Ident`, so GraphQL drops that field. Resolving the property's type argument fixes both.
+
+`module-discovery.ts` holds a second copy of this logic (`buildModelMetadata`,
+`buildRelations`) that disagrees with `module.ts` on duplicates; a fix has to land in both, or
+one copy should go.
+
 #### What is still on TypeScript 6
 
 The workspace root keeps `typescript@6` as a tooling dependency, and only that:
-`typescript-eslint` 8.68 peers on `<6.1.0` and builds programs through the classic API, as
-does `typedoc` in `docs/`. Neither runs on 7.1 yet. `compiler/documentation/` and three dev
+`typescript-eslint` peers on `<6.1.0` and builds programs through the classic API, as
+does `typedoc` in `docs/`. Neither runs on 7.1 yet — rechecked on 2026-09-29 against
+`typescript-eslint` 8.71.0 (and its canary) and `typedoc` 0.28.20, which peers on `6.0.x`.
+
+`ts-jest` had the same problem and nothing reported it: `@webda/test`'s `test:jest` script, which
+proves the framework runs under jest, had failed since the switch because ts-jest imports the
+classic API directly (its `compiler` option does not cover every call). Jest now transforms the
+specs with esbuild, which needs no TypeScript. `compiler/documentation/` and three dev
 scripts in `scripts/` also use the classic API; none is built or referenced.
 
 #### Known failures, not caused by the switch
@@ -1363,7 +1394,23 @@ scripts in `scripts/` also use the classic API; none is built or referenced.
   (added 2026-09-19); two spec files fail to load — one imports `router.js`, renamed in stage
   2, and one is a Playwright spec vitest should not collect.
 - Eleven packages are `!`-excluded from the workspace and were not migrated; their committed
-  modules predate the current format.
+  modules predate the current format. **None of their errors is caused by TypeScript 7.**
+  Type-checked on 2026-09-29 under 7.1 and 6.0.2, with the removed `@webda/shell` dependency
+  stripped, the counts are identical:
+
+  | package | errors | | package | errors |
+  | --- | ---: | --- | --- | ---: |
+  | `aws` | 598 | | `mongodb` | 27 |
+  | `async` | 196 | | `otel` | 22 |
+  | `gcp` | 100 | | `amqp` | 18 |
+  | `elasticsearch` | 64 | | `google-auth` | 8 |
+  | `hawk` | 61 | | `iam` | no `package.json` |
+  | `kubernetes` | 30 | | | |
+
+  They are the v4 API port — `getWebda`, `emitSync`, `@testdeck/mocha`, `WebdaSimpleTest`, the
+  `@webda/shell` dependency seven of them still declare — and belong to whoever revives each
+  package. The TypeScript side is then mechanical: `nodenext`, `.js` specifiers, the 7.1 pin,
+  `webdac build`, and `.model.ts` / `.service.ts` names.
 
 ### Transition option: run the new pipeline out-of-process
 
@@ -1378,17 +1425,29 @@ zero diagnostics, and the generated accessors are present in the emitted JavaScr
 
 ### Cleanup that is easy to forget
 
-- **Comment-only references** to `@webda/ts-plugin` in four packages — they do not break the
-  build, they just go stale: `core/src/application/application.ts:100,744`,
-  `models/src/types.ts:284`, `ql/src/webdaql-string.ts:3`,
-  `serialize/src/builtin/object.ts:89`.
-- **Three tsconfigs** declare the plugin: `packages/core`, `packages/models`,
-  `sample-apps/blog-system`.
-- **`.vscode/settings.json`** sets `js/ts.tsdk.path` to `node_modules/typescript/lib` to load
-  the plugin today. It must point at the tsgo tsdk instead — same mechanism, different target.
-- **`webdac code` is currently a no-op**: `WebdaMorpher` builds `new Project(undefined)`
-  (`morpher/morpher.ts:60`), so it walks zero source files. Either fix or remove it; leaving
-  a command that silently does nothing is worse than either.
+Done on 2026-09-29:
+
+- The comment-only references to `@webda/ts-plugin` and the three tsconfig `plugins` entries
+  were already gone with the switch.
+- **`.vscode/settings.json`** points `js/ts.tsdk.path` at
+  `packages/content-mapper/node_modules/typescript/bin`: VS Code's TypeScript 7 extension uses
+  the `tsc` executable it finds there as its language server. Generated accessors still need the
+  `contentMappers` entry described in the compiler plugin page.
+- **`.release-please-manifest.json`** no longer lists `packages/ts-plugin` or `packages/schema`.
+- **`@webda/tsc-esm`** lost its binary in stage 8 and is now only a library of shared types and
+  decorator helpers; its README and description say so, and `debug` and `postgres`, which never
+  imported it, no longer depend on it.
+- **`webdac code`** walked zero files: `WebdaMorpher` built `new Project(undefined)`. It now opens
+  `<appPath>/tsconfig.json` and honours `--module`. Three of its five modules — `accessors`,
+  `loadParameters` and `unserializer` — wrote into the sources what the build now generates, or
+  what nothing calls, which is the in-place codegen §7 rejects; they are deleted, and `webdac code`
+  is a migration tool with `updateImports` and `capabilities`. Pointing it at a real project also
+  found that `updateImports` deleted side-effect imports (`import "@webda/core"`) and renamed every
+  whole-module move to `@webda/test`; both fixed. The dead `webdac build --code` flag is gone.
+
+Not done, and not caused by TypeScript 7: fourteen `package.json` files still carry `nx` blocks
+from before the pnpm migration, and `packages/shell/src/handlers/http.ts` and `packages/mapper/`
+are orphaned sources with no package around them.
 
 ## References
 

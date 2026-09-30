@@ -14,7 +14,7 @@ As of Webda 4.x, there is **no public plugin API** for adding custom morpher mod
 However, the source is open and the internal structure is designed for extension:
 
 - `WebdaMorpher` in `packages/compiler/src/morpher/morpher.ts` is a class whose `modules` map can be extended by subclassing.
-- `ModuleGenerator` in `packages/compiler/src/module.ts` handles model/service discovery and schema generation.
+- `generateWebdaModule` in `@webda/content-mapper` handles model/service discovery and schema generation; `packages/compiler/src/module.ts` only adds `sourceDigest` and writes the file.
 
 If you need custom code generation, file an issue at [github.com/loopingz/webda.io](https://github.com/loopingz/webda.io) or contribute a new morpher module.
 
@@ -28,9 +28,6 @@ export class WebdaMorpher {
   project: Project;
 
   modules: { [key: string]: (sourceFile: SourceFile) => void } = {
-    unserializer: sourceFile => deserializer(sourceFile, typeChecker),
-    loadParameters: setLoadParameters,
-    accessors: transformAccessors,
     updateImports: sourceFile => updateImports(sourceFile, replacePackages),
     capabilities: removeFilterRegistrations
   };
@@ -145,7 +142,7 @@ import('@webda/compiler').then(m => {
 ```
 
 ```
-modules: [ 'unserializer', 'loadParameters', 'accessors', 'updateImports', 'capabilities' ]
+modules: [ 'updateImports', 'capabilities' ]
 ```
 
 > **TODO**: A formal plugin registry for custom morpher modules is planned. Track progress at [github.com/loopingz/webda.io/issues](https://github.com/loopingz/webda.io/issues).

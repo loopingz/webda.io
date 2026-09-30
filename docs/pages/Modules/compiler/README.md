@@ -5,13 +5,13 @@ sidebar_label: "@webda/compiler"
 
 ## @webda/compiler
 
-The build toolchain for Webda applications. It orchestrates TypeScript compilation (via `@webda/tsc-esm`), generates the module manifest (`webda.module.json`), produces JSON Schemas for all models and service parameters, and optionally morphs source files to add boilerplate methods.
+The build toolchain for Webda applications. It compiles on TypeScript 7.1 through `@webda/content-mapper`, generates the module manifest (`webda.module.json`) and JSON Schemas for all models and service parameters, and can migrate sources written for older Webda versions.
 
 ### When to use it
 
 - Run `webdac build` once after making changes to build and generate the module manifest.
-- Use `webdac build --watch` during development for incremental rebuilds.
-- Use `webdac code` to auto-generate missing methods (`loadParameters`, `unserialize`, accessor getters/setters) on existing models and services.
+- Use `webdac build --watch` during development to rebuild on every change.
+- Use `webdac code` once when migrating an application from an older Webda version (moved imports, obsolete filter registrations).
 
 ### Install
 
@@ -29,36 +29,36 @@ Compiles the application TypeScript and regenerates `webda.module.json` and all 
 
 ```bash
 webdac build              # one-shot build
-webdac build --watch      # watch mode (incremental)
+webdac build --watch      # watch mode: rebuild on every change under src/
 webdac build --appPath /path/to/app
 ```
 
 What it does:
-1. Runs `tsc` via `@webda/tsc-esm` to compile TypeScript → ES modules in `lib/`
-2. Analyzes the compiled program to discover models, services, deployers, and beans
-3. Generates per-model JSON Schemas (input, output, stored) using `@webda/content-mapper`
+1. Compiles with TypeScript 7.1 through `@webda/content-mapper`, which generates accessors,
+   `toJSON` and behaviours, type-checks the result and emits ES modules to `lib/`
+2. Discovers models, services, deployers, and beans with the same type checker
+3. Generates per-model JSON Schemas (input, output, stored)
 4. Writes `webda.module.json` at the project root
 5. Merges dependency modules from `node_modules`
 6. Writes `.webda-config-schema.json` and `.webda-deployment-schema.json`
 
 #### `webdac code`
 
-Analyzes your source and generates missing boilerplate methods:
+Migrates application sources written for an older Webda version, in place:
 
 ```bash
-webdac code                    # analyze all configured modules
-webdac code --module accessors # run a specific morpher module
+webdac code                        # run every migration module
+webdac code --module updateImports # run a specific module
 ```
 
-Morpher modules available:
+Migration modules available:
 
 | Module | Description |
 |--------|-------------|
-| `loadParameters` | Generates `loadParameters()` for Services |
-| `unserializer` | Generates `unserialize()` for Models |
-| `accessors` | Generates getter/setter pairs for morpher-managed fields |
-| `updateImports` | Fixes deprecated import paths |
-| `capabilities` | Removes deprecated capability filter registrations |
+| `updateImports` | Moves imports to the packages that now own them |
+| `capabilities` | Removes filter registrations the framework now does automatically |
+
+It no longer generates code: `webdac build` does, without touching your sources.
 
 ### `webda.module.json` format
 

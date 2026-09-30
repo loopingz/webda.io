@@ -27,10 +27,11 @@ export function updateImports(sourceFile: SourceFile, replacePackages: { [key: s
     const replacements = moveImports[pkg];
     // Update each import declaration
     importDeclarations.forEach(importDeclaration => {
+      let moved = false;
       for (const i in replacements) {
         if (i === "*") {
           // The whole module has been renamed
-          importDeclaration.setModuleSpecifier("@webda/test");
+          importDeclaration.setModuleSpecifier(replacements[i]);
           continue;
         }
         // If import is not there yet
@@ -63,6 +64,7 @@ export function updateImports(sourceFile: SourceFile, replacePackages: { [key: s
           }
         } else {
           original.remove();
+          moved = true;
           // Move to another module
           const newDeclaration =
             sourceFile.getImportDeclaration(newPkg) ||
@@ -80,8 +82,14 @@ export function updateImports(sourceFile: SourceFile, replacePackages: { [key: s
           }
         }
       }
-      // Remove import if empty
-      if (!importDeclaration.getNamespaceImport() && importDeclaration.getNamedImports().length === 0) {
+      // Remove the import once everything it named has moved; a side-effect
+      // or default import never named anything and stays
+      if (
+        moved &&
+        !importDeclaration.getDefaultImport() &&
+        !importDeclaration.getNamespaceImport() &&
+        importDeclaration.getNamedImports().length === 0
+      ) {
         importDeclaration.remove();
       }
     });

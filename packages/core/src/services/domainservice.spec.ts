@@ -5,7 +5,7 @@ import { DomainServiceParameters, DomainService } from "./domainservice.service.
 import { callOperation, listOperations } from "../core/operations.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import * as WebdaError from "../errors/errors.js";
-import { useModel } from "../application/hooks.js";
+import { useApplication, useModel } from "../application/hooks.js";
 import { MemoryRepository, registerRepository } from "@webda/models";
 import type { UuidModel } from "@webda/models";
 import { runWithContext } from "../contexts/execution.js";
@@ -227,6 +227,24 @@ class DomainServiceTest extends WebdaApplicationTest {
     await deleteCtx.init();
     deleteCtx.setParameters({ uuid });
     await assert.rejects(() => callOperation(deleteCtx, "Contact.Delete"), WebdaError.NotFound);
+  }
+
+  @test
+  async schemasRestoredInSecondApplication() {
+    // Schemas stay registered process-wide when a previous Application ran: the
+    // application's own map must still receive them.
+    const schemas = useApplication().getSchemas();
+    const names = ["WebdaDemo/Contact.primaryKey", "WebdaDemo/Contact.queryResult"].filter(n => schemas[n]);
+    assert.ok(names.length > 0, "model schemas are registered by the DomainService");
+    for (const n of names) {
+      delete schemas[n];
+    }
+    const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
+    service.initOperations();
+    for (const n of names) {
+      assert.ok(schemas[n], `${n} is back in the application schema map`);
+    }
+    assert.ok(useApplication().getSchema(names[0])?.properties);
   }
 
   @test

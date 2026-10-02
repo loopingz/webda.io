@@ -119,6 +119,28 @@ class AuditReadTest extends WebdaApplicationTest {
   }
 
   @test
+  async stopUnsubscribesFromCoreEvents() {
+    this.registerRecordOps();
+    const audit = await this.setupAudit({ operations: ["AuditRec.*"] });
+    await audit.stop();
+    const ctx = new JsonOpContext();
+    ctx.setParameters({ uuid: this.unique("u") });
+    await callOperation(ctx, "AuditRec.Touch");
+    assert.strictEqual(audit.getEntries().length, 0);
+  }
+
+  @test
+  async resolveTwiceSubscribesOnce() {
+    this.registerRecordOps();
+    const audit = await this.setupAudit({ operations: ["AuditRec.*"] });
+    audit.resolve();
+    const ctx = new JsonOpContext();
+    ctx.setParameters({ uuid: this.unique("u") });
+    await callOperation(ctx, "AuditRec.Touch");
+    assert.strictEqual(audit.getEntries().length, 1);
+  }
+
+  @test
   async recordsSubjectOnSuccessAndFailure() {
     this.registerRecordOps();
     const audit = await this.setupAudit({ operations: ["AuditRec.*"] });

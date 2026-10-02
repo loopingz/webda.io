@@ -1,216 +1,164 @@
 # Blog System - Complete Real-World Example
 
-This sample demonstrates **all the power of @webda/models** in a complete, real-world blog application.
+This sample demonstrates **@webda/models** in a complete blog application: the models are declared once and Webda exposes them over REST, GraphQL and gRPC, with an admin web UI on top.
 
 ## Features Demonstrated
 
 ### 1. Complex Domain Model
-- **User** - Authors and readers
-- **Post** - Blog posts with rich content
-- **Comment** - Nested comments on posts
+
+- **User** - Authors and readers, with `login`/`logout`/`follow`/`unfollow` operations
+- **Post** - Blog posts with rich content, binary attachments and a `publish` operation
+- **Comment** - Comments on posts
 - **Tag** - Categorization with many-to-many
-- **PostTag** - Join table with composite primary key
-- **UserFollow** - Self-referential relationships
+- **PostTag** - Join table with a composite primary key
+- **UserFollow** - Self-referential relationship with a composite primary key
 
 ### 2. All Relationship Types
-- **OneToMany**: User → Posts, Post → Comments
-- **ManyToOne**: Post → User (author), Comment → Post
-- **ManyToMany**: Post ↔ Tag (via PostTag join table)
-- **Self-Referential**: User ↔ User (followers/following)
 
-### 3. Composite Primary Keys
-The `PostTag` join table demonstrates composite keys:
+- **OneToMany**: User → Posts, User → Comments, Tag → Posts
+- **BelongTo** (ManyToOne): Post → User (author), Comment → Post, Comment → User
+- **Contains**: Post → Comments
+- **ManyToMany**: Post ↔ Tag
+- **Self-Referential**: User ↔ User (followers/following via UserFollow)
+
+### 3. Primary Keys
+
+`Post` and `Tag` use their `slug` as primary key, `User` and `Comment` use a generated `uuid`. The join tables use composite keys made of relations:
+
 ```typescript
-class PostTag extends Model {
-  [WEBDA_PRIMARY_KEY] = ["postUuid", "tagUuid"] as const;
+export class PostTag extends Model {
+  [WEBDA_PRIMARY_KEY] = ["post", "tag"] as const;
 
-  postUuid: string;
-  tagUuid: string;
+  createdAt!: Date;
+  post!: BelongTo<Post>;
+  tag!: RelateTo<Tag>;
 }
-
-// Type-safe composite key access
-const pk = postTag.getPrimaryKey();
-console.log(pk.postUuid, pk.tagUuid); // ✅ Fully typed
 ```
 
 ### 4. Validation
-All models have comprehensive validation:
-- Email format validation
-- String length constraints
-- Numeric ranges
-- Pattern matching (slugs, URLs)
-- Array constraints
 
-### 5. Dirty Tracking
-Automatic change detection:
+Constraints are declared with JSDoc tags and compiled into JSON schemas by `webdac build`:
+
 ```typescript
-const post = await Post.ref("post-123").get();
-post.title = "Updated Title";
-
-// Webda tracks that 'title' field changed
-const dirtyFields = post.getDirtyFields();
-console.log(dirtyFields); // ["title"]
-
-await post.save(); // Only updates changed fields
+/**
+ * @minLength 5
+ * @maxLength 250
+ * @pattern ^[a-z0-9-]+$
+ */
+slug!: string;
 ```
 
-### 6. Repository Pattern
-- Clean separation between models and storage
-- Swappable storage backends (Memory, DynamoDB, MongoDB, etc.)
-- Type-safe queries and operations
+Invalid input is rejected with a `400` naming the failing field (e.g. `/name must NOT have fewer than 2 characters`).
 
-### 7. Lazy Loading
-Relations are fetched on-demand for performance:
+### 5. Binaries
+
+`Post.mainImage` (`Binary`) and `Post.images` (`Binaries`) store files with typed metadata (`{ width, height }`), uploaded either directly (multipart `POST`) or through the hash/challenge flow (`PUT`). Files go to `./data/images` through the `Images` FileBinary service.
+
+### 6. Dirty Tracking
+
+Wrap a model with `track()` from `@webda/utils` to know what changed:
+
 ```typescript
-const post = await Post.ref("post-123").get();
-// post.comments not loaded yet
+const post = track(await Post.ref("hello-world").get());
+post.dirty.valueOf(); // false
 
-const comments = await post.comments.get();
-// NOW comments are fetched
+post.title = "Updated Title";
+post.dirty.valueOf(); // true
+post.dirty.getProperties(); // ["title"]
+
+await post.save();
+```
+
+### 7. Repository Pattern & Lazy Loading
+
+Models are persisted through repositories, so the storage backend is configuration. Relations are fetched on demand:
+
+```typescript
+const post = await Post.ref("hello-world").get();
+const comments = await post.comments.get(); // fetched now
 ```
 
 ## Domain Model
 
 ```
-┌─────────────┐
-│    User     │
-├─────────────┤
-│ uuid        │───┐
-│ username    │   │
-│ email       │   │ Contains (OneToMany)
-│ bio         │   │
-└─────────────┘   │
-      ↑           │
-      │           ↓
-      │     ┌──────────┐
-      │     │   Post   │
-      │     ├──────────┤
-      │     │ uuid     │───┐
-      │     │ title    │   │ Contains (OneToMany)
-      │     │ content  │   │
-      │     │ slug     │   │
-      │     │ author   │   ↓
-      │     └──────────┘  ┌──────────┐
-      │           ↑       │ Comment  │
-      │           │       ├──────────┤
-      │           │       │ uuid     │
-      │           │       │ content  │
-      │           │       │ author   │
-      │           │       │ post     │
-      │           │       └──────────┘
-      │           │
-      │           │ ManyToMany via PostTag
-      │           │
-      │           ↓
-      │     ┌──────────┐         ┌──────────┐
-      │     │ PostTag  │─────────│   Tag    │
-      │     ├──────────┤         ├──────────┤
-      │     │ postUuid │ (FK)    │ uuid     │
-      │     │ tagUuid  │ (FK)────│ name     │
-      │     └──────────┘         │ slug     │
-      │    (Composite PK)        └──────────┘
-      │
-      │     ┌─────────────┐
-      └────→│ UserFollow  │
-            ├─────────────┤
-            │ followerUuid│──┐
-            │ followingUuid  │ (Self-referential)
-            └─────────────┘  │
-            (Composite PK)   │
-                             ↓
-                        (Back to User)
+┌─────────────┐  author (BelongTo)   ┌──────────────┐  post (BelongTo)  ┌──────────────┐
+│    User     │◄─────────────────────│     Post     │◄──────────────────│   Comment    │
+├─────────────┤                      ├──────────────┤                   ├──────────────┤
+│ uuid (PK)   │  posts (OneToMany)   │ slug (PK)    │ comments          │ uuid (PK)    │
+│ username    │─────────────────────►│ title        │ (Contains)        │ content      │
+│ email       │                      │ content      │──────────────────►│ isEdited     │
+│ name        │                      │ status       │                   │ author ──────┼──► User
+│ password    │                      │ mainImage    │                   └──────────────┘
+└─────────────┘                      │ images       │
+   ▲       ▲                         └──────────────┘
+   │       │                                ▲  tags (ManyToMany)
+   │       │                                ▼
+   │       │   ┌─────────────────────┐   ┌──────────────┐
+   │       │   │      PostTag        │   │     Tag      │
+   │       │   ├─────────────────────┤   ├──────────────┤
+   │       │   │ (post, tag) PK      │──►│ slug (PK)    │
+   │       │   └─────────────────────┘   │ name         │
+   │       │                             └──────────────┘
+   │  ┌────┴────────────────────┐
+   └──│      UserFollow         │
+      ├─────────────────────────┤
+      │ (follower, following) PK│  both BelongTo<User>
+      └─────────────────────────┘
 ```
 
 ## Running the Sample
 
+From the monorepo root, install and build the workspace (`pnpm install && pnpm -r run build`), then in this folder:
+
 ```bash
-npm install
-npm run dev
+pnpm run build       # webdac build: compile, generate schemas, webda.module.json and .webda/app.proto
+pnpm run debug       # dev server with TUI and hot reload
+pnpm run debug:web   # same server without the TUI
 ```
 
-This will:
-1. Build and generate schemas via @webda/compiler
-2. Create a complete blog with users, posts, comments, and tags
-3. Demonstrate all CRUD operations
-4. Show relationship queries
-5. Display dirty tracking
-6. Example queries and filtering
+The server listens on `https://localhost:18080` (self-signed certificate) with gRPC (h2c) on port `50051`:
 
-## What You'll Learn
+| URL                                                             | What                                                                                            |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `https://localhost:18080/admin/`                                | Admin web UI: manage posts, users, tags and comments, upload images                             |
+| `https://localhost:18080/posts`, `/users`, `/tags`, `/comments` | REST API (`PUT` on the collection runs a WebdaQL query, e.g. `{ "q": "status = 'published'" }`) |
+| `https://localhost:18080/graphql`                               | GraphQL API                                                                                     |
+| `localhost:50051`                                               | gRPC API (definitions in `.webda/app.proto`)                                                    |
 
-1. **Domain Modeling**: How to structure complex domains with @webda/models
-2. **Relationships**: All relationship types in practice
-3. **Composite Keys**: When and how to use them (join tables)
-4. **Self-Referential Relations**: User following system
-5. **Validation**: Comprehensive validation in action
-6. **Repository Pattern**: Clean architecture principles
-7. **Performance**: Lazy loading and efficient queries
-8. **Type Safety**: Full compile-time safety throughout
+Data lives in memory and is lost when the server stops.
+
+## Testing
+
+```bash
+pnpm test            # Vitest: application bootstrap (test/api-test.ts) and webda CLI (test/cli-test.ts)
+pnpm run test:e2e    # Playwright: admin UI end-to-end (starts the dev server if none is running)
+```
+
+With the dev server running, these scripts exercise every API surface:
+
+```bash
+./rest.sh       # REST CRUD, model actions and service operations
+./graphql.sh    # GraphQL queries, mutations and introspection
+./grpc.sh       # gRPC services (requires grpcurl)
+```
 
 ## Code Structure
 
 ```
 src/
 ├── models/
-│   ├── User.ts           - User model with followers/following
-│   ├── Post.ts           - Blog post model
-│   ├── Comment.ts        - Comment model
-│   ├── Tag.ts            - Tag model
-│   ├── PostTag.ts        - Join table (composite PK)
-│   └── UserFollow.ts     - Follow relationship (composite PK)
-├── repositories/
-│   └── setup.ts          - Repository initialization
-└── index.ts              - Complete demo scenarios
-
+│   ├── User.model.ts         - User with followers/following and login/follow operations
+│   ├── Post.model.ts         - Blog post with binaries and the publish operation
+│   ├── Comment.model.ts      - Comment model
+│   ├── Tag.model.ts          - Tag model
+│   ├── PostTag.model.ts      - Join table (composite PK)
+│   └── UserFollow.model.ts   - Follow relationship (composite PK)
+└── services/
+    ├── bean.service.ts       - TestBean: version, testOperation, demonstrateTypeSafety
+    └── publisher.service.ts  - Publisher: publish, publishPost operations
+webui/                        - Admin UI (Preact + htm, served at /admin)
+test/
+├── api-test.ts               - Application bootstrap tests
+├── cli-test.ts               - webda CLI tests
+└── e2e/                      - Playwright specs
 ```
-
-## Key Implementation Details
-
-### Composite Primary Key Example
-
-```typescript
-class PostTag extends Model {
-  [WEBDA_PRIMARY_KEY] = ["postUuid", "tagUuid"] as const;
-
-  postUuid!: string;
-  tagUuid!: string;
-
-  // Type inference in action:
-  // getPrimaryKey() returns Pick<PostTag, "postUuid" | "tagUuid">
-  // Full IDE autocomplete on pk.postUuid and pk.tagUuid
-}
-```
-
-### Self-Referential Relationship
-
-```typescript
-class UserFollow extends Model {
-  [WEBDA_PRIMARY_KEY] = ["followerUuid", "followingUuid"] as const;
-
-  followerUuid!: string;  // Who is following
-  followingUuid!: string; // Who is being followed
-
-  follower!: BelongTo<User>;
-  following!: BelongTo<User>;
-}
-
-// User gains followers/following relations:
-User.prototype.followers = undefined as any as Contains<UserFollow[]>;
-User.prototype.following = undefined as any as Contains<UserFollow[]>;
-```
-
-### Dirty Tracking
-
-```typescript
-const post = await Post.ref("post-123").get();
-console.log(post.isDirty()); // false
-
-post.title = "New Title";
-console.log(post.isDirty()); // true
-console.log(post.getDirtyFields()); // ["title"]
-
-await post.save(); // Efficient - only updates 'title'
-console.log(post.isDirty()); // false again
-```
-
-This is a **production-ready** example showing best practices for building complex applications with @webda/models.

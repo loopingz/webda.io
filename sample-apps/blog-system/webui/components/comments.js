@@ -2,6 +2,7 @@ import { h } from "https://esm.sh/preact@10.25.4";
 import { useState, useEffect } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 import { comments } from "../api.js";
+import { useDebounced } from "../hooks.js";
 
 const html = htm.bind(h);
 
@@ -41,7 +42,8 @@ function formatDate(ts) {
 
 export function CommentsPanel({ notify }) {
   const [items, setItems] = useState([]);
-  const [filter, setFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const filter = useDebounced(search);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -88,7 +90,7 @@ export function CommentsPanel({ notify }) {
   return html`
     <div>
       <div class="toolbar">
-        <input placeholder="Search comments..." value=${filter} onInput=${(e) => setFilter(e.target.value)} />
+        <input placeholder="Search comments..." value=${search} onInput=${(e) => setSearch(e.target.value)} />
         <button class="btn btn-primary" onClick=${() => setEditing("new")}>+ New Comment</button>
         <button class="btn btn-ghost" onClick=${load}>Refresh</button>
       </div>

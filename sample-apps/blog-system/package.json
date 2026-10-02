@@ -9,19 +9,16 @@
     "complete-example"
   ],
   "author": "Webda Team",
-  "main": "lib/index.js",
-  "typings": "lib/index.d.ts",
   "repository": "git://github.com/loopingz/webda.io.git",
   "files": [
     "lib"
   ],
   "scripts": {
     "build": "webdac build",
-    "dev": "npm run build && tsx src/index.ts",
     "debug": "webda debug",
     "debug:web": "webda debug --web",
     "webda": "webda",
-    "test": "echo 'Tests disabled \u2014 needs CLI and Core.on migration'",
+    "test": "vitest run",
     "test:api": "vitest run test/api-test.ts",
     "test:cli": "vitest run test/cli-test.ts",
     "test:e2e": "playwright test",

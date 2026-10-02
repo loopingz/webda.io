@@ -378,29 +378,29 @@ export class DomainService<
       // Build primary key schema for this model
       const pkSchemaName = `${modelKey}.primaryKey`;
       const pkFields = Metadata.PrimaryKey || ["uuid"];
-      if (!hasSchema(pkSchemaName)) {
-        const pkSchema: any = { type: "object", properties: {}, required: pkFields };
-        for (const field of pkFields) {
-          pkSchema.properties[field] = { type: "string" };
-        }
-        registerSchema(pkSchemaName, pkSchema);
-        // Also register in the app schema registry so getSchema() finds it
-        appSchemas[pkSchemaName] = pkSchema;
+      const pkSchema: any = { type: "object", properties: {}, required: pkFields };
+      for (const field of pkFields) {
+        pkSchema.properties[field] = { type: "string" };
       }
+      if (!hasSchema(pkSchemaName)) {
+        registerSchema(pkSchemaName, pkSchema);
+      }
+      // Always register in the app schema map (the global registry is process-wide) so getSchema() finds it
+      appSchemas[pkSchemaName] ??= pkSchema;
 
       // Build query result schema for this model
       const queryResultSchemaName = `${modelKey}.queryResult`;
+      const queryResultSchema: any = {
+        type: "object",
+        properties: {
+          continuationToken: { type: "string" },
+          results: { type: "array", items: { $ref: `#/definitions/${modelKey}` } }
+        }
+      };
       if (!hasSchema(queryResultSchemaName)) {
-        const queryResultSchema: any = {
-          type: "object",
-          properties: {
-            continuationToken: { type: "string" },
-            results: { type: "array", items: { $ref: `#/definitions/${modelKey}` } }
-          }
-        };
         registerSchema(queryResultSchemaName, queryResultSchema);
-        appSchemas[queryResultSchemaName] = queryResultSchema;
       }
+      appSchemas[queryResultSchemaName] ??= queryResultSchema;
 
       // URL path segments for the model's primary key (e.g. "{slug}" or
       // "{follower}/{following}"). Named after the real PK fields so the router

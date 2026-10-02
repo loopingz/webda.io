@@ -184,17 +184,42 @@ export class AuditService extends Service<AuditServiceParameters> {
   protected readPermissionQuery?: QueryValidator;
 
   /**
+   * Unsubscribe functions of the core event listeners
+   */
+  protected unsubscribers: (() => void)[] = [];
+
+  /**
+   * Remove the core event listeners
+   */
+  protected unsubscribe(): void {
+    for (const off of this.unsubscribers.splice(0)) {
+      off();
+    }
+  }
+
+  /**
+   * Stop recording audit entries
+   */
+  async stop(): Promise<void> {
+    this.unsubscribe();
+    await super.stop();
+  }
+
+  /**
    * Subscribe to operation success and failure events for audit logging
    * @returns this for chaining
    */
   resolve(): this {
     super.resolve();
-    useCoreEvents("Webda.OperationFailure", async evt => {
-      await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), evt.error, evt.subject);
-    });
-    useCoreEvents("Webda.OperationSuccess", async evt => {
-      await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), undefined, evt.subject);
-    });
+    this.unsubscribe();
+    this.unsubscribers.push(
+      useCoreEvents("Webda.OperationFailure", async evt => {
+        await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), evt.error, evt.subject);
+      }),
+      useCoreEvents("Webda.OperationSuccess", async evt => {
+        await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), undefined, evt.subject);
+      })
+    );
     this.registerReadOperations();
     return this;
   }

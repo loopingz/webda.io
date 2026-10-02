@@ -162,6 +162,20 @@ check PUT /testbean/demonstratetypesafety 200 "TestBean.demonstrateTypeSafety" \
   -d '{}'
 
 # ── Cleanup ────────────────────────────────────────────────────────────
+section "Audit"
+
+check PUT /audit/subject 200 "History of a post" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"WebdaSample/Post","key":"hello-world"}'
+
+check PUT /audit/actor 403 "Anonymous has no own activity" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+check PUT /audit/query 200 "Global audit log" \
+  -H "Content-Type: application/json" \
+  -d '{"q":"success = FALSE"}'
+
 section "Cleanup"
 
 check DELETE "/comments/$COMMENT_UUID" 204 "Delete comment"

@@ -5,7 +5,7 @@ import * as WebdaError from "../errors/errors.js";
 import { validateSchema, ValidationError } from "../schemas/hooks.js";
 import { useInstanceStorage } from "./instancestorage.js";
 import { useApplication, useModel } from "../application/hooks.js";
-import { useDynamicService, useService } from "./hooks.js";
+import { useDynamicService, useModelMetadata, useService } from "./hooks.js";
 import { emitCoreEvent } from "../events/events.js";
 import { isGeneratorFunction } from "node:util/types";
 import { AnyMethod } from "@webda/decorators";
@@ -38,6 +38,156 @@ function checkOperationPermission(
     return operation.permissionQuery.eval(context.getSession());
   }
   return true;
+}
+
+/**
+ * Target object of an operation, used by listeners such as the audit log
+ */
+export type OperationSubject = {
+  /** Model identifier, e.g. `WebdaSample/Post` */
+  model: string;
+  /** Canonical primary key, see `serializeSubjectKey` */
+  key: string;
+};
+
+/**
+ * Serialize a primary key to the canonical string identifying an operation subject.
+ *
+ * A single-field key is its string value; a composite key is the JSON array of its
+ * field values in `pkFields` order, so plain input objects and `getPrimaryKey()`
+ * results (including relation links) produce the same string.
+ * @param pkFields - the model primary key fields
+ * @param key - a scalar key, or an object holding the key fields
+ * @returns the canonical key, or undefined when a field is missing
+ */
+export function serializeSubjectKey(pkFields: readonly string[], key: unknown): string | undefined {
+  if (key === undefined || key === null) {
+    return undefined;
+  }
+  if (pkFields.length <= 1) {
+    const value = typeof key === "object" ? (key as any)[pkFields[0] ?? "uuid"] : key;
+    return value === undefined || value === null ? undefined : String(value);
+  }
+  if (typeof key !== "object") {
+    return undefined;
+  }
+  const values = pkFields.map(field => (key as any)[field]);
+  if (values.some(value => value === undefined || value === null)) {
+    return undefined;
+  }
+  return JSON.stringify(values.map(value => String(value)));
+}
+
+/**
+ * Turn a subject key sent by a client into a key usable with `Model.ref()`.
+ *
+ * Accepts the scalar value, an object of key fields, or for composite keys the
+ * canonical JSON array produced by `serializeSubjectKey`.
+ * @param pkFields - the model primary key fields
+ * @param key - the key as received
+ * @returns the key, or undefined when it does not match `pkFields`
+ */
+export function parseSubjectKey(
+  pkFields: readonly string[],
+  key: unknown
+): string | Record<string, string> | undefined {
+  if (key === undefined || key === null || key === "") {
+    return undefined;
+  }
+  if (pkFields.length <= 1) {
+    const value = typeof key === "object" ? (key as any)[pkFields[0] ?? "uuid"] : key;
+    return value === undefined || value === null || value === "" ? undefined : String(value);
+  }
+  let source: any = key;
+  if (typeof key === "string") {
+    try {
+      source = JSON.parse(key);
+    } catch {
+      return undefined;
+    }
+  }
+  if (Array.isArray(source)) {
+    if (source.length !== pkFields.length) {
+      return undefined;
+    }
+    source = Object.fromEntries(pkFields.map((field, i) => [field, source[i]]));
+  }
+  if (typeof source !== "object" || source === null) {
+    return undefined;
+  }
+  if (pkFields.some(field => source[field] === undefined || source[field] === null)) {
+    return undefined;
+  }
+  return Object.fromEntries(pkFields.map(field => [field, String(source[field])]));
+}
+
+/**
+ * Find the object an operation targets
+ *
+ * - model instance operation: the model and the key it was called with
+ * - operation with `context.model` (DomainService CRUD, behaviors): the key fields from
+ *   the resolved input or the request parameters, or for `Create` the created object
+ * - queries, static model operations and plain service operations: none
+ * @param context - the operation context
+ * @param operation - the operation definition
+ * @param args - the arguments the operation was called with
+ * @param result - the operation result, when it succeeded
+ * @returns the subject, or undefined when the operation has no single target
+ */
+export function resolveOperationSubject(
+  context: OperationContext,
+  operation: OperationDefinition,
+  args: any[],
+  result?: any
+): OperationSubject | undefined {
+  const instanceOperation = operation.model !== undefined;
+  if (instanceOperation && operation.static !== false) {
+    return undefined;
+  }
+  const modelRef = instanceOperation ? operation.model : operation.context?.model;
+  if (!modelRef) {
+    return undefined;
+  }
+  const model: any = typeof modelRef === "string" ? useModel(modelRef) : modelRef;
+  const modelId = useApplication().getModelId(model);
+  if (!modelId) {
+    return undefined;
+  }
+  const pkFields: string[] = operation.context?.pkFields ?? useModelMetadata(model)?.PrimaryKey ?? ["uuid"];
+  let key: string | undefined;
+  if (instanceOperation) {
+    key = serializeSubjectKey(pkFields, args[0]);
+  } else {
+    const input = context.getExtension<any>("operationResolvedInput") ?? context.getParameters() ?? {};
+    // Behavior operations (Post.MainImage.Attach) route the key as `{uuid}` whatever the
+    // model's real primary key field is, and register no pkFields
+    key = serializeSubjectKey(pkFields, pkFields.length === 1 ? (input[pkFields[0]] ?? input.uuid) : input);
+  }
+  if (key === undefined && result && typeof result.getPrimaryKey === "function") {
+    // Create: the key only exists once the object is saved
+    key = serializeSubjectKey(pkFields, result.getPrimaryKey());
+  }
+  return key === undefined ? undefined : { model: modelId, key };
+}
+
+/**
+ * Resolve the subject of a running operation without ever failing the operation
+ * @param context - the operation context
+ * @param operationId - the operation identifier
+ * @param args - the arguments the operation was called with
+ * @param result - the operation result, when it succeeded
+ * @returns the subject, or undefined
+ */
+function subjectOf(context: OperationContext, operationId: string, args: any[], result?: any) {
+  const operation = useInstanceStorage().operations[operationId];
+  if (!operation) {
+    return undefined;
+  }
+  try {
+    return resolveOperationSubject(context, operation, args, result);
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -185,6 +335,8 @@ export async function resolveArguments(context: OperationContext, operation: Ope
 export async function callOperation(context: OperationContext, operationId: string): Promise<void> {
   const operations = useInstanceStorage().operations;
   useLog("DEBUG", "Call operation", operationId);
+  let callArgs: any[] = [];
+  let result: any;
   try {
     context.setExtension("operation", operationId);
     await checkOperation(context, operationId);
@@ -200,11 +352,10 @@ export async function callOperation(context: OperationContext, operationId: stri
     // When resolveArguments returns no typed arguments (no input schema),
     // fall back to passing the context for backward compatibility with
     // methods that still use the context-based calling convention.
-    const callArgs = args.length > 0 ? args : [context];
+    callArgs = args.length > 0 ? args : [context];
 
     // Call the method with resolved arguments, wrapped in runWithContext
     // so that useContext() returns the operation context inside the method.
-    let result: any;
     if (operations[operationId].service) {
       result = await runWithContext(context, () =>
         useService(operations[operationId].service as any)[operations[operationId].method](...callArgs)
@@ -248,12 +399,21 @@ export async function callOperation(context: OperationContext, operationId: stri
     }
 
     await Promise.all([
-      emitCoreEvent("Webda.OperationSuccess", { context, operationId })
+      emitCoreEvent("Webda.OperationSuccess", {
+        context,
+        operationId,
+        subject: subjectOf(context, operationId, callArgs, result)
+      })
       //emitCoreEvent(operationId, <any>context.getExtension("event") || {})
     ]);
   } catch (err) {
     await Promise.all([
-      emitCoreEvent("Webda.OperationFailure", { context, operationId, error: err })
+      emitCoreEvent("Webda.OperationFailure", {
+        context,
+        operationId,
+        error: err,
+        subject: subjectOf(context, operationId, callArgs)
+      })
       //emitCoreEvent(`${operationId}.Failure`, <any>context.getExtension("event") || {})
     ]);
     throw err;

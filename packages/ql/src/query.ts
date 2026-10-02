@@ -28,6 +28,23 @@ import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor.js";
 type value = boolean | string | number;
 
 /**
+ * Strip the quotes of a WebdaQL string literal and unescape its quote character,
+ * written either doubled (`'it''s'`, as `escapeValue` produces) or backslash-escaped
+ * (`'it\'s'`). Other backslash sequences, such as LIKE's `\%` and `\_`, are kept.
+ * @param literal - the literal including its surrounding quotes
+ * @returns the literal value
+ */
+export function unescapeStringLiteral(literal: string): string {
+  const quote = literal[0];
+  return literal
+    .substring(1, literal.length - 1)
+    .split(quote + quote)
+    .join(quote)
+    .split("\\" + quote)
+    .join(quote);
+}
+
+/**
  * Represents a single ORDER BY clause field with its sort direction
  */
 export interface OrderBy {
@@ -295,7 +312,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * @returns the unquoted string value
    */
   visitStringLiteral(ctx: StringLiteralContext): string {
-    return ctx.text.substring(1, ctx.text.length - 1);
+    return unescapeStringLiteral(ctx.text);
   }
 
   /**
@@ -523,7 +540,7 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
     }
     switch (typeof value) {
       case "string":
-        return `"${value}"`;
+        return `"${value.replace(/"/g, '""')}"`;
       case "boolean":
         return value.toString().toUpperCase();
     }

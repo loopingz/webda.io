@@ -1,6 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { escape, WebdaQLError, type WebdaQLString } from "./webdaql-string.js";
+import { parse, QueryValidator } from "./query.js";
 
 @suite
 class WebdaQLStringTest {
@@ -141,5 +142,15 @@ class WebdaQLStringTest {
     // WebdaQLString is a type — verify via runtime no-op
     const q: import("./index.js").WebdaQLString<{ x: string }> = "x = 'a'" as any;
     assert.strictEqual(q, "x = 'a'");
+  }
+
+  @test
+  escapedValuesMatchAndRoundTrip() {
+    const value = `it's "quoted"`;
+    const query = escape(["k = ", ""], [value]);
+    assert.ok(new QueryValidator(query).eval({ k: value }));
+    // toString() re-escapes, so a parsed filter can be serialized and parsed again
+    const serialized = parse(query).filter.toString();
+    assert.ok(new QueryValidator(serialized).eval({ k: value }));
   }
 }

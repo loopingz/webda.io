@@ -2,6 +2,7 @@ import { useCoreEvents } from "../events/events.js";
 import { Service } from "../services/service.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { CoreModel } from "../models/coremodel.model.js";
+import type { OperationSubject } from "../core/operations.js";
 
 /**
  * Represents a single audit log entry
@@ -11,6 +12,14 @@ export class AuditEntry extends CoreModel {
   success: boolean;
   error?: string;
   userId?: string;
+  /**
+   * Identifier of the model the operation targeted, e.g. `WebdaSample/Post`
+   */
+  subjectModel?: string;
+  /**
+   * Canonical primary key of the targeted object (see `serializeSubjectKey`)
+   */
+  subjectKey?: string;
   timestamp: Date;
 }
 
@@ -99,6 +108,11 @@ export class AuditServiceParameters extends ServiceParameters {
 const READ_SUFFIXES = ["Get", "List", "Query"];
 
 /**
+ * The audit log's own read operations, treated as reads by the "write" level
+ */
+const AUDIT_READ_OPERATIONS = ["Audit.Subject", "Audit.Actor", "Audit.Query"];
+
+/**
  * @WebdaModda AuditService
  *
  * Service that listens to operation success/failure events and records audit entries.
@@ -118,10 +132,10 @@ export class AuditService extends Service<AuditServiceParameters> {
   resolve(): this {
     super.resolve();
     useCoreEvents("Webda.OperationFailure", async evt => {
-      await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), evt.error);
+      await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), evt.error, evt.subject);
     });
     useCoreEvents("Webda.OperationSuccess", async evt => {
-      await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId());
+      await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), undefined, evt.subject);
     });
     return this;
   }
@@ -153,7 +167,7 @@ export class AuditService extends Service<AuditServiceParameters> {
     }
     if (level === "write") {
       const suffix = operationId.split(".").pop() ?? "";
-      return !READ_SUFFIXES.includes(suffix);
+      return !READ_SUFFIXES.includes(suffix) && !AUDIT_READ_OPERATIONS.includes(operationId);
     }
     return true;
   }
@@ -163,8 +177,9 @@ export class AuditService extends Service<AuditServiceParameters> {
    * @param operationId - the operation identifier
    * @param userId - the user identifier (may be undefined for anonymous)
    * @param err - the error if the operation failed
+   * @param subject - the object the operation targeted, if any
    */
-  async addAuditEntry(operationId: string, userId?: string, err?: Error): Promise<void> {
+  async addAuditEntry(operationId: string, userId?: string, err?: Error, subject?: OperationSubject): Promise<void> {
     const success = err === undefined;
     if (!this.shouldAudit(operationId, success)) {
       return;
@@ -174,6 +189,8 @@ export class AuditService extends Service<AuditServiceParameters> {
     entry.success = success;
     entry.userId = userId;
     entry.timestamp = new Date();
+    entry.subjectModel = subject?.model;
+    entry.subjectKey = subject?.key;
     if (err) {
       entry.error = err.message;
     }

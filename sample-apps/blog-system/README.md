@@ -94,7 +94,9 @@ const comments = await post.comments.get(); // fetched now
 }
 ```
 
-Three operations read it, newest first and paginated (`limit`, `continuationToken`):
+Entries are saved through the `AuditEntry` repository. This sample maps no store to `AuditEntry`, so they land in the default `Registry`, which is persisted to `.registry`: unlike the other models, the audit log survives restarts.
+
+`exposeReadOperations: true` registers three operations that read it, newest first and paginated (`limit`, `continuationToken`). They are off by default:
 
 | Route                                                                        | Allowed when                                                   |
 | ---------------------------------------------------------------------------- | -------------------------------------------------------------- |
@@ -105,6 +107,8 @@ Three operations read it, newest first and paginated (`limit`, `continuationToke
 `readPermission` is a WebdaQL query on the session. This sample uses `TRUE`, which matches everyone, so the admin UI works without logging in. A real application would use something like `roles CONTAINS 'admin'`, and real models decide who reads an object's history in `canAct` (`OwnerModel` already limits it to the owner; `RoleModel` maps `audit` to a role). History of a deleted object needs `readPermission`. These routes are REST only.
 
 In the admin UI, every row has a **History** button, and the **Audit** tab shows the whole log.
+
+Known limitation: history is matched by model and key. If a key is reused after a delete, whoever can read the new object also sees the previous object's history.
 
 ## Domain Model
 
@@ -154,7 +158,7 @@ The server listens on `https://localhost:18080` (self-signed certificate) with g
 | `https://localhost:18080/audit/subject`, `/audit/actor`, `/audit/query` | Audit log (REST, `PUT`)                                                                         |
 | `localhost:50051`                                                       | gRPC API (definitions in `.webda/app.proto`)                                                    |
 
-Data lives in memory and is lost when the server stops.
+Model data lives in memory and is lost when the server stops, except the audit log, which is kept in `.registry` (see [Audit Log](#8-audit-log)).
 
 ## Testing
 

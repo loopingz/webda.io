@@ -26,7 +26,8 @@
     "AuditService": {
       "type": "Webda/AuditService",
       "level": "write",
-      "readPermission": "TRUE"
+      "readPermission": "TRUE",
+      "exposeReadOperations": true
     },
     "RESTService": {
       "type": "Webda/RESTOperationsTransport"

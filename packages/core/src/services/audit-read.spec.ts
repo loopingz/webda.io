@@ -9,6 +9,7 @@ import { ServiceParameters } from "./serviceparameters.js";
 import { useModel } from "../application/hooks.js";
 import { callOperation, registerOperation } from "../core/operations.js";
 import * as WebdaError from "../errors/errors.js";
+import { useInstanceStorage } from "../core/instancestorage.js";
 import { AuditEntry, AuditService, AuditServiceParameters } from "./audit.model.js";
 
 /**
@@ -65,13 +66,30 @@ class AuditReadTest extends WebdaApplicationTest {
     app.addModda("Webda/AuditService", AuditService);
   }
 
+  /**
+   * AuditServices created by the current test, stopped after it so their
+   * listeners do not record the next tests' operations
+   */
+  audits: AuditService[] = [];
+
+  async afterEach(): Promise<void> {
+    for (const audit of this.audits.splice(0)) {
+      await audit.stop();
+    }
+    await super.afterEach();
+  }
+
   /** Unique id so tests sharing the memory store stay isolated */
   unique(prefix: string): string {
     return `${prefix}-${Date.now()}-${counter++}`;
   }
 
+  /** Create an AuditService exposing the read operations unless params say otherwise */
   async setupAudit(params: Partial<AuditServiceParameters> = {}): Promise<AuditService> {
-    const audit = this.registerService(new AuditService(this.unique("AuditRead"), params as any));
+    const audit = this.registerService(
+      new AuditService(this.unique("AuditRead"), { exposeReadOperations: true, ...params } as any)
+    );
+    this.audits.push(audit);
     audit.resolve();
     await audit.init();
     return audit;
@@ -119,6 +137,34 @@ class AuditReadTest extends WebdaApplicationTest {
   }
 
   @test
+  async readOperationsAreOptIn() {
+    const operations = useInstanceStorage().operations;
+    for (const id of ["Audit.Subject", "Audit.Actor", "Audit.Query"]) {
+      delete operations[id];
+    }
+    await this.setupAudit({ exposeReadOperations: undefined });
+    for (const id of ["Audit.Subject", "Audit.Actor", "Audit.Query"]) {
+      assert.strictEqual(operations[id], undefined, `${id} is not registered by default`);
+    }
+    await this.setupAudit({ exposeReadOperations: true });
+    for (const id of ["Audit.Subject", "Audit.Actor", "Audit.Query"]) {
+      assert.ok(operations[id], `${id} is registered with exposeReadOperations`);
+    }
+  }
+
+  @test
+  async numericSubjectKey() {
+    await this.setupAudit({ level: "write", readPermission: "roles CONTAINS 'admin'" });
+    await this.seed({ subjectModel: "Webda/User", subjectKey: "5", operationId: "User.Delete" });
+    // The request schema accepts a number; it matches the canonical string key
+    const res = await this.call("Audit.Subject", { model: "Webda/User", key: 5 }, { id: "root", roles: ["admin"] });
+    assert.deepStrictEqual(
+      res.results.map((e: any) => e.operationId),
+      ["User.Delete"]
+    );
+  }
+
+  @test
   async stopUnsubscribesFromCoreEvents() {
     this.registerRecordOps();
     const audit = await this.setupAudit({ operations: ["AuditRec.*"] });
@@ -163,11 +209,11 @@ class AuditReadTest extends WebdaApplicationTest {
     assert.strictEqual(failed.success, false);
     assert.strictEqual(failed.error, "touch failed");
 
-    // Persisted through the AuditEntry repository. AuditService instances created by
-    // earlier tests in this file still listen to the global events, so count >= 1.
+    // Persisted through the AuditEntry repository
     const stored = await AuditEntry.query(escape(["subjectKey = ", ""], [okKey]));
-    assert.ok(stored.results.length >= 1);
-    assert.ok(stored.results.every(e => e.subjectModel === "Webda/User"));
+    assert.strictEqual(stored.results.length, 1);
+    assert.strictEqual(stored.results[0].subjectModel, "Webda/User");
+    assert.strictEqual(stored.results[0].operationId, "AuditRec.Touch");
   }
 
   @test
@@ -290,8 +336,10 @@ class AuditReadTest extends WebdaApplicationTest {
       this.isError(WebdaError.Forbidden)
     );
     const asAdmin = await this.call("Audit.Actor", { userId: alice }, { id: "root", roles: ["admin"] });
-    // Listeners left by earlier tests at level "all" may also have recorded alice's Audit.Actor read
-    assert.ok(asAdmin.results.some((e: any) => e.operationId === "Post.Create"));
+    assert.deepStrictEqual(
+      asAdmin.results.map((e: any) => e.operationId),
+      ["Post.Create"]
+    );
     // Anonymous callers have no activity of their own to read
     await assert.rejects(() => this.call("Audit.Actor", {}), this.isError(WebdaError.Forbidden));
   }

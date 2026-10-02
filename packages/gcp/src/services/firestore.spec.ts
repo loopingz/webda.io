@@ -126,6 +126,19 @@ class FireStoreTest extends StoreTest<FireStore> {
   }
 
   @test
+  async findBooleanConstants() {
+    const store = await this.getUserStore();
+    // FALSE matches nothing, whether alone or merged inside an AND
+    let res = await store.find({ filter: new WebdaQL.BooleanExpression(false), limit: 1000 } as any);
+    assert.deepStrictEqual(res.results, []);
+    res = await store.find({
+      filter: new WebdaQL.QueryValidator('state = "CA"').merge("FALSE").getExpression(),
+      limit: 1000
+    } as any);
+    assert.deepStrictEqual(res.results, []);
+  }
+
+  @test
   async queryOrder() {
     // Disable default ordering query as it is not possible with Dynamo
     const store = await this.fillForQuery();

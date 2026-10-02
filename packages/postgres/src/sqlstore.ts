@@ -37,13 +37,17 @@ export interface SQLResult<T> {
 /** Extends ComparisonExpression to emit SQL-compatible string literals for JSONB comparisons */
 export class SQLComparisonExpression extends WebdaQL.ComparisonExpression {
   /**
+   * Single quotes are doubled so a value can never close the literal. Backslashes stay
+   * literal: with `standard_conforming_strings` (PostgreSQL default) `\\` is not an
+   * escape character in '...' strings — only LIKE gives it a meaning.
+   *
    * @override
    * @param value - the value to stringify
    * @returns SQL-compatible string literal
    */
   toStringValue(value: (string | number | boolean) | (string | number | boolean)[]): string {
     if (typeof value === "string") {
-      return `'${value}'`;
+      return `'${value.replace(/'/g, "''")}'`;
     }
     return super.toStringValue(value);
   }
@@ -347,6 +351,14 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
    * @returns the translated expression
    */
   duplicateExpression(expression: WebdaQL.Expression): WebdaQL.Expression {
+    if (expression instanceof WebdaQL.LogicalExpression && expression.children.length === 0) {
+      // An empty AND / OR matches everything: emit an explicit SQL TRUE (not "( )")
+      return new WebdaQL.BooleanExpression(true);
+    }
+    if (expression instanceof WebdaQL.BooleanExpression) {
+      // TRUE / FALSE are valid SQL booleans
+      return new WebdaQL.BooleanExpression(expression.value);
+    }
     if (expression instanceof WebdaQL.AndExpression) {
       return new WebdaQL.AndExpression(expression.children.map(exp => this.duplicateExpression(exp)));
     } else if (expression instanceof WebdaQL.OrExpression) {
@@ -378,7 +390,7 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
   async query(queryStr: string): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
     const WebdaQLMod = await import("@webda/ql");
     const parsed = WebdaQLMod.parse(queryStr);
-    let sql = this.duplicateExpression(parsed.filter).toString() || "TRUE";
+    let sql = this.duplicateExpression(parsed.filter).toString();
     const offset = parseInt((parsed as any).continuationToken || "0", 10);
     if ((parsed as any).orderBy && (parsed as any).orderBy.length) {
       sql +=

@@ -241,6 +241,25 @@ class RelationsTest {
   }
 
   @test
+  async modelRelatedEscapesPrimaryKey() {
+    const repo = new MemoryRepository<typeof TestSimpleModel>(TestSimpleModel, ["uuid"]);
+    registerRepository(TestSimpleModel, repo);
+    // Keys with quotes and backslashes must survive the WebdaQL literal unescaping
+    for (const key of ["o'brien", 'say "hi"', "back\\\\slash", 'it\'s \\ "odd"']) {
+      const parent = new TestSimpleModel({ uuid: key, name: "Parent" });
+      await repo.create(parent);
+      await repo.create(new TestSimpleModel({ uuid: `child-${key}`, name: key }));
+      const related = new ModelRelated<TestSimpleModel, TestSimpleModel, any>(TestSimpleModel, parent, "name");
+      const result = await related.query();
+      assert.deepStrictEqual(
+        result.results.map(r => r.uuid),
+        [`child-${key}`],
+        `relation query for key ${key}`
+      );
+    }
+  }
+
+  @test
   async modelLinksArrayComprehensive() {
     const repo = new MemoryRepository<typeof TestSimpleModel>(TestSimpleModel, ["uuid"]);
     registerRepository(TestSimpleModel, repo);

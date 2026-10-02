@@ -264,13 +264,24 @@ export default class MongoStore<
    * Get a mongodb query object from WebdaQL
    */
   mapExpression(expression: WebdaQL.Expression): any {
-    if (expression instanceof WebdaQL.AndExpression) {
+    if (expression instanceof WebdaQL.BooleanExpression) {
+      // TRUE matches every document, FALSE none: never let FALSE fail open
+      return expression.value ? {} : { $expr: false };
+    } else if (expression instanceof WebdaQL.AndExpression) {
+      const children = expression.children.map(e => this.mapExpression(e));
+      if (children.some(c => c.$expr === false)) {
+        return { $expr: false };
+      }
       let query: any = {};
-      expression.children.forEach(e => {
-        query = { ...query, ...this.mapExpression(e) };
+      children.forEach(c => {
+        query = { ...query, ...c };
       });
       return query;
     } else if (expression instanceof WebdaQL.OrExpression) {
+      // An empty OR matches everything (as OrExpression.eval) and $or rejects an empty array
+      if (expression.children.length === 0) {
+        return {};
+      }
       return {
         $or: expression.children.map(e => this.mapExpression(e))
       };

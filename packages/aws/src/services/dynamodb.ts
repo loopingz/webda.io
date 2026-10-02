@@ -179,6 +179,14 @@ export default class DynamoStore<
     } else {
       processingExpression = query.filter;
     }
+    // A FALSE conjunct matches nothing: do not hit DynamoDB (never fail open)
+    if (processingExpression.children.some(c => c instanceof WebdaQL.BooleanExpression && !c.value)) {
+      return { results: [], filter: true, continuationToken: undefined };
+    }
+    // A TRUE conjunct is neutral
+    processingExpression = new WebdaQL.AndExpression(
+      processingExpression.children.filter(c => !(c instanceof WebdaQL.BooleanExpression))
+    );
 
     // Search for the index
     processingExpression.children.some(child => {

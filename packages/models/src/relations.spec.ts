@@ -186,6 +186,31 @@ class RelationsTest {
     assert.throws(() => noKeyRef.getPrimaryKey(), /Relation key is not initialized/);
   }
 
+  /**
+   * A OneToMany field is a query helper: it must not be persisted, and a model
+   * carrying one must survive a store round trip (get and query).
+   */
+  @test
+  async modelRelatedIsNotPersisted() {
+    class TestOwnerModel extends UuidModel {
+      name: string = "";
+      children = new ModelRelated<TestSimpleModel, TestOwnerModel, any>(TestSimpleModel, this, "name");
+    }
+    TestOwnerModel.registerSerializer();
+    registerRepository(TestSimpleModel, new MemoryRepository<typeof TestSimpleModel>(TestSimpleModel, ["uuid"]));
+    const repo = new MemoryRepository<typeof TestOwnerModel>(TestOwnerModel, ["uuid"]);
+    registerRepository(TestOwnerModel, repo);
+
+    await repo.create(new TestOwnerModel().load({ uuid: "owner1", name: "Owner" } as any));
+    assert.ok(!repo.serialize((await repo.get("owner1")) as any).includes("children"));
+
+    const loaded = await repo.get("owner1");
+    assert.strictEqual(loaded.name, "Owner");
+    assert.ok(loaded.children instanceof ModelRelated);
+    assert.ok(loaded.children.getQuery().includes("owner1"), "relation is bound to the loaded instance");
+    assert.strictEqual((await repo.query("")).results.length, 1);
+  }
+
   @test
   async modelRelated() {
     const repo = new MemoryRepository<typeof TestSimpleModel>(TestSimpleModel, ["uuid"]);

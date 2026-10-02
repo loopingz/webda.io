@@ -531,6 +531,10 @@ export class SerializerContext {
    * @internal
    */
   private prepareObject(obj: any): { value: any; metadata?: any } {
+    // Symbols and functions are dropped, so they must never become a $ref target
+    if (typeof obj === "symbol" || typeof obj === "function") {
+      return { value: undefined };
+    }
     // Handle circular references
     if (obj && this.objects.has(obj)) {
       return {
@@ -582,8 +586,6 @@ export class SerializerContext {
       return { value: obj };
     } else if (typeof obj === "string" || typeof obj === "boolean") {
       return { value: obj };
-    } else if (typeof obj === "symbol" || typeof obj === "function") {
-      return { value: undefined };
     }
 
     if (!serializer) {

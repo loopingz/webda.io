@@ -1108,4 +1108,53 @@ class Serializer {
     // Round-trip via JSON should match the original array shape.
     assert.deepStrictEqual(JSON.parse(JSON.stringify(restored.items)), [{ name: "a" }, { name: "b" }]);
   }
+
+  /**
+   * Like `JSON.stringify`, a property whose `toJSON()` returns `undefined` is
+   * omitted. Webda's `ModelRelated` (OneToMany) relies on this: it holds its
+   * owner and a repository whose model is a class, so walking it emitted a
+   * `$ref` to a function that was never serialized and broke deserialization.
+   */
+  @test
+  async testToJSONUndefinedIsOmitted() {
+    class Target {}
+    class Helper {
+      repository = { model: Target, again: { model: Target } };
+      constructor(public owner: any) {}
+      toJSON(): void {
+        return;
+      }
+    }
+    class Owner {
+      name = "";
+      helper = new Helper(this);
+    }
+    const context = new SerializerContext();
+    context.registerSerializer("Owner", new ObjectSerializer(Owner));
+    const owner = new Owner();
+    owner.name = "test";
+
+    const serialized = context.serialize(owner);
+    assert.ok(!serialized.includes("helper"), `helper must not be serialized: ${serialized}`);
+    const restored: any = context.deserialize(serialized);
+    assert.ok(restored instanceof Owner);
+    assert.strictEqual(restored.name, "test");
+    // The constructor recreates the helper, bound to the restored instance
+    assert.ok(restored.helper instanceof Helper);
+    assert.strictEqual(restored.helper.owner, restored);
+  }
+
+  /**
+   * Functions serialize to nothing, so a second sighting must not become a
+   * `$ref` to a path that was never written.
+   */
+  @test
+  async testRepeatedFunctionIsNotReferenced() {
+    const fn = () => 1;
+    const serialized = serialize({ a: fn, nested: { b: fn }, name: "x" });
+    assert.ok(!serialized.includes("$ref"), `function must not be referenced: ${serialized}`);
+    const restored: any = deserialize(serialized);
+    assert.strictEqual(restored.name, "x");
+    assert.strictEqual(restored.nested.b, undefined);
+  }
 }

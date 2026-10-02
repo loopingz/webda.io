@@ -173,6 +173,24 @@ class ContextAppTest extends WebdaAsyncStorageTest {
   }
 
   @test
+  async multipartInput() {
+    const ctx = new WebContextMock(
+      new HttpContext("test.webda.io", "POST", "/", "http", 80, {
+        "content-type": "multipart/form-data; boundary=----X"
+      }).setBody('------X\r\nContent-Disposition: form-data; name="file"\r\n\r\nraw\r\n------X--\r\n')
+    );
+    let parsed = false;
+    ctx.getRawInputAsString = async () => {
+      parsed = true;
+      return "";
+    };
+    // A multipart body is never JSON: return the default without reading or logging it
+    assert.strictEqual(await ctx.getInput(), undefined);
+    assert.deepStrictEqual(await ctx.getInput({ defaultValue: {} }), {});
+    assert.strictEqual(parsed, false);
+  }
+
+  @test
   async nullInput() {
     this.ctx.getRawInputAsString = async () => {
       return '{"test": null, "plop": 12}';

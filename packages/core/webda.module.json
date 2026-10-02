@@ -30,6 +30,11 @@
             },
             "type": "array"
           },
+          "readPermission": {
+            "description": "WebdaQL query evaluated against the session, required for global (`Audit.Query`)\nand other-user (`Audit.Actor`) reads, and for the history of an object that no\nlonger exists. Unset means nobody.",
+            "example": "roles CONTAINS 'admin'",
+            "type": "string"
+          },
           "store": {
             "default": "auditStore",
             "description": "Service name of the store used for persistence (optional).",
@@ -3773,5 +3778,5 @@
     "rest-domain": "Webda/RESTOperationsTransport",
     "http-server": "Webda/HttpServer"
   },
-  "sourceDigest": "43eb796cd57603e300406ce279234cf0"
+  "sourceDigest": "39166268b7e55667fd2a8f35548d5c5a"
 }

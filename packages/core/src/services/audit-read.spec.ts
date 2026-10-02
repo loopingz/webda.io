@@ -8,6 +8,7 @@ import { Service } from "./service.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { useModel } from "../application/hooks.js";
 import { callOperation, registerOperation } from "../core/operations.js";
+import * as WebdaError from "../errors/errors.js";
 import { AuditEntry, AuditService, AuditServiceParameters } from "./audit.model.js";
 
 /**
@@ -158,5 +159,175 @@ class AuditReadTest extends WebdaApplicationTest {
     const all = await this.setupAudit({ level: "all" });
     assert.strictEqual(all.shouldAudit("Audit.Subject", true), true);
     assert.strictEqual(all.shouldAudit("Audit.Actor", true), true);
+  }
+
+  /** Create a core User the caller can log in as */
+  async user(uuid: string = this.unique("user")): Promise<string> {
+    const User: any = useModel("Webda/User");
+    await User.create({ uuid });
+    return uuid;
+  }
+
+  isError(type: any) {
+    return (err: any) => err instanceof type;
+  }
+
+  @test
+  async subjectAllowedByCanAct() {
+    await this.setupAudit({ level: "write" });
+    const alice = await this.user();
+    await this.seed({ subjectModel: "Webda/User", subjectKey: alice, operationId: "User.Update" });
+    await this.seed({ subjectModel: "Webda/User", subjectKey: alice, operationId: "User.Patch" });
+    const res = await this.call("Audit.Subject", { model: "Webda/User", key: alice }, { id: alice });
+    assert.deepStrictEqual(res.results.map((e: any) => e.operationId).sort(), ["User.Patch", "User.Update"]);
+  }
+
+  @test
+  async subjectDeniedByCanAct() {
+    await this.setupAudit({ level: "write" });
+    const alice = await this.user();
+    const bob = await this.user();
+    await assert.rejects(
+      () => this.call("Audit.Subject", { model: "Webda/User", key: alice }, { id: bob }),
+      this.isError(WebdaError.Forbidden)
+    );
+  }
+
+  @test
+  async subjectWithoutCanActIsDenied() {
+    await this.setupAudit({ level: "write" });
+    // AuditEntry (a CoreModel) defines no canAct
+    const target = await this.seed({ operationId: "Some.Op" });
+    await assert.rejects(
+      () => this.call("Audit.Subject", { model: "Webda/AuditEntry", key: target.getUUID() }, { id: "anyone" }),
+      this.isError(WebdaError.Forbidden)
+    );
+  }
+
+  @test
+  async missingSubjectNeedsReadPermission() {
+    await this.setupAudit({ level: "write", readPermission: "roles CONTAINS 'admin'" });
+    const ghost = this.unique("ghost");
+    await this.seed({ subjectModel: "Webda/User", subjectKey: ghost, operationId: "User.Delete" });
+    await assert.rejects(
+      () => this.call("Audit.Subject", { model: "Webda/User", key: ghost }, { id: "someone" }),
+      this.isError(WebdaError.NotFound)
+    );
+    const res = await this.call(
+      "Audit.Subject",
+      { model: "Webda/User", key: ghost },
+      { id: "admin", roles: ["admin"] }
+    );
+    assert.deepStrictEqual(
+      res.results.map((e: any) => e.operationId),
+      ["User.Delete"]
+    );
+  }
+
+  @test
+  async unknownModel() {
+    await this.setupAudit({ level: "write", readPermission: "roles CONTAINS 'admin'" });
+    await assert.rejects(
+      () => this.call("Audit.Subject", { model: "Webda/Nope", key: "x" }, { id: "admin", roles: ["admin"] }),
+      this.isError(WebdaError.NotFound)
+    );
+  }
+
+  @test
+  async invalidKey() {
+    await this.setupAudit({ level: "write" });
+    await assert.rejects(
+      () => this.call("Audit.Subject", { model: "Webda/User", key: "" }, { id: "someone" }),
+      this.isError(WebdaError.BadRequest)
+    );
+  }
+
+  @test
+  async quotedKey() {
+    await this.setupAudit({ level: "write" });
+    const obrien = await this.user(this.unique("o'brien"));
+    await this.seed({ subjectModel: "Webda/User", subjectKey: obrien, operationId: "User.Update" });
+    const res = await this.call("Audit.Subject", { model: "Webda/User", key: obrien }, { id: obrien });
+    assert.strictEqual(res.results.length, 1);
+  }
+
+  @test
+  async actorReads() {
+    await this.setupAudit({ level: "write", readPermission: "roles CONTAINS 'admin'" });
+    const alice = this.unique("actor");
+    await this.seed({ userId: alice, operationId: "Post.Create" });
+    // Own activity
+    const own = await this.call("Audit.Actor", {}, { id: alice });
+    assert.deepStrictEqual(
+      own.results.map((e: any) => e.operationId),
+      ["Post.Create"]
+    );
+    // Someone else's activity needs readPermission
+    await assert.rejects(
+      () => this.call("Audit.Actor", { userId: alice }, { id: "bob" }),
+      this.isError(WebdaError.Forbidden)
+    );
+    const asAdmin = await this.call("Audit.Actor", { userId: alice }, { id: "root", roles: ["admin"] });
+    // Listeners left by earlier tests at level "all" may also have recorded alice's Audit.Actor read
+    assert.ok(asAdmin.results.some((e: any) => e.operationId === "Post.Create"));
+    // Anonymous callers have no activity of their own to read
+    await assert.rejects(() => this.call("Audit.Actor", {}), this.isError(WebdaError.Forbidden));
+  }
+
+  @test
+  async queryRequiresPermission() {
+    await this.setupAudit({ level: "write", readPermission: "roles CONTAINS 'admin'" });
+    const op = `Seed.${this.unique("Q").replace(/[^A-Za-z0-9]/g, "")}`;
+    await this.seed({ operationId: op });
+    await assert.rejects(
+      () => this.call("Audit.Query", { q: `operationId = '${op}'` }, { id: "bob" }),
+      this.isError(WebdaError.Forbidden)
+    );
+    const res = await this.call("Audit.Query", { q: `operationId = '${op}'` }, { id: "root", roles: ["admin"] });
+    assert.strictEqual(res.results.length, 1);
+    await assert.rejects(
+      () => this.call("Audit.Query", { q: "operationId = = 'x'" }, { id: "root", roles: ["admin"] }),
+      this.isError(WebdaError.BadRequest)
+    );
+  }
+
+  @test
+  async newestFirstAndPaginated() {
+    await this.setupAudit({ level: "write" });
+    const alice = await this.user();
+    const start = Date.now();
+    for (let i = 0; i < 3; i++) {
+      await this.seed(
+        { subjectModel: "Webda/User", subjectKey: alice, operationId: `User.Step${i}` },
+        new Date(start + i * 1000)
+      );
+    }
+    const page1 = await this.call("Audit.Subject", { model: "Webda/User", key: alice, limit: 2 }, { id: alice });
+    assert.deepStrictEqual(
+      page1.results.map((e: any) => e.operationId),
+      ["User.Step2", "User.Step1"]
+    );
+    assert.ok(page1.continuationToken, "a second page is announced");
+    const page2 = await this.call(
+      "Audit.Subject",
+      { model: "Webda/User", key: alice, limit: 2, continuationToken: page1.continuationToken },
+      { id: alice }
+    );
+    assert.deepStrictEqual(
+      page2.results.map((e: any) => e.operationId),
+      ["User.Step0"]
+    );
+  }
+
+  @test
+  async limitIsClamped() {
+    await this.setupAudit({ level: "write" });
+    const alice = await this.user();
+    await this.seed({ subjectModel: "Webda/User", subjectKey: alice });
+    await this.seed({ subjectModel: "Webda/User", subjectKey: alice });
+    const res = await this.call("Audit.Subject", { model: "Webda/User", key: alice, limit: -5 }, { id: alice });
+    assert.strictEqual(res.results.length, 1, "a negative limit becomes 1");
+    const big = await this.call("Audit.Subject", { model: "Webda/User", key: alice, limit: 100000 }, { id: alice });
+    assert.strictEqual(big.results.length, 2);
   }
 }

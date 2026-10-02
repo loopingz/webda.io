@@ -4,7 +4,7 @@ import chalk from "yoctocolors";
 import { stdin } from "mock-stdin";
 import { nextTick } from "process";
 import * as sinon from "sinon";
-import { WorkerLogLevelEnum, WorkerOutput, WorkerProgress, WorkerInputType } from "../core.js";
+import { WorkerLogLevelEnum, WorkerMessage, WorkerOutput, WorkerProgress, WorkerInputType } from "../core.js";
 import { Terminal } from "./terminal.js";
 
 // This is needed to trigger stdin within github-actions
@@ -32,6 +32,11 @@ describe("TerminalTest", () => {
         stubs[i].restore();
       } catch (e) {}
     }
+  });
+
+  it("output", async () => {
+    await terminal.router(new WorkerMessage("output", output, { data: "line1\nline2" }));
+    assert.deepStrictEqual(terminal.history.slice(-2), ["line1", "line2"]);
   });
 
   it("cov", async () => {

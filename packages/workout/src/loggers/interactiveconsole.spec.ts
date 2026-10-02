@@ -123,6 +123,16 @@ describe("InteractiveConsoleLoggerTest", () => {
     assert.ok(logger.spinner);
   });
 
+  it("testOutputInteractive", async () => {
+    output.setInteractive(true);
+    output.output("raw result");
+    const write = stubs[0];
+    assert.ok(
+      write.getCalls().some(c => c.args[0] === "raw result\n"),
+      "raw output must be written unformatted to stdout"
+    );
+  });
+
   it("testInputRequest", async () => {
     // This test requires @inquirer/prompts which is optional
     // We'll test the input flow by stubbing the onInput method

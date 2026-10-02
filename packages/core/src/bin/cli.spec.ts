@@ -5,6 +5,8 @@ import {
   buildCli,
   loadOperations,
   addServiceCommandsToCli,
+  resolveLogStream,
+  shouldPatchConsole,
   type OperationsFile,
   type OperationCall,
   type OperationEntry
@@ -296,5 +298,38 @@ class CliLoadOperationsTest {
   @test
   loadOperationsThrowsWhenMissing() {
     assert.throws(() => loadOperations("/nonexistent/path"), /Operations not found/);
+  }
+}
+
+@suite
+class CliLoggingOptionsTest {
+  @test
+  logStreamAutoDetectsTTY() {
+    assert.strictEqual(resolveLogStream([], true), "stdout");
+    assert.strictEqual(resolveLogStream([], false), "stderr");
+    assert.strictEqual(resolveLogStream(["openapi", "--log-stream=auto"], false), "stderr");
+  }
+
+  @test
+  logStreamExplicitDisablesDetection() {
+    assert.strictEqual(resolveLogStream(["--log-stream=stdout"], false), "stdout");
+    assert.strictEqual(resolveLogStream(["--log-stream", "stdout"], false), "stdout");
+    assert.strictEqual(resolveLogStream(["--log-stream=stderr"], true), "stderr");
+    assert.strictEqual(resolveLogStream(["serve", "--log-stream", "stderr"], true), "stderr");
+  }
+
+  @test
+  logStreamUnknownValueFallsBackToAuto() {
+    // yargs rejects the value later; until then, behave as auto
+    assert.strictEqual(resolveLogStream(["--log-stream=bogus"], false), "stderr");
+    assert.strictEqual(resolveLogStream(["--log-stream"], true), "stdout");
+  }
+
+  @test
+  consolePatchCanBeDisabled() {
+    assert.strictEqual(shouldPatchConsole([]), true);
+    assert.strictEqual(shouldPatchConsole(["serve"]), true);
+    assert.strictEqual(shouldPatchConsole(["serve", "--no-console-patch"]), false);
+    assert.strictEqual(shouldPatchConsole(["--console-patch=false"]), false);
   }
 }

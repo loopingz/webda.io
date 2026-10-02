@@ -278,6 +278,10 @@ export class Terminal {
     switch (msg.type) {
       case "log":
         return this.log(msg.groups, msg.log.level, ...msg.log.args);
+      case "output":
+        (msg.data ?? "").split("\n").forEach(line => this.pushHistory(line));
+        this.displayScreen();
+        break;
       case "progress.stop":
       case "progress.start":
         this.hasProgress = Object.keys(msg.progresses)

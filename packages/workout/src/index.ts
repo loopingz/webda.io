@@ -1,4 +1,5 @@
 export * from "./core.js";
+export * from "./consolepatch.js";
 export * from "./fork.js";
 export * from "./loggers/index.js";
 

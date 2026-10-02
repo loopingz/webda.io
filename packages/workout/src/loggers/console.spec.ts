@@ -11,7 +11,7 @@ describe("ConsoleLoggerTest", () => {
   it("test", () => {
     output = new WorkerOutput();
     new ConsoleLogger(output);
-    const log = sinon.spy(console, "log");
+    const log = sinon.stub(process.stdout, "write");
     try {
       output.log("WARN", "Testor");
       output.log("ERROR", "Testor");
@@ -35,7 +35,7 @@ describe("ConsoleLoggerTest", () => {
       // Find the error log in the calls
       let foundError = false;
       for (let i = 0; i < log.callCount; i++) {
-        if (log.getCall(i).args[0]?.includes?.("Error")) {
+        if (String(log.getCall(i).args[0]).includes("Error")) {
           foundError = true;
           break;
         }
@@ -105,7 +105,7 @@ describe("ConsoleLoggerTest", () => {
 
     const logger = new TestLogger(output, () => currentLevel);
 
-    const log = sinon.spy(console, "log");
+    const log = sinon.stub(process.stdout, "write");
     try {
       output.log("DEBUG", "Should not show");
       assert.strictEqual(log.callCount, 0);
@@ -117,5 +117,43 @@ describe("ConsoleLoggerTest", () => {
       log.restore();
       logger.close();
     }
+  });
+
+  it("logStream", () => {
+    output = new WorkerOutput();
+    const logger = new ConsoleLogger(output, "INFO", undefined, "stderr");
+    const stdout = sinon.stub(process.stdout, "write");
+    const stderr = sinon.stub(process.stderr, "write");
+    try {
+      output.log("INFO", "to stderr");
+      output.log("DEBUG", "filtered");
+    } finally {
+      stdout.restore();
+      stderr.restore();
+      logger.close();
+    }
+    assert.strictEqual(stdout.callCount, 0);
+    assert.strictEqual(stderr.callCount, 1);
+    assert.ok(String(stderr.getCall(0).args[0]).match(/\[ INFO\] to stderr\n$/));
+  });
+
+  it("output", () => {
+    output = new WorkerOutput();
+    // Output is not a log: it ignores the level and the log stream
+    const logger = new ConsoleLogger(output, "ERROR", undefined, "stderr");
+    const stdout = sinon.stub(process.stdout, "write");
+    const stderr = sinon.stub(process.stderr, "write");
+    try {
+      output.output('{"raw": true}');
+    } finally {
+      stdout.restore();
+      stderr.restore();
+      logger.close();
+    }
+    assert.strictEqual(stderr.callCount, 0);
+    assert.deepStrictEqual(
+      stdout.getCalls().map(c => c.args[0]),
+      ['{"raw": true}\n']
+    );
   });
 });

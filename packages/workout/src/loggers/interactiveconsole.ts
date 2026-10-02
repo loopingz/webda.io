@@ -251,6 +251,10 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
       this.spinner?.clear();
       ConsoleLogger.display(msg, this.format);
       this.spinner?.render();
+    } else if (msg.type === "output") {
+      this.spinner?.clear();
+      ConsoleLogger.writeOutput(msg);
+      this.spinner?.render();
     }
   }
 

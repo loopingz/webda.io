@@ -23,6 +23,11 @@
     "DomainService": {
       "type": "Webda/DomainService"
     },
+    "AuditService": {
+      "type": "Webda/AuditService",
+      "level": "write",
+      "readPermission": "TRUE"
+    },
     "RESTService": {
       "type": "Webda/RESTOperationsTransport"
     },

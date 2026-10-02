@@ -284,7 +284,7 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
     });
     if (routeError) {
       if (routeError instanceof WebdaError.HttpError) {
-        return { statusCode: (routeError as any).code || 500, body: routeError.message };
+        return { statusCode: routeError.statusCode || 500, body: routeError.message };
       }
       return { statusCode: 500, body: routeError.message };
     }
@@ -298,6 +298,62 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
       }
     }
     return { statusCode: ctx.statusCode || 200, body, parsed };
+  }
+
+  @test
+  async auditRecordsPostHistory() {
+    const slug = `audit-post-${Date.now()}`;
+    const created = await this.routerHttp({
+      method: "POST",
+      url: "/posts",
+      body: {
+        title: "Audited Post",
+        slug,
+        content: "Content long enough for the post validation.",
+        status: "draft",
+        viewCount: 0
+      }
+    });
+    assert.strictEqual(created.statusCode, 200, created.body);
+    const patched = await this.routerHttp({
+      method: "PATCH",
+      url: `/posts/${slug}`,
+      body: { title: "Audited Post 2" }
+    });
+    assert.strictEqual(patched.statusCode, 200, patched.body);
+    // Title shorter than @minLength 5: rejected and recorded as a failure
+    const rejected = await this.routerHttp({ method: "PATCH", url: `/posts/${slug}`, body: { title: "x" } });
+    assert.strictEqual(rejected.statusCode, 400, rejected.body);
+    const deleted = await this.routerHttp({ method: "DELETE", url: `/posts/${slug}` });
+    assert.ok(deleted.statusCode < 300, deleted.body);
+
+    // Deleted subject: readable through the sample's permissive readPermission
+    const res = await this.routerHttp<{ results: any[] }>({
+      method: "PUT",
+      url: "/audit/subject",
+      body: { model: "WebdaSample/Post", key: slug }
+    });
+    assert.strictEqual(res.statusCode, 200, res.body);
+    // Entries can share a millisecond, so compare as a set (ordering is pinned in core tests)
+    assert.deepStrictEqual(res.parsed!.results.map(e => `${e.operationId}:${e.success}`).sort(), [
+      "Post.Create:true",
+      "Post.Delete:true",
+      "Post.Patch:false",
+      "Post.Patch:true"
+    ]);
+    const failure = res.parsed!.results.find(e => !e.success);
+    assert.match(failure.error, /title/);
+  }
+
+  @test
+  async auditQueryListsEntries() {
+    const res = await this.routerHttp<{ results: any[] }>({
+      method: "PUT",
+      url: "/audit/query",
+      body: { q: "" }
+    });
+    assert.strictEqual(res.statusCode, 200, res.body);
+    assert.ok(Array.isArray(res.parsed!.results));
   }
 
   @test

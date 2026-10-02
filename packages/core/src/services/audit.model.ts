@@ -1,10 +1,6 @@
-
-
 import { useCoreEvents } from "../events/events.js";
 import { Service } from "../services/service.js";
 import { ServiceParameters } from "./serviceparameters.js";
-import { Inject } from "../services/service.js";
-import { Store } from "../stores/store.js";
 import { CoreModel } from "../models/coremodel.model.js";
 
 /**
@@ -111,16 +107,9 @@ const READ_SUFFIXES = ["Get", "List", "Query"];
  */
 export class AuditService extends Service<AuditServiceParameters> {
   /**
-   * Optional persistence store
-   */
-  @Inject("params:store", "auditStore", true)
-  auditStore: Store;
-
-  /**
    * In-memory log of audit entries
    */
   protected entries: AuditEntry[] = [];
-
 
   /**
    * Subscribe to operation success and failure events for audit logging
@@ -189,8 +178,6 @@ export class AuditService extends Service<AuditServiceParameters> {
       entry.error = err.message;
     }
     this.entries.push(entry);
-    if (this.auditStore) {
-      await entry.save();
-    }
+    await entry.save();
   }
 }

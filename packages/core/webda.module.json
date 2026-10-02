@@ -1841,28 +1841,25 @@
     },
     "Webda/AuditEntry": {
       "Plural": "AuditEntries",
-      "Import": "lib/models/auditentry.model:AuditEntry",
+      "Import": "lib/services/audit.model:AuditEntry",
       "Relations": {},
       "Ancestors": [],
       "Subclasses": [],
       "Reflection": {
-        "actor": {
-          "type": "string | \"SYSTEM\""
+        "operationId": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
         },
         "timestamp": {
-          "type": "number"
-        },
-        "operation": {
-          "type": "string"
-        },
-        "status": {
-          "type": "\"SUCCESS\" | \"ERROR\""
-        },
-        "description": {
-          "type": "string"
-        },
-        "context": {
-          "type": "{\n    ip?: string;\n    userAgent?: string;\n    [key: string]: any;\n  }"
+          "type": "Date"
         },
         "uuid": {
           "type": "string"
@@ -1872,43 +1869,24 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "definitions": {
-            "context": {
-              "additionalProperties": {},
-              "properties": {
-                "ip": {
-                  "type": "string"
-                },
-                "userAgent": {
-                  "type": "string"
-                }
-              },
-              "type": "object"
-            }
-          },
-          "description": "Represents a single audit log entry with actor, operation, and result metadata",
+          "description": "Represents a single audit log entry",
           "properties": {
-            "actor": {
+            "error": {
               "type": "string"
             },
-            "context": {
-              "$ref": "#/definitions/context"
-            },
-            "description": {
+            "operationId": {
               "type": "string"
             },
-            "operation": {
-              "type": "string"
-            },
-            "status": {
-              "enum": [
-                "SUCCESS",
-                "ERROR"
-              ],
-              "type": "string"
+            "success": {
+              "default": false,
+              "type": "boolean"
             },
             "timestamp": {
-              "type": "number"
+              "format": "date-time",
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -1917,11 +1895,7 @@
             }
           },
           "required": [
-            "actor",
-            "context",
-            "description",
-            "operation",
-            "status",
+            "operationId",
             "timestamp",
             "uuid"
           ],
@@ -1931,43 +1905,24 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "definitions": {
-            "context": {
-              "additionalProperties": {},
-              "properties": {
-                "ip": {
-                  "type": "string"
-                },
-                "userAgent": {
-                  "type": "string"
-                }
-              },
-              "type": "object"
-            }
-          },
-          "description": "Represents a single audit log entry with actor, operation, and result metadata",
+          "description": "Represents a single audit log entry",
           "properties": {
-            "actor": {
+            "error": {
               "type": "string"
             },
-            "context": {
-              "$ref": "#/definitions/context"
-            },
-            "description": {
+            "operationId": {
               "type": "string"
             },
-            "operation": {
-              "type": "string"
-            },
-            "status": {
-              "enum": [
-                "SUCCESS",
-                "ERROR"
-              ],
-              "type": "string"
+            "success": {
+              "default": false,
+              "type": "boolean"
             },
             "timestamp": {
-              "type": "number"
+              "format": "date-time",
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -1976,11 +1931,7 @@
             }
           },
           "required": [
-            "actor",
-            "context",
-            "description",
-            "operation",
-            "status",
+            "operationId",
             "timestamp",
             "uuid"
           ],
@@ -1990,43 +1941,24 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "definitions": {
-            "context": {
-              "additionalProperties": {},
-              "properties": {
-                "ip": {
-                  "type": "string"
-                },
-                "userAgent": {
-                  "type": "string"
-                }
-              },
-              "type": "object"
-            }
-          },
-          "description": "Represents a single audit log entry with actor, operation, and result metadata",
+          "description": "Represents a single audit log entry",
           "properties": {
-            "actor": {
+            "error": {
               "type": "string"
             },
-            "context": {
-              "$ref": "#/definitions/context"
-            },
-            "description": {
+            "operationId": {
               "type": "string"
             },
-            "operation": {
-              "type": "string"
-            },
-            "status": {
-              "enum": [
-                "SUCCESS",
-                "ERROR"
-              ],
-              "type": "string"
+            "success": {
+              "default": false,
+              "type": "boolean"
             },
             "timestamp": {
-              "type": "number"
+              "format": "date-time",
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -2035,11 +1967,7 @@
             }
           },
           "required": [
-            "actor",
-            "context",
-            "description",
-            "operation",
-            "status",
+            "operationId",
             "timestamp",
             "uuid"
           ],
@@ -3815,5 +3743,5 @@
     "rest-domain": "Webda/RESTOperationsTransport",
     "http-server": "Webda/HttpServer"
   },
-  "sourceDigest": "0fb7859814515165cd237d8917b8c290"
+  "sourceDigest": "d697200061c6cd7038c9ffa42283a94f"
 }

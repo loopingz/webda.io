@@ -8,6 +8,7 @@ import { AuditEntry, AuditService, AuditServiceParameters } from "./audit.model.
 import { callOperation, registerOperation } from "../core/operations.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { Service } from "./service.js";
+import { useApplication } from "../application/hooks.js";
 import { ServiceParameters } from "./serviceparameters.js";
 
 /**
@@ -263,6 +264,17 @@ class AuditServiceTest extends WebdaApplicationTest {
     assert.ok(filteredAudit.shouldAudit("Audit.Create", true));
   }
 
+
+  /**
+   * The class AuditService saves must be the registered Webda/AuditEntry:
+   * core used to ship a second, unused AuditEntry that took the name, so the
+   * saved entries had no model id and a schema describing another class.
+   */
+  @test
+  async entryIsTheRegisteredModel() {
+    assert.strictEqual(useApplication().getModelId(AuditEntry), "Webda/AuditEntry");
+    assert.strictEqual(useApplication().getModelId(new AuditEntry()), "Webda/AuditEntry");
+  }
 
   @test
   async persistsToStore() {

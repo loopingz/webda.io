@@ -3,6 +3,7 @@ import { useState, useEffect } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 import { comments } from "../api.js";
 import { useDebounced } from "../hooks.js";
+import { HistoryButton } from "./audit.js";
 
 const html = htm.bind(h);
 
@@ -116,6 +117,7 @@ export function CommentsPanel({ notify }) {
                 <td style="color:var(--text-muted);font-size:0.8125rem">${formatDate(c.createdAt)}</td>
                 <td>
                   <button class="btn btn-ghost btn-sm" onClick=${() => setEditing(c)}>Edit</button>
+                  <${HistoryButton} model="WebdaSample/Comment" objectKey=${c.uuid} notify=${notify} />
                   <button class="btn btn-danger btn-sm" style="margin-left:4px" onClick=${() => handleDelete(c.uuid)}>Delete</button>
                 </td>
               </tr>

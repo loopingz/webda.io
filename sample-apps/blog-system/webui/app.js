@@ -5,6 +5,7 @@ import { PostsPanel } from "./components/posts.js";
 import { UsersPanel } from "./components/users.js";
 import { TagsPanel } from "./components/tags.js";
 import { CommentsPanel } from "./components/comments.js";
+import { AuditPanel } from "./components/audit.js";
 
 const html = htm.bind(h);
 
@@ -13,6 +14,7 @@ const TABS = [
   { id: "users", label: "Users" },
   { id: "tags", label: "Tags" },
   { id: "comments", label: "Comments" },
+  { id: "audit", label: "Audit" },
 ];
 
 function Toast({ message, type, onDone }) {
@@ -50,6 +52,7 @@ function App() {
         ${tab === "users" && html`<${UsersPanel} notify=${notify} />`}
         ${tab === "tags" && html`<${TagsPanel} notify=${notify} />`}
         ${tab === "comments" && html`<${CommentsPanel} notify=${notify} />`}
+        ${tab === "audit" && html`<${AuditPanel} notify=${notify} />`}
       </div>
       ${toast && html`<${Toast} message=${toast.message} type=${toast.type} onDone=${clearToast} />`}
     </div>

@@ -249,3 +249,6 @@ tr:hover { background: var(--bg-secondary); }
   border-radius: 4px;
   display: block;
 }
+
+.modal.modal-wide { max-width: 860px; }
+.audit-error { color: var(--text-muted); font-size: 0.8125rem; }

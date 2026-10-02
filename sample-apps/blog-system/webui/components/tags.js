@@ -3,6 +3,7 @@ import { useState, useEffect } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 import { tags } from "../api.js";
 import { useDebounced } from "../hooks.js";
+import { HistoryButton } from "./audit.js";
 
 const html = htm.bind(h);
 
@@ -134,6 +135,7 @@ export function TagsPanel({ notify }) {
                 <td style="color:var(--text-muted)">${t.description || "-"}</td>
                 <td>
                   <button class="btn btn-ghost btn-sm" onClick=${() => setEditing(t)}>Edit</button>
+                  <${HistoryButton} model="WebdaSample/Tag" objectKey=${t.slug} notify=${notify} />
                   <button class="btn btn-danger btn-sm" style="margin-left:4px" onClick=${() => handleDelete(t.slug)}>Delete</button>
                 </td>
               </tr>

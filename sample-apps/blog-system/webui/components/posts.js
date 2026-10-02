@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "https://esm.sh/preact@10.25.4/hooks
 import htm from "https://esm.sh/htm@3.1.1";
 import { posts, binaries } from "../api.js";
 import { useDebounced } from "../hooks.js";
+import { HistoryButton } from "./audit.js";
 
 const html = htm.bind(h);
 
@@ -437,6 +438,7 @@ export function PostsPanel({ notify }) {
                 <td>${p.viewCount || 0}</td>
                 <td>
                   <button class="btn btn-ghost btn-sm" onClick=${() => setEditing(p)}>Edit</button>
+                  <${HistoryButton} model="WebdaSample/Post" objectKey=${p.slug} notify=${notify} />
                   <button class="btn btn-danger btn-sm" style="margin-left:4px" onClick=${() => handleDelete(p.slug)}>Delete</button>
                 </td>
               </tr>

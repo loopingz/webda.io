@@ -3,6 +3,7 @@ import { useState, useEffect } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 import { users } from "../api.js";
 import { useDebounced } from "../hooks.js";
+import { HistoryButton } from "./audit.js";
 
 const html = htm.bind(h);
 
@@ -153,6 +154,7 @@ export function UsersPanel({ notify }) {
                 <td>${u.email}</td>
                 <td>
                   <button class="btn btn-ghost btn-sm" onClick=${() => setEditing(u)}>Edit</button>
+                  <${HistoryButton} model="WebdaSample/User" objectKey=${u.uuid} notify=${notify} />
                   <button class="btn btn-danger btn-sm" style="margin-left:4px" onClick=${() => handleDelete(u.uuid)}>Delete</button>
                 </td>
               </tr>

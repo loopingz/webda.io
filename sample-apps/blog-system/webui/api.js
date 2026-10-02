@@ -220,3 +220,10 @@ export const binaries = {
     return request("DELETE", `/posts/${slug}/${attribute}/${index}/${hash}`);
   }
 };
+
+// Audit log
+export const audit = {
+  subject: (model, key) => request("PUT", "/audit/subject", { model, key }),
+  query: (search = "") =>
+    request("PUT", "/audit/query", { q: searchQuery(search, ["operationId", "subjectModel", "subjectKey", "userId"]) }),
+};

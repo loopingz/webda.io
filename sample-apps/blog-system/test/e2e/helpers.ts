@@ -36,7 +36,7 @@ export function fixtureKey(tag: string): string {
 }
 
 /** Click one of the four top-nav buttons and wait for its panel to render. */
-export async function gotoTab(page: Page, tab: "Posts" | "Users" | "Tags" | "Comments"): Promise<void> {
+export async function gotoTab(page: Page, tab: "Posts" | "Users" | "Tags" | "Comments" | "Audit"): Promise<void> {
   await page.locator(".nav button", { hasText: tab }).click();
   await expect(page.locator(".nav button.active")).toHaveText(tab);
   // The newly-mounted panel always renders a "+ New X" button. Waiting for

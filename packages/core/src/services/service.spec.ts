@@ -17,7 +17,7 @@ import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { WebdaApplicationTest } from "../test/index.js";
 import { TestApplication } from "../test/objects.js";
 import { OperationContext } from "../contexts/operationcontext.js";
-import { MemoryLogger } from "@webda/workout";
+import { MemoryLogger, useWorkerOutput, type WorkerMessage } from "@webda/workout";
 import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 
@@ -759,19 +759,31 @@ class RouterTestService extends Service {
   }
 }
 
+/**
+ * Collect the raw output (see useOutput) emitted while running a callback
+ * @param callback - the code to run
+ * @returns the emitted output
+ */
+function captureOutput(callback: () => void): string[] {
+  const outputs: string[] = [];
+  const listener = (msg: WorkerMessage) => {
+    if (msg.type === "output") outputs.push(msg.data);
+  };
+  useWorkerOutput().on("message", listener);
+  try {
+    callback();
+  } finally {
+    useWorkerOutput().off("message", listener);
+  }
+  return outputs;
+}
+
 @suite
 class OpenAPICommandTest extends WebdaApplicationTest {
   @test
   async openapiToStdout() {
     const router = useRouter();
-    const logs: string[] = [];
-    const origLog = console.log;
-    console.log = (...args: any[]) => logs.push(args.join(" "));
-    try {
-      router.openapi();
-    } finally {
-      console.log = origLog;
-    }
+    const logs = captureOutput(() => router.openapi());
     assert.strictEqual(logs.length, 1);
     const doc = JSON.parse(logs[0]);
     assert.strictEqual(doc.openapi, "3.0.3");
@@ -796,23 +808,12 @@ class OpenAPICommandTest extends WebdaApplicationTest {
   @test
   async openapiIncludeHidden() {
     const router = useRouter();
-    const logs: string[] = [];
-    const origLog = console.log;
-    console.log = (...args: any[]) => logs.push(args.join(" "));
-    try {
-      // Default: skip hidden
-      router.openapi();
-      const docDefault = JSON.parse(logs[0]);
+    // Default: skip hidden
+    const docDefault = JSON.parse(captureOutput(() => router.openapi())[0]);
+    // Include hidden
+    const docWithHidden = JSON.parse(captureOutput(() => router.openapi(undefined, true))[0]);
 
-      logs.length = 0;
-      // Include hidden
-      router.openapi(undefined, true);
-      const docWithHidden = JSON.parse(logs[0]);
-
-      // With hidden should have at least as many paths
-      assert.ok(Object.keys(docWithHidden.paths).length >= Object.keys(docDefault.paths).length);
-    } finally {
-      console.log = origLog;
-    }
+    // With hidden should have at least as many paths
+    assert.ok(Object.keys(docWithHidden.paths).length >= Object.keys(docDefault.paths).length);
   }
 }

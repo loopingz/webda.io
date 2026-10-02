@@ -11,7 +11,15 @@ import { Core } from "../core/core.js";
 import { bootCoreForCommand } from "./cli-phase.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { CancelablePromise } from "@webda/utils";
-import { ConsoleLogger, useLog, useLogLevel, useWorkerOutput } from "@webda/workout";
+import {
+  ConsoleLogger,
+  type ConsoleLogStream,
+  patchConsole,
+  useLog,
+  useLogLevel,
+  useOutput,
+  useWorkerOutput
+} from "@webda/workout";
 import { createInterface } from "node:readline";
 import { createRequire } from "node:module";
 
@@ -468,7 +476,44 @@ async function ensureServiceInConfig(app: Application, serviceName: string): Pro
  * @param call - the function to call
  */
 async function defaultHandler(call: OperationCall): Promise<void> {
-  console.log(JSON.stringify(call, undefined, 2));
+  useOutput(JSON.stringify(call, undefined, 2));
+}
+
+/** Values accepted by the `--log-stream` option */
+const LOG_STREAM_CHOICES = ["auto", "stdout", "stderr"] as const;
+
+/**
+ * Resolve where log lines go, from the raw CLI arguments
+ *
+ * `--log-stream=auto` (the default) sends logs to stderr when stdout is not a
+ * TTY, so a piped command result stays clean; `stdout` or `stderr` force it.
+ * Read from raw argv because the logger is created before yargs parses.
+ * @param argv - the raw CLI arguments
+ * @param stdoutIsTTY - whether stdout is a terminal
+ * @returns the stream for log lines
+ */
+export function resolveLogStream(argv: string[], stdoutIsTTY: boolean): ConsoleLogStream {
+  let value: string | undefined;
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i].startsWith("--log-stream=")) {
+      value = argv[i].substring("--log-stream=".length);
+    } else if (argv[i] === "--log-stream") {
+      value = argv[i + 1];
+    }
+  }
+  if (value === "stdout" || value === "stderr") {
+    return value;
+  }
+  return stdoutIsTTY ? "stdout" : "stderr";
+}
+
+/**
+ * Whether to route `console.*` calls to the logger, from the raw CLI arguments
+ * @param argv - the raw CLI arguments
+ * @returns false when `--no-console-patch` is given
+ */
+export function shouldPatchConsole(argv: string[]): boolean {
+  return !argv.includes("--no-console-patch") && !argv.includes("--console-patch=false");
 }
 
 /**
@@ -642,7 +687,11 @@ if (isMain) {
   const appPath = resolve(process.env.WEBDA_APP_PATH || ".");
   await runWithInstanceStorage({}, async () => {
     // Ensure console output is available before anything else
-    new ConsoleLogger(useWorkerOutput());
+    const rawArgv = process.argv.slice(2);
+    new ConsoleLogger(useWorkerOutput(), undefined, undefined, resolveLogStream(rawArgv, !!process.stdout.isTTY));
+    if (shouldPatchConsole(rawArgv)) {
+      patchConsole();
+    }
     try {
       const app = loadApplication(appPath);
       useInstanceStorage().application = app;
@@ -664,8 +713,19 @@ if (isMain) {
       }
 
       // Build the CLI with operations (if available) and service commands
-      const rawArgv = process.argv.slice(2);
       const cli = yargs(rawArgv).scriptName("webda").usage("$0 <command> [options]");
+
+      // Logging options are applied from raw argv before parsing; declared here for --help and validation
+      cli.option("log-stream", {
+        choices: LOG_STREAM_CHOICES,
+        default: "auto",
+        description: "Where logs go: auto sends them to stderr when stdout is not a TTY"
+      });
+      cli.option("console-patch", {
+        type: "boolean",
+        default: true,
+        description: "Route console.log/info/warn/error/debug/trace to the logger"
+      });
 
       // Add --watch flag only if compiler is available
       if (hasCompiler) {
@@ -780,7 +840,7 @@ if (isMain) {
         const inputArgs = call.input ? Object.values(call.input) : [];
         const result = await service[methodName](...inputArgs);
         if (result !== undefined) {
-          console.log(typeof result === "string" ? result : JSON.stringify(result, undefined, 2));
+          useOutput(typeof result === "string" ? result : JSON.stringify(result, undefined, 2));
         }
         await core.stop();
         process.exit(0);

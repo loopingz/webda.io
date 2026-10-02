@@ -7,6 +7,11 @@ import { WorkerLogger } from "./index.js";
 /**
  * Internal shape passed to sprintf when formatting a log line
  */
+/**
+ * Stream a console logger writes its log lines to
+ */
+export type ConsoleLogStream = "stdout" | "stderr";
+
 interface WorkerLogMessage {
   /** Formatted message text */
   m: string;
@@ -17,8 +22,11 @@ interface WorkerLogMessage {
   [key: string]: any;
 }
 /**
- * Console logger that outputs formatted and colored log messages to stdout
+ * Console logger that outputs formatted and colored log messages to stdout (or stderr)
  * Supports custom format strings using sprintf-style placeholders
+ *
+ * Raw output messages (see `useOutput`) are always written unformatted to stdout,
+ * so logs can be sent to stderr while a command result stays pipeable.
  *
  * @example
  * ```typescript
@@ -34,19 +42,24 @@ class ConsoleLogger extends WorkerLogger {
   static defaultFormatWithLine = "%(d)s [%(l)s] %(m)s (%(f)s:%(ll)d:%(c)d %(ff)s)";
   /** Active sprintf format string used for output */
   format: string;
+  /** Stream receiving the log lines */
+  logStream: NodeJS.WritableStream;
 
   /**
    * Create a new console logger
    * @param output - WorkerOutput instance to listen to
    * @param level - Minimum log level to display (default: LOG_LEVEL env var or "INFO")
    * @param format - Optional sprintf format string; defaults to defaultFormat or defaultFormatWithLine
+   * @param logStream - Stream for log lines (default: stdout); raw output always goes to stdout
    */
   constructor(
     output: WorkerOutput,
     level: WorkerLogLevel = isWorkerLogLevel(process.env.LOG_LEVEL) ? process.env.LOG_LEVEL : "INFO",
-    format?: string
+    format?: string,
+    logStream: ConsoleLogStream = "stdout"
   ) {
     super(output, level);
+    this.logStream = logStream === "stderr" ? process.stderr : process.stdout;
 
     this.format =
       format || (output.addLogProducerLine ? ConsoleLogger.defaultFormatWithLine : ConsoleLogger.defaultFormat);
@@ -58,7 +71,7 @@ class ConsoleLogger extends WorkerLogger {
    * @override
    */
   onMessage(msg: WorkerMessage) {
-    ConsoleLogger.handleMessage(msg, this.level(), this.format);
+    ConsoleLogger.handleMessage(msg, this.level(), this.format, this.logStream);
   }
 
   /**
@@ -82,8 +95,18 @@ class ConsoleLogger extends WorkerLogger {
    * @param msg - Message to process
    * @param level - Current log level for filtering
    * @param format - Format string for log output
+   * @param stream - Stream for log lines (default: stdout)
    */
-  static handleMessage(msg: WorkerMessage, level: WorkerLogLevel, format: string = ConsoleLogger.defaultFormat) {
+  static handleMessage(
+    msg: WorkerMessage,
+    level: WorkerLogLevel,
+    format: string = ConsoleLogger.defaultFormat,
+    stream: NodeJS.WritableStream = process.stdout
+  ) {
+    if (msg.type === "output") {
+      ConsoleLogger.writeOutput(msg);
+      return;
+    }
     if (msg.type === "title.set" && LogFilter("INFO", level)) {
       ConsoleLogger.display(
         <any>{
@@ -93,21 +116,38 @@ class ConsoleLogger extends WorkerLogger {
             args: [msg.title]
           }
         },
-        format
+        format,
+        stream
       );
     }
     if (msg.type === "log" && LogFilter(msg.log.level, level)) {
-      ConsoleLogger.display(msg, format);
+      ConsoleLogger.display(msg, format, stream);
     }
   }
 
   /**
-   * Display a formatted and colored log message to stdout
+   * Write a raw output message, unformatted, to stdout
+   * @param msg - Output message to write
+   */
+  static writeOutput(msg: WorkerMessage) {
+    process.stdout.write(`${msg.data ?? ""}\n`);
+  }
+
+  /**
+   * Display a formatted and colored log message
+   *
+   * Writes to the stream directly rather than through `console`, so a patched
+   * console (see `patchConsole`) cannot loop back into the logger.
    * @param msg - Message to display
    * @param format - Format string for output
+   * @param stream - Stream to write to (default: stdout)
    */
-  static display(msg: WorkerMessage, format: string = ConsoleLogger.defaultFormat) {
-    console.log(this.getColor(msg.log.level)(this.format(msg, format)));
+  static display(
+    msg: WorkerMessage,
+    format: string = ConsoleLogger.defaultFormat,
+    stream: NodeJS.WritableStream = process.stdout
+  ) {
+    stream.write(`${this.getColor(msg.log.level)(this.format(msg, format))}\n`);
   }
 
   /**

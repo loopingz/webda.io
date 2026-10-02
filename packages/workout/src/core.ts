@@ -52,6 +52,18 @@ export function useLog(...args: Parameters<Logger["log"]>) {
 }
 
 /**
+ * Emit raw program output (a command result) using the global WorkerOutput
+ *
+ * Unlike logs, output carries no level or formatting: console loggers write it
+ * as-is to stdout so it can be piped, while logs may go to stderr.
+ * @param data - the raw output to emit
+ */
+export function useOutput(data: string) {
+  moduleOutput ??= new WorkerOutput();
+  moduleOutput.output(data);
+}
+
+/**
  * Log a message with additional context information
  * @param level - The log level (ERROR, WARN, INFO, DEBUG, TRACE)
  * @param context - Context object to attach to the log. If context.addLogProducerLine is true, adds file/line/function info
@@ -355,6 +367,7 @@ export type WorkerMessageType =
   | "group.open"
   | "group.close"
   | "log"
+  | "output"
   | "input.request"
   | "input.received"
   | "input.timeout"
@@ -422,6 +435,8 @@ export class WorkerMessage {
   currentProgress?: string;
   /** Log entry attached to "log" messages */
   log?: WorkerLog;
+  /** Raw program output attached to "output" messages */
+  data?: string;
   /** Unix timestamp (ms) when the message was created */
   timestamp: number;
   /** PID of the process that emitted the message */
@@ -620,6 +635,15 @@ export class WorkerOutput extends EventEmitter {
     }
     const name = this.groups.pop();
     this.emitMessage("group.close", { group: name });
+  }
+
+  /**
+   * Emit raw program output, such as a command result
+   *
+   * @param data the raw output
+   */
+  output(data: string): void {
+    this.emitMessage("output", { data });
   }
 
   /**

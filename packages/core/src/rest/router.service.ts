@@ -4,7 +4,7 @@ import type { IRouter, RequestFilter, CORSFilter, RouteInfo } from "./irest.js";
 
 import { useApplication, useModelId } from "../application/hooks.js";
 import { Command } from "../services/command.js";
-import { useLog } from "../loggers/hooks.js";
+import { useLog, useOutput } from "../loggers/hooks.js";
 import type { OpenAPIV3 } from "openapi-types";
 import { useParameters } from "../application/hooks.js";
 import { useDynamicService, useService } from "../core/hooks.js";
@@ -611,7 +611,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       FileUtils.save(doc, output);
       useLog("INFO", `OpenAPI definition written to ${output}`);
     } else {
-      console.log(json);
+      useOutput(json);
     }
   }
 

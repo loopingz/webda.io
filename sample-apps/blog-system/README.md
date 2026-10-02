@@ -78,6 +78,34 @@ const post = await Post.ref("hello-world").get();
 const comments = await post.comments.get(); // fetched now
 ```
 
+### 8. Audit Log
+
+`AuditService` records every write operation (`level: "write"`) with its actor and its subject, the object it targeted:
+
+```json
+{
+  "operationId": "Post.Patch",
+  "success": false,
+  "error": "...",
+  "userId": "...",
+  "subjectModel": "WebdaSample/Post",
+  "subjectKey": "hello-world",
+  "timestamp": "..."
+}
+```
+
+Three operations read it, newest first and paginated (`limit`, `continuationToken`):
+
+| Route                                                                        | Allowed when                                                   |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `PUT /audit/subject` `{ "model": "WebdaSample/Post", "key": "hello-world" }` | the object's `canAct(context, "audit")` returns `true`         |
+| `PUT /audit/actor` `{ "userId"?: "..." }`                                    | reading your own activity while logged in, or `readPermission` |
+| `PUT /audit/query` `{ "q": "success = FALSE" }`                              | `readPermission`                                               |
+
+`readPermission` is a WebdaQL query on the session. This sample uses `TRUE`, which matches everyone, so the admin UI works without logging in. A real application would use something like `roles CONTAINS 'admin'`, and real models decide who reads an object's history in `canAct` (`OwnerModel` already limits it to the owner; `RoleModel` maps `audit` to a role). History of a deleted object needs `readPermission`. These routes are REST only.
+
+In the admin UI, every row has a **History** button, and the **Audit** tab shows the whole log.
+
 ## Domain Model
 
 ```
@@ -118,12 +146,13 @@ pnpm run debug:web   # same server without the TUI
 
 The server listens on `https://localhost:18080` (self-signed certificate) with gRPC (h2c) on port `50051`:
 
-| URL                                                             | What                                                                                            |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `https://localhost:18080/admin/`                                | Admin web UI: manage posts, users, tags and comments, upload images                             |
-| `https://localhost:18080/posts`, `/users`, `/tags`, `/comments` | REST API (`PUT` on the collection runs a WebdaQL query, e.g. `{ "q": "status = 'published'" }`) |
-| `https://localhost:18080/graphql`                               | GraphQL API                                                                                     |
-| `localhost:50051`                                               | gRPC API (definitions in `.webda/app.proto`)                                                    |
+| URL                                                                     | What                                                                                            |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `https://localhost:18080/admin/`                                        | Admin web UI: manage posts, users, tags and comments, upload images, browse the audit log       |
+| `https://localhost:18080/posts`, `/users`, `/tags`, `/comments`         | REST API (`PUT` on the collection runs a WebdaQL query, e.g. `{ "q": "status = 'published'" }`) |
+| `https://localhost:18080/graphql`                                       | GraphQL API                                                                                     |
+| `https://localhost:18080/audit/subject`, `/audit/actor`, `/audit/query` | Audit log (REST, `PUT`)                                                                         |
+| `localhost:50051`                                                       | gRPC API (definitions in `.webda/app.proto`)                                                    |
 
 Data lives in memory and is lost when the server stops.
 
@@ -156,7 +185,7 @@ src/
 └── services/
     ├── bean.service.ts       - TestBean: version, testOperation, demonstrateTypeSafety
     └── publisher.service.ts  - Publisher: publish, publishPost operations
-webui/                        - Admin UI (Preact + htm, served at /admin)
+webui/                        - Admin UI (Preact + htm, served at /admin), incl. History and Audit views
 test/
 ├── api-test.ts               - Application bootstrap tests
 ├── cli-test.ts               - webda CLI tests

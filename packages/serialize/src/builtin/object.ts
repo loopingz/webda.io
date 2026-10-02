@@ -67,7 +67,17 @@ export class ObjectSerializer implements Serializer<any> {
     const newObj: { [key: string]: any } = {};
     const objMetadata: { [key: string]: any } = {};
     for (const key in obj) {
-      const data = context.prepareAttribute(key, obj[key]);
+      // Like JSON.stringify, omit a property whose toJSON() returns undefined
+      const attr = obj[key];
+      if (
+        attr !== null &&
+        typeof attr === "object" &&
+        typeof attr.toJSON === "function" &&
+        attr.toJSON() === undefined
+      ) {
+        continue;
+      }
+      const data = context.prepareAttribute(key, attr);
       if (!data) {
         continue;
       }

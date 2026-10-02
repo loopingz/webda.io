@@ -9,7 +9,7 @@ import { useApplication } from "@webda/core/lib/application/hooks.js";
 import { WebContext } from "@webda/core/lib/contexts/webcontext.js";
 import { HttpContext } from "@webda/core/lib/contexts/httpcontext.js";
 import { runWithContext } from "@webda/core/lib/contexts/execution.js";
-import { Router, RouterParameters } from "@webda/core/lib/rest/router.js";
+import { Router, RouterParameters } from "@webda/core/lib/rest/router.service.js";
 import * as WebdaError from "@webda/core/lib/errors/errors.js";
 
 const appDir = resolve(import.meta.dirname, "..");
@@ -81,11 +81,11 @@ class BlogSystemAppTest extends WebdaApplicationTest {
     const routePaths = Object.keys(routes);
     // Verify REST routes for models
     assert.ok(routePaths.includes("/posts"), "Should have /posts route");
-    assert.ok(routePaths.includes("/posts/{uuid}"), "Should have /posts/{uuid} route");
+    assert.ok(routePaths.includes("/posts/{slug}"), "Should have /posts/{slug} route (slug is the primary key)");
     assert.ok(routePaths.includes("/users"), "Should have /users route");
     assert.ok(routePaths.includes("/users/{uuid}"), "Should have /users/{uuid} route");
     assert.ok(routePaths.includes("/tags"), "Should have /tags route");
-    assert.ok(routePaths.includes("/tags/{uuid}"), "Should have /tags/{uuid} route");
+    assert.ok(routePaths.includes("/tags/{slug}"), "Should have /tags/{slug} route (slug is the primary key)");
     assert.ok(routePaths.includes("/comments"), "Should have /comments route");
     assert.ok(routePaths.includes("/comments/{uuid}"), "Should have /comments/{uuid} route");
   }

@@ -24,7 +24,7 @@ class WebdaQLStringTest {
 
   @test
   escapePreservesBackslashesVerbatim() {
-    assert.strictEqual(escape(["path = ", ""], ["a\\b"]), "path = 'a\\b'");
+    assert.strictEqual(escape(["path = ", ""], ["a\\b"]), "path = 'a\\\\b'");
   }
 
   @test
@@ -146,11 +146,23 @@ class WebdaQLStringTest {
 
   @test
   escapedValuesMatchAndRoundTrip() {
-    const value = `it's "quoted"`;
-    const query = escape(["k = ", ""], [value]);
-    assert.ok(new QueryValidator(query).eval({ k: value }));
-    // toString() re-escapes, so a parsed filter can be serialized and parsed again
-    const serialized = parse(query).filter.toString();
-    assert.ok(new QueryValidator(serialized).eval({ k: value }));
+    const values = [
+      "it's \"quoted\"",
+      "a\\'b",
+      "trailing\\",
+      "back\\\\slash",
+      "\\' OR k != '"
+    ];
+    for (const value of values) {
+      const query = escape(["k = ", ""], [value]);
+      // Match only the correct value
+      assert.ok(new QueryValidator(query).eval({ k: value }), `Failed to match ${value}`);
+      // Should not match other values
+      assert.ok(!new QueryValidator(query).eval({ k: "other" }), `Incorrectly matched other for ${value}`);
+      // toString() re-escapes, so a parsed filter can be serialized and parsed again
+      const serialized = parse(query).filter.toString();
+      assert.ok(new QueryValidator(serialized).eval({ k: value }), `Failed round-trip for ${value}`);
+      assert.ok(!new QueryValidator(serialized).eval({ k: "other" }), `Incorrectly matched other in round-trip for ${value}`);
+    }
   }
 }

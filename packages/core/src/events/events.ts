@@ -5,6 +5,7 @@ import { IWebContext } from "../contexts/icontext.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { EventEmitter } from "node:events";
 import { useLog } from "@webda/workout";
+import type { OperationSubject } from "../core/operations.js";
 
 export type CoreEvents = {
   /**
@@ -47,11 +48,15 @@ export type CoreEvents = {
   "Webda.OperationSuccess": {
     context: OperationContext;
     operationId: string;
+    /** Object the operation targeted, when it has one */
+    subject?: OperationSubject;
   };
   "Webda.OperationFailure": {
     context: OperationContext;
     operationId: string;
     error: Error;
+    /** Object the operation targeted, when it has one */
+    subject?: OperationSubject;
   };
   "Webda.BeforeOperation": {
     context: OperationContext;

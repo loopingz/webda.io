@@ -3,6 +3,7 @@ import { AbstractParseTreeVisitor, ParseTree, TerminalNode } from "antlr4ts/tree
 import { WebdaQLLexer } from "./WebdaQLLexer.js";
 import {
   AndLogicExpressionContext,
+  AtomExpressionContext,
   BinaryComparisonExpressionContext,
   BooleanLiteralContext,
   ContainsExpressionContext,
@@ -211,7 +212,9 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
     // If the first element is a sub expression, it means we have a filter
     if (ctx.getChild(0) instanceof SubExpressionContext) {
       return {
-        filter: (this.visit(ctx.getChild(0).getChild(1)) as unknown as Expression) || new AndExpression([]),
+        filter: normalizeFilter(
+          (this.visit(ctx.getChild(0).getChild(1)) as unknown as Expression) || new AndExpression([])
+        ),
         limit: this.limit,
         continuationToken: this.offset,
         orderBy: this.orderBy
@@ -219,7 +222,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
     }
     // Go down one level - if expression empty it means no expression were provided
     return {
-      filter: (this.visit(ctx.getChild(0)) as unknown as Expression) || new AndExpression([]),
+      filter: normalizeFilter((this.visit(ctx.getChild(0)) as unknown as Expression) || new AndExpression([])),
       limit: this.limit,
       continuationToken: this.offset,
       orderBy: this.orderBy
@@ -267,8 +270,11 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * @param ctx - the AND logic expression context
    * @returns the flattened AndExpression
    */
-  visitAndLogicExpression(ctx: AndLogicExpressionContext): AndExpression {
-    return new AndExpression(this.getComparison(ctx).map(c => this.visit(c) as unknown as Expression));
+  visitAndLogicExpression(ctx: AndLogicExpressionContext): Expression {
+    return foldLogical(
+      "AND",
+      this.getComparison(ctx).map(c => this.visit(c) as unknown as Expression)
+    );
   }
 
   /**
@@ -332,8 +338,25 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * @param ctx - the OR logic expression context
    * @returns the flattened OrExpression
    */
-  visitOrLogicExpression(ctx: OrLogicExpressionContext) {
-    return new OrExpression(this.getComparison(ctx).map(c => this.visit(c) as unknown as Expression));
+  visitOrLogicExpression(ctx: OrLogicExpressionContext): Expression {
+    return foldLogical(
+      "OR",
+      this.getComparison(ctx).map(c => this.visit(c) as unknown as Expression)
+    );
+  }
+
+  /**
+   * A bare atom used as an expression: only `TRUE` / `FALSE` are valid
+   * @param ctx - the atom expression context
+   * @returns the constant expression
+   * @throws {SyntaxError} for identifiers, numbers and strings
+   */
+  visitAtomExpression(ctx: AtomExpressionContext): Expression {
+    const value = this.visit(ctx.getChild(0));
+    if (typeof value === "boolean") {
+      return new BooleanExpression(value);
+    }
+    throw new SyntaxError(`Expected an expression, got '${ctx.text}'`);
   }
 
   /**
@@ -684,6 +707,79 @@ export class OrExpression extends LogicalExpression<"OR"> {
     }
     return this.children.length === 0;
   }
+}
+
+/**
+ * Constant expression from a `TRUE` / `FALSE` literal
+ *
+ * Constants are folded while the tree is built (see `foldLogical`), so this only
+ * remains when the whole filter is `FALSE`; a filter that is entirely `TRUE` is
+ * the match-everything `AndExpression([])`.
+ */
+export class BooleanExpression extends Expression<"TRUE" | "FALSE"> {
+  /**
+   * The constant value
+   */
+  value: boolean;
+
+  /**
+   * @param value - the constant value
+   */
+  constructor(value: boolean) {
+    super(value ? "TRUE" : "FALSE");
+    this.value = value;
+  }
+
+  /**
+   * @override
+   */
+  eval(_target: any): boolean {
+    return this.value;
+  }
+
+  /**
+   * @override
+   */
+  toString(): string {
+    return this.operator;
+  }
+}
+
+/**
+ * Build an AND / OR expression, folding `TRUE` / `FALSE` constants away
+ *
+ * AND drops TRUE and is FALSE as soon as one child is FALSE; OR drops FALSE and is
+ * TRUE as soon as one child is TRUE. A constant only remains when every child was one.
+ * @param operator - the logical operator
+ * @param children - the visited child expressions
+ * @returns the folded expression
+ */
+function foldLogical(operator: "AND" | "OR", children: Expression[]): Expression {
+  // The constant that decides the whole expression: FALSE for AND, TRUE for OR
+  const decisive = operator === "OR";
+  const kept: Expression[] = [];
+  for (const child of children) {
+    if (child instanceof BooleanExpression) {
+      if (child.value === decisive) {
+        return child;
+      }
+      continue;
+    }
+    kept.push(child);
+  }
+  if (kept.length === 0) {
+    return new BooleanExpression(!decisive);
+  }
+  return operator === "AND" ? new AndExpression(kept) : new OrExpression(kept);
+}
+
+/**
+ * Turn a filter that is entirely `TRUE` into the match-everything expression
+ * @param filter - the top-level filter
+ * @returns the filter stores understand
+ */
+function normalizeFilter(filter: Expression): Expression {
+  return filter instanceof BooleanExpression && filter.value ? new AndExpression([]) : filter;
 }
 
 /**

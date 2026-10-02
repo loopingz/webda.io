@@ -427,7 +427,11 @@ class QueryTest {
 
   @test
   listenerWalk() {
-    const lexer = new WebdaQLLexer(CharStreams.fromString('a = 1 AND b LIKE "test%" AND c IN [1, "x", TRUE] AND d CONTAINS "v" AND (e = 2 OR f = 3) ORDER BY g DESC LIMIT 10 OFFSET "tok"'));
+    const lexer = new WebdaQLLexer(
+      CharStreams.fromString(
+        'a = 1 AND b LIKE "test%" AND c IN [1, "x", TRUE] AND d CONTAINS "v" AND (e = 2 OR f = 3) ORDER BY g DESC LIMIT 10 OFFSET "tok"'
+      )
+    );
     const tokenStream = new CommonTokenStream(lexer);
     const parser = new WebdaQLParserParser(tokenStream);
     const tree = parser.webdaql();
@@ -450,7 +454,7 @@ class QueryTest {
   @test
   contextAccessors() {
     // Exercise parser context accessor methods
-    const lexer = new WebdaQLLexer(CharStreams.fromString('a = 1 AND b IN [1, 2] ORDER BY c DESC'));
+    const lexer = new WebdaQLLexer(CharStreams.fromString("a = 1 AND b IN [1, 2] ORDER BY c DESC"));
     const tokenStream = new CommonTokenStream(lexer);
     const parser = new WebdaQLParserParser(tokenStream);
     const tree = parser.webdaql();
@@ -484,5 +488,47 @@ class QueryTest {
     const expr = v.getExpression();
     assert.ok(expr instanceof WebdaQL.AndExpression);
     assert.strictEqual((<WebdaQL.AndExpression>expr).children.length, 3);
+  }
+
+  @test
+  booleanLiterals() {
+    const check = (query: string, target: any = {}) => new WebdaQL.QueryValidator(query).eval(target);
+    assert.strictEqual(check("TRUE"), true);
+    assert.strictEqual(check("FALSE"), false);
+    assert.strictEqual(check("(TRUE)"), true);
+    assert.strictEqual(check("TRUE AND x = 1", { x: 1 }), true);
+    assert.strictEqual(check("TRUE AND x = 1", { x: 2 }), false);
+    assert.strictEqual(check("FALSE OR x = 1", { x: 1 }), true);
+    assert.strictEqual(check("FALSE AND x = 1", { x: 1 }), false);
+    assert.strictEqual(check("TRUE OR x = 1", { x: 2 }), true);
+    assert.strictEqual(check("x = 1 OR (y = 2 AND FALSE)", { y: 2 }), false);
+  }
+
+  @test
+  booleanLiteralsFold() {
+    // Store query translators only ever see the existing expression classes
+    const all = WebdaQL.parse("TRUE").filter;
+    assert.ok(all instanceof WebdaQL.AndExpression);
+    assert.strictEqual(all.children.length, 0);
+    assert.strictEqual(WebdaQL.parse("TRUE AND x = 1").filter.toString(), "x = 1");
+    assert.ok(WebdaQL.parse("TRUE OR x = 1").filter instanceof WebdaQL.AndExpression);
+    const none = WebdaQL.parse("FALSE").filter;
+    assert.ok(none instanceof WebdaQL.BooleanExpression);
+    assert.strictEqual(none.toString(), "FALSE");
+    assert.strictEqual(WebdaQL.parse("x = 1 AND FALSE").filter.toString(), "FALSE");
+  }
+
+  @test
+  bareAtomsAreSyntaxErrors() {
+    assert.throws(() => new WebdaQL.QueryValidator("active"), SyntaxError);
+    assert.throws(() => new WebdaQL.QueryValidator("42"), SyntaxError);
+    assert.throws(() => new WebdaQL.QueryValidator("x = 1 AND 'a'"), SyntaxError);
+  }
+
+  @test
+  partialValidatorWithBooleans() {
+    // A missing attribute is a partial match, TRUE is folded away
+    assert.ok(new WebdaQL.PartialValidator("TRUE AND x = 1").eval({}));
+    assert.ok(!new WebdaQL.PartialValidator("FALSE").eval({}));
   }
 }

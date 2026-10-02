@@ -382,6 +382,14 @@ class QueryTest {
   }
 
   @test
+  likeOnMissingAttribute() {
+    // A missing or null attribute never matches instead of throwing
+    assert.ok(!new WebdaQL.QueryValidator("x LIKE '%a%'").eval({}));
+    assert.ok(!new WebdaQL.QueryValidator("x LIKE '%a%'").eval({ x: null }));
+    assert.ok(new WebdaQL.QueryValidator("x LIKE '%a%' OR y LIKE '%a%'").eval({ y: "abc" }));
+  }
+
+  @test
   lexerIntrospection() {
     const lexer = new WebdaQLLexer(CharStreams.fromString("a = 1"));
     assert.ok(lexer.grammarFileName);

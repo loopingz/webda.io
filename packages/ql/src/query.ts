@@ -492,6 +492,9 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
       case "!=":
         return left != this.value;
       case "LIKE":
+        if (left === undefined || left === null) {
+          return false;
+        }
         if (typeof left === "string") {
           // Grammar definie value as stringLiteral
           return left.match(ComparisonExpression.likeToRegex(this.value as string)) !== null;

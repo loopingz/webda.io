@@ -19,6 +19,7 @@ import { TestApplication } from "@webda/core/lib/test";
 import { suite, test } from "@webda/test";
 import { getCommonJS } from "@webda/utils";
 import { WorkerOutput } from "@webda/workout";
+import * as WebdaQL from "@webda/ql";
 import * as assert from "assert";
 import { mockClient } from "aws-sdk-client-mock";
 import path from "path";
@@ -186,6 +187,26 @@ export class DynamoDBTest extends StoreTest<DynamoStore> {
     assert.strictEqual((await store.query(`state IN [${set.map(e => `"${e}"`).join(",")}]`)).results.length, 250);
     // Add more test here
     return store;
+  }
+
+  @test
+  async findBooleanConstants() {
+    const store = this.userStore;
+    const scan = sinon.spy((<any>store)._client, "scan");
+    try {
+      // FALSE matches nothing, whether alone or merged inside an AND, without calling DynamoDB
+      for (const q of ["FALSE", 'state = "CA" AND FALSE']) {
+        const filter =
+          q === "FALSE"
+            ? new WebdaQL.BooleanExpression(false)
+            : new WebdaQL.QueryValidator('state = "CA"').merge("FALSE").getExpression();
+        const res = await store.find({ filter, limit: 1000 } as any);
+        assert.deepStrictEqual(res.results, []);
+      }
+      assert.strictEqual(scan.callCount, 0);
+    } finally {
+      scan.restore();
+    }
   }
 
   @test

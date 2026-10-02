@@ -110,6 +110,12 @@ export default class FireStore<
     } else {
       toProcess = parsedQuery.filter;
     }
+    // A FALSE conjunct matches nothing: do not hit Firestore (never fail open)
+    if (toProcess.children.some(c => c instanceof WebdaQL.BooleanExpression && !c.value)) {
+      return { results: [], filter: true, continuationToken: undefined };
+    }
+    // A TRUE conjunct is neutral
+    toProcess = new WebdaQL.AndExpression(toProcess.children.filter(c => !(c instanceof WebdaQL.BooleanExpression)));
     const queryAttributes = new Set<string>();
     const count = 0;
     let hasIn = false;

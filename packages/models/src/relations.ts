@@ -344,9 +344,10 @@ export class ModelRelated<
    * @returns the constructed query string
    */
   getQuery(query: WebdaQLString<T> | string = ""): WebdaQLString<T> {
+    // escape() makes keys containing quotes or backslashes round-trip through the parser
     return WebdaQL.PrependCondition(
       query as string,
-      `${this.attribute} = "${this.object.getPrimaryKey()}"`
+      WebdaQL.escape([`${this.attribute} = `, ""], [String(this.object.getPrimaryKey())])
     ) as WebdaQLString<T>;
   }
 

@@ -67,7 +67,7 @@ export function escape<T = unknown>(
  */
 export function escapeValue(value: unknown): string {
   if (value === null || value === undefined) return "NULL";
-  if (typeof value === "string") return `'${value.replace(/'/g, "''")}'`;
+  if (typeof value === "string") return `'${value.replace(/\\/g, "\\\\").replace(/'/g, "''")}'`;
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
       throw new WebdaQLError(`Cannot embed ${value} in a WebdaQL query`);
@@ -75,7 +75,7 @@ export function escapeValue(value: unknown): string {
     return String(value);
   }
   if (typeof value === "boolean") return value ? "TRUE" : "FALSE";
-  if (value instanceof Date) return `'${value.toISOString()}'`;
+  if (value instanceof Date) return `'${value.toISOString().replace(/\\/g, "\\\\").replace(/'/g, "''")}'`;
   if (Array.isArray(value)) {
     const parts: string[] = [];
     for (const item of value) {

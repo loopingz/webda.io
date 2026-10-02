@@ -396,6 +396,9 @@ class QueryTest {
     assert.ok(new WebdaQL.QueryValidator('k = "say ""hi"""').eval({ k: 'say "hi"' }));
     assert.ok(new WebdaQL.QueryValidator("k = 'it\\'s'").eval({ k: "it's" }));
     assert.strictEqual(WebdaQL.unescapeStringLiteral("'a''b'"), "a'b");
+    // Backslash handling
+    assert.ok(new WebdaQL.QueryValidator("k = 'a\\\\b'").eval({ k: "a\\b" }));
+    assert.strictEqual(WebdaQL.unescapeStringLiteral("'a\\\\''b'"), "a\\'b");
     // LIKE escapes are not touched
     assert.ok(new WebdaQL.QueryValidator("k LIKE '100\\%'").eval({ k: "100%" }));
     assert.ok(!new WebdaQL.QueryValidator("k LIKE '100\\%'").eval({ k: "1000" }));

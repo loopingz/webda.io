@@ -28,20 +28,50 @@ import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor.js";
 type value = boolean | string | number;
 
 /**
- * Strip the quotes of a WebdaQL string literal and unescape its quote character,
- * written either doubled (`'it''s'`, as `escapeValue` produces) or backslash-escaped
- * (`'it\'s'`). Other backslash sequences, such as LIKE's `\%` and `\_`, are kept.
+ * Strip the quotes of a WebdaQL string literal and unescape its contents.
+ *
+ * Processes the inner text (between outer quotes) with these rules, applied left-to-right:
+ * - `\\` → `\` (escaped backslash)
+ * - `\` followed by the literal's quote char → the quote char (backslash-escaped quote)
+ * - the quote char doubled → one quote char (SQL-style doubled quote)
+ * - any other `\x` → `\x` kept verbatim (so LIKE's `\%` and `\_` reach likeToRegex unchanged)
+ *
  * @param literal - the literal including its surrounding quotes
  * @returns the literal value
  */
 export function unescapeStringLiteral(literal: string): string {
   const quote = literal[0];
-  return literal
-    .substring(1, literal.length - 1)
-    .split(quote + quote)
-    .join(quote)
-    .split("\\" + quote)
-    .join(quote);
+  const inner = literal.substring(1, literal.length - 1);
+  let result = "";
+  for (let i = 0; i < inner.length; i++) {
+    if (inner[i] === "\\") {
+      if (i + 1 < inner.length) {
+        const next = inner[i + 1];
+        if (next === "\\") {
+          // \\ → \
+          result += "\\";
+          i++;
+        } else if (next === quote) {
+          // \' or \" → ' or "
+          result += quote;
+          i++;
+        } else {
+          // other \x → \x (kept verbatim, e.g., \%, \_, etc.)
+          result += "\\";
+        }
+      } else {
+        // trailing backslash
+        result += "\\";
+      }
+    } else if (inner[i] === quote && i + 1 < inner.length && inner[i + 1] === quote) {
+      // '' or "" → ' or "
+      result += quote;
+      i++;
+    } else {
+      result += inner[i];
+    }
+  }
+  return result;
 }
 
 /**
@@ -540,7 +570,7 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
     }
     switch (typeof value) {
       case "string":
-        return `"${value.replace(/"/g, '""')}"`;
+        return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '""')}"`;
       case "boolean":
         return value.toString().toUpperCase();
     }

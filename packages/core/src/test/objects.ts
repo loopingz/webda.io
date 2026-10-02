@@ -4,7 +4,7 @@ import { Store, StoreFindResult, StoreParameters } from "../stores/store.js";
 import { Service } from "../services/service.js";
 import { Ident as WebdaIdent } from "../models/ident.model.js";
 import { UnpackedApplication } from "../application/unpackedapplication.js";
-import { CachedModule, SectionEnum, UnpackedConfiguration } from "../application/iconfiguration.js";
+import { CachedModule, Configuration, SectionEnum, UnpackedConfiguration } from "../application/iconfiguration.js";
 import { WorkerOutput } from "@webda/workout";
 import { execSync } from "node:child_process";
 import path from "node:path";
@@ -439,6 +439,22 @@ export class TestApplication extends UnpackedApplication {
    */
   constructor(file?: string | Partial<UnpackedConfiguration>, logger?: WorkerOutput) {
     super(file || "./", logger);
+  }
+
+  /**
+   * Keep the auto-created Registry in memory only: tests run in parallel and must
+   * not share a `.registry` file. A test that configures the Registry keeps its own
+   * settings, persistence included.
+   *
+   * @override
+   * @param configuration - the configuration
+   */
+  ensureDefaultConfiguration(configuration: Configuration) {
+    const autoRegistry = configuration.services?.["Registry"] === undefined;
+    super.ensureDefaultConfiguration(configuration);
+    if (autoRegistry) {
+      delete configuration.services["Registry"].persistence;
+    }
   }
   /**
    * Force the namespace to WebdaDemo

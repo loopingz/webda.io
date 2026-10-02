@@ -77,6 +77,9 @@ class OperationSubjectTest extends WebdaApplicationTest {
     assert.strictEqual(parseSubjectKey(["uuid"], "u1"), "u1");
     assert.strictEqual(parseSubjectKey(["uuid"], { uuid: "u1" }), "u1");
     assert.strictEqual(parseSubjectKey(["uuid"], ""), undefined);
+    // Numeric keys are stringified
+    assert.strictEqual(parseSubjectKey(["id"], 5), "5");
+    assert.strictEqual(parseSubjectKey(["id"], 0), "0");
     assert.deepStrictEqual(parseSubjectKey(["a", "b"], '["x","y"]'), { a: "x", b: "y" });
     assert.deepStrictEqual(parseSubjectKey(["a", "b"], { a: "x", b: 2 }), { a: "x", b: "2" });
     assert.strictEqual(parseSubjectKey(["a", "b"], "not-json"), undefined);
@@ -120,13 +123,37 @@ class OperationSubjectTest extends WebdaApplicationTest {
       method: "create",
       context: { model: User, pkFields: ["uuid"] }
     });
-    const result = { getPrimaryKey: () => "new-id" };
+    const result = new User();
+    result.uuid = "new-id";
     assert.deepStrictEqual(resolveOperationSubject(new EmptyOpContext(), op, [], result), {
       model: "Webda/User",
       key: "new-id"
     });
     // A failed Create has neither a key in its input nor a result
     assert.strictEqual(resolveOperationSubject(new EmptyOpContext(), op, []), undefined);
+  }
+
+  @test
+  async subjectPrefersTheSavedKey() {
+    const User: any = useModel("Webda/User");
+    const op = this.operation({
+      service: "SubjectTarget",
+      method: "create",
+      context: { model: User, pkFields: ["uuid"] }
+    });
+    const ctx = new EmptyOpContext();
+    ctx.setExtension("operationResolvedInput", { uuid: "asked-id" });
+    const saved = new User();
+    saved.uuid = "saved-id";
+    // Create succeeded under another key than the input one: the saved key is recorded
+    assert.deepStrictEqual(resolveOperationSubject(ctx, op, [], saved), { model: "Webda/User", key: "saved-id" });
+    // Create failed: only the input key is known
+    assert.deepStrictEqual(resolveOperationSubject(ctx, op, []), { model: "Webda/User", key: "asked-id" });
+    // A result that is not an instance of the model does not replace the input key
+    assert.deepStrictEqual(resolveOperationSubject(ctx, op, [], { getPrimaryKey: () => "other" }), {
+      model: "Webda/User",
+      key: "asked-id"
+    });
   }
 
   @test

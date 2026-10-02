@@ -157,15 +157,15 @@ export function resolveOperationSubject(
   let key: string | undefined;
   if (instanceOperation) {
     key = serializeSubjectKey(pkFields, args[0]);
-  } else {
+  } else if (result instanceof model && typeof (result as any).getPrimaryKey === "function") {
+    // Create: the saved object holds the real key (generated, or different from the input)
+    key = serializeSubjectKey(pkFields, (result as any).getPrimaryKey());
+  }
+  if (key === undefined && !instanceOperation) {
     const input = context.getExtension<any>("operationResolvedInput") ?? context.getParameters() ?? {};
     // Behavior operations (Post.MainImage.Attach) route the key as `{uuid}` whatever the
     // model's real primary key field is, and register no pkFields
     key = serializeSubjectKey(pkFields, pkFields.length === 1 ? (input[pkFields[0]] ?? input.uuid) : input);
-  }
-  if (key === undefined && result && typeof result.getPrimaryKey === "function") {
-    // Create: the key only exists once the object is saved
-    key = serializeSubjectKey(pkFields, result.getPrimaryKey());
   }
   return key === undefined ? undefined : { model: modelId, key };
 }

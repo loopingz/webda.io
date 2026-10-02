@@ -60,10 +60,12 @@ export class AuditServiceParameters extends ServiceParameters {
   readPermission?: string;
 
   /**
-   * Service name of the store used for persistence (optional).
-   * @default "auditStore"
+   * Register the `Audit.Subject`, `Audit.Actor` and `Audit.Query` operations, which
+   * the REST/GraphQL transports then expose. Off by default so adding the service
+   * never publishes the audit trail by surprise.
+   * @default false
    */
-  store?: string;
+  exposeReadOperations?: boolean;
 
   /**
    * Parsed exclude list
@@ -148,7 +150,7 @@ const PAGINATION_PROPERTIES: Record<string, JSONSchema7> = {
 const AUDIT_SCHEMAS: Record<string, JSONSchema7> = {
   auditSubjectRequest: {
     type: "object",
-    properties: { model: { type: "string" }, key: { type: ["string", "object"] }, ...PAGINATION_PROPERTIES },
+    properties: { model: { type: "string" }, key: { type: ["string", "number", "object"] }, ...PAGINATION_PROPERTIES },
     required: ["model", "key"]
   },
   auditActorRequest: {
@@ -165,12 +167,14 @@ const AUDIT_SCHEMAS: Record<string, JSONSchema7> = {
  * @WebdaModda AuditService
  *
  * Service that listens to operation success/failure events and records audit entries.
- * Entries are stored in memory (accessible via getEntries()) and optionally
- * persisted to a store configured via the `store` parameter.
+ * Entries are kept in memory (accessible via getEntries()) and saved through the
+ * AuditEntry repository (the store the AuditEntry model is mapped to, the default
+ * store otherwise).
  *
- * It also exposes the read operations `Audit.Subject` (history of an object),
- * `Audit.Actor` (activity of a user) and `Audit.Query` (whole log), guarded by
- * the object's `canAct("audit")` or the `readPermission` parameter.
+ * With `exposeReadOperations: true` it also registers the read operations
+ * `Audit.Subject` (history of an object), `Audit.Actor` (activity of a user) and
+ * `Audit.Query` (whole log), guarded by the object's `canAct("audit")` or the
+ * `readPermission` parameter.
  */
 export class AuditService extends Service<AuditServiceParameters> {
   /**
@@ -220,7 +224,9 @@ export class AuditService extends Service<AuditServiceParameters> {
         await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), undefined, evt.subject);
       })
     );
-    this.registerReadOperations();
+    if (this.parameters.exposeReadOperations) {
+      this.registerReadOperations();
+    }
     return this;
   }
 

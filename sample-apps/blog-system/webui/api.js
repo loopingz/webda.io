@@ -27,9 +27,21 @@ async function request(method, path, body) {
   try { return JSON.parse(text); } catch { return text; }
 }
 
+/**
+ * Turn free-text search input into a WebdaQL query matching any of `fields`.
+ * WebdaQL string literals are not unescaped and LIKE patterns become regexes,
+ * so quotes, `%` and regex metacharacters are dropped from the input. `_` is
+ * kept (usernames use it): as a single-char wildcard it still matches itself.
+ */
+export function searchQuery(search, fields) {
+  const term = (search || "").replace(/[^\p{L}\p{N}@._\- ]/gu, "").trim();
+  if (!term) return "";
+  return fields.map((f) => `${f} LIKE '%${term}%'`).join(" OR ");
+}
+
 // Posts
 export const posts = {
-  list: (q = "") => request("PUT", "/posts", { q }),
+  list: (search = "") => request("PUT", "/posts", { q: searchQuery(search, ["title", "slug"]) }),
   get: (slug) => request("GET", `/posts/${slug}`),
   create: (data) => request("POST", "/posts", data),
   update: (slug, data) => request("PUT", `/posts/${slug}`, data),
@@ -40,7 +52,7 @@ export const posts = {
 
 // Users
 export const users = {
-  list: (q = "") => request("PUT", "/users", { q }),
+  list: (search = "") => request("PUT", "/users", { q: searchQuery(search, ["username", "name", "email"]) }),
   get: (uuid) => request("GET", `/users/${uuid}`),
   create: (data) => request("POST", "/users", data),
   update: (uuid, data) => request("PUT", `/users/${uuid}`, data),
@@ -50,7 +62,7 @@ export const users = {
 
 // Tags
 export const tags = {
-  list: (q = "") => request("PUT", "/tags", { q }),
+  list: (search = "") => request("PUT", "/tags", { q: searchQuery(search, ["name", "slug", "description"]) }),
   get: (slug) => request("GET", `/tags/${slug}`),
   create: (data) => request("POST", "/tags", data),
   update: (slug, data) => request("PUT", `/tags/${slug}`, data),
@@ -60,7 +72,7 @@ export const tags = {
 
 // Comments
 export const comments = {
-  list: (q = "") => request("PUT", "/comments", { q }),
+  list: (search = "") => request("PUT", "/comments", { q: searchQuery(search, ["content"]) }),
   get: (uuid) => request("GET", `/comments/${uuid}`),
   create: (data) => request("POST", "/comments", data),
   update: (uuid, data) => request("PUT", `/comments/${uuid}`, data),

@@ -2,6 +2,7 @@ import { h } from "https://esm.sh/preact@10.25.4";
 import { useState, useEffect, useRef } from "https://esm.sh/preact@10.25.4/hooks";
 import htm from "https://esm.sh/htm@3.1.1";
 import { posts, binaries } from "../api.js";
+import { useDebounced } from "../hooks.js";
 
 const html = htm.bind(h);
 
@@ -354,7 +355,8 @@ function mediaIndicator(p) {
 
 export function PostsPanel({ notify }) {
   const [items, setItems] = useState([]);
-  const [filter, setFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const filter = useDebounced(search);
   const [editing, setEditing] = useState(null); // null | "new" | post object
   const [loading, setLoading] = useState(false);
 
@@ -403,7 +405,7 @@ export function PostsPanel({ notify }) {
   return html`
     <div>
       <div class="toolbar">
-        <input placeholder="Search posts..." value=${filter} onInput=${(e) => setFilter(e.target.value)} />
+        <input placeholder="Search posts..." value=${search} onInput=${(e) => setSearch(e.target.value)} />
         <button class="btn btn-primary" onClick=${() => setEditing("new")}>+ New Post</button>
         <button class="btn btn-ghost" onClick=${load}>Refresh</button>
       </div>

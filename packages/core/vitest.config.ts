@@ -48,6 +48,7 @@ export default defineConfig({
       "src/services/behavior-roundtrip.spec.ts",
       "src/services/binary-behavior.spec.ts",
       "src/services/audit.spec.ts",
+      "src/services/audit-read.spec.ts",
       "src/services/operationstransport.spec.ts",
       "src/services/httpserver.spec.ts",
       "src/services/mailer.spec.ts",

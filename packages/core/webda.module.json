@@ -1858,6 +1858,12 @@
         "userId": {
           "type": "string"
         },
+        "subjectModel": {
+          "type": "string"
+        },
+        "subjectKey": {
+          "type": "string"
+        },
         "timestamp": {
           "type": "Date"
         },
@@ -1875,6 +1881,14 @@
               "type": "string"
             },
             "operationId": {
+              "type": "string"
+            },
+            "subjectKey": {
+              "description": "Canonical primary key of the targeted object (see `serializeSubjectKey`)",
+              "type": "string"
+            },
+            "subjectModel": {
+              "description": "Identifier of the model the operation targeted, e.g. `WebdaSample/Post`",
               "type": "string"
             },
             "success": {
@@ -1913,6 +1927,14 @@
             "operationId": {
               "type": "string"
             },
+            "subjectKey": {
+              "description": "Canonical primary key of the targeted object (see `serializeSubjectKey`)",
+              "type": "string"
+            },
+            "subjectModel": {
+              "description": "Identifier of the model the operation targeted, e.g. `WebdaSample/Post`",
+              "type": "string"
+            },
             "success": {
               "default": false,
               "type": "boolean"
@@ -1947,6 +1969,14 @@
               "type": "string"
             },
             "operationId": {
+              "type": "string"
+            },
+            "subjectKey": {
+              "description": "Canonical primary key of the targeted object (see `serializeSubjectKey`)",
+              "type": "string"
+            },
+            "subjectModel": {
+              "description": "Identifier of the model the operation targeted, e.g. `WebdaSample/Post`",
               "type": "string"
             },
             "success": {
@@ -3743,5 +3773,5 @@
     "rest-domain": "Webda/RESTOperationsTransport",
     "http-server": "Webda/HttpServer"
   },
-  "sourceDigest": "d697200061c6cd7038c9ffa42283a94f"
+  "sourceDigest": "43eb796cd57603e300406ce279234cf0"
 }

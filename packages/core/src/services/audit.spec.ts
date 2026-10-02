@@ -59,6 +59,18 @@ class AuditTargetService extends Service {
 @suite
 class AuditServiceTest extends WebdaApplicationTest {
   auditService: AuditService;
+  /**
+   * AuditServices created by the current test, stopped after it so their
+   * listeners do not record the next tests' operations
+   */
+  audits: AuditService[] = [];
+
+  async afterEach(): Promise<void> {
+    for (const audit of this.audits.splice(0)) {
+      await audit.stop();
+    }
+    await super.afterEach();
+  }
 
   getTestConfiguration() {
     return {
@@ -83,6 +95,7 @@ class AuditServiceTest extends WebdaApplicationTest {
     // negation patterns like "!Other.Create") runs on the original input rather than
     // on a pre-loaded instance where excludedOperations has already been separated out.
     const audit = this.registerService(new AuditService("AuditSvc", params as any));
+    this.audits.push(audit);
     audit.resolve();
     await audit.init();
     this.auditService = audit;
@@ -277,7 +290,7 @@ class AuditServiceTest extends WebdaApplicationTest {
   }
 
   @test
-  async persistsToStore() {
+  async savesEntriesThroughTheRepository() {
     this.registerTestOps();
 
     // Track save calls by patching AuditEntry prototype
@@ -291,10 +304,9 @@ class AuditServiceTest extends WebdaApplicationTest {
     try {
       const svcParams = new AuditServiceParameters().load({});
       const audit = this.registerService(new AuditService("AuditSvcStore", svcParams));
+      this.audits.push(audit);
       audit.resolve();
       await audit.init();
-      // Set auditStore truthy to enable persistence path
-      (audit as any).auditStore = true;
 
       await this.runOp("Audit.Create");
 

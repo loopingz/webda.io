@@ -79,7 +79,6 @@ export function operationToTool(id: string, op: OperationDefinition, resolve: Sc
     }
     wrapped = true;
   }
-  const output = resolveRef(op.output, resolve);
   const description =
     [op.summary, op.description].filter(Boolean).join("\n\n") || `Call operation ${id}`;
   const tool: Tool = {
@@ -93,9 +92,6 @@ export function operationToTool(id: string, op: OperationDefinition, resolve: Sc
   };
   if (hints.title) {
     tool.title = hints.title;
-  }
-  if (isObjectSchema(output)) {
-    tool.outputSchema = { ...output, type: "object" } as Tool["outputSchema"];
   }
   return { tool, operationId: id, wrapped };
 }

@@ -22,7 +22,8 @@ class ToolMappingTest {
     assert.strictEqual(entry.tool.name, "Fixture.Echo");
     assert.strictEqual(entry.tool.description, "Echo text\n\nReturns its input");
     assert.deepStrictEqual(entry.tool.inputSchema, schemas["Fixture.Echo"]);
-    assert.deepStrictEqual(entry.tool.outputSchema, schemas["Fixture.Echo.output"]);
+    // No outputSchema: serialized results (models) rarely match their schema exactly
+    assert.strictEqual(entry.tool.outputSchema, undefined);
     assert.strictEqual(entry.wrapped, false);
   }
 

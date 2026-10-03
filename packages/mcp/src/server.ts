@@ -12,7 +12,7 @@ import {
   Resource
 } from "@modelcontextprotocol/sdk/types.js";
 import { useLog } from "@webda/workout";
-import { errorToToolResult, runOperation, sessionContext, toToolResult } from "./invoke.js";
+import { errorToToolResult, runOperation, sessionContext, toToolResult, truncateUtf8 } from "./invoke.js";
 import { decodeCursor, encodeCursor, queryFor, ResourceRegistry } from "./resources.js";
 import { ToolRegistry } from "./tools.js";
 
@@ -73,9 +73,11 @@ function toResourceError(err: unknown, uri?: string): McpError {
   if (uri !== undefined && err instanceof WebdaError.NotFound) {
     return new McpError(RESOURCE_NOT_FOUND, "Resource not found", { uri });
   }
-  const code = typeof (err as any)?.getResponseCode === "function" ? (err as any).getResponseCode() : 500;
-  if (code >= 400 && code < 500) {
-    return new McpError(ErrorCode.InternalError, (err as Error).message);
+  if (err instanceof WebdaError.CodeError) {
+    const code = err.getResponseCode();
+    if (code >= 400 && code < 500) {
+      return new McpError(ErrorCode.InternalError, err.message);
+    }
   }
   useLog("ERROR", "MCP resource operation failed", err);
   return new McpError(ErrorCode.InternalError, "Internal error");
@@ -165,10 +167,10 @@ export function createMcpServer(options: McpServerOptions): Server {
     }
     try {
       const { value } = await runOperation(match.model.getOperationId, { session: options.getSession(extra), input: match.key });
-      let text = JSON.stringify(value ?? null);
-      if (Buffer.byteLength(text) > options.maxOutputBytes) {
-        text = `${Buffer.from(text).subarray(0, options.maxOutputBytes).toString()}\n[output truncated]`;
-      }
+      const cut = truncateUtf8(JSON.stringify(value ?? null), options.maxOutputBytes);
+      const text = cut.truncated
+        ? `${cut.text}\n[output truncated: ${cut.bytes} bytes exceeds maxOutputBytes ${options.maxOutputBytes}]`
+        : cut.text;
       return { contents: [{ uri: request.params.uri, mimeType: "application/json", text }] };
     } catch (err) {
       throw toResourceError(err, request.params.uri);

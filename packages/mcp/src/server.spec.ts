@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { registerOperation, Session, useApplication, useInstanceStorage } from "@webda/core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { BrokenModel, GadgetModel, McpFixtureTest, registerFixture } from "../test/fixture.js";
+import { BrokenModel, GadgetModel, WideModel, McpFixtureTest, registerFixture } from "../test/fixture.js";
 import { createMcpServer } from "./server.js";
 import { ToolRegistry } from "./tools.js";
 import { ResourceRegistry } from "./resources.js";
@@ -50,6 +50,46 @@ class McpServerTest extends McpFixtureTest {
     assert.deepStrictEqual(result.structuredContent, { text: "hi" });
     const version = await client.callTool({ name: "Fixture.Version", arguments: {} });
     assert.deepStrictEqual(version.content, [{ type: "text", text: '{"value":"1.2.3"}' }]);
+  }
+
+  @test
+  async toolsDeclareNoOutputSchemaSoLooseResultsPassClientValidation() {
+    const client = await this.connect();
+    const { tools } = await client.listTools();
+    assert.ok(tools.every(t => t.outputSchema === undefined));
+    // Its declared output requires `text`: an outputSchema would make the SDK client reject it
+    const result = await client.callTool({ name: "Fixture.Loose", arguments: {} });
+    assert.notStrictEqual(result.isError, true);
+    assert.deepStrictEqual(result.structuredContent, { other: 1 });
+    const noop = await client.callTool({ name: "Fixture.Noop", arguments: {} });
+    assert.deepStrictEqual(noop.content, [{ type: "text", text: "" }]);
+    assert.strictEqual(noop.structuredContent, undefined);
+  }
+
+  @test
+  async resourceReadTruncatesOnACharacterBoundary() {
+    registerFixture();
+    registerOperation("Wide.Get", {
+      service: "Fixture",
+      method: "wide",
+      input: "Thing.primaryKey",
+      output: "void",
+      context: { model: WideModel, pkFields: ["slug"] }
+    });
+    let read;
+    try {
+      const client = await this.connect();
+      read = await client.readResource({ uri: "webda://Wide/w" });
+    } finally {
+      // operations are process-wide: keep the other resource tests unaffected
+      delete useInstanceStorage().operations["Wide.Get"];
+    }
+    const text = (read.contents[0] as any).text as string;
+    assert.ok(!text.includes("\uFFFD"));
+    assert.match(text, /\n\[output truncated: \d+ bytes exceeds maxOutputBytes 1024\]$/);
+    const kept = text.slice(0, text.indexOf("\n[output truncated"));
+    assert.ok(Buffer.byteLength(kept) <= 1024);
+    assert.ok(Buffer.byteLength(kept) >= 1022);
   }
 
   @test

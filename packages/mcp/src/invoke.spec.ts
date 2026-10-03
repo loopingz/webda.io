@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Session, WebdaError } from "@webda/core";
 import { McpFixtureTest, registerFixture } from "../test/fixture.js";
-import { CancelledError, errorToToolResult, runOperation, toToolResult } from "./invoke.js";
+import { CancelledError, errorToToolResult, runOperation, toToolResult, truncateUtf8 } from "./invoke.js";
 import { operationToTool } from "./tools.js";
 
 const echoEntry = () =>
@@ -78,7 +78,7 @@ class InvokeTest extends McpFixtureTest {
   }
 
   @test
-  toolResultForObjectWithOutputSchema() {
+  toolResultForObject() {
     const result = toToolResult(echoEntry(), { text: "hi" }, false, 1024);
     assert.deepStrictEqual(result, { content: [{ type: "text", text: '{"text":"hi"}' }], structuredContent: { text: "hi" } });
   }
@@ -86,18 +86,37 @@ class InvokeTest extends McpFixtureTest {
   @test
   toolResultWrapsScalarsAndStreams() {
     assert.deepStrictEqual(toToolResult(plainEntry("Fixture.Version"), "1.2.3", false, 1024), {
-      content: [{ type: "text", text: '{"value":"1.2.3"}' }]
+      content: [{ type: "text", text: '{"value":"1.2.3"}' }],
+      structuredContent: { value: "1.2.3" }
     });
     assert.deepStrictEqual(toToolResult(plainEntry("Fixture.Count"), [1, 2], true, 1024), {
-      content: [{ type: "text", text: '{"items":[1,2]}' }]
+      content: [{ type: "text", text: '{"items":[1,2]}' }],
+      structuredContent: { items: [1, 2] }
     });
   }
 
   @test
-  voidOutputHasNoStructuredContentRequirement() {
-    // A tool declaring an outputSchema that returns nothing must still satisfy the SDK client
+  voidOutputHasNoStructuredContent() {
     const result = toToolResult(echoEntry(), undefined, false, 1024);
-    assert.deepStrictEqual(result, { content: [{ type: "text", text: "" }], structuredContent: {} });
+    assert.deepStrictEqual(result, { content: [{ type: "text", text: "" }] });
+  }
+
+  @test
+  nonWebdaErrorsWithResponseCodeAreMasked() {
+    // Duck-typed getResponseCode without getCode must not throw inside the handler
+    const foreign = Object.assign(new Error("foreign"), { getResponseCode: () => 400 });
+    assert.deepStrictEqual(errorToToolResult(foreign), { isError: true, content: [{ type: "text", text: "Internal error" }] });
+  }
+
+  @test
+  truncateUtf8KeepsCharacterBoundaries() {
+    assert.deepStrictEqual(truncateUtf8("abc", 3), { text: "abc", truncated: false, bytes: 3 });
+    assert.deepStrictEqual(truncateUtf8("abcd", 3), { text: "abc", truncated: true, bytes: 4 });
+    // "é" is two bytes: a 3-byte cut keeps one character, not one and a half
+    assert.deepStrictEqual(truncateUtf8("\u00e9\u00e9", 3), { text: "\u00e9", truncated: true, bytes: 4 });
+    // "€" is three bytes
+    assert.deepStrictEqual(truncateUtf8("\u20ac\u20ac", 5), { text: "\u20ac", truncated: true, bytes: 6 });
+    assert.deepStrictEqual(truncateUtf8("\u20ac", 2), { text: "", truncated: true, bytes: 3 });
   }
 
   @test

@@ -29,6 +29,8 @@ export const fixtureGate = {
 export const ThingModel = { name: "Thing" };
 /** Sentinel model "class" for a second resource model */
 export const GadgetModel = { name: "Gadget" };
+/** Sentinel model "class" for a resource model with large multibyte records */
+export const WideModel = { name: "Wide" };
 /** Sentinel model "class" for a resource model whose Query fails */
 export const BrokenModel = { name: "Broken" };
 
@@ -112,6 +114,23 @@ export class McpFixtureService extends Service {
    */
   big() {
     return { data: "x".repeat(2048) };
+  }
+
+  /**
+   * Returns an object that does not match its declared output schema,
+   * like a serialized model (missing required fields, extra fields)
+   * @returns a loose object
+   */
+  loose() {
+    return { other: 1 };
+  }
+
+  /**
+   * @param slug - key
+   * @returns a record whose JSON is mostly two-byte characters
+   */
+  wide(slug: string) {
+    return { slug, label: "\u00e9".repeat(1000) };
   }
 
   /**
@@ -210,6 +229,7 @@ export function registerFixture(): void {
   op("Fixture.Gate", "gate");
   op("Fixture.Fail", "fail", { input: "Fixture.Fail" });
   op("Fixture.Big", "big");
+  op("Fixture.Loose", "loose", { output: "Fixture.Echo.output" });
   op("Fixture.Hidden", "version", { hidden: true });
   op("Fixture.NoMcp", "version", { mcp: false });
   op("Thing.Get", "getThing", { input: "Thing.primaryKey", context: { model: ThingModel, pkFields: ["slug"] } });

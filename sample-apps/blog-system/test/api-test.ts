@@ -346,6 +346,30 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
   }
 
   @test
+  async auditRecordsPublisherSubject() {
+    const slug = `audit-publish-${Date.now()}`;
+    const created = await this.routerHttp({
+      method: "POST",
+      url: "/posts",
+      body: { title: "Published Post", slug, content: "Content long enough for the post validation.", status: "draft", viewCount: 0 }
+    });
+    assert.strictEqual(created.statusCode, 200, created.body);
+    // A service operation: it declares the post it acts on
+    const published = await this.routerHttp({ method: "PUT", url: "/publisher/publishpost", body: { postId: slug } });
+    assert.strictEqual(published.statusCode, 200, published.body);
+    const res = await this.routerHttp<{ results: any[] }>({
+      method: "PUT",
+      url: "/audit/subject",
+      body: { model: "WebdaSample/Post", key: slug }
+    });
+    assert.strictEqual(res.statusCode, 200, res.body);
+    assert.ok(
+      res.parsed!.results.some(e => e.operationId === "Publisher.PublishPost" && e.success),
+      `history: ${res.parsed!.results.map(e => e.operationId)}`
+    );
+  }
+
+  @test
   async auditQueryListsEntries() {
     const res = await this.routerHttp<{ results: any[] }>({
       method: "PUT",

@@ -4,7 +4,6 @@ packages:
   - sample-apps/*
   - docs
   # Exclude packages that are not yet ready
-  - "!packages/async"
   - "!packages/gcp"
   - "!packages/kubernetes"
   - "!packages/elasticsearch"

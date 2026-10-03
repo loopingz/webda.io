@@ -5,7 +5,6 @@ packages:
   - docs
   # Exclude packages that are not yet ready
   - "!packages/gcp"
-  - "!packages/kubernetes"
   - "!packages/elasticsearch"
   - "!packages/mongodb"
   - "!packages/aws"

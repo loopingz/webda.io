@@ -108,6 +108,16 @@ Entries are saved through the `AuditEntry` repository. This sample maps no store
 
 In the admin UI, every row has a **History** button, and the **Audit** tab shows the whole log.
 
+The subject of model operations and CRUD routes is derived automatically. A service operation declares its own with `setOperationSubject`, as `Publisher.publishPost` does:
+
+```typescript
+@Operation()
+async publishPost(postId: string) {
+  setOperationSubject({ model: Post, key: postId }); // or setOperationSubject(post)
+  // ...
+}
+```
+
 Known limitation: history is matched by model and key. If a key is reused after a delete, whoever can read the new object also sees the previous object's history.
 
 ## Domain Model

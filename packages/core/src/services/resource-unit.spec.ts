@@ -24,6 +24,44 @@ class ResourceUnitTest {
   }
 
   @test
+  parametersNormalizeWhenLoadedFromConfiguration() {
+    // The application builds parameters as `new Parameters().load(config)`
+    const params = new ResourceServiceParameters().load({ url: "/assets" });
+    assert.strictEqual(params.url, "/assets/");
+    assert.strictEqual(params.folder, "./assets/");
+    assert.strictEqual(params.index, "index.html");
+    const admin = new ResourceServiceParameters().load({ url: "admin", folder: "./webui" });
+    assert.strictEqual(admin.url, "/admin/");
+    assert.strictEqual(admin.folder, "./webui/");
+  }
+
+  @test
+  async folderUrlWithoutTrailingSlashRedirects() {
+    const mod = await import("./resource.service.js");
+    const tmpDir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), "webda-resource-"));
+    try {
+      const svc: any = new (mod.ResourceService as any)(
+        "ResourceDir",
+        new ResourceServiceParameters().load({ url: "/d", folder: tmpDir })
+      );
+      const routes: Record<string, any> = {};
+      svc.addRoute = (url: string, _methods: string[], handler: any) => (routes[url] = handler);
+      svc.resolve();
+      await svc.init();
+      // index.html loads app.js relatively: from /d it would resolve to /app.js
+      let location: string | undefined;
+      const ctx: any = {
+        redirect: (url: string) => (location = url),
+        getHttpContext: () => ({ getSearch: () => "?x=1", getAbsoluteUrl: (suffix: string) => `http://host${suffix}` })
+      };
+      routes["/d"].call(svc, ctx);
+      assert.strictEqual(location, "http://host/d/?x=1");
+    } finally {
+      nodeFs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  @test
   async serveRoutesAreRegisteredViaDecorator() {
     // Import triggers the decorators on _serve
     const mod = await import("./resource.service.js");
@@ -49,7 +87,8 @@ class ResourceUnitTest {
       noRedirectSvc.addRoute = (url: string) => noRedirectAdds.push(url);
       noRedirectSvc.resolve();
       await noRedirectSvc.init();
-      assert.deepStrictEqual(noRedirectAdds, []);
+      // Only the folder URL without its trailing slash
+      assert.deepStrictEqual(noRedirectAdds, ["/a"]);
 
       // With rootRedirect → init adds the "/" route
       const redirectAdds: string[] = [];
@@ -60,7 +99,7 @@ class ResourceUnitTest {
       redirectSvc.addRoute = (url: string) => redirectAdds.push(url);
       redirectSvc.resolve();
       await redirectSvc.init();
-      assert.deepStrictEqual(redirectAdds, ["/"]);
+      assert.deepStrictEqual(redirectAdds.sort(), ["/", "/b"]);
     } finally {
       nodeFs.rmSync(tmpDir, { recursive: true, force: true });
     }

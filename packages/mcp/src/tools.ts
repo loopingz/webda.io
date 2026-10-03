@@ -73,7 +73,10 @@ export function operationToTool(id: string, op: OperationDefinition, resolve: Sc
   } else if (isObjectSchema(input)) {
     inputSchema = { ...input, type: "object" };
   } else {
-    inputSchema = { type: "object", properties: { value: input }, required: ["value"] };
+    inputSchema = { type: "object", properties: { value: input } };
+    if (!op.input.endsWith("?")) {
+      inputSchema.required = ["value"];
+    }
     wrapped = true;
   }
   const output = resolveRef(op.output, resolve);

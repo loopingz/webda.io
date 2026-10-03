@@ -49,4 +49,10 @@ class InlineSchemaTest {
     const out = inlineSchema({ $schema: "http://json-schema.org/draft-07/schema#", $id: "x", type: "object" }, () => undefined);
     assert.deepStrictEqual(out, { type: "object" });
   }
+
+  @test
+  malformedEscapeDoesNotThrow() {
+    const out = inlineSchema({ type: "object", properties: { x: { $ref: "#/definitions/50%" } } }, () => undefined);
+    assert.deepStrictEqual(out.properties.x, {});
+  }
 }

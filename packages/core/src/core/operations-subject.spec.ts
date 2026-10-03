@@ -13,6 +13,7 @@ import {
   registerOperation,
   resolveOperationSubject,
   serializeSubjectKey,
+  setOperationSubject,
   type OperationSubject
 } from "./operations.js";
 
@@ -46,6 +47,27 @@ class SubjectTargetService extends Service {
 
   async fail(): Promise<void> {
     throw new Error("boom");
+  }
+
+  /** Declares its subject by model + key */
+  async declareByKey(): Promise<string> {
+    setOperationSubject({ model: "Webda/User", key: "declared-key" });
+    return "ok";
+  }
+
+  /** Declares its subject with a model instance */
+  async declareByInstance(): Promise<string> {
+    const User: any = useModel("Webda/User");
+    const user = new User();
+    user.uuid = "declared-instance";
+    setOperationSubject(user);
+    return "ok";
+  }
+
+  /** Declares its subject, then fails */
+  async declareThenFail(): Promise<void> {
+    setOperationSubject({ model: "Webda/User", key: "declared-failure" });
+    throw new Error("declared boom");
   }
 }
 
@@ -174,6 +196,50 @@ class OperationSubjectTest extends WebdaApplicationTest {
       resolveOperationSubject(ctx, this.operation({ service: "SubjectTarget", method: "create" }), []),
       undefined
     );
+  }
+
+  @test
+  async declaredSubjects() {
+    const User: any = useModel("Webda/User");
+    for (const [id, method, context] of [
+      ["Declared.ByKey", "declareByKey", undefined],
+      ["Declared.ByInstance", "declareByInstance", undefined],
+      ["Declared.Failure", "declareThenFail", undefined],
+      // Would derive `derived-key` from the parameters: the declared subject wins
+      ["Declared.Override", "declareByKey", { model: User, pkFields: ["uuid"] }]
+    ] as const) {
+      try {
+        registerOperation(id, { service: "SubjectTarget", method, context });
+      } catch {
+        // Already registered by a previous test
+      }
+    }
+    const seen: { [id: string]: OperationSubject | undefined } = {};
+    const record = (evt: { operationId: string; subject?: OperationSubject }) => {
+      seen[evt.operationId] = evt.subject;
+    };
+    const offSuccess = useCoreEvents("Webda.OperationSuccess", record);
+    const offFailure = useCoreEvents("Webda.OperationFailure", record);
+    try {
+      await callOperation(new EmptyOpContext(), "Declared.ByKey");
+      await callOperation(new EmptyOpContext(), "Declared.ByInstance");
+      await assert.rejects(() => callOperation(new EmptyOpContext(), "Declared.Failure"), /declared boom/);
+      const override = new EmptyOpContext();
+      override.setParameters({ uuid: "derived-key" });
+      await callOperation(override, "Declared.Override");
+    } finally {
+      offSuccess();
+      offFailure();
+    }
+    assert.deepStrictEqual(seen["Declared.ByKey"], { model: "Webda/User", key: "declared-key" });
+    assert.deepStrictEqual(seen["Declared.ByInstance"], { model: "Webda/User", key: "declared-instance" });
+    assert.deepStrictEqual(seen["Declared.Failure"], { model: "Webda/User", key: "declared-failure" });
+    assert.deepStrictEqual(seen["Declared.Override"], { model: "Webda/User", key: "declared-key" });
+  }
+
+  @test
+  declaringOutsideAnOperationDoesNothing() {
+    assert.doesNotThrow(() => setOperationSubject({ model: "Webda/User", key: "nowhere" }));
   }
 
   @test

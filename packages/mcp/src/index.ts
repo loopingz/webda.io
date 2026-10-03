@@ -4,3 +4,6 @@ export * from "./invoke.js";
 export * from "./resources.js";
 export * from "./auth.js";
 export * from "./server.js";
+export * from "./sessions.js";
+export * from "./bridge.js";
+export * from "./mcpservice.service.js";

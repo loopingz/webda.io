@@ -2,7 +2,131 @@
   "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
-  "moddas": {},
+  "moddas": {
+    "Webda/McpService": {
+      "Import": "lib/mcpservice.service:McpService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "resources#2": {
+            "additionalProperties": false,
+            "properties": {
+              "models": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "stdio": {
+            "additionalProperties": false,
+            "description": "stdio defaults",
+            "properties": {
+              "user": {
+                "description": "Default user for `webda mcp`",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Parameters for the MCP transport",
+        "properties": {
+          "allowedOrigins": {
+            "default": [],
+            "description": "Extra Origin values accepted besides the request's own origin",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "authenticator": {
+            "description": "Name of a service implementing McpAuthenticator; default uses the Webda session",
+            "type": "string"
+          },
+          "maxOutputBytes": {
+            "default": 1048576,
+            "description": "Larger tool/resource outputs are truncated",
+            "type": "number"
+          },
+          "operations": {
+            "default": [
+              "*"
+            ],
+            "description": "List of operations to include/exclude\nSupports wildcards and negation: [\"*\", \"!User.Delete\"]",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "resources": {
+            "anyOf": [
+              {
+                "const": false,
+                "type": "boolean"
+              },
+              {
+                "$ref": "#/definitions/resources%232"
+              }
+            ],
+            "default": {
+              "models": [
+                "*"
+              ]
+            },
+            "description": "Models exposed as resources (short ids or \"*\"); false disables resources"
+          },
+          "serverName": {
+            "description": "Server name announced to clients (defaults to the application package name)",
+            "type": "string"
+          },
+          "serverVersion": {
+            "description": "Server version announced to clients (defaults to the application package version)",
+            "type": "string"
+          },
+          "sessionTimeout": {
+            "default": 1800,
+            "description": "Seconds of inactivity before an MCP session is evicted",
+            "type": "number"
+          },
+          "stdio": {
+            "$ref": "#/definitions/stdio",
+            "description": "stdio defaults"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "const": false,
+                "type": "boolean"
+              }
+            ],
+            "default": "/mcp",
+            "description": "HTTP endpoint; false disables HTTP (stdio only)"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "McpService"
+      },
+      "Configuration": "lib/mcpservice.service:McpServiceParameters"
+    }
+  },
   "models": {},
   "schemas": {
     "Webda/BinaryFile": {
@@ -52,5 +176,5 @@
   "capabilities": {
     "mcp": "Webda/McpService"
   },
-  "sourceDigest": "d7a82cb29e7eac822acfe030834b9b54"
+  "sourceDigest": "283d7657a6ee022182784684e62ae927"
 }

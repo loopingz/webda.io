@@ -41,7 +41,8 @@
     "WebUI": {
       "type": "Webda/ResourceService",
       "folder": "./webui",
-      "url": "/admin"
+      "url": "/admin",
+      "rootRedirect": true
     },
     "CryptoService": {
       "type": "Webda/CryptoService",

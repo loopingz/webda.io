@@ -9,7 +9,8 @@ const ops: any = {
   "Posts.Query": { id: "Posts.Query", input: "searchRequest", output: "z", method: "modelQuery", context: { model: Post } },
   "UserFollow.Get": { id: "UserFollow.Get", input: "x", output: "y", method: "modelGet", context: { model: Follow, pkFields: ["follower", "following"] } },
   "Post.Publish": { id: "Post.Publish", input: "x", output: "y", method: "publish" },
-  "Secret.Get": { id: "Secret.Get", input: "x", output: "y", method: "modelGet", hidden: true, context: { model: {}, pkFields: ["id"] } }
+  "Secret.Get": { id: "Secret.Get", input: "x", output: "y", method: "modelGet", hidden: true, context: { model: {}, pkFields: ["id"] } },
+  "Follow.Query": { id: "Follow.Query", input: "x", output: "z", method: "modelQuery", mcp: false, context: { model: Follow } }
 };
 
 @suite
@@ -62,8 +63,31 @@ class ResourceRegistryTest {
   }
 
   @test
+  rejectsCursorsWithInvalidToken() {
+    assert.strictEqual(decodeCursor(encodeCursor({ model: "Post", token: 123 as any })), undefined);
+    assert.strictEqual(decodeCursor(encodeCursor({ model: "Post", token: {} as any })), undefined);
+    assert.strictEqual(decodeCursor(encodeCursor({ model: "Post", token: null as any })), undefined);
+    assert.strictEqual(decodeCursor(encodeCursor({ model: "Post", token: [] as any })), undefined);
+  }
+
+  @test
+  rejectsCursorsWithInvalidModel() {
+    assert.strictEqual(decodeCursor(encodeCursor({ model: 123 as any })), undefined);
+    assert.strictEqual(decodeCursor(encodeCursor({ model: {} as any })), undefined);
+  }
+
+  @test
   buildsQueries() {
     assert.strictEqual(queryFor(), "LIMIT 100");
     assert.strictEqual(queryFor('a"b'), 'LIMIT 100 OFFSET "a\\"b"');
+    assert.strictEqual(queryFor("a\\b"), 'LIMIT 100 OFFSET "a\\\\b"');
+    assert.strictEqual(queryFor("a\nb"), 'LIMIT 100 OFFSET "a\nb"');
+  }
+
+  @test
+  skipsQueryWithMcpFalse() {
+    const registry = new ResourceRegistry(["*"]);
+    registry.build(ops);
+    assert.strictEqual(registry.models().find(m => m.name === "UserFollow").queryOperationId, undefined);
   }
 }

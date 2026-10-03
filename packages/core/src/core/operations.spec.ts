@@ -8,7 +8,8 @@ import {
   Operation,
   RestParameters,
   GrpcParameters,
-  GraphQLParameters
+  GraphQLParameters,
+  canCallOperation
 } from "../index.js";
 import type { OperationDefinition } from "../index.js";
 import { WebdaApplicationTest } from "../test/index.js";
@@ -18,6 +19,7 @@ import { Service } from "../services/service.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { useApplication } from "../application/hooks.js";
 import { Application } from "../application/application.js";
+import { Session } from "../session/session.js";
 import { registerSchema } from "../schemas/hooks.js";
 
 /**
@@ -786,6 +788,49 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
 
   async tweakApp(app: TestApplication): Promise<void> {
     app.addModda("Webda/ReturnValueService", ReturnValueService);
+  }
+
+  @test
+  async canCallOperationChecksPermission() {
+    registerOperation("ReturnSvc.Guarded", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void",
+      permission: "userId = 'alice'"
+    } as any);
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    const session = new Session();
+    ctx.setSession(session);
+    assert.strictEqual(canCallOperation(ctx, "ReturnSvc.Guarded"), false);
+    session.login("alice", "alice");
+    assert.strictEqual(canCallOperation(ctx, "ReturnSvc.Guarded"), true);
+    assert.strictEqual(canCallOperation(ctx, "ReturnSvc.DoesNotExist"), false);
+  }
+
+  @test
+  async callOperationFlagsStreaming() {
+    registerOperation("ReturnSvc.StreamChunks", {
+      service: "ReturnSvc",
+      method: "streamChunks",
+      input: "void",
+      output: "void"
+    });
+    registerOperation("ReturnSvc.GetObject", {
+      service: "ReturnSvc",
+      method: "getObject",
+      input: "void",
+      output: "void"
+    });
+    const streamed = new FakeOpContext();
+    await streamed.init();
+    await callOperation(streamed, "ReturnSvc.StreamChunks");
+    assert.strictEqual(streamed.getExtension("operationStreaming"), true);
+    const single = new FakeOpContext();
+    await single.init();
+    await callOperation(single, "ReturnSvc.GetObject");
+    assert.strictEqual(single.getExtension("operationStreaming"), undefined);
   }
 
   @test

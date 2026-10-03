@@ -41,6 +41,28 @@ function checkOperationPermission(
 }
 
 /**
+ * Check whether the context's session is allowed to call an operation
+ *
+ * Unlike {@link checkOperation}, this never throws: unknown operations and
+ * permission queries that cannot be evaluated return false.
+ *
+ * @param context - the execution context holding the session
+ * @param operationId - the operation identifier
+ * @returns true if the operation exists and its permission (if any) accepts the session
+ */
+export function canCallOperation(context: OperationContext, operationId: string): boolean {
+  const operation = useInstanceStorage().operations[operationId];
+  if (!operation) {
+    return false;
+  }
+  try {
+    return checkOperationPermission(context, operationId, operation);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Target object of an operation, used by listeners such as the audit log
  */
 export type OperationSubject = {
@@ -435,7 +457,9 @@ export async function callOperation(context: OperationContext, operationId: stri
     // both the method and callOperation try to write the same value).
     if (result !== undefined && result !== null) {
       if (typeof result[Symbol.asyncIterator] === "function") {
-        // AsyncGenerator — stream each yielded value
+        // AsyncGenerator — stream each yielded value; flag it so contexts
+        // (e.g. MCP) can tell streamed chunks from a single written result
+        context.setExtension("operationStreaming", true);
         for await (const chunk of result) {
           context.write(chunk);
         }
@@ -594,6 +618,10 @@ interface OperationParameters {
    * gRPC transport hints
    */
   grpc?: OperationDefinition["grpc"];
+  /**
+   * MCP transport hints
+   */
+  mcp?: OperationDefinition["mcp"];
 }
 
 function Operation<T = {}>(

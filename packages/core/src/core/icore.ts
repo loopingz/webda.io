@@ -63,6 +63,28 @@ export interface GraphQLParameters {
 }
 
 /**
+ * MCP transport parameters for use with `@Operation<McpParameters>()`
+ */
+export interface McpParameters {
+  mcp?:
+    | false
+    | {
+        /**
+         * Human-friendly tool title
+         */
+        title?: string;
+        /**
+         * Override the derived readOnlyHint
+         */
+        readOnly?: boolean;
+        /**
+         * Override the derived destructiveHint
+         */
+        destructive?: boolean;
+      };
+}
+
+/**
  * Define an operation within webda app
  */
 export interface OperationDefinition {
@@ -151,6 +173,13 @@ export interface OperationDefinition {
    * Provide an object to specify query, mutation, or subscription mappings.
    */
   graphql?: GraphQLParameters["graphql"];
+  /**
+   * MCP transport hints
+   *
+   * Set to `false` to explicitly exclude from the MCP transport.
+   * Provide an object to set the tool title or override the read-only/destructive hints.
+   */
+  mcp?: McpParameters["mcp"];
   /**
    * Additional transport hints for future extensibility
    */

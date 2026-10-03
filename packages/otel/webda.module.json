@@ -1,46 +1,163 @@
 {
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/OtelService": "lib/otel:OtelService"
+    "Webda/OtelService": {
+      "Import": "lib/otel.service:OtelService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "loggerExporter": {
+            "additionalProperties": false,
+            "description": "Logger export\nIf empty it is disabled",
+            "properties": {
+              "enable": {
+                "default": true,
+                "description": "Allow to disable the logger",
+                "type": "boolean"
+              },
+              "type": {
+                "const": "otlp",
+                "type": "string"
+              },
+              "url": {
+                "default": "http://localhost:4317",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "metricExporter": {
+            "additionalProperties": false,
+            "properties": {
+              "enable": {
+                "default": true,
+                "description": "Allow to disable the metric exporter",
+                "type": "boolean"
+              },
+              "type": {
+                "enum": [
+                  "console",
+                  "otlp"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          "traceExporter": {
+            "additionalProperties": false,
+            "properties": {
+              "enable": {
+                "default": true,
+                "description": "Allow to disable the trace exporter",
+                "type": "boolean"
+              },
+              "sampling": {
+                "default": 0.01,
+                "description": "Between 0.0 and 1.0",
+                "type": "number"
+              },
+              "type": {
+                "enum": [
+                  "console",
+                  "otlp"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "OpenTelemetry service parameters",
+        "properties": {
+          "diagnostic": {
+            "default": "NONE",
+            "enum": [
+              "NONE",
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE",
+              "ALL"
+            ],
+            "type": "string"
+          },
+          "loggerExporter": {
+            "$ref": "#/definitions/loggerExporter",
+            "description": "Logger export\nIf empty it is disabled"
+          },
+          "metricExporter": {
+            "$ref": "#/definitions/metricExporter"
+          },
+          "name": {
+            "description": "Service name reported to OpenTelemetry, default to the package name",
+            "type": "string"
+          },
+          "traceExporter": {
+            "$ref": "#/definitions/traceExporter"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "OtelService"
+      },
+      "Configuration": "lib/otel.service:OtelServiceParameters"
+    }
   },
-  "models": {
-    "graph": {},
-    "tree": {},
-    "plurals": {},
-    "list": {},
-    "reflections": {}
-  },
+  "models": {},
   "schemas": {
     "Webda/BinaryFile": {
-      "type": "object",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
       "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
         "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
         },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
         },
         "metadata": {
           "description": "Metadatas stored along with the binary"
         },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
         "originalname": {
-          "type": "string",
-          "description": "Original name"
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
         }
       },
       "required": [
@@ -48,111 +165,10 @@
         "name",
         "size"
       ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BinaryFile"
-    },
-    "Webda/OtelService": {
       "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "traceExporter": {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "enum": [
-                "console",
-                "otlp"
-              ]
-            },
-            "enable": {
-              "type": "boolean",
-              "description": "Allow to disable the trace exporter",
-              "default": true
-            },
-            "sampling": {
-              "type": "number",
-              "description": "Between 0.0 and 1.0",
-              "default": 0.01
-            }
-          },
-          "required": [
-            "type"
-          ]
-        },
-        "metricExporter": {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "enum": [
-                "console",
-                "otlp"
-              ]
-            },
-            "enable": {
-              "type": "boolean",
-              "description": "Allow to disable the logger",
-              "default": true
-            }
-          },
-          "required": [
-            "type"
-          ]
-        },
-        "loggerExporter": {
-          "type": "object",
-          "properties": {
-            "enable": {
-              "type": "boolean",
-              "description": "Allow to disable the logger",
-              "default": true
-            },
-            "type": {
-              "type": "string",
-              "const": "otlp"
-            },
-            "url": {
-              "type": "string",
-              "default": "http://localhost:4317"
-            }
-          },
-          "description": "Logger export If empty it is disabled"
-        },
-        "diagnostic": {
-          "type": "string",
-          "enum": [
-            "NONE",
-            "ERROR",
-            "WARN",
-            "INFO",
-            "DEBUG",
-            "TRACE",
-            "ALL"
-          ],
-          "default": "NONE"
-        },
-        "name": {
-          "type": "string"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "OtelService"
+      "title": "BinaryFile"
     }
-  }
+  },
+  "behaviors": {},
+  "sourceDigest": "e1095c81ddf59a6192faa2b99e0bc389"
 }

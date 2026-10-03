@@ -336,6 +336,40 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
   }
 
   /**
+   * Serve the MCP tools over stdio until stdin closes
+   *
+   * Anyone able to start this command acts with `user`'s permissions
+   * (or anonymous permissions when no user is given).
+   *
+   * @param user - user id whose permissions apply
+   */
+  @Command("mcp", { description: "Serve operations as MCP tools over stdio", requires: ["mcp"] })
+  async mcp(user: string = ""): Promise<void> {
+    const server = await this.serveStdio(new StdioServerTransport(), user || this.parameters.stdio.user);
+    await new Promise<void>(resolve => {
+      server.onclose = () => resolve();
+      process.stdin.once("end", () => void server.close());
+    });
+  }
+
+  /**
+   * Connect a new MCP server to a transport, acting as `user`
+   * @param transport - stdio (or any) transport
+   * @param user - user id whose permissions apply; anonymous when empty
+   * @returns the connected server
+   */
+  async serveStdio(transport: Transport, user?: string): Promise<Server> {
+    const session = new Session();
+    if (user) {
+      session.login(user, user);
+    }
+    const server = this.createServer(() => session);
+    this.stdioServers.push(server);
+    await server.connect(transport);
+    return server;
+  }
+
+  /**
    * Stop eviction and close every MCP session
    */
   async stop(): Promise<void> {

@@ -141,7 +141,22 @@
         "type": "object",
         "title": "McpService"
       },
-      "Configuration": "lib/mcpservice.service:McpServiceParameters"
+      "Configuration": "lib/mcpservice.service:McpServiceParameters",
+      "commands": {
+        "mcp": {
+          "description": "Serve operations as MCP tools over stdio",
+          "method": "mcp",
+          "args": {
+            "user": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          "requires": [
+            "mcp"
+          ]
+        }
+      }
     }
   },
   "models": {},
@@ -193,5 +208,5 @@
   "capabilities": {
     "mcp": "Webda/McpService"
   },
-  "sourceDigest": "4a0eec43f04ea0fbea2d7b0921dab2e9"
+  "sourceDigest": "e00e0b33057028f2e1c9b1a8789c9f17"
 }

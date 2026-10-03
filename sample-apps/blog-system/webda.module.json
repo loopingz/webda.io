@@ -12,12 +12,14 @@
               "Registry",
               "CryptoService",
               "SessionManager",
+              "AuditService",
               "DomainService",
               "GRPCService",
               "GraphQLService",
               "HttpServer",
               "HttpServerH2c",
               "Images",
+              "MCP",
               "Mailer",
               "Publisher",
               "RESTService",
@@ -2033,5 +2035,5 @@
     }
   },
   "behaviors": {},
-  "sourceDigest": "44d1ad5e875dd64c7b3c86206ce2178c"
+  "sourceDigest": "17149ab17295879174650a931e65a9ad"
 }

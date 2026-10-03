@@ -415,6 +415,28 @@ class CompilerTest {
   }
 
   /**
+   * A clean checkout has no `.webda/module.d.ts` yet, and that file is what
+   * adds the configured services to `ServicesMap`: a single build must still
+   * list every configured service in the schemas derived from it.
+   */
+  @test
+  async cleanBuildListsConfiguredServices() {
+    const projectPath = path.join(__dirname, "..", "..", "..", "sample-apps", "blog-system");
+    if (!existsSync(path.join(projectPath, "package.json"))) {
+      return; // Skip if not present
+    }
+    rmSync(path.join(projectPath, ".webda", "module.d.ts"), { force: true });
+    const compiler = new Compiler(new WebdaProject(projectPath));
+    assert.ok(compiler.compile(true), "the build must succeed");
+    const mod: WebdaModule = JSONUtils.loadFile(path.join(projectPath, "webda.module.json"));
+    const config = JSONUtils.loadFile(path.join(projectPath, "webda.config.json"));
+    const services: string[] = (mod.beans["WebdaSample/TestBean"].Schema as any).properties.service.enum;
+    for (const name of Object.keys(config.services)) {
+      assert.ok(services.includes(name), `${name} missing from the ServicesMap-derived enum`);
+    }
+  }
+
+  /**
    * `exploreBehaviorsAction` generates `<behaviorId>.<method>.input` and
    * `.output` schemas for every `@Action` method on a `@WebdaBehavior`
    * class. The canonical source is `@webda/core`'s `Binary` /

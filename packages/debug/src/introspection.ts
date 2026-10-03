@@ -183,10 +183,10 @@ export function getOperations(): OperationInfo[] {
     for (const [path, infos] of Object.entries(routes)) {
       for (const info of infos as any[]) {
         if (!info.openapi) continue;
-        for (const methodDef of Object.values(info.openapi) as any[]) {
+        // One route can serve several verbs (PUT and PATCH), each with its own operation
+        for (const [method, methodDef] of Object.entries(info.openapi) as [string, any][]) {
           if (methodDef?.operationId) {
-            const method = info.methods?.[0]?.toLowerCase() || "get";
-            operationRoutes[methodDef.operationId] = { url: path, method };
+            operationRoutes[methodDef.operationId] = { url: path, method: method.toLowerCase() };
           }
         }
       }

@@ -53,12 +53,22 @@ const mockTestMethod = function testMethod() {
 const mockOperations = {
   "Task.Create": { input: "MyApp/Task", output: "MyApp/Task", service: "DomainService", method: "modelCreate" },
   "Task.Get": { output: "MyApp/Task", parameters: "uuidRequest", service: "DomainService", method: "modelGet" },
+  "Task.Update": { input: "MyApp/Task", output: "MyApp/Task", service: "DomainService", method: "modelUpdate" },
+  "Task.Patch": { input: "MyApp/Task", output: "MyApp/Task", service: "DomainService", method: "modelPatch" },
   "Task.Publish": { input: "void", output: "void", service: "DomainService", method: "modelAction", context: { action: { name: "publish" }, model: { prototype: { publish: mockTestMethod }, getIdentifier: () => "MyApp/Task" } } }
 };
 
 const mockRoutes = {
   "/tasks": [{ methods: ["POST"], executor: "RESTOperationsTransport", openapi: { post: { operationId: "Task.Create" } } }],
-  "/tasks/{uuid}": [{ methods: ["GET"], executor: "RESTOperationsTransport", openapi: { get: { operationId: "Task.Get" } } }]
+  "/tasks/{uuid}": [
+    { methods: ["GET"], executor: "RESTOperationsTransport", openapi: { get: { operationId: "Task.Get" } } },
+    // One route serves both verbs, each with its own operation
+    {
+      methods: ["PUT", "PATCH"],
+      executor: "RESTOperationsTransport",
+      openapi: { put: { operationId: "Task.Update" }, patch: { operationId: "Task.Patch" } }
+    }
+  ]
 };
 
 const mockConfig = {
@@ -204,7 +214,7 @@ class GetOperationsTest {
   @test
   returnsAnEntryForEachOperation() {
     const ops = getOperations();
-    assert.strictEqual(ops.length, 3);
+    assert.strictEqual(ops.length, 5);
   }
 
   @test
@@ -233,6 +243,17 @@ class GetOperationsTest {
     const create = getOperations().find(o => o.id === "Task.Create")!;
     assert.ok(create.rest, "Task.Create should have rest info");
     assert.strictEqual(create.rest.url, "/tasks");
+  }
+
+  @test
+  resolvesUrlAndMethodPerVerbOnSharedRoute() {
+    const update = getOperations().find(o => o.id === "Task.Update")!;
+    const patch = getOperations().find(o => o.id === "Task.Patch")!;
+    assert.deepStrictEqual(
+      { url: update.rest?.url, method: update.rest?.method },
+      { url: "/tasks/{uuid}", method: "put" }
+    );
+    assert.deepStrictEqual({ url: patch.rest?.url, method: patch.rest?.method }, { url: "/tasks/{uuid}", method: "patch" });
   }
 
   @test
@@ -300,7 +321,7 @@ class GetRoutesTest {
   @test
   returnsOneEntryPerRouteInfoObject() {
     const routes = getRoutes();
-    assert.strictEqual(routes.length, 2);
+    assert.strictEqual(routes.length, 3);
   }
 
   @test

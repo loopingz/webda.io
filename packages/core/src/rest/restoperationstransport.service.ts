@@ -584,11 +584,13 @@ export class RESTOperationsTransport<
     const patchOpId = `${shortId}.Patch`;
     if (!operations[updateOpId] && !operations[patchOpId]) return;
 
-    const openapiInfo = {
+    const hasUpdate = operations[updateOpId] !== undefined;
+    const hasPatch = operations[patchOpId] !== undefined;
+    const describe = (operationId: string, verb: "Update" | "Patch") => ({
       tags: [shortId],
-      operationId: updateOpId,
-      description: `Update ${shortId} if the permissions allow`,
-      summary: `Update a ${shortId}`,
+      operationId,
+      description: `${verb} ${shortId} if the permissions allow`,
+      summary: operations[operationId]?.summary ?? `${verb} a ${shortId}`,
       requestBody: {
         content: {
           "application/json": {
@@ -612,11 +614,18 @@ export class RESTOperationsTransport<
           description: "Unknown object"
         }
       }
+    });
+    // A verb without its own operation is served by the other one (see the
+    // handler below); document it without an operationId, which must be unique
+    const servedBy = (info: ReturnType<typeof describe>) => {
+      const { operationId: _servedBy, ...rest } = info;
+      return rest;
     };
-
+    const updateInfo = hasUpdate ? describe(updateOpId, "Update") : undefined;
+    const patchInfo = hasPatch ? describe(patchOpId, "Patch") : undefined;
     const openapi: OpenAPIWebdaDefinition = {
-      put: openapiInfo,
-      patch: openapiInfo
+      put: updateInfo ?? servedBy(patchInfo!),
+      patch: patchInfo ?? servedBy(updateInfo!)
     };
 
     // Use the update op's declared REST path so URL params match the PK fields.
@@ -624,12 +633,9 @@ export class RESTOperationsTransport<
     const pathSuffix = typeof updateOp?.rest === "object"
       ? (updateOp.rest as any).path || "{uuid}"
       : "{uuid}";
-    // DomainService only registers `${shortId}.Update`; `${shortId}.Patch` is
-    // not auto-registered. Route both PUT and PATCH through Update when Patch
-    // is absent so PATCH requests work for plain CRUD models (modelUpdate's
-    // load() already does a merge, which is patch semantics).
-    const hasUpdate = operations[updateOpId] !== undefined;
-    const hasPatch = operations[patchOpId] !== undefined;
+    // DomainService registers both `${shortId}.Update` and `${shortId}.Patch`;
+    // when an application declares only one of them, route both verbs to it
+    // (modelUpdate's load() already merges, which is patch semantics).
     this.addRoute(
       `${prefix}/${pathSuffix}`,
       ["PUT", "PATCH"],

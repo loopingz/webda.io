@@ -23,6 +23,7 @@
     "packages/grpc": {},
     "packages/hawk": {},
     "packages/kubernetes": {},
+    "packages/mcp": {},
     "packages/mock": {},
     "packages/models": {},
     "packages/mongodb": {},

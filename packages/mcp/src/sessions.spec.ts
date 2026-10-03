@@ -31,6 +31,25 @@ class McpSessionManagerTest {
   }
 
   @test
+  async evictsTheLeastRecentlyUsedSession() {
+    let now = 1000;
+    const closed: string[] = [];
+    const manager = new McpSessionManager(10_000, () => now);
+    manager.add(entry("a", closed));
+    now = 1100;
+    manager.add(entry("b", closed));
+    now = 1200;
+    manager.add(entry("c", closed));
+    now = 1300;
+    assert.ok(manager.get("a")); // a is now the most recently used
+    assert.strictEqual(await manager.evictOldest(), "b");
+    assert.deepStrictEqual(manager.all().map(e => e.id), ["a", "c"]);
+    assert.deepStrictEqual(closed, ["transport:b", "server:b"]);
+    await manager.closeAll();
+    assert.strictEqual(await manager.evictOldest(), undefined);
+  }
+
+  @test
   async closesAll() {
     const closed: string[] = [];
     const manager = new McpSessionManager(500);

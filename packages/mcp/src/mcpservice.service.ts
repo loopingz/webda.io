@@ -55,7 +55,8 @@ export class McpServiceParameters extends OperationsTransportParameters {
    */
   allowedHosts?: string[];
   /**
-   * Maximum number of concurrent MCP HTTP sessions
+   * Maximum number of concurrent MCP HTTP sessions; at the limit the least
+   * recently used session is closed to make room for a new one
    * @default 1000
    */
   maxSessions?: number;
@@ -293,9 +294,11 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
         jsonRpcError(ctx, 400, -32000, "Bad Request: Mcp-Session-Id header is required");
         return;
       }
-      if (this.sessions.all().length >= this.parameters.maxSessions) {
-        jsonRpcError(ctx, 503, -32000, "Too many MCP sessions");
-        return;
+      // At the cap, make room by evicting the least recently used session:
+      // refusing new sessions would let anonymous callers lock out the endpoint
+      while (this.sessions.all().length >= Math.max(1, this.parameters.maxSessions)) {
+        const evicted = await this.sessions.evictOldest();
+        useLog("INFO", "MCP session limit reached, evicted least recently used session", evicted);
       }
       entry = await this.createHttpSession(ctx, userId);
     }

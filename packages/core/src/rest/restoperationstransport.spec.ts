@@ -173,6 +173,39 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
   }
 
   @test
+  async routesWithoutQueryTemplateIgnoreTheQueryString() {
+    const router = useRouter();
+    const urls = ["/qs-plain", "/qs-items/{id}", "/qs-files/{+file}", "/qs-search{?q,page?}", "/qs-any{?rest*}"];
+    urls.forEach(url =>
+      router.addRouteToRouter(url, { methods: ["GET"], executor: "QueryTest", _method: async () => {} } as any)
+    );
+    router.remapRoutes();
+    const match = (url: string) => {
+      const ctx = new WebContext(new HttpContext("test.webda.io", "GET", url));
+      const info = router.getRouteFromUrl(ctx, "GET", url);
+      return { info, params: ctx.getParameters() };
+    };
+    try {
+      // No query template: the query string doesn't take part in matching
+      assert.ok(match("/qs-plain?x=1").info, "a fixed path matches with a query string");
+      assert.strictEqual(match("/qs-items/42?x=1").params.id, "42");
+      // e.g. a cache-busting `?v=` on a static asset
+      assert.strictEqual(match("/qs-files/a/b.js?v=123").params.file, "a/b.js");
+      assert.deepStrictEqual(router.getRouteMethodsFromUrl("/qs-plain?x=1"), ["GET"]);
+
+      // Declared query templates keep their behavior
+      assert.ok(!match("/qs-search").info, "q is required");
+      const search = match("/qs-search?q=abc&page=2").params;
+      assert.strictEqual(search.q, "abc");
+      assert.strictEqual(search.page, "2");
+      assert.deepStrictEqual(match("/qs-any?a=1&b=2").params.rest, { a: "1", b: "2" });
+    } finally {
+      // The router is shared: OpenAPI generation would look up the fake executor
+      urls.forEach(url => router.removeRoute(url));
+    }
+  }
+
+  @test
   async parameters() {
     const params = new RESTOperationsTransportParameters().load({});
     assert.strictEqual(params.nameTransformer, "camelCase");

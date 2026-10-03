@@ -727,12 +727,17 @@ export class RESTOperationsTransport<
     depth: number,
     injectAttribute: string | undefined
   ): void {
+    const actionOperationName = actionName.substring(0, 1).toUpperCase() + actionName.substring(1);
+    const operationId = `${shortId}.${actionOperationName}`;
     const openapi: OpenAPIWebdaDefinition = {
       ...action.openapi
     };
-    (action.methods || ["PUT"]).forEach(method => {
+    (action.methods || ["PUT"]).forEach((method, index) => {
       openapi[method.toLowerCase()] = {
         tags: [shortId],
+        // operationIds must be unique: when an action accepts several methods,
+        // the first one carries the operation the route dispatches to
+        ...(index === 0 ? { operationId } : {}),
         ...(action.openapi?.[method.toLowerCase()] ?? {})
       };
     });
@@ -766,7 +771,6 @@ export class RESTOperationsTransport<
           };
         });
     }
-    const actionOperationName = actionName.substring(0, 1).toUpperCase() + actionName.substring(1);
     this.addRoute(
       action.global ? `${prefix}/${actionName}` : `${prefix}/{uuid}/${actionName}`,
       action.methods || ["PUT"],
@@ -775,7 +779,7 @@ export class RESTOperationsTransport<
           context.getParameters()[injectAttribute] = context.parameter(`pid.${depth - 1}`);
           context.getParameters()[`pid.${depth - 1}`] = undefined;
         }
-        await callOperation(context, `${shortId}.${actionOperationName}`);
+        await callOperation(context, operationId);
       },
       openapi
     );

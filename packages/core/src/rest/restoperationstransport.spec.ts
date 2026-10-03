@@ -152,6 +152,27 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
   }
 
   @test
+  async actionRoutesHaveOperationIds() {
+    const transport = new RESTOperationsTransport(
+      "testActionTransport",
+      new RESTOperationsTransportParameters().load({ url: "/action-api/", exposeOpenAPI: false })
+    );
+    this.registerService(transport);
+    transport.resolve();
+    await transport.init();
+
+    const operationIds = Object.entries(useRouter().getRoutes())
+      .filter(([path]) => path.startsWith("/action-api/"))
+      .flatMap(([path, list]) =>
+        (list as any[]).flatMap(info => Object.values(info.openapi ?? {}).map((op: any) => [op?.operationId, path]))
+      );
+    const pathOf = (id: string) => operationIds.find(([operationId]) => operationId === id)?.[1];
+    // Instance and static (global) actions carry the operation they dispatch to
+    assert.match(pathOf("Classroom.Test") ?? "", /\{uuid\}\/test$/);
+    assert.match(pathOf("Hardware.GlobalAction") ?? "", /\/globalAction$/);
+  }
+
+  @test
   async parameters() {
     const params = new RESTOperationsTransportParameters().load({});
     assert.strictEqual(params.nameTransformer, "camelCase");

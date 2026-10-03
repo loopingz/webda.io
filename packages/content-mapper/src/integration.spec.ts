@@ -45,7 +45,9 @@ beforeAll(() => {
  * @returns combined compiler output
  */
 function check(config: string, externalCode: boolean): string {
-  const args = ["-p", join(fixture, config)];
+  // Plain diagnostics, one per line: pretty output adds code frames and is
+  // switched on by FORCE_COLOR (set in CI)
+  const args = ["-p", join(fixture, config), "--pretty", "false"];
   if (externalCode) args.push("--runExternalCode");
   const run = spawnSync(tsgo(), args, { cwd: fixture, encoding: "utf8" });
   return `${run.stdout ?? ""}${run.stderr ?? ""}`.trim();

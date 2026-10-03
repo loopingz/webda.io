@@ -1,19 +1,33 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import { OAuthSession, WebdaError } from "@webda/core";
-import { WebdaTest } from "@webda/core/lib/test";
-import * as assert from "assert";
-import fetch from "node-fetch";
-import { GoogleAuthentication } from "./google-auth";
+import { WebdaApplicationTest } from "@webda/core/lib/test";
+import * as assert from "node:assert";
+import { GoogleAuthentication, GoogleParameters } from "./google-auth.service.js";
+
+/**
+ * Fire a request to the local OAuth callback server, ignoring the outcome
+ * @param url - the url to call
+ */
+function call(url: string) {
+  fetch(url).catch(() => {});
+}
+
 @suite
-class GoogleAuthTest extends WebdaTest {
+class GoogleAuthTest extends WebdaApplicationTest {
   service: GoogleAuthentication;
 
-  async before() {
-    await super.before();
-    this.service = new GoogleAuthentication(this.webda, "google", {
-      client_id: "fake",
-      client_secret: "secret"
-    });
+  /**
+   * Create a fresh service for each test
+   */
+  async beforeEach() {
+    await super.beforeEach();
+    this.service = new GoogleAuthentication(
+      "google",
+      new GoogleParameters().load({
+        client_id: "fake",
+        client_secret: "secret"
+      })
+    );
   }
 
   @test
@@ -65,6 +79,7 @@ class GoogleAuthTest extends WebdaTest {
   async tokenAndCallback() {
     this.mockClient();
     let ctx = await this.newContext();
+    ctx.setSession(ctx.newSession());
     // Verify normal callback
     ctx.getParameters().state = "plop";
     ctx.getSession<OAuthSession>().oauth ??= {};
@@ -107,7 +122,7 @@ class GoogleAuthTest extends WebdaTest {
           null,
           url => {
             calledUrl = url;
-            fetch("http://localhost:3000/oauth2callback", undefined);
+            call("http://localhost:3000/oauth2callback");
           },
           null
         ),
@@ -120,7 +135,7 @@ class GoogleAuthTest extends WebdaTest {
         this.service.getLocalClient(
           null,
           url => {
-            fetch("http://localhost:3000/oauth2callback?code=u2", undefined);
+            call("http://localhost:3000/oauth2callback?code=u2");
           },
           null
         ),
@@ -131,8 +146,8 @@ class GoogleAuthTest extends WebdaTest {
       null,
       url => {
         // cov only
-        fetch("http://localhost:3000/cov", {});
-        fetch("http://localhost:3000/oauth2callback?code=u1", {});
+        call("http://localhost:3000/cov");
+        call("http://localhost:3000/oauth2callback?code=u1");
       },
       async t => {
         token = t;
@@ -144,3 +159,5 @@ class GoogleAuthTest extends WebdaTest {
     );
   }
 }
+
+export { GoogleAuthTest };

@@ -1,4 +1,5 @@
 import {
+  EventWithContext,
   OAuthEvents,
   OAuthService,
   OAuthServiceParameters,
@@ -8,17 +9,13 @@ import {
   WebdaError
 } from "@webda/core";
 import { Credentials, OAuth2Client } from "google-auth-library";
-import * as http from "http";
+import * as http from "node:http";
 
-export interface EventGoogleOAuthToken {
+export interface EventGoogleOAuthToken extends EventWithContext<WebContext> {
   /**
    * Tokens retrieved from Google
    */
   tokens: Credentials;
-  /**
-   * Request context
-   */
-  context: WebContext;
 }
 
 /**
@@ -47,7 +44,7 @@ export class GoogleParameters extends OAuthServiceParameters {
   access_type?: "online" | "offline";
   // See: https://developers.google.com/identity/protocols/oauth2/openid-connect#authenticationuriparameters
   auth_options?: any;
-  redirects: {
+  redirects?: {
     // Use redirect
     use_referer: boolean;
     // Whitelist authorized url with regexp
@@ -56,9 +53,15 @@ export class GoogleParameters extends OAuthServiceParameters {
     defaults: { [key: string]: string };
   };
 
-  constructor(params) {
-    super(params);
+  /**
+   * Load parameters with Google defaults
+   * @param params - the service parameters
+   * @returns this
+   */
+  load(params: any = {}): this {
+    super.load(params);
     this.access_type ??= "online";
+    return this;
   }
 }
 
@@ -78,7 +81,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
 
   /**
    * Return provider name
-   * @returns
+   * @returns the provider name
    */
   getName() {
     return "google";
@@ -86,6 +89,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
 
   /**
    * Allow every accounts.google.
+   * @returns the referer patterns allowed to call back
    */
   getCallbackReferer(): RegExp[] {
     return [/accounts\.google\.[a-z]+$/];
@@ -93,7 +97,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
 
   /**
    * Get OAuth callback query parameters
-   * @returns
+   * @returns the callback query parameters
    */
   getCallbackQueryParams(): { name: string; required: boolean }[] {
     return [
@@ -126,6 +130,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
 
   /**
    * Expose on /google by default
+   * @returns the default url
    */
   getDefaultUrl() {
     return "/google";
@@ -133,22 +138,18 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
 
   /**
    * We manage Google Auth Token
+   * @returns true
    */
   hasToken() {
     return true;
   }
 
   /**
-   * @inheritdoc
-   */
-  loadParameters(params: any): GoogleParameters {
-    return new GoogleParameters(params);
-  }
-
-  /**
-   *
-   * @param redirect_uri
-   * @param state
+   * Generate the Google authorization url
+   * @param redirect_uri - the url Google will redirect to
+   * @param state - the random state to verify on callback
+   * @param _ctx - the request context
+   * @returns the authorization url
    */
   generateAuthUrl(redirect_uri: string, state: string, _ctx: WebContext) {
     const oauthClient = this.getOAuthClient(redirect_uri);
@@ -164,7 +165,8 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
 
   /**
    * Return a google oauth client
-   * @param redirect_uri
+   * @param redirect_uri - the redirect url to use
+   * @returns a new OAuth2 client
    */
   getOAuthClient(redirect_uri?: string): OAuth2Client {
     return new OAuth2Client(this.parameters.client_id, this.parameters.client_secret, redirect_uri);
@@ -172,6 +174,8 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
 
   /**
    * @inheritdoc
+   * @param ctx - the request context
+   * @returns the identity and profile
    */
   async handleCallback(ctx: WebContext) {
     // Verify state are equal
@@ -186,7 +190,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
     // Now that we have the code, use that to acquire tokens.
     try {
       const r = await oauthClient.getToken(code);
-      this.emitSync("GoogleAuth.Tokens", { tokens: r.tokens, context: ctx });
+      await this.emit("GoogleAuth.Tokens", { tokens: r.tokens, context: ctx });
       profile = await this.getUserInfo(r.tokens.id_token);
       identId = profile.sub;
     } catch (err) {
@@ -201,8 +205,8 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
 
   /**
    * Retrieve the user profile based on the token
-   * @param token
-   * @returns
+   * @param token - the Google id token
+   * @returns the token payload
    */
   async getUserInfo(token: string) {
     const oauthClient = this.getOAuthClient();
@@ -215,6 +219,8 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
 
   /**
    * Verify a Google Auth Token
+   * @param context - the request context
+   * @returns the identity and profile
    */
   async handleToken(context: WebContext) {
     const tokens = (await context.getRequestBody()).tokens;
@@ -233,6 +239,10 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
    *
    * Redirecting to the webbrowser for the OAuth validation
    * Store the token in user store afterwards
+   * @param token - existing credentials to reuse, if any
+   * @param open - callback to open the authorization url in a browser
+   * @param storeToken - callback to persist the retrieved credentials
+   * @returns the authenticated OAuth2 client
    */
   async getLocalClient(
     token: Credentials,
@@ -282,7 +292,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
               this.log("INFO", "Google Authentication finished.");
               return resolve(this._client);
             } catch (err) {
-              console.log(err);
+              this.log("ERROR", err);
               reject(err);
             } finally {
               server.close();

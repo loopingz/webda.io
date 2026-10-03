@@ -8,7 +8,6 @@ packages:
   - "!packages/gcp"
   - "!packages/kubernetes"
   - "!packages/elasticsearch"
-  - "!packages/google-auth"
   - "!packages/otel"
   - "!packages/hawk"
   - "!packages/mongodb"

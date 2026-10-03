@@ -1,46 +1,171 @@
 {
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/GoogleAuthentication": "lib/google-auth:default"
+    "Webda/GoogleAuthentication": {
+      "Import": "lib/google-auth.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "redirects": {
+            "additionalProperties": false,
+            "properties": {
+              "defaults": {
+                "$ref": "#/definitions/redirects%24defaults"
+              },
+              "use_referer": {
+                "default": false,
+                "type": "boolean"
+              },
+              "whitelist": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "defaults",
+              "whitelist"
+            ],
+            "type": "object"
+          },
+          "redirects$defaults": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "description": "Credentials to manage Google Auth\nhttps://developers.google.com/identity/protocols/oauth2",
+        "properties": {
+          "access_type": {
+            "description": "Type of access for Google token\n\nonline by default",
+            "enum": [
+              "online",
+              "offline"
+            ],
+            "type": "string"
+          },
+          "auth_options": {},
+          "authenticationService": {
+            "default": "Authentication",
+            "description": "Name of the authentication service to use if exist",
+            "type": "string"
+          },
+          "authorized_uris": {
+            "default": [],
+            "description": "List of URIs authorized for redirect post authorization",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "client_id": {
+            "description": "Google Auth Client id",
+            "type": "string"
+          },
+          "client_secret": {
+            "description": "Google Auth Client secret",
+            "type": "string"
+          },
+          "exposeScope": {
+            "default": false,
+            "description": "If set to true it will add a ${url}/scope\nSo client can anticipate the requested scope\n\nThis is useful when using the client api to generate\ntoken. This way the service can request the wanted scope",
+            "type": "boolean"
+          },
+          "no_referer": {
+            "default": false,
+            "description": "Allow direct connection without a referer",
+            "type": "boolean"
+          },
+          "project_id": {
+            "description": "Google Project ID",
+            "type": "string"
+          },
+          "redirect_uri": {
+            "default": "${url}/callback",
+            "description": "Default redirect_uri",
+            "type": "string"
+          },
+          "redirects": {
+            "$ref": "#/definitions/redirects"
+          },
+          "scope": {
+            "defaut": [
+              "email"
+            ],
+            "description": "Scope to request on OAuth flow",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "SchemaOptional": true,
+            "description": "URL to use for expose\n\nThe default value varying based on implementation\nIt should by default be the provider name in lowercase",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "client_id",
+          "client_secret",
+          "scope",
+          "type"
+        ],
+        "type": "object",
+        "title": "GoogleAuthentication"
+      },
+      "Configuration": "lib/google-auth.service:GoogleParameters",
+      "capabilities": [
+        "request-filter"
+      ]
+    }
   },
-  "models": {
-    "graph": {},
-    "tree": {},
-    "plurals": {},
-    "list": {},
-    "reflections": {}
-  },
+  "models": {},
   "schemas": {
     "Webda/BinaryFile": {
-      "type": "object",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
       "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
         "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
         },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
         },
         "metadata": {
           "description": "Metadatas stored along with the binary"
         },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
         "originalname": {
-          "type": "string",
-          "description": "Original name"
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
         }
       },
       "required": [
@@ -48,120 +173,10 @@
         "name",
         "size"
       ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BinaryFile"
-    },
-    "Webda/GoogleAuthentication": {
       "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL to use for expose\n\nThe default value varying based on implementation It should by default be the provider name in lowercase"
-        },
-        "scope": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Scope to request on OAuth flow"
-        },
-        "exposeScope": {
-          "type": "boolean",
-          "description": "If set to true it will add a ${url}/scope So client can anticipate the requested scope\n\nThis is useful when using the client api to generate token. This way the service can request the wanted scope",
-          "default": false
-        },
-        "authorized_uris": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "List of URIs authorized for redirect post authorization",
-          "default": []
-        },
-        "redirect_uri": {
-          "type": "string",
-          "description": "Default redirect_uri",
-          "default": "${url}/callback"
-        },
-        "no_referer": {
-          "type": "boolean",
-          "description": "Allow direct connection without a referer",
-          "default": false
-        },
-        "authenticationService": {
-          "type": "string",
-          "description": "Name of the authentication service to use if exist",
-          "default": "Authentication"
-        },
-        "client_id": {
-          "type": "string",
-          "description": "Google Auth Client id"
-        },
-        "client_secret": {
-          "type": "string",
-          "description": "Google Auth Client secret"
-        },
-        "project_id": {
-          "type": "string",
-          "description": "Google Project ID"
-        },
-        "access_type": {
-          "type": "string",
-          "enum": [
-            "online",
-            "offline"
-          ],
-          "description": "Type of access for Google token\n\nonline by default"
-        },
-        "auth_options": {},
-        "redirects": {
-          "type": "object",
-          "properties": {
-            "use_referer": {
-              "type": "boolean"
-            },
-            "whitelist": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "defaults": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              }
-            }
-          },
-          "required": [
-            "use_referer",
-            "whitelist",
-            "defaults"
-          ]
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "authenticationService",
-        "client_id",
-        "client_secret",
-        "exposeScope",
-        "no_referer",
-        "redirects",
-        "scope",
-        "type"
-      ],
-      "description": "Credentials to manage Google Auth https://developers.google.com/identity/protocols/oauth2",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "GoogleAuthentication"
+      "title": "BinaryFile"
     }
-  }
+  },
+  "behaviors": {},
+  "sourceDigest": "81b6772d117dc6b9ebee0610f20e64ac"
 }

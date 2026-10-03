@@ -164,17 +164,17 @@ class HttpServerTest extends WebdaApplicationTest {
   @test
   async serve404() {
     const port = await this.startServer();
-    try {
-      const res = await httpRequest({
-        hostname: "127.0.0.1",
-        port,
-        path: "/nonexistent-route-xyz",
-        method: "GET"
-      });
-      assert.ok(res.statusCode >= 400 && res.statusCode <= 500, `Expected error status, got ${res.statusCode}`);
-    } catch {
-      // Connection reset is acceptable
-    }
+    const res = await httpRequest({
+      hostname: "127.0.0.1",
+      port,
+      path: "/nonexistent-route-xyz",
+      method: "GET"
+    });
+    assert.strictEqual(res.statusCode, 404);
+    // Same error body as a thrown NotFound, not an empty response
+    const body = JSON.parse(res.body);
+    assert.strictEqual(body.error.code, "NOT_FOUND");
+    assert.match(body.error.message, /GET \/nonexistent-route-xyz/);
   }
 
   @test

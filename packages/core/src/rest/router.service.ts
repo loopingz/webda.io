@@ -538,15 +538,13 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         ctx.writeHead(204);
         return;
       }
-      emitCoreEvent("Webda.404", { context: ctx });
-      ctx.writeHead(404);
+      this.writeNotFound(ctx, method, url);
       return;
     }
 
     const info = this.getRouteFromUrl(ctx, method, url);
     if (!info) {
-      emitCoreEvent("Webda.404", { context: ctx });
-      ctx.writeHead(404);
+      this.writeNotFound(ctx, method, url);
       return;
     }
 
@@ -565,6 +563,19 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         await service[info._method](ctx);
       }
     }
+  }
+
+  /**
+   * Answer a request no route matches: 404 with the same error body a thrown
+   * `NotFound` gets, so clients don't receive an empty response
+   * @param ctx - the web context
+   * @param method - the HTTP method
+   * @param url - the requested URL
+   */
+  protected writeNotFound(ctx: WebContext<any, any, any>, method: string, url: string) {
+    emitCoreEvent("Webda.404", { context: ctx });
+    ctx.writeHead(404);
+    ctx.write({ error: { code: "NOT_FOUND", message: `No route for ${method} ${url}` } });
   }
 
   /**

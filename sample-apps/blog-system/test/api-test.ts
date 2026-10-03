@@ -357,6 +357,19 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
   }
 
   @test
+  async rootRedirectsToAdminUI() {
+    const res = await this.routerHttp({ method: "GET", url: "/" });
+    assert.strictEqual(res.statusCode, 302);
+  }
+
+  @test
+  async unknownRouteIsNotFound() {
+    const res = await this.routerHttp<{ error: { code: string } }>({ method: "GET", url: "/no-such-page" });
+    assert.strictEqual(res.statusCode, 404);
+    assert.strictEqual(res.parsed?.error.code, "NOT_FOUND");
+  }
+
+  @test
   async getVersionNoDuplicate() {
     // Issue 1: GET /version should return the package name ONCE, not doubled
     const res = await this.routerHttp({ method: "GET", url: "/version" });

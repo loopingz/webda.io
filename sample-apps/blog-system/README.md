@@ -170,10 +170,30 @@ The server listens on `https://localhost:18080` (self-signed certificate) with g
 
 Model data lives in memory and is lost when the server stops, except the audit log, which is kept in `.registry` (see [Audit Log](#8-audit-log)).
 
+## MCP
+
+The `MCP` service (`Webda/McpService`, see [@webda/mcp](../../packages/mcp/README.md)) exposes every blog operation as an MCP tool (`Post.Create`, `Post.Get`, `Posts.Query`, `User.Login`...) and every model as `webda://{Model}/{pk...}` resources (`webda://Post/{slug}`, `webda://UserFollow/{follower}/{following}`).
+
+Connect Claude Code over **stdio** (Claude starts the application and acts with the permissions of the given user id):
+
+```bash
+# from this folder, with the workspace built
+claude mcp add blog -e WEBDA_APP_PATH=$PWD -- node $PWD/../../packages/core/lib/bin/cli.js mcp --user <userId>
+```
+
+Or over **HTTP** against the running dev server (`pnpm run debug`). The server uses `autoTls`, so the URL is `https://` and the certificate is self-signed: start Claude Code with `NODE_EXTRA_CA_CERTS` pointing to the generated certificate.
+
+```bash
+claude mcp add --transport http blog https://localhost:18080/mcp
+NODE_EXTRA_CA_CERTS=$PWD/.webda/dev-tls/cert.pem claude
+```
+
+MCP clients do not keep Webda's session cookie, so HTTP callers are anonymous: use stdio with `--user` to act as a blog user.
+
 ## Testing
 
 ```bash
-pnpm test            # Vitest: application bootstrap (test/api-test.ts) and webda CLI (test/cli-test.ts)
+pnpm test            # Vitest: application bootstrap (test/api-test.ts), webda CLI (test/cli-test.ts) and MCP over stdio (test/mcp-test.ts)
 pnpm run test:e2e    # Playwright: admin UI end-to-end (starts the dev server if none is running)
 ```
 

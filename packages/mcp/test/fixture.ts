@@ -1,4 +1,13 @@
-import { Service, ServiceParameters, Session, WebContext, WebdaError, registerOperation, registerSchema, useApplication } from "@webda/core";
+import {
+  Service,
+  ServiceParameters,
+  Session,
+  WebContext,
+  WebdaError,
+  registerOperation,
+  registerSchema,
+  useApplication
+} from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import { TestApplication } from "@webda/core/lib/test/objects.js";
 import type { McpAuthenticator } from "../src/auth.js";
@@ -157,6 +166,9 @@ export class HeaderAuthenticator extends Service implements McpAuthenticator {
   async authenticate(ctx: WebContext): Promise<Session> {
     const session = new Session();
     const user = ctx.getHttpContext().getUniqueHeader("x-test-user");
+    if (user === "reject") {
+      throw new WebdaError.Unauthorized("Rejected");
+    }
     if (user) {
       session.login(user, user);
     }

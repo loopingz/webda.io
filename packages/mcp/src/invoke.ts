@@ -7,6 +7,9 @@ import type { ToolEntry } from "./tools.js";
  * Raised when an MCP client cancels a running operation
  */
 export class CancelledError extends Error {
+  /**
+   * Build the cancellation error
+   */
   constructor() {
     super("Cancelled");
     this.name = "CancelledError";

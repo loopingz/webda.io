@@ -7,6 +7,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { ToolListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { FIXTURE_SERVICES, fixtureGate, McpFixtureTest, registerFixture } from "../test/fixture.js";
 import { McpService } from "./mcpservice.service.js";
+import { request } from "node:http";
 
 const INIT = {
   jsonrpc: "2.0",
@@ -207,5 +208,63 @@ class McpHttpTest extends McpFixtureTest {
     fixtureGate.open();
     // the server must still answer new requests on the same session
     assert.ok((await client.listTools()).tools.length > 0);
+  }
+
+  /**
+   * POST with an explicit Host header (fetch does not allow overriding it)
+   * @param headers - request headers
+   * @param body - JSON body
+   * @returns the HTTP status
+   */
+  async rawPost(headers: Record<string, string>, body: any): Promise<number> {
+    await this.url();
+    return new Promise((resolve, reject) => {
+      const req = request(
+        { host: "127.0.0.1", port: this.port, path: "/mcp", method: "POST", headers: { ...HEADERS, ...headers } },
+        res => {
+          res.resume();
+          resolve(res.statusCode);
+        }
+      );
+      req.on("error", reject);
+      req.end(JSON.stringify(body));
+    });
+  }
+
+  @test
+  async rejectsForeignHost() {
+    const port = (await this.url(), this.port);
+    assert.strictEqual(
+      await this.rawPost({ host: `evil.example:${port}`, origin: `http://evil.example:${port}` }, INIT),
+      403
+    );
+    assert.strictEqual(await this.rawPost({ host: `localhost:${port}` }, INIT), 200);
+  }
+
+  @test
+  async unauthorizedIs401() {
+    const res = await fetch(await this.url(), {
+      method: "POST",
+      headers: { ...HEADERS, "x-test-user": "reject" },
+      body: JSON.stringify(INIT)
+    });
+    assert.strictEqual(res.status, 401);
+  }
+
+  @test
+  async limitsSessionCount() {
+    const { client } = await this.client();
+    const service = useService("Mcp" as any) as any;
+    const previous = service.parameters.maxSessions;
+    service.parameters.maxSessions = service.sessions.all().length;
+    try {
+      const res = await fetch(await this.url(), { method: "POST", headers: HEADERS, body: JSON.stringify(INIT) });
+      assert.strictEqual(res.status, 503);
+      assert.strictEqual((await res.json()).error.message, "Too many MCP sessions");
+      // existing sessions keep working
+      assert.ok((await client.listTools()).tools.length > 0);
+    } finally {
+      service.parameters.maxSessions = previous;
+    }
   }
 }

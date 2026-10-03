@@ -113,6 +113,8 @@ export class ResourceRegistry {
 
 /**
  * @param cursor - model and continuation token
+ * @param cursor.model - model short id
+ * @param cursor.token - continuation token of that model's query
  * @returns opaque cursor
  */
 export function encodeCursor(cursor: { model: string; token?: string }): string {

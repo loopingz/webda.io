@@ -48,6 +48,17 @@ export class McpServiceParameters extends OperationsTransportParameters {
    */
   allowedOrigins?: string[];
   /**
+   * Hostnames (any port) accepted in the request Host, against DNS rebinding;
+   * "*" disables the check
+   * @default ["localhost","127.0.0.1","::1"]
+   */
+  allowedHosts?: string[];
+  /**
+   * Maximum number of concurrent MCP HTTP sessions
+   * @default 1000
+   */
+  maxSessions?: number;
+  /**
    * Larger tool/resource outputs are truncated
    * @default 1048576
    */
@@ -87,6 +98,8 @@ export class McpServiceParameters extends OperationsTransportParameters {
     }
     this.sessionTimeout ??= 1800;
     this.allowedOrigins ??= [];
+    this.allowedHosts ??= ["localhost", "127.0.0.1", "::1"];
+    this.maxSessions ??= 1000;
     this.maxOutputBytes ??= 1048576;
     this.stdio ??= {};
     return this;
@@ -219,13 +232,37 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
   }
 
   /**
+   * DNS-rebinding guard: the request hostname must be in allowedHosts
+   * @param url - absolute request url (x-forwarded-host only honoured for trusted proxies)
+   * @returns true when the host is accepted
+   */
+  protected isHostAllowed(url: string): boolean {
+    const allowed = this.parameters.allowedHosts;
+    if (allowed.includes("*")) {
+      return true;
+    }
+    let hostname: string;
+    try {
+      hostname = new URL(url).hostname;
+    } catch {
+      return false;
+    }
+    hostname = hostname.replace(/^\[(.*)\]$/, "$1").toLowerCase();
+    return allowed.some(h => h.toLowerCase() === hostname);
+  }
+
+  /**
    * Handle GET/POST/DELETE on the MCP endpoint
    * @param ctx - the request context
    */
   async handleHttp(ctx: WebContext): Promise<void> {
+    const http = ctx.getHttpContext();
+    if (!this.isHostAllowed(http.getAbsoluteUrl())) {
+      jsonRpcError(ctx, 403, -32000, "Host not allowed");
+      return;
+    }
     const session = await this.authenticator.authenticate(ctx);
     const userId: string | undefined = (session as any)?.userId;
-    const http = ctx.getHttpContext();
     const body = http.getMethod() === "POST" ? await ctx.getRawInputAsString() : undefined;
     let parsedBody: unknown;
     if (body) {
@@ -253,6 +290,10 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
         : isInitializeRequest(parsedBody);
       if (!initializing && parsedBody !== undefined) {
         jsonRpcError(ctx, 400, -32000, "Bad Request: Mcp-Session-Id header is required");
+        return;
+      }
+      if (this.sessions.all().length >= this.parameters.maxSessions) {
+        jsonRpcError(ctx, 503, -32000, "Too many MCP sessions");
         return;
       }
       entry = await this.createHttpSession(ctx, userId);

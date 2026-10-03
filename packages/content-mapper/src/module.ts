@@ -1128,10 +1128,10 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
       )
     );
 
-  // Two classes can share a namespaced name (`@webda/core` has an AuditEntry
-  // model in both models/ and services/). TypeScript 6 assigns
-  // `result[section][name] = info` as it walks, so the last class in program
-  // order wins while the key keeps the position of the first.
+  // Two classes can share a namespaced name. TypeScript 6 let the last class
+  // in program order win silently, which registered one class while code
+  // saved the other (`@webda/core` shipped two AuditEntry models). Keep that
+  // choice so the module stays inspectable, but report it: the build fails.
   const slots = new Map<string, number>();
   const discovered: typeof classified = [];
   for (const item of classified) {
@@ -1141,6 +1141,11 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
       slots.set(key, discovered.length);
       discovered.push(item);
     } else {
+      const previous = discovered[slot].object;
+      errors.push(
+        `${item.object.name} is declared twice: ${previous.className} in ${previous.fileName} and ` +
+          `${item.object.className} in ${item.object.fileName}; rename one`
+      );
       discovered[slot] = item;
     }
   }

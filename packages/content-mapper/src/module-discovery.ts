@@ -295,9 +295,9 @@ export function discoverWebdaObjects(ctx: AnalysisContext, options: DiscoveryOpt
   found.sort((a, b) => a.section.localeCompare(b.section) || a.name.localeCompare(b.name));
   if (options.keepDuplicates) return found;
 
-  // Two classes can resolve to the same namespaced name — `@webda/core` has
-  // AuditEntry in both models/ and services/. Keep the first in sorted order so
-  // the result does not depend on program file ordering.
+  // Two classes can resolve to the same namespaced name; `generateWebdaModule`
+  // reports it as an error. Keep the first in sorted order so the result does
+  // not depend on program file ordering.
   const unique: DiscoveredObject[] = [];
   const claimed = new Set<string>();
   for (const object of found) {

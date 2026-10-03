@@ -1,4 +1,4 @@
-import { callOperation, Session, SimpleOperationContext } from "@webda/core";
+import { callOperation, Session, SimpleOperationContext, WebdaError } from "@webda/core";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { useLog } from "@webda/workout";
 import type { ToolEntry } from "./tools.js";
@@ -124,14 +124,37 @@ export async function runOperation(operationId: string, options: RunOptions): Pr
 }
 
 /**
- * Convert an operation result into an MCP tool result
- * @param entry - the tool
+ * Truncate a string to at most `maxBytes` UTF-8 bytes without cutting a character
+ * @param text - the text
+ * @param maxBytes - maximum number of bytes kept
+ * @returns the (possibly) truncated text, whether it was truncated and the original byte length
+ */
+export function truncateUtf8(text: string, maxBytes: number): { text: string; truncated: boolean; bytes: number } {
+  const bytes = Buffer.from(text);
+  if (bytes.length <= maxBytes) {
+    return { text, truncated: false, bytes: bytes.length };
+  }
+  // Back off to a valid UTF-8 boundary so a cut multibyte character is dropped, not replaced
+  let end = Math.max(0, maxBytes);
+  while (end > 0 && (bytes[end] & 0xc0) === 0x80) {
+    end--;
+  }
+  return { text: bytes.subarray(0, end).toString(), truncated: true, bytes: bytes.length };
+}
+
+/**
+ * Convert an operation result into an MCP tool result.
+ *
+ * Tools declare no outputSchema (serialized models rarely match their schema exactly),
+ * so structuredContent is informative only: the object itself, `{ value }` for scalars
+ * and arrays, `{ items }` for streamed chunks, and nothing for void.
+ * @param _entry - the tool
  * @param value - operation result
  * @param streamed - whether value is the list of streamed chunks
  * @param maxOutputBytes - truncation threshold for the text content
  * @returns the tool result
  */
-export function toToolResult(entry: ToolEntry, value: unknown, streamed: boolean, maxOutputBytes: number): CallToolResult {
+export function toToolResult(_entry: ToolEntry, value: unknown, streamed: boolean, maxOutputBytes: number): CallToolResult {
   let structured: Record<string, unknown> | undefined;
   if (streamed) {
     structured = { items: value };
@@ -140,30 +163,23 @@ export function toToolResult(entry: ToolEntry, value: unknown, streamed: boolean
   } else if (value !== undefined) {
     structured = { value };
   }
-  const text = structured === undefined ? "" : JSON.stringify(structured);
-  if (Buffer.byteLength(text) > maxOutputBytes) {
-    // Back off to a valid UTF-8 boundary so a cut multibyte character is dropped, not replaced
-    let end = Math.min(maxOutputBytes, Buffer.byteLength(text));
-    const bytes = Buffer.from(text);
-    while (end > 0 && end < bytes.length && (bytes[end] & 0xc0) === 0x80) {
-      end--;
-    }
+  if (structured === undefined) {
+    return { content: [{ type: "text", text: "" }] };
+  }
+  const json = JSON.stringify(structured);
+  const cut = truncateUtf8(json, maxOutputBytes);
+  if (cut.truncated) {
     return {
       isError: true,
       content: [
         {
           type: "text",
-          text: `${bytes.subarray(0, end).toString()}\n[output truncated: ${Buffer.byteLength(text)} bytes exceeds maxOutputBytes ${maxOutputBytes}]`
+          text: `${cut.text}\n[output truncated: ${cut.bytes} bytes exceeds maxOutputBytes ${maxOutputBytes}]`
         }
       ]
     };
   }
-  const result: CallToolResult = { content: [{ type: "text", text }] };
-  if (entry.tool.outputSchema) {
-    // The SDK client requires structuredContent whenever the tool declares an output schema
-    result.structuredContent = structured ?? {};
-  }
-  return result;
+  return { content: [{ type: "text", text: json }], structuredContent: structured };
 }
 
 /**
@@ -177,9 +193,11 @@ export function errorToToolResult(err: unknown): CallToolResult {
   if (err instanceof CancelledError) {
     return { isError: true, content: [{ type: "text", text: "Cancelled" }] };
   }
-  const code = typeof (err as any)?.getResponseCode === "function" ? (err as any).getResponseCode() : 500;
-  if (code >= 400 && code < 500) {
-    return { isError: true, content: [{ type: "text", text: `${(err as any).getCode()}: ${(err as Error).message}` }] };
+  if (err instanceof WebdaError.CodeError) {
+    const code = err.getResponseCode();
+    if (code >= 400 && code < 500) {
+      return { isError: true, content: [{ type: "text", text: `${err.getCode()}: ${err.message}` }] };
+    }
   }
   useLog("ERROR", "MCP tool call failed", err);
   return { isError: true, content: [{ type: "text", text: "Internal error" }] };

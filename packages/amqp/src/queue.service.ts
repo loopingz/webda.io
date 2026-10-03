@@ -1,28 +1,38 @@
-import { JSONUtils, MessageReceipt, Queue, QueueParameters } from "@webda/core";
+import { MessageReceipt, Queue, QueueParameters } from "@webda/core";
+import { JSONUtils } from "@webda/utils";
 import * as amqplib from "amqplib";
 
+/**
+ * Configuration for {@link AMQPQueue}
+ */
 export class AMQPQueueParameters extends QueueParameters {
+  /**
+   * AMQP connection url
+   * @example "amqp://localhost:5672"
+   */
   url: string;
+  /**
+   * Queue name
+   */
   queue: string;
+  /**
+   * Options passed to assertQueue
+   */
   queueOptions?: any;
 }
+
 /**
  * Implements a Queue stored in AMQP
  *
  * @WebdaModda
  */
 export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueueParameters> extends Queue<T, K> {
-  channel: any;
-  conn: any;
-  /**
-   * @override
-   */
-  loadParameters(params: any) {
-    return new AMQPQueueParameters(params);
-  }
+  channel: amqplib.Channel;
+  conn: amqplib.ChannelModel;
 
   /**
    * @override
+   * @returns this service
    */
   async init(): Promise<this> {
     await super.init();
@@ -33,14 +43,34 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
   }
 
   /**
+   * Close the AMQP connection
    * @override
    */
-  async sendMessage(event: T): Promise<void> {
-    await this.channel.sendToQueue(this.parameters.queue, Buffer.from(JSONUtils.stringify(event)));
+  async stop(): Promise<void> {
+    if (this.conn) {
+      const conn = this.conn;
+      this.conn = undefined;
+      this.channel = undefined;
+      await conn.close().catch(() => {
+        /* already closed */
+      });
+    }
+    await super.stop();
   }
 
   /**
    * @override
+   * @param event - the event to enqueue
+   */
+  async sendMessage(event: T): Promise<void> {
+    this.metrics.messages_sent.inc();
+    this.channel.sendToQueue(this.parameters.queue, Buffer.from(JSONUtils.stringify(event)));
+  }
+
+  /**
+   * @override
+   * @param proto - optional prototype to rehydrate the payload into
+   * @returns the received message if any
    */
   async receiveMessage<L>(proto?: new () => L): Promise<MessageReceipt<L>[]> {
     const msg = await this.channel.get(this.parameters.queue);
@@ -49,7 +79,7 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
     }
     return [
       {
-        ReceiptHandle: msg,
+        ReceiptHandle: <any>msg,
         Message: this.unserialize(msg.content.toString(), proto)
       }
     ];
@@ -57,19 +87,26 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
 
   /**
    * @override
+   * @param id - the receipt handle returned by {@link receiveMessage}
    */
   async deleteMessage(id: string): Promise<void> {
-    await this.channel.ack(id);
+    this.channel.ack(<any>id);
   }
 
   /**
    * @override
+   * @returns the number of messages ready in the queue
    */
   async size(): Promise<number> {
     return (await this.channel.assertQueue(this.parameters.queue)).messageCount;
   }
 
-  async ___cleanData() {
+  /**
+   * Purge the queue, used by tests
+   */
+  async __clean(): Promise<void> {
     await this.channel.purgeQueue(this.parameters.queue);
   }
 }
+
+export { AMQPQueue };

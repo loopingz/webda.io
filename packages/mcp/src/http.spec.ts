@@ -242,6 +242,33 @@ class McpHttpTest extends McpFixtureTest {
   }
 
   @test
+  async acceptsIpv6LoopbackHost() {
+    // HttpServer cuts the Host at the first ':', so the hostname must be parsed from the header
+    const port = (await this.url(), this.port);
+    assert.strictEqual(await this.rawPost({ host: `[::1]:${port}` }, INIT), 200);
+    assert.strictEqual(await this.rawPost({ host: `[::1]:${port}`, origin: `http://[::1]:${port}` }, INIT), 200);
+    assert.strictEqual(await this.rawPost({ host: `[::2]:${port}` }, INIT), 403);
+    assert.strictEqual(await this.rawPost({ host: `localhost@evil.example:${port}` }, INIT), 403);
+  }
+
+  @test
+  async forwardedHostIsCheckedWhenTrusted() {
+    const port = (await this.url(), this.port);
+    // untrusted source: HttpServer itself refuses forwarded headers
+    assert.strictEqual(await this.rawPost({ host: `localhost:${port}`, "x-forwarded-host": "evil.example" }, INIT), 400);
+    const http = useService("HttpServer" as any) as any;
+    const checker = http.subnetChecker;
+    http.subnetChecker = () => true;
+    try {
+      // behind a trusted proxy the forwarded host is the one checked
+      assert.strictEqual(await this.rawPost({ host: `localhost:${port}`, "x-forwarded-host": "evil.example" }, INIT), 403);
+      assert.strictEqual(await this.rawPost({ host: "internal.proxy", "x-forwarded-host": `localhost:${port}` }, INIT), 200);
+    } finally {
+      http.subnetChecker = checker;
+    }
+  }
+
+  @test
   async unauthorizedIs401() {
     const res = await fetch(await this.url(), {
       method: "POST",

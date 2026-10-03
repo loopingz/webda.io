@@ -234,23 +234,43 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
   }
 
   /**
+   * Origin (protocol + host[:port]) of a request, from the `x-forwarded-host` header
+   * when present (HttpServer rejects forwarded headers from untrusted sources) or
+   * the `host` header. Parsed here rather than via HttpContext.getAbsoluteUrl,
+   * which cannot represent IPv6 literals like `[::1]:18080`.
+   * @param ctx - the request context
+   * @returns the parsed origin, or undefined when the host is missing or invalid
+   */
+  protected requestOrigin(ctx: WebContext): URL | undefined {
+    const http = ctx.getHttpContext();
+    const host = (http.getUniqueHeader("x-forwarded-host") || http.getUniqueHeader("host") || "").split(",")[0].trim();
+    // a Host header is only host[:port]: reject anything that smuggles a path, credentials, etc.
+    if (!host || /[/\\@?#\s]/.test(host)) {
+      return undefined;
+    }
+    try {
+      return new URL(`${http.getProtocol() || "http:"}//${host}`);
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
    * DNS-rebinding guard: the request hostname must be in allowedHosts
-   * @param url - absolute request url (x-forwarded-host only honoured for trusted proxies)
+   * @param ctx - the request context
    * @returns true when the host is accepted
    */
-  protected isHostAllowed(url: string): boolean {
+  protected isHostAllowed(ctx: WebContext): boolean {
     const allowed = this.parameters.allowedHosts;
     if (allowed.includes("*")) {
       return true;
     }
-    let hostname: string;
-    try {
-      hostname = new URL(url).hostname;
-    } catch {
+    const origin = this.requestOrigin(ctx);
+    if (!origin) {
       return false;
     }
-    hostname = hostname.replace(/^\[(.*)\]$/, "$1").toLowerCase();
-    return allowed.some(h => h.toLowerCase() === hostname);
+    const hostname = origin.hostname.replace(/^\[(.*)\]$/, "$1").toLowerCase();
+    return allowed.some(h => h.replace(/^\[(.*)\]$/, "$1").toLowerCase() === hostname);
   }
 
   /**
@@ -259,7 +279,8 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
    */
   async handleHttp(ctx: WebContext): Promise<void> {
     const http = ctx.getHttpContext();
-    if (!this.isHostAllowed(http.getAbsoluteUrl())) {
+    const origin = this.requestOrigin(ctx);
+    if (!this.isHostAllowed(ctx)) {
       jsonRpcError(ctx, 403, -32000, "Host not allowed");
       return;
     }
@@ -300,12 +321,12 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
         const evicted = await this.sessions.evictOldest();
         useLog("INFO", "MCP session limit reached, evicted least recently used session", evicted);
       }
-      entry = await this.createHttpSession(ctx, userId);
+      entry = await this.createHttpSession(ctx, userId, origin);
     }
     this.checkForChanges();
     const authInfo: AuthInfo = { token: "", clientId: userId ?? "anonymous", scopes: [], extra: { session } };
     const response = await (entry.transport as WebStandardStreamableHTTPServerTransport).handleRequest(
-      toRequest(ctx, body),
+      toRequest(ctx, body, origin),
       {
         parsedBody,
         authInfo
@@ -318,15 +339,20 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
    * Create an SDK server + transport pair for a new MCP session
    * @param ctx - the initializing request
    * @param userId - caller user id
+   * @param requestOrigin - origin of the request (see requestOrigin)
    * @returns the (not yet registered) session entry; it registers on initialize
    */
-  protected async createHttpSession(ctx: WebContext, userId: string | undefined): Promise<McpSessionEntry> {
-    const origin = new URL(ctx.getHttpContext().getAbsoluteUrl()).origin;
+  protected async createHttpSession(
+    ctx: WebContext,
+    userId: string | undefined,
+    requestOrigin: URL | undefined = this.requestOrigin(ctx)
+  ): Promise<McpSessionEntry> {
+    const origin = requestOrigin?.origin;
     const entry: McpSessionEntry = { id: "", userId, lastSeen: Date.now(), server: undefined, transport: undefined };
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       enableDnsRebindingProtection: true,
-      allowedOrigins: [origin, ...this.parameters.allowedOrigins],
+      allowedOrigins: [...(origin ? [origin] : []), ...this.parameters.allowedOrigins],
       onsessioninitialized: id => {
         entry.id = id;
         this.sessions.add(entry);

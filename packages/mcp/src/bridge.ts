@@ -4,9 +4,10 @@ import type { WebContext } from "@webda/core";
  * Build a web-standard Request from a Webda context
  * @param ctx - the request context
  * @param body - raw request body (POST only)
+ * @param origin - request origin, when HttpContext.getAbsoluteUrl cannot represent it (IPv6 hosts)
  * @returns the Request handed to the SDK transport
  */
-export function toRequest(ctx: WebContext, body?: string): Request {
+export function toRequest(ctx: WebContext, body?: string, origin?: URL): Request {
   const http = ctx.getHttpContext();
   const headers = new Headers();
   for (const [name, value] of Object.entries(http.getHeaders())) {
@@ -18,7 +19,9 @@ export function toRequest(ctx: WebContext, body?: string): Request {
     }
   }
   const method = http.getMethod();
-  return new Request(http.getAbsoluteUrl(), { method, headers, body: method === "POST" ? (body ?? "") : undefined });
+  const uri = http.getUrl();
+  const url = origin && !/^\w{1,10}:\/\//.test(uri) ? `${origin.origin}${uri.startsWith("/") ? "" : "/"}${uri}` : http.getAbsoluteUrl();
+  return new Request(url, { method, headers, body: method === "POST" ? (body ?? "") : undefined });
 }
 
 /**

@@ -1,6 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as http from "node:http";
+import * as https from "node:https";
 import * as nodeFs from "node:fs";
 import * as nodeOs from "node:os";
 import * as nodePath from "node:path";
@@ -159,6 +160,53 @@ class HttpServerTest extends WebdaApplicationTest {
     assert.ok(res.statusCode >= 200 && res.statusCode < 600, `Got status ${res.statusCode}`);
     // Wait for async handler to fully complete for coverage
     await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
+  @test
+  async tlsPortRedirectsPlainHttp() {
+    const tlsServer = new HttpServer(
+      "HttpServerTls",
+      new ServiceParameters().load({ port: 0, autoTls: true, trustedProxies: ["127.0.0.1", "::1"] }) as any
+    );
+    this.registerService(tlsServer);
+    (tlsServer as any).subnetChecker = createChecker(["127.0.0.1/32", "::1/32"]);
+    try {
+      await tlsServer.serve("127.0.0.1", 0);
+      let address: any;
+      while (!(address = tlsServer.address())) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      const port = address.port;
+
+      // A browser typing localhost:<port> speaks plain HTTP: send it to https
+      const plain = await httpRequest({
+        hostname: "127.0.0.1",
+        port,
+        path: "/some/page?x=1",
+        method: "GET",
+        headers: { Host: `localhost:${port}` }
+      });
+      assert.strictEqual(plain.statusCode, 308);
+      assert.strictEqual(plain.headers.location, `https://localhost:${port}/some/page?x=1`);
+
+      // TLS connections still reach the application
+      const secure = await new Promise<{ statusCode: number; body: string }>((resolve, reject) => {
+        const req = https.request(
+          { hostname: "127.0.0.1", port, path: "/nonexistent-route-xyz", method: "GET", rejectUnauthorized: false },
+          res => {
+            let body = "";
+            res.on("data", chunk => (body += chunk));
+            res.on("end", () => resolve({ statusCode: res.statusCode!, body }));
+          }
+        );
+        req.on("error", reject);
+        req.end();
+      });
+      assert.strictEqual(secure.statusCode, 404, secure.body);
+      assert.strictEqual(JSON.parse(secure.body).error.code, "NOT_FOUND");
+    } finally {
+      await tlsServer.stop();
+    }
   }
 
   @test

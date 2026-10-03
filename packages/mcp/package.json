@@ -1,0 +1,50 @@
+{
+  "name": "@webda/mcp",
+  "version": "4.0.0-beta.1",
+  "description": "MCP transport for Webda.io — exposes operations as Model Context Protocol tools and resources",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "webdac build",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "lint:fix": "eslint --fix src/"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@webda/workout": "workspace:*"
+  },
+  "peerDependencies": {
+    "@webda/core": "^4.0.0-beta.1"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.2",
+    "@webda/compiler": "workspace:^",
+    "@webda/core": "workspace:^",
+    "@webda/test": "workspace:^",
+    "@webda/utils": "workspace:^",
+    "typescript": "7.1.0-dev.20260929.1",
+    "vite": "^6.0.0",
+    "vitest": "^4.0.0"
+  },
+  "files": [
+    "lib",
+    "webda.module.json"
+  ],
+  "webda": {
+    "namespace": "Webda",
+    "capabilities": {
+      "mcp": "Webda/McpService"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "LGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/loopingz/webda.io.git",
+    "directory": "packages/mcp"
+  }
+}

@@ -50,6 +50,33 @@ class McpStdioTest extends McpFixtureTest {
   }
 
   @test
+  async handlesMessagesDeliveredOutsideTheInstanceStorage() {
+    registerFixture();
+    const sent: any[] = [];
+    const transport: any = {
+      start: async () => {},
+      close: async () => {},
+      send: async (message: any) => {
+        sent.push(message);
+      }
+    };
+    await (useService("Mcp" as any) as unknown as McpService).serveStdio(transport);
+    // A real stdin stream emits from a context without the instance storage
+    await process["webdaInstanceStorage"].exit(async () => {
+      await transport.onmessage({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "spec", version: "1" } }
+      });
+      await transport.onmessage({ jsonrpc: "2.0", id: 2, method: "tools/list" });
+    });
+    await new Promise(resolve => setTimeout(resolve, 50));
+    const list = sent.find(m => m.id === 2);
+    assert.ok(list?.result?.tools, `expected a tools list, got ${JSON.stringify(list)}`);
+  }
+
+  @test
   moduleDeclaresTheMcpCommand() {
     const moduleJson = join(dirname(fileURLToPath(import.meta.url)), "..", "webda.module.json");
     const mod = JSON.parse(readFileSync(moduleJson, "utf-8"));

@@ -35,6 +35,9 @@
     "GRPCService": {
       "type": "Webda/GrpcService"
     },
+    "MCP": {
+      "type": "Webda/McpService"
+    },
     "GraphQLService": {
       "type": "Webda/GraphQLService"
     },

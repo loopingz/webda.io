@@ -34,12 +34,14 @@
     "@webda/fs": "workspace:^",
     "@webda/graphql": "workspace:^",
     "@webda/grpc": "workspace:^",
+    "@webda/mcp": "workspace:^",
     "@webda/models": "workspace:^",
     "@webda/ql": "workspace:^",
     "@webda/utils": "workspace:^",
     "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@playwright/test": "^1.50.0",
     "@types/node": "25.5.0",
     "@webda/compiler": "workspace:^",

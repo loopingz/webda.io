@@ -9,6 +9,7 @@ import {
   WebContext
 } from "@webda/core";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { AsyncResource } from "node:async_hooks";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
@@ -366,6 +367,10 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
     const server = this.createServer(() => session);
     this.stdioServers.push(server);
     await server.connect(transport);
+    // Stream events (stdin) fire outside the instance storage: rebind the handlers to the current async context
+    if (transport.onmessage) {
+      transport.onmessage = AsyncResource.bind(transport.onmessage);
+    }
     return server;
   }
 

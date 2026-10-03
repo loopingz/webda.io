@@ -295,6 +295,19 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   }
 
   /**
+   * What a request URL is matched against for a route: a route declaring a
+   * query template (`{?q,page?}`, `{?rest*}`) matches the whole URL, any other
+   * route matches the path alone, so an extra query string (`?v=123`) neither
+   * prevents the match nor ends up in a path variable
+   * @param routeUrl - the route URL
+   * @param finalUrl - the request URL, from `getFinalUrl`
+   * @returns the URL to match
+   */
+  protected getMatchTarget(routeUrl: string, finalUrl: string): string {
+    return routeUrl.includes("{?") ? finalUrl : finalUrl.split("?")[0];
+  }
+
+  /**
    * Get all method for a specific url
    * @param config - the configuration
    * @param method - the HTTP method
@@ -307,10 +320,11 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     for (const i in this.pathMap) {
       const routeUrl = this.pathMap[i].url;
       const map = this.pathMap[i].config;
+      const target = this.getMatchTarget(routeUrl, finalUrl);
 
       if (
-        routeUrl !== finalUrl &&
-        (map._uriTemplateParse === undefined || map._uriTemplateParse.fromUri(finalUrl, { strict: true }) === undefined)
+        routeUrl !== target &&
+        (map._uriTemplateParse === undefined || map._uriTemplateParse.fromUri(target, { strict: true }) === undefined)
       ) {
         continue;
       }
@@ -339,8 +353,9 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         continue;
       }
 
+      const target = this.getMatchTarget(routeUrl, finalUrl);
       // If url is strictly equal
-      if (routeUrl === finalUrl) {
+      if (routeUrl === target) {
         return map;
       }
 
@@ -348,7 +363,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       if (map._uriTemplateParse === undefined) {
         continue;
       }
-      const parse_result = map._uriTemplateParse.fromUri(finalUrl, { strict: true });
+      const parse_result = map._uriTemplateParse.fromUri(target, { strict: true });
       if (parse_result !== undefined) {
         const parseUrl = new URL(`http://localhost${finalUrl}`);
         if (map._queryCatchAll) {

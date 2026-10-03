@@ -1,166 +1,193 @@
 {
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/AMQPPubSub": "lib/pubsub:default",
-    "Webda/AMQPQueue": "lib/queue:default"
-  },
-  "models": {
-    "graph": {},
-    "tree": {},
-    "plurals": {},
-    "list": {},
-    "reflections": {}
-  },
-  "schemas": {
     "Webda/AMQPPubSub": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "channel": {
-          "type": "string"
-        },
-        "subscription": {
-          "type": "string",
-          "default": ""
-        },
-        "exchange": {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "default": "fanout"
+      "Import": "lib/pubsub.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "exchange": {
+            "additionalProperties": false,
+            "properties": {
+              "alternateExchange": {
+                "description": "an exchange to send messages to if this exchange can’t route them to any queues.\n\nSpecific to RabbitMQ",
+                "type": "string"
+              },
+              "arguments": {
+                "description": "any additional arguments that may be needed by an exchange"
+              },
+              "autoDelete": {
+                "default": false,
+                "description": "if true, the exchange will be destroyed once the number of bindings for which it is the source drop to zero.",
+                "type": "boolean"
+              },
+              "durable": {
+                "default": true,
+                "description": "if true, the exchange will survive broker restarts.",
+                "type": "boolean"
+              },
+              "internal": {
+                "default": false,
+                "description": "if true, messages cannot be published directly to the exchange\n(i.e., it can only be the target of bindings, or possibly create messages ex-nihilo).",
+                "type": "boolean"
+              },
+              "type": {
+                "default": "fanout",
+                "type": "string"
+              }
             },
-            "durable": {
-              "type": "boolean",
-              "description": "if true, the exchange will survive broker restarts.",
-              "default": true
-            },
-            "internal": {
-              "type": "boolean",
-              "description": "if true, messages cannot be published directly to the exchange (i.e., it can only be the target of bindings, or possibly create messages ex-nihilo).",
-              "default": false
-            },
-            "autoDelete": {
-              "type": "boolean",
-              "description": "if true, the exchange will be destroyed once the number of bindings for which it is the source drop to zero.",
-              "default": false
-            },
-            "alternateExchange": {
-              "type": "string",
-              "description": "an exchange to send messages to if this exchange can’t route them to any queues.\n\nSpecific to RabbitMQ"
-            },
-            "arguments": {
-              "description": "any additional arguments that may be needed by an exchange"
-            }
+            "type": "object"
           }
         },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
+        "description": "Configuration for {@link AMQPPubSubService}",
+        "properties": {
+          "channel": {
+            "description": "Exchange name to publish to and consume from",
+            "type": "string"
+          },
+          "exchange": {
+            "$ref": "#/definitions/exchange"
+          },
+          "subscription": {
+            "default": "",
+            "description": "Queue name used to subscribe, empty to let the broker generate one",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "description": "AMQP connection url",
+            "example": "amqp://localhost:5672",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "channel",
+          "type",
+          "url"
+        ],
+        "type": "object",
+        "title": "AMQPPubSubService"
       },
-      "required": [
-        "channel",
-        "type",
-        "url"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AMQPPubSubService"
+      "Configuration": "lib/pubsub.service:AMQPPubSubParameters"
     },
     "Webda/AMQPQueue": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "workerDelayer": {
-          "type": "object",
-          "properties": {
-            "interval": {
-              "type": "number",
-              "description": "Interval"
+      "Import": "lib/queue.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "WaitDelayerDefinition": {
+            "additionalProperties": false,
+            "description": "Configuration object for selecting and parameterizing a `WaitDelayer` from the registry.",
+            "properties": {
+              "interval": {
+                "description": "Base interval in milliseconds passed to the delayer factory.",
+                "type": "number"
+              },
+              "type": {
+                "description": "Key identifying the factory in `WaitDelayerFactories.registry` (e.g. `\"linear\"`, `\"exponential\"`).",
+                "type": "string"
+              }
             },
-            "type": {
-              "type": "string",
-              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
-            }
+            "required": [
+              "interval",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "Configuration for {@link AMQPQueue}",
+        "properties": {
+          "maxConsumers": {
+            "default": 10,
+            "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
           },
-          "required": [
-            "interval",
-            "type"
-          ],
-          "description": "Delayer between two failed attempts to process messages"
+          "queue": {
+            "description": "Queue name",
+            "type": "string"
+          },
+          "queueOptions": {
+            "description": "Options passed to assertQueue"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "description": "AMQP connection url",
+            "example": "amqp://localhost:5672",
+            "type": "string"
+          },
+          "workerDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "description": "Delayer between two failed attempts to process messages"
+          },
+          "workerParallelism": {
+            "default": true,
+            "description": "Define if worker should process multi message received in //",
+            "type": "boolean"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
         },
-        "workerParallelism": {
-          "type": "boolean",
-          "description": "Define if worker should process multi message received in //",
-          "default": true
-        },
-        "maxConsumers": {
-          "type": "number",
-          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
-          "default": 10
-        },
-        "queue": {
+        "required": [
+          "queue",
+          "type",
+          "url"
+        ],
+        "type": "object",
+        "title": "AMQPQueue"
+      },
+      "Configuration": "lib/queue.service:AMQPQueueParameters"
+    }
+  },
+  "models": {},
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "challenge": {
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
           "type": "string"
         },
-        "queueOptions": {},
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "maxConsumers",
-        "queue",
-        "type",
-        "url"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AMQPQueue"
-    },
-    "Webda/BinaryFile": {
-      "type": "object",
-      "properties": {
         "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
-        "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
-        },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
         },
         "metadata": {
           "description": "Metadatas stored along with the binary"
         },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
         "originalname": {
-          "type": "string",
-          "description": "Original name"
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
         }
       },
       "required": [
@@ -168,9 +195,10 @@
         "name",
         "size"
       ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
       "title": "BinaryFile"
     }
-  }
+  },
+  "behaviors": {},
+  "sourceDigest": "e0ae809a55ff53610dabe20c85e656bb"
 }

@@ -1,32 +1,43 @@
-import { suite, test } from "@testdeck/mocha";
-import { CancelablePromise, WaitFor, WaitLinearDelay } from "@webda/core";
-import { WebdaSimpleTest } from "@webda/core/lib/test";
+import { suite, test } from "@webda/test";
+import { WebdaApplicationTest } from "@webda/core/lib/test";
+import { CancelablePromise, WaitFor, WaitLinearDelay } from "@webda/utils";
 import * as assert from "assert";
-import * as sinon from "sinon";
-import { AMQPPubSubParameters, AMQPPubSubService } from "./pubsub";
+import { AMQPPubSubParameters, AMQPPubSubService } from "./pubsub.service.js";
 
 @suite
-class AMQPPubSubTest extends WebdaSimpleTest {
+class AMQPPubSubTest extends WebdaApplicationTest {
   pubsub: AMQPPubSubService;
 
-  async before() {
-    await super.before();
-    this.pubsub = await this.addService(AMQPPubSubService, {
-      endpoint: "amqp://localhost:5672",
-      channel: "webda-test-pub",
-      maxConsumers: 1
-    });
+  async beforeEach() {
+    await super.beforeEach();
+    this.pubsub = await this.registerService(
+      new AMQPPubSubService(
+        "AMQPPubSub",
+        new AMQPPubSubParameters().load({
+          url: "amqp://localhost:5672",
+          channel: "webda-test-pub"
+        })
+      )
+    )
+      .resolve()
+      .init();
+  }
+
+  async afterEach() {
+    await this.pubsub?.stop();
+    this.pubsub = undefined;
   }
 
   @test
   async params() {
-    // just for cov
-    const p = new AMQPPubSubParameters({
+    const p = new AMQPPubSubParameters().load({
       exchange: {
         type: "fanout2"
       }
     });
     assert.strictEqual(p.exchange?.type, "fanout2");
+    assert.strictEqual(p.subscription, "");
+    assert.strictEqual(new AMQPPubSubParameters().load().exchange.type, "fanout");
   }
 
   @test
@@ -35,7 +46,7 @@ class AMQPPubSubTest extends WebdaSimpleTest {
     const consumers: CancelablePromise[] = [];
     await new Promise<void>(resolve => {
       consumers.push(
-        this.pubsub.consume(async evt => {
+        this.pubsub.consume(async () => {
           counter++;
           if (counter > 2) {
             throw new Error("Only consume 2");
@@ -44,7 +55,7 @@ class AMQPPubSubTest extends WebdaSimpleTest {
       );
       consumers.push(
         this.pubsub.consume(
-          async evt => {
+          async () => {
             counter++;
           },
           undefined,
@@ -52,6 +63,8 @@ class AMQPPubSubTest extends WebdaSimpleTest {
         )
       );
     });
+    // Cancelling a consumer rejects its promise with "Cancelled"
+    const settled = Promise.allSettled(consumers);
     await this.pubsub.sendMessage("plop");
     await this.pubsub.size();
     await WaitFor(
@@ -84,18 +97,27 @@ class AMQPPubSubTest extends WebdaSimpleTest {
     );
 
     await Promise.all(consumers.map(p => p.cancel()));
-    // Hack our way to test close by server
-    // @ts-ignore
-    const stub = sinon.stub(this.pubsub.channel, "consume").callsFake((ex, call) => {
-      call(null);
-    });
-    // Should reject
-    await assert.rejects(
-      () =>
-        this.pubsub.consume(async evt => {
-          counter++;
-        }),
-      /Cancelled by server/
+    assert.deepStrictEqual(
+      (await settled).map(r => r.status),
+      ["rejected", "rejected"]
     );
+    // Simulate a consumer cancelled by the server: amqplib calls back with null
+    const channel = this.pubsub.channel;
+    const original = channel.consume;
+    channel.consume = (async (_queue, call) => {
+      call(null);
+      return { consumerTag: "" };
+    }) as typeof channel.consume;
+    try {
+      await assert.rejects(
+        () =>
+          this.pubsub.consume(async () => {
+            counter++;
+          }),
+        /Cancelled by server/
+      );
+    } finally {
+      channel.consume = original;
+    }
   }
 }

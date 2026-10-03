@@ -10,5 +10,4 @@ packages:
   - "!packages/elasticsearch"
   - "!packages/otel"
   - "!packages/mongodb"
-  - "!packages/amqp"
   - "!packages/aws"

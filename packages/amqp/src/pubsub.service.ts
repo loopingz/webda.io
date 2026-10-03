@@ -1,14 +1,25 @@
-import { CancelablePromise, JSONUtils, PubSubService, ServiceParameters } from "@webda/core";
+import { PubSubService, ServiceParameters } from "@webda/core";
+import { CancelablePromise, JSONUtils } from "@webda/utils";
 import * as amqplib from "amqplib";
 
+/**
+ * Configuration for {@link AMQPPubSubService}
+ */
 export class AMQPPubSubParameters extends ServiceParameters {
+  /**
+   * AMQP connection url
+   * @example "amqp://localhost:5672"
+   */
   url: string;
+  /**
+   * Exchange name to publish to and consume from
+   */
   channel: string;
   /**
+   * Queue name used to subscribe, empty to let the broker generate one
    * @default ""
-   * @SchemaOptional
    */
-  subscription: string;
+  subscription?: string;
   exchange?: {
     /**
      * @default fanout
@@ -42,15 +53,22 @@ export class AMQPPubSubParameters extends ServiceParameters {
     arguments?: any;
   };
 
-  constructor(params: Partial<AMQPPubSubParameters>) {
-    super(params);
+  /**
+   * @override
+   * @param params - the input parameters
+   * @returns this
+   */
+  load(params: any = {}): this {
+    super.load(params);
     this.exchange ??= {};
     this.exchange.type ??= "fanout";
     this.subscription ??= "";
+    return this;
   }
 }
 
 /**
+ * Pub/sub backed by an AMQP exchange
  *
  * @see https://www.rabbitmq.com/tutorials/tutorial-three-python.html
  * @WebdaModda AMQPPubSub
@@ -60,26 +78,22 @@ export default class AMQPPubSubService<
   K extends AMQPPubSubParameters = AMQPPubSubParameters
 > extends PubSubService<T, K> {
   channel: amqplib.Channel;
-  conn: amqplib.Connection;
-  exchange: any;
+  conn: amqplib.ChannelModel;
+  exchange: amqplib.Replies.AssertExchange;
 
   /**
    * @override
-   */
-  loadParameters(params: any) {
-    return new AMQPPubSubParameters(params);
-  }
-
-  /**
-   * @override
+   * @param event - the event to publish
+   * @param routingKey - the routing key to use
    */
   async sendMessage(event: T, routingKey: string = ""): Promise<void> {
     this.metrics.messages_sent.inc();
-    await this.channel.publish(this.parameters.channel, routingKey, Buffer.from(JSONUtils.stringify(event)));
+    this.channel.publish(this.parameters.channel, routingKey, Buffer.from(JSONUtils.stringify(event)));
   }
 
   /**
    * @override
+   * @returns this service
    */
   async init(): Promise<this> {
     await super.init();
@@ -96,8 +110,24 @@ export default class AMQPPubSubService<
   }
 
   /**
+   * Close the AMQP connection
+   * @override
+   */
+  async stop(): Promise<void> {
+    if (this.conn) {
+      const conn = this.conn;
+      this.conn = undefined;
+      this.channel = undefined;
+      await conn.close().catch(() => {
+        /* already closed */
+      });
+    }
+    await super.stop();
+  }
+
+  /**
    * Return queue size
-   * @returns
+   * @returns the number of messages in the subscription queue
    */
   async size(): Promise<number> {
     return (await this.channel.assertQueue(this.parameters.subscription)).messageCount;
@@ -105,9 +135,11 @@ export default class AMQPPubSubService<
 
   /**
    * Work a queue calling the callback with every Event received
-   * If the callback is called without exception the `deleteMessage` is called
-   * @param callback
-   * @param eventPrototype
+   * If the callback is called without exception the message is acknowledged
+   * @param callback - invoked with each event received
+   * @param eventPrototype - optional class to rehydrate JSON into
+   * @param onBind - invoked once the subscription is bound
+   * @returns a cancelable subscription handle
    */
   consume(
     callback: (event: T) => Promise<void>,
@@ -133,22 +165,20 @@ export default class AMQPPubSubService<
             const end = this.metrics.processing_duration.startTimer();
             try {
               await callback(this.unserialize(msg?.content.toString() || "", eventPrototype));
-              await this.channel.ack(msg);
+              this.channel.ack(msg);
             } catch (err) {
               this.metrics.errors.inc();
-              this.getWebda().log("ERROR", `Message ${msg?.properties?.messageId}`, err);
+              this.log("ERROR", `Message ${msg?.properties?.messageId}`, err);
             } finally {
               end();
             }
           })
         ).consumerTag;
-        if (onBind) {
-          onBind();
-        }
+        onBind?.();
       },
       async () => {
         if (consumerTag) {
-          this.channel.cancel(consumerTag);
+          await this.channel?.cancel(consumerTag);
         }
       }
     );

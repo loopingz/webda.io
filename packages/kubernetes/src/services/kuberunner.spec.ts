@@ -1,26 +1,34 @@
+import { suite, test } from "@webda/test";
+import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import * as assert from "assert";
-import { suite, test } from "@testdeck/mocha";
-import { WebdaTest } from "@webda/core/lib/test";
-import KubeRunner from "./kuberunner";
+import { vi } from "vitest";
 import { AsyncAction } from "@webda/async";
-import { stub } from "sinon";
+import { FAKE_KUBECONFIG } from "../../test/fixture.js";
+import { KubeRunner, KubeRunnerParameters } from "./kuberunner.service.js";
 
 @suite
-class KubeRunnerTest extends WebdaTest {
+class KubeRunnerTest extends WebdaApplicationTest {
+  /**
+   * Create a resolved KubeRunner on a fake cluster
+   * @param params - the runner parameters
+   * @returns the runner
+   */
+  newRunner(params: any): KubeRunner {
+    return new KubeRunner("runner", new KubeRunnerParameters().load({ config: FAKE_KUBECONFIG, ...params })).resolve();
+  }
+
   @test
   cov() {
-    assert.throws(() => new KubeRunner(this.webda, "runner", {}), /Either jobImage or jobResources need/);
+    assert.throws(() => new KubeRunnerParameters().load({}), /Either jobImage or jobResources need/);
   }
 
   @test
   loadResource() {
-    const runner = new KubeRunner(this.webda, "runner", { jobResources: "./test/resource-fake.yml" });
-    runner.resolve();
-
+    const runner = this.newRunner({ jobResources: "./test/resource-fake.yml" });
     assert.deepStrictEqual(runner.getParameters().jobResources, { fake: true });
   }
 
-  getJobInfo(action: AsyncAction) {
+  getJobInfo() {
     return {
       JOB_HOOK: "hook",
       JOB_ID: "uuid",
@@ -31,75 +39,65 @@ class KubeRunnerTest extends WebdaTest {
 
   @test
   async launchAction() {
-    const runner = new KubeRunner(this.webda, "runner", { jobImage: "webda.io/runner" });
-    runner.resolve();
-    const kube = stub(runner.client, "create").returns({
-      // @ts-ignore
-      body: {
-        spec: true,
-        metadata: "fake",
-        apiVersion: "1.0",
-        kind: "Job"
-      }
+    const runner = this.newRunner({ jobImage: "webda.io/runner" });
+    const kube = vi.spyOn(runner.client, "create").mockResolvedValue(<any>{
+      spec: true,
+      metadata: "fake",
+      apiVersion: "1.0",
+      kind: "Job"
     });
-    const action = new AsyncAction();
-    try {
-      let result = await runner.launchAction(action, this.getJobInfo(action));
-      assert.deepStrictEqual(result, {
-        metadata: "fake",
-        apiVersion: "1.0",
-        kind: "Job"
-      });
-      const envs = [
-        { name: "JOB_HOOK", value: "hook" },
-        { name: "JOB_ID", value: "uuid" },
-        { name: "JOB_ORCHESTRATOR", value: "test" },
-        { name: "JOB_SECRET_KEY", value: "mykey" }
-      ];
-      // @ts-ignore
-      assert.deepStrictEqual(kube.getCall(0).args[0].spec.template.spec.containers[0].env, envs);
-      kube.resetHistory();
-      runner.getParameters().jobResources = {
-        spec: {
-          template: {
-            spec: {
-              containers: [
-                {},
-                {
-                  env: [
-                    {
-                      name: "TEST",
-                      value: "test"
-                    }
-                  ]
-                }
-              ]
-            }
+    const action = new AsyncAction({ uuid: "uuid" });
+    let result = await runner.launchAction(action, this.getJobInfo());
+    assert.deepStrictEqual(result, {
+      metadata: "fake",
+      apiVersion: "1.0",
+      kind: "Job"
+    });
+    const envs = [
+      { name: "JOB_HOOK", value: "hook" },
+      { name: "JOB_ID", value: "uuid" },
+      { name: "JOB_ORCHESTRATOR", value: "test" },
+      { name: "JOB_SECRET_KEY", value: "mykey" }
+    ];
+    let job: any = kube.mock.calls[0][0];
+    assert.strictEqual(job.metadata.name, "runner-uuid");
+    assert.strictEqual(job.spec.template.spec.containers[0].image, "webda.io/runner");
+    assert.deepStrictEqual(job.spec.template.spec.containers[0].env, envs);
+    kube.mockClear();
+    runner.getParameters().jobResources = {
+      spec: {
+        template: {
+          spec: {
+            containers: [
+              {},
+              {
+                env: [
+                  {
+                    name: "TEST",
+                    value: "test"
+                  }
+                ]
+              }
+            ]
           }
         }
-      };
-      result = await runner.launchAction(action, this.getJobInfo(action));
-      // @ts-ignore
-      assert.deepStrictEqual(kube.getCall(0).args[0].spec.template.spec.containers[0].env, envs);
-      // @ts-ignore
-      assert.deepStrictEqual(kube.getCall(0).args[0].spec.template.spec.containers[1].env, [
-        {
-          name: "TEST",
-          value: "test"
-        },
-        ...envs
-      ]);
-      // COV parts
-      runner.getParameters().jobResources = {};
-      await runner.launchAction(action, this.getJobInfo(action));
-      runner.getParameters().jobResources = { spec: {} };
-      await runner.launchAction(action, this.getJobInfo(action));
-      runner.getParameters().jobResources = { spec: { template: {} } };
-      await runner.launchAction(action, this.getJobInfo(action));
-      runner.getParameters().jobResources = { spec: { template: { spec: {} } } };
-      await runner.launchAction(action, this.getJobInfo(action));
-    } finally {
-      kube.restore();
+      }
+    };
+    result = await runner.launchAction(action, this.getJobInfo());
+    job = kube.mock.calls[0][0];
+    assert.deepStrictEqual(job.spec.template.spec.containers[0].env, envs);
+    assert.deepStrictEqual(job.spec.template.spec.containers[1].env, [
+      {
+        name: "TEST",
+        value: "test"
+      },
+      ...envs
+    ]);
+    // COV parts
+    for (const jobResources of [{}, { spec: {} }, { spec: { template: {} } }, { spec: { template: { spec: {} } } }]) {
+      runner.getParameters().jobResources = jobResources;
+      await runner.launchAction(action, this.getJobInfo());
     }
+    assert.strictEqual(kube.mock.calls.length, 5);
   }
 }

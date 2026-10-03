@@ -1,46 +1,208 @@
 {
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/KubeRunner": "lib/services/kuberunner:default"
+    "Webda/KubeRunner": {
+      "Import": "lib/services/kuberunner.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Cluster": {
+            "additionalProperties": false,
+            "properties": {
+              "caFile": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "Context": {
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "K8sConfiguration": {
+            "additionalProperties": false,
+            "description": "Kubernetes configuration as found in a kubeconfig file",
+            "properties": {
+              "clusters": {
+                "items": {
+                  "$ref": "#/definitions/Cluster"
+                },
+                "type": "array"
+              },
+              "contexts": {
+                "items": {
+                  "$ref": "#/definitions/Context"
+                },
+                "type": "array"
+              },
+              "currentContext": {
+                "type": "string"
+              },
+              "users": {
+                "items": {
+                  "$ref": "#/definitions/User"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "clusters",
+              "contexts",
+              "currentContext",
+              "users"
+            ],
+            "type": "object"
+          },
+          "User": {
+            "additionalProperties": false,
+            "properties": {
+              "certFile": {
+                "type": "string"
+              },
+              "keyFile": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Parameters for the KubeRunner",
+        "properties": {
+          "actions": {
+            "default": [],
+            "description": "Actions managed by the runner",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/definitions/K8sConfiguration"
+              }
+            ],
+            "description": "Kubernetes configuration"
+          },
+          "context": {
+            "description": "Default context to use",
+            "type": "string"
+          },
+          "jobImage": {
+            "description": "If default template, use this image",
+            "type": "string"
+          },
+          "jobResources": {
+            "description": "Kubernetes resources to use"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "KubeRunner"
+      },
+      "Configuration": "lib/services/kuberunner.service:KubeRunnerParameters"
+    },
+    "Webda/KubernetesCronExporter": {
+      "Import": "lib/services/cronexporter.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Interface to specify the Service parameters",
+        "properties": {
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "KubernetesCronExporter"
+      },
+      "Configuration": "node_modules/@webda/core/lib/services/serviceparameters:ServiceParameters",
+      "commands": {
+        "kubernetes cronExport": {
+          "description": "Export all application Cron as template",
+          "method": "cronExport",
+          "args": {
+            "template": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string",
+              "default": "./crons"
+            },
+            "filenameTemplate": {
+              "type": "string",
+              "default": "${serviceName.toLowerCase()}.${method.toLowerCase()}-${cronId}.${ext}"
+            },
+            "image": {
+              "type": "string"
+            }
+          },
+          "requires": [
+            "kubernetes-cron-export"
+          ],
+          "phase": "resolved"
+        }
+      }
+    }
   },
-  "models": {
-    "graph": {},
-    "tree": {},
-    "plurals": {},
-    "list": {},
-    "reflections": {}
-  },
+  "models": {},
   "schemas": {
     "Webda/BinaryFile": {
-      "type": "object",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
       "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
         "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
         },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
         },
         "metadata": {
           "description": "Metadatas stored along with the binary"
         },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
         "originalname": {
-          "type": "string",
-          "description": "Original name"
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
         }
       },
       "required": [
@@ -48,166 +210,13 @@
         "name",
         "size"
       ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BinaryFile"
-    },
-    "Webda/KubeRunner": {
       "type": "object",
-      "properties": {
-        "config": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "clusters": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "caData": {
-                        "type": "string"
-                      },
-                      "caFile": {
-                        "type": "string"
-                      },
-                      "server": {
-                        "type": "string"
-                      },
-                      "skipTLSVerify": {
-                        "type": "boolean"
-                      },
-                      "tlsServerName": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "name",
-                      "server"
-                    ]
-                  }
-                },
-                "contexts": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "cluster": {
-                        "type": "string"
-                      },
-                      "user": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "namespace": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "cluster",
-                      "user",
-                      "name"
-                    ]
-                  }
-                },
-                "currentContext": {
-                  "type": "string"
-                },
-                "users": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "certData": {
-                        "type": "string"
-                      },
-                      "certFile": {
-                        "type": "string"
-                      },
-                      "exec": {},
-                      "keyData": {
-                        "type": "string"
-                      },
-                      "keyFile": {
-                        "type": "string"
-                      },
-                      "authProvider": {},
-                      "token": {
-                        "type": "string"
-                      },
-                      "username": {
-                        "type": "string"
-                      },
-                      "password": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "name"
-                    ]
-                  }
-                }
-              },
-              "required": [
-                "clusters",
-                "contexts",
-                "currentContext",
-                "users"
-              ]
-            }
-          ],
-          "description": "Kubernetes configuration"
-        },
-        "context": {
-          "type": "string",
-          "description": "Default context to use"
-        },
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "actions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Actions managed by the runner",
-          "default": []
-        },
-        "jobResources": {
-          "description": "Kubernetes resources to use"
-        },
-        "jobImage": {
-          "type": "string",
-          "description": "If default template, use this image"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "config",
-        "type"
-      ],
-      "description": "Parameters for the KubeRunner",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "KubeRunner"
+      "title": "BinaryFile"
     }
-  }
+  },
+  "behaviors": {},
+  "capabilities": {
+    "kubernetes-cron-export": "Webda/KubernetesCronExporter"
+  },
+  "sourceDigest": "0d917509f802a2178ea36a2418100f60"
 }

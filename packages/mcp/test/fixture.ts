@@ -18,6 +18,10 @@ export const fixtureGate = {
 
 /** Sentinel model "class" used by the Thing resource operations */
 export const ThingModel = { name: "Thing" };
+/** Sentinel model "class" for a second resource model */
+export const GadgetModel = { name: "Gadget" };
+/** Sentinel model "class" for a resource model whose Query fails */
+export const BrokenModel = { name: "Broken" };
 
 const THINGS: Record<string, { slug: string; label: string }> = {
   alpha: { slug: "alpha", label: "First" },
@@ -110,6 +114,13 @@ export class McpFixtureService extends Service {
       throw new WebdaError.NotFound("Thing not found");
     }
     return THINGS[slug];
+  }
+
+  /**
+   * @returns never, throws a plain error
+   */
+  brokenQuery(): never {
+    throw new Error("db password");
   }
 
   /**

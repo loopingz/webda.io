@@ -1,9 +1,9 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Session, useApplication, useInstanceStorage } from "@webda/core";
+import { registerOperation, Session, useApplication, useInstanceStorage } from "@webda/core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { McpFixtureTest, registerFixture } from "../test/fixture.js";
+import { BrokenModel, GadgetModel, McpFixtureTest, registerFixture } from "../test/fixture.js";
 import { createMcpServer } from "./server.js";
 import { ToolRegistry } from "./tools.js";
 import { ResourceRegistry } from "./resources.js";
@@ -101,5 +101,90 @@ class McpServerTest extends McpFixtureTest {
       cursor = page.nextCursor;
     } while (cursor);
     assert.deepStrictEqual(uris, ["webda://Thing/alpha", "webda://Thing/a%2Fb%20c", "webda://Thing/beta"]);
+  }
+
+  @test
+  async paginatesTools() {
+    for (let i = 0; i < 105; i++) {
+      registerOperation(`Bulk.Op${i}`, { service: "Fixture", method: "version", input: "void", output: "void" });
+    }
+    const client = await this.connect();
+    const first = await client.listTools();
+    assert.strictEqual(first.tools.length, 100);
+    assert.ok(first.nextCursor);
+    const names = first.tools.map(t => t.name);
+    let cursor = first.nextCursor;
+    while (cursor) {
+      const page = await client.listTools({ cursor });
+      names.push(...page.tools.map(t => t.name));
+      cursor = page.nextCursor;
+    }
+    assert.strictEqual(new Set(names).size, names.length);
+    for (let i = 0; i < 105; i++) {
+      assert.ok(names.includes(`Bulk.Op${i}`));
+    }
+  }
+
+  @test
+  async streamingWithoutProgressToken() {
+    const client = await this.connect();
+    const result = await client.callTool({ name: "Fixture.Count", arguments: { n: 3 } });
+    assert.notStrictEqual(result.isError, true);
+    assert.strictEqual(JSON.parse((result.content[0] as any).text).items.length, 3);
+  }
+
+  @test
+  async skipsModelsWhoseQueryIsForbidden() {
+    registerFixture();
+    const op = (id: string, method: string, extra: any = {}) =>
+      registerOperation(id, { service: "Fixture", method, input: "searchRequest", output: "void", ...extra });
+    op("Gadget.Get", "getThing", { input: "Thing.primaryKey", context: { model: GadgetModel, pkFields: ["slug"] } });
+    op("Gadgets.Query", "queryThings", { permission: "userId = 'alice'", context: { model: GadgetModel } });
+    const list = async (user?: string) => {
+      const client = await this.connect(user);
+      const uris: string[] = [];
+      let cursor: string | undefined;
+      do {
+        const page = await client.listResources(cursor ? { cursor } : {});
+        uris.push(...page.resources.map(r => r.uri));
+        cursor = page.nextCursor;
+      } while (cursor);
+      return uris;
+    };
+    assert.ok(!(await list()).some(u => u.startsWith("webda://Gadget/")));
+    assert.ok((await list("alice")).some(u => u.startsWith("webda://Gadget/")));
+  }
+
+  @test
+  async masksFailingQuery() {
+    registerFixture();
+    registerOperation("Broken.Get", {
+      service: "Fixture",
+      method: "getThing",
+      input: "Thing.primaryKey",
+      output: "void",
+      context: { model: BrokenModel, pkFields: ["slug"] }
+    });
+    registerOperation("Brokens.Query", {
+      service: "Fixture",
+      method: "brokenQuery",
+      input: "searchRequest",
+      output: "void",
+      context: { model: BrokenModel }
+    });
+    const client = await this.connect();
+    let cursor: string | undefined;
+    let error: Error | undefined;
+    try {
+      do {
+        const page = await client.listResources(cursor ? { cursor } : {});
+        cursor = page.nextCursor;
+      } while (cursor);
+    } catch (err) {
+      error = err as Error;
+    }
+    assert.ok(error);
+    assert.match(error.message, /Internal error/);
+    assert.ok(!/db password/.test(error.message));
   }
 }

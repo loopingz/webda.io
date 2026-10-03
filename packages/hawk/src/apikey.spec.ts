@@ -1,8 +1,9 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import { WebContext, WebdaError } from "@webda/core";
-import { WebdaSimpleTest } from "@webda/core/lib/test";
+import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
+import { TestApplication } from "@webda/core/lib/test/objects.js";
 import * as assert from "assert";
-import { ApiKey } from "./apikey";
+import { ApiKey } from "./apikey.model.js";
 const KEY = {
   __secret: "the-secret",
   algorithm: "sha256",
@@ -12,13 +13,25 @@ const KEY = {
 };
 
 @suite
-class ApiKeyTest extends WebdaSimpleTest {
+class ApiKeyTest extends WebdaApplicationTest {
   context: WebContext;
   apikey: ApiKey;
 
-  async before() {
-    await super.before();
+  /**
+   * Register the hawk model from sources
+   * @param app - the test application
+   */
+  async tweakApp(app: TestApplication) {
+    await super.tweakApp(app);
+    // Use the sources class with the compiled metadata
+    app.addModel("Webda/ApiKey", ApiKey, app.getModel("Webda/ApiKey").Metadata);
+    ApiKey.registerSerializer(true, "Webda/ApiKey");
+  }
+
+  async beforeEach() {
+    await super.beforeEach();
     this.context = <WebContext>await this.newContext();
+    await this.context.newSession();
     this.apikey = new ApiKey();
   }
 
@@ -103,11 +116,11 @@ class ApiKeyTest extends WebdaSimpleTest {
   async canAct() {
     const key = new ApiKey();
     key.uuid = "origins";
-    await assert.rejects(() => key.checkAct(this.context, "get"), WebdaError.Forbidden);
+    assert.strictEqual(typeof (await key.canAct(this.context, "get")), "string");
     // By default key should be on a owner model
     key.uuid = "other";
     this.context.getSession().login("me", "test");
-    await assert.rejects(() => key.checkAct(this.context, "get"), WebdaError.Forbidden);
+    assert.strictEqual(typeof (await key.canAct(this.context, "get")), "string");
     key.setOwner("me");
     assert.strictEqual(await key.canAct(this.context, "get"), true);
     await key.canAct(this.context, "create");

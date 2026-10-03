@@ -1,182 +1,373 @@
 {
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/Hawk": "lib/hawk:default"
-  },
-  "models": {
-    "graph": {
-      "Webda/ApiKey": {
-        "links": [
-          {
-            "attribute": "_user",
-            "model": "Webda/User",
-            "type": "LINK"
+    "Webda/Hawk": {
+      "Import": "lib/hawk.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Hawk service parameters",
+        "properties": {
+          "dynamicSessionKey": {
+            "description": "If specified will verify the signature match the key store in session",
+            "type": "string"
+          },
+          "keyModel": {
+            "description": "Key model",
+            "type": "string"
+          },
+          "redirectUris": {
+            "description": "Allowed redirection with CSRF",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "redirectUrl": {
+            "description": "redirect endpoint",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
           }
-        ]
-      }
-    },
-    "tree": {
-      "Webda/UuidModel": {
-        "Webda/OwnerModel": {
-          "Webda/ApiKey": {}
-        }
-      }
-    },
-    "plurals": {},
-    "list": {
-      "Webda/ApiKey": "lib/apikey:default"
-    },
-    "reflections": {
-      "Webda/ApiKey": {
-        "name": "string",
-        "permissions": "{\n    GET: string[];\n    PUT: string[];\n    DELETE: string[];\n    POST: string[];\n  }",
-        "algorithm": "string",
-        "__secret": "string",
-        "__checker": "(address: string) => boolean",
-        "origins": "string[]",
-        "whitelist": "string[]",
-        "_user": "ModelLink<User>",
-        "public": "boolean",
-        "uuid": "string",
-        "__class": "CoreModelDefinition<this>",
-        "__type": "string",
-        "__types": "string[]",
-        "__ctx": "OperationContext",
-        "__store": "Store<this>",
-        "__dirty": "Set<string | symbol>",
-        "_creationDate": "Date",
-        "_lastUpdate": "Date",
-        "__deleted": "boolean"
-      }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "HawkService"
+      },
+      "Configuration": "lib/hawk.service:HawkServiceParameters",
+      "capabilities": [
+        "cors-filter",
+        "request-filter"
+      ]
     }
   },
-  "schemas": {
+  "models": {
     "Webda/ApiKey": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "uuid": {
-          "type": "string",
-          "description": "UUID of the object"
-        },
-        "_user": {
-          "type": "string",
-          "readOnly": true
-        },
-        "public": {
-          "type": "boolean",
-          "description": "Define if the object is publicly readable",
-          "default": false
-        },
+      "Plural": "ApiKeys",
+      "Import": "lib/apikey.model:default",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
         "name": {
-          "type": "string",
-          "description": "Friendly user name of the key"
+          "type": "string"
         },
         "permissions": {
-          "type": "object",
+          "type": "{\n    GET: string[];\n    PUT: string[];\n    DELETE: string[];\n    POST: string[];\n  }"
+        },
+        "algorithm": {
+          "type": "string"
+        },
+        "__secret": {
+          "type": "string"
+        },
+        "origins": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "whitelist": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "public": {
+          "type": "boolean"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "permissions": {
+              "additionalProperties": false,
+              "description": "Retriction on URL to apply to the key\n\nSplit per method, each item of the array contains\na regexp to validate the url used",
+              "properties": {
+                "DELETE": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "GET": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "POST": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "PUT": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "DELETE",
+                "GET",
+                "POST",
+                "PUT"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "Api Key to use with hawk",
           "properties": {
-            "GET": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+            "__secret": {
+              "description": "Secret that will stay within server",
+              "type": "string"
             },
-            "PUT": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+            "_user": {
+              "description": "Default owner of the object",
+              "type": "string"
             },
-            "DELETE": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+            "algorithm": {
+              "default": "sha256",
+              "description": "Algorithm to use with hawk",
+              "type": "string"
             },
-            "POST": {
-              "type": "array",
+            "name": {
+              "description": "Friendly user name of the key",
+              "type": "string"
+            },
+            "origins": {
+              "description": "Authorize those origins only (regexp)",
               "items": {
                 "type": "string"
-              }
+              },
+              "type": "array"
+            },
+            "permissions": {
+              "$ref": "#/definitions/permissions",
+              "description": "Retriction on URL to apply to the key\n\nSplit per method, each item of the array contains\na regexp to validate the url used"
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            },
+            "whitelist": {
+              "description": "If defined the key is only usable from these ips\n\nSupport of DNS is not yet ready",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
             }
           },
           "required": [
-            "GET",
-            "PUT",
-            "DELETE",
-            "POST"
+            "__secret",
+            "_user",
+            "name",
+            "uuid"
           ],
-          "description": "Retriction on URL to apply to the key\n\nSplit per method, each item of the array contains a regexp to validate the url used"
+          "type": "object",
+          "$webda": "toDto$auto"
         },
-        "algorithm": {
-          "type": "string",
-          "description": "Algorithm to use with hawk"
-        },
-        "origins": {
-          "type": "array",
-          "items": {
-            "type": "string"
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "permissions": {
+              "additionalProperties": false,
+              "description": "Retriction on URL to apply to the key\n\nSplit per method, each item of the array contains\na regexp to validate the url used",
+              "properties": {
+                "DELETE": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "GET": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "POST": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "PUT": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "DELETE",
+                "GET",
+                "POST",
+                "PUT"
+              ],
+              "type": "object"
+            }
           },
-          "description": "Authorize those origins only (regexp)"
-        },
-        "whitelist": {
-          "type": "array",
-          "items": {
-            "type": "string"
+          "description": "Api Key to use with hawk",
+          "properties": {
+            "__secret": {
+              "description": "Secret that will stay within server",
+              "type": "string"
+            },
+            "_user": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {},
+                {
+                  "allOf": [
+                    {
+                      "additionalProperties": false,
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "type": "object"
+                    }
+                  ],
+                  "description": "Get the primary key type of the object\n\nThe main difference with the PrimaryKey<T> type is that if the primary key is a not union type, it will\nbe returned as a single type, otherwise it will be returned as a Pick type\n\nThe PrimaryKey<T> will always return a Pick type"
+                }
+              ],
+              "description": "Default owner of the object"
+            },
+            "algorithm": {
+              "default": "sha256",
+              "description": "Algorithm to use with hawk",
+              "type": "string"
+            },
+            "name": {
+              "description": "Friendly user name of the key",
+              "type": "string"
+            },
+            "origins": {
+              "description": "Authorize those origins only (regexp)",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "permissions": {
+              "$ref": "#/definitions/permissions",
+              "description": "Retriction on URL to apply to the key\n\nSplit per method, each item of the array contains\na regexp to validate the url used"
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            },
+            "whitelist": {
+              "description": "If defined the key is only usable from these ips\n\nSupport of DNS is not yet ready",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
           },
-          "description": "If defined the key is only usable from these ips\n\nSupport of DNS is not yet ready"
+          "required": [
+            "__secret",
+            "_user",
+            "name",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "toJSON$return"
         }
       },
-      "required": [
-        "algorithm",
-        "name",
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
         "uuid"
       ],
-      "description": "Api Key to use with hawk",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ApiKey"
-    },
+      "Identifier": "Webda/ApiKey"
+    }
+  },
+  "schemas": {
     "Webda/BinaryFile": {
-      "type": "object",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
       "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
         "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
         },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
         },
         "metadata": {
           "description": "Metadatas stored along with the binary"
         },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
         "originalname": {
-          "type": "string",
-          "description": "Original name"
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
         }
       },
       "required": [
@@ -184,50 +375,10 @@
         "name",
         "size"
       ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BinaryFile"
-    },
-    "Webda/Hawk": {
       "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "keyModel": {
-          "type": "string",
-          "description": "Key model"
-        },
-        "dynamicSessionKey": {
-          "type": "string",
-          "description": "If specified will verify the signature match the key store in session"
-        },
-        "redirectUrl": {
-          "type": "string",
-          "description": "redirect endpoint"
-        },
-        "redirectUris": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Allowed redirection with CSRF"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "HawkService"
+      "title": "BinaryFile"
     }
-  }
+  },
+  "behaviors": {},
+  "sourceDigest": "8b299c761a865c76971ec3b1e8e3b44d"
 }

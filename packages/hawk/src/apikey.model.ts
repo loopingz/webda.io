@@ -1,7 +1,12 @@
-import { Core, HttpContext, NotEnumerable, OperationContext, OwnerModel, WebContext, WebdaError } from "@webda/core";
+import { HttpContext, IOperationContext, OwnerModel, WebContext, WebdaError, useRegistry } from "@webda/core";
 import { createChecker } from "is-in-subnet";
-import HawkService, { HawkCredentials } from "./hawk";
+import { HawkService, type HawkCredentials } from "./hawk.service.js";
 import { randomBytes } from "node:crypto";
+
+/**
+ * Subnet checkers per key, kept out of the model attributes
+ */
+const checkers = new WeakMap<ApiKey, (address: string) => boolean>();
 
 /**
  * Api Key to use with hawk
@@ -9,6 +14,15 @@ import { randomBytes } from "node:crypto";
  * @WebdaModel
  */
 export default class ApiKey extends OwnerModel {
+  /**
+   * Create a new ApiKey
+   * @param data - initial data
+   */
+  constructor(data?: Partial<ApiKey>) {
+    super();
+    Object.assign(this, data);
+  }
+
   /**
    * Friendly user name of the key
    */
@@ -34,12 +48,6 @@ export default class ApiKey extends OwnerModel {
    */
   __secret: string;
   /**
-   * Subnet checker if needed
-   */
-  @NotEnumerable
-  __checker: (address: string) => boolean;
-
-  /**
    * Authorize those origins only (regexp)
    */
   origins?: string[];
@@ -53,7 +61,7 @@ export default class ApiKey extends OwnerModel {
 
   /**
    * Formatting structure needed for Hawk credentials
-   * @returns {id,key,algorithm}
+   * @returns the hawk credentials {id,key,algorithm}
    */
   toHawkCredentials(): HawkCredentials {
     return {
@@ -65,7 +73,7 @@ export default class ApiKey extends OwnerModel {
 
   /**
    * Generate secret for key
-   * @returns
+   * @returns the secret
    */
   generateSecret(): string {
     const secret = this["secret"] || randomBytes(64).toString("base64").replace(/=/g, "");
@@ -75,8 +83,11 @@ export default class ApiKey extends OwnerModel {
 
   /**
    * @override
+   * @param ctx - the operation context
+   * @param action - the action
+   * @returns true or the reason of refusal
    */
-  async canAct(ctx: OperationContext<any, any>, action: string): Promise<string | boolean> {
+  async canAct(ctx: IOperationContext, action: string): Promise<string | boolean> {
     // Add secret generation if not provided by input
     if (action === "create" && this.uuid !== "origins") {
       this.__secret ??= this.generateSecret();
@@ -89,8 +100,8 @@ export default class ApiKey extends OwnerModel {
 
   /**
    * Check origin masks, and returns TRUE when at least one pattern is matching to this context's origin
-   * @param {HttpContext} ctx
-   * @returns {boolean} TRUE if this origin is authorized with the current key
+   * @param ctx - the http context
+   * @returns TRUE if this origin is authorized with the current key
    */
   checkOrigin(ctx: HttpContext): boolean {
     const origin = ctx.getUniqueHeader("origin", "");
@@ -113,8 +124,8 @@ export default class ApiKey extends OwnerModel {
 
   /**
    * Authorize access depending origin, method and permissions allowed
-   * @param {HttpContext} ctx
-   * @returns {boolean} TRUE if all key's contraints are authorized
+   * @param context - the request context
+   * @returns TRUE if all key's contraints are authorized
    */
   canRequest(context: WebContext): boolean {
     const ctx = context.getHttpContext();
@@ -123,8 +134,10 @@ export default class ApiKey extends OwnerModel {
     }
     // Check ip whitelist
     if (this.whitelist) {
-      this.__checker ??= createChecker(this.whitelist.map(c => (c.indexOf("/") < 0 ? `${c}/32` : c)));
-      if (!this.__checker(ctx.getClientIp())) {
+      if (!checkers.has(this)) {
+        checkers.set(this, createChecker(this.whitelist.map(c => (c.indexOf("/") < 0 ? `${c}/32` : c))));
+      }
+      if (!checkers.get(this)(ctx.getClientIp())) {
         return false;
       }
     }
@@ -151,31 +164,15 @@ export default class ApiKey extends OwnerModel {
    */
   async updateOrigins() {
     if (this.origins !== undefined && this.origins.length > 0) {
-      const updates: any = {
-        uuid: HawkService.RegistryEntry
-      };
-      updates[`key_${this.uuid}`] = {
-        statics: this.origins.filter((l: string) => !l.startsWith("regexp://")),
-        patterns: this.origins.filter((l: string) => l.startsWith("regexp://")).map((l: string) => l.substring(9))
-      };
-      await Core.get().getRegistry().patch(updates);
-    } else {
-      await Core.get().getRegistry().removeAttribute(HawkService.RegistryEntry, `key_${this.uuid}`);
+      await useRegistry().put(HawkService.RegistryEntry, {
+        [`key_${this.uuid}`]: {
+          statics: this.origins.filter((l: string) => !l.startsWith("regexp://")),
+          patterns: this.origins.filter((l: string) => l.startsWith("regexp://")).map((l: string) => l.substring(9))
+        }
+      });
+    } else if (await useRegistry().exists(HawkService.RegistryEntry)) {
+      await useRegistry().removeAttribute(HawkService.RegistryEntry, `key_${this.uuid}`);
     }
-  }
-
-  /**
-   * @override
-   */
-  async _onSaved() {
-    await this.updateOrigins();
-  }
-
-  /**
-   * @override
-   */
-  async _onUpdated() {
-    return this._onSaved();
   }
 }
 

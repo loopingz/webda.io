@@ -66,7 +66,7 @@
           },
           "maxSessions": {
             "default": 1000,
-            "description": "Maximum number of concurrent MCP HTTP sessions",
+            "description": "Maximum number of concurrent MCP HTTP sessions; at the limit the least\nrecently used session is closed to make room for a new one",
             "type": "number"
           },
           "operations": {
@@ -208,5 +208,5 @@
   "capabilities": {
     "mcp": "Webda/McpService"
   },
-  "sourceDigest": "bc80919162a9c83f61aafb8be281271c"
+  "sourceDigest": "357063e1aa5b9792ec0af95d7270db96"
 }

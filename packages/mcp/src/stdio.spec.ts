@@ -7,7 +7,8 @@ import { useService } from "@webda/core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { FIXTURE_SERVICES, McpFixtureTest, registerFixture } from "../test/fixture.js";
-import { McpService } from "./mcpservice.service.js";
+import { McpService, reserveStdout } from "./mcpservice.service.js";
+import { PassThrough } from "node:stream";
 
 @suite
 class McpStdioTest extends McpFixtureTest {
@@ -83,5 +84,23 @@ class McpStdioTest extends McpFixtureTest {
     const command = mod.moddas["Webda/McpService"]?.commands?.mcp;
     assert.ok(command, "Webda/McpService is missing its mcp command — run `pnpm run build` first");
     assert.ok(command.args?.user !== undefined, "mcp command must accept --user");
+  }
+
+  @test
+  async reserveStdoutSendsEverythingElseToStderr() {
+    const stdout = new PassThrough();
+    const stderr = new PassThrough();
+    const read = (stream: PassThrough) => stream.read()?.toString() ?? "";
+    const { protocol, restore } = reserveStdout(stdout, stderr);
+    try {
+      stdout.write("a log line\n");
+      await new Promise<void>((resolve, reject) => protocol.write('{"jsonrpc":"2.0"}\n', err => (err ? reject(err) : resolve())));
+      assert.strictEqual(read(stdout), '{"jsonrpc":"2.0"}\n');
+      assert.strictEqual(read(stderr), "a log line\n");
+    } finally {
+      restore();
+    }
+    stdout.write("after\n");
+    assert.strictEqual(read(stdout), "after\n");
   }
 }

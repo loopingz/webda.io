@@ -125,4 +125,24 @@ class InvokeTest extends McpFixtureTest {
       content: [{ type: "text", text: "Cancelled" }]
     });
   }
+
+  @test
+  async alreadyAbortedSignalIsCancelled() {
+    registerFixture();
+    const controller = new AbortController();
+    controller.abort();
+    await assert.rejects(
+      runOperation("Fixture.Echo", { session: new Session(), input: { text: "hi" }, signal: controller.signal }),
+      CancelledError
+    );
+  }
+
+  @test
+  toolResultTruncationKeepsUtf8Valid() {
+    // {"text":"é...: the cut at an odd byte count falls inside a two-byte character
+    const result = toToolResult(echoEntry(), { text: "é".repeat(50) }, false, 10);
+    const text = (result.content[0] as any).text as string;
+    assert.ok(!text.includes("\uFFFD"));
+    assert.ok(text.includes("[output truncated:"));
+  }
 }

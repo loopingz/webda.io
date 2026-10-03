@@ -96,6 +96,9 @@ export function sessionContext(session: Session): SimpleOperationContext {
  * @returns the parsed result, or the chunks when the operation streamed
  */
 export async function runOperation(operationId: string, options: RunOptions): Promise<{ value: unknown; streamed: boolean }> {
+  if (options.signal?.aborted) {
+    throw new CancelledError();
+  }
   const ctx = new McpOperationContext();
   await ctx.init();
   ctx.setSession(options.session);
@@ -136,12 +139,18 @@ export function toToolResult(entry: ToolEntry, value: unknown, streamed: boolean
   }
   const text = structured === undefined ? "" : JSON.stringify(structured);
   if (Buffer.byteLength(text) > maxOutputBytes) {
+    // Back off to a valid UTF-8 boundary so a cut multibyte character is dropped, not replaced
+    let end = Math.min(maxOutputBytes, Buffer.byteLength(text));
+    const bytes = Buffer.from(text);
+    while (end > 0 && end < bytes.length && (bytes[end] & 0xc0) === 0x80) {
+      end--;
+    }
     return {
       isError: true,
       content: [
         {
           type: "text",
-          text: `${Buffer.from(text).subarray(0, maxOutputBytes).toString()}\n[output truncated: ${Buffer.byteLength(text)} bytes exceeds maxOutputBytes ${maxOutputBytes}]`
+          text: `${bytes.subarray(0, end).toString()}\n[output truncated: ${Buffer.byteLength(text)} bytes exceeds maxOutputBytes ${maxOutputBytes}]`
         }
       ]
     };

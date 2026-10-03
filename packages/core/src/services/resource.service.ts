@@ -65,9 +65,22 @@ export class ResourceServiceParameters extends ServiceParameters {
   /** Create a new ResourceServiceParameters
    * @param params - the raw parameters
    */
-  constructor(params: any) {
+  constructor(params?: any) {
     super();
-    Object.assign(this, params);
+    if (params) {
+      this.load(params);
+    }
+  }
+
+  /**
+   * Load parameters, applying defaults and normalizing `url` and `folder`.
+   * The application builds parameters as `new Parameters().load(config)`, so
+   * this has to happen here rather than in the constructor.
+   * @param params - the raw parameters
+   * @returns this for chaining
+   */
+  load(params: any = {}): this {
+    super.load(params);
     this.url ??= "resources";
     this.cacheControl ??= "public, max-age=31536000";
     this.indexCacheControl ??= "no-cache, no-store, must-revalidate";
@@ -85,6 +98,7 @@ export class ResourceServiceParameters extends ServiceParameters {
     this.index ??= "index.html";
     this.indexFallback ??= true;
     this.allowHiddenFiles ??= false;
+    return this;
   }
 }
 
@@ -127,6 +141,23 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
    */
   async init(): Promise<this> {
     await super.init();
+    // A folder is served at `url` with its trailing slash; send the bare URL
+    // there, where relative links in the index (`app.js`) resolve inside it
+    if (!this.fileOnly && this.parameters.url !== "/") {
+      this.addRoute(this.parameters.url.slice(0, -1), ["GET"], this._redirectToFolder, {
+        hidden: true,
+        get: {
+          description: "Redirect to the exposed folder with its trailing slash",
+          summary: "Redirect to resources",
+          operationId: "redirectToResources",
+          responses: {
+            "302": {
+              description: ""
+            }
+          }
+        }
+      });
+    }
     if (this.parameters.rootRedirect) {
       this.addRoute("/", ["GET"], this._redirect, {
         hidden: true,
@@ -153,6 +184,16 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
   _redirect(ctx: IWebContext) {
     ctx.setHeader("cache-control", this.parameters.cacheControl);
     ctx.redirect(ctx.getHttpContext().getAbsoluteUrl(this.parameters.url));
+  }
+
+  /**
+   * Handle the folder URL without its trailing slash
+   *
+   * @param ctx - the operation context
+   */
+  _redirectToFolder(ctx: IWebContext) {
+    const http = ctx.getHttpContext();
+    ctx.redirect(http.getAbsoluteUrl(this.parameters.url + http.getSearch()));
   }
 
   /**

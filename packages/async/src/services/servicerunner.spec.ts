@@ -1,16 +1,26 @@
-import { CoreModel, Operation, OperationContext, SimpleOperationContext, Store } from "@webda/core";
-import { WebdaApplicationTest } from "@webda/core/lib/test/test";
+import { CoreModel, Operation, OperationContext, registerOperation, SimpleOperationContext } from "@webda/core";
 import { suite, test } from "@webda/test";
 import assert from "assert";
-import models, { AsyncAction, AsyncOperationAction, AsyncWebdaAction } from "../models";
-import { Runner } from "./runner";
-import ServiceRunner from "./servicerunner";
+import { AsyncTest } from "../../test/fixture.js";
+import { AsyncOperationAction, AsyncWebdaAction } from "../asyncaction.model.js";
+import { Runner, RunnerParameters } from "./runner.service.js";
+import { ServiceRunner, ServiceRunnerParameters } from "./servicerunner.service.js";
 
+/**
+ * Runner used as the target of the actions
+ */
 class FakeRunner extends Runner {
-  launchAction(action: models): Promise<any> {
+  /**
+   * @returns never
+   */
+  launchAction(): Promise<any> {
     throw new Error("Method not implemented.");
   }
 
+  /**
+   * Log and fail on 666
+   * @param arg - the argument
+   */
   test(arg) {
     this.log("INFO", "FakeRunner test", arg);
     if (arg === 666) {
@@ -18,41 +28,57 @@ class FakeRunner extends Runner {
     }
   }
 
+  /**
+   * Operation logging
+   */
   @Operation()
-  operation(ctx) {
+  operation() {
     this.log("INFO", "Logging test");
   }
 }
 
 @suite
-class ServiceRunnerTest extends WebdaApplicationTest {
+class ServiceRunnerTest extends AsyncTest {
+  runner: ServiceRunner;
+
+  /**
+   * Register the called runner and its operation
+   */
+  async beforeEach() {
+    await super.beforeEach();
+    this.registerService(new FakeRunner("calledRunner", new RunnerParameters().load({})));
+    registerOperation("CalledRunner.Operation", { service: "calledRunner", method: "operation" });
+    this.runner = new ServiceRunner("runner", new ServiceRunnerParameters().load({ actions: ["plop"] }));
+  }
+
   @test
   async operationAction() {
-    this.registerService(new FakeRunner(this.webda, "calledRunner"));
-    this.webda.initStatics();
-    const runner = new ServiceRunner(this.webda, "runner", { actions: ["plop"] });
-    const ctx = new OperationContext(this.webda);
+    const runner = this.runner;
+    const ctx = new OperationContext();
     const action = new AsyncOperationAction("calledRunner.testOp", ctx);
-    await this.getService<Store<AsyncAction>>("AsyncJobs").save(action);
-    await runner.launchAction(action, {
+    await action.save();
+    const res = await runner.launchAction(action, {
       JOB_HOOK: "",
-      JOB_ID: action.getUuid(),
+      JOB_ID: action.uuid,
       JOB_ORCHESTRATOR: "test",
       JOB_SECRET_KEY: ""
     });
+    await res.promise;
+    await action.refresh();
+    // Unknown operation
+    assert.strictEqual(action.status, "ERROR");
   }
 
   @test
   async cov() {
-    this.registerService(new FakeRunner(this.webda, "calledRunner"));
-    const runner = new ServiceRunner(this.webda, "runner", { actions: ["plop"] });
+    const runner = this.runner;
     const action = new AsyncWebdaAction();
     action.serviceName = "calledRunner";
     action.method = "test";
-    await this.getService<Store<AsyncAction>>("AsyncJobs").save(action);
+    await action.save();
     let serviceAction = await runner.launchAction(action, {
       JOB_HOOK: "",
-      JOB_ID: action.getUuid(),
+      JOB_ID: action.uuid,
       JOB_ORCHESTRATOR: "test",
       JOB_SECRET_KEY: ""
     });
@@ -64,10 +90,10 @@ class ServiceRunnerTest extends WebdaApplicationTest {
     action2.serviceName = "calledRunner";
     action2.method = "test";
     action2.arguments = [666];
-    await this.getService<Store<AsyncAction>>("AsyncJobs").save(action2);
+    await action2.save();
     serviceAction = await runner.launchAction(action2, {
       JOB_HOOK: "",
-      JOB_ID: action2.getUuid(),
+      JOB_ID: action2.uuid,
       JOB_ORCHESTRATOR: "test",
       JOB_SECRET_KEY: ""
     });
@@ -81,7 +107,7 @@ class ServiceRunnerTest extends WebdaApplicationTest {
       () =>
         runner.launchAction(<any>new CoreModel(), {
           JOB_HOOK: "",
-          JOB_ID: action2.getUuid(),
+          JOB_ID: action2.uuid,
           JOB_ORCHESTRATOR: "test",
           JOB_SECRET_KEY: ""
         }),
@@ -90,13 +116,12 @@ class ServiceRunnerTest extends WebdaApplicationTest {
 
     const opAction = new AsyncOperationAction(
       "CalledRunner.Operation",
-      new SimpleOperationContext(this.webda).setInput(Buffer.from("{}"))
+      new SimpleOperationContext().setInput(Buffer.from("{}"))
     );
-    this.webda.initStatics();
-    await this.getService<Store<AsyncAction>>("AsyncJobs").save(opAction);
+    await opAction.save();
     serviceAction = await runner.launchAction(opAction, {
       JOB_HOOK: "",
-      JOB_ID: opAction.getUuid(),
+      JOB_ID: opAction.uuid,
       JOB_ORCHESTRATOR: "test",
       JOB_SECRET_KEY: ""
     });

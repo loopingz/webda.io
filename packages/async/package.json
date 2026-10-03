@@ -4,12 +4,10 @@
   "description": "Async System",
   "main": "lib/index.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "build:module": "webda build",
-    "build:watch": "webda build --watch",
+    "build": "webdac build",
+    "build:watch": "webdac build --watch",
     "pretest": "npm run build",
     "test": "vitest run",
-    "run": "node core",
     "format": "prettier --check src/**/*",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
@@ -28,23 +26,24 @@
   "dependencies": {
     "@webda/core": "workspace:*",
     "@webda/ql": "workspace:*",
+    "@webda/utils": "workspace:*",
     "@webda/workout": "workspace:*",
     "axios": "^1.14.0",
     "json-schema": "^0.4.0",
     "node-cron": "^4.2.1"
   },
   "devDependencies": {
+    "@types/json-schema": "^7.0.15",
     "@types/node": "25.5.0",
+    "@vitest/coverage-v8": "^4.1.2",
     "@webda/compiler": "workspace:^",
     "@webda/test": "workspace:*",
-    "@webda/tsc-esm": "workspace:*",
     "jscodeshift": "^17.3.0",
     "sinon": "^21.0.3",
     "skott": "^0.35.8",
-    "source-map-support": "^0.5.21",
-    "tsx": "^4.21.0",
-    "typescript": "^6.0.2",
-    "vite": "^6.0.0"
+    "typescript": "7.1.0-dev.20260929.1",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
   },
   "bugs": {
     "url": "https://github.com/loopingz/webda.io/issues"

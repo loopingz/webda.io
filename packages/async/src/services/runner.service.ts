@@ -1,8 +1,11 @@
 import { Service, ServiceParameters } from "@webda/core";
-import * as os from "os";
-import { AsyncAction } from "../models";
-import { JobInfo } from "./asyncjobservice";
+import * as os from "node:os";
+import type { AsyncAction } from "../asyncaction.model.js";
+import type { JobInfo } from "./asyncjobservice.service.js";
 
+/**
+ * Runner parameters
+ */
 export class RunnerParameters extends ServiceParameters {
   /**
    * Actions managed by the runner
@@ -10,9 +13,15 @@ export class RunnerParameters extends ServiceParameters {
    */
   actions?: string[];
 
-  constructor(params: any) {
-    super(params);
+  /**
+   * @override
+   * @param params - the input parameters
+   * @returns this
+   */
+  load(params: any = {}): this {
+    super.load(params);
     this.actions ??= [];
+    return this;
   }
 }
 
@@ -39,15 +48,9 @@ export interface NodeAgentInfo extends AgentInfo {
  */
 export abstract class Runner<T extends RunnerParameters = RunnerParameters> extends Service<T> {
   /**
-   * @inheritdoc
-   */
-  loadParameters(params: any): ServiceParameters {
-    return new RunnerParameters(params);
-  }
-  /**
    * Handle this type of action
-   * @param type
-   * @returns
+   * @param type - the action type
+   * @returns true if the runner handles it
    */
   handleType(type: string): boolean {
     return this.parameters.actions?.includes(type) ?? false;
@@ -55,7 +58,7 @@ export abstract class Runner<T extends RunnerParameters = RunnerParameters> exte
 
   /**
    * Return agent information
-   * @returns
+   * @returns the agent information
    */
   static getAgentInfo(): AgentInfo {
     return {
@@ -68,7 +71,8 @@ export abstract class Runner<T extends RunnerParameters = RunnerParameters> exte
   }
   /**
    * Launch the action
-   * @param action
+   * @param action - the action to launch
+   * @param info - the job information
    */
   abstract launchAction(action: AsyncAction, info: JobInfo): Promise<any>;
 }

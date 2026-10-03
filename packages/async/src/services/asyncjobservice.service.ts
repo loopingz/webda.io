@@ -1,31 +1,37 @@
 import {
-  CancelableLoopPromise,
-  CancelablePromise,
-  Constructor,
-  Core,
-  CoreModelDefinition,
+  canCallOperation,
+  Command,
   CronDefinition,
   CronService,
+  listFullOperations,
   OperationContext,
   Queue,
+  registerOperation,
+  registerSchema,
   RequestFilter,
   Service,
   ServiceParameters,
   SimpleOperationContext,
-  Store,
+  useApplication,
+  useCore,
+  useDynamicService,
+  useModel,
+  validateSchema,
+  ValidationError,
   WebContext,
-  WebdaError,
+  WebdaError
 } from "@webda/core";
+import type { ModelClass } from "@webda/core";
 import * as WebdaQL from "@webda/ql";
-import { JSONUtils, FileUtils } from "@webda/utils";
+import { CancelableLoopPromise, CancelablePromise, FileUtils, getUuid, JSONUtils, sleep } from "@webda/utils";
 import { WorkerLogLevel } from "@webda/workout";
 import axios, { AxiosResponse } from "axios";
-import * as crypto from "crypto";
+import * as crypto from "node:crypto";
 import { JSONSchema7 } from "json-schema";
 import { schedule as crontabSchedule } from "node-cron";
-import { AsyncAction, AsyncActionQueueItem, AsyncOperationAction, AsyncWebdaAction } from "../models";
-import { Runner } from "./runner";
-import ServiceRunner from "./servicerunner";
+import { AsyncAction, AsyncActionQueueItem, AsyncOperationAction, AsyncWebdaAction } from "../asyncaction.model.js";
+import { Runner } from "./runner.service.js";
+import { ServiceRunner, ServiceRunnerParameters } from "./servicerunner.service.js";
 
 /**
  * Represent a Job information as you will find in env
@@ -127,8 +133,13 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    */
   asyncOperationDefinition?: string;
 
-  constructor(params: any) {
-    super(params);
+  /**
+   * @override
+   * @param params - the input parameters
+   * @returns this
+   */
+  load(params: any = {}): this {
+    super.load(params);
     this.url ??= "/async";
     this.queue ??= "AsyncActionsQueue";
     this.runners ??= [];
@@ -138,6 +149,7 @@ export class AsyncJobServiceParameters extends ServiceParameters {
     this.logsLimit ??= 500;
     this.asyncActionModel ??= "Webda/AsyncWebdaAction";
     this.asyncOperationModel ??= "Webda/AsyncOperationAction";
+    return this;
   }
 }
 
@@ -148,16 +160,12 @@ export class AsyncJobServiceParameters extends ServiceParameters {
  */
 export default class AsyncJobService<T extends AsyncJobServiceParameters = AsyncJobServiceParameters>
   extends Service<T>
-  implements RequestFilter
+  implements RequestFilter<WebContext>
 {
   /**
    * Queue for execution
    */
   protected queue: Queue<AsyncActionQueueItem>;
-  /**
-   * Store for async actions
-   */
-  protected store: Store<AsyncAction>;
 
   /**
    * Runner to use
@@ -170,11 +178,16 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   /**
    * Model to use when launching action
    */
-  model: Constructor<AsyncWebdaAction, [string, string, ...any[]]> & CoreModelDefinition<AsyncAction>;
+  model: (new (serviceName?: string, method?: string, ...args: any[]) => AsyncWebdaAction) &
+    ModelClass<AsyncWebdaAction>;
   /**
-   * Model to use when launching action
+   * Model to use when launching operation
    */
-  operationModel: Constructor<AsyncOperationAction, [string, OperationContext, WorkerLogLevel?]>;
+  operationModel: new (
+    operationId: string,
+    context: OperationContext,
+    logLevel?: WorkerLogLevel
+  ) => AsyncOperationAction;
   /**
    * Operations definition
    */
@@ -190,24 +203,19 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
 
   /**
    * @inheritdoc
-   */
-  loadParameters(params: any): ServiceParameters {
-    return new AsyncJobServiceParameters(params);
-  }
-  /**
-   * @inheritdoc
+   * @returns this
    */
   resolve(): this {
     super.resolve();
-    this.model = <any>this.getWebda().getModel(this.parameters.asyncActionModel);
-    this.queue = this.getService(this.parameters.queue);
+    this.model = <any>useModel(this.parameters.asyncActionModel);
+    this.queue = this.parameters.queue ? useDynamicService(this.parameters.queue) : undefined;
     if (!this.queue && !this.parameters.localLaunch) {
       throw new Error(`AsyncService requires a valid queue. '${this.parameters.queue}' is invalid`);
     }
     // Get all runners
     this.runners = this.parameters.runners
       .map(n => {
-        const res = this.getService<Runner>(n);
+        const res = useDynamicService<Runner>(n);
         if (res === undefined) {
           this.log("WARN", `Runner ${n} does not exist`);
         }
@@ -220,7 +228,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       this.log("INFO", "Loading operations", this.parameters.asyncOperationDefinition);
       this.addRoute(`${this.parameters.url}{?full}`, ["GET"], this.listOperations);
       this.addRoute(`${this.parameters.url}/{operationId}{?schedule}`, ["PUT"], this.launchOperation);
-      this.operationModel = <any>this.getWebda().getModel(this.parameters.asyncOperationModel);
+      this.operationModel = <any>useModel(this.parameters.asyncOperationModel);
       this.registerOperations(FileUtils.load(this.parameters.asyncOperationDefinition));
     }
 
@@ -228,14 +236,12 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     this.addRoute(`${this.parameters.url}/status`, ["POST"], this.statusHook, {
       hidden: true
     });
-
-    this.getWebda().registerRequestFilter(this);
     return this;
   }
 
   /**
    * Register new operations
-   * @param operations
+   * @param operations - the operations definition
    */
   registerOperations(operations: typeof this.operations) {
     this.operations ??= {
@@ -244,15 +250,17 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       schemas: {}
     };
     // Register all schemas
+    const app = useApplication();
     Object.keys(operations?.schemas || {})
-      .filter(key => !this.getWebda().getApplication().hasSchema(key))
+      .filter(key => !app.getSchema(key))
       .forEach(key => {
-        this.getWebda().getApplication().registerSchema(key, operations.schemas[key]);
+        app.getSchemas()[key] = operations.schemas[key];
+        registerSchema(key, operations.schemas[key]);
         this.operations.schemas[key] = operations.schemas[key];
       });
     // Register all operations now
     Object.keys(operations?.operations || {}).forEach(key => {
-      this.getWebda().registerOperation(key, {
+      registerOperation(key, {
         ...operations.operations[key],
         method: "callOperation",
         service: this.getName()
@@ -263,6 +271,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
 
   /**
    * Allow job status report url
+   * @param context - the web context
+   * @returns true if the request is a job status report
    */
   async checkRequest(context: WebContext): Promise<boolean> {
     const url = context.getHttpContext().getRelativeUri();
@@ -279,16 +289,17 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * Status hook for job report
    *
    * Only updates specific fields: status, errorMessage, statusDetails, results, logs (appending)
+   * @param context - the web context
    */
   protected async statusHook(context: WebContext) {
     if (!context.getHttpContext().getUniqueHeader("X-Job-Id")) {
       throw new WebdaError.NotFound("X-Job-Id header required");
     }
-    const action = await this.model.ref(context.getHttpContext().getUniqueHeader("X-Job-Id")).get();
-    if (!action) {
-      throw new WebdaError.NotFound(`Unknown Job Id '${context.getHttpContext().getUniqueHeader("X-Job-Id")}'`);
+    const jobId = context.getHttpContext().getUniqueHeader("X-Job-Id");
+    if (!(await this.model.ref(jobId).exists())) {
+      throw new WebdaError.NotFound(`Unknown Job Id '${jobId}'`);
     }
-    await action.checkAct(context, "status");
+    const action = await this.model.ref(jobId).get();
     await action.statusAction(context);
   }
 
@@ -296,7 +307,9 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * Worker
    *
    * This will launch actions based on defined runners
+   * @returns a cancelable promise
    */
+  @Command("async worker", { description: "Launch the async actions worker" })
   worker(): CancelablePromise<void> {
     if (this.runners.length === 0) {
       throw new Error(`AsyncJobService.worker requires runners`);
@@ -319,7 +332,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
 
   /**
    * Handle one event from the queue and launch the job
-   * @param event
+   * @param event - the queue item
+   * @returns the job promise if any
    */
   protected async handleEvent(event: AsyncActionQueueItem): Promise<void> {
     let selectedRunner;
@@ -344,24 +358,23 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     }
     this.log("INFO", `Starting action ${event.uuid}`);
     await this.model.ref(event.uuid).patch({
-      uuid: event.uuid,
       status: "STARTING"
     });
     const action = await this.model.ref(event.uuid).get();
     const job = await selectedRunner.launchAction(action, this.getJobInfo(action));
-    await action.patch({ job }, null);
+    await action.patch({ job });
     return job.promise || Promise.resolve();
   }
 
   /**
    * Get the job info
-   * @param action
-   * @returns
+   * @param action - the action
+   * @returns the job information
    */
   getJobInfo(action: AsyncAction): JobInfo {
     return {
       JOB_SECRET_KEY: action.__secretKey,
-      JOB_ID: action.getUuid(),
+      JOB_ID: action.uuid,
       JOB_HOOK: this.parameters.onlyHttpHook || !action.isInternal() ? action.getHookUrl() : "store",
       JOB_ORCHESTRATOR: this.getName()
     };
@@ -369,32 +382,13 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
 
   /**
    * List available operations through this service
-   * @param context
+   * @param context - the web context
    */
-  async listOperations(
-    context: WebContext<
-      void,
-      | {
-          application: {
-            name: string;
-            version: string;
-          };
-          operations: {
-            [key: string]: {
-              id: string;
-              input?: string;
-              output?: string;
-            };
-          };
-          schemas: { [key: string]: JSONSchema7 };
-        }
-      | string[]
-    >
-  ): Promise<void> {
+  async listOperations(context: WebContext<void, { full?: boolean }>): Promise<void> {
     const filtered: typeof this.operations = JSONUtils.duplicate(this.operations);
     // Filter operations based on permissions
     Object.keys(filtered.operations)
-      .filter(key => filtered.operations[key].permission && !this.getWebda().checkOperationPermission(context, key))
+      .filter(key => filtered.operations[key].permission && !canCallOperation(context, key))
       .forEach(key => delete filtered.operations[key]);
 
     // Remove permission definition
@@ -425,19 +419,45 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
 
   /**
    * Call an operation for an external system
-   * @param context
-   * @returns
+   * @param context - the operation context
+   * @returns the launched action
    */
   async callOperation(context: OperationContext) {
     return await this.launchAction(new this.operationModel(context.getExtension("operation"), context));
   }
 
   /**
+   * Check the operation exists, is allowed and its input is valid
+   * @param context - the operation context
+   * @param operationId - the operation id
+   */
+  async checkOperation(context: OperationContext, operationId: string): Promise<void> {
+    const operation = listFullOperations()[operationId];
+    if (!operation) {
+      throw new WebdaError.NotFound(`${operationId} Unknown`);
+    }
+    if (!canCallOperation(context, operationId)) {
+      throw new WebdaError.Forbidden(`${operationId} PermissionDenied`);
+    }
+    if (operation.input && operation.input !== "void") {
+      try {
+        validateSchema(operation.input, await context.getInput());
+      } catch (err) {
+        if (err instanceof ValidationError) {
+          throw new WebdaError.BadRequest(`${operationId} InvalidInput ${err.message}`);
+        }
+        throw err;
+      }
+    }
+  }
+
+  /**
    * Launch an operation through this service
+   * @param context - the web context
    */
   async launchOperation(context: WebContext) {
     const { operationId, schedule } = context.getParameters();
-    await this.getWebda().checkOperation(context, operationId);
+    await this.checkOperation(context, operationId);
     let action;
     if (schedule) {
       action = await this.scheduleAction(
@@ -454,19 +474,20 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
 
   /**
    * Launch the action asynchronously
-   * @param action
-   * @returns
+   * @param action - the action
+   * @returns the action
    */
-  async launchAction(action: AsyncAction) {
+  async launchAction<A extends AsyncAction>(action: A): Promise<A> {
     action.status = "QUEUED";
     action.type = action.constructor.name;
-    action.__secretKey = this.getWebda().getUuid();
+    action.__secretKey = getUuid();
     await action.save();
+    const item = { uuid: action.uuid, __secretKey: action.__secretKey, type: action.type };
     if (this.parameters.localLaunch) {
       // Directly call the handler but not wait for its result
-      this.handleEvent({ uuid: action.getUuid(), __secretKey: action.__secretKey, type: action.type });
+      this.handleEvent(item);
     } else {
-      await this.queue.sendMessage({ uuid: action.getUuid(), __secretKey: action.__secretKey, type: action.type });
+      await this.queue.sendMessage(item);
     }
     return action;
   }
@@ -474,10 +495,11 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   /**
    * Schedule action for later execution
    *
-   * @param action
-   * @param timestamp
+   * @param action - the action
+   * @param timestamp - when to launch it
+   * @returns the action
    */
-  async scheduleAction(action: AsyncAction, timestamp: number) {
+  async scheduleAction<A extends AsyncAction>(action: A, timestamp: number): Promise<A> {
     action.status = "SCHEDULED";
     action.type = action.constructor.name;
     // Schedule based on the scheduler resolution
@@ -489,8 +511,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   /**
    * Return headers to request status hook
    *
-   * @param jobInfo
-   * @returns
+   * @param jobInfo - the job information
+   * @returns the headers
    */
   getHeaders(jobInfo: JobInfo) {
     const res: { [key: string]: string } = {
@@ -506,9 +528,9 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
 
   /**
    * Post hook to a remote url or use local store to update status
-   * @param jobInfo
-   * @param message
-   * @returns
+   * @param jobInfo - the job information
+   * @param message - the status report
+   * @returns the updated action
    */
   async postHook(jobInfo: JobInfo, message: any): Promise<AsyncWebdaAction> {
     // Http allow to break paradigm between the executor and the orchestrator
@@ -526,9 +548,10 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
 
   /**
    * Launch a service.method as an AsyncAction
-   * @param serviceName
-   * @param method
-   * @param args
+   * @param serviceName - the service
+   * @param method - the method
+   * @param args - the arguments
+   * @returns the action
    */
   async launchAsAsyncAction(serviceName: string, method: string, ...args: any[]) {
     return this.launchAction(new this.model(serviceName, method, ...args));
@@ -538,14 +561,20 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * Execute a service.method as an AsyncAction
    *
    * Useful for crontab execution
-   * @param serviceName
-   * @param method
-   * @param args
+   * @param serviceName - the service
+   * @param method - the method
+   * @param args - the arguments
+   * @returns the execution promise
    */
   async executeAsAsyncAction(serviceName: string, method: string, ...args): Promise<void> {
-    let runner: ServiceRunner = Object.values(this.getWebda().getServicesOfType(ServiceRunner)).shift();
+    let runner = <ServiceRunner>Object.values(useCore().getServices()).find(s => s instanceof ServiceRunner);
     // Create a temporary one if needed
-    runner ??= await new ServiceRunner(this.getWebda(), this.getName() + "_temprunner").resolve().init();
+    runner ??= await new ServiceRunner(
+      this.getName() + "_temprunner",
+      new ServiceRunnerParameters().load({ type: "Webda/ServiceRunner" })
+    )
+      .resolve()
+      .init();
     // Save action
     const action = await new this.model(serviceName, method, ...args).save();
     // Run it
@@ -553,7 +582,18 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   }
 
   /**
+   * Run the AsyncAction described by the JOB_* environment variables
+   * @returns the execution promise
+   */
+  @Command("async run", { description: "Run the async action described by the JOB_* environment variables" })
+  async runAction(): Promise<void> {
+    return this.runAsyncOperationAction();
+  }
+
+  /**
    * Wrap async job and call the job status hook
+   * @param jobInfo - the job information, from environment if not provided
+   * @returns a promise resolved once the job is reported
    */
   async runAsyncOperationAction(jobInfo?: JobInfo): Promise<void> {
     // Get it from environment
@@ -572,7 +612,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     // If we are not the target redirect to the right one
     if (jobInfo.JOB_ORCHESTRATOR !== this.getName()) {
       this.log("DEBUG", `Passing jobInfo ${jobInfo} to targeted service`);
-      return this.getService<AsyncJobService>(jobInfo.JOB_ORCHESTRATOR).runAsyncOperationAction(jobInfo);
+      return useDynamicService<AsyncJobService>(jobInfo.JOB_ORCHESTRATOR).runAsyncOperationAction(jobInfo);
     }
     this.log("DEBUG", "Getting action to execute from hook", jobInfo);
     // Get action info by calling the hook
@@ -591,7 +631,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
         throw new Error("WebdaAsyncAction must have method and serviceName defined at least");
       }
       // Call the service[method](...args)
-      const service = this.getService(action.serviceName);
+      const service = useDynamicService(action.serviceName);
       if (!service) {
         throw new Error(`WebdaAsyncAction Service '${action.serviceName}' not found: mismatch app version`);
       }
@@ -620,8 +660,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
 
   /**
    * Get the cron callback function
-   * @param cron
-   * @returns
+   * @param cron - the cron definition
+   * @returns the cron callback
    */
   getCronExecutor(cron: CronDefinition) {
     return async () => {
@@ -642,13 +682,14 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
 
   /**
    * Manage scheduled actions and crontab actions
-   * @returns
+   * @returns a cancelable loop promise
    */
+  @Command("async scheduler", { description: "Launch the async actions scheduler" })
   scheduler(): CancelableLoopPromise {
     // Map cron to an AsyncOperationAction
     // It allows you to keep a trace of the cron execution in the AsyncAction
     if (this.parameters.includeCron) {
-      CronService.loadAnnotations(this._webda.getServices()).forEach(cron => {
+      CronService.loadAnnotations(useCore().getServices()).forEach(cron => {
         this.log("INFO", `Schedule cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description}`);
         crontabSchedule(cron.cron, this.getCronExecutor(cron));
       });
@@ -666,7 +707,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       time += this.parameters.schedulerResolution;
       // Wait for next scheduler resolution
       if (time > Date.now()) {
-        await Core.sleep(time - Date.now());
+        await sleep(time - Date.now());
         /* c8 ignore next */
       }
     });

@@ -1,7 +1,5 @@
-import { useService } from "../hooks";
-import { CoreModelDefinition } from "../models/coremodeldefinition";
-import { Queue } from "../queues/queueservice";
-import { Service, ServiceParameters } from "./service";
+import { Queue, Service, ServiceParameters, useDynamicService, useRepository } from "@webda/core";
+import type { ModelClass } from "@webda/core";
 
 /**
  * AsyncEvent representation
@@ -29,7 +27,12 @@ export class AsyncEvent {
    */
   static ServiceTag = "#Webda:Service:";
 
-  constructor(service: string | Service | CoreModelDefinition, type, payload = {}) {
+  /**
+   * @param service - the emitter: a service, a model class or its serialized name
+   * @param type - the event type
+   * @param payload - the event payload
+   */
+  constructor(service: string | Service | ModelClass, type: string, payload: any = {}) {
     if (service instanceof Service) {
       this.service = `service:${service.getName()}`;
     } else if (typeof service === "string") {
@@ -47,14 +50,16 @@ export class AsyncEvent {
    * replacing them by a #Webda:Service:${service.getName()} so it
    * can be revived
    *
-   * @returns
+   * @returns the serializable event
    */
   toJSON() {
     return {
       ...this,
-      payload: JSON.stringify(this.payload, (_key: string, value: any) => {
-        if (value instanceof Service) {
-          return `${AsyncEvent.ServiceTag}${value.getName()}`;
+      payload: JSON.stringify(this.payload, function serviceReplacer(this: any, key: string, value: any) {
+        // Service.toJSON is applied before the replacer, check the raw value
+        const raw = key === "" ? value : this[key];
+        if (raw instanceof Service) {
+          return `${AsyncEvent.ServiceTag}${raw.getName()}`;
         }
         return value;
       })
@@ -64,17 +69,16 @@ export class AsyncEvent {
   /**
    * Deserialize from the queue, reviving any detected service
    *
-   * @param data
-   * @param service
-   * @returns
+   * @param data - the serialized event
+   * @returns the event
    */
-  static fromQueue(data: any, service: Service) {
+  static fromQueue(data: any) {
     const evt = new AsyncEvent(
       data.service,
       data.type,
       JSON.parse(data.payload, (_key: string, value: any) => {
         if (typeof value === "string" && value.startsWith(AsyncEvent.ServiceTag)) {
-          return useService(value.substring(AsyncEvent.ServiceTag.length));
+          return useDynamicService(value.substring(AsyncEvent.ServiceTag.length));
         }
         return value;
       })
@@ -85,13 +89,16 @@ export class AsyncEvent {
 
   /**
    * Mapper name
-   * @returns
+   * @returns the mapper key
    */
   getMapper() {
     return this.service + "_" + this.type;
   }
 }
 
+/**
+ * Queues by name
+ */
 interface QueueMap {
   [key: string]: Queue;
 }
@@ -110,12 +117,15 @@ export class EventServiceParameters extends ServiceParameters {
   sync?: boolean;
 
   /**
-   * @inheritdoc
+   * @override
+   * @param params - the input parameters
+   * @returns this
    */
-  constructor(params: any) {
-    super(params);
+  load(params: any = {}): this {
+    super.load(params);
     this.queues ??= {};
     this.sync ??= false;
+    return this;
   }
 }
 
@@ -130,34 +140,26 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
   _async: boolean;
 
   /**
-   * Load parameters
-   *
-   * @param params
-   * @ignore
+   * Resolve the queues
+   * @returns this
    */
-  loadParameters(params: any): ServiceParameters {
-    return new EventServiceParameters(params);
-  }
-
-  /**
-   * @ignore
-   * Setup the default routes
-   */
-  async computeParameters(): Promise<void> {
+  resolve(): this {
+    super.resolve();
     Object.keys(this.parameters.queues).forEach(key => {
       // Define default as first queue
       if (!this._defaultQueue) {
         this._defaultQueue = key;
       }
-      this._queues[key] = useService<Queue>(this.parameters.queues[key]);
+      this._queues[key] = useDynamicService<Queue>(this.parameters.queues[key]);
     });
 
     this._async = !this.parameters.sync;
     // Check we have at least one queue to handle asynchronous
     if (this._async && Object.keys(this._queues).length < 1) {
-      this._webda.log("ERROR", "Need at least one queue for async to be ready", this.parameters);
+      this.log("ERROR", "Need at least one queue for async to be ready", this.parameters);
       throw Error("Need at least one queue for async to be ready");
     }
+    return this;
   }
 
   /**
@@ -179,12 +181,12 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
    *  Aw->>Aw: Call the original listener
    * ```
    *
-   * @param service
-   * @param event
-   * @param callback
-   * @param queue
+   * @param service - the service or model class emitting the event
+   * @param event - the event name
+   * @param callback - the listener
+   * @param queue - the queue to use, default queue if not specified
    */
-  bindAsyncListener(service: Service | CoreModelDefinition, event: string, callback, queue?: string) {
+  bindAsyncListener(service: Service | ModelClass, event: string, callback, queue?: string) {
     if (!this._async) {
       throw Error("EventService is not configured for asynchronous");
     }
@@ -194,9 +196,9 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
     const mapper = new AsyncEvent(service, event).getMapper();
     if (!this._callbacks[mapper]) {
       if (service instanceof Service) {
-        service.on(event, data => this.pushEvent(service, event, queue, data));
+        service.on(<never>event, data => this.pushEvent(service, event, queue, data));
       } else {
-        service.on(<any>event, data => this.pushEvent(service, event, queue, data));
+        (<any>useRepository(service)).on(event, data => this.pushEvent(service, event, queue, data));
       }
       this._callbacks[mapper] = [];
     }
@@ -206,13 +208,13 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
   /**
    * Synchronous Listener to proxy to async
    *
-   * @param service
-   * @param type
-   * @param queue
-   * @param payload
-   * @returns
+   * @param service - the emitter
+   * @param type - the event type
+   * @param queue - the queue to use
+   * @param payload - the event payload
+   * @returns the send or handle promise
    */
-  async pushEvent(service: Service | CoreModelDefinition, type: string, queue: string, payload: any) {
+  async pushEvent(service: Service | ModelClass, type: string, queue: string, payload: any) {
     const event = new AsyncEvent(service, type, payload);
     if (this._async) {
       return this._queues[queue].sendMessage(event);
@@ -224,8 +226,8 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
   /**
    * Process one event
    *
-   * @param event
-   * @returns
+   * @param event - the event
+   * @returns a promise resolved once all listeners are done
    */
   protected async handleEvent(event: AsyncEvent): Promise<void> {
     if (!this._callbacks[event.getMapper()]) {
@@ -242,18 +244,18 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
   }
 
   /**
-   *
-   * @param eventBody serialized event
-   * @returns
+   * Process a serialized event
+   * @param event serialized event
+   * @returns the handle promise
    */
   protected async handleRawEvent(event: AsyncEvent) {
-    return this.handleEvent(AsyncEvent.fromQueue(event, this));
+    return this.handleEvent(AsyncEvent.fromQueue(event));
   }
 
   /**
    * Process asynchronous event on queue
-   * @param queue
-   * @returns
+   * @param queue - the queue to consume
+   * @returns the consumer promise
    */
   worker(queue: string = this._defaultQueue): Promise<void> {
     // Avoid loops
@@ -262,4 +264,5 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
   }
 }
 
-export { EventService, QueueMap };
+export { EventService };
+export type { QueueMap };

@@ -1,649 +1,1769 @@
 {
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/AsyncJobService": "lib/services/asyncjobservice:default",
-    "Webda/LocalRunner": "lib/services/localrunner:default",
-    "Webda/ServiceRunner": "lib/services/servicerunner:default"
-  },
-  "models": {
-    "graph": {
-      "Webda/AsyncAction": {},
-      "Webda/AsyncOperationAction": {},
-      "Webda/AsyncWebdaAction": {}
-    },
-    "tree": {
-      "Webda/AsyncAction": {
-        "Webda/AsyncWebdaAction": {},
-        "Webda/AsyncOperationAction": {}
-      }
-    },
-    "plurals": {},
-    "list": {
-      "Webda/AsyncAction": "lib/models:default",
-      "Webda/AsyncOperationAction": "lib/models:AsyncOperationAction",
-      "Webda/AsyncWebdaAction": "lib/models:AsyncWebdaAction"
-    },
-    "reflections": {
-      "Webda/AsyncAction": {
-        "uuid": "string",
-        "status": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\"",
-        "scheduled": "number",
-        "errorMessage": "string",
-        "errorName": "string",
-        "job": "any",
-        "_lastJobUpdate": "number",
-        "results": "any",
-        "statusDetails": "any",
-        "type": "string",
-        "arguments": "any[]",
-        "logs": "string[]",
-        "__secretKey": "string",
-        "action": "\"STOP\" | string",
-        "__class": "CoreModelDefinition<this>",
-        "__type": "string",
-        "__types": "string[]",
-        "__ctx": "OperationContext",
-        "__store": "Store<this>",
-        "__dirty": "Set<string | symbol>",
-        "_creationDate": "Date",
-        "_lastUpdate": "Date",
-        "__deleted": "boolean"
-      },
-      "Webda/AsyncOperationAction": {
-        "uuid": "string",
-        "status": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\"",
-        "scheduled": "number",
-        "errorMessage": "string",
-        "errorName": "string",
-        "job": "any",
-        "_lastJobUpdate": "number",
-        "results": "any",
-        "statusDetails": "any",
-        "type": "string",
-        "arguments": "any[]",
-        "logs": "string[]",
-        "__secretKey": "string",
-        "action": "\"STOP\" | string",
-        "__class": "CoreModelDefinition<this>",
-        "__type": "string",
-        "__types": "string[]",
-        "__ctx": "OperationContext",
-        "__store": "Store<this>",
-        "__dirty": "Set<string | symbol>",
-        "_creationDate": "Date",
-        "_lastUpdate": "Date",
-        "__deleted": "boolean"
-      },
-      "Webda/AsyncWebdaAction": {
-        "logLevel": "WorkerLogLevel",
-        "uuid": "string",
-        "status": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\"",
-        "scheduled": "number",
-        "errorMessage": "string",
-        "errorName": "string",
-        "job": "any",
-        "_lastJobUpdate": "number",
-        "results": "any",
-        "statusDetails": "any",
-        "type": "string",
-        "arguments": "any[]",
-        "logs": "string[]",
-        "__secretKey": "string",
-        "action": "\"STOP\" | string",
-        "__class": "CoreModelDefinition<this>",
-        "__type": "string",
-        "__types": "string[]",
-        "__ctx": "OperationContext",
-        "__store": "Store<this>",
-        "__dirty": "Set<string | symbol>",
-        "_creationDate": "Date",
-        "_lastUpdate": "Date",
-        "__deleted": "boolean"
-      }
-    }
-  },
-  "schemas": {
-    "Webda/AsyncAction": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
+    "Webda/AsyncEvents": {
+      "Import": "lib/services/asyncevents.service:EventService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "queues": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Queues to post async events to",
+            "type": "object"
+          }
         },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "uuid": {
-          "type": "string",
-          "description": "Action uuid"
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "RUNNING",
-            "SUCCESS",
-            "ERROR",
-            "QUEUED",
-            "STARTING",
-            "TIMEOUT",
-            "SCHEDULED"
-          ],
-          "description": "Current status"
-        },
-        "scheduled": {
-          "type": "number",
-          "description": "Timestamp when the action was scheduled"
-        },
-        "errorMessage": {
-          "type": "string",
-          "description": "If an error occured it should contain the message"
-        },
-        "errorName": {
-          "type": "string",
-          "description": "If an error occured it should contain the name"
-        },
-        "job": {
-          "description": "Job information"
-        },
-        "_lastJobUpdate": {
-          "type": "number",
-          "description": "Last time the job was updated",
-          "readOnly": true
-        },
-        "results": {
-          "description": "Results from the job"
-        },
-        "statusDetails": {
-          "description": "Job current status"
-        },
-        "type": {
-          "type": "string"
-        },
-        "arguments": {
-          "type": "array",
-          "items": {}
-        },
-        "logs": {
-          "type": "array",
-          "items": {
+        "inheritdoc": true,
+        "properties": {
+          "queues": {
+            "$ref": "#/definitions/queues",
+            "description": "Queues to post async events to"
+          },
+          "sync": {
+            "default": false,
+            "description": "Make the event sending asynchronous",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "Type of the service",
             "type": "string"
           },
-          "description": "Current logs"
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
         },
-        "action": {
-          "type": "string",
-          "description": "Expected action for the job\n\nIt should be a verb"
-        }
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "EventService"
       },
-      "required": [
-        "uuid",
-        "status",
-        "job",
-        "results",
-        "statusDetails",
-        "type",
-        "logs"
-      ],
-      "description": "Define here a model that can be used along with Store service",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AsyncAction"
+      "Configuration": "lib/services/asyncevents.service:EventServiceParameters"
     },
     "Webda/AsyncJobService": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL to expose job status report hook",
-          "default": "/async"
-        },
-        "localLaunch": {
-          "type": "boolean",
-          "description": "If set runner will be called without queue",
-          "default": false
-        },
-        "queue": {
-          "type": "string",
-          "description": "Queue to post execution to",
-          "default": "AsyncActionsQueue"
-        },
-        "fallbackOnFirst": {
-          "type": "boolean",
-          "description": "Fallback on first runner if none match",
-          "default": false
-        },
-        "runners": {
-          "type": "array",
-          "items": {
+      "Import": "lib/services/asyncjobservice.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "inheritdoc": true,
+        "properties": {
+          "asyncActionModel": {
+            "default": "Webda/AsyncWebdaAction",
+            "description": "Model to use when launching async action",
             "type": "string"
           },
-          "description": "Runners to use"
+          "asyncOperationDefinition": {
+            "description": "JSON file of the AsyncOperation definition\n\nGenerated with `webda operations operations.json`",
+            "type": "string"
+          },
+          "asyncOperationModel": {
+            "default": "Webda/AsyncOperationAction",
+            "description": "Model to use when launching async operation",
+            "type": "string"
+          },
+          "concurrencyLimit": {
+            "description": "Limit the maximum number of jobs running in //",
+            "type": "number"
+          },
+          "fallbackOnFirst": {
+            "default": false,
+            "description": "Fallback on first runner if none match",
+            "type": "boolean"
+          },
+          "includeCron": {
+            "default": true,
+            "description": "Include Cron annotation to launch them as AsyncOperationAction",
+            "type": "boolean"
+          },
+          "includeSchedulerInWorker": {
+            "default": false,
+            "description": "Include the scheduler system in the worker",
+            "type": "boolean"
+          },
+          "localLaunch": {
+            "default": false,
+            "description": "If set runner will be called without queue",
+            "type": "boolean"
+          },
+          "logsLimit": {
+            "default": 500,
+            "description": "Limit the number of lines of logs available for an async action\n\nIf you need to store large amount of logs then you should use the CloudWatchLogger or similar logger",
+            "type": "number"
+          },
+          "onlyHttpHook": {
+            "default": false,
+            "description": "Define if we should only use an http hook and not rely on store for AsyncOperation",
+            "type": "boolean"
+          },
+          "queue": {
+            "default": "AsyncActionsQueue",
+            "description": "Queue to post execution to",
+            "type": "string"
+          },
+          "runners": {
+            "description": "Runners to use",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "schedulerResolution": {
+            "default": 60000,
+            "description": "Schedule action resolution\n\nIf set to 1000ms, you can schedule action per second\nby default it resolve per minute",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "default": "/async",
+            "description": "URL to expose job status report hook",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
         },
-        "concurrencyLimit": {
-          "type": "number",
-          "description": "Limit the maximum number of jobs running in //"
-        },
-        "onlyHttpHook": {
-          "type": "boolean",
-          "description": "Define if we should only use an http hook and not rely on store for AsyncOperation",
-          "default": false
-        },
-        "includeCron": {
-          "type": "boolean",
-          "description": "Include Cron annotation to launch them as AsyncOperationAction",
-          "default": true
-        },
-        "includeSchedulerInWorker": {
-          "type": "boolean",
-          "description": "Include the scheduler system in the worker"
-        },
-        "schedulerResolution": {
-          "type": "number",
-          "description": "Schedule action resolution\n\nIf set to 1000ms, you can schedule action per second by default it resolve per minute",
-          "default": 60000
-        },
-        "logsLimit": {
-          "type": "number",
-          "description": "Limit the number of lines of logs available for an async action\n\nIf you need to store large amount of logs then you should use the CloudWatchLogger or similar logger",
-          "default": 500
-        },
-        "asyncActionModel": {
-          "type": "string",
-          "description": "Model to use when launching async action",
-          "default": "Webda/AsyncWebdaAction"
-        },
-        "asyncOperationModel": {
-          "type": "string",
-          "description": "Model to use when launching async operation",
-          "default": "Webda/AsyncOperationAction"
-        },
-        "asyncOperationDefinition": {
-          "type": "string",
-          "description": "JSON file of the AsyncOperation definition\n\nGenerated with `webda operations operations.json`"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
+        "required": [
+          "runners",
+          "type"
+        ],
+        "type": "object",
+        "title": "AsyncJobService"
       },
-      "required": [
-        "fallbackOnFirst",
-        "logsLimit",
-        "queue",
-        "runners",
-        "type",
-        "url"
+      "Configuration": "lib/services/asyncjobservice.service:AsyncJobServiceParameters",
+      "capabilities": [
+        "request-filter"
       ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AsyncJobService"
+      "commands": {
+        "async worker": {
+          "description": "Launch the async actions worker",
+          "method": "worker",
+          "args": {}
+        },
+        "async run": {
+          "description": "Run the async action described by the JOB_* environment variables",
+          "method": "runAction",
+          "args": {}
+        },
+        "async scheduler": {
+          "description": "Launch the async actions scheduler",
+          "method": "scheduler",
+          "args": {}
+        }
+      }
     },
-    "Webda/AsyncOperationAction": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
+    "Webda/LocalRunner": {
+      "Import": "lib/services/localrunner.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "AbortSignal": {
+            "additionalProperties": false,
+            "description": "The **`AbortSignal`** interface represents a signal object that allows you to communicate with an asynchronous operation (such as a fetch request) and abort it if required via an AbortController object.\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortSignal)",
+            "type": "object"
+          },
+          "ProcessEnv": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "SpawnOptions": {
+            "additionalProperties": false,
+            "properties": {
+              "argv0": {
+                "type": "string"
+              },
+              "cwd": {
+                "type": "string"
+              },
+              "detached": {
+                "default": false,
+                "type": "boolean"
+              },
+              "env": {
+                "$ref": "#/definitions/ProcessEnv"
+              },
+              "gid": {
+                "type": "number"
+              },
+              "killSignal": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "const": "SIGABRT",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGALRM",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGBUS",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGCHLD",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGCONT",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGFPE",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGHUP",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGILL",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGINT",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGIO",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGIOT",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGKILL",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGPIPE",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGPOLL",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGPROF",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGPWR",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGQUIT",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGSEGV",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGSTKFLT",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGSTOP",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGSYS",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGTERM",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGTRAP",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGTSTP",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGTTIN",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGTTOU",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGUNUSED",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGURG",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGUSR1",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGUSR2",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGVTALRM",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGWINCH",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGXCPU",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGXFSZ",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGBREAK",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGLOST",
+                    "type": "string"
+                  },
+                  {
+                    "const": "SIGINFO",
+                    "type": "string"
+                  }
+                ],
+                "default": "'SIGTERM'",
+                "description": "The signal value to be used when the spawned process will be killed by the abort signal."
+              },
+              "serialization": {
+                "default": "'json'",
+                "description": "Specify the kind of serialization used for sending messages between processes.",
+                "enum": [
+                  "json",
+                  "advanced"
+                ],
+                "type": "string"
+              },
+              "shell": {
+                "type": [
+                  "string",
+                  "boolean"
+                ]
+              },
+              "signal": {
+                "$ref": "#/definitions/AbortSignal"
+              },
+              "stdio": {
+                "anyOf": [
+                  {
+                    "const": "overlapped",
+                    "type": "string"
+                  },
+                  {
+                    "const": "pipe",
+                    "type": "string"
+                  },
+                  {
+                    "const": "ignore",
+                    "type": "string"
+                  },
+                  {
+                    "const": "inherit",
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "const": "overlapped",
+                          "type": "string"
+                        },
+                        {
+                          "const": "pipe",
+                          "type": "string"
+                        },
+                        {
+                          "const": "ignore",
+                          "type": "string"
+                        },
+                        {
+                          "const": "inherit",
+                          "type": "string"
+                        },
+                        {
+                          "const": "ipc",
+                          "type": "string"
+                        },
+                        {
+                          "$ref": "#/definitions/Stream"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  }
+                ],
+                "default": "'pipe'",
+                "description": "Can be set to 'pipe', 'inherit', 'overlapped', or 'ignore', or an array of these strings.\nIf passed as an array, the first element is used for `stdin`, the second for\n`stdout`, and the third for `stderr`. A fourth element can be used to\nspecify the `stdio` behavior beyond the standard streams. See\n{@link ChildProcess.stdio} for more information."
+              },
+              "timeout": {
+                "default": 0,
+                "type": "number"
+              },
+              "uid": {
+                "type": "number"
+              },
+              "windowsHide": {
+                "default": false,
+                "type": "boolean"
+              },
+              "windowsVerbatimArguments": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "Stream": {
+            "additionalProperties": false,
+            "type": "object"
+          }
         },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
+        "description": "LocalRunner parameters",
+        "properties": {
+          "actions": {
+            "default": [],
+            "description": "Actions managed by the runner",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "args": {
+            "description": "Args",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "autoStatus": {
+            "default": false,
+            "description": "Use the observability of ChildProcess to update status accordingly",
+            "type": "boolean"
+          },
+          "command": {
+            "description": "Command to launch",
+            "type": "string"
+          },
+          "options": {
+            "$ref": "#/definitions/SpawnOptions",
+            "description": "Options\n\nBased on https://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
         },
-        "uuid": {
-          "type": "string",
-          "description": "Action uuid"
+        "required": [
+          "command",
+          "type"
+        ],
+        "type": "object",
+        "title": "LocalRunner"
+      },
+      "Configuration": "lib/services/localrunner.service:LocalRunnerParameters"
+    },
+    "Webda/ServiceRunner": {
+      "Import": "lib/services/servicerunner.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Add the log format to capture",
+        "properties": {
+          "actions": {
+            "default": [],
+            "description": "Actions managed by the runner",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "logFormat": {
+            "default": "ConsoleLoggerDefaultFormat",
+            "description": "Define the log format",
+            "type": "string"
+          },
+          "logSaveDelay": {
+            "default": 5000,
+            "description": "How long before saving logs (in ms)",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
         },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "ServiceRunner"
+      },
+      "Configuration": "lib/services/servicerunner.service:ServiceRunnerParameters"
+    }
+  },
+  "models": {
+    "Webda/AsyncAction": {
+      "Plural": "AsyncActions",
+      "Import": "lib/asyncaction.model:default",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [
+        "Webda/AsyncWebdaAction",
+        "Webda/AsyncOperationAction"
+      ],
+      "Reflection": {
         "status": {
-          "type": "string",
-          "enum": [
-            "RUNNING",
-            "SUCCESS",
-            "ERROR",
-            "QUEUED",
-            "STARTING",
-            "TIMEOUT",
-            "SCHEDULED"
-          ],
-          "description": "Current status"
+          "type": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\""
         },
         "scheduled": {
-          "type": "number",
-          "description": "Timestamp when the action was scheduled"
+          "type": "number"
         },
         "errorMessage": {
-          "type": "string",
-          "description": "If an error occured it should contain the message"
+          "type": "string"
         },
         "errorName": {
-          "type": "string",
-          "description": "If an error occured it should contain the name"
+          "type": "string"
         },
         "job": {
-          "description": "Job information"
+          "type": "any"
         },
         "_lastJobUpdate": {
-          "type": "number",
-          "description": "Last time the job was updated",
-          "readOnly": true
+          "type": "number"
         },
         "results": {
-          "description": "Results from the job"
+          "type": "any"
         },
         "statusDetails": {
-          "description": "Job current status"
+          "type": "any"
         },
         "type": {
           "type": "string"
         },
         "arguments": {
-          "type": "array",
-          "items": {}
+          "type": "Array",
+          "typeParameters": [
+            "any"
+          ]
         },
         "logs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Current logs"
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__secretKey": {
+          "type": "string"
         },
         "action": {
-          "type": "string",
-          "description": "Expected action for the job\n\nIt should be a verb"
+          "type": "\"STOP\" | string"
         },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "AsyncActions",
+          "additionalProperties": false,
+          "description": "Define here a model that can be used along with Store service",
+          "properties": {
+            "__secretKey": {
+              "description": "Secret key to post feedback",
+              "type": "string"
+            },
+            "_lastJobUpdate": {
+              "description": "Last time the job was updated",
+              "type": "number"
+            },
+            "action": {
+              "description": "Expected action for the job\n\nIt should be a verb",
+              "type": "string"
+            },
+            "arguments": {
+              "description": "Arguments of the action",
+              "items": {},
+              "type": "array"
+            },
+            "errorMessage": {
+              "description": "If an error occured it should contain the message",
+              "type": "string"
+            },
+            "errorName": {
+              "description": "If an error occured it should contain the name",
+              "type": "string"
+            },
+            "job": {
+              "description": "Job information"
+            },
+            "logs": {
+              "description": "Current logs",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "results": {
+              "description": "Results from the job"
+            },
+            "scheduled": {
+              "description": "Timestamp when the action was scheduled",
+              "type": "number"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "RUNNING",
+                "SUCCESS",
+                "ERROR",
+                "QUEUED",
+                "STARTING",
+                "TIMEOUT",
+                "SCHEDULED"
+              ],
+              "type": "string"
+            },
+            "statusDetails": {
+              "description": "Job current status"
+            },
+            "type": {
+              "description": "Type of action",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__secretKey",
+            "_lastJobUpdate",
+            "job",
+            "logs",
+            "results",
+            "status",
+            "statusDetails",
+            "type",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "AsyncActions",
+          "additionalProperties": false,
+          "description": "Define here a model that can be used along with Store service",
+          "properties": {
+            "__secretKey": {
+              "description": "Secret key to post feedback",
+              "type": "string"
+            },
+            "_lastJobUpdate": {
+              "description": "Last time the job was updated",
+              "type": "number"
+            },
+            "action": {
+              "description": "Expected action for the job\n\nIt should be a verb",
+              "type": "string"
+            },
+            "arguments": {
+              "description": "Arguments of the action",
+              "items": {},
+              "type": "array"
+            },
+            "errorMessage": {
+              "description": "If an error occured it should contain the message",
+              "type": "string"
+            },
+            "errorName": {
+              "description": "If an error occured it should contain the name",
+              "type": "string"
+            },
+            "job": {
+              "description": "Job information"
+            },
+            "logs": {
+              "description": "Current logs",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "results": {
+              "description": "Results from the job"
+            },
+            "scheduled": {
+              "description": "Timestamp when the action was scheduled",
+              "type": "number"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "RUNNING",
+                "SUCCESS",
+                "ERROR",
+                "QUEUED",
+                "STARTING",
+                "TIMEOUT",
+                "SCHEDULED"
+              ],
+              "type": "string"
+            },
+            "statusDetails": {
+              "description": "Job current status"
+            },
+            "type": {
+              "description": "Type of action",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__secretKey",
+            "_lastJobUpdate",
+            "job",
+            "logs",
+            "results",
+            "status",
+            "statusDetails",
+            "type",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "AsyncActions",
+          "additionalProperties": false,
+          "description": "Define here a model that can be used along with Store service",
+          "properties": {
+            "__secretKey": {
+              "description": "Secret key to post feedback",
+              "type": "string"
+            },
+            "_lastJobUpdate": {
+              "description": "Last time the job was updated",
+              "type": "number"
+            },
+            "action": {
+              "description": "Expected action for the job\n\nIt should be a verb",
+              "type": "string"
+            },
+            "arguments": {
+              "description": "Arguments of the action",
+              "items": {},
+              "type": "array"
+            },
+            "errorMessage": {
+              "description": "If an error occured it should contain the message",
+              "type": "string"
+            },
+            "errorName": {
+              "description": "If an error occured it should contain the name",
+              "type": "string"
+            },
+            "job": {
+              "description": "Job information"
+            },
+            "logs": {
+              "description": "Current logs",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "results": {
+              "description": "Results from the job"
+            },
+            "scheduled": {
+              "description": "Timestamp when the action was scheduled",
+              "type": "number"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "RUNNING",
+                "SUCCESS",
+                "ERROR",
+                "QUEUED",
+                "STARTING",
+                "TIMEOUT",
+                "SCHEDULED"
+              ],
+              "type": "string"
+            },
+            "statusDetails": {
+              "description": "Job current status"
+            },
+            "type": {
+              "description": "Type of action",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__secretKey",
+            "_lastJobUpdate",
+            "job",
+            "logs",
+            "results",
+            "status",
+            "statusDetails",
+            "type",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {
+        "statusAction": {}
+      },
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/AsyncAction"
+    },
+    "Webda/AsyncOperationAction": {
+      "Plural": "AsyncOperationActions",
+      "Import": "lib/asyncaction.model:AsyncOperationAction",
+      "Relations": {},
+      "Ancestors": [
+        "Webda/AsyncAction"
+      ],
+      "Subclasses": [],
+      "Reflection": {
         "operationId": {
           "type": "string"
         },
         "context": {
-          "type": "object",
-          "properties": {
-            "_promises": {
-              "type": "array",
-              "items": {},
-              "description": "Contain all registered promises to this context",
-              "readOnly": true
-            },
-            "parameters": {},
-            "_stream": {
-              "type": "object",
-              "properties": {
-                "writable": {
-                  "type": "boolean",
-                  "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored or ended."
-                },
-                "writableEnded": {
-                  "type": "boolean",
-                  "description": "Is `true` after `writable.end()` has been called. This property does not indicate whether the data has been flushed, for this use `writable.writableFinished` instead."
-                },
-                "writableFinished": {
-                  "type": "boolean",
-                  "description": "Is set to `true` immediately before the `'finish'` event is emitted."
-                },
-                "writableHighWaterMark": {
-                  "type": "number",
-                  "description": "Return the value of `highWaterMark` passed when creating this `Writable`."
-                },
-                "writableLength": {
-                  "type": "number",
-                  "description": "This property contains the number of bytes (or objects) in the queue ready to be written. The value provides introspection data regarding the status of the `highWaterMark`."
-                },
-                "writableObjectMode": {
-                  "type": "boolean",
-                  "description": "Getter for the property `objectMode` of a given `Writable` stream."
-                },
-                "writableCorked": {
-                  "type": "number",
-                  "description": "Number of times `writable.uncork()` needs to be called in order to fully uncork the stream."
-                },
-                "destroyed": {
-                  "type": "boolean",
-                  "description": "Is `true` after `writable.destroy()` has been called."
-                },
-                "closed": {
-                  "type": "boolean",
-                  "description": "Is true after 'close' has been emitted."
-                },
-                "errored": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "stack": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "name",
-                        "message"
-                      ]
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "description": "Returns error if the stream has been destroyed with an error."
-                },
-                "writableNeedDrain": {
-                  "type": "boolean",
-                  "description": "Is `true` if the stream's buffer has been full and stream will emit 'drain'."
-                }
-              },
-              "required": [
-                "closed",
-                "destroyed",
-                "errored",
-                "writable",
-                "writableCorked",
-                "writableEnded",
-                "writableFinished",
-                "writableHighWaterMark",
-                "writableLength",
-                "writableNeedDrain",
-                "writableObjectMode"
-              ],
-              "description": "Output stream",
-              "readOnly": true
-            }
-          },
-          "required": [
-            "parameters"
-          ],
-          "description": "OperationContext is used when call to an operation"
+          "type": "any"
         },
         "logLevel": {
-          "$ref": "#/definitions/WorkerLogLevel"
-        }
-      },
-      "required": [
-        "context",
-        "job",
-        "logLevel",
-        "logs",
-        "operationId",
-        "results",
-        "status",
-        "statusDetails",
-        "type",
-        "uuid"
-      ],
-      "description": "Operation called asynchronously",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "WorkerLogLevel": {
-          "type": "string",
-          "enum": [
-            "ERROR",
-            "WARN",
-            "INFO",
-            "DEBUG",
-            "TRACE"
-          ],
-          "description": "LogLevel as intersection to compare with integer values"
-        }
-      },
-      "title": "AsyncOperationAction"
-    },
-    "Webda/AsyncWebdaAction": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "uuid": {
-          "type": "string",
-          "description": "Action uuid"
+          "type": "WorkerLogLevel"
         },
         "status": {
-          "type": "string",
-          "enum": [
-            "RUNNING",
-            "SUCCESS",
-            "ERROR",
-            "QUEUED",
-            "STARTING",
-            "TIMEOUT",
-            "SCHEDULED"
-          ],
-          "description": "Current status"
+          "type": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\""
         },
         "scheduled": {
-          "type": "number",
-          "description": "Timestamp when the action was scheduled"
+          "type": "number"
         },
         "errorMessage": {
-          "type": "string",
-          "description": "If an error occured it should contain the message"
+          "type": "string"
         },
         "errorName": {
-          "type": "string",
-          "description": "If an error occured it should contain the name"
+          "type": "string"
         },
         "job": {
-          "description": "Job information"
+          "type": "any"
         },
         "_lastJobUpdate": {
-          "type": "number",
-          "description": "Last time the job was updated",
-          "readOnly": true
+          "type": "number"
         },
         "results": {
-          "description": "Results from the job"
+          "type": "any"
         },
         "statusDetails": {
-          "description": "Job current status"
+          "type": "any"
         },
         "type": {
           "type": "string"
         },
         "arguments": {
-          "type": "array",
-          "items": {}
+          "type": "Array",
+          "typeParameters": [
+            "any"
+          ]
         },
         "logs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Current logs"
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__secretKey": {
+          "type": "string"
         },
         "action": {
-          "type": "string",
-          "description": "Expected action for the job\n\nIt should be a verb"
+          "type": "\"STOP\" | string"
         },
-        "logLevel": {
-          "$ref": "#/definitions/WorkerLogLevel"
-        },
-        "serviceName": {
-          "type": "string",
-          "description": "service to call"
-        },
-        "method": {
-          "type": "string",
-          "description": "method to call"
+        "uuid": {
+          "type": "string"
         }
       },
-      "required": [
-        "job",
-        "logLevel",
-        "logs",
-        "results",
-        "status",
-        "statusDetails",
-        "type",
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "AsyncOperationActions",
+          "additionalProperties": false,
+          "description": "Operation called asynchronously",
+          "properties": {
+            "__secretKey": {
+              "description": "Secret key to post feedback",
+              "type": "string"
+            },
+            "_lastJobUpdate": {
+              "description": "Last time the job was updated",
+              "type": "number"
+            },
+            "action": {
+              "description": "Expected action for the job\n\nIt should be a verb",
+              "type": "string"
+            },
+            "arguments": {
+              "description": "Arguments of the action",
+              "items": {},
+              "type": "array"
+            },
+            "context": {
+              "description": "Context to call the operation with"
+            },
+            "errorMessage": {
+              "description": "If an error occured it should contain the message",
+              "type": "string"
+            },
+            "errorName": {
+              "description": "If an error occured it should contain the name",
+              "type": "string"
+            },
+            "job": {
+              "description": "Job information"
+            },
+            "logLevel": {
+              "description": "Log level to capture",
+              "enum": [
+                "ERROR",
+                "WARN",
+                "INFO",
+                "DEBUG",
+                "TRACE"
+              ],
+              "type": "string"
+            },
+            "logs": {
+              "description": "Current logs",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "operationId": {
+              "description": "Operation to call",
+              "type": "string"
+            },
+            "results": {
+              "description": "Results from the job"
+            },
+            "scheduled": {
+              "description": "Timestamp when the action was scheduled",
+              "type": "number"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "RUNNING",
+                "SUCCESS",
+                "ERROR",
+                "QUEUED",
+                "STARTING",
+                "TIMEOUT",
+                "SCHEDULED"
+              ],
+              "type": "string"
+            },
+            "statusDetails": {
+              "description": "Job current status"
+            },
+            "type": {
+              "description": "Type of action",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__secretKey",
+            "_lastJobUpdate",
+            "context",
+            "job",
+            "logLevel",
+            "logs",
+            "operationId",
+            "results",
+            "status",
+            "statusDetails",
+            "type",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "AsyncOperationActions",
+          "additionalProperties": false,
+          "description": "Operation called asynchronously",
+          "properties": {
+            "__secretKey": {
+              "description": "Secret key to post feedback",
+              "type": "string"
+            },
+            "_lastJobUpdate": {
+              "description": "Last time the job was updated",
+              "type": "number"
+            },
+            "action": {
+              "description": "Expected action for the job\n\nIt should be a verb",
+              "type": "string"
+            },
+            "arguments": {
+              "description": "Arguments of the action",
+              "items": {},
+              "type": "array"
+            },
+            "context": {
+              "description": "Context to call the operation with"
+            },
+            "errorMessage": {
+              "description": "If an error occured it should contain the message",
+              "type": "string"
+            },
+            "errorName": {
+              "description": "If an error occured it should contain the name",
+              "type": "string"
+            },
+            "job": {
+              "description": "Job information"
+            },
+            "logLevel": {
+              "description": "Log level to capture",
+              "enum": [
+                "ERROR",
+                "WARN",
+                "INFO",
+                "DEBUG",
+                "TRACE"
+              ],
+              "type": "string"
+            },
+            "logs": {
+              "description": "Current logs",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "operationId": {
+              "description": "Operation to call",
+              "type": "string"
+            },
+            "results": {
+              "description": "Results from the job"
+            },
+            "scheduled": {
+              "description": "Timestamp when the action was scheduled",
+              "type": "number"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "RUNNING",
+                "SUCCESS",
+                "ERROR",
+                "QUEUED",
+                "STARTING",
+                "TIMEOUT",
+                "SCHEDULED"
+              ],
+              "type": "string"
+            },
+            "statusDetails": {
+              "description": "Job current status"
+            },
+            "type": {
+              "description": "Type of action",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__secretKey",
+            "_lastJobUpdate",
+            "context",
+            "job",
+            "logLevel",
+            "logs",
+            "operationId",
+            "results",
+            "status",
+            "statusDetails",
+            "type",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "AsyncOperationActions",
+          "additionalProperties": false,
+          "description": "Operation called asynchronously",
+          "properties": {
+            "__secretKey": {
+              "description": "Secret key to post feedback",
+              "type": "string"
+            },
+            "_lastJobUpdate": {
+              "description": "Last time the job was updated",
+              "type": "number"
+            },
+            "action": {
+              "description": "Expected action for the job\n\nIt should be a verb",
+              "type": "string"
+            },
+            "arguments": {
+              "description": "Arguments of the action",
+              "items": {},
+              "type": "array"
+            },
+            "context": {
+              "description": "Context to call the operation with"
+            },
+            "errorMessage": {
+              "description": "If an error occured it should contain the message",
+              "type": "string"
+            },
+            "errorName": {
+              "description": "If an error occured it should contain the name",
+              "type": "string"
+            },
+            "job": {
+              "description": "Job information"
+            },
+            "logLevel": {
+              "description": "Log level to capture",
+              "enum": [
+                "ERROR",
+                "WARN",
+                "INFO",
+                "DEBUG",
+                "TRACE"
+              ],
+              "type": "string"
+            },
+            "logs": {
+              "description": "Current logs",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "operationId": {
+              "description": "Operation to call",
+              "type": "string"
+            },
+            "results": {
+              "description": "Results from the job"
+            },
+            "scheduled": {
+              "description": "Timestamp when the action was scheduled",
+              "type": "number"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "RUNNING",
+                "SUCCESS",
+                "ERROR",
+                "QUEUED",
+                "STARTING",
+                "TIMEOUT",
+                "SCHEDULED"
+              ],
+              "type": "string"
+            },
+            "statusDetails": {
+              "description": "Job current status"
+            },
+            "type": {
+              "description": "Type of action",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__secretKey",
+            "_lastJobUpdate",
+            "context",
+            "job",
+            "logLevel",
+            "logs",
+            "operationId",
+            "results",
+            "status",
+            "statusDetails",
+            "type",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {
+        "statusAction": {}
+      },
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
         "uuid"
       ],
-      "description": "Define a Webda Async Action",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "WorkerLogLevel": {
-          "type": "string",
-          "enum": [
-            "ERROR",
-            "WARN",
-            "INFO",
-            "DEBUG",
-            "TRACE"
-          ],
-          "description": "LogLevel as intersection to compare with integer values"
+      "Identifier": "Webda/AsyncOperationAction"
+    },
+    "Webda/AsyncWebdaAction": {
+      "Plural": "AsyncWebdaActions",
+      "Import": "lib/asyncaction.model:AsyncWebdaAction",
+      "Relations": {},
+      "Ancestors": [
+        "Webda/AsyncAction"
+      ],
+      "Subclasses": [],
+      "Reflection": {
+        "logLevel": {
+          "type": "WorkerLogLevel"
+        },
+        "serviceName": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "status": {
+          "type": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\""
+        },
+        "scheduled": {
+          "type": "number"
+        },
+        "errorMessage": {
+          "type": "string"
+        },
+        "errorName": {
+          "type": "string"
+        },
+        "job": {
+          "type": "any"
+        },
+        "_lastJobUpdate": {
+          "type": "number"
+        },
+        "results": {
+          "type": "any"
+        },
+        "statusDetails": {
+          "type": "any"
+        },
+        "type": {
+          "type": "string"
+        },
+        "arguments": {
+          "type": "Array",
+          "typeParameters": [
+            "any"
+          ]
+        },
+        "logs": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__secretKey": {
+          "type": "string"
+        },
+        "action": {
+          "type": "\"STOP\" | string"
+        },
+        "uuid": {
+          "type": "string"
         }
       },
-      "title": "AsyncWebdaAction"
-    },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "AsyncWebdaActions",
+          "additionalProperties": false,
+          "description": "Define a Webda Async Action",
+          "properties": {
+            "__secretKey": {
+              "description": "Secret key to post feedback",
+              "type": "string"
+            },
+            "_lastJobUpdate": {
+              "description": "Last time the job was updated",
+              "type": "number"
+            },
+            "action": {
+              "description": "Expected action for the job\n\nIt should be a verb",
+              "type": "string"
+            },
+            "arguments": {
+              "description": "Arguments of the action",
+              "items": {},
+              "type": "array"
+            },
+            "errorMessage": {
+              "description": "If an error occured it should contain the message",
+              "type": "string"
+            },
+            "errorName": {
+              "description": "If an error occured it should contain the name",
+              "type": "string"
+            },
+            "job": {
+              "description": "Job information"
+            },
+            "logLevel": {
+              "description": "Log level to capture",
+              "enum": [
+                "ERROR",
+                "WARN",
+                "INFO",
+                "DEBUG",
+                "TRACE"
+              ],
+              "type": "string"
+            },
+            "logs": {
+              "description": "Current logs",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "method": {
+              "description": "Method to call",
+              "type": "string"
+            },
+            "results": {
+              "description": "Results from the job"
+            },
+            "scheduled": {
+              "description": "Timestamp when the action was scheduled",
+              "type": "number"
+            },
+            "serviceName": {
+              "description": "Service to call",
+              "type": "string"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "RUNNING",
+                "SUCCESS",
+                "ERROR",
+                "QUEUED",
+                "STARTING",
+                "TIMEOUT",
+                "SCHEDULED"
+              ],
+              "type": "string"
+            },
+            "statusDetails": {
+              "description": "Job current status"
+            },
+            "type": {
+              "description": "Type of action",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__secretKey",
+            "_lastJobUpdate",
+            "job",
+            "logLevel",
+            "logs",
+            "results",
+            "status",
+            "statusDetails",
+            "type",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "AsyncWebdaActions",
+          "additionalProperties": false,
+          "description": "Define a Webda Async Action",
+          "properties": {
+            "__secretKey": {
+              "description": "Secret key to post feedback",
+              "type": "string"
+            },
+            "_lastJobUpdate": {
+              "description": "Last time the job was updated",
+              "type": "number"
+            },
+            "action": {
+              "description": "Expected action for the job\n\nIt should be a verb",
+              "type": "string"
+            },
+            "arguments": {
+              "description": "Arguments of the action",
+              "items": {},
+              "type": "array"
+            },
+            "errorMessage": {
+              "description": "If an error occured it should contain the message",
+              "type": "string"
+            },
+            "errorName": {
+              "description": "If an error occured it should contain the name",
+              "type": "string"
+            },
+            "job": {
+              "description": "Job information"
+            },
+            "logLevel": {
+              "description": "Log level to capture",
+              "enum": [
+                "ERROR",
+                "WARN",
+                "INFO",
+                "DEBUG",
+                "TRACE"
+              ],
+              "type": "string"
+            },
+            "logs": {
+              "description": "Current logs",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "method": {
+              "description": "Method to call",
+              "type": "string"
+            },
+            "results": {
+              "description": "Results from the job"
+            },
+            "scheduled": {
+              "description": "Timestamp when the action was scheduled",
+              "type": "number"
+            },
+            "serviceName": {
+              "description": "Service to call",
+              "type": "string"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "RUNNING",
+                "SUCCESS",
+                "ERROR",
+                "QUEUED",
+                "STARTING",
+                "TIMEOUT",
+                "SCHEDULED"
+              ],
+              "type": "string"
+            },
+            "statusDetails": {
+              "description": "Job current status"
+            },
+            "type": {
+              "description": "Type of action",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__secretKey",
+            "_lastJobUpdate",
+            "job",
+            "logLevel",
+            "logs",
+            "results",
+            "status",
+            "statusDetails",
+            "type",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "AsyncWebdaActions",
+          "additionalProperties": false,
+          "description": "Define a Webda Async Action",
+          "properties": {
+            "__secretKey": {
+              "description": "Secret key to post feedback",
+              "type": "string"
+            },
+            "_lastJobUpdate": {
+              "description": "Last time the job was updated",
+              "type": "number"
+            },
+            "action": {
+              "description": "Expected action for the job\n\nIt should be a verb",
+              "type": "string"
+            },
+            "arguments": {
+              "description": "Arguments of the action",
+              "items": {},
+              "type": "array"
+            },
+            "errorMessage": {
+              "description": "If an error occured it should contain the message",
+              "type": "string"
+            },
+            "errorName": {
+              "description": "If an error occured it should contain the name",
+              "type": "string"
+            },
+            "job": {
+              "description": "Job information"
+            },
+            "logLevel": {
+              "description": "Log level to capture",
+              "enum": [
+                "ERROR",
+                "WARN",
+                "INFO",
+                "DEBUG",
+                "TRACE"
+              ],
+              "type": "string"
+            },
+            "logs": {
+              "description": "Current logs",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "method": {
+              "description": "Method to call",
+              "type": "string"
+            },
+            "results": {
+              "description": "Results from the job"
+            },
+            "scheduled": {
+              "description": "Timestamp when the action was scheduled",
+              "type": "number"
+            },
+            "serviceName": {
+              "description": "Service to call",
+              "type": "string"
+            },
+            "status": {
+              "description": "Current status",
+              "enum": [
+                "RUNNING",
+                "SUCCESS",
+                "ERROR",
+                "QUEUED",
+                "STARTING",
+                "TIMEOUT",
+                "SCHEDULED"
+              ],
+              "type": "string"
+            },
+            "statusDetails": {
+              "description": "Job current status"
+            },
+            "type": {
+              "description": "Type of action",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__secretKey",
+            "_lastJobUpdate",
+            "job",
+            "logLevel",
+            "logs",
+            "results",
+            "status",
+            "statusDetails",
+            "type",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {
+        "statusAction": {}
+      },
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/AsyncWebdaAction"
+    }
+  },
+  "schemas": {
     "Webda/BinaryFile": {
-      "type": "object",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
       "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
         "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
         },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
         },
         "metadata": {
           "description": "Metadatas stored along with the binary"
         },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
         "originalname": {
-          "type": "string",
-          "description": "Original name"
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
         }
       },
       "required": [
@@ -651,363 +1771,271 @@
         "name",
         "size"
       ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
       "title": "BinaryFile"
     },
-    "Webda/LocalRunner": {
+    "Webda/AsyncAction.statusAction.input": {
       "type": "object",
       "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "actions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Actions managed by the runner",
-          "default": []
-        },
-        "command": {
-          "type": "string",
-          "description": "Command to launch"
-        },
-        "args": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Args"
-        },
-        "options": {
-          "type": "object",
+        "context": {
+          "additionalProperties": false,
+          "description": "OperationContext is used when call to an operation",
+          "param": [
+            "T type of input for this context",
+            "U type of output for this context",
+            "P type of parameters for this context"
+          ],
           "properties": {
-            "signal": {
-              "type": "object",
-              "properties": {
-                "aborted": {
-                  "type": "boolean"
-                },
-                "onabort": {
-                  "anyOf": [
-                    {},
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "reason": {}
+            "_promises": {
+              "description": "Contain all registered promises to this context",
+              "items": {
+                "$ref": "#/definitions/Promise%3Cany%3E"
               },
-              "required": [
-                "aborted",
-                "onabort",
-                "reason"
-              ],
-              "description": "When provided the corresponding `AbortController` can be used to cancel an asynchronous action."
+              "type": "array"
             },
-            "serialization": {
-              "$ref": "#/definitions/SerializationType",
-              "description": "Specify the kind of serialization used for sending messages between processes.",
-              "default": "json"
+            "_stream": {
+              "$ref": "#/definitions/Writable",
+              "description": "Output stream"
             },
-            "killSignal": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/global.NodeJS.Signals"
-                },
-                {
-                  "type": "number"
-                }
-              ],
-              "description": "The signal value to be used when the spawned process will be killed by the abort signal.",
-              "default": "SIGTERM"
+            "caches": {
+              "description": "Get the caches linked to the context"
             },
-            "timeout": {
-              "type": "number",
-              "default": 0
-            },
-            "uid": {
-              "type": "number"
-            },
-            "gid": {
-              "type": "number"
-            },
-            "cwd": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "hash": {
-                      "type": "string",
-                      "description": "Gets and sets the fragment portion of the URL.\n\n```js const myURL = new URL('https://example.org/foo#bar'); console.log(myURL.hash); // Prints #bar\n\nmyURL.hash = 'baz'; console.log(myURL.href); // Prints https://example.org/foo#baz ```\n\nInvalid URL characters included in the value assigned to the `hash` property are `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
-                    },
-                    "host": {
-                      "type": "string",
-                      "description": "Gets and sets the host portion of the URL.\n\n```js const myURL = new URL('https://example.org:81/foo'); console.log(myURL.host); // Prints example.org:81\n\nmyURL.host = 'example.com:82'; console.log(myURL.href); // Prints https://example.com:82/foo ```\n\nInvalid host values assigned to the `host` property are ignored."
-                    },
-                    "hostname": {
-                      "type": "string",
-                      "description": "Gets and sets the host name portion of the URL. The key difference between`url.host` and `url.hostname` is that `url.hostname` does _not_ include the port.\n\n```js const myURL = new URL('https://example.org:81/foo'); console.log(myURL.hostname); // Prints example.org\n\n// Setting the hostname does not change the port myURL.hostname = 'example.com:82'; console.log(myURL.href); // Prints https://example.com:81/foo\n\n// Use myURL.host to change the hostname and port myURL.host = 'example.org:82'; console.log(myURL.href); // Prints https://example.org:82/foo ```\n\nInvalid host name values assigned to the `hostname` property are ignored."
-                    },
-                    "href": {
-                      "type": "string",
-                      "description": "Gets and sets the serialized URL.\n\n```js const myURL = new URL('https://example.org/foo'); console.log(myURL.href); // Prints https://example.org/foo\n\nmyURL.href = 'https://example.com/bar'; console.log(myURL.href); // Prints https://example.com/bar ```\n\nGetting the value of the `href` property is equivalent to calling  {@link  toString } .\n\nSetting the value of this property to a new value is equivalent to creating a new `URL` object using `new URL(value)`. Each of the `URL`object's properties will be modified.\n\nIf the value assigned to the `href` property is not a valid URL, a `TypeError`will be thrown."
-                    },
-                    "origin": {
-                      "type": "string",
-                      "description": "Gets the read-only serialization of the URL's origin.\n\n```js const myURL = new URL('https://example.org/foo/bar?baz'); console.log(myURL.origin); // Prints https://example.org ```\n\n```js const idnURL = new URL('https://測試'); console.log(idnURL.origin); // Prints https://xn--g6w251d\n\nconsole.log(idnURL.hostname); // Prints xn--g6w251d ```"
-                    },
-                    "password": {
-                      "type": "string",
-                      "description": "Gets and sets the password portion of the URL.\n\n```js const myURL = new URL('https://abc:xyz@example.com'); console.log(myURL.password); // Prints xyz\n\nmyURL.password = '123'; console.log(myURL.href); // Prints https://abc:123@example.com ```\n\nInvalid URL characters included in the value assigned to the `password` property are `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
-                    },
-                    "pathname": {
-                      "type": "string",
-                      "description": "Gets and sets the path portion of the URL.\n\n```js const myURL = new URL('https://example.org/abc/xyz?123'); console.log(myURL.pathname); // Prints /abc/xyz\n\nmyURL.pathname = '/abcdef'; console.log(myURL.href); // Prints https://example.org/abcdef?123 ```\n\nInvalid URL characters included in the value assigned to the `pathname`property are `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
-                    },
-                    "port": {
-                      "type": "string",
-                      "description": "Gets and sets the port portion of the URL.\n\nThe port value may be a number or a string containing a number in the range`0` to `65535` (inclusive). Setting the value to the default port of the`URL` objects given `protocol` will result in the `port` value becoming the empty string (`''`).\n\nThe port value can be an empty string in which case the port depends on the protocol/scheme:\n\n<omitted>\n\nUpon assigning a value to the port, the value will first be converted to a string using `.toString()`.\n\nIf that string is invalid but it begins with a number, the leading number is assigned to `port`. If the number lies outside the range denoted above, it is ignored.\n\n```js const myURL = new URL('https://example.org:8888'); console.log(myURL.port); // Prints 8888\n\n// Default ports are automatically transformed to the empty string // (HTTPS protocol's default port is 443) myURL.port = '443'; console.log(myURL.port); // Prints the empty string console.log(myURL.href); // Prints https://example.org/\n\nmyURL.port = 1234; console.log(myURL.port); // Prints 1234 console.log(myURL.href); // Prints https://example.org:1234/\n\n// Completely invalid port strings are ignored myURL.port = 'abcd'; console.log(myURL.port); // Prints 1234\n\n// Leading numbers are treated as a port number myURL.port = '5678abcd'; console.log(myURL.port); // Prints 5678\n\n// Non-integers are truncated myURL.port = 1234.5678; console.log(myURL.port); // Prints 1234\n\n// Out-of-range numbers which are not represented in scientific notation // will be ignored. myURL.port = 1e10; // 10000000000, will be range-checked as described below console.log(myURL.port); // Prints 1234 ```\n\nNumbers which contain a decimal point, such as floating-point numbers or numbers in scientific notation, are not an exception to this rule. Leading numbers up to the decimal point will be set as the URL's port, assuming they are valid:\n\n```js myURL.port = 4.567e21; console.log(myURL.port); // Prints 4 (because it is the leading number in the string '4.567e21') ```"
-                    },
-                    "protocol": {
-                      "type": "string",
-                      "description": "Gets and sets the protocol portion of the URL.\n\n```js const myURL = new URL('https://example.org'); console.log(myURL.protocol); // Prints https:\n\nmyURL.protocol = 'ftp'; console.log(myURL.href); // Prints ftp://example.org/ ```\n\nInvalid URL protocol values assigned to the `protocol` property are ignored."
-                    },
-                    "search": {
-                      "type": "string",
-                      "description": "Gets and sets the serialized query portion of the URL.\n\n```js const myURL = new URL('https://example.org/abc?123'); console.log(myURL.search); // Prints ?123\n\nmyURL.search = 'abc=xyz'; console.log(myURL.href); // Prints https://example.org/abc?abc=xyz ```\n\nAny invalid URL characters appearing in the value assigned the `search`property will be `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
-                    },
-                    "searchParams": {
-                      "type": "object",
-                      "properties": {
-                        "size": {
-                          "type": "number",
-                          "description": "The total number of parameter entries."
-                        }
-                      },
-                      "required": [
-                        "size"
-                      ],
-                      "description": "Gets the `URLSearchParams` object representing the query parameters of the URL. This property is read-only but the `URLSearchParams` object it provides can be used to mutate the URL instance; to replace the entirety of query parameters of the URL, use the  {@link  search }  setter. See `URLSearchParams` documentation for details.\n\nUse care when using `.searchParams` to modify the `URL` because, per the WHATWG specification, the `URLSearchParams` object uses different rules to determine which characters to percent-encode. For instance, the `URL` object will not percent encode the ASCII tilde (`~`) character, while `URLSearchParams` will always encode it:\n\n```js const myUrl = new URL('https://example.org/abc?foo=~bar');\n\nconsole.log(myUrl.search);  // prints ?foo=~bar\n\n// Modify the URL via searchParams... myUrl.searchParams.sort();\n\nconsole.log(myUrl.search);  // prints ?foo=%7Ebar ```"
-                    },
-                    "username": {
-                      "type": "string",
-                      "description": "Gets and sets the username portion of the URL.\n\n```js const myURL = new URL('https://abc:xyz@example.com'); console.log(myURL.username); // Prints abc\n\nmyURL.username = '123'; console.log(myURL.href); // Prints https://123:xyz@example.com/ ```\n\nAny invalid URL characters appearing in the value assigned the `username`property will be `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
-                    }
-                  },
-                  "required": [
-                    "hash",
-                    "host",
-                    "hostname",
-                    "href",
-                    "origin",
-                    "password",
-                    "pathname",
-                    "port",
-                    "protocol",
-                    "search",
-                    "searchParams",
-                    "username"
-                  ],
-                  "description": "Browser-compatible `URL` class, implemented by following the WHATWG URL Standard. [Examples of parsed URLs](https://url.spec.whatwg.org/#example-url-parsing) may be found in the Standard itself. The `URL` class is also available on the global object.\n\nIn accordance with browser conventions, all properties of `URL` objects are implemented as getters and setters on the class prototype, rather than as data properties on the object itself. Thus, unlike `legacy urlObject` s, using the `delete` keyword on any properties of `URL` objects (e.g. `delete myURL.protocol`, `delete myURL.pathname`, etc) has no effect but will still return `true`."
-                }
-              ]
-            },
-            "env": {
-              "type": "object",
-              "properties": {
-                "TZ": {
-                  "type": "string",
-                  "description": "Can be used to change the default timezone at runtime"
-                }
-              }
-            },
-            "windowsHide": {
-              "type": "boolean",
-              "default": false
-            },
-            "argv0": {
+            "parameters": {}
+          },
+          "required": [
+            "_promises",
+            "_stream",
+            "caches",
+            "parameters"
+          ],
+          "type": "object"
+        }
+      },
+      "definitions": {
+        "Error": {
+          "additionalProperties": false,
+          "properties": {
+            "message": {
               "type": "string"
             },
-            "stdio": {
-              "$ref": "#/definitions/StdioOptions",
-              "description": "Can be set to 'pipe', 'inherit', 'overlapped', or 'ignore', or an array of these strings. If passed as an array, the first element is used for `stdin`, the second for `stdout`, and the third for `stderr`. A fourth element can be used to specify the `stdio` behavior beyond the standard streams. See  {@link  ChildProcess.stdio }  for more information.",
-              "default": "pipe"
+            "name": {
+              "type": "string"
             },
-            "shell": {
-              "type": [
-                "boolean",
-                "string"
-              ]
-            },
-            "windowsVerbatimArguments": {
+            "stack": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message",
+            "name"
+          ],
+          "type": "object"
+        },
+        "Promise<any>": {
+          "additionalProperties": false,
+          "description": "Represents the completion of an asynchronous operation",
+          "type": "object"
+        },
+        "Writable": {
+          "additionalProperties": false,
+          "properties": {
+            "destroyed": {
+              "default": false,
+              "description": "Is `true` after `writable.destroy()` has been called.",
+              "since": "v8.0.0",
               "type": "boolean"
             },
-            "detached": {
+            "writable": {
+              "default": false,
+              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
+              "since": "v11.4.0",
               "type": "boolean"
             }
           },
-          "description": "Options\n\nBased on https://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options"
-        },
-        "autoStatus": {
-          "type": "boolean",
-          "description": "Use the observability of ChildProcess to update status accordingly"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
+          "since": "v0.9.4",
+          "type": "object"
         }
-      },
-      "required": [
-        "command",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "SerializationType": {
-          "type": "string",
-          "enum": [
-            "json",
-            "advanced"
-          ]
-        },
-        "global.NodeJS.Signals": {
-          "type": "string",
-          "enum": [
-            "SIGABRT",
-            "SIGALRM",
-            "SIGBUS",
-            "SIGCHLD",
-            "SIGCONT",
-            "SIGFPE",
-            "SIGHUP",
-            "SIGILL",
-            "SIGINT",
-            "SIGIO",
-            "SIGIOT",
-            "SIGKILL",
-            "SIGPIPE",
-            "SIGPOLL",
-            "SIGPROF",
-            "SIGPWR",
-            "SIGQUIT",
-            "SIGSEGV",
-            "SIGSTKFLT",
-            "SIGSTOP",
-            "SIGSYS",
-            "SIGTERM",
-            "SIGTRAP",
-            "SIGTSTP",
-            "SIGTTIN",
-            "SIGTTOU",
-            "SIGUNUSED",
-            "SIGURG",
-            "SIGUSR1",
-            "SIGUSR2",
-            "SIGVTALRM",
-            "SIGWINCH",
-            "SIGXCPU",
-            "SIGXFSZ",
-            "SIGBREAK",
-            "SIGLOST",
-            "SIGINFO"
-          ]
-        },
-        "StdioOptions": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/IOType"
-            },
-            {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "$ref": "#/definitions/IOType"
-                  },
-                  {
-                    "type": "string",
-                    "const": "ipc"
-                  },
-                  {
-                    "type": "object",
-                    "properties": {}
-                  },
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "null"
-                  },
-                  {
-                    "not": {}
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        "IOType": {
-          "type": "string",
-          "enum": [
-            "overlapped",
-            "pipe",
-            "ignore",
-            "inherit"
-          ]
-        }
-      },
-      "title": "LocalRunner"
+      }
     },
-    "Webda/ServiceRunner": {
+    "Webda/AsyncAction.statusAction.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/AsyncOperationAction.statusAction.input": {
       "type": "object",
       "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "actions": {
-          "type": "array",
-          "items": {
-            "type": "string"
+        "context": {
+          "additionalProperties": false,
+          "description": "OperationContext is used when call to an operation",
+          "param": [
+            "T type of input for this context",
+            "U type of output for this context",
+            "P type of parameters for this context"
+          ],
+          "properties": {
+            "_promises": {
+              "description": "Contain all registered promises to this context",
+              "items": {
+                "$ref": "#/definitions/Promise%3Cany%3E"
+              },
+              "type": "array"
+            },
+            "_stream": {
+              "$ref": "#/definitions/Writable",
+              "description": "Output stream"
+            },
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "parameters": {}
           },
-          "description": "Actions managed by the runner",
-          "default": []
-        },
-        "logFormat": {
-          "type": "string",
-          "description": "Define the log format",
-          "default": "ConsoleLoggerDefaultFormat"
-        },
-        "logSaveDelay": {
-          "type": "number",
-          "description": "How long before saving logs (in ms)",
-          "default": 5000
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
+          "required": [
+            "_promises",
+            "_stream",
+            "caches",
+            "parameters"
+          ],
+          "type": "object"
         }
       },
-      "required": [
-        "type"
-      ],
-      "description": "Add the log format to capture",
+      "definitions": {
+        "Error": {
+          "additionalProperties": false,
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "stack": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message",
+            "name"
+          ],
+          "type": "object"
+        },
+        "Promise<any>": {
+          "additionalProperties": false,
+          "description": "Represents the completion of an asynchronous operation",
+          "type": "object"
+        },
+        "Writable": {
+          "additionalProperties": false,
+          "properties": {
+            "destroyed": {
+              "default": false,
+              "description": "Is `true` after `writable.destroy()` has been called.",
+              "since": "v8.0.0",
+              "type": "boolean"
+            },
+            "writable": {
+              "default": false,
+              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
+              "since": "v11.4.0",
+              "type": "boolean"
+            }
+          },
+          "since": "v0.9.4",
+          "type": "object"
+        }
+      }
+    },
+    "Webda/AsyncOperationAction.statusAction.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ServiceRunner"
+      "not": {}
+    },
+    "Webda/AsyncWebdaAction.statusAction.input": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "additionalProperties": false,
+          "description": "OperationContext is used when call to an operation",
+          "param": [
+            "T type of input for this context",
+            "U type of output for this context",
+            "P type of parameters for this context"
+          ],
+          "properties": {
+            "_promises": {
+              "description": "Contain all registered promises to this context",
+              "items": {
+                "$ref": "#/definitions/Promise%3Cany%3E"
+              },
+              "type": "array"
+            },
+            "_stream": {
+              "$ref": "#/definitions/Writable",
+              "description": "Output stream"
+            },
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "parameters": {}
+          },
+          "required": [
+            "_promises",
+            "_stream",
+            "caches",
+            "parameters"
+          ],
+          "type": "object"
+        }
+      },
+      "definitions": {
+        "Error": {
+          "additionalProperties": false,
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "stack": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message",
+            "name"
+          ],
+          "type": "object"
+        },
+        "Promise<any>": {
+          "additionalProperties": false,
+          "description": "Represents the completion of an asynchronous operation",
+          "type": "object"
+        },
+        "Writable": {
+          "additionalProperties": false,
+          "properties": {
+            "destroyed": {
+              "default": false,
+              "description": "Is `true` after `writable.destroy()` has been called.",
+              "since": "v8.0.0",
+              "type": "boolean"
+            },
+            "writable": {
+              "default": false,
+              "description": "Is `true` if it is safe to call `writable.write()`, which means\nthe stream has not been destroyed, errored, or ended.",
+              "since": "v11.4.0",
+              "type": "boolean"
+            }
+          },
+          "since": "v0.9.4",
+          "type": "object"
+        }
+      }
+    },
+    "Webda/AsyncWebdaAction.statusAction.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
     }
-  }
+  },
+  "behaviors": {},
+  "sourceDigest": "dc72b57288660c06e0dbd136431fdb4a"
 }

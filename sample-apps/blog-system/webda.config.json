@@ -2,7 +2,7 @@
   "$schema": ".webda/config.schema.json",
   "parameters": {
     "locales": ["en-US"],
-    "website": "http://localhost:18080"
+    "website": "https://localhost:18080"
   },
   "services": {
     "HttpServer": {

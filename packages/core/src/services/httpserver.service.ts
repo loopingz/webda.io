@@ -10,7 +10,7 @@ import { createServer as createHttpsServer } from "node:https";
 import { createSecureServer, createServer as createHttp2Server, Http2SecureServer } from "node:http2";
 import type { Http2Server } from "node:http2";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
-import { AddressInfo } from "node:net";
+import { AddressInfo, Socket } from "node:net";
 import { createChecker } from "is-in-subnet";
 import { useLog } from "@webda/workout";
 import type { JSONed } from "@webda/models";
@@ -19,8 +19,15 @@ import { useRouter } from "../rest/hooks.js";
 import { runWithContext } from "../contexts/execution.js";
 import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { AsyncResource } from "node:async_hooks";
 import { join } from "node:path";
 import { serialize as cookieSerialize } from "cookie";
+
+/**
+ * How long a connection to a TLS port may stay silent before it is dropped,
+ * while it is not yet known whether it speaks TLS or plain HTTP
+ */
+const TLS_GATE_TIMEOUT = 30000;
 
 /** Parameters for the HTTP server including request limits, timeouts, TLS, and proxy settings */
 export class HttpServerParameters extends ServiceParameters {
@@ -154,6 +161,8 @@ export class HttpServer<
     }
   ];
   server: Server | Http2SecureServer | Http2Server;
+  /** In TLS mode, the server answering plain HTTP with a redirect */
+  protected redirectServer?: Server;
   protected subnetChecker: (address: string) => boolean;
   /** Whether this server uses HTTP/2 */
   protected isHttp2 = false;
@@ -311,7 +320,8 @@ export class HttpServer<
   @Command("serve", { description: "Start the HTTP server", requires: ["router", "rest-domain"] })
   async serve(bind?: string, port?: number) {
     this.parameters.with(params => {
-      const listenPort = port || params.port || 18080;
+      // `??`, not `||`: port 0 asks the OS for a free port
+      const listenPort = port ?? params.port ?? 18080;
       useLog("INFO", `Starting HTTP server on ${bind ?? "0.0.0.0"}:${listenPort}`);
 
       // Node.js pipeline() emits ERR_STREAM_PREMATURE_CLOSE as uncaughtException
@@ -355,9 +365,10 @@ export class HttpServer<
           cert: readFileSync(params.cert),
           allowHTTP1: true
         };
+        let tlsServer: Server | Http2SecureServer;
         if (params.http2 !== false) {
           this.isHttp2 = true;
-          this.server = createSecureServer(tlsOptions, (req, res) => {
+          tlsServer = createSecureServer(tlsOptions, (req, res) => {
             if (req.headers[":authority"]) {
               const [host] = (req.headers[":authority"] as string).split(":");
               req.headers.host = host;
@@ -365,8 +376,10 @@ export class HttpServer<
             this.handleRequest(req as any, res as any);
           });
         } else {
-          this.server = createHttpsServer(tlsOptions, (req, res) => this.handleRequest(req, res));
+          tlsServer = createHttpsServer(tlsOptions, (req, res) => this.handleRequest(req, res));
         }
+        this.redirectPlainHttp(tlsServer);
+        this.server = tlsServer;
       } else if (params.h2c) {
         // Prior-knowledge HTTP/2 cleartext — for gRPC clients without TLS.
         this.isHttp2 = true;
@@ -379,6 +392,9 @@ export class HttpServer<
       // Ensure routes are mapped before accepting requests
       useRouter().remapRoutes();
       this.server.listen(listenPort, bind);
+      if (params.key && params.cert) {
+        useLog("INFO", `Serving https://${bind ?? "localhost"}:${listenPort} (http:// redirects to https)`);
+      }
 
       // Emit on both channels: core event for decoupled listeners (gRPC
       // interceptor, graphql ws handler) and the service-level event for
@@ -395,9 +411,65 @@ export class HttpServer<
     });
   }
 
+  /**
+   * Address the server is listening on, or null before it listens
+   * @returns the bound address
+   */
+  address() {
+    return this.server?.address() ?? null;
+  }
+
+  /**
+   * Accept plain HTTP on a TLS port. TLS handshakes go to the TLS server as
+   * before; anything else gets a 308 redirect to the same URL over https,
+   * where a browser typing `localhost:<port>` would otherwise get an empty
+   * response.
+   *
+   * Node's TLS server wraps each accepted socket in its single `connection`
+   * listener; that listener is wrapped so the server keeps owning the port
+   * (`listening`, `address()` and the `Webda.Init.Http` hooks are unchanged).
+   * @param tlsServer - the TLS server handling the application
+   */
+  protected redirectPlainHttp(tlsServer: Server | Http2SecureServer): void {
+    const listeners = tlsServer.listeners("connection");
+    if (listeners.length !== 1) {
+      useLog("WARN", "Cannot redirect plain HTTP to https on this Node.js version");
+      return;
+    }
+    const handshake = listeners[0] as (socket: Socket) => void;
+    const redirect = (this.redirectServer = createServer((req, res) => {
+      res.writeHead(308, { Location: `https://${req.headers.host ?? "localhost"}${req.url ?? "/"}` });
+      res.end();
+    }));
+    tlsServer.removeListener("connection", handshake);
+    tlsServer.on("connection", (socket: Socket) => {
+      // Until the first bytes arrive, nobody else owns the socket
+      const drop = () => socket.destroy();
+      socket.on("error", drop);
+      socket.setTimeout(TLS_GATE_TIMEOUT, drop);
+      // Hand the socket over in this callback's async context, as the TLS
+      // server would have: request handling needs Webda's instance storage
+      socket.once("data", AsyncResource.bind((chunk: Buffer) => {
+        socket.off("error", drop);
+        socket.setTimeout(0);
+        socket.pause();
+        socket.unshift(chunk);
+        // 0x16 opens a TLS handshake record
+        if (chunk[0] === 0x16) {
+          handshake.call(tlsServer, socket);
+        } else {
+          redirect.emit("connection", socket);
+        }
+        process.nextTick(() => socket.resume());
+      }));
+    });
+  }
+
   /** @override */
   async stop(): Promise<void> {
     await super.stop();
+    // Its connections never reach `server`: close them too (clients keep them alive)
+    this.redirectServer?.closeAllConnections();
     this.server?.close();
   }
 

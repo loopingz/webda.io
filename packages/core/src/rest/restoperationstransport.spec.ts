@@ -132,6 +132,26 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
   }
 
   @test
+  async patchRouteHasItsOwnOperationId() {
+    const transport = new RESTOperationsTransport(
+      "testPatchTransport",
+      new RESTOperationsTransportParameters().load({ url: "/patch-api/", exposeOpenAPI: false })
+    );
+    this.registerService(transport);
+    transport.resolve();
+    await transport.init();
+
+    const infos = Object.entries(useRouter().getRoutes())
+      .filter(([path]) => path.startsWith("/patch-api/"))
+      .flatMap(([, list]) => list as any[]);
+    const update = infos.find(info => info.openapi?.put?.operationId === "Company.Update");
+    assert.ok(update, "the Company update route is registered");
+    // PATCH is its own operation: unique operationId, so tools can map it to its URL
+    assert.strictEqual(update.openapi.patch?.operationId, "Company.Patch");
+    assert.strictEqual(update.openapi.patch?.summary, "Patch a Company");
+  }
+
+  @test
   async parameters() {
     const params = new RESTOperationsTransportParameters().load({});
     assert.strictEqual(params.nameTransformer, "camelCase");

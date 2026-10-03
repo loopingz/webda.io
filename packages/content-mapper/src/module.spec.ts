@@ -148,6 +148,27 @@ describe("module metadata on a fixture", () => {
   });
 });
 
+describe("module with a duplicated name", () => {
+  it("reports both classes instead of letting the last one win silently", () => {
+    const dir = join(here, "..", "test", "duplicate-fixture");
+    const session = openSession(join(dir, "tsconfig.json"), dir);
+    try {
+      const { errors } = generateWebdaModule(session.ctx, {
+        appPath: dir,
+        rootDir: join(dir, "src"),
+        outDir: join(dir, "lib"),
+        namespace: "Dup"
+      });
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toMatch(
+        /^Dup\/Twice is declared twice: First in .*first\.model\.ts and Second in .*second\.model\.ts; rename one$/
+      );
+    } finally {
+      session.dispose();
+    }
+  });
+});
+
 /**
  * Committed module of a package, when its dependencies are installed.
  * @param relative - repo-relative package directory

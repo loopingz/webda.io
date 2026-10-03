@@ -54,7 +54,7 @@ export class ResourceRegistry {
         continue;
       }
       const query = Object.entries(ops).find(
-        ([qid, q]) => qid.endsWith(".Query") && !q.hidden && q.context?.model !== undefined && q.context.model === op.context.model
+        ([qid, q]) => qid.endsWith(".Query") && !q.hidden && q.mcp !== false && q.context?.model !== undefined && q.context.model === op.context.model
       );
       this.entries.push({ name, getOperationId: id, queryOperationId: query?.[0], pkFields: pkFields.map(String) });
     }
@@ -129,7 +129,13 @@ export function decodeCursor(cursor: string | undefined): { model: string; token
   }
   try {
     const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString());
-    return typeof parsed?.model === "string" ? parsed : undefined;
+    if (typeof parsed?.model !== "string") {
+      return undefined;
+    }
+    if (parsed.token !== undefined && typeof parsed.token !== "string") {
+      return undefined;
+    }
+    return { model: parsed.model, ...(parsed.token !== undefined && { token: parsed.token }) };
   } catch {
     return undefined;
   }
@@ -140,5 +146,9 @@ export function decodeCursor(cursor: string | undefined): { model: string; token
  * @returns the WebdaQL query for one page
  */
 export function queryFor(token?: string): string {
-  return token === undefined ? "LIMIT 100" : `LIMIT 100 OFFSET ${JSON.stringify(token)}`;
+  if (token === undefined) {
+    return "LIMIT 100";
+  }
+  const escaped = token.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return `LIMIT 100 OFFSET "${escaped}"`;
 }

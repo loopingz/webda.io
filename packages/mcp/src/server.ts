@@ -57,6 +57,31 @@ export interface McpServerOptions {
 }
 
 /**
+ * Map an error thrown by a resource operation to an MCP error.
+ *
+ * With a `uri` (resources/read) a NotFound becomes RESOURCE_NOT_FOUND; without
+ * one (resources/list) a NotFound is treated like any other client error.
+ * Other 4xx messages are forwarded, anything else is logged and masked.
+ * @param err - thrown error
+ * @param uri - requested resource uri, when reading one resource
+ * @returns the error to throw
+ */
+function toResourceError(err: unknown, uri?: string): McpError {
+  if (err instanceof McpError) {
+    return err;
+  }
+  if (uri !== undefined && err instanceof WebdaError.NotFound) {
+    return new McpError(RESOURCE_NOT_FOUND, "Resource not found", { uri });
+  }
+  const code = typeof (err as any)?.getResponseCode === "function" ? (err as any).getResponseCode() : 500;
+  if (code >= 400 && code < 500) {
+    return new McpError(ErrorCode.InternalError, (err as Error).message);
+  }
+  useLog("ERROR", "MCP resource operation failed", err);
+  return new McpError(ErrorCode.InternalError, "Internal error");
+}
+
+/**
  * Create an SDK server wired to Webda operations
  * @param options - registries, session resolution and limits
  * @returns an unconnected SDK Server
@@ -90,6 +115,7 @@ export function createMcpServer(options: McpServerOptions): Server {
     }
     const args = request.params.arguments ?? {};
     const progressToken = request.params._meta?.progressToken;
+    const pending: Promise<unknown>[] = [];
     try {
       const { value, streamed } = await runOperation(entry.operationId, {
         session,
@@ -100,7 +126,7 @@ export function createMcpServer(options: McpServerOptions): Server {
             ? undefined
             : (chunk, index) => {
                 const total = (chunk as any)?.total;
-                extra
+                const sent = extra
                   .sendNotification({
                     method: "notifications/progress",
                     params: {
@@ -111,10 +137,13 @@ export function createMcpServer(options: McpServerOptions): Server {
                     }
                   })
                   .catch(err => useLog("WARN", "MCP progress notification failed", err));
+                pending.push(sent);
               }
       });
+      await Promise.allSettled(pending);
       return toToolResult(entry, value, streamed, options.maxOutputBytes);
     } catch (err) {
+      await Promise.allSettled(pending);
       return errorToToolResult(err);
     }
   });
@@ -142,15 +171,7 @@ export function createMcpServer(options: McpServerOptions): Server {
       }
       return { contents: [{ uri: request.params.uri, mimeType: "application/json", text }] };
     } catch (err) {
-      if (err instanceof WebdaError.NotFound) {
-        throw new McpError(RESOURCE_NOT_FOUND, "Resource not found", { uri: request.params.uri });
-      }
-      const code = typeof (err as any)?.getResponseCode === "function" ? (err as any).getResponseCode() : 500;
-      if (code >= 400 && code < 500) {
-        throw new McpError(ErrorCode.InternalError, (err as Error).message);
-      }
-      useLog("ERROR", "MCP resource read failed", err);
-      throw new McpError(ErrorCode.InternalError, "Internal error");
+      throw toResourceError(err, request.params.uri);
     }
   });
 
@@ -167,7 +188,12 @@ export function createMcpServer(options: McpServerOptions): Server {
       return { resources: [] };
     }
     const model = listable[index];
-    const { value } = await runOperation(model.queryOperationId, { session, input: { query: queryFor(cursor?.token) } });
+    let value: unknown;
+    try {
+      ({ value } = await runOperation(model.queryOperationId, { session, input: { query: queryFor(cursor?.token) } }));
+    } catch (err) {
+      throw toResourceError(err);
+    }
     const result = (value ?? {}) as { results?: Record<string, unknown>[]; continuationToken?: string };
     const items: Resource[] = (result.results ?? []).map(record => ({
       uri: resources.uriFor(model, record),

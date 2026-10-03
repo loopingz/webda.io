@@ -25,6 +25,19 @@ export class Compiler {
   private watcher?: FSWatcher;
   /** Pending rebuild in watch mode, debounced. */
   private rebuild?: NodeJS.Timeout;
+  /**
+   * True while rebuilding because `.webda/module.d.ts` changed
+   */
+  private secondPass = false;
+
+  /**
+   * Read the generated TypeScript library, if any
+   * @param file - path to `.webda/module.d.ts`
+   * @returns its content, or undefined when it does not exist
+   */
+  private readLibrary(file: string): string | undefined {
+    return existsSync(file) ? readFileSync(file, "utf8") : undefined;
+  }
 
   /**
    * Create a new compiler for the given project
@@ -129,6 +142,8 @@ export class Compiler {
     }
     this.project.emit("compiling");
     const started = Date.now();
+    const library = this.project.getAppPath(".webda/module.d.ts");
+    const libraryBefore = this.readLibrary(library);
 
     let result;
     try {
@@ -162,6 +177,19 @@ export class Compiler {
       return false;
     }
     useLog("INFO", `Took: Compilation - ${compilation}ms | Module generation - ${Date.now() - moduleStart}ms`);
+    // writeModule regenerates .webda/module.d.ts, which declares the configured
+    // services and beans in ServicesMap. The schemas just written were derived
+    // from the previous version, so when it changed (a clean checkout, a new
+    // service) build once more against the new one.
+    if (!this.secondPass && this.readLibrary(library) !== libraryBefore) {
+      useLog("INFO", "Service map changed; rebuilding the module against it");
+      this.secondPass = true;
+      try {
+        return this.compile(true);
+      } finally {
+        this.secondPass = false;
+      }
+    }
     this.compiled = true;
     this.updateCache();
     this.project.emit("done");

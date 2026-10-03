@@ -91,6 +91,24 @@ export class McpSessionManager {
   }
 
   /**
+   * Close and remove the least recently used session
+   * @returns the evicted session id, or undefined when there is none
+   */
+  async evictOldest(): Promise<string | undefined> {
+    let oldest: McpSessionEntry | undefined;
+    for (const entry of this.sessions.values()) {
+      if (!oldest || entry.lastSeen < oldest.lastSeen) {
+        oldest = entry;
+      }
+    }
+    if (!oldest) {
+      return undefined;
+    }
+    await this.close(oldest);
+    return oldest.id;
+  }
+
+  /**
    * Close every session
    */
   async closeAll(): Promise<void> {

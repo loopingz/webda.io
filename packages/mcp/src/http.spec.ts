@@ -252,17 +252,29 @@ class McpHttpTest extends McpFixtureTest {
   }
 
   @test
-  async limitsSessionCount() {
-    const { client } = await this.client();
+  async limitsSessionCountByEvictingTheLeastRecentlyUsed() {
     const service = useService("Mcp" as any) as any;
+    await service.sessions.closeAll();
+    const oldest = await this.client();
+    await new Promise(r => setTimeout(r, 5));
+    const recent = await this.client();
     const previous = service.parameters.maxSessions;
-    service.parameters.maxSessions = service.sessions.all().length;
+    service.parameters.maxSessions = 2;
     try {
       const res = await fetch(await this.url(), { method: "POST", headers: HEADERS, body: JSON.stringify(INIT) });
-      assert.strictEqual(res.status, 503);
-      assert.strictEqual((await res.json()).error.message, "Too many MCP sessions");
-      // existing sessions keep working
-      assert.ok((await client.listTools()).tools.length > 0);
+      assert.strictEqual(res.status, 200);
+      assert.ok(res.headers.get("mcp-session-id"));
+      await res.body?.cancel();
+      assert.strictEqual(service.sessions.all().length, 2);
+      // the least recently used session was closed
+      const stale = await fetch(await this.url(), {
+        method: "POST",
+        headers: { ...HEADERS, "mcp-session-id": oldest.transport.sessionId },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list" })
+      });
+      assert.strictEqual(stale.status, 404);
+      // the more recent one keeps working
+      assert.ok((await recent.client.listTools()).tools.length > 0);
     } finally {
       service.parameters.maxSessions = previous;
     }

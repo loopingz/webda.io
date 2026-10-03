@@ -1,16 +1,22 @@
 import {
-  Cache,
-  CoreModelDefinition,
+  CORSFilter,
   CryptoService,
   Inject,
+  InstanceCache,
   RequestFilter,
   Service,
   ServiceParameters,
   WebContext,
-  WebdaError
+  WebdaError,
+  useCoreEvents,
+  useModel,
+  useRegistry,
+  useRepository
 } from "@webda/core";
+import type { ModelClass } from "@webda/core";
+import { randomBytes } from "node:crypto";
 import * as Hawk from "hawk";
-import { ApiKey } from "./apikey";
+import type { ApiKey } from "./apikey.model.js";
 
 /**
  * Hawk Credentials representation
@@ -28,7 +34,7 @@ export interface HawkContext {
   credentials: any;
 }
 /**
- *
+ * Hawk service parameters
  */
 export class HawkServiceParameters extends ServiceParameters {
   /**
@@ -41,7 +47,6 @@ export class HawkServiceParameters extends ServiceParameters {
   dynamicSessionKey?: string;
   /**
    * redirect endpoint
-   * @param params
    */
   redirectUrl?: string;
   /**
@@ -50,11 +55,14 @@ export class HawkServiceParameters extends ServiceParameters {
   redirectUris?: string[];
 
   /**
-   * @inheritdoc
+   * @override
+   * @param params - the input parameters
+   * @returns this
    */
-  constructor(params: any) {
-    super(params);
+  load(params: any = {}): this {
+    super.load(params);
     this.redirectUris ??= [];
+    return this;
   }
 }
 
@@ -66,7 +74,10 @@ export class HawkServiceParameters extends ServiceParameters {
  *
  * @WebdaModda Hawk
  */
-export default class HawkService extends Service<HawkServiceParameters> implements RequestFilter {
+export default class HawkService<T extends HawkServiceParameters = HawkServiceParameters>
+  extends Service<T>
+  implements RequestFilter<WebContext>, CORSFilter<WebContext>
+{
   static RegistryEntry = "HawkOrigins";
   /**
    * CryptoService
@@ -76,27 +87,27 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
   /**
    * Model to use for apikey
    */
-  model: CoreModelDefinition<ApiKey>;
+  model: ModelClass<ApiKey>;
   /**
-   * @inheritdoc
+   * Listeners to remove on stop
    */
-  loadParameters(params: any) {
-    return new HawkServiceParameters(params);
-  }
+  protected unsubscribers: (() => void)[] = [];
 
   /**
-   *
-   * @param id
-   * @param _timestamp used to invalidate cache
-   * @returns
+   * Retrieve the hawk credentials of an api key
+   * @param id - the api key id
+   * @param _timestamp - used to invalidate cache
+   * @returns the hawk credentials
    */
-  @Cache()
-  async getApiKey(id, _timestamp = undefined) {
+  @InstanceCache()
+  async getApiKey(id: string, _timestamp = undefined): Promise<HawkCredentials> {
     return (await this.model.ref(id).get()).toHawkCredentials();
   }
 
   /**
    * Return information for hawk
+   * @param context - the request context
+   * @returns the hawk request
    */
   async getHawkRequest(context: WebContext) {
     const http = context.getHttpContext();
@@ -113,57 +124,85 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
 
   /**
    * Add the Request listeners
+   * @returns this
    */
   async init(): Promise<this> {
     await super.init();
-    this.model = this.parameters.keyModel ? this.getWebda().getModel(this.parameters.keyModel) : undefined;
+    this.model = this.parameters.keyModel ? <any>useModel(this.parameters.keyModel) : undefined;
+    if (this.parameters.keyModel && !this.model) {
+      throw new Error(`Undefined model ${this.parameters.keyModel}`);
+    }
     if (!this.model && !this.parameters.dynamicSessionKey) {
       throw new Error("Model must exists or dynamic session key must be defined");
     }
     if (this.model) {
       // Make sure origins exist
       await this.getOrigins();
+      // Keep the origins registry in sync with the keys
+      const repo = useRepository(this.model);
+      const update = ({ object }) => object?.updateOrigins?.();
+      repo.on("Created", update);
+      repo.on("Updated", update);
+      repo.on("Patched", update);
+      this.unsubscribers.push(() => {
+        repo.off("Created", update);
+        repo.off("Updated", update);
+        repo.off("Patched", update);
+      });
     }
-
-    this.getWebda().registerCORSFilter(this);
-    this.getWebda().registerRequestFilter(this);
 
     // Solution to get an CSRF token
     if (this.parameters.redirectUrl) {
       this.addRoute(this.parameters.redirectUrl + "{?url}", ["GET"], this._redirect);
     }
     // Manage hawk server signature
-    this.getWebda().on("Webda.Result", async ({ context }) => {
-      try {
-        // Flushed headers
-        if (context.hasFlushedHeaders()) {
-          return;
-        }
-        const headers = context.getResponseHeaders();
-        const contentType = headers["Content-Type"] || headers["content-type"] || "application/json";
-        // Send current time to be able to detect any time synchronization issue
-        context.setHeader("x-server-time", Date.now());
-
-        const hawkContext = context.getExtension<HawkContext>("hawk");
-        if (hawkContext === undefined) {
-          return;
-        }
-        const header = Hawk.server.header(hawkContext.credentials, hawkContext.artifacts, {
-          payload: context.getResponseBody(),
-          contentType
-        });
-        // LambdaServer behave a bit different
-        context.setHeader("Server-Authorization", header);
-      } catch (err) {
-        this.log("TRACE", `Hawk init failed : '${err.message}'`);
-      }
-    });
+    this.unsubscribers.push(useCoreEvents("Webda.Result", ({ context }) => this.signResponse(<WebContext>context)));
     return this;
   }
 
   /**
+   * Remove listeners
+   */
+  async stop(): Promise<void> {
+    this.unsubscribers.forEach(u => u());
+    this.unsubscribers = [];
+    await super.stop();
+  }
+
+  /**
+   * Add the hawk server signature to the response
+   * @param context - the request context
+   */
+  signResponse(context: WebContext) {
+    try {
+      // Flushed headers
+      if (context.hasFlushedHeaders()) {
+        return;
+      }
+      const headers = context.getResponseHeaders();
+      const contentType = headers["Content-Type"] || headers["content-type"] || "application/json";
+      // Send current time to be able to detect any time synchronization issue
+      context.setHeader("x-server-time", Date.now());
+
+      const hawkContext = context.getExtension<HawkContext>("hawk");
+      if (hawkContext === undefined) {
+        return;
+      }
+      const header = Hawk.server.header(hawkContext.credentials, hawkContext.artifacts, {
+        payload: <string>context.getResponseBody(),
+        contentType
+      });
+      // LambdaServer behave a bit different
+      context.setHeader("Server-Authorization", header);
+    } catch (err) {
+      this.log("TRACE", `Hawk init failed : '${err.message}'`);
+    }
+  }
+
+  /**
    * Redirect with a CSRF
-   * @param context
+   * @param context - the request context
+   * @returns the redirect
    */
   async _redirect(context: WebContext) {
     return this.redirectWithCSRF(context, context.getParameters().url);
@@ -171,35 +210,47 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
 
   /**
    * Redirect to a website with CSRF
+   * @param context - the request context
+   * @param url - the url to redirect to
    */
   async redirectWithCSRF(context: WebContext, url: string) {
     if (!this.parameters.redirectUris.some(u => url.startsWith(u))) {
       throw new WebdaError.Forbidden("Invalid redirect");
     }
-    context.getSession()[this.parameters.dynamicSessionKey] ??= `${
-      this.cryptoService.current
-    }.${this.getWebda().getUuid("base64")}`;
+    context.getSession()[this.parameters.dynamicSessionKey] ??=
+      `${this.cryptoService.current}.${randomBytes(16).toString("base64")}`;
     const updatedUrl = new URL(url);
     const [key, data] = context.getSession()[this.parameters.dynamicSessionKey].split(".");
     updatedUrl.searchParams.set("csrf", await this.cryptoService.hmac(data, key));
     context.redirect(updatedUrl.toString());
   }
 
-  @Cache()
+  /**
+   * Get the origins registry entry, creating it if needed
+   * @returns the origins
+   */
+  @InstanceCache()
   async getOrigins(): Promise<any> {
-    const registry = this.getWebda().getRegistry();
-    let origin = await registry.get(HawkService.RegistryEntry);
-    if (origin === undefined && this.model) {
-      origin = await registry.save({ uuid: HawkService.RegistryEntry });
+    const registry = useRegistry();
+    if (await registry.exists(HawkService.RegistryEntry)) {
+      return registry.get(HawkService.RegistryEntry);
     }
-    return origin;
+    if (this.model) {
+      return registry.put(HawkService.RegistryEntry, {});
+    }
+    return undefined;
   }
 
-  @Cache()
+  /**
+   * Check if an origin is allowed by any key
+   * @param origin - the request origin
+   * @returns true if allowed
+   */
+  @InstanceCache()
   async checkOPTIONS(origin: string) {
     const origins = await this.getOrigins();
 
-    for (const key of Object.keys(origins).filter(n => n.startsWith("key_"))) {
+    for (const key of Object.keys(origins || {}).filter(n => n.startsWith("key_"))) {
       // Origin is strictly matched by string search
       if (origins[key].statics.indexOf(origin) > -1) {
         return true;
@@ -216,8 +267,8 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
 
   /**
    * Stricly parse the request's attributes and then approve or reject
-   * @param {Context} context
-   * @returns {Promise<boolean>}
+   * @param context - the request context
+   * @returns true if the request is allowed
    */
   async checkRequest(context: WebContext): Promise<boolean> {
     // Authorize the options
@@ -262,7 +313,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
       // We have an Api Key store
       try {
         context.setExtension("hawk", await Hawk.server.authenticate(hawkRequest, this.getApiKey.bind(this)));
-        const fullKey = await this.model.ref(context.getExtension("hawk").credentials.id).get();
+        const fullKey = await this.model.ref(context.getExtension<HawkContext>("hawk").credentials.id).get();
         if (!fullKey.canRequest(context)) {
           throw new WebdaError.Forbidden("Key not allowed to request");
         }

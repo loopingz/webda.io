@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "parameters": {},
+  "services": {
+    "HawkService": {
+      "type": "Webda/Hawk",
+      "keyModel": "Webda/ApiKey"
+    }
+  }
+}

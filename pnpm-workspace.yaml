@@ -9,7 +9,6 @@ packages:
   - "!packages/kubernetes"
   - "!packages/elasticsearch"
   - "!packages/otel"
-  - "!packages/hawk"
   - "!packages/mongodb"
   - "!packages/amqp"
   - "!packages/aws"

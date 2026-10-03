@@ -45,7 +45,14 @@ function inlineNode(node: any, resolve: SchemaResolver, defs: JsonSchema[], seen
   }
   if (typeof node.$ref === "string") {
     const prefix = REF_PREFIXES.find(p => node.$ref.startsWith(p));
-    const name = prefix ? decodeURIComponent(node.$ref.substring(prefix.length)) : node.$ref;
+    let name: string = prefix ? node.$ref.substring(prefix.length) : node.$ref;
+    if (prefix) {
+      try {
+        name = decodeURIComponent(name);
+      } catch {
+        // malformed escape: fall back to the raw name
+      }
+    }
     if (seen.includes(name) || seen.length >= maxDepth) {
       return {};
     }

@@ -52,6 +52,13 @@ class ToolMappingTest {
   }
 
   @test
+  optionalNonObjectInputDropsRequired() {
+    const entry = operationToTool("Fixture.Square", { id: "Fixture.Square", input: "Fixture.Number?", output: "void", method: "square" }, resolve);
+    assert.strictEqual(entry.wrapped, true);
+    assert.deepStrictEqual(entry.tool.inputSchema, { type: "object", properties: { value: { type: "number" } } });
+  }
+
+  @test
   derivesHints() {
     const get = operationToTool("Post.Get", { id: "Post.Get", input: "void", output: "void", method: "m" }, resolve);
     assert.strictEqual(get.tool.annotations.readOnlyHint, true);

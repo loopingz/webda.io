@@ -11,7 +11,7 @@ import { isGeneratorFunction } from "node:util/types";
 import { AnyMethod } from "@webda/decorators";
 import type { Service } from "../services/service.js";
 import type { Model } from "@webda/models";
-import { runWithContext } from "../contexts/execution.js";
+import { runWithContext, useContext } from "../contexts/execution.js";
 
 type OperationTarget = Service | Model | typeof Service | typeof Model;
 import { useLog } from "@webda/workout";
@@ -122,6 +122,46 @@ export function parseSubjectKey(
 }
 
 /**
+ * Context extension holding the subject an operation declared with `setOperationSubject`
+ */
+const DECLARED_SUBJECT = "operationSubject";
+
+/**
+ * Declare the object the current operation acts on, when the framework cannot
+ * derive it: a service operation such as `Publisher.PublishPost(postId)`.
+ * Listeners such as the audit log record it like a derived subject, and it
+ * takes precedence over one. Call it from the operation (or anything it calls);
+ * outside an operation it does nothing.
+ *
+ * @param subject - a model instance, or `{ model, key }` with a model class or
+ *   identifier and its primary key (scalar, object of key fields, or canonical string)
+ * @throws Error if the model is unknown or the key does not match its primary key
+ */
+export function setOperationSubject(subject: Model | { model: string | any; key: unknown }): void {
+  const context = useContext<OperationContext>();
+  let operation: string | undefined;
+  try {
+    operation = context?.getExtension?.("operation");
+  } catch {
+    // The global context has no extensions
+  }
+  if (!operation) {
+    return;
+  }
+  const instance = typeof (subject as any).getPrimaryKey === "function" ? (subject as Model) : undefined;
+  const modelRef = instance ? (instance.constructor as any) : (subject as { model: any }).model;
+  const model: any = typeof modelRef === "string" ? useModel(modelRef) : modelRef;
+  const modelId = useApplication().getModelId(model);
+  const pkFields: string[] = useModelMetadata(model)?.PrimaryKey ?? ["uuid"];
+  const rawKey = instance ? instance.getPrimaryKey() : (subject as { key: unknown }).key;
+  const key = serializeSubjectKey(pkFields, parseSubjectKey(pkFields, rawKey));
+  if (!modelId || key === undefined) {
+    throw new Error(`Invalid operation subject ${modelId ?? String(modelRef)}: ${JSON.stringify(rawKey)}`);
+  }
+  context.setExtension(DECLARED_SUBJECT, { model: modelId, key } satisfies OperationSubject);
+}
+
+/**
  * Find the object an operation targets
  *
  * - model instance operation: the model and the key it was called with
@@ -140,6 +180,10 @@ export function resolveOperationSubject(
   args: any[],
   result?: any
 ): OperationSubject | undefined {
+  const declared = context.getExtension?.<OperationSubject>(DECLARED_SUBJECT);
+  if (declared) {
+    return declared;
+  }
   const instanceOperation = operation.model !== undefined;
   if (instanceOperation && operation.static !== false) {
     return undefined;
@@ -337,6 +381,9 @@ export async function callOperation(context: OperationContext, operationId: stri
   useLog("DEBUG", "Call operation", operationId);
   let callArgs: any[] = [];
   let result: any;
+  // A nested operation declares its own subject; restore the caller's after
+  const callerSubject = context.getExtension(DECLARED_SUBJECT);
+  context.setExtension(DECLARED_SUBJECT, undefined);
   try {
     context.setExtension("operation", operationId);
     await checkOperation(context, operationId);
@@ -419,6 +466,7 @@ export async function callOperation(context: OperationContext, operationId: stri
     throw err;
   } finally {
     context.setExtension("event", undefined);
+    context.setExtension(DECLARED_SUBJECT, callerSubject);
   }
 }
 

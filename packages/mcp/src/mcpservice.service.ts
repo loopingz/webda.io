@@ -17,6 +17,7 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { useLog } from "@webda/workout";
 import { randomUUID } from "node:crypto";
+import { Writable } from "node:stream";
 import { McpAuthenticator, SessionAuthenticator } from "./auth.js";
 import { jsonRpcError, toRequest, writeResponse } from "./bridge.js";
 import { ResourceRegistry } from "./resources.js";
@@ -106,6 +107,38 @@ export class McpServiceParameters extends OperationsTransportParameters {
     this.stdio ??= {};
     return this;
   }
+}
+
+/**
+ * Reserve stdout for the MCP protocol: every other write to `stdout` (log lines,
+ * whatever `--log-stream` says, unpatched console calls, third-party output) is
+ * sent to `stderr`, and the returned stream writes to the real stdout.
+ * @param stdout - stream carrying protocol frames
+ * @param stderr - stream receiving everything else
+ * @returns the protocol stream and a function restoring stdout
+ */
+export function reserveStdout(
+  stdout: NodeJS.WritableStream = process.stdout,
+  stderr: NodeJS.WritableStream = process.stderr
+): { protocol: Writable; restore: () => void } {
+  const original = stdout.write;
+  const write = original.bind(stdout) as (chunk: any, encoding?: any) => boolean;
+  const protocol = new Writable({
+    write(chunk, encoding, callback) {
+      if (write(chunk, encoding)) {
+        callback();
+      } else {
+        stdout.once("drain", () => callback());
+      }
+    }
+  });
+  stdout.write = stderr.write.bind(stderr) as any;
+  return {
+    protocol,
+    restore: () => {
+      stdout.write = original;
+    }
+  };
 }
 
 /**
@@ -375,11 +408,17 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
    */
   @Command("mcp", { description: "Serve operations as MCP tools over stdio", requires: ["mcp"] })
   async mcp(user: string = ""): Promise<void> {
-    const server = await this.serveStdio(new StdioServerTransport(), user || this.parameters.stdio.user);
-    await new Promise<void>(resolve => {
-      server.onclose = () => resolve();
-      process.stdin.once("end", () => void server.close());
-    });
+    // stdout carries only protocol frames: logging goes to stderr regardless of --log-stream
+    const { protocol, restore } = reserveStdout();
+    try {
+      const server = await this.serveStdio(new StdioServerTransport(process.stdin, protocol), user || this.parameters.stdio.user);
+      await new Promise<void>(resolve => {
+        server.onclose = () => resolve();
+        process.stdin.once("end", () => void server.close());
+      });
+    } finally {
+      restore();
+    }
   }
 
   /**

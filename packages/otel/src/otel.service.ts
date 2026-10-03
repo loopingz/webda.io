@@ -1,19 +1,25 @@
 import { DiagLogLevel, diag, trace } from "@opentelemetry/api";
-import { Logger as OtelLibLogger, logs } from "@opentelemetry/api-logs";
+import { Logger as OtelLibLogger } from "@opentelemetry/api-logs";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-grpc";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-proto";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
-import { InstrumentationNodeModuleDefinition } from "@opentelemetry/instrumentation";
-import { Resource } from "@opentelemetry/resources";
+import { resourceFromAttributes } from "@opentelemetry/resources";
 import { BatchLogRecordProcessor, LogRecordExporter, LoggerProvider } from "@opentelemetry/sdk-logs";
-import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
-import { NodeSDK } from "@opentelemetry/sdk-node";
-import { SEMRESATTRS_SERVICE_NAME, SEMRESATTRS_SERVICE_VERSION } from "@opentelemetry/semantic-conventions";
-import { Core, DeepPartial, HttpContext, Service, ServiceParameters } from "@webda/core";
+import { ConsoleMetricExporter, PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
+import { NodeSDK, tracing } from "@opentelemetry/sdk-node";
+import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from "@opentelemetry/semantic-conventions";
+import { Service, ServiceParameters, WebContext, useApplication, useCore, useRouter } from "@webda/core";
 import { WorkerLogger, WorkerMessage, WorkerOutput } from "@webda/workout";
 
+/**
+ * Forward WorkerOutput log messages to an OpenTelemetry logger
+ */
 export class OtelLogger extends WorkerLogger {
+  /**
+   * @param logger - the OpenTelemetry logger to emit to
+   * @param output - the WorkerOutput to listen to
+   */
   constructor(
     protected logger: OtelLibLogger,
     output: WorkerOutput
@@ -21,7 +27,14 @@ export class OtelLogger extends WorkerLogger {
     super(output);
   }
 
+  /**
+   * Emit log messages as OpenTelemetry log records
+   * @param msg - the worker message
+   */
   onMessage(msg: WorkerMessage) {
+    if (msg.type !== "log" || !msg.log) {
+      return;
+    }
     this.logger.emit({
       severityText: msg.log.level,
       body: msg.log.args.join(" ")
@@ -29,6 +42,9 @@ export class OtelLogger extends WorkerLogger {
   }
 }
 
+/**
+ * OpenTelemetry service parameters
+ */
 export class OtelServiceParameters extends ServiceParameters {
   traceExporter?: {
     type: "console" | "otlp";
@@ -47,7 +63,7 @@ export class OtelServiceParameters extends ServiceParameters {
   metricExporter?: {
     type: "console" | "otlp";
     /**
-     * Allow to disable the logger
+     * Allow to disable the metric exporter
      * @default true
      */
     enable?: boolean;
@@ -72,10 +88,18 @@ export class OtelServiceParameters extends ServiceParameters {
    * @default NONE
    */
   diagnostic?: "NONE" | "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE" | "ALL";
+  /**
+   * Service name reported to OpenTelemetry, default to the package name
+   */
   name?: string;
 
-  constructor(params: any) {
-    super(params);
+  /**
+   * Apply default values
+   * @param params - the service parameters
+   * @returns this
+   */
+  load(params: any = {}): this {
+    super.load(params);
     this.traceExporter ??= {
       type: "otlp",
       enable: true,
@@ -91,17 +115,20 @@ export class OtelServiceParameters extends ServiceParameters {
       url: "http://localhost:4317"
     };
     this.diagnostic ??= "NONE";
+    return this;
   }
 }
 
 /**
  * Otel Service
  *
+ * Start the OpenTelemetry NodeSDK, forward the logs and add a span
+ * for each request and each service method call
+ *
  * @WebdaModda
  */
-export class OtelService<T extends OtelServiceParameters> extends Service<T> {
+export class OtelService<T extends OtelServiceParameters = OtelServiceParameters> extends Service<T> {
   sdk: NodeSDK;
-  wrapper: InstrumentationNodeModuleDefinition;
   stubs: Map<
     object,
     {
@@ -116,12 +143,14 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
    * Stop otlp
    */
   async stop() {
+    this.unpatch();
+    this.otelLogger?.close();
     await Promise.all([super.stop(), this.loggerProvider?.shutdown(), this.sdk?.shutdown()]);
   }
 
   /**
    * Get diag level based on parameters
-   * @returns
+   * @returns the OpenTelemetry diagnostic level
    */
   getDiagLevel() {
     let diagLevel = DiagLogLevel.NONE;
@@ -142,16 +171,16 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
   }
 
   /**
-   * @override
+   * Start the SDK as early as possible so instrumentations are in place
+   * @returns this
    */
-  resolve() {
+  resolve(): this {
     super.resolve();
 
     this.log("INFO", "Start otel");
-    const pkgInfo = this.getWebda().getApplication().getPackageDescription();
+    const pkgInfo = useApplication().getPackageDescription();
 
-    // Initiate logger
-
+    // Route OpenTelemetry diagnostics to our logger
     diag.setLogger(
       {
         verbose: (message: string) => this.log("TRACE", message),
@@ -163,44 +192,58 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
       this.getDiagLevel()
     );
 
+    const resource = resourceFromAttributes({
+      [ATTR_SERVICE_NAME]: this.parameters.name || pkgInfo.name,
+      [ATTR_SERVICE_VERSION]: pkgInfo.version
+    });
+
     // Logger part
     if (this.parameters.loggerExporter?.enable !== false) {
       this.loggerExporter ??= new OTLPLogExporter(this.parameters.loggerExporter);
-      this.loggerProvider ??= new LoggerProvider();
-
-      this.loggerProvider.addLogRecordProcessor(new BatchLogRecordProcessor(this.loggerExporter));
-      this.otelLogger ??= new OtelLogger(logs.getLogger("otel"), this.getWebda().getApplication().getWorkerOutput());
+      this.loggerProvider ??= new LoggerProvider({
+        resource,
+        processors: [new BatchLogRecordProcessor(this.loggerExporter)]
+      });
+      this.otelLogger ??= new OtelLogger(this.loggerProvider.getLogger("webda"), useApplication().getWorkerOutput());
     }
     this.sdk ??= new NodeSDK({
-      resource: new Resource({
-        [SEMRESATTRS_SERVICE_NAME]: this.parameters.name || pkgInfo.name,
-        [SEMRESATTRS_SERVICE_VERSION]: pkgInfo.version
-      }),
-      traceExporter: this.parameters.traceExporter?.enable !== false ? new OTLPTraceExporter() : undefined,
+      resource,
+      traceExporter: this.getTraceExporter(),
       metricReader:
         this.parameters.metricExporter?.enable !== false
           ? (new PeriodicExportingMetricReader({
-              exporter: new OTLPMetricExporter()
+              exporter:
+                this.parameters.metricExporter?.type === "console"
+                  ? new ConsoleMetricExporter()
+                  : new OTLPMetricExporter()
             }) as any)
           : undefined,
       instrumentations: [getNodeAutoInstrumentations()]
     });
 
     this.sdk.start();
-    if (this.parameters.traceExporter?.enable === true) {
-      this.patch();
-    }
-
+    this.updatePatch();
     return this;
   }
 
   /**
-   * Allow to reinit the service
-   * @param config
-   * @returns
+   * Create the trace exporter based on parameters
+   * @returns the trace exporter or undefined if disabled
    */
-  async reinit(config: DeepPartial<T>): Promise<this> {
-    await super.reinit(config);
+  getTraceExporter(): tracing.SpanExporter | undefined {
+    if (this.parameters.traceExporter?.enable === false) {
+      return undefined;
+    }
+    return this.parameters.traceExporter?.type === "console"
+      ? new tracing.ConsoleSpanExporter()
+      : new OTLPTraceExporter();
+  }
+
+  /**
+   * Patch or unpatch the services depending on the trace exporter configuration
+   * @returns this
+   */
+  updatePatch(): this {
     if (this.parameters.traceExporter?.enable !== false) {
       this.patch();
     } else {
@@ -211,7 +254,6 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
 
   /**
    * Remove patched methods
-   * @returns
    */
   unpatch() {
     if (!this.stubs) return;
@@ -220,13 +262,14 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
         object[method] = original;
       }
     }
+    this.stubs = undefined;
   }
 
   /**
    * Wrap a method
-   * @param object
-   * @param method
-   * @param wrapper
+   * @param object - the object owning the method
+   * @param method - the method name
+   * @param wrapper - return the replacement from the bound original
    */
   protected _wrap(object: object, method: string, wrapper: Function) {
     const original = object[method];
@@ -235,8 +278,15 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
       this.stubs.set(object, {});
     }
     const objectStubs = this.stubs.get(object);
-    objectStubs[method] = original;
-    object[method] = wrapper(original.bind(object));
+    // Already patched
+    if (objectStubs[method]) return;
+    try {
+      object[method] = wrapper(original.bind(object));
+      objectStubs[method] = original;
+    } catch {
+      // Read-only methods (e.g. lifecycle methods guarded by state decorators) cannot be wrapped
+      diag.debug(`Cannot wrap read-only method ${method}`);
+    }
   }
 
   /**
@@ -246,59 +296,49 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
     const tracer = trace.getTracer("webda");
     const mod = Math.floor(1 / this.parameters.traceExporter.sampling);
     let count = 0;
-    //Core.get().newWebContext("test");
-    // Apply patch for new context -> to inject the span
-    this._wrap(Core.get(), "newWebContext", (original: Function) => {
-      return (...args: any[]) => {
-        return original.apply(Core.get(), args).then(ctx => {
-          const originalExecute = ctx.execute;
-          ctx.setExtension("otel", tracer);
-          ctx.execute = async () => {
-            const httpContext: HttpContext = args[0];
-            // Sampling logic
-            if (mod > 1) {
-              if (count++ % mod !== 0) {
-                return originalExecute.apply(ctx);
-              } else {
-                count = 0;
-              }
-            }
-            return tracer.startActiveSpan(
-              `${httpContext.getMethod()} ${httpContext.getPathName() || "/"}`,
-              async span => {
-                try {
-                  return await originalExecute.apply(ctx);
-                } finally {
-                  span.end();
-                }
-              }
-            );
-          };
-          return ctx;
+    const router = useRouter();
+    // Add a span around each request execution
+    this._wrap(router, "execute", (original: Function) => {
+      return async (ctx: WebContext) => {
+        ctx.setExtension("otel", tracer);
+        // Sampling logic
+        if (mod > 1) {
+          if (count++ % mod !== 0) {
+            return original(ctx);
+          } else {
+            count = 0;
+          }
+        }
+        const httpContext = ctx.getHttpContext();
+        return tracer.startActiveSpan(`${httpContext.getMethod()} ${httpContext.getPathName() || "/"}`, async span => {
+          try {
+            return await original(ctx);
+          } finally {
+            span.end();
+          }
         });
       };
     });
     diag.debug(`Applying patch for each services`);
-    const services = Core.get().getServices();
+    const services = useCore().getServices();
     for (const i in services) {
-      // Avoid patching itself
-      if (services[i] === this) continue;
+      // Avoid patching itself and the router already wrapped above
+      if (services[i] === this || services[i] === router) continue;
       for (const p of Object.getOwnPropertyNames(services[i].constructor.prototype).filter(
-        item => typeof services[i][item] === "function"
+        item => item !== "constructor" && typeof services[i][item] === "function"
       )) {
-        this._wrap(services[i], <any>p, (original: Function) => {
+        this._wrap(services[i], p, (original: Function) => {
           return (...args: any[]) => {
             const spanName = `${i}.${p}`;
             // Avoid recursive function to be created child span
             // @ts-ignore
             if (trace.getActiveSpan()?.name === spanName) {
-              return original.apply(services[i], args);
+              return original(...args);
             }
-            // get span from context?
             return tracer.startActiveSpan(spanName, span => {
               let res;
               try {
-                res = original.apply(services[i], args);
+                res = original(...args);
               } catch (err) {
                 span.addEvent("error", { message: err.message });
                 span.end();

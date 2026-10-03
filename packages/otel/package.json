@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "type": "module",
   "scripts": {
-    "build": "webda build",
+    "build": "webdac build",
     "pretest": "npm run build",
     "test": "vitest run",
     "new-model": "webda init webda:model",
@@ -15,7 +15,8 @@
     "lint:fix": "eslint --fix",
     "format:fix": "prettier --write src/**/*",
     "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",
-    "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
+    "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src",
+    "build:watch": "webdac build --watch"
   },
   "keywords": [
     "webda-module"
@@ -43,16 +44,15 @@
   },
   "devDependencies": {
     "@types/node": "25.5.0",
+    "@vitest/coverage-v8": "^4.1.2",
     "@webda/compiler": "workspace:^",
-    "@webda/shell": "workspace:*",
-    "c8": "^11.0.0",
-    "glob": "^13.0.6",
-    "js-beautify": "^1.15.4",
+    "@webda/test": "workspace:*",
     "jscodeshift": "^17.3.0",
     "prettier": "^3.8.1",
     "skott": "^0.35.8",
-    "source-map-support": "^0.5.21",
-    "vite": "^6.0.0"
+    "typescript": "7.1.0-dev.20260929.1",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
   },
   "publishConfig": {
     "access": "public"

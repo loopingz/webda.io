@@ -8,6 +8,5 @@ packages:
   - "!packages/gcp"
   - "!packages/kubernetes"
   - "!packages/elasticsearch"
-  - "!packages/otel"
   - "!packages/mongodb"
   - "!packages/aws"

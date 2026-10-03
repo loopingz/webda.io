@@ -180,7 +180,7 @@ export function createMcpServer(options: McpServerOptions): Server {
     const session = options.getSession(extra);
     const listable = resources.models().filter(m => m.queryOperationId && allowed(session, m.queryOperationId));
     const cursor = decodeCursor(request.params?.cursor);
-    let index = cursor ? listable.findIndex(m => m.name === cursor.model) : 0;
+    const index = cursor ? listable.findIndex(m => m.name === cursor.model) : 0;
     if (index < 0) {
       throw new McpError(ErrorCode.InvalidParams, "Invalid cursor");
     }

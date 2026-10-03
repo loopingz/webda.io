@@ -35,6 +35,18 @@
         },
         "description": "Parameters for the MCP transport",
         "properties": {
+          "allowedHosts": {
+            "default": [
+              "localhost",
+              "127.0.0.1",
+              "::1"
+            ],
+            "description": "Hostnames (any port) accepted in the request Host, against DNS rebinding;\n\"*\" disables the check",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "allowedOrigins": {
             "default": [],
             "description": "Extra Origin values accepted besides the request's own origin",
@@ -50,6 +62,11 @@
           "maxOutputBytes": {
             "default": 1048576,
             "description": "Larger tool/resource outputs are truncated",
+            "type": "number"
+          },
+          "maxSessions": {
+            "default": 1000,
+            "description": "Maximum number of concurrent MCP HTTP sessions",
             "type": "number"
           },
           "operations": {
@@ -176,5 +193,5 @@
   "capabilities": {
     "mcp": "Webda/McpService"
   },
-  "sourceDigest": "283d7657a6ee022182784684e62ae927"
+  "sourceDigest": "4a0eec43f04ea0fbea2d7b0921dab2e9"
 }

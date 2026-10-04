@@ -9,6 +9,7 @@ import { useApplication, useModel } from "../application/hooks.js";
 import { MemoryRepository, registerRepository } from "@webda/models";
 import type { UuidModel } from "@webda/models";
 import { runWithContext } from "../contexts/execution.js";
+import { useDynamicService, useModelMetadata } from "../core/hooks.js";
 
 /**
  * Fake operation context that allows setting custom input for testing
@@ -421,6 +422,34 @@ class DomainServiceTest extends WebdaApplicationTest {
     await callOperation(ctx, "Classroom.Test");
     const output = ctx.getOutput();
     assert.ok(output !== undefined);
+  }
+
+  @test
+  async modelActionNamed() {
+    // `@Action({ name: "exposed" })` on a method `test`: the compiler keys the
+    // action by its name and records the method as `handler`
+    const { Classroom } = this.setupClassroomRepos();
+    const metadata = useModelMetadata(Classroom);
+    metadata.Actions["exposedTest"] = { handler: "test" } as any;
+    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
+    try {
+      useDynamicService<DomainService>("DomainService").initOperations();
+      const op: any = listOperations()["Classroom.ExposedTest"];
+      assert.ok(op, "operation registered under the exposed name");
+      assert.strictEqual(op.rest.path, "{uuid}/exposedTest");
+
+      const uuid = "550e8400-e29b-41d4-a716-446655440002";
+      await Classroom.create({ uuid, name: "Room102" } as any);
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.setParameters({ uuid });
+      await callOperation(ctx, "Classroom.ExposedTest");
+      // `test` writes {} to the context
+      assert.strictEqual(ctx.getOutput(), "{}");
+    } finally {
+      delete metadata.Actions["exposedTest"];
+      delete getStorage().operations["Classroom.ExposedTest"];
+    }
   }
 
   @test

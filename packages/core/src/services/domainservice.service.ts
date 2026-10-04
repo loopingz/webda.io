@@ -310,6 +310,8 @@ export class DomainService<
       model: ModelClass<Model>;
       action: ModelAction & { name: string };
     }>("operationContext");
+    // The action can be exposed under another name than its method
+    const handler = action.handler || action.name;
     if (!action.global) {
       // First arg is uuid when the action is instance-level
       const uuid = args[0];
@@ -318,9 +320,9 @@ export class DomainService<
         throw new WebdaError.NotFound("Object not found");
       }
       //await object.checkAct(context, action.name as ActionsEnum<Model>);
-      return object[action.name](context);
+      return object[handler](context);
     } else {
-      return model[action.name](context);
+      return model[handler](context);
     }
   }
 

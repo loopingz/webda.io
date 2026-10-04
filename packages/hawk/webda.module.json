@@ -55,8 +55,18 @@
     "Webda/ApiKey": {
       "Plural": "ApiKeys",
       "Import": "lib/apikey.model:default",
-      "Relations": {},
-      "Ancestors": [],
+      "Relations": {
+        "links": [
+          {
+            "attribute": "_user",
+            "type": "LINK"
+          }
+        ]
+      },
+      "Ancestors": [
+        "Webda/OwnerModel",
+        "Webda/AbstractOwnerModel"
+      ],
       "Subclasses": [],
       "Reflection": {
         "name": {

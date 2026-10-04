@@ -4151,7 +4151,9 @@
           }
         ]
       },
-      "Ancestors": [],
+      "Ancestors": [
+        "Webda/User"
+      ],
       "Subclasses": [],
       "Reflection": {
         "company": {

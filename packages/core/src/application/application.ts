@@ -26,6 +26,66 @@ import type { Service } from "../services/service.js";
 import { ModelMetadata } from "@webda/compiler";
 import type { BehaviorMetadata } from "@webda/compiler";
 
+/**
+ * Define a static member that only belongs to `target`
+ *
+ * Static members are inherited by subclasses, so a factory installed on a modda would be used
+ * by any subclass of it. The accessor returns `value` for `target` and `fallback` for any
+ * subclass, and lets a subclass assign its own value.
+ * @param target - the class owning the member
+ * @param property - the static member name
+ * @param value - the value for `target`
+ * @param fallback - the value for subclasses of `target`
+ */
+function defineOwnStatic(target: any, property: string, value: any, fallback: any) {
+  Object.defineProperty(target, property, {
+    configurable: true,
+    enumerable: false,
+    get() {
+      return this === target ? value : fallback;
+    },
+    set(newValue: any) {
+      Object.defineProperty(this, property, { value: newValue, writable: true, configurable: true, enumerable: true });
+    }
+  });
+}
+
+/**
+ * Install `filterParameters` and `createConfiguration` on a modda or bean class
+ *
+ * Both are bound to `target`: a subclass that is not registered itself would otherwise inherit them and
+ * have its own parameters filtered out by the parent schema. Such a subclass gets the parent configuration
+ * class without filtering.
+ * @param target - the modda or bean class
+ * @param configurationClass - the parameters class to instantiate
+ * @param schema - the parameters JSON schema, used to filter the parameters
+ */
+export function installConfigurationFactories(
+  target: any,
+  configurationClass: new () => ServiceParameters = ServiceParameters,
+  schema?: JSONSchema7
+) {
+  const filterParameters = (params: any = {}) => {
+    if (!schema?.properties) {
+      return params;
+    }
+    const filteredParams: any = {};
+    for (const field of Object.keys(schema.properties)) {
+      if (params[field] !== undefined) {
+        filteredParams[field] = params[field];
+      }
+    }
+    return filteredParams;
+  };
+  defineOwnStatic(target, "filterParameters", filterParameters, (params: any = {}) => params);
+  defineOwnStatic(
+    target,
+    "createConfiguration",
+    (params: any = {}) => new configurationClass().load(filterParameters(params)),
+    (params: any = {}) => new configurationClass().load(params)
+  );
+}
+
 export type ApplicationState = "initial" | "loading" | "ready";
 
 // We should not be able to set initial from outside
@@ -708,22 +768,7 @@ export class Application {
             );
             continue;
           }
-          this[section][key].filterParameters = (params: any = {}) => {
-            if (!info[section][key].Schema) {
-              return params;
-            }
-            const filteredParams: any = {};
-            for (const field of Object.keys(info[section][key].Schema.properties)) {
-              if (params[field] !== undefined) {
-                filteredParams[field] = params[field];
-              }
-            }
-            return filteredParams;
-          };
-          this[section][key].createConfiguration = (params: any = {}) => {
-            const filteredParams = this[section][key].filterParameters(params);
-            return new (configurationClass ?? ServiceParameters)().load(filteredParams);
-          };
+          installConfigurationFactories(this[section][key], configurationClass, info[section][key].Schema);
         }
       }
     };

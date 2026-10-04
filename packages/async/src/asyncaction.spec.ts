@@ -1,4 +1,4 @@
-import { HttpContext, OperationContext, useRouter } from "@webda/core";
+import { HttpContext, OperationContext, useModelMetadata, useRouter } from "@webda/core";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as crypto from "node:crypto";
@@ -63,6 +63,14 @@ class AsyncActionTest extends AsyncTest {
   async getHookUrl() {
     const action = new AsyncAction({ uuid: "hook" });
     assert.strictEqual(action.getHookUrl(), `http://localhost:18080${useRouter().getModelUrl(action)}/hook`);
+  }
+
+  @test
+  statusActionName() {
+    // Exposed as {uuid}/status, dispatched to the statusAction method
+    for (const model of [AsyncAction, AsyncWebdaAction, AsyncOperationAction]) {
+      assert.deepStrictEqual(useModelMetadata(model).Actions, { status: { handler: "statusAction" } });
+    }
   }
 
   @test

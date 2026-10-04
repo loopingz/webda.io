@@ -3,6 +3,7 @@ import { schedule } from "node-cron";
 import { Service } from "./service.js";
 import { CancelablePromise } from "@webda/utils";
 import { ServiceName, useCore, useService } from "../core/hooks.js";
+import { Command } from "./command.js";
 
 export const CronSymbol = Symbol("WebdaCron");
 /**
@@ -106,6 +107,17 @@ class CronService extends Service {
   }
 
   /**
+   * Stable identifier of a cron for exported jobs (e.g. Kubernetes CronJob)
+   *
+   * `webda cron run --id <id>` resolves the cron back from this identifier
+   * @param cron - the cron definition
+   * @returns the 8 hex characters identifier
+   */
+  static getExportId(cron: CronDefinition): string {
+    return CronService.getCronId(cron, "export");
+  }
+
+  /**
    * Collect all @Cron-annotated methods from the provided services
    * @param services - the services
    * @returns the list of results
@@ -149,6 +161,27 @@ class CronService extends Service {
    */
   work(annotations: string = "true"): CancelablePromise {
     return this.run(annotations === "true");
+  }
+
+  /**
+   * Run once the @Cron-annotated method matching an exported cron id
+   *
+   * Only methods declared with `@Cron` can be run, with their declared arguments
+   * @param id - the cron id, as computed by {@link CronService.getExportId}
+   */
+  @Command("cron run", { description: "Run once the declared cron matching the id" })
+  async runCron(id: string): Promise<void> {
+    if (!id) {
+      throw new Error("A cron id is required");
+    }
+    const crons = CronService.loadAnnotations(useCore().getServices()).filter(c => CronService.getExportId(c) === id);
+    if (crons.length === 0) {
+      throw new Error(`No cron with id '${id}'`);
+    }
+    for (const cron of crons) {
+      this.log("INFO", `Running cron ${cron.toString()}`);
+      await useService(cron.serviceName as ServiceName)[cron.method](...cron.args);
+    }
   }
 
   /**

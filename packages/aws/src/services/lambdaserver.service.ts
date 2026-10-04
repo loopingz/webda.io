@@ -222,8 +222,7 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
         port = 443;
       }
     }
-    // The router matches on the full uri, remove the API Gateway prefix (stage, custom domain path)
-    let resourcePath = event.path.substring(this.getPrefix(event).length) || "/";
+    let resourcePath = event.path || "/";
     // Rebuild query string
     if (event.queryStringParameters) {
       let sep = "?";
@@ -243,6 +242,8 @@ export class LambdaServer<T extends LambdaServerParameters = LambdaServerParamet
       port,
       headers
     ).setClientIp(headers["X-Real-Ip"]); // Might use identity.sourceIp
+    // API Gateway stage or custom domain base path: the router matches on the uri relative to it
+    this.computePrefix(event, httpContext);
     if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
       httpContext.setBody(event.body);
     }

@@ -789,6 +789,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    */
   discoverFilters(services: Iterable<Service>): void {
     for (const service of services) {
+      // Services that failed to construct are kept as undefined entries
+      if (!service) continue;
       const caps = service.getCapabilities();
       if ("request-filter" in caps) {
         this.registerRequestFilter(service as unknown as RequestFilter);
@@ -809,6 +811,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    */
   discoverRoutes(services: Iterable<Service>): void {
     for (const service of services) {
+      if (!service) continue;
       // @ts-ignore — back-compat for subclasses that still populate this
       const legacy: Record<string, any[]> = service.constructor.routes || {};
       const fromMetadata: Record<string, any[]> =

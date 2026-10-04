@@ -386,6 +386,27 @@ class DiscoverFiltersTest extends WebdaApplicationTest {
   }
 
   @test
+  async discoverSkipsMissingServices() {
+    // Core.getServices() keeps undefined entries for services that failed to construct
+    // (e.g. an unknown modda type); one of them must not abort filter and route discovery
+    class FilterService extends Service {
+      getCapabilities() {
+        return { "request-filter": {} };
+      }
+
+      async checkRequest(_ctx: any, _type: "AUTH"): Promise<boolean> {
+        return true;
+      }
+    }
+    const service = new FilterService("testFilterAfterMissing", {} as any);
+    const router = useRouter();
+    const initialCount = router["_requestFilters"].length;
+    router.discoverFilters([undefined, service] as any);
+    assert.strictEqual(router["_requestFilters"].length, initialCount + 1);
+    assert.doesNotThrow(() => router.discoverRoutes([undefined, service] as any));
+  }
+
+  @test
   async discoverFiltersRegistersCORSFilter() {
     class CorsService extends Service {
       getCapabilities() {

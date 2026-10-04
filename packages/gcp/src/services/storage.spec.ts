@@ -20,15 +20,6 @@ class StorageTest extends WebdaApplicationTest {
   apiEndpoint: string;
   binary: Storage;
 
-  async beforeAll() {
-    await super.beforeAll();
-    // The application sets a static createConfiguration on the core "Webda/Binary" modda:
-    // Storage inherits it when built directly, which filters out its own parameters (bucket, prefix...)
-    if (!Object.prototype.hasOwnProperty.call(Storage, "createConfiguration")) {
-      Object.defineProperty(Storage, "createConfiguration", { value: undefined, configurable: true, writable: true });
-    }
-  }
-
   async beforeEach() {
     this.apiEndpoint = process.env["GCS_API_ENDPOINT"] || "";
     await super.beforeEach();

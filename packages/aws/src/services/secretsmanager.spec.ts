@@ -1,15 +1,21 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { WebdaAwsTest } from "../index.spec";
-import { AWSSecretsManager } from "./secretsmanager";
+import { localstackParams, WebdaAwsTest } from "../../test/fixture.js";
+import { AWSSecretsManager, AWSSecretsManagerParameters } from "./secretsmanager.service.js";
 
 @suite
 class SecretsManagerTest extends WebdaAwsTest {
   service: AWSSecretsManager;
-  async before() {
-    await super.before();
-    this.service = <AWSSecretsManager>this.getService("AWSSecretsManager");
-    assert.notStrictEqual(this.service, undefined);
+
+  async beforeEach() {
+    await super.beforeEach();
+    this.service = this.registerService(
+      new AWSSecretsManager(
+        "AWSSecretsManager",
+        new AWSSecretsManagerParameters().load({ endpoint: localstackParams.endpoint })
+      )
+    ).resolve();
+    await this.service.init();
     try {
       await this.service.delete("webda-test-unit-test", 7, true);
     } catch (err) {
@@ -24,7 +30,8 @@ class SecretsManagerTest extends WebdaAwsTest {
       // Skip as it will fail if it already exists
     }
   }
-  async after() {
+
+  async afterEach() {
     await this.service.delete("webda-test-unit-test", 7, true);
   }
 
@@ -53,5 +60,9 @@ class SecretsManagerTest extends WebdaAwsTest {
       Resource: ["arn:aws:secretsmanager:us-east-1:plop:secret:*"],
       Sid: "AWSSecretsManagerAWSSecretsManager"
     });
+    // Delete with recovery window (unique name as it cannot be recreated before the deletion)
+    const name = `webda-test-unit-test-${Date.now()}`;
+    await this.service.create(name, {});
+    await this.service.delete(name);
   }
 }

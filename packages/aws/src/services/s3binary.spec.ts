@@ -1,132 +1,153 @@
 import { DeleteObjectsCommandInput, HeadObjectCommand, ListObjectsV2Command, S3 } from "@aws-sdk/client-s3";
-import { BinaryService, RESTOperationsTransport } from "@webda/core";
-import { BinaryTest } from "@webda/core/lib/services/binary.spec";
-import { TestApplication } from "@webda/core/lib/test";
+import { BinaryService, MemoryBinaryFile, User } from "@webda/core";
 import { suite, test } from "@webda/test";
-import { getCommonJS } from "@webda/utils";
 import * as assert from "assert";
 import { mockClient } from "aws-sdk-client-mock";
-import * as path from "path";
-import * as sinon from "sinon";
-import { checkLocalStack, defaultCreds } from "../index.spec";
-import { DynamoDBTest } from "./dynamodb.spec";
-import { S3Binary, S3BinaryParameters } from "./s3binary";
+import { localstackParams, WebdaAwsTest } from "../../test/fixture.js";
+import { S3Binary, S3BinaryParameters } from "./s3binary.service.js";
 
-const { __dirname } = getCommonJS(import.meta.url);
+const Bucket = "webda-test";
+
 @suite
-class S3BinaryTest extends BinaryTest<S3Binary> {
-  async before() {
-    process.env.AWS_ACCESS_KEY_ID = defaultCreds.accessKeyId;
-    process.env.AWS_SECRET_ACCESS_KEY = defaultCreds.secretAccessKey;
-    await checkLocalStack();
-    await this.buildWebda();
+class S3BinaryTest extends WebdaAwsTest {
+  binary: S3Binary;
+
+  async beforeAll() {
+    await super.beforeAll();
+    // The application sets createConfiguration on the compiled classes only: the source class
+    // would inherit the one of BinaryService and lose the S3 parameters
+    S3Binary.createConfiguration = (params: any) =>
+      params instanceof S3BinaryParameters ? params : new S3BinaryParameters().load(params);
+  }
+
+  async beforeEach() {
+    await super.beforeEach();
     await this.install();
     await this.cleanData();
-    await DynamoDBTest.install("webda-test-idents");
-    await DynamoDBTest.install("webda-test-users");
-    await super.before();
+    this.binary = this.registerService(
+      new S3Binary(
+        "binary",
+        new S3BinaryParameters().load({
+          ...localstackParams,
+          bucket: Bucket,
+          forcePathStyle: true
+        })
+      )
+    ).resolve();
+    await this.binary.init();
   }
 
-  async tweakApp(app: TestApplication) {
-    super.tweakApp(app);
-    app.addService(
-      "test/awsevents",
-      (await import(path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/")))).AWSEventsHandler
-    );
+  getS3() {
+    return new S3({ ...localstackParams, forcePathStyle: true });
   }
-
-  getBinary(): Promise<S3Binary<S3BinaryParameters>> {
-    return this.addService(S3Binary, {
-      bucket: "webda-test",
-      endpoint: "http://localhost:4566",
-      forcePathStyle: true,
-      map: {
-        Users: ["images"]
-      }
-    });
-  }
-
-  // Override getNotFound as exception is raised after
-  @test
-  async getNotFound() {}
 
   async cleanData() {
-    const Bucket = "webda-test";
-    try {
-      const s3 = new S3({
-        endpoint: "http://localhost:4566",
-        credentials: defaultCreds,
-        forcePathStyle: true,
-        region: "us-east-1"
-      });
-
-      // For test we do not have more than 1k objects
-      const data = await s3.listObjectsV2({
-        Bucket
-      });
-      const params: DeleteObjectsCommandInput = {
-        Bucket,
-        Delete: {
-          Objects: []
-        }
-      };
-      for (const i in data.Contents) {
-        params.Delete.Objects.push({
-          Key: data.Contents[i].Key
-        });
+    const s3 = this.getS3();
+    // For test we do not have more than 1k objects
+    const data = await s3.listObjectsV2({ Bucket });
+    const params: DeleteObjectsCommandInput = {
+      Bucket,
+      Delete: {
+        Objects: (data.Contents ?? []).map(c => ({ Key: c.Key }))
       }
-      if (params.Delete.Objects.length === 0) {
-        return;
-      }
-      await s3.deleteObjects(params);
-    } catch (err) {
-      // Ignore error for now
+    };
+    if (params.Delete.Objects.length === 0) {
+      return;
     }
+    await s3.deleteObjects(params);
   }
 
   async install() {
-    const s3 = new S3({
-      endpoint: "http://localhost:4566",
-      forcePathStyle: true,
-      credentials: defaultCreds,
-      region: "us-east-1"
-    });
-    const Bucket = "webda-test";
+    const s3 = this.getS3();
     try {
-      await s3.headBucket({
-        Bucket
-      });
+      await s3.headBucket({ Bucket });
     } catch (err) {
-      if (err.name === "Forbidden") {
-        this.webda.log("ERROR", "S3 bucket already exists in another account");
-      } else if (err.name === "NotFound") {
-        this.webda.log("INFO", "Creating S3 Bucket", Bucket);
-        return s3.createBucket({
-          Bucket
-        });
+      if (err.name === "NotFound") {
+        await s3.createBucket({ Bucket });
+      } else {
+        throw err;
       }
     }
+  }
+
+  @test
+  async storeAndGet() {
+    const user = await User.ref("s3user").create({} as any);
+    const file = new MemoryBinaryFile(Buffer.from("plop"), { name: "plop.txt", mimetype: "text/plain" });
+    await this.binary.store(user, "images", file);
+    assert.strictEqual((user as any).images.hash, file.hash);
+    assert.strictEqual(await this.binary.getUsageCount(file.hash), 1);
+    assert.ok(await this.binary._exists(file.hash));
+    assert.strictEqual(
+      (await BinaryService.streamToBuffer(await this.binary._get((user as any).images))).toString(),
+      "plop"
+    );
+    // Storing again only add the usage marker
+    const user2 = await User.ref("s3user2").create({} as any);
+    await this.binary.store(user2, "images", new MemoryBinaryFile(Buffer.from("plop"), { name: "plop.txt" }));
+    assert.strictEqual(await this.binary.getUsageCount(file.hash), 2);
+    // Signed url to download
+    const url = await this.binary.getRedirectUrlFromObject((user as any).images, undefined, 30);
+    assert.ok(url.includes(`/${Bucket}/${file.hash}/data?`), url);
+    // Delete the usage
+    await this.binary.delete(user2 as any, "images");
+    assert.strictEqual(await this.binary.getUsageCount(file.hash), 1);
+    // Cascade delete remove everything
+    await this.binary.cascadeDelete({ hash: file.hash } as any, user.getUUID());
+    assert.ok(!(await this.binary._exists(file.hash)));
+    assert.strictEqual(await this.binary.getUsageCount(file.hash), 0);
+  }
+
+  @test
+  async putRedirectUrl() {
+    const user = await User.ref("s3redirect").create({} as any);
+    const file = new MemoryBinaryFile(Buffer.from("redirect"), { name: "r.txt" });
+    await file.getHashes();
+    const info = file.toBinaryFileInfo();
+    // Nothing uploaded yet: get a signed PUT url
+    let res = await this.binary.putRedirectUrl(user, "images", info);
+    assert.strictEqual(res.method, "PUT");
+    assert.ok(res.url.includes(`/${Bucket}/${file.hash}/data?`));
+    assert.strictEqual(res.headers["Content-MD5"], Buffer.from(file.hash, "hex").toString("base64"));
+    assert.strictEqual((user as any).images.hash, file.hash);
+    // Marker exists but no data yet: still need to upload
+    res = await this.binary.putRedirectUrl(user, "images", info);
+    assert.strictEqual(res.method, "PUT");
+    // Data is there with the right challenge: no upload needed
+    await this.binary.putObject(this.binary._getKey(file.hash), "redirect");
+    const user2 = await User.ref("s3redirect2").create({} as any);
+    res = await this.binary.putRedirectUrl(user2, "images", info);
+    assert.strictEqual(res, undefined);
+    assert.strictEqual((user2 as any).images.hash, file.hash);
+    // Marker and data exist
+    assert.strictEqual(await this.binary.putRedirectUrl(user2, "images", info), undefined);
   }
 
   @test
   async getARN() {
-    const binary = await this.getBinary();
-    const policies = binary.getARNPolicy("plop");
-
+    const policies = this.binary.getARNPolicy("plop");
     assert.strictEqual(policies.Resource[0], "arn:aws:s3:::webda-test");
     assert.strictEqual(policies.Resource[1], "arn:aws:s3:::webda-test/*");
-
-    binary.getParameters().CloudFormationSkip = true;
-    assert.deepStrictEqual(binary.getCloudFormation(undefined), {});
+    assert.deepStrictEqual(this.binary.getCloudFormation({ getDefaultTags: tags => tags ?? [] }), {
+      binaryBucket: {
+        Type: "AWS::S3::Bucket",
+        Properties: {
+          BucketName: "webda-test",
+          Tags: []
+        }
+      }
+    });
+    this.binary.getParameters().CloudFormationSkip = true;
+    assert.deepStrictEqual(this.binary.getCloudFormation(undefined), {});
   }
 
   @test
   async forEachFile() {
-    const binary = await this.getBinary();
     let keys = [];
-
-    const spyChanges = sinon.stub().callsFake(async (p, c) => {
-      if (spyChanges.callCount === 1) {
+    let calls = 0;
+    const mock = mockClient(S3);
+    mock.on(ListObjectsV2Command).callsFake(async p => {
+      if (calls++ % 2 === 0) {
         return {
           Contents: [
             { Key: "test/test.txt" },
@@ -141,9 +162,8 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
       }
       return { Contents: [] };
     });
-    const mock = mockClient(S3).on(ListObjectsV2Command).callsFake(spyChanges);
     try {
-      await binary.forEachFile(
+      await this.binary.forEachFile(
         "myBucket",
         async (Key: string) => {
           keys.push(Key);
@@ -153,8 +173,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
       );
       assert.deepStrictEqual(keys, ["test/test.txt", "test2/test.txt", "loop.txt"]);
       keys = [];
-      spyChanges.resetHistory();
-      await binary.forEachFile(
+      await this.binary.forEachFile(
         "myBucket",
         async (Key: string) => {
           keys.push(Key);
@@ -168,19 +187,17 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   }
 
   @test
-  async params() {
-    const binary = await this.getBinary();
-    assert.throws(() => new S3BinaryParameters({}, binary), /Need to define a bucket at least/);
+  params() {
+    assert.throws(() => new S3BinaryParameters().load({}), /Need to define a bucket at least/);
   }
 
   @test
   async signedUrl() {
-    const binary = await this.getBinary();
     const urls = [
-      binary.getSignedUrl("plop/test", "putObject", {
+      this.binary.getSignedUrl("plop/test", "putObject", {
         Bucket: "myBuck"
       }),
-      binary.getSignedUrl("plop/test")
+      this.binary.getSignedUrl("plop/test")
     ];
     (await Promise.all(urls)).forEach(url => {
       assert.ok(
@@ -192,104 +209,60 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
 
   @test
   async exists() {
-    const binary = await this.getBinary();
-    assert.ok(!(await binary._exists("bouzouf")));
-    await binary.putObject(binary._getKey("bouzouf"), "plop");
-    assert.ok(await binary._exists("bouzouf"));
+    assert.ok(!(await this.binary._exists("bouzouf")));
+    await this.binary.putObject(this.binary._getKey("bouzouf"), "plop");
+    assert.ok(await this.binary._exists("bouzouf"));
     assert.strictEqual(
-      (await BinaryService.streamToBuffer(await binary.getObject(binary._getKey("bouzouf")))).toString("utf8"),
+      (await BinaryService.streamToBuffer(await this.binary.getObject(this.binary._getKey("bouzouf")))).toString(
+        "utf8"
+      ),
       "plop"
     );
-    assert.notStrictEqual(await binary.exists(binary._getKey("bouzouf")), null);
-    assert.strictEqual(await binary.exists(binary._getKey("bouzouf2")), null);
+    assert.notStrictEqual(await this.binary.exists(this.binary._getKey("bouzouf")), null);
+    assert.strictEqual(await this.binary.exists(this.binary._getKey("bouzouf2")), null);
   }
 
   @test
   async cleanHash() {
-    const binary = await this.getBinary();
-    const key1 = binary._getKey("bouzouf", "one");
-    const key2 = binary._getKey("bouzouf", "two");
-    await binary.putObject(key1, "plop");
-    await binary.putObject(key2, "plop");
-    await binary._cleanHash("bouzouf");
-    // TO CONTINUE (localstack might not handle V2)
+    for (let i = 0; i < 7; i++) {
+      await this.binary.putObject(this.binary._getKey("bouzouf", `marker${i}`), "plop");
+    }
+    await this.binary._cleanHash("bouzouf");
+    const data = await this.getS3().listObjectsV2({ Bucket, Prefix: "bouzouf/" });
+    assert.strictEqual(data.Contents?.length ?? 0, 0);
   }
 
   @test
-  async getKey() {
-    const binary = await this.getBinary();
-    let key = binary._getKey("bouzouf", "two");
+  getKey() {
+    let key = this.binary._getKey("bouzouf", "two");
     assert.strictEqual(key, "bouzouf/two");
-    binary.getParameters().prefix = "plop";
-    key = binary._getKey("bouzouf", "two");
+    this.binary.getParameters().prefix = "plop";
+    key = this.binary._getKey("bouzouf", "two");
     assert.strictEqual(key, "plop/bouzouf/two");
   }
 
   @test
   async cascadeDelete() {
-    const binary = await this.getBinary();
-    const stubDelete = sinon.stub(binary._s3, "deleteObject").callsFake(() => {
+    const original = this.binary._s3.deleteObject;
+    this.binary._s3.deleteObject = () => {
       throw new Error();
-    });
+    };
     try {
-      // @ts-ignore
-      binary.cascadeDelete({ hash: "pp" }, "pp");
+      // Errors are logged, not thrown
+      await this.binary.cascadeDelete({ hash: "pp" } as any, "pp");
     } finally {
-      stubDelete.restore();
+      this.binary._s3.deleteObject = original;
     }
   }
 
   @test
-  async redirectUrl() {
-    const { user1, ctx } = await this.setupDefault();
-    await this.addService(RESTOperationsTransport, {}, "test");
-    // Making sure we are redirected on GET
-    const executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      `${this.webda.getRouter().getModelUrl(user1)}/${user1.getUuid()}/images/0`,
-      {}
-    );
-    await executor.execute(ctx);
-    assert.ok(ctx.getResponseHeaders().Location !== undefined);
-  }
-
-  @test
-  async redirectUrlInfo() {
-    const { user1, ctx } = await this.setupDefault();
-    await this.addService(RESTOperationsTransport, {}, "test");
-    // Making sure we are redirected on GET
-    const executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      `${this.webda.getRouter().getModelUrl(user1)}/${user1.getUuid()}/images/0/url`,
-      {}
-    );
-    await executor.execute(ctx);
-    assert.ok(ctx.getResponseHeaders().Location === undefined);
-    assert.notStrictEqual(JSON.parse(<string>ctx.getResponseBody()).Location, undefined);
-  }
-
-  @test
-  async httpGetError() {
-    // GET is not through classic binary
-    // Skip it
-  }
-
-  @test
   async badErrors() {
-    const mock = mockClient(S3)
-      .on(HeadObjectCommand)
-      .callsFake(() => {
-        throw new Error("Fake");
-      });
-    const binary = await this.getBinary();
+    const mock = mockClient(S3);
+    mock.on(HeadObjectCommand).rejects(new Error("Fake"));
     try {
-      await assert.rejects(() => binary._getS3("plop"));
-      await assert.rejects(() => binary._exists("plop"));
-      await assert.rejects(() => binary.exists("plop"));
+      await assert.rejects(() => this.binary._getS3("plop"));
+      await assert.rejects(() => this.binary._exists("plop"));
+      await assert.rejects(() => this.binary.exists("plop"));
     } finally {
       mock.restore();
     }

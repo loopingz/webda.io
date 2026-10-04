@@ -1,15 +1,18 @@
 import { HostedZone, ListHostedZonesRequest, ListHostedZonesResponse, RRType, Route53 } from "@aws-sdk/client-route-53";
-import { Service } from "@webda/core";
-
+import { Service, useLog } from "@webda/core";
 import { JSONUtils } from "@webda/utils";
 
+/**
+ * Route53 helpers to manage zones and records
+ */
 export class Route53Service extends Service {
   /**
    * Get the closest zone to the domain
    *
    * @param domain to get zone for
+   * @returns the closest hosted zone or undefined
    */
-  static async getZoneForDomainName(domain): Promise<HostedZone> {
+  static async getZoneForDomainName(domain: string): Promise<HostedZone> {
     domain = this.completeDomain(domain);
     let targetZone: HostedZone;
     // Find the right zone
@@ -34,6 +37,11 @@ export class Route53Service extends Service {
     return targetZone;
   }
 
+  /**
+   * Ensure the domain ends with a dot
+   * @param domain - the domain
+   * @returns the fully qualified domain
+   */
   static completeDomain(domain: string) {
     if (!domain.endsWith(".")) {
       domain = domain + ".";
@@ -47,7 +55,8 @@ export class Route53Service extends Service {
    * @param domain to create
    * @param type of DNS
    * @param value the value of the record
-   * @param targetZone
+   * @param targetZone - zone to use, default to the closest zone
+   * @param Comment - comment of the change
    */
   static async createDNSEntry(
     domain: string,
@@ -91,6 +100,7 @@ export class Route53Service extends Service {
    * Return all entries of a zone in AWS
    *
    * @param domain to retrieve from
+   * @returns the record sets
    */
   static async getEntries(domain: string) {
     const r53 = new Route53({});
@@ -112,7 +122,11 @@ export class Route53Service extends Service {
 
   /**
    * Import all records to Route53
-   * @param file
+   * @param options - import options
+   * @param options.file - the exported file to import
+   * @param options.pretend - only display the records that would be deleted
+   * @param options.sync - delete the records not present in the file
+   * @param log - logger to use
    */
   static async import(
     options: {
@@ -120,7 +134,7 @@ export class Route53Service extends Service {
       pretend?: boolean;
       sync?: boolean;
     },
-    Console
+    log: (level: "INFO" | "ERROR", ...args: any[]) => void = useLog
   ) {
     const data = JSONUtils.loadFile(options.file);
     const targetZone = await this.getZoneForDomainName(data.domain);
@@ -163,10 +177,10 @@ export class Route53Service extends Service {
         );
         continuationToken = records.NextRecordIdentifier;
       } while (continuationToken);
-      Console.log("INFO", `Deleting ${toDelete.length} records`);
+      log("INFO", `Deleting ${toDelete.length} records`);
       if (options.pretend) {
         toDelete.forEach(r => {
-          Console.log("INFO", "Deleting entry\n", JSON.stringify(r, undefined, 2));
+          log("INFO", "Deleting entry\n", JSON.stringify(r, undefined, 2));
         });
       } else if (toDelete.length) {
         await r53.changeResourceRecordSets({
@@ -180,7 +194,7 @@ export class Route53Service extends Service {
         });
       }
     } catch (err) {
-      Console.log("ERROR", err);
+      log("ERROR", err);
     }
   }
 
@@ -199,25 +213,6 @@ export class Route53Service extends Service {
       file
     );
   }
-
-  /**
-   * Manage the shell command
-   *
-   * @param Console
-   * @param args
-   */
-  static async shell(Console, args) {
-    const command = args._.shift();
-    switch (command) {
-      case "import":
-        await this.import(args, Console);
-        break;
-      case "sync":
-        await this.import({ ...args, sync: true }, Console);
-        break;
-      case "export":
-        await this.export(args.domain, args.file);
-        break;
-    }
-  }
 }
+
+export default Route53Service;

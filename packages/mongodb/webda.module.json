@@ -1,46 +1,369 @@
 {
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/MongoStore": "lib/mongodb:default"
+    "Webda/MongoStore": {
+      "Import": "lib/mongodb.service:MongoStore",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "DbOptions": {
+            "additionalProperties": false,
+            "properties": {
+              "authSource": {
+                "description": "If the database authentication is dependent on another databaseName.",
+                "type": "string"
+              },
+              "bsonRegExp": {
+                "default": false,
+                "defaultValue": "`false`",
+                "description": "return BSON regular expressions as BSONRegExp instances.",
+                "type": "boolean"
+              },
+              "checkKeys": {
+                "default": false,
+                "defaultValue": "`false`",
+                "description": "the serializer will check if keys are valid.",
+                "type": "boolean"
+              },
+              "enableUtf8Validation": {
+                "default": false,
+                "description": "Enable utf8 validation when deserializing BSON documents.  Defaults to true.",
+                "type": "boolean"
+              },
+              "fieldsAsRaw": {
+                "$ref": "#/definitions/Document",
+                "defaultValue": "`null`",
+                "description": "allow to specify if there what fields we wish to return as unserialized raw buffer."
+              },
+              "forceServerObjectId": {
+                "default": false,
+                "description": "Force server to assign _id values instead of driver.",
+                "type": "boolean"
+              },
+              "ignoreUndefined": {
+                "default": false,
+                "defaultValue": "`true`",
+                "description": "serialize will not emit undefined fields\nnote that the driver sets this to `false`",
+                "type": "boolean"
+              },
+              "pkFactory": {
+                "$ref": "#/definitions/PkFactory",
+                "description": "A primary key factory object for generation of custom _id keys."
+              },
+              "promoteBuffers": {
+                "default": false,
+                "defaultValue": "`false`",
+                "description": "when deserializing a Binary will return it as a node.js Buffer instance.",
+                "type": "boolean"
+              },
+              "promoteLongs": {
+                "default": false,
+                "defaultValue": "`true`",
+                "description": "when deserializing a Long will fit it into a Number if it's smaller than 53 bits.",
+                "type": "boolean"
+              },
+              "promoteValues": {
+                "default": false,
+                "defaultValue": "`true`",
+                "description": "when deserializing will promote BSON values to their Node.js closest equivalent types.",
+                "type": "boolean"
+              },
+              "raw": {
+                "default": false,
+                "description": "Enabling the raw option will return a [Node.js Buffer](https://nodejs.org/api/buffer.html)\nwhich is allocated using [allocUnsafe API](https://nodejs.org/api/buffer.html#static-method-bufferallocunsafesize).\nSee this section from the [Node.js Docs here](https://nodejs.org/api/buffer.html#what-makes-bufferallocunsafe-and-bufferallocunsafeslow-unsafe)\nfor more detail about what \"unsafe\" refers to in this context.\nIf you need to maintain your own editable clone of the bytes returned for an extended life time of the process, it is recommended you allocate\nyour own buffer and clone the contents:",
+                "example": "```ts\nconst raw = await collection.findOne({}, { raw: true });\nconst myBuffer = Buffer.alloc(raw.byteLength);\nmyBuffer.set(raw, 0);\n// Only save and use `myBuffer` beyond this point\n```",
+                "remarks": "Please note there is a known limitation where this option cannot be used at the MongoClient level (see [NODE-3946](https://jira.mongodb.org/browse/NODE-3946)).\nIt does correctly work at `Db`, `Collection`, and per operation the same as other BSON options work.",
+                "type": "boolean"
+              },
+              "readConcern": {
+                "$ref": "#/definitions/Document",
+                "description": "Specify a read concern for the collection. (only MongoDB 3.2 or higher supported)"
+              },
+              "readPreference": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/Document"
+                  },
+                  {
+                    "const": "primary",
+                    "type": "string"
+                  },
+                  {
+                    "const": "primaryPreferred",
+                    "type": "string"
+                  },
+                  {
+                    "const": "secondary",
+                    "type": "string"
+                  },
+                  {
+                    "const": "secondaryPreferred",
+                    "type": "string"
+                  },
+                  {
+                    "const": "nearest",
+                    "type": "string"
+                  }
+                ],
+                "description": "The preferred read preference (ReadPreference.PRIMARY, ReadPreference.PRIMARY_PREFERRED, ReadPreference.SECONDARY, ReadPreference.SECONDARY_PREFERRED, ReadPreference.NEAREST).",
+                "public": true
+              },
+              "retryWrites": {
+                "default": false,
+                "description": "Should retry failed writes",
+                "type": "boolean"
+              },
+              "serializeFunctions": {
+                "default": false,
+                "defaultValue": "`false`",
+                "description": "serialize the javascript functions",
+                "type": "boolean"
+              },
+              "timeoutMS": {
+                "experimental": "Specifies the time an operation will run until it throws a timeout error",
+                "type": "number"
+              },
+              "useBigInt64": {
+                "default": false,
+                "defaultValue": "`false`",
+                "description": "when deserializing a Long return as a BigInt.",
+                "type": "boolean"
+              },
+              "writeConcern": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/WriteConcern"
+                  },
+                  {
+                    "$ref": "#/definitions/WriteConcernSettings"
+                  }
+                ],
+                "description": "Write Concern as an object"
+              }
+            },
+            "public": true,
+            "type": "object"
+          },
+          "Document": {
+            "additionalProperties": {},
+            "public": true,
+            "type": "object"
+          },
+          "PkFactory": {
+            "additionalProperties": false,
+            "public": true,
+            "type": "object"
+          },
+          "WriteConcern": {
+            "additionalProperties": false,
+            "description": "A MongoDB WriteConcern, which describes the level of acknowledgement\nrequested from MongoDB for write operations.",
+            "properties": {
+              "fsync": {
+                "deprecated": true,
+                "description": "Equivalent to the j option.",
+                "enum": [
+                  false,
+                  true,
+                  1
+                ],
+                "type": [
+                  "boolean",
+                  "number"
+                ]
+              },
+              "j": {
+                "default": false,
+                "deprecated": true,
+                "description": "Request acknowledgment that the write operation has been written to the on-disk journal.",
+                "type": "boolean"
+              },
+              "wtimeout": {
+                "deprecated": true,
+                "description": "Specify a time limit to prevent write operations from blocking indefinitely.",
+                "type": "number"
+              }
+            },
+            "public": true,
+            "see": "https://www.mongodb.com/docs/manual/reference/write-concern/",
+            "type": "object"
+          },
+          "WriteConcernSettings": {
+            "additionalProperties": false,
+            "properties": {
+              "fsync": {
+                "deprecated": true,
+                "description": "The file sync write concern.",
+                "enum": [
+                  false,
+                  true,
+                  1
+                ],
+                "type": [
+                  "boolean",
+                  "number"
+                ]
+              },
+              "j": {
+                "default": false,
+                "deprecated": true,
+                "description": "The journal write concern.",
+                "type": "boolean"
+              },
+              "journal": {
+                "default": false,
+                "description": "The journal write concern",
+                "type": "boolean"
+              },
+              "w": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "const": "majority",
+                    "type": "string"
+                  }
+                ],
+                "description": "The write concern",
+                "public": true
+              },
+              "wtimeout": {
+                "description": "The write concern timeout.",
+                "type": "number"
+              },
+              "wtimeoutMS": {
+                "description": "The write concern timeout.",
+                "type": "number"
+              }
+            },
+            "public": true,
+            "type": "object"
+          },
+          "modelAliases": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Model Aliases to allow easier rename of Model",
+            "type": "object"
+          }
+        },
+        "description": "MongoDB store parameters",
+        "properties": {
+          "collection": {
+            "description": "Which collection to use\n\nAll the models managed by the store share this collection, the `__type`\nfield is used to differentiate them",
+            "type": "string"
+          },
+          "database": {
+            "description": "Database to use, default to the one defined in the URL",
+            "type": "string"
+          },
+          "databaseOptions": {
+            "$ref": "#/definitions/DbOptions",
+            "description": "Mongo Database Options",
+            "see": "https://www.npmjs.com/package/mongodb"
+          },
+          "defaultModel": {
+            "default": true,
+            "description": "When __type model not found, use the model\nIf strict is setup this parameter is not used",
+            "type": "boolean"
+          },
+          "forceModel": {
+            "default": false,
+            "description": "If set, Store will ignore the __type",
+            "type": "boolean"
+          },
+          "modelAliases": {
+            "$ref": "#/definitions/modelAliases",
+            "description": "Model Aliases to allow easier rename of Model"
+          },
+          "models": {
+            "default": [
+              "Webda/RegistryEntry"
+            ],
+            "description": "Models managed by this Store.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "mongoUrl": {
+            "description": "Contains the URL to Mongo Server\n\nWill try to use WEBDA_MONGO_URL environment variable if not defined",
+            "type": "string"
+          },
+          "noCache": {
+            "default": false,
+            "description": "Disable default memory cache",
+            "type": "boolean"
+          },
+          "options": {
+            "description": "Additional options for Mongo connetion\n\nShould be typed with MongoClientOptions but not available due to bug in ts-json-schema-generator\nhttps://docs.mongodb.com/manual/reference/connection-string"
+          },
+          "slowQueryThreshold": {
+            "default": 30000,
+            "description": "Slow query threshold",
+            "type": "number"
+          },
+          "strict": {
+            "default": false,
+            "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no\nmodel extending this one",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "collection",
+          "type"
+        ],
+        "type": "object",
+        "title": "MongoStore"
+      },
+      "Configuration": "lib/mongodb.service:MongoParameters"
+    }
   },
-  "models": {
-    "graph": {},
-    "tree": {},
-    "plurals": {},
-    "list": {},
-    "reflections": {}
-  },
+  "models": {},
   "schemas": {
     "Webda/BinaryFile": {
-      "type": "object",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
       "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
         "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
         },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
         },
         "metadata": {
           "description": "Metadatas stored along with the binary"
         },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
         "originalname": {
-          "type": "string",
-          "description": "Original name"
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
         }
       },
       "required": [
@@ -48,375 +371,10 @@
         "name",
         "size"
       ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BinaryFile"
-    },
-    "Webda/MongoStore": {
       "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "model": {
-          "type": "string",
-          "description": "Webda model to use within the Store",
-          "default": "Webda/CoreModel"
-        },
-        "additionalModels": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Additional models\n\nAllow this store to manage other models",
-          "default": []
-        },
-        "strict": {
-          "type": "boolean",
-          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
-          "default": false
-        },
-        "defaultModel": {
-          "type": "boolean",
-          "description": "When __type model not found, use the model If strict is setup this parameter is not used",
-          "default": true
-        },
-        "forceModel": {
-          "type": "boolean",
-          "description": "If set, Store will ignore the __type",
-          "default": false
-        },
-        "slowQueryThreshold": {
-          "type": "number",
-          "description": "Slow query threshold",
-          "default": 30000
-        },
-        "modelAliases": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Model Aliases to allow easier rename of Model"
-        },
-        "noCache": {
-          "type": "boolean",
-          "description": "Disable default memory cache"
-        },
-        "mongoUrl": {
-          "type": "string",
-          "description": "Contains the URL to Mongo Server\n\nWill try to use WEBDA_MONDO_URL environment variable if not defined"
-        },
-        "options": {
-          "description": "Additional options for Mongo connetion\n\nShould be typed with MongoClientOptions but not available due to bug in ts-json-schema-generator https://docs.mongodb.com/manual/reference/connection-string"
-        },
-        "collection": {
-          "type": "string",
-          "description": "Which collection to use"
-        },
-        "database": {
-          "type": "string"
-        },
-        "databaseOptions": {
-          "type": "object",
-          "properties": {
-            "writeConcern": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "w": {
-                      "$ref": "#/definitions/W",
-                      "description": "Request acknowledgment that the write operation has propagated to a specified number of mongod instances or to mongod instances with specified tags."
-                    },
-                    "journal": {
-                      "type": "boolean",
-                      "description": "Request acknowledgment that the write operation has been written to the on-disk journal"
-                    },
-                    "wtimeoutMS": {
-                      "type": "number",
-                      "description": "Specify a time limit to prevent write operations from blocking indefinitely"
-                    },
-                    "wtimeout": {
-                      "type": "number",
-                      "description": "Specify a time limit to prevent write operations from blocking indefinitely.",
-                      "deprecated": "Will be removed in the next major version. Please use wtimeoutMS."
-                    },
-                    "j": {
-                      "type": "boolean",
-                      "description": "Request acknowledgment that the write operation has been written to the on-disk journal.",
-                      "deprecated": "Will be removed in the next major version. Please use journal."
-                    },
-                    "fsync": {
-                      "anyOf": [
-                        {
-                          "type": "boolean"
-                        },
-                        {
-                          "type": "number",
-                          "const": 1
-                        }
-                      ],
-                      "description": "Equivalent to the j option.",
-                      "deprecated": "Will be removed in the next major version. Please use journal."
-                    }
-                  },
-                  "description": "A MongoDB WriteConcern, which describes the level of acknowledgement requested from MongoDB for write operations."
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "w": {
-                      "$ref": "#/definitions/W",
-                      "description": "The write concern"
-                    },
-                    "wtimeoutMS": {
-                      "type": "number",
-                      "description": "The write concern timeout"
-                    },
-                    "journal": {
-                      "type": "boolean",
-                      "description": "The journal write concern"
-                    },
-                    "j": {
-                      "type": "boolean",
-                      "description": "The journal write concern.",
-                      "deprecated": "Will be removed in the next major version. Please use the journal option."
-                    },
-                    "wtimeout": {
-                      "type": "number",
-                      "description": "The write concern timeout.",
-                      "deprecated": "Will be removed in the next major version. Please use the wtimeoutMS option."
-                    },
-                    "fsync": {
-                      "anyOf": [
-                        {
-                          "type": "boolean"
-                        },
-                        {
-                          "type": "number",
-                          "const": 1
-                        }
-                      ],
-                      "description": "The file sync write concern.",
-                      "deprecated": "Will be removed in the next major version. Please use the journal option."
-                    }
-                  }
-                }
-              ],
-              "description": "Write Concern as an object"
-            },
-            "useBigInt64": {
-              "type": "boolean",
-              "description": "when deserializing a Long return as a BigInt."
-            },
-            "promoteLongs": {
-              "type": "boolean",
-              "description": "when deserializing a Long will fit it into a Number if it's smaller than 53 bits."
-            },
-            "promoteBuffers": {
-              "type": "boolean",
-              "description": "when deserializing a Binary will return it as a node.js Buffer instance."
-            },
-            "promoteValues": {
-              "type": "boolean",
-              "description": "when deserializing will promote BSON values to their Node.js closest equivalent types."
-            },
-            "fieldsAsRaw": {
-              "type": "object",
-              "description": "allow to specify if there what fields we wish to return as unserialized raw buffer."
-            },
-            "bsonRegExp": {
-              "type": "boolean",
-              "description": "return BSON regular expressions as BSONRegExp instances."
-            },
-            "raw": {
-              "type": "boolean",
-              "description": "Enabling the raw option will return a [Node.js Buffer](https://nodejs.org/api/buffer.html) which is allocated using [allocUnsafe API](https://nodejs.org/api/buffer.html#static-method-bufferallocunsafesize). See this section from the [Node.js Docs here](https://nodejs.org/api/buffer.html#what-makes-bufferallocunsafe-and-bufferallocunsafeslow-unsafe) for more detail about what \"unsafe\" refers to in this context. If you need to maintain your own editable clone of the bytes returned for an extended life time of the process, it is recommended you allocate your own buffer and clone the contents:"
-            },
-            "checkKeys": {
-              "type": "boolean",
-              "description": "the serializer will check if keys are valid."
-            },
-            "serializeFunctions": {
-              "type": "boolean",
-              "description": "serialize the javascript functions"
-            },
-            "ignoreUndefined": {
-              "type": "boolean",
-              "description": "serialize will not emit undefined fields note that the driver sets this to `false`"
-            },
-            "enableUtf8Validation": {
-              "type": "boolean",
-              "description": "Enable utf8 validation when deserializing BSON documents.  Defaults to true."
-            },
-            "authSource": {
-              "type": "string",
-              "description": "If the database authentication is dependent on another databaseName."
-            },
-            "forceServerObjectId": {
-              "type": "boolean",
-              "description": "Force server to assign _id values instead of driver."
-            },
-            "readPreference": {
-              "$ref": "#/definitions/ReadPreferenceLike",
-              "description": "The preferred read preference (ReadPreference.PRIMARY, ReadPreference.PRIMARY_PREFERRED, ReadPreference.SECONDARY, ReadPreference.SECONDARY_PREFERRED, ReadPreference.NEAREST)."
-            },
-            "pkFactory": {
-              "type": "object",
-              "description": "A primary key factory object for generation of custom _id keys."
-            },
-            "readConcern": {
-              "type": "object",
-              "properties": {
-                "level": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/definitions/ReadConcernLevel"
-                    },
-                    {
-                      "type": "string"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "level"
-              ],
-              "description": "Specify a read concern for the collection. (only MongoDB 3.2 or higher supported)"
-            },
-            "retryWrites": {
-              "type": "boolean",
-              "description": "Should retry failed writes"
-            }
-          },
-          "description": "Mongo Database Options"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "collection",
-        "slowQueryThreshold",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "W": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "const": "majority"
-            }
-          ]
-        },
-        "ReadPreferenceLike": {
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "mode": {
-                  "$ref": "#/definitions/ReadPreferenceMode"
-                },
-                "tags": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/TagSet"
-                  }
-                },
-                "hedge": {
-                  "type": "object",
-                  "properties": {
-                    "enabled": {
-                      "type": "boolean",
-                      "description": "Explicitly enable or disable hedged reads."
-                    }
-                  }
-                },
-                "maxStalenessSeconds": {
-                  "type": "number"
-                },
-                "minWireVersion": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "mode"
-              ],
-              "description": "The **ReadPreference** class is a class that represents a MongoDB ReadPreference and is used to construct connections."
-            },
-            {
-              "$ref": "#/definitions/ReadPreferenceMode"
-            }
-          ]
-        },
-        "ReadPreferenceMode": {
-          "anyOf": [
-            {
-              "type": "string",
-              "const": "primary"
-            },
-            {
-              "type": "string",
-              "const": "primaryPreferred"
-            },
-            {
-              "type": "string",
-              "const": "secondary"
-            },
-            {
-              "type": "string",
-              "const": "secondaryPreferred"
-            },
-            {
-              "type": "string",
-              "const": "nearest"
-            },
-            {}
-          ]
-        },
-        "TagSet": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "ReadConcernLevel": {
-          "anyOf": [
-            {
-              "type": "string",
-              "const": "local"
-            },
-            {
-              "type": "string",
-              "const": "majority"
-            },
-            {
-              "type": "string",
-              "const": "linearizable"
-            },
-            {
-              "type": "string",
-              "const": "available"
-            },
-            {
-              "type": "string",
-              "const": "snapshot"
-            },
-            {}
-          ]
-        }
-      },
-      "title": "MongoStore"
+      "title": "BinaryFile"
     }
-  }
+  },
+  "behaviors": {},
+  "sourceDigest": "12f4e4000766c730e58d788fa9c00d65"
 }

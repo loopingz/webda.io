@@ -21,6 +21,8 @@ export class DebugTui {
   private logsPanel: LogsPanel;
   private activeTab = 0;
   private running = false;
+  /** Called once the TUI stopped (user quit) */
+  onStop?: () => void;
   private renderTimer?: ReturnType<typeof setInterval>;
   private lastRefresh = "";
   private wsUnsubscribe?: () => void;
@@ -261,6 +263,11 @@ export class DebugTui {
     term.fullscreen(false);
     term.clear();
 
-    term.processExit(0);
+    if (this.onStop) {
+      // The command owning the TUI stops the application, then exits
+      this.onStop();
+    } else {
+      term.processExit(0);
+    }
   }
 }

@@ -181,6 +181,8 @@ class JSONCObject extends JSONCNode {
         } else {
           self.addProperty(new JSONCProperty(new JSONCKey(prop as string), newValue));
         }
+        // Keep the snapshot target in sync so the proxy invariants hold for the traps below
+        target[prop] = newValue.toJSON();
         return true;
       },
       deleteProperty: (target, prop) => {
@@ -188,7 +190,19 @@ class JSONCObject extends JSONCNode {
         if (index !== -1) {
           self.properties.splice(index, 1);
         }
+        delete target[prop];
         return true;
+      },
+      // Enumerate the JSONC tree, not the snapshot taken when the proxy was created,
+      // so Object.keys/entries, for...in and `in` see keys written through the proxy
+      ownKeys: () => self.properties.map(p => p.key.name),
+      has: (target, prop) => self.properties.some(p => p.key.name === prop),
+      getOwnPropertyDescriptor: (target, prop) => {
+        const property = self.properties.find(p => p.key.name === prop);
+        if (!property) {
+          return undefined;
+        }
+        return { value: property.value.toProxy(), writable: true, enumerable: true, configurable: true };
       }
     });
   }

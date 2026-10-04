@@ -622,7 +622,7 @@ export function createCommandShutdown(
  *
  * @param interrupt - the interruption handler
  */
-function onInterrupt(interrupt: () => Promise<void>): void {
+export function onInterrupt(interrupt: () => Promise<void>): void {
   let interrupted = false;
   const handler = () => {
     if (interrupted) return;
@@ -631,6 +631,47 @@ function onInterrupt(interrupt: () => Promise<void>): void {
   };
   process.on("SIGINT", handler);
   process.on("SIGTERM", handler);
+}
+
+/**
+ * Run a service command until it settles, then shut down with its exit code
+ *
+ * A command that throws exits with code 1.
+ *
+ * @param cmdName - the command name, for logs
+ * @param execute - run the command and resolve with its exit code
+ * @param shutdown - stop Core then exit with the code
+ */
+export async function settleServiceCommand(
+  cmdName: string,
+  execute: () => Promise<number>,
+  shutdown: (code: number) => Promise<void>
+): Promise<void> {
+  let exitCode: number;
+  try {
+    exitCode = await execute();
+  } catch (err) {
+    useLog("ERROR", `Command '${cmdName}' failed`, err);
+    exitCode = 1;
+  }
+  await shutdown(exitCode);
+}
+
+/**
+ * Log the outcome of a service command started without waiting for it (watch mode)
+ *
+ * @param cmdName - the command name, for logs
+ * @param execution - the running command, resolving with its exit code
+ */
+export function reportServiceCommand(cmdName: string, execution: Promise<number>): void {
+  execution.then(
+    exitCode => {
+      if (exitCode !== 0) {
+        useLog("ERROR", `Command '${cmdName}' exited with code ${exitCode}`);
+      }
+    },
+    err => useLog("ERROR", `Command '${cmdName}' failed`, err)
+  );
 }
 
 /**
@@ -663,14 +704,7 @@ async function runWithWatch(
     core = new Core(app);
     await bootCoreForCommand(core, cmdName, cmdInfo);
     // Long-running commands (serve, worker) stay pending until a restart stops Core: do not wait for them
-    executeServiceCommand(cmdName, cmdInfo, args, core.getServices(), serviceFilter).then(
-      exitCode => {
-        if (exitCode !== 0) {
-          useLog("ERROR", `Command '${cmdName}' exited with code ${exitCode}`);
-        }
-      },
-      err => useLog("ERROR", `Command '${cmdName}' failed`, err)
-    );
+    reportServiceCommand(cmdName, executeServiceCommand(cmdName, cmdInfo, args, core.getServices(), serviceFilter));
   };
 
   const restart = async () => {
@@ -912,20 +946,18 @@ if (isMain) {
           await bootCoreForCommand(core, matchedCommand.name, cmdInfo);
 
           // Long-running commands (serve, worker) only settle once stopped or interrupted
-          let exitCode: number;
-          try {
-            exitCode = await executeServiceCommand(
-              matchedCommand.name,
-              cmdInfo,
-              matchedCommand.args,
-              core.getServices(),
-              serviceFilter
-            );
-          } catch (err) {
-            useLog("ERROR", `Command '${matchedCommand.name}' failed`, err);
-            exitCode = 1;
-          }
-          await shutdown(exitCode);
+          await settleServiceCommand(
+            matchedCommand.name,
+            () =>
+              executeServiceCommand(
+                matchedCommand.name,
+                cmdInfo,
+                matchedCommand.args,
+                core.getServices(),
+                serviceFilter
+              ),
+            shutdown
+          );
         }
       }
     } catch (err) {

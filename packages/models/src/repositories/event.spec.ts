@@ -39,7 +39,11 @@ class EventRepositoryTest extends RepositoryTest {
       Query: 18
     },
     iterate: {},
-    uuidModel: {}
+    uuidModel: {},
+    createWithoutPrimaryKey: {
+      Create: 3,
+      Created: 3
+    }
   };
 
   getRepository<T extends StorableClass>(model: T, keys: string[]): Repository<T> {
@@ -104,6 +108,19 @@ class EventClearTest {
     // Listener should be gone
     await eventRepo.create({ uuid: "test2", name: "test2", age: 2, collection: [] } as any);
     assert.strictEqual(count, 1); // unchanged - listener was removed
+  }
+
+  @test
+  async createEventsUseGeneratedPrimaryKey() {
+    const repo = new EventRepository(SubClassModel, ["uuid"], new MemoryRepository(SubClassModel, ["uuid"]));
+    const ids: Record<string, any> = {};
+    repo.on("Create" as any, (evt: any) => (ids.Create = evt.object_id));
+    repo.on("Created" as any, (evt: any) => (ids.Created = evt.object_id));
+    const item = await repo.create({ name: "n", age: 1, collection: [] } as any);
+    assert.ok(item.uuid);
+    assert.strictEqual(ids.Create, item.uuid);
+    assert.strictEqual(ids.Created, item.uuid);
+    assert.strictEqual((await repo.get(item.uuid)).name, "n");
   }
 
   @test

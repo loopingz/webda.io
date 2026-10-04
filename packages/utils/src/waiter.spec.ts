@@ -157,6 +157,40 @@ class WaiterTest {
   }
 
   @test
+  async derivedPromisesAreNotCancelable() {
+    // Awaiting or chaining must not register extra promises that cancelAll() would reject unobserved
+    const promise = new CancelablePromise(
+      () => {
+        // never settles
+      },
+      async () => {}
+    );
+    const derived = promise.then(() => "done");
+    assert.ok(!(derived instanceof CancelablePromise));
+    assert.strictEqual(CancelablePromise.promises.size, 1);
+    const unhandled = [];
+    const listener = err => unhandled.push(err);
+    process.on("unhandledRejection", listener);
+    try {
+      const awaited = (async () => {
+        try {
+          await promise;
+        } catch (err) {
+          return err;
+        }
+      })();
+      await CancelablePromise.cancelAll();
+      assert.strictEqual(await awaited, "Cancelled");
+      await derived.catch(() => {});
+      await new Promise(resolve => setTimeout(resolve, 10));
+      assert.deepStrictEqual(unhandled, []);
+      assert.strictEqual(CancelablePromise.promises.size, 0);
+    } finally {
+      process.off("unhandledRejection", listener);
+    }
+  }
+
+  @test
   async asyncExecutorRejectBeforeAwait() {
     // An async executor rejecting before its first await used to leak a
     // "Must call super constructor" unhandled rejection

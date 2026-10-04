@@ -70,7 +70,7 @@ jobs:
 
       - uses: "google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db" # v3.0.1
         with:
-          install_components: "cloud-firestore-emulator,pubsub-emulator"
+          install_components: "beta,cloud-firestore-emulator,pubsub-emulator"
 
       - name: Configure sysctl limits
         run: |
@@ -81,8 +81,16 @@ jobs:
 
       - name: "Start GCP emulators"
         run: |
-          gcloud --quiet beta emulators pubsub start --host-port=127.0.0.1:8085 &
-          gcloud --quiet alpha emulators firestore start --host-port=127.0.0.1:8289 &
+          gcloud --quiet beta emulators pubsub start --host-port=127.0.0.1:8085 > /tmp/pubsub-emulator.log 2>&1 &
+          gcloud --quiet emulators firestore start --host-port=127.0.0.1:8289 > /tmp/firestore-emulator.log 2>&1 &
+          for port in 8085 8289; do
+            for i in $(seq 1 60); do
+              curl -s -o /dev/null "http://127.0.0.1:$port" && break
+              sleep 2
+            done
+            curl -s -o /dev/null "http://127.0.0.1:$port" || { echo "Emulator on port $port did not start"; cat /tmp/pubsub-emulator.log /tmp/firestore-emulator.log; exit 1; }
+          done
+          echo "GCP emulators are up"
 
       - name: Runs Elasticsearch
         uses: elastic/elastic-github-actions/elasticsearch@98431b45a60cbb6ace481778827bc8e11f12fd65
@@ -118,6 +126,10 @@ jobs:
           PUBSUB_EMULATOR_HOST: 127.0.0.1:8085
           FIRESTORE_EMULATOR_HOST: 127.0.0.1:8289
           GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/webda.io/webda.io/packages/gcp/webda-test.json
+
+      - name: Show GCP emulator logs
+        if: failure()
+        run: cat /tmp/pubsub-emulator.log /tmp/firestore-emulator.log || true
 
       - name: Check for circular dependencies
         run: pnpm run deps:graph

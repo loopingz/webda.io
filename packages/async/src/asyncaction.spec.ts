@@ -62,7 +62,7 @@ class AsyncActionTest extends AsyncTest {
   @test
   async getHookUrl() {
     const action = new AsyncAction({ uuid: "hook" });
-    assert.strictEqual(action.getHookUrl(), `http://localhost:18080${useRouter().getModelUrl(action)}/hook`);
+    assert.strictEqual(action.getHookUrl(), `http://localhost:18080${useRouter().getModelUrl(action)}/hook/status`);
   }
 
   @test

@@ -3,11 +3,14 @@ import {
   HttpContext,
   OperationContext,
   Queue,
+  runWithContext,
   Service,
   ServiceParameters,
   useApplication,
   useCore,
   useDynamicService,
+  useRouter,
+  WebContext,
   WebdaError
 } from "@webda/core";
 import { CancelablePromise } from "@webda/utils";
@@ -217,6 +220,30 @@ class AsyncJobServiceTest extends AsyncTest {
     // Try to launch an existing action
     const action = await AsyncAction.create(<any>{ uuid: "existing" });
     await service.launchAction(action);
+  }
+
+  @test
+  async hookUrlReachesStatusHook() {
+    const service = this.getValidService();
+    this.registerService(service);
+    service.getParameters().onlyHttpHook = true;
+    const action = await AsyncAction.create(<any>{ uuid: "hooked", __secretKey: "secret", status: "STARTING" });
+    const jobInfo = service.getJobInfo(action);
+    const hook = new URL(jobInfo.JOB_HOOK);
+    assert.strictEqual(`${hook.protocol}//${hook.host}`, "http://localhost:18080");
+    // POST the status report exactly as a remote runner would
+    const httpContext = new HttpContext(hook.hostname, "POST", hook.pathname, "http", 80, {
+      ...service.getHeaders(jobInfo),
+      "content-type": "application/json"
+    });
+    httpContext.setBody(JSON.stringify({ status: "RUNNING", logs: ["from runner"] }));
+    const context = new WebContext(httpContext);
+    await runWithContext(context, () => useRouter().execute(context));
+    assert.notStrictEqual(context.statusCode, 404, `${hook.pathname} is not a route`);
+    assert.notStrictEqual(context.statusCode, 403, `${hook.pathname} is refused by the request filters`);
+    const updated = await AsyncAction.ref("hooked").get();
+    assert.strictEqual(updated.status, "RUNNING");
+    assert.deepStrictEqual(updated.logs, ["from runner"]);
   }
 
   @test

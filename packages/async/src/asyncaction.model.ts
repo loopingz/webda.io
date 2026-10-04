@@ -164,11 +164,14 @@ export default class AsyncAction extends CoreModel {
   }
 
   /**
-   * Return the hook url if empty fallback to the service url
-   * @returns the absolute url of this action
+   * Return the absolute url of this action status route ({uuid}/status)
+   *
+   * Remote runners report to AsyncJobService.getHookUrl() instead, as this route
+   * still has to be authorized by the application request filters
+   * @returns the absolute url of the status action
    */
   public getHookUrl(): string {
-    return `${useParameters().apiUrl ?? ""}${useRouter().getModelUrl(this)}/${this.uuid}`;
+    return `${useParameters().apiUrl ?? ""}${useRouter().getModelUrl(this)}/${this.uuid}/status`;
   }
 
   /**

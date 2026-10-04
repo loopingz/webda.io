@@ -16,6 +16,7 @@ import {
   useCore,
   useDynamicService,
   useModel,
+  useParameters,
   validateSchema,
   ValidationError,
   WebContext,
@@ -367,6 +368,17 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   }
 
   /**
+   * Absolute url of the status hook remote runners POST their reports to
+   *
+   * It is this service status route: its request filter lets the job headers through
+   * and the HMAC is then verified by the action
+   * @returns the hook url
+   */
+  getHookUrl(): string {
+    return `${useParameters().apiUrl ?? ""}${this.parameters.url}/status`;
+  }
+
+  /**
    * Get the job info
    * @param action - the action
    * @returns the job information
@@ -375,7 +387,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     return {
       JOB_SECRET_KEY: action.__secretKey,
       JOB_ID: action.uuid,
-      JOB_HOOK: this.parameters.onlyHttpHook || !action.isInternal() ? action.getHookUrl() : "store",
+      JOB_HOOK: this.parameters.onlyHttpHook || !action.isInternal() ? this.getHookUrl() : "store",
       JOB_ORCHESTRATOR: this.getName()
     };
   }

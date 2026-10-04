@@ -13,6 +13,7 @@ import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { AddressInfo, Socket } from "node:net";
 import { createChecker } from "is-in-subnet";
 import { useLog } from "@webda/workout";
+import { CancelablePromise } from "@webda/utils";
 import type { JSONed } from "@webda/models";
 import { Writable } from "node:stream";
 import { useRouter } from "../rest/hooks.js";
@@ -161,6 +162,10 @@ export class HttpServer<
     }
   ];
   server: Server | Http2SecureServer | Http2Server;
+  /**
+   * Resolvers of the pending serve() promises, settled when the service stops
+   */
+  protected serving: Set<() => void> = new Set();
   /** In TLS mode, the server answering plain HTTP with a redirect */
   protected redirectServer?: Server;
   protected subnetChecker: (address: string) => boolean;
@@ -313,12 +318,37 @@ export class HttpServer<
   }
 
   /**
+   * Serve HTTP until the service stops
+   *
+   * The returned promise stays pending while the server runs: it resolves when the
+   * service stops, and cancelling it closes the server.
+   * Use {@link start} to only wait for the server to listen.
+   *
+   * @param bind - the bind address
+   * @param port - the port number
+   * @returns a promise settled once the server is stopped
+   */
+  @Command("serve", { description: "Start the HTTP server", requires: ["router", "rest-domain"] })
+  serve(bind?: string, port?: number): CancelablePromise<void> {
+    return new CancelablePromise<void>(
+      (resolve, reject) => {
+        this.start(bind, port).then(() => {
+          this.serving.add(resolve);
+        }, reject);
+      },
+      async () => {
+        await this.closeServer();
+      }
+    );
+  }
+
+  /**
    * Start the HTTP server
    * @param bind - the bind address
    * @param port - the port number
+   * @returns a promise resolved once the server listens
    */
-  @Command("serve", { description: "Start the HTTP server", requires: ["router", "rest-domain"] })
-  async serve(bind?: string, port?: number) {
+  async start(bind?: string, port?: number): Promise<void> {
     this.parameters.with(params => {
       // `??`, not `||`: port 0 asks the OS for a free port
       const listenPort = port ?? params.port ?? 18080;
@@ -409,6 +439,42 @@ export class HttpServer<
         params.trustedProxies.map(n => (n.indexOf("/") < 0 ? `${n.trim()}/32` : n.trim()))
       );
     });
+
+    const server = this.server;
+    if (!server.listening) {
+      await new Promise<void>((resolve, reject) => {
+        const onError = (err: Error) => {
+          server.off("listening", onListening);
+          reject(err);
+        };
+        const onListening = () => {
+          server.off("error", onError);
+          resolve();
+        };
+        server.once("listening", onListening);
+        server.once("error", onError);
+      });
+    }
+  }
+
+  /**
+   * Close the HTTP server, dropping its open connections
+   * @returns a promise resolved once the server is closed
+   */
+  protected async closeServer(): Promise<void> {
+    // Its connections never reach `server`: close them too (clients keep them alive)
+    this.redirectServer?.closeAllConnections();
+    const server = this.server as Server;
+    if (!server?.listening) {
+      return;
+    }
+    await new Promise<void>(resolve => {
+      server.close(() => resolve());
+      // Keep-alive connections would hold close() until they time out
+      server.closeAllConnections?.();
+      // HTTP/2 sessions have no closeAllConnections: do not wait for them forever
+      setTimeout(resolve, 1000).unref();
+    });
   }
 
   /**
@@ -468,9 +534,12 @@ export class HttpServer<
   /** @override */
   async stop(): Promise<void> {
     await super.stop();
-    // Its connections never reach `server`: close them too (clients keep them alive)
-    this.redirectServer?.closeAllConnections();
-    this.server?.close();
+    await this.closeServer();
+    // Settle the pending serve() promises
+    for (const resolve of this.serving) {
+      resolve();
+    }
+    this.serving.clear();
   }
 
   /**

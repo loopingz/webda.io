@@ -22,6 +22,7 @@ import { Context } from "../contexts/icontext.js";
 import { Service } from "./service.js";
 import * as WebdaError from "../errors/errors.js";
 import { useRouter } from "../rest/hooks.js";
+import { CancelablePromise } from "@webda/utils";
 
 /**
  * Minimal SessionManager for testing that returns a plain session
@@ -123,7 +124,7 @@ class HttpServerTest extends WebdaApplicationTest {
    * Start the server and return the assigned port
    */
   async startServer(): Promise<number> {
-    await this.server.serve("127.0.0.1", 0);
+    await this.server.start("127.0.0.1", 0);
     // Wait briefly for the server to be listening
     await new Promise<void>(resolve => {
       const check = () => {
@@ -140,6 +141,39 @@ class HttpServerTest extends WebdaApplicationTest {
       this.port = addr.port;
     }
     return this.port;
+  }
+
+  @test
+  async startResolvesOnceListening() {
+    await this.server.start("127.0.0.1", 0);
+    assert.strictEqual(this.server.server?.listening, true);
+  }
+
+  @test
+  async serveStaysPendingUntilStopped() {
+    const serving = this.server.serve("127.0.0.1", 0);
+    assert.ok(serving instanceof CancelablePromise);
+    let settled = false;
+    serving.then(() => (settled = true));
+    while (!this.server.server?.listening) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.strictEqual(settled, false, "serve() must not settle while the server runs");
+    await this.server.stop();
+    await serving;
+    assert.strictEqual(settled, true);
+  }
+
+  @test
+  async serveClosesTheServerOnCancel() {
+    const serving = this.server.serve("127.0.0.1", 0);
+    while (!this.server.server?.listening) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    await serving.cancel();
+    await assert.rejects(() => serving, /Cancelled/);
+    assert.strictEqual(this.server.server?.listening, false);
   }
 
   @test
@@ -171,7 +205,7 @@ class HttpServerTest extends WebdaApplicationTest {
     this.registerService(tlsServer);
     (tlsServer as any).subnetChecker = createChecker(["127.0.0.1/32", "::1/32"]);
     try {
-      await tlsServer.serve("127.0.0.1", 0);
+      await tlsServer.start("127.0.0.1", 0);
       let address: any;
       while (!(address = tlsServer.address())) {
         await new Promise(resolve => setTimeout(resolve, 10));
@@ -785,7 +819,7 @@ class HttpServerTest extends WebdaApplicationTest {
     );
     this.registerService(this.server);
     (this.server as any).subnetChecker = createChecker(["127.0.0.1/32", "::1/32"]);
-    await this.server.serve("127.0.0.1", 0);
+    await this.server.start("127.0.0.1", 0);
     await new Promise<void>(resolve => {
       const check = () => (this.server.server?.listening ? resolve() : setTimeout(check, 10));
       check();
@@ -846,7 +880,7 @@ class HttpServerTest extends WebdaApplicationTest {
     this.registerService(this.server);
     (this.server as any).subnetChecker = createChecker(["127.0.0.1/32", "::1/32"]);
     try {
-      await this.server.serve("127.0.0.1", 0);
+      await this.server.start("127.0.0.1", 0);
       await new Promise<void>(resolve => {
         const check = () => (this.server.server?.listening ? resolve() : setTimeout(check, 10));
         check();

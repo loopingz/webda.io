@@ -543,7 +543,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   async execute(ctx: WebContext<any, any, any>) {
     const httpContext = ctx.getHttpContext();
     const method = httpContext.getMethod();
-    const url = httpContext.getUrl();
+    // Routes are relative to the prefix (API Gateway stage, custom domain base path…)
+    const url = httpContext.getRelativeUri();
 
     // Handle CORS preflight
     if (method === "OPTIONS") {

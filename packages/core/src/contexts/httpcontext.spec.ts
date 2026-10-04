@@ -50,6 +50,33 @@ class HttpContextTest {
   }
 
   @test
+  prefix() {
+    const ctx = new HttpContext("test.webda.io", "GET", "/prod/test/plop?x=1", "https", 443);
+    assert.strictEqual(ctx.getRelativeUri(), "/prod/test/plop?x=1");
+    ctx.setPrefix("/prod/");
+    assert.strictEqual(ctx.prefix, "/prod");
+    assert.strictEqual(ctx.getUrl(), "/prod/test/plop?x=1");
+    assert.strictEqual(ctx.getRelativeUri(), "/test/plop?x=1");
+    // Absolute url of the request keeps the prefix
+    assert.strictEqual(ctx.getAbsoluteUrl(), "https://test.webda.io/prod/test/plop?x=1");
+    assert.strictEqual(ctx.getHref(), "https://test.webda.io/prod/test/plop?x=1");
+    // Application relative urls get the prefix so they resolve behind the gateway
+    assert.strictEqual(ctx.getAbsoluteUrl("/auth/callback"), "https://test.webda.io/prod/auth/callback");
+    assert.strictEqual(ctx.getAbsoluteUrl("auth"), "https://test.webda.io/prod/auth");
+    assert.strictEqual(ctx.getAbsoluteUrl("http://other.io/x"), "http://other.io/x");
+    // Prefix only matches on a path boundary
+    const other = new HttpContext("test.webda.io", "GET", "/production/test", "https", 443);
+    other.setPrefix("/prod");
+    assert.strictEqual(other.getRelativeUri(), "/production/test");
+    const root = new HttpContext("test.webda.io", "GET", "/prod", "https", 443);
+    root.setPrefix("/prod");
+    assert.strictEqual(root.getRelativeUri(), "/");
+    const rootQuery = new HttpContext("test.webda.io", "GET", "/prod?x=1", "https", 443);
+    rootQuery.setPrefix("/prod");
+    assert.strictEqual(rootQuery.getRelativeUri(), "/?x=1");
+  }
+
+  @test
   async stream() {
     const ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {
       "X-Test": "weBda"

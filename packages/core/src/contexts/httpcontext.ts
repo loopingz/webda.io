@@ -146,10 +146,22 @@ export class HttpContext {
 
   /**
    * Return Uri without prefix
+   *
+   * The prefix is only removed on a path boundary, so prefix `/prod` does not strip `/production`
    * @returns the result string
    */
   getRelativeUri(): string {
-    return this.uri.substring(this.prefix.length);
+    if (!this.prefix || !this.uri.startsWith(this.prefix)) {
+      return this.uri;
+    }
+    const relative = this.uri.substring(this.prefix.length);
+    if (relative === "" || relative.startsWith("?")) {
+      return "/" + relative;
+    }
+    if (!relative.startsWith("/")) {
+      return this.uri;
+    }
+    return relative;
   }
 
   /**
@@ -375,16 +387,23 @@ export class HttpContext {
   }
 
   /**
+   * Return the absolute url of the request, or of an application uri
    *
-   * @param uri to return absolute url from
+   * An application uri is relative to the prefix, so the prefix is added to it
+   *
+   * @param uri to return absolute url from, the request uri by default
    * @returns the result string
    */
-  getAbsoluteUrl(uri: string = this.uri): string {
-    if (uri.match(/^\w{1,10}:\/\//)) {
+  getAbsoluteUrl(uri?: string): string {
+    if (uri === undefined) {
+      uri = this.uri;
+    } else if (uri.match(/^\w{1,10}:\/\//)) {
       return uri;
-    }
-    if (!uri.startsWith("/")) {
-      uri = "/" + uri;
+    } else {
+      if (!uri.startsWith("/")) {
+        uri = "/" + uri;
+      }
+      uri = this.prefix + uri;
     }
     if (this.port) {
       return `${this.protocol}//${this.hostname}:${this.port}${uri}`;

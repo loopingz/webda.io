@@ -6,7 +6,6 @@ import {
   Route,
   Service,
   ServiceParameters,
-  useRouter,
   WebContext
 } from "@webda/core";
 import { MyInterface } from "./compiler.service.js";
@@ -44,15 +43,6 @@ export class CustomParameters extends ServiceParameters {
 /** Demo service exposing routes and operations, also acting as a request filter. */
 @Bean
 export class CustomService<T extends CustomParameters = CustomParameters> extends Service<T> implements RequestFilter {
-  /**
-   * @override
-   */
-  resolve(): this {
-    super.resolve();
-    useRouter().registerRequestFilter(this);
-    return this;
-  }
-
   /**
    * Accept all incoming requests (request filter implementation).
    *

@@ -2,6 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { ensureCommandServices, resolveCapabilities } from "../bin/cli.js";
 import { collectServiceCommands, executeServiceCommand } from "./servicecommands.js";
+import { CancelablePromise } from "@webda/utils";
 
 @suite
 class CollectServiceCommandsTest {
@@ -435,6 +436,60 @@ class ExecuteServiceCommandTest {
     const result = await executeServiceCommand("test", cmdInfo as any, { port: 1234 }, services);
     assert.strictEqual(result, 0);
     assert.deepStrictEqual(received, [undefined, 1234]);
+  }
+
+  @test
+  async cancelledLongRunningCommandReturns0() {
+    // A long-running command (serve, worker) settles when cancelled: that is a clean stop
+    const services = {
+      "MyApp/A": { doIt: () => new CancelablePromise(() => {}, async () => {}) }
+    } as any;
+    const cmdInfo = {
+      description: "Test",
+      services: [{ name: "MyApp/A", method: "doIt", type: "MyApp/A" }],
+      args: {}
+    };
+    const result = executeServiceCommand("test", cmdInfo, {}, services);
+    await new Promise(resolve => setTimeout(resolve, 10));
+    await CancelablePromise.cancelAll();
+    assert.strictEqual(await result, 0);
+  }
+
+  @test
+  async longRunningInstancesRunConcurrently() {
+    // Two HttpServer instances: the second must start while the first is still serving
+    const started: string[] = [];
+    class Server {
+      constructor(public name: string) {}
+      serve() {
+        started.push(this.name);
+        return new CancelablePromise(() => {}, async () => {});
+      }
+    }
+    const services = { a: new Server("a"), b: new Server("b") } as any;
+    const cmdInfo = {
+      description: "Test",
+      services: [{ name: "MyApp/Server", method: "serve", type: "MyApp/Server" }],
+      args: {}
+    };
+    const result = executeServiceCommand("test", cmdInfo, {}, services);
+    await new Promise(resolve => setTimeout(resolve, 10));
+    assert.deepStrictEqual(started.sort(), ["a", "b"]);
+    await CancelablePromise.cancelAll();
+    assert.strictEqual(await result, 0);
+  }
+
+  @test
+  async failingLongRunningCommandRejects() {
+    const services = {
+      "MyApp/A": { doIt: () => new CancelablePromise((_resolve, reject) => setTimeout(() => reject(new Error("BOOM")), 5)) }
+    } as any;
+    const cmdInfo = {
+      description: "Test",
+      services: [{ name: "MyApp/A", method: "doIt", type: "MyApp/A" }],
+      args: {}
+    };
+    await assert.rejects(() => executeServiceCommand("test", cmdInfo, {}, services), /BOOM/);
   }
 
   @test

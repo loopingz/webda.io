@@ -155,6 +155,9 @@ export async function executeServiceCommand(
 
   // Count executed handlers: a command where every provider was skipped did nothing
   let executed = 0;
+  // Long-running handlers (serve, worker) return a cancelable promise that stays
+  // pending while they run: start them all, then wait for every one to settle.
+  const running: PromiseLike<any>[] = [];
   // Execute each matching service handler. A single target type can map to
   // multiple configured instances (e.g. two HttpServer services on different
   // ports); dispatch to every instance whose constructor matches the type.
@@ -180,7 +183,12 @@ export async function executeServiceCommand(
         useLog("ERROR", `Method '${svc.method}' not found on service '${instanceName}'`);
         return 1;
       }
-      await service[svc.method](...commandArgs);
+      const result = service[svc.method](...commandArgs);
+      if (isCancelable(result)) {
+        running.push(result);
+      } else {
+        await result;
+      }
       executed++;
     }
   }
@@ -189,5 +197,26 @@ export async function executeServiceCommand(
     useLog("ERROR", `No service instance found to run command '${cmdName}'`);
     return 1;
   }
+  // Cancelling a long-running command (SIGINT, SIGTERM) is a clean stop
+  await Promise.all(
+    running.map(p =>
+      Promise.resolve(p).catch(err => {
+        if (err !== "Cancelled") {
+          throw err;
+        }
+      })
+    )
+  );
   return 0;
+}
+
+/**
+ * Whether a command handler returned a long-running cancelable promise
+ * (CancelablePromise or CancelableLoopPromise)
+ *
+ * @param result - the handler result
+ * @returns true if the result can be cancelled
+ */
+function isCancelable(result: any): result is PromiseLike<any> & { cancel: () => Promise<void> } {
+  return typeof result?.then === "function" && typeof result?.cancel === "function";
 }

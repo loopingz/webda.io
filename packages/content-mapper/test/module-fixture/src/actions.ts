@@ -17,3 +17,52 @@ export class Jobs {
   @Action({ name: "lookup" })
   static find() {}
 }
+
+const dynamicName = "dynamic";
+
+/**
+ * A decorator used without a call
+ * @param _args - ignored
+ * @returns nothing
+ */
+function Bare(..._args: any[]): any {}
+
+/**
+ * Another decorator taking a `name` option
+ * @returns the decorator
+ */
+function Other(..._args: any[]): any {
+  return () => {};
+}
+
+// Every shape the `name` option reader has to cope with
+export class ActionNames {
+  @Action({ name: "named" })
+  named() {}
+
+  @Operation({ name: "viaOperation" })
+  operation() {}
+
+  @Action()
+  noArgument() {}
+
+  @Action("text")
+  notAnObject() {}
+
+  @Action({ description: "no name" })
+  noName() {}
+
+  @Action({ name: dynamicName })
+  computedName() {}
+
+  @Action({ name: "" })
+  emptyName() {}
+
+  @Other({ name: "ignored" })
+  @Bare
+  otherDecorators() {}
+
+  undecorated() {}
+
+  async modifierOnly() {}
+}

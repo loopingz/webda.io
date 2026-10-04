@@ -265,7 +265,7 @@ function methodName(method: MethodDeclaration): string | undefined {
  * @param method - the method declaration
  * @returns the name, or undefined when the decorator sets none
  */
-function actionNameOption(method: MethodDeclaration): string | undefined {
+export function actionNameOption(method: MethodDeclaration): string | undefined {
   for (const modifier of method.modifiers ?? []) {
     if (modifier.kind !== SyntaxKind.Decorator) continue;
     const expression = (modifier as { expression?: Node }).expression;

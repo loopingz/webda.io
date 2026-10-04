@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { ClassDeclaration } from "typescript/unstable/ast";
+import type { ClassDeclaration, MethodDeclaration } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
 import { openSession, type Session } from "./context.ts";
 import {
@@ -14,7 +14,7 @@ import {
   getPlural,
   sortObject
 } from "./module.ts";
-import { namespaceOf } from "./schema/project.ts";
+import { actionNameOption, namespaceOf } from "./schema/project.ts";
 import { handle } from "./schema/worker.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -116,6 +116,27 @@ describe("module metadata on a fixture", () => {
       run: {},
       same: {},
       lookup: { global: true, handler: "find" }
+    });
+  });
+
+  it("reads the @Action/@Operation name option only when it is a non-empty string literal", () => {
+    const cls = classOf(session, "actions.ts", "ActionNames");
+    const names = Object.fromEntries(
+      cls.members
+        .filter((m): m is MethodDeclaration => is.isMethodDeclaration(m))
+        .map(m => [(m.name as { text: string }).text, actionNameOption(m)])
+    );
+    expect(names).toEqual({
+      named: "named",
+      operation: "viaOperation",
+      noArgument: undefined,
+      notAnObject: undefined,
+      noName: undefined,
+      computedName: undefined,
+      emptyName: undefined,
+      otherDecorators: undefined,
+      undecorated: undefined,
+      modifierOnly: undefined
     });
   });
 

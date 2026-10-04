@@ -1,11 +1,18 @@
 /// <reference types="vitest" />
 
 import { defineConfig } from "vite";
+import { resolve } from "path";
 
 export default defineConfig({
   clearScreen: false,
+  resolve: {
+    alias: {
+      "@webda/core/lib/test": resolve(__dirname, "../core/src/test/index.ts")
+    }
+  },
   test: {
     allowOnly: true,
+    testTimeout: 20000,
     coverage: {
       enabled: true,
       provider: "v8",

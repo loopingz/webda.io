@@ -6,5 +6,4 @@ packages:
   # Exclude packages that are not yet ready
   - "!packages/gcp"
   - "!packages/elasticsearch"
-  - "!packages/mongodb"
   - "!packages/aws"

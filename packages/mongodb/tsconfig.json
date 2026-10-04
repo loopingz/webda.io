@@ -5,7 +5,7 @@
       "es2019",
       "DOM"
     ],
-    "module": "preserve",
+    "module": "nodenext",
     "outDir": "./lib",
     "rootDir": "./src",
     "strict": false,
@@ -13,7 +13,7 @@
     "sourceMap": true,
     "experimentalDecorators": false,
     "esModuleInterop": true,
-    "moduleResolution": "bundler",
+    "moduleResolution": "nodenext",
     "skipLibCheck": true,
     "declarationMap": true,
     "types": [
@@ -24,7 +24,8 @@
     "src/**/*"
   ],
   "exclude": [
-    "**/node_modules"
+    "**/node_modules",
+    "src/**/*.spec.ts"
   ],
   "ts-node": {
     "transpileOnly": true,

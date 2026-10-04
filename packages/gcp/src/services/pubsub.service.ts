@@ -1,7 +1,10 @@
 import { CreateSubscriptionOptions, Message, PubSub, Subscription } from "@google-cloud/pubsub";
-import { Core, getMachineId, PubSubService, ServiceParameters } from "@webda/core";
-import { CancelablePromise } from "@webda/utils";
+import { getMachineId, PubSubService, ServiceParameters } from "@webda/core";
+import { CancelablePromise, JSONUtils } from "@webda/utils";
 
+/**
+ * Configuration for {@link GCPPubSubService}
+ */
 export class GCPPubSubParameters extends ServiceParameters {
   /**
    * Topic to use on GCP
@@ -13,7 +16,7 @@ export class GCPPubSubParameters extends ServiceParameters {
   subscriptionOptions?: CreateSubscriptionOptions;
 }
 
-/***
+/**
  * Implement GCP Pub/Sub
  *
  * Can also act as queue
@@ -28,6 +31,7 @@ export default class GCPPubSubService<
 
   /**
    * @override
+   * @returns this service
    */
   async init(): Promise<this> {
     await super.init();
@@ -36,26 +40,51 @@ export default class GCPPubSubService<
   }
 
   /**
+   * Close the Pub/Sub client
    * @override
+   */
+  async stop(): Promise<void> {
+    if (this.pubsub) {
+      const pubsub = this.pubsub;
+      this.pubsub = undefined;
+      await pubsub.close().catch(() => {
+        /* already closed */
+      });
+    }
+    await super.stop();
+  }
+
+  /**
+   * @override
+   * @param event - the event to publish
    */
   async sendMessage(event: T): Promise<void> {
     this.metrics.messages_sent.inc();
-    await this.pubsub.topic(this.parameters.topic).publishMessage({ data: Buffer.from(JSON.stringify(event)) });
+    await this.pubsub.topic(this.parameters.topic).publishMessage({ data: Buffer.from(JSONUtils.stringify(event)) });
   }
 
-  async size() {
+  /**
+   * The size is not available on a GCP subscription
+   * @returns 0
+   */
+  async size(): Promise<number> {
     return 0;
   }
 
   /**
    * Get the subscription name
-   * @returns
+   * @returns the subscription name, unique per machine
    */
   getSubscriptionName(): string {
     return `${this.getName()}-${getMachineId()}`;
   }
+
   /**
    * @override
+   * @param callback - invoked with each event received
+   * @param eventPrototype - optional class to rehydrate JSON into
+   * @param onBind - invoked once the subscription is bound
+   * @returns a cancelable subscription handle
    */
   consume(
     callback: (event: T) => Promise<void>,
@@ -79,6 +108,8 @@ export default class GCPPubSubService<
     };
     return new CancelablePromise<void>(
       async (_resolve, reject) => {
+        // Defer to the next tick: CancelablePromise cannot be rejected synchronously from its executor
+        await Promise.resolve();
         try {
           subscription = this.pubsub.subscription(subscriptionName);
           const [exists] = await subscription.exists();
@@ -94,12 +125,10 @@ export default class GCPPubSubService<
 
           // Receive callbacks for errors on the subscription
           subscription.on("error", error => {
-            console.error("Received error:", error);
+            this.log("ERROR", `${this.getName()} subscription error`, error);
             reject(error);
           });
-          if (onBind) {
-            onBind(subscription);
-          }
+          onBind?.(subscription);
         } catch (err) {
           this.log("ERROR", `${this.getName()} consume error`, err);
           reject(err);

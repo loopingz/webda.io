@@ -1,6 +1,5 @@
 import { KeyManagementServiceClient } from "@google-cloud/kms";
 import { CryptoService, Service, ServiceParameters } from "@webda/core";
-import { DeepPartial } from "@webda/tsc-esm";
 
 /**
  * Encrypter for GCP KMS
@@ -34,12 +33,12 @@ const encrypter = {
       throw new Error("Invalid KMS encryption");
     }
     const client = new KeyManagementServiceClient();
-    return <string>(
-      await client.decrypt({
-        name: `projects/${infos[0]}/locations/${infos[1]}/keyRings/${infos[2]}/cryptoKeys/${infos[3]}`,
-        ciphertext: Buffer.from(data.substring(data.indexOf(":") + 1), "base64")
-      })
-    )[0].plaintext;
+    const [result] = await client.decrypt({
+      name: `projects/${infos[0]}/locations/${infos[1]}/keyRings/${infos[2]}/cryptoKeys/${infos[3]}`,
+      ciphertext: Buffer.from(data.substring(data.indexOf(":") + 1), "base64")
+    });
+    // plaintext is a Uint8Array (or a string): always return a string
+    return Buffer.from(<any>result.plaintext).toString();
   }
 };
 
@@ -57,9 +56,16 @@ export class KMSServiceParameters extends ServiceParameters {
    * @default WEBDA_GCP_KMS_KEY env variable
    */
   defaultKey?: string;
-  default() {
-    super.default();
+
+  /**
+   * @override
+   * @param params - the input parameters
+   * @returns this
+   */
+  load(params: any = {}): this {
+    super.load(params);
     this.defaultKey ??= process.env.WEBDA_GCP_KMS_KEY;
+    return this;
   }
 }
 
@@ -68,21 +74,12 @@ export class KMSServiceParameters extends ServiceParameters {
  *
  * @WebdaModda GoogleCloudKMS
  */
-export class GCPKMSService<T extends KMSServiceParameters> extends Service<T> {
-  client: KeyManagementServiceClient;
-
-  /**
-   * @override
-   */
-  loadParameters(params: DeepPartial<T>): T {
-    return <T>new KMSServiceParameters().load(params);
-  }
-
+export class GCPKMSService<T extends KMSServiceParameters = KMSServiceParameters> extends Service<T> {
   /**
    * Encrypt a data with GCP KMS given key or defaultKey
-   * @param data
-   * @param key
-   * @returns
+   * @param data - the data to encrypt
+   * @param key - the KMS key name, defaults to `defaultKey`
+   * @returns the encrypted data prefixed with the key information
    */
   encrypt(data: string, key?: string): Promise<string> {
     return encrypter.encrypt(data, key || this.parameters.defaultKey);
@@ -90,8 +87,8 @@ export class GCPKMSService<T extends KMSServiceParameters> extends Service<T> {
 
   /**
    * Decrypt a data previously encrypted with this service
-   * @param data
-   * @returns
+   * @param data - the data returned by {@link encrypt}
+   * @returns the decrypted data
    */
   decrypt(data: string): Promise<string> {
     return encrypter.decrypt(data);

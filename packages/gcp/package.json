@@ -4,8 +4,8 @@
   "description": "Webda GCP Services implementation",
   "main": "lib/index.js",
   "scripts": {
-    "build": "webdac",
-    "build:watch": "webda build --watch",
+    "build": "webdac build",
+    "build:watch": "webdac build --watch",
     "pretest": "npm run build",
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src",
     "lint": "eslint",
@@ -41,6 +41,7 @@
     "@google-cloud/storage": "~7.19.0",
     "@webda/core": "workspace:*",
     "@webda/ql": "workspace:*",
+    "@webda/utils": "workspace:*",
     "mime-types": "^3.0.2"
   },
   "publishConfig": {
@@ -48,14 +49,14 @@
   },
   "devDependencies": {
     "@types/node": "25.5.0",
-    "@webda/async": "workspace:*",
+    "@vitest/coverage-v8": "^4.1.2",
     "@webda/compiler": "workspace:^",
     "@webda/test": "workspace:*",
     "jscodeshift": "^17.3.0",
-    "sinon": "^21.0.3",
     "skott": "^0.35.8",
-    "tsx": "^4.21.0",
-    "vite": "^6.0.0"
+    "typescript": "7.1.0-dev.20260929.1",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
   },
   "type": "module",
   "engines": {
@@ -63,8 +64,7 @@
   },
   "nx": {
     "implicitDependencies": [
-      "@webda/core",
-      "@webda/shell"
+      "@webda/core"
     ]
   }
 }

@@ -1,50 +1,1193 @@
 {
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/GoogleCloudFireStore": "lib/services/firestore:default",
-    "Webda/GoogleCloudKMS": "lib/services/kms:GCPKMSService",
-    "Webda/GoogleCloudPubSub": "lib/services/pubsub:default",
-    "Webda/GoogleCloudQueue": "lib/services/queue:default",
-    "Webda/GoogleCloudStorage": "lib/services/storage:default"
+    "Webda/GoogleCloudFireStore": {
+      "Import": "lib/services/firestore.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "FireStoreIndex": {
+            "additionalProperties": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            },
+            "description": "Definition of a FireStore index",
+            "type": "object"
+          },
+          "collections": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Per-model collection overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a collection name.\nWhen not specified, the first model uses `collection` and others use their identifier\nlowercased with \"/\" replaced by \"_\".",
+            "type": "object"
+          },
+          "modelAliases": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Model Aliases to allow easier rename of Model",
+            "type": "object"
+          }
+        },
+        "description": "Firebase parameters",
+        "properties": {
+          "collection": {
+            "description": "Collection to use",
+            "type": "string"
+          },
+          "collections": {
+            "$ref": "#/definitions/collections",
+            "description": "Per-model collection overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a collection name.\nWhen not specified, the first model uses `collection` and others use their identifier\nlowercased with \"/\" replaced by \"_\"."
+          },
+          "compoundIndexes": {
+            "description": "To allow efficient query on several fields",
+            "items": {
+              "$ref": "#/definitions/FireStoreIndex"
+            },
+            "see": "https://firebase.google.com/docs/firestore/query-data/queries",
+            "type": "array"
+          },
+          "defaultModel": {
+            "default": true,
+            "description": "When __type model not found, use the model\nIf strict is setup this parameter is not used",
+            "type": "boolean"
+          },
+          "forceModel": {
+            "default": false,
+            "description": "If set, Store will ignore the __type",
+            "type": "boolean"
+          },
+          "modelAliases": {
+            "$ref": "#/definitions/modelAliases",
+            "description": "Model Aliases to allow easier rename of Model"
+          },
+          "models": {
+            "default": [
+              "Webda/RegistryEntry"
+            ],
+            "description": "Models managed by this Store.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "noCache": {
+            "default": false,
+            "description": "Disable default memory cache",
+            "type": "boolean"
+          },
+          "slowQueryThreshold": {
+            "default": 30000,
+            "description": "Slow query threshold",
+            "type": "number"
+          },
+          "strict": {
+            "default": false,
+            "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no\nmodel extending this one",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "collection",
+          "type"
+        ],
+        "type": "object",
+        "title": "FireStore"
+      },
+      "Configuration": "lib/services/firestore.service:FireStoreParameters"
+    },
+    "Webda/GoogleCloudKMS": {
+      "Import": "lib/services/kms.service:GCPKMSService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Parameters for the KMS Service",
+        "properties": {
+          "defaultKey": {
+            "default": "WEBDA_GCP_KMS_KEY env variable",
+            "description": "Encryption key to use by default",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "GCPKMSService"
+      },
+      "Configuration": "lib/services/kms.service:KMSServiceParameters"
+    },
+    "Webda/GoogleCloudPubSub": {
+      "Import": "lib/services/pubsub.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "BackoffSettings": {
+            "additionalProperties": false,
+            "description": "Parameters to the exponential backoff algorithm for retrying.",
+            "properties": {
+              "initialRetryDelayMillis": {
+                "type": "number"
+              },
+              "initialRpcTimeoutMillis": {
+                "type": "number"
+              },
+              "maxRetries": {
+                "type": "number"
+              },
+              "maxRetryDelayMillis": {
+                "type": "number"
+              },
+              "maxRpcTimeoutMillis": {
+                "type": "number"
+              },
+              "retryDelayMultiplier": {
+                "type": "number"
+              },
+              "rpcTimeoutMultiplier": {
+                "type": "number"
+              },
+              "totalTimeoutMillis": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "initialRetryDelayMillis",
+              "maxRetryDelayMillis",
+              "retryDelayMultiplier"
+            ],
+            "type": "object"
+          },
+          "BundleOptions": {
+            "additionalProperties": false,
+            "description": "Parameter to configure bundling behavior.",
+            "properties": {
+              "delayThreshold": {
+                "type": "number"
+              },
+              "elementCountLimit": {
+                "type": "number"
+              },
+              "elementCountThreshold": {
+                "type": "number"
+              },
+              "requestByteLimit": {
+                "type": "number"
+              },
+              "requestByteThreshold": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "CallOptions": {
+            "additionalProperties": false,
+            "properties": {
+              "apiName": {
+                "type": "string"
+              },
+              "autoPaginate": {
+                "default": false,
+                "type": "boolean"
+              },
+              "bundleOptions": {
+                "$ref": "#/definitions/BundleOptions"
+              },
+              "isBundling": {
+                "default": false,
+                "type": "boolean"
+              },
+              "longrunning": {
+                "$ref": "#/definitions/BackoffSettings"
+              },
+              "maxResults": {
+                "type": "number"
+              },
+              "maxRetries": {
+                "type": "number"
+              },
+              "otherArgs": {
+                "$ref": "#/definitions/subscriptionOptions%263%24gaxOpts%24otherArgs"
+              },
+              "retry": {
+                "$ref": "#/definitions/Partial%3CRetryOptions%3E"
+              },
+              "retryRequestOptions": {
+                "$ref": "#/definitions/RetryRequestOptions"
+              },
+              "timeout": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "FlowControlOptions": {
+            "additionalProperties": false,
+            "properties": {
+              "allowExcessMessages": {
+                "default": false,
+                "type": "boolean"
+              },
+              "maxBytes": {
+                "type": "number"
+              },
+              "maxMessages": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "IAIInference": {
+            "additionalProperties": false,
+            "description": "Properties of a AIInference.",
+            "properties": {
+              "endpoint": {
+                "description": "AIInference endpoint",
+                "type": "string"
+              },
+              "serviceAccountEmail": {
+                "description": "AIInference serviceAccountEmail",
+                "type": "string"
+              },
+              "unstructuredInference": {
+                "$ref": "#/definitions/IUnstructuredInference",
+                "description": "AIInference unstructuredInference"
+              }
+            },
+            "type": "object"
+          },
+          "IAnalyticsHubSubscriptionInfo": {
+            "additionalProperties": false,
+            "description": "Properties of an AnalyticsHubSubscriptionInfo.",
+            "properties": {
+              "listing": {
+                "description": "AnalyticsHubSubscriptionInfo listing",
+                "type": "string"
+              },
+              "subscription": {
+                "description": "AnalyticsHubSubscriptionInfo subscription",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "IAvroConfig": {
+            "additionalProperties": false,
+            "description": "Properties of an AvroConfig.",
+            "properties": {
+              "useTopicSchema": {
+                "default": false,
+                "description": "AvroConfig useTopicSchema",
+                "type": "boolean"
+              },
+              "writeMetadata": {
+                "default": false,
+                "description": "AvroConfig writeMetadata",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "IBigQueryConfig": {
+            "additionalProperties": false,
+            "description": "Properties of a BigQueryConfig.",
+            "properties": {
+              "dropUnknownFields": {
+                "default": false,
+                "description": "BigQueryConfig dropUnknownFields",
+                "type": "boolean"
+              },
+              "serviceAccountEmail": {
+                "description": "BigQueryConfig serviceAccountEmail",
+                "type": "string"
+              },
+              "state": {
+                "description": "BigQueryConfig state",
+                "enum": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  "STATE_UNSPECIFIED",
+                  "ACTIVE",
+                  "PERMISSION_DENIED",
+                  "NOT_FOUND",
+                  "SCHEMA_MISMATCH",
+                  "IN_TRANSIT_LOCATION_RESTRICTION",
+                  "VERTEX_AI_LOCATION_RESTRICTION"
+                ],
+                "type": [
+                  "number",
+                  "string"
+                ]
+              },
+              "table": {
+                "description": "BigQueryConfig table",
+                "type": "string"
+              },
+              "useTableSchema": {
+                "default": false,
+                "description": "BigQueryConfig useTableSchema",
+                "type": "boolean"
+              },
+              "useTopicSchema": {
+                "default": false,
+                "description": "BigQueryConfig useTopicSchema",
+                "type": "boolean"
+              },
+              "writeMetadata": {
+                "default": false,
+                "description": "BigQueryConfig writeMetadata",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "IBigtableConfig": {
+            "additionalProperties": false,
+            "description": "Properties of a BigtableConfig.",
+            "properties": {
+              "appProfileId": {
+                "description": "BigtableConfig appProfileId",
+                "type": "string"
+              },
+              "serviceAccountEmail": {
+                "description": "BigtableConfig serviceAccountEmail",
+                "type": "string"
+              },
+              "state": {
+                "description": "BigtableConfig state",
+                "enum": [
+                  "STATE_UNSPECIFIED",
+                  "ACTIVE",
+                  "PERMISSION_DENIED",
+                  "NOT_FOUND",
+                  "SCHEMA_MISMATCH",
+                  "IN_TRANSIT_LOCATION_RESTRICTION",
+                  "VERTEX_AI_LOCATION_RESTRICTION",
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  "APP_PROFILE_MISCONFIGURED"
+                ],
+                "type": [
+                  "string",
+                  "number"
+                ]
+              },
+              "table": {
+                "description": "BigtableConfig table",
+                "type": "string"
+              },
+              "writeMetadata": {
+                "default": false,
+                "description": "BigtableConfig writeMetadata",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "ICloudStorageConfig": {
+            "additionalProperties": false,
+            "description": "Properties of a CloudStorageConfig.",
+            "properties": {
+              "avroConfig": {
+                "$ref": "#/definitions/IAvroConfig",
+                "description": "CloudStorageConfig avroConfig"
+              },
+              "bucket": {
+                "description": "CloudStorageConfig bucket",
+                "type": "string"
+              },
+              "filenameDatetimeFormat": {
+                "description": "CloudStorageConfig filenameDatetimeFormat",
+                "type": "string"
+              },
+              "filenamePrefix": {
+                "description": "CloudStorageConfig filenamePrefix",
+                "type": "string"
+              },
+              "filenameSuffix": {
+                "description": "CloudStorageConfig filenameSuffix",
+                "type": "string"
+              },
+              "maxBytes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "$ref": "#/definitions/Long"
+                  }
+                ],
+                "description": "CloudStorageConfig maxBytes"
+              },
+              "maxDuration": {
+                "$ref": "#/definitions/IDuration",
+                "description": "CloudStorageConfig maxDuration"
+              },
+              "maxMessages": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "$ref": "#/definitions/Long"
+                  }
+                ],
+                "description": "CloudStorageConfig maxMessages"
+              },
+              "serviceAccountEmail": {
+                "description": "CloudStorageConfig serviceAccountEmail",
+                "type": "string"
+              },
+              "state": {
+                "description": "CloudStorageConfig state",
+                "enum": [
+                  "STATE_UNSPECIFIED",
+                  "ACTIVE",
+                  "PERMISSION_DENIED",
+                  "NOT_FOUND",
+                  "SCHEMA_MISMATCH",
+                  "IN_TRANSIT_LOCATION_RESTRICTION",
+                  "VERTEX_AI_LOCATION_RESTRICTION",
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "type": [
+                  "string",
+                  "number"
+                ]
+              },
+              "textConfig": {
+                "$ref": "#/definitions/ITextConfig",
+                "description": "CloudStorageConfig textConfig"
+              }
+            },
+            "type": "object"
+          },
+          "IDeadLetterPolicy": {
+            "additionalProperties": false,
+            "description": "Properties of a DeadLetterPolicy.",
+            "properties": {
+              "deadLetterTopic": {
+                "description": "DeadLetterPolicy deadLetterTopic",
+                "type": "string"
+              },
+              "maxDeliveryAttempts": {
+                "description": "DeadLetterPolicy maxDeliveryAttempts",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "IDuration": {
+            "additionalProperties": false,
+            "description": "Properties of a Duration.",
+            "properties": {
+              "nanos": {
+                "description": "Duration nanos",
+                "type": "number"
+              },
+              "seconds": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "$ref": "#/definitions/Long"
+                  }
+                ],
+                "description": "Duration seconds"
+              }
+            },
+            "type": "object"
+          },
+          "IExpirationPolicy": {
+            "additionalProperties": false,
+            "description": "Properties of an ExpirationPolicy.",
+            "properties": {
+              "ttl": {
+                "$ref": "#/definitions/IDuration",
+                "description": "ExpirationPolicy ttl"
+              }
+            },
+            "type": "object"
+          },
+          "IJavaScriptUDF": {
+            "additionalProperties": false,
+            "description": "Properties of a JavaScriptUDF.",
+            "properties": {
+              "code": {
+                "description": "JavaScriptUDF code",
+                "type": "string"
+              },
+              "functionName": {
+                "description": "JavaScriptUDF functionName",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "IListValue": {
+            "additionalProperties": false,
+            "description": "Properties of a ListValue.",
+            "properties": {
+              "values": {
+                "description": "ListValue values",
+                "items": {
+                  "$ref": "#/definitions/IValue"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "IMessageTransform": {
+            "additionalProperties": false,
+            "description": "Properties of a MessageTransform.",
+            "properties": {
+              "aiInference": {
+                "$ref": "#/definitions/IAIInference",
+                "description": "MessageTransform aiInference"
+              },
+              "disabled": {
+                "default": false,
+                "description": "MessageTransform disabled",
+                "type": "boolean"
+              },
+              "enabled": {
+                "default": false,
+                "description": "MessageTransform enabled",
+                "type": "boolean"
+              },
+              "javascriptUdf": {
+                "$ref": "#/definitions/IJavaScriptUDF",
+                "description": "MessageTransform javascriptUdf"
+              }
+            },
+            "type": "object"
+          },
+          "INoWrapper": {
+            "additionalProperties": false,
+            "description": "Properties of a NoWrapper.",
+            "properties": {
+              "writeMetadata": {
+                "default": false,
+                "description": "NoWrapper writeMetadata",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "IOidcToken": {
+            "additionalProperties": false,
+            "description": "Properties of an OidcToken.",
+            "properties": {
+              "audience": {
+                "description": "OidcToken audience",
+                "type": "string"
+              },
+              "serviceAccountEmail": {
+                "description": "OidcToken serviceAccountEmail",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "IPubsubWrapper": {
+            "additionalProperties": false,
+            "description": "Properties of a PubsubWrapper.",
+            "type": "object"
+          },
+          "IPushConfig": {
+            "additionalProperties": false,
+            "description": "Properties of a PushConfig.",
+            "properties": {
+              "attributes": {
+                "$ref": "#/definitions/subscriptionOptions%262%24pushConfig%24attributes",
+                "description": "PushConfig attributes"
+              },
+              "noWrapper": {
+                "$ref": "#/definitions/INoWrapper",
+                "description": "PushConfig noWrapper"
+              },
+              "oidcToken": {
+                "$ref": "#/definitions/IOidcToken",
+                "description": "PushConfig oidcToken"
+              },
+              "pubsubWrapper": {
+                "$ref": "#/definitions/IPubsubWrapper",
+                "description": "PushConfig pubsubWrapper"
+              },
+              "pushEndpoint": {
+                "description": "PushConfig pushEndpoint",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "IRetryPolicy": {
+            "additionalProperties": false,
+            "description": "Properties of a RetryPolicy.",
+            "properties": {
+              "maximumBackoff": {
+                "$ref": "#/definitions/IDuration",
+                "description": "RetryPolicy maximumBackoff"
+              },
+              "minimumBackoff": {
+                "$ref": "#/definitions/IDuration",
+                "description": "RetryPolicy minimumBackoff"
+              }
+            },
+            "type": "object"
+          },
+          "IStruct": {
+            "additionalProperties": false,
+            "description": "Properties of a Struct.",
+            "properties": {
+              "fields": {
+                "$ref": "#/definitions/subscriptionOptions%262%24messageTransforms%5B%5D%24aiInference%24unstructuredInference%24parameters%24fields",
+                "description": "Struct fields"
+              }
+            },
+            "type": "object"
+          },
+          "ITextConfig": {
+            "additionalProperties": false,
+            "description": "Properties of a TextConfig.",
+            "type": "object"
+          },
+          "IUnstructuredInference": {
+            "additionalProperties": false,
+            "description": "Properties of an UnstructuredInference.",
+            "properties": {
+              "parameters": {
+                "$ref": "#/definitions/IStruct",
+                "description": "UnstructuredInference parameters"
+              }
+            },
+            "type": "object"
+          },
+          "IValue": {
+            "additionalProperties": false,
+            "description": "Properties of a Value.",
+            "properties": {
+              "boolValue": {
+                "default": false,
+                "description": "Value boolValue",
+                "type": "boolean"
+              },
+              "listValue": {
+                "$ref": "#/definitions/IListValue",
+                "description": "Value listValue"
+              },
+              "nullValue": {
+                "description": "Value nullValue",
+                "enum": [
+                  0,
+                  "NULL_VALUE"
+                ],
+                "type": [
+                  "number",
+                  "string"
+                ]
+              },
+              "numberValue": {
+                "description": "Value numberValue",
+                "type": "number"
+              },
+              "stringValue": {
+                "description": "Value stringValue",
+                "type": "string"
+              },
+              "structValue": {
+                "$ref": "#/definitions/IStruct",
+                "description": "Value structValue"
+              }
+            },
+            "type": "object"
+          },
+          "Long": {
+            "additionalProperties": false,
+            "properties": {
+              "high": {
+                "description": "The high 32 bits as a signed value.",
+                "type": "number"
+              },
+              "low": {
+                "description": "The low 32 bits as a signed value.",
+                "type": "number"
+              },
+              "unsigned": {
+                "default": false,
+                "description": "Whether unsigned or not.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "high",
+              "low"
+            ],
+            "type": "object"
+          },
+          "Partial<RetryOptions>": {
+            "additionalProperties": false,
+            "description": "Make all properties in T optional",
+            "properties": {
+              "backoffSettings": {
+                "$ref": "#/definitions/BackoffSettings"
+              },
+              "retryCodes": {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "RetryRequestOptions": {
+            "additionalProperties": false,
+            "description": "Per-call configurable settings for working with retry-request\nSee the repo README for more about the parameters\nhttps://github.com/googleapis/retry-request\nWill be deprecated in a future release. Only relevant to server streaming calls",
+            "properties": {
+              "currentRetryAttempt": {
+                "type": "number"
+              },
+              "maxRetryDelay": {
+                "type": "number"
+              },
+              "noResponseRetries": {
+                "type": "number"
+              },
+              "objectMode": {
+                "default": false,
+                "type": "boolean"
+              },
+              "request": {},
+              "retries": {
+                "type": "number"
+              },
+              "retryDelayMultiplier": {
+                "type": "number"
+              },
+              "totalTimeout": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "subscriptionOptions&2$labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "subscriptionOptions&2$messageTransforms[]$aiInference$unstructuredInference$parameters$fields": {
+            "additionalProperties": {
+              "$ref": "#/definitions/IValue"
+            },
+            "type": "object"
+          },
+          "subscriptionOptions&2$messageTransforms[]$aiInference$unstructuredInference$parameters$fields$[key: string]$structValue$fields": {
+            "additionalProperties": {
+              "$ref": "#/definitions/IValue"
+            },
+            "type": "object"
+          },
+          "subscriptionOptions&2$pushConfig$attributes": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "subscriptionOptions&2$tags": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "subscriptionOptions&3$gaxOpts$otherArgs": {
+            "additionalProperties": {},
+            "type": "object"
+          }
+        },
+        "description": "Configuration for {@link GCPPubSubService}",
+        "properties": {
+          "subscriptionOptions": {
+            "additionalProperties": false,
+            "description": "Subscription options to pass to GCP",
+            "properties": {
+              "ackDeadlineSeconds": {
+                "description": "Subscription ackDeadlineSeconds",
+                "type": "number"
+              },
+              "analyticsHubSubscriptionInfo": {
+                "$ref": "#/definitions/IAnalyticsHubSubscriptionInfo",
+                "description": "Subscription analyticsHubSubscriptionInfo"
+              },
+              "bigqueryConfig": {
+                "$ref": "#/definitions/IBigQueryConfig",
+                "description": "Subscription bigqueryConfig"
+              },
+              "bigtableConfig": {
+                "$ref": "#/definitions/IBigtableConfig",
+                "description": "Subscription bigtableConfig"
+              },
+              "cloudStorageConfig": {
+                "$ref": "#/definitions/ICloudStorageConfig",
+                "description": "Subscription cloudStorageConfig"
+              },
+              "deadLetterPolicy": {
+                "$ref": "#/definitions/IDeadLetterPolicy",
+                "description": "Subscription deadLetterPolicy"
+              },
+              "detached": {
+                "default": false,
+                "description": "Subscription detached",
+                "type": "boolean"
+              },
+              "enableExactlyOnceDelivery": {
+                "default": false,
+                "description": "Subscription enableExactlyOnceDelivery",
+                "type": "boolean"
+              },
+              "enableMessageOrdering": {
+                "default": false,
+                "description": "Subscription enableMessageOrdering",
+                "type": "boolean"
+              },
+              "expirationPolicy": {
+                "$ref": "#/definitions/IExpirationPolicy",
+                "description": "Subscription expirationPolicy"
+              },
+              "filter": {
+                "description": "Subscription filter",
+                "type": "string"
+              },
+              "flowControl": {
+                "$ref": "#/definitions/FlowControlOptions"
+              },
+              "gaxOpts": {
+                "$ref": "#/definitions/CallOptions"
+              },
+              "labels": {
+                "$ref": "#/definitions/subscriptionOptions%262%24labels",
+                "description": "Subscription labels"
+              },
+              "messageRetentionDuration": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "$ref": "#/definitions/IDuration"
+                  }
+                ]
+              },
+              "messageTransforms": {
+                "description": "Subscription messageTransforms",
+                "items": {
+                  "$ref": "#/definitions/IMessageTransform"
+                },
+                "type": "array"
+              },
+              "name": {
+                "description": "Subscription name",
+                "type": "string"
+              },
+              "oidcToken": {
+                "$ref": "#/definitions/IOidcToken"
+              },
+              "pushConfig": {
+                "$ref": "#/definitions/IPushConfig",
+                "description": "Subscription pushConfig"
+              },
+              "pushEndpoint": {
+                "type": "string"
+              },
+              "retainAckedMessages": {
+                "default": false,
+                "description": "Subscription retainAckedMessages",
+                "type": "boolean"
+              },
+              "retryPolicy": {
+                "$ref": "#/definitions/IRetryPolicy",
+                "description": "Subscription retryPolicy"
+              },
+              "state": {
+                "description": "Subscription state",
+                "enum": [
+                  "STATE_UNSPECIFIED",
+                  "ACTIVE",
+                  0,
+                  1,
+                  2,
+                  "RESOURCE_ERROR"
+                ],
+                "type": [
+                  "string",
+                  "number"
+                ]
+              },
+              "tags": {
+                "$ref": "#/definitions/subscriptionOptions%262%24tags",
+                "description": "Subscription tags"
+              },
+              "topic": {
+                "description": "Subscription topic",
+                "type": "string"
+              },
+              "topicMessageRetentionDuration": {
+                "$ref": "#/definitions/IDuration",
+                "description": "Subscription topicMessageRetentionDuration"
+              }
+            },
+            "type": "object"
+          },
+          "topic": {
+            "description": "Topic to use on GCP",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "topic",
+          "type"
+        ],
+        "type": "object",
+        "title": "GCPPubSubService"
+      },
+      "Configuration": "lib/services/pubsub.service:GCPPubSubParameters"
+    },
+    "Webda/GoogleCloudQueue": {
+      "Import": "lib/services/queue.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "WaitDelayerDefinition": {
+            "additionalProperties": false,
+            "description": "Configuration object for selecting and parameterizing a `WaitDelayer` from the registry.",
+            "properties": {
+              "interval": {
+                "description": "Base interval in milliseconds passed to the delayer factory.",
+                "type": "number"
+              },
+              "type": {
+                "description": "Key identifying the factory in `WaitDelayerFactories.registry` (e.g. `\"linear\"`, `\"exponential\"`).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "interval",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "GCPQueue Parameters",
+        "properties": {
+          "maxConsumers": {
+            "default": 10,
+            "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
+          },
+          "mode": {
+            "default": "consumer",
+            "description": "If receiver, the usage is to call receiveMessage and deleteMessage manually\nIf consumer, the usage is to call consume, the normal flow is used in parallel",
+            "enum": [
+              "consumer",
+              "receiver"
+            ],
+            "type": "string"
+          },
+          "subscription": {
+            "description": "Subscription to use for the queue\n\nAll instances will use the same subscription to create a queue style pubsub",
+            "type": "string"
+          },
+          "timeout": {
+            "description": "Timeout when receiveMessage is used before returning empty result (in ms)\n\nIf not define then no timeout is applied and receiveMessage can hang forever",
+            "type": "number"
+          },
+          "topic": {
+            "description": "Topic to use",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "workerDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "description": "Delayer between two failed attempts to process messages"
+          },
+          "workerParallelism": {
+            "default": true,
+            "description": "Define if worker should process multi message received in //",
+            "type": "boolean"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "subscription",
+          "topic",
+          "type"
+        ],
+        "type": "object",
+        "title": "GCPQueue"
+      },
+      "Configuration": "lib/services/queue.service:GCPQueueParameters"
+    },
+    "Webda/GoogleCloudStorage": {
+      "Import": "lib/services/storage.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "models": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes",
+            "type": "object"
+          }
+        },
+        "description": "Configuration for {@link Storage}",
+        "properties": {
+          "bucket": {
+            "description": "Bucket to store binaries in",
+            "type": "string"
+          },
+          "endpoint": {
+            "description": "Specify endpoint for GCS",
+            "type": "string"
+          },
+          "maxFileSize": {
+            "default": "10 MB",
+            "description": "Define the maximum filesize to accept as direct upload\nGet the max file size in bytes",
+            "returns": "the result number",
+            "type": "number"
+          },
+          "models": {
+            "$ref": "#/definitions/models",
+            "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "bucket",
+          "models",
+          "type"
+        ],
+        "type": "object",
+        "title": "Storage"
+      },
+      "Configuration": "lib/services/storage.service:StorageParameters"
+    }
   },
-  "models": {
-    "graph": {},
-    "tree": {},
-    "plurals": {},
-    "list": {},
-    "reflections": {}
-  },
+  "models": {},
   "schemas": {
     "Webda/BinaryFile": {
-      "type": "object",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
       "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
         "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
         },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
         },
         "metadata": {
           "description": "Metadatas stored along with the binary"
         },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
         "originalname": {
-          "type": "string",
-          "description": "Original name"
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
         }
       },
       "required": [
@@ -52,1442 +1195,10 @@
         "name",
         "size"
       ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
       "title": "BinaryFile"
-    },
-    "Webda/GoogleCloudFireStore": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "model": {
-          "type": "string",
-          "description": "Webda model to use within the Store",
-          "default": "Webda/CoreModel"
-        },
-        "additionalModels": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Additional models\n\nAllow this store to manage other models",
-          "default": []
-        },
-        "strict": {
-          "type": "boolean",
-          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
-          "default": false
-        },
-        "defaultModel": {
-          "type": "boolean",
-          "description": "When __type model not found, use the model If strict is setup this parameter is not used",
-          "default": true
-        },
-        "forceModel": {
-          "type": "boolean",
-          "description": "If set, Store will ignore the __type",
-          "default": false
-        },
-        "slowQueryThreshold": {
-          "type": "number",
-          "description": "Slow query threshold",
-          "default": 30000
-        },
-        "modelAliases": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Model Aliases to allow easier rename of Model"
-        },
-        "noCache": {
-          "type": "boolean",
-          "description": "Disable default memory cache"
-        },
-        "collection": {
-          "type": "string",
-          "description": "Collection to use"
-        },
-        "compoundIndexes": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/FireStoreIndex"
-          },
-          "description": "To allow efficient query on several fields"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "collection",
-        "compoundIndexes",
-        "slowQueryThreshold",
-        "type"
-      ],
-      "description": "Firebase parameters",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "FireStoreIndex": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string",
-            "enum": [
-              "asc",
-              "desc"
-            ]
-          },
-          "description": "Definition of a FireStore index"
-        }
-      },
-      "title": "FireStore"
-    },
-    "Webda/GoogleCloudKMS": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "defaultKey": {
-          "type": "string",
-          "description": "Encryption key to use by default",
-          "default": "WEBDA_GCP_KMS_KEY env variable"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "description": "Parameters for the KMS Service",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "GCPKMSService"
-    },
-    "Webda/GoogleCloudPubSub": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "topic": {
-          "type": "string",
-          "description": "Topic to use on GCP"
-        },
-        "subscriptionOptions": {
-          "$ref": "#/definitions/CreateSubscriptionOptions",
-          "description": "Subscription options to pass to GCP"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "topic",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "CreateSubscriptionOptions": {
-          "type": "object",
-          "properties": {
-            "gaxOpts": {
-              "type": "object",
-              "properties": {
-                "timeout": {
-                  "type": "number"
-                },
-                "retry": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/definitions/Partial%3Cclass-657338214-822-3488-657338214-0-17392%3E"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "autoPaginate": {
-                  "type": "boolean"
-                },
-                "maxResults": {
-                  "type": "number"
-                },
-                "maxRetries": {
-                  "type": "number"
-                },
-                "otherArgs": {
-                  "type": "object"
-                },
-                "bundleOptions": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "elementCountLimit": {
-                          "type": "number"
-                        },
-                        "requestByteLimit": {
-                          "type": "number"
-                        },
-                        "elementCountThreshold": {
-                          "type": "number"
-                        },
-                        "requestByteThreshold": {
-                          "type": "number"
-                        },
-                        "delayThreshold": {
-                          "type": "number"
-                        }
-                      }
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "isBundling": {
-                  "type": "boolean"
-                },
-                "longrunning": {
-                  "type": "object",
-                  "properties": {
-                    "maxRetries": {
-                      "type": "number"
-                    },
-                    "initialRetryDelayMillis": {
-                      "type": "number"
-                    },
-                    "retryDelayMultiplier": {
-                      "type": "number"
-                    },
-                    "maxRetryDelayMillis": {
-                      "type": "number"
-                    },
-                    "initialRpcTimeoutMillis": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
-                    },
-                    "maxRpcTimeoutMillis": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
-                    },
-                    "totalTimeoutMillis": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
-                    },
-                    "rpcTimeoutMultiplier": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "initialRetryDelayMillis",
-                    "retryDelayMultiplier",
-                    "maxRetryDelayMillis"
-                  ]
-                },
-                "apiName": {
-                  "type": "string"
-                },
-                "retryRequestOptions": {
-                  "type": "object",
-                  "properties": {
-                    "objectMode": {
-                      "type": "boolean"
-                    },
-                    "request": {},
-                    "retries": {
-                      "type": "number"
-                    },
-                    "noResponseRetries": {
-                      "type": "number"
-                    },
-                    "currentRetryAttempt": {
-                      "type": "number"
-                    },
-                    "shouldRetryFn": {},
-                    "maxRetryDelay": {
-                      "type": "number"
-                    },
-                    "retryDelayMultiplier": {
-                      "type": "number"
-                    },
-                    "totalTimeout": {
-                      "type": "number"
-                    }
-                  }
-                }
-              }
-            },
-            "flowControl": {
-              "type": "object",
-              "properties": {
-                "allowExcessMessages": {
-                  "type": "boolean"
-                },
-                "maxBytes": {
-                  "type": "number"
-                },
-                "maxMessages": {
-                  "type": "number"
-                },
-                "maxExtensionMinutes": {
-                  "type": "number"
-                },
-                "maxExtension": {
-                  "type": "number",
-                  "deprecated": "Use maxExtensionMinutes."
-                }
-              }
-            },
-            "name": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "Subscription name"
-            },
-            "topic": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "Subscription topic"
-            },
-            "pushConfig": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "pushEndpoint": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "PushConfig pushEndpoint"
-                    },
-                    "attributes": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "string"
-                          }
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "PushConfig attributes"
-                    },
-                    "oidcToken": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "serviceAccountEmail": {
-                              "type": [
-                                "string",
-                                "null"
-                              ],
-                              "description": "OidcToken serviceAccountEmail"
-                            },
-                            "audience": {
-                              "type": [
-                                "string",
-                                "null"
-                              ],
-                              "description": "OidcToken audience"
-                            }
-                          },
-                          "description": "Properties of an OidcToken."
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "PushConfig oidcToken"
-                    },
-                    "pubsubWrapper": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "description": "Properties of a PubsubWrapper."
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "PushConfig pubsubWrapper"
-                    },
-                    "noWrapper": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "writeMetadata": {
-                              "type": [
-                                "boolean",
-                                "null"
-                              ],
-                              "description": "NoWrapper writeMetadata"
-                            }
-                          },
-                          "description": "Properties of a NoWrapper."
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "PushConfig noWrapper"
-                    }
-                  },
-                  "description": "Properties of a PushConfig."
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Subscription pushConfig"
-            },
-            "bigqueryConfig": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "table": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "BigQueryConfig table"
-                    },
-                    "useTopicSchema": {
-                      "type": [
-                        "boolean",
-                        "null"
-                      ],
-                      "description": "BigQueryConfig useTopicSchema"
-                    },
-                    "writeMetadata": {
-                      "type": [
-                        "boolean",
-                        "null"
-                      ],
-                      "description": "BigQueryConfig writeMetadata"
-                    },
-                    "dropUnknownFields": {
-                      "type": [
-                        "boolean",
-                        "null"
-                      ],
-                      "description": "BigQueryConfig dropUnknownFields"
-                    },
-                    "state": {
-                      "anyOf": [
-                        {
-                          "$ref": "#/definitions/google.pubsub.v1.BigQueryConfig.State"
-                        },
-                        {
-                          "type": "string",
-                          "const": "STATE_UNSPECIFIED"
-                        },
-                        {
-                          "type": "string",
-                          "const": "ACTIVE"
-                        },
-                        {
-                          "type": "string",
-                          "const": "PERMISSION_DENIED"
-                        },
-                        {
-                          "type": "string",
-                          "const": "NOT_FOUND"
-                        },
-                        {
-                          "type": "string",
-                          "const": "SCHEMA_MISMATCH"
-                        },
-                        {
-                          "type": "string",
-                          "const": "IN_TRANSIT_LOCATION_RESTRICTION"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "BigQueryConfig state"
-                    },
-                    "useTableSchema": {
-                      "type": [
-                        "boolean",
-                        "null"
-                      ],
-                      "description": "BigQueryConfig useTableSchema"
-                    },
-                    "serviceAccountEmail": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "BigQueryConfig serviceAccountEmail"
-                    }
-                  },
-                  "description": "Properties of a BigQueryConfig."
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Subscription bigqueryConfig"
-            },
-            "cloudStorageConfig": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "bucket": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "CloudStorageConfig bucket"
-                    },
-                    "filenamePrefix": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "CloudStorageConfig filenamePrefix"
-                    },
-                    "filenameSuffix": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "CloudStorageConfig filenameSuffix"
-                    },
-                    "filenameDatetimeFormat": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "CloudStorageConfig filenameDatetimeFormat"
-                    },
-                    "textConfig": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "description": "Properties of a TextConfig."
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "CloudStorageConfig textConfig"
-                    },
-                    "avroConfig": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "writeMetadata": {
-                              "type": [
-                                "boolean",
-                                "null"
-                              ],
-                              "description": "AvroConfig writeMetadata"
-                            },
-                            "useTopicSchema": {
-                              "type": [
-                                "boolean",
-                                "null"
-                              ],
-                              "description": "AvroConfig useTopicSchema"
-                            }
-                          },
-                          "description": "Properties of an AvroConfig."
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "CloudStorageConfig avroConfig"
-                    },
-                    "maxDuration": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "seconds": {
-                              "anyOf": [
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "object",
-                                  "properties": {
-                                    "high": {
-                                      "type": "number",
-                                      "description": "The high 32 bits as a signed value."
-                                    },
-                                    "low": {
-                                      "type": "number",
-                                      "description": "The low 32 bits as a signed value."
-                                    },
-                                    "unsigned": {
-                                      "type": "boolean",
-                                      "description": "Whether unsigned or not."
-                                    }
-                                  },
-                                  "required": [
-                                    "high",
-                                    "low",
-                                    "unsigned"
-                                  ]
-                                },
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "null"
-                                }
-                              ],
-                              "description": "Duration seconds"
-                            },
-                            "nanos": {
-                              "type": [
-                                "number",
-                                "null"
-                              ],
-                              "description": "Duration nanos"
-                            }
-                          },
-                          "description": "Properties of a Duration."
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "CloudStorageConfig maxDuration"
-                    },
-                    "maxBytes": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "object",
-                          "properties": {
-                            "high": {
-                              "type": "number",
-                              "description": "The high 32 bits as a signed value."
-                            },
-                            "low": {
-                              "type": "number",
-                              "description": "The low 32 bits as a signed value."
-                            },
-                            "unsigned": {
-                              "type": "boolean",
-                              "description": "Whether unsigned or not."
-                            }
-                          },
-                          "required": [
-                            "high",
-                            "low",
-                            "unsigned"
-                          ]
-                        },
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "CloudStorageConfig maxBytes"
-                    },
-                    "maxMessages": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "object",
-                          "properties": {
-                            "high": {
-                              "type": "number",
-                              "description": "The high 32 bits as a signed value."
-                            },
-                            "low": {
-                              "type": "number",
-                              "description": "The low 32 bits as a signed value."
-                            },
-                            "unsigned": {
-                              "type": "boolean",
-                              "description": "Whether unsigned or not."
-                            }
-                          },
-                          "required": [
-                            "high",
-                            "low",
-                            "unsigned"
-                          ]
-                        },
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "CloudStorageConfig maxMessages"
-                    },
-                    "state": {
-                      "anyOf": [
-                        {
-                          "$ref": "#/definitions/google.pubsub.v1.CloudStorageConfig.State"
-                        },
-                        {
-                          "type": "string",
-                          "const": "STATE_UNSPECIFIED"
-                        },
-                        {
-                          "type": "string",
-                          "const": "ACTIVE"
-                        },
-                        {
-                          "type": "string",
-                          "const": "PERMISSION_DENIED"
-                        },
-                        {
-                          "type": "string",
-                          "const": "NOT_FOUND"
-                        },
-                        {
-                          "type": "string",
-                          "const": "IN_TRANSIT_LOCATION_RESTRICTION"
-                        },
-                        {
-                          "type": "string",
-                          "const": "SCHEMA_MISMATCH"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "CloudStorageConfig state"
-                    },
-                    "serviceAccountEmail": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "CloudStorageConfig serviceAccountEmail"
-                    }
-                  },
-                  "description": "Properties of a CloudStorageConfig."
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Subscription cloudStorageConfig"
-            },
-            "ackDeadlineSeconds": {
-              "type": [
-                "number",
-                "null"
-              ],
-              "description": "Subscription ackDeadlineSeconds"
-            },
-            "retainAckedMessages": {
-              "type": [
-                "boolean",
-                "null"
-              ],
-              "description": "Subscription retainAckedMessages"
-            },
-            "labels": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Subscription labels"
-            },
-            "enableMessageOrdering": {
-              "type": [
-                "boolean",
-                "null"
-              ],
-              "description": "Subscription enableMessageOrdering"
-            },
-            "expirationPolicy": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "ttl": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "seconds": {
-                              "anyOf": [
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "object",
-                                  "properties": {
-                                    "high": {
-                                      "type": "number",
-                                      "description": "The high 32 bits as a signed value."
-                                    },
-                                    "low": {
-                                      "type": "number",
-                                      "description": "The low 32 bits as a signed value."
-                                    },
-                                    "unsigned": {
-                                      "type": "boolean",
-                                      "description": "Whether unsigned or not."
-                                    }
-                                  },
-                                  "required": [
-                                    "high",
-                                    "low",
-                                    "unsigned"
-                                  ]
-                                },
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "null"
-                                }
-                              ],
-                              "description": "Duration seconds"
-                            },
-                            "nanos": {
-                              "type": [
-                                "number",
-                                "null"
-                              ],
-                              "description": "Duration nanos"
-                            }
-                          },
-                          "description": "Properties of a Duration."
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "ExpirationPolicy ttl"
-                    }
-                  },
-                  "description": "Properties of an ExpirationPolicy."
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Subscription expirationPolicy"
-            },
-            "filter": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "Subscription filter"
-            },
-            "deadLetterPolicy": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "deadLetterTopic": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "description": "DeadLetterPolicy deadLetterTopic"
-                    },
-                    "maxDeliveryAttempts": {
-                      "type": [
-                        "number",
-                        "null"
-                      ],
-                      "description": "DeadLetterPolicy maxDeliveryAttempts"
-                    }
-                  },
-                  "description": "Properties of a DeadLetterPolicy."
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Subscription deadLetterPolicy"
-            },
-            "retryPolicy": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "minimumBackoff": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "seconds": {
-                              "anyOf": [
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "object",
-                                  "properties": {
-                                    "high": {
-                                      "type": "number",
-                                      "description": "The high 32 bits as a signed value."
-                                    },
-                                    "low": {
-                                      "type": "number",
-                                      "description": "The low 32 bits as a signed value."
-                                    },
-                                    "unsigned": {
-                                      "type": "boolean",
-                                      "description": "Whether unsigned or not."
-                                    }
-                                  },
-                                  "required": [
-                                    "high",
-                                    "low",
-                                    "unsigned"
-                                  ]
-                                },
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "null"
-                                }
-                              ],
-                              "description": "Duration seconds"
-                            },
-                            "nanos": {
-                              "type": [
-                                "number",
-                                "null"
-                              ],
-                              "description": "Duration nanos"
-                            }
-                          },
-                          "description": "Properties of a Duration."
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "RetryPolicy minimumBackoff"
-                    },
-                    "maximumBackoff": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "seconds": {
-                              "anyOf": [
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "object",
-                                  "properties": {
-                                    "high": {
-                                      "type": "number",
-                                      "description": "The high 32 bits as a signed value."
-                                    },
-                                    "low": {
-                                      "type": "number",
-                                      "description": "The low 32 bits as a signed value."
-                                    },
-                                    "unsigned": {
-                                      "type": "boolean",
-                                      "description": "Whether unsigned or not."
-                                    }
-                                  },
-                                  "required": [
-                                    "high",
-                                    "low",
-                                    "unsigned"
-                                  ]
-                                },
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "null"
-                                }
-                              ],
-                              "description": "Duration seconds"
-                            },
-                            "nanos": {
-                              "type": [
-                                "number",
-                                "null"
-                              ],
-                              "description": "Duration nanos"
-                            }
-                          },
-                          "description": "Properties of a Duration."
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "RetryPolicy maximumBackoff"
-                    }
-                  },
-                  "description": "Properties of a RetryPolicy."
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Subscription retryPolicy"
-            },
-            "detached": {
-              "type": [
-                "boolean",
-                "null"
-              ],
-              "description": "Subscription detached"
-            },
-            "enableExactlyOnceDelivery": {
-              "type": [
-                "boolean",
-                "null"
-              ],
-              "description": "Subscription enableExactlyOnceDelivery"
-            },
-            "topicMessageRetentionDuration": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "seconds": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "object",
-                          "properties": {
-                            "high": {
-                              "type": "number",
-                              "description": "The high 32 bits as a signed value."
-                            },
-                            "low": {
-                              "type": "number",
-                              "description": "The low 32 bits as a signed value."
-                            },
-                            "unsigned": {
-                              "type": "boolean",
-                              "description": "Whether unsigned or not."
-                            }
-                          },
-                          "required": [
-                            "high",
-                            "low",
-                            "unsigned"
-                          ]
-                        },
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "Duration seconds"
-                    },
-                    "nanos": {
-                      "type": [
-                        "number",
-                        "null"
-                      ],
-                      "description": "Duration nanos"
-                    }
-                  },
-                  "description": "Properties of a Duration."
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Subscription topicMessageRetentionDuration"
-            },
-            "state": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/google.pubsub.v1.Subscription.State"
-                },
-                {
-                  "type": "string",
-                  "const": "STATE_UNSPECIFIED"
-                },
-                {
-                  "type": "string",
-                  "const": "ACTIVE"
-                },
-                {
-                  "type": "string",
-                  "const": "RESOURCE_ERROR"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Subscription state"
-            },
-            "messageRetentionDuration": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "seconds": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "object",
-                          "properties": {
-                            "high": {
-                              "type": "number",
-                              "description": "The high 32 bits as a signed value."
-                            },
-                            "low": {
-                              "type": "number",
-                              "description": "The low 32 bits as a signed value."
-                            },
-                            "unsigned": {
-                              "type": "boolean",
-                              "description": "Whether unsigned or not."
-                            }
-                          },
-                          "required": [
-                            "high",
-                            "low",
-                            "unsigned"
-                          ]
-                        },
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "Duration seconds"
-                    },
-                    "nanos": {
-                      "type": [
-                        "number",
-                        "null"
-                      ],
-                      "description": "Duration nanos"
-                    }
-                  },
-                  "description": "Properties of a Duration."
-                },
-                {
-                  "type": "number"
-                }
-              ]
-            },
-            "pushEndpoint": {
-              "type": "string"
-            },
-            "oidcToken": {
-              "$ref": "#/definitions/OidcToken"
-            }
-          }
-        },
-        "Partial<class-657338214-822-3488-657338214-0-17392>": {
-          "type": "object",
-          "properties": {
-            "retryCodes": {
-              "type": "array",
-              "items": {
-                "type": "number"
-              }
-            },
-            "backoffSettings": {
-              "type": "object",
-              "properties": {
-                "maxRetries": {
-                  "type": "number"
-                },
-                "initialRetryDelayMillis": {
-                  "type": "number"
-                },
-                "retryDelayMultiplier": {
-                  "type": "number"
-                },
-                "maxRetryDelayMillis": {
-                  "type": "number"
-                },
-                "initialRpcTimeoutMillis": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
-                },
-                "maxRpcTimeoutMillis": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
-                },
-                "totalTimeoutMillis": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
-                },
-                "rpcTimeoutMultiplier": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
-                }
-              },
-              "required": [
-                "initialRetryDelayMillis",
-                "retryDelayMultiplier",
-                "maxRetryDelayMillis"
-              ]
-            },
-            "shouldRetryFn": {},
-            "getResumptionRequestFn": {}
-          }
-        },
-        "google.pubsub.v1.BigQueryConfig.State": {
-          "type": "number",
-          "enum": [
-            0,
-            1,
-            2,
-            3,
-            4,
-            5
-          ],
-          "description": "State enum."
-        },
-        "google.pubsub.v1.CloudStorageConfig.State": {
-          "type": "number",
-          "enum": [
-            0,
-            1,
-            2,
-            3,
-            4,
-            5
-          ],
-          "description": "State enum."
-        },
-        "google.pubsub.v1.Subscription.State": {
-          "type": "number",
-          "enum": [
-            0,
-            1,
-            2
-          ],
-          "description": "State enum."
-        },
-        "OidcToken": {
-          "type": "object",
-          "properties": {
-            "serviceAccountEmail": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "OidcToken serviceAccountEmail"
-            },
-            "audience": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "OidcToken audience"
-            }
-          },
-          "description": "Properties of an OidcToken."
-        }
-      },
-      "title": "GCPPubSubService"
-    },
-    "Webda/GoogleCloudQueue": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "workerDelayer": {
-          "type": "object",
-          "properties": {
-            "interval": {
-              "type": "number",
-              "description": "Interval"
-            },
-            "type": {
-              "type": "string",
-              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
-            }
-          },
-          "required": [
-            "interval",
-            "type"
-          ],
-          "description": "Delayer between two failed attempts to process messages"
-        },
-        "workerParallelism": {
-          "type": "boolean",
-          "description": "Define if worker should process multi message received in //",
-          "default": true
-        },
-        "maxConsumers": {
-          "type": "number",
-          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
-          "default": 10
-        },
-        "topic": {
-          "type": "string",
-          "description": "Topic to use"
-        },
-        "subscription": {
-          "type": "string",
-          "description": "Subscription to use for the queue\n\nAll instances will use the same subscription to create a queue style pubsub"
-        },
-        "timeout": {
-          "type": "number",
-          "description": "Timeout when receiveMessage is used before returning empty result (in ms)\n\nIf not define then no timeout is applied and receiveMessage can hang forever"
-        },
-        "mode": {
-          "type": "string",
-          "enum": [
-            "consumer",
-            "receiver"
-          ],
-          "description": "If receiver, the usage is to call receiveMessage and deleteMessage manually If consumer, the usage is to call consume, the normal flow is used in parallel"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "maxConsumers",
-        "mode",
-        "subscription",
-        "topic",
-        "type"
-      ],
-      "description": "GCPQueue Parameters",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "GCPQueue"
-    },
-    "Webda/GoogleCloudStorage": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "models": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "description": "Define the map of models\n* indicates all models\n\nkey is a Store name the string[] represent all valids attributes to store files in * indicates all attributes"
-        },
-        "maxFileSize": {
-          "type": "number",
-          "description": "Define the maximum filesize to accept as direct upload",
-          "default": "10*1024*1024"
-        },
-        "prefix": {
-          "type": "string"
-        },
-        "bucket": {
-          "type": "string"
-        },
-        "endpoint": {
-          "type": "string",
-          "description": "Specify endpoint for GCS"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "bucket",
-        "models",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Storage"
     }
-  }
+  },
+  "behaviors": {},
+  "sourceDigest": "99471b3e1ffcad997442ead100883b3c"
 }

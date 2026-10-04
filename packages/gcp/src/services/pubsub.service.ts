@@ -108,8 +108,6 @@ export default class GCPPubSubService<
     };
     return new CancelablePromise<void>(
       async (_resolve, reject) => {
-        // Defer to the next tick: CancelablePromise cannot be rejected synchronously from its executor
-        await Promise.resolve();
         try {
           subscription = this.pubsub.subscription(subscriptionName);
           const [exists] = await subscription.exists();

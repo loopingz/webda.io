@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import type { JSONSchema7 } from "json-schema";
 import { isMainModule } from "@webda/tsc-esm";
-import { Application } from "../application/application.js";
+import { Application, installConfigurationFactories } from "../application/application.js";
 import { UnpackedApplication } from "../application/unpackedapplication.js";
 import { collectServiceCommands, executeServiceCommand } from "../services/servicecommands.js";
 import { Core } from "../core/core.js";
@@ -452,17 +452,7 @@ async function ensureServiceInConfig(app: Application, serviceName: string): Pro
               const cfgMod = await import(cfgFile.endsWith(".js") ? cfgFile : cfgFile + ".js");
               configClass = cfgMod[cfgName] || DefaultParams;
             }
-            constructor.filterParameters = (params: any = {}) => {
-              if (!meta.Schema?.properties) return params;
-              const filtered: any = {};
-              for (const field of Object.keys(meta.Schema.properties)) {
-                if (params[field] !== undefined) filtered[field] = params[field];
-              }
-              return filtered;
-            };
-            constructor.createConfiguration = (params: any = {}) => {
-              return new configClass().load(constructor.filterParameters(params));
-            };
+            installConfigurationFactories(constructor, configClass, meta.Schema);
           }
         }
         return;

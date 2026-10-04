@@ -207,6 +207,52 @@ class ApplicationTest extends WebdaInternalTest {
   }
 
   @test
+  async configurationFactoriesNotInherited() {
+    const app = new TestInternalApplication(__dirname + "/../../test/config.json");
+    class ParentModda {}
+    class ChildModda extends ParentModda {}
+    class RegisteredChildModda extends ParentModda {}
+    app.getModdas()["Test/Parent"] = <any>ParentModda;
+    app.getModdas()["Test/RegisteredChild"] = <any>RegisteredChildModda;
+    await app.loadModule(
+      <any>{
+        moddas: {
+          "Test/Parent": {
+            Import: "./unused.js",
+            Schema: { properties: { shared: {} } }
+          },
+          "Test/RegisteredChild": {
+            Import: "./unused.js",
+            Schema: { properties: { childOnly: {} } }
+          }
+        },
+        models: {},
+        schemas: {}
+      },
+      ""
+    );
+    const params = { shared: 1, childOnly: 2 };
+    const fields = (cfg: any) => ({ shared: cfg.shared, childOnly: cfg.childOnly });
+    const Parent: any = ParentModda;
+    const Child: any = ChildModda;
+    const RegisteredChild: any = RegisteredChildModda;
+    // The registered class filters on its own schema, even when the function is detached
+    const parentFilter = Parent.filterParameters;
+    assert.deepStrictEqual(parentFilter(params), { shared: 1 });
+    assert.deepStrictEqual(fields(Parent.createConfiguration(params)), { shared: 1, childOnly: undefined });
+    // A registered subclass uses its own schema, not its parent's
+    assert.deepStrictEqual(RegisteredChild.filterParameters(params), { childOnly: 2 });
+    assert.deepStrictEqual(fields(RegisteredChild.createConfiguration(params)), { shared: undefined, childOnly: 2 });
+    // An unregistered subclass must not be stripped by its parent's schema
+    assert.deepStrictEqual(Child.filterParameters(params), params);
+    assert.deepStrictEqual(fields(Child.createConfiguration(params)), params);
+    // A subclass can still define its own factories
+    Child.createConfiguration = () => "own";
+    assert.strictEqual(Child.createConfiguration(params), "own");
+    assert.deepStrictEqual(fields(Parent.createConfiguration(params)), { shared: 1, childOnly: undefined });
+  }
+
+  @test
   async loadBehaviorsMetadata() {
     // Verify Application surfaces Behavior metadata declared in
     // webda.module.json via `getBehaviorMetadata`. The Behavior class itself

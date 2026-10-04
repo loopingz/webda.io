@@ -37,6 +37,7 @@ export default defineConfig({
       //"src/rest/*.spec.ts",
       "src/rest/restoperationstransport.spec.ts",
       "src/rest/rest-behaviors.spec.ts",
+      "src/rest/router-prefix.spec.ts",
       "src/schemas/*.spec.ts",
       //"src/services/authentication.spec.ts", // Need refactor
       "src/services/cloudbinary.spec.ts",

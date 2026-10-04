@@ -1,3 +1,1 @@
-import { ElasticSearchService } from "./elasticsearchservice";
-
-export { ElasticSearchService };
+export * from "./elasticsearch.service.js";

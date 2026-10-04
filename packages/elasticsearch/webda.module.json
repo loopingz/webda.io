@@ -1,46 +1,132 @@
 {
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/ElasticSearchService": "lib/elasticsearchservice:default"
+    "Webda/ElasticSearchService": {
+      "Import": "lib/elasticsearch.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "IndexParameter": {
+            "additionalProperties": false,
+            "description": "Index definition",
+            "properties": {
+              "dateSplit": {
+                "$ref": "#/definitions/indexes%24%5Bkey%3A%20string%5D%24dateSplit",
+                "description": "Split index by date\n\nFollowing Grafana convention"
+              },
+              "model": {
+                "description": "Model to duplicate in elasticsearch",
+                "type": "string"
+              },
+              "url": {
+                "description": "To expose the index in the API",
+                "type": "string"
+              }
+            },
+            "required": [
+              "model"
+            ],
+            "type": "object"
+          },
+          "indexes": {
+            "additionalProperties": {
+              "$ref": "#/definitions/IndexParameter"
+            },
+            "description": "Indexes to maintain, the key is the index name",
+            "type": "object"
+          },
+          "indexes$[key: string]$dateSplit": {
+            "additionalProperties": false,
+            "properties": {
+              "attribute": {
+                "description": "That contains the date field",
+                "type": "string"
+              },
+              "frequency": {
+                "default": "monthly",
+                "description": "If index key is stats\nyearly: stats-YYYY\nmonthly: stats-YYYY.MM\nweekly: stats-GGGG.WW\ndaily: stats-YYYY.MM.DD\nhourly: stats-YYYY.MM.DD.HH\n\nWith dateSplit enable some synchronization features won't be available\nTo get the right index of the document the attribute need to be known,\ntherefore the PartialUpdate and PatchUpdate will likely require to reload\nthe original object",
+                "enum": [
+                  "yearly",
+                  "monthly",
+                  "weekly",
+                  "daily",
+                  "hourly"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "attribute"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "Parameters for {@link ElasticSearchService}",
+        "properties": {
+          "client": {
+            "description": "ClientOptions is not usable for now\nts-json-schema error"
+          },
+          "indexes": {
+            "$ref": "#/definitions/indexes",
+            "description": "Indexes to maintain, the key is the index name"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "client",
+          "indexes",
+          "type"
+        ],
+        "type": "object",
+        "title": "ElasticSearchService"
+      },
+      "Configuration": "lib/elasticsearch.service:ElasticSearchServiceParameters"
+    }
   },
-  "models": {
-    "graph": {},
-    "tree": {},
-    "plurals": {},
-    "list": {},
-    "reflections": {}
-  },
+  "models": {},
   "schemas": {
     "Webda/BinaryFile": {
-      "type": "object",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
       "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
         "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
         },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
         },
         "metadata": {
           "description": "Metadatas stored along with the binary"
         },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
         "originalname": {
-          "type": "string",
-          "description": "Original name"
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
         }
       },
       "required": [
@@ -48,87 +134,10 @@
         "name",
         "size"
       ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BinaryFile"
-    },
-    "Webda/ElasticSearchService": {
       "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "client": {
-          "description": "ClientOptions is not usable for now ts-json-schema error"
-        },
-        "indexes": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "properties": {
-              "store": {
-                "type": "string",
-                "description": "Store to duplicate in elasticsearch",
-                "deprecated": true
-              },
-              "model": {
-                "type": "string",
-                "description": "Use a model instead of a store"
-              },
-              "url": {
-                "type": "string",
-                "description": "To expose the index in the API"
-              },
-              "dateSplit": {
-                "type": "object",
-                "properties": {
-                  "frequency": {
-                    "type": "string",
-                    "enum": [
-                      "yearly",
-                      "monthly",
-                      "weekly",
-                      "daily",
-                      "hourly"
-                    ],
-                    "description": "If index key is stats yearly: stats-YYYY monthly: stats-YYYY.MM weekly: stats-GGGG.WW daily: stats-YYYY.MM.DD hourly: stats-YYYY.MM.DD.HH\n\nWith dateSplit enable some synchronization features won't be available To get the right index of the document the attribute need to be known, therefore the PartialUpdate and PatchUpdate will likely require to reload the original object",
-                    "default": "monthly"
-                  },
-                  "attribute": {
-                    "type": "string",
-                    "description": "That contains the date field"
-                  }
-                },
-                "required": [
-                  "attribute"
-                ],
-                "description": "Split index by date\n\nFollowing Grafana convention"
-              }
-            },
-            "required": [
-              "store",
-              "model",
-              "url"
-            ]
-          }
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "client",
-        "indexes",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ElasticSearchService"
+      "title": "BinaryFile"
     }
-  }
+  },
+  "behaviors": {},
+  "sourceDigest": "ddce6c43096640f03bd888aae15403cf"
 }

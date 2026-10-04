@@ -31,10 +31,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
    * Increment numeric attributes with event emission
    * @override
    */
-  async incrementAttributes<
-    K extends PropertyPaths<InstanceType<T>>,
-    L extends NumericPropertyPaths<InstanceType<T>>
-  >(
+  async incrementAttributes<K extends PropertyPaths<InstanceType<T>>, L extends NumericPropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
     info: (L | { property: L; value?: number })[] | Record<L, number>,
     _conditionField?: K | null,
@@ -179,10 +176,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
    * Remove attribute with event emission
    * @override
    */
-  async removeAttribute<
-    L extends PropertyPaths<InstanceType<T>>,
-    K extends PropertyPaths<InstanceType<T>>
-  >(
+  async removeAttribute<L extends PropertyPaths<InstanceType<T>>, K extends PropertyPaths<InstanceType<T>>>(
     uuid: PrimaryKeyType<InstanceType<T>>,
     attribute: K,
     conditionField?: L | null,
@@ -220,9 +214,13 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
    * @override
    */
   async create(data: Helpers<InstanceType<T>>, save?: boolean): Promise<InstanceType<T>> {
-    await this.emit("Create", { object_id: this.getPrimaryKey(data), object: data } as any);
-    const res = await this.repository.create(data, save);
-    await this.emit("Created", { object_id: this.getPrimaryKey(data), object: data } as any);
+    // Build the instance once so a generated primary key is shared by the events
+    // and the underlying repository
+    const item = this.buildItem(data);
+    const object_id = this.getPrimaryKey(item);
+    await this.emit("Create", { object_id, object: item } as any);
+    const res = await this.repository.create(item as Helpers<InstanceType<T>>, save);
+    await this.emit("Created", { object_id, object: res } as any);
     return res;
   }
   /**

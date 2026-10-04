@@ -9,6 +9,7 @@ import {
   useApplication,
   useCore,
   useDynamicService,
+  useParameters,
   useRouter,
   WebContext,
   WebdaError
@@ -244,6 +245,18 @@ class AsyncJobServiceTest extends AsyncTest {
     const updated = await AsyncAction.ref("hooked").get();
     assert.strictEqual(updated.status, "RUNNING");
     assert.deepStrictEqual(updated.logs, ["from runner"]);
+  }
+
+  @test
+  async hookUrlWithoutApiUrl() {
+    const service = this.getValidService();
+    const apiUrl = useParameters().apiUrl;
+    delete useParameters().apiUrl;
+    try {
+      assert.strictEqual(service.getHookUrl(), `${service.getParameters().url}/status`);
+    } finally {
+      useParameters().apiUrl = apiUrl;
+    }
   }
 
   @test

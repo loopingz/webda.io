@@ -946,16 +946,10 @@ if (isMain) {
           await bootCoreForCommand(core, matchedCommand.name, cmdInfo);
 
           // Long-running commands (serve, worker) only settle once stopped or interrupted
+          const { name: commandName, args: commandArgs } = matchedCommand;
           await settleServiceCommand(
-            matchedCommand.name,
-            () =>
-              executeServiceCommand(
-                matchedCommand.name,
-                cmdInfo,
-                matchedCommand.args,
-                core.getServices(),
-                serviceFilter
-              ),
+            commandName,
+            () => executeServiceCommand(commandName, cmdInfo, commandArgs, core.getServices(), serviceFilter),
             shutdown
           );
         }

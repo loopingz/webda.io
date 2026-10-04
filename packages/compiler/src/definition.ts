@@ -233,6 +233,10 @@ export interface ModelMetadata {
   Actions: {
     [action: string]: {
       method?: string;
+      /**
+       * Method implementing the action, when exposed under another name with `@Action({ name })`
+       */
+      handler?: string;
       path?: string;
       description?: string;
       summary?: string;

@@ -8,6 +8,7 @@ import { openSession, type Session } from "./context.ts";
 import {
   buildBehaviorActions,
   buildCapabilities,
+  buildModelActions,
   buildCommands,
   generateWebdaModule,
   getPlural,
@@ -107,6 +108,15 @@ describe("module metadata on a fixture", () => {
     const named = buildBehaviorActions(session.ctx, classOf(session, "behaviors.ts", "Named"), "Custom/Named");
     expect(Object.keys(named)).toEqual(["own", "read", "write", "bare"]);
     expect(named.own).toEqual({});
+  });
+
+  it("keys model actions by the @Action name option and records the method as handler", () => {
+    expect(buildModelActions(session.ctx, classOf(session, "actions.ts", "Jobs"))).toEqual({
+      status: { description: "Report", handler: "statusAction" },
+      run: {},
+      same: {},
+      lookup: { global: true, handler: "find" }
+    });
   });
 
   it("rejects static and global Behavior actions", () => {
@@ -266,6 +276,40 @@ describe("model extending a dependency's model", () => {
   it("records relations inherited from the dependency's models", () => {
     if (!available) return;
     expect(result!.module.models["Webda/ApiKey"].Relations.links).toEqual([{ attribute: "_user", type: "LINK" }]);
+  });
+});
+
+/**
+ * `@Action({ name })` on a model: async's `AsyncAction.statusAction` cannot be
+ * a method called `status` (that is a property), so it is exposed under the
+ * name option. The action, and its schemas, take the exposed name.
+ */
+describe("model action exposed under another name", () => {
+  const root = join(repo, "packages/async");
+  const available = existsSync(join(root, "node_modules")) && existsSync(join(repo, "packages/core/webda.module.json"));
+  let result: ReturnType<typeof generateWebdaModule> | undefined;
+  beforeAll(() => {
+    if (!available) return;
+    const session = openSession(join(root, "tsconfig.json"), root);
+    try {
+      result = generateWebdaModule(session.ctx, { appPath: root, namespace: namespaceOf(root) });
+    } finally {
+      session.dispose();
+    }
+  }, 120_000);
+
+  it("records the action under its name, with the method as handler", () => {
+    if (!available) return;
+    expect(result!.module.models["Webda/AsyncAction"].Actions).toEqual({ status: { handler: "statusAction" } });
+    expect(result!.errors).toEqual([]);
+  });
+
+  it("names the action schemas after the exposed name", () => {
+    if (!available) return;
+    const schemas = Object.keys(result!.module.schemas);
+    expect(schemas).toContain("Webda/AsyncAction.status.input");
+    expect(schemas).toContain("Webda/AsyncAction.status.output");
+    expect(schemas.filter(name => name.includes(".statusAction."))).toEqual([]);
   });
 });
 

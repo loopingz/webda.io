@@ -511,12 +511,19 @@ export function buildModelActions(ctx: AnalysisContext, cls: ClassDeclaration): 
   const processMethod = (method: MethodDeclaration) => {
     const meta: Record<string, unknown> = {};
     if (isStaticMember(method)) meta.global = true;
+    const methodName = text(ctx, method.name);
+    let name = methodName;
     forEachOperationOption(ctx, method, (key, initializer) => {
       if ((key === "description" || key === "summary") && is.isStringLiteral(initializer)) {
         meta[key] = initializer.text;
       }
+      // `@Action({ name })` exposes the action under another name than the method
+      if (key === "name" && is.isStringLiteral(initializer) && initializer.text) {
+        name = initializer.text;
+      }
     });
-    actions[text(ctx, method.name)] = meta;
+    if (name !== methodName) meta.handler = methodName;
+    actions[name] = meta;
   };
   decoratedInstanceMethods(ctx, cls).forEach(processMethod);
   decoratedStaticMethods(ctx, cls).forEach(processMethod);

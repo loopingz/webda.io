@@ -402,6 +402,42 @@ class ExecuteServiceCommandTest {
   }
 
   @test
+  async noServiceRanReturns1() {
+    // Every provider skipped: the command did nothing and must not report success
+    const services = {
+      "MyApp/C": { doIt: async () => {} }
+    } as any;
+    const cmdInfo = {
+      description: "Test",
+      services: [{ name: "MyApp/A", method: "doIt", type: "MyApp/A" }],
+      args: {}
+    };
+    const result = await executeServiceCommand("test", cmdInfo, {}, services);
+    assert.strictEqual(result, 1);
+  }
+
+  @test
+  async omittedArgKeepsPositions() {
+    // `webda serve --port 1234` must call serve(undefined, 1234), not serve(1234)
+    let received: any[] = [];
+    const services = {
+      "MyApp/A": {
+        doIt: async (...args: any[]) => {
+          received = args;
+        }
+      }
+    } as any;
+    const cmdInfo = {
+      description: "Test",
+      services: [{ name: "MyApp/A", method: "doIt", type: "MyApp/A" }],
+      args: { bind: { type: "string" }, port: { type: "number" } }
+    };
+    const result = await executeServiceCommand("test", cmdInfo as any, { port: 1234 }, services);
+    assert.strictEqual(result, 0);
+    assert.deepStrictEqual(received, [undefined, 1234]);
+  }
+
+  @test
   async missingMethodReturns1() {
     const services = {
       "MyApp/A": { wrongMethod: async () => {} }

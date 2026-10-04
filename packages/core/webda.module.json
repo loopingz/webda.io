@@ -1690,6 +1690,7 @@
             }
           },
           "requires": [
+            "router",
             "rest-domain"
           ]
         }
@@ -3790,5 +3791,5 @@
     "rest-domain": "Webda/RESTOperationsTransport",
     "http-server": "Webda/HttpServer"
   },
-  "sourceDigest": "959d03ca822a9a954377e559e4e4b325"
+  "sourceDigest": "8b93393f4afc74ef72d0ddb6c7106893"
 }

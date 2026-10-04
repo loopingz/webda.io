@@ -117,7 +117,7 @@ export function collectServiceCommands(app: Application): { [name: string]: Serv
  * @param args - Parsed argument values keyed by argument name
  * @param services - Map of service name to service instance (from Core.getServices())
  * @param serviceFilter - Optional list of service names to filter to (supports suffix matching)
- * @returns `0` on success, `1` if no services match the filter or a method is missing
+ * @returns `0` on success, `1` if no services match the filter, a method is missing or no service instance ran
  *
  * @example
  * ```typescript
@@ -147,16 +147,14 @@ export async function executeServiceCommand(
     }
   }
 
-  // Build positional args from command arg definitions
-  const commandArgs: any[] = [];
-  for (const argName of Object.keys(cmdInfo.args)) {
-    if (args[argName] !== undefined) {
-      commandArgs.push(args[argName]);
-    } else if (cmdInfo.args[argName].default !== undefined) {
-      commandArgs.push(cmdInfo.args[argName].default);
-    }
-  }
+  // Build positional args from command arg definitions; an omitted argument keeps
+  // its slot as undefined so the following ones stay in position
+  const commandArgs: any[] = Object.keys(cmdInfo.args).map(argName =>
+    args[argName] !== undefined ? args[argName] : cmdInfo.args[argName].default
+  );
 
+  // Count executed handlers: a command where every provider was skipped did nothing
+  let executed = 0;
   // Execute each matching service handler. A single target type can map to
   // multiple configured instances (e.g. two HttpServer services on different
   // ports); dispatch to every instance whose constructor matches the type.
@@ -183,8 +181,13 @@ export async function executeServiceCommand(
         return 1;
       }
       await service[svc.method](...commandArgs);
+      executed++;
     }
   }
 
+  if (executed === 0) {
+    useLog("ERROR", `No service instance found to run command '${cmdName}'`);
+    return 1;
+  }
   return 0;
 }

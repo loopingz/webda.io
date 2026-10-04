@@ -26,6 +26,7 @@ import { SymbolFlags } from "typescript/unstable/sync";
 import type { Symbol as TsSymbol, Type } from "typescript/unstable/sync";
 import {
   classTree,
+  dependencyModelName,
   discoverWebdaObjects,
   exportedName,
   outputTarget,
@@ -854,13 +855,15 @@ interface ModelTarget {
  * @param models - local models, in program-walk order
  * @param namespace - project namespace
  * @param errors - accumulator for conditions TypeScript 6 throws on
+ * @param appPath - project directory, to tell dependency models from local ones
  * @returns model entries, in walk order (sorted by the caller)
  */
 function processModels(
   ctx: AnalysisContext,
   models: ModelTarget[],
   namespace: string | undefined,
-  errors: string[]
+  errors: string[],
+  appPath: string
 ): Record<string, ModelEntry> {
   const byTypeId = new Map<number, string>();
   for (const model of models) byTypeId.set(model.type.id, model.object.name);
@@ -881,9 +884,16 @@ function processModels(
     let hasProperty = false;
 
     for (const property of propertiesOf(ctx, declaration)) {
-      const member: any = valueDeclarationOf(ctx, property);
-      if (!member || !is.isPropertyDeclaration(member)) continue;
-      hasProperty = true;
+      let member: any = valueDeclarationOf(ctx, property);
+      if (!member) continue;
+      if (is.isPropertyDeclaration(member)) {
+        hasProperty = true;
+      } else {
+        // A property inherited from a dependency's model is read from its
+        // declaration file, where relation properties are emitted as accessors.
+        member = declarationFileGetter(ctx, property, member);
+        if (!member) continue;
+      }
       if (isSkippedProperty(ctx, member)) continue;
       const typeNode = member.type;
       if (!typeNode || !is.isTypeReferenceNode(typeNode)) continue;
@@ -977,7 +987,7 @@ function processModels(
     const entry = entries[object.name];
     if (!entry) continue;
     entry.Ancestors = classTree(ctx, declaration)
-      .map((type: Type) => byTypeId.get(declaredId(ctx, type)))
+      .map((type: Type) => byTypeId.get(declaredId(ctx, type)) ?? dependencyModelOf(ctx, type, appPath))
       .filter(
         (ancestor): ancestor is string =>
           ancestor !== undefined && ancestor !== "Webda/CoreModel" && ancestor !== object.name
@@ -988,6 +998,49 @@ function processModels(
     if (ancestors.length) entries[ancestors[0]]?.Subclasses.push(name);
   }
   return entries;
+}
+
+/**
+ * Getter declaring a property in a declaration file.
+ *
+ * Declaration emit turns a relation property (`_user: ModelLink<T>`) into a
+ * `get`/`set` pair; the getter's return type is the property's type.
+ * @param ctx - analysis context
+ * @param property - the property symbol
+ * @param member - its value declaration
+ * @returns the getter, or undefined outside a declaration file
+ */
+function declarationFileGetter(ctx: AnalysisContext, property: TsSymbol, member: Node): Node | undefined {
+  if (!sourceFileOf(member)?.isDeclarationFile) return undefined;
+  if (is.isGetAccessorDeclaration(member)) return member;
+  for (const declaration of property.declarations ?? []) {
+    const node = declaration?.resolve(ctx.project);
+    if (node && is.isGetAccessorDeclaration(node)) return node;
+  }
+  return undefined;
+}
+
+/**
+ * Framework base classes from `@webda/models`. Like `Webda/CoreModel`, they are
+ * the root every model derives from, not a domain ancestor, and are not
+ * recorded.
+ */
+const FRAMEWORK_BASE_MODELS = new Set(["Webda/Model", "Webda/UuidModel"]);
+
+/**
+ * Namespaced name of a class declared as a model by a dependency package.
+ * @param ctx - analysis context
+ * @param type - a class in a model's class tree
+ * @param appPath - project directory
+ * @returns the model name, when the class is a dependency's domain model
+ */
+function dependencyModelOf(ctx: AnalysisContext, type: Type, appPath: string): string | undefined {
+  const symbol: any = (type as any).getSymbol?.() ?? (type as any).symbol;
+  const declaration = valueDeclarationOf(ctx, symbol);
+  const fileName = declaration ? sourceFileOf(declaration)?.fileName : undefined;
+  if (!fileName || !symbol?.name) return undefined;
+  const name = dependencyModelName(fileName, symbol.name, appPath);
+  return name && !FRAMEWORK_BASE_MODELS.has(name) ? name : undefined;
 }
 
 /**
@@ -1186,7 +1239,7 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
     beans: sortObject(services.beans),
     deployers: sortObject(services.deployers),
     moddas: sortObject(services.moddas),
-    models: sortObject(processModels(ctx, models, namespace, errors)),
+    models: sortObject(processModels(ctx, models, namespace, errors, options.appPath)),
     schemas: {},
     behaviors: {},
     capabilities: options.capabilities ?? manifestOf(options.appPath).webda?.capabilities

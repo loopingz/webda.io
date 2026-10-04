@@ -237,6 +237,38 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
   });
 });
 
+/**
+ * A model extending a model from a dependency package: hawk's `ApiKey` extends
+ * `@webda/core`'s `OwnerModel`. The dependency's models are not local, so their
+ * names come from its `webda.module.json`, and the relations they declare come
+ * from its declaration files.
+ */
+describe("model extending a dependency's model", () => {
+  const root = join(repo, "packages/hawk");
+  const available = existsSync(join(root, "node_modules")) && existsSync(join(repo, "packages/core/webda.module.json"));
+  let result: ReturnType<typeof generateWebdaModule> | undefined;
+  beforeAll(() => {
+    if (!available) return;
+    const session = openSession(join(root, "tsconfig.json"), root);
+    try {
+      result = generateWebdaModule(session.ctx, { appPath: root, namespace: namespaceOf(root) });
+    } finally {
+      session.dispose();
+    }
+  }, 120_000);
+
+  it("records the dependency's models as ancestors", () => {
+    if (!available) return;
+    expect(result!.module.models["Webda/ApiKey"].Ancestors).toEqual(["Webda/OwnerModel", "Webda/AbstractOwnerModel"]);
+    expect(result!.errors).toEqual([]);
+  });
+
+  it("records relations inherited from the dependency's models", () => {
+    if (!available) return;
+    expect(result!.module.models["Webda/ApiKey"].Relations.links).toEqual([{ attribute: "_user", type: "LINK" }]);
+  });
+});
+
 describe("worker module request", () => {
   it("answers a module request alongside the other kinds", () => {
     const response = handle({

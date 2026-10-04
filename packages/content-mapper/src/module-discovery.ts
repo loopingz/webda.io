@@ -360,6 +360,95 @@ function primaryKeyOfChain(ctx: AnalysisContext, sf: any, cls: any, chain: any[]
   return [];
 }
 
+const packageRootCache = new Map<string, string | undefined>();
+
+/**
+ * Directory of the npm package that owns a file: the nearest folder with a
+ * `package.json`.
+ * @param fileName - file to attribute
+ * @returns the package directory, when one is found
+ */
+export function packageRootOf(fileName: string): string | undefined {
+  let folder = dirname(fileName);
+  const visited: string[] = [];
+  let root: string | undefined;
+  while (folder.length > 2) {
+    if (packageRootCache.has(folder)) {
+      root = packageRootCache.get(folder);
+      break;
+    }
+    visited.push(folder);
+    if (existsSync(join(folder, "package.json"))) {
+      root = folder;
+      break;
+    }
+    const parent = dirname(folder);
+    if (parent === folder) break;
+    folder = parent;
+  }
+  for (const folder of visited) packageRootCache.set(folder, root);
+  return root;
+}
+
+/** `Import` target → model name, per dependency package directory. */
+const dependencyModelsCache = new Map<string, Map<string, string>>();
+
+/**
+ * Models a dependency package declares in its `webda.module.json`, keyed by
+ * their `Import` target.
+ * @param root - the dependency's package directory
+ * @returns import target → namespaced model name
+ */
+function dependencyModels(root: string): Map<string, string> {
+  let models = dependencyModelsCache.get(root);
+  if (models) return models;
+  models = new Map();
+  try {
+    const module = JSON.parse(readFileSync(join(root, "webda.module.json"), "utf8"));
+    for (const [name, entry] of Object.entries<any>(module.models ?? {})) {
+      if (typeof entry?.Import === "string") models.set(entry.Import, name);
+    }
+  } catch {
+    // No module, or not readable: the package declares no models
+  }
+  dependencyModelsCache.set(root, models);
+  return models;
+}
+
+/**
+ * Name of a model declared by a dependency package, as its own
+ * `webda.module.json` records it.
+ *
+ * The class is matched on its `Import` target: the declaring file relative to
+ * the package, without extension, then `:` and the export name. A source file
+ * (`src/x.ts`) also matches its compiled counterpart (`lib/x`).
+ * @param fileName - file declaring the class
+ * @param className - exported name of the class
+ * @param appPath - the project being compiled, whose own module is skipped
+ * @returns the namespaced model name, when the dependency declares one
+ */
+export function dependencyModelName(fileName: string, className: string, appPath: string): string | undefined {
+  const root = packageRootOf(fileName);
+  if (!root || root === appPath) return undefined;
+  const models = dependencyModels(root);
+  if (!models.size) return undefined;
+  const path = relative(root, fileName)
+    .replace(/\\/g, "/")
+    .replace(/(\.d)?\.[cm]?[jt]sx?$/, "");
+  const paths = path.startsWith("src/") ? [path, `lib/${path.substring(4)}`] : [path];
+  for (const candidate of paths) {
+    const name = models.get(`${candidate}:${className}`);
+    if (name) return name;
+  }
+  // A default export is recorded as `:default`; only trust it when it is the
+  // file's only one.
+  const defaults = paths.flatMap(candidate => {
+    const name = models.get(`${candidate}:default`);
+    return name ? [name] : [];
+  });
+  return defaults.length === 1 && defaults[0].split("/").pop() === className ? defaults[0] : undefined;
+}
+
 /**
  * Build the structural half of each model's `webda.module.json` entry.
  *

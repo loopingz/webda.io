@@ -4,5 +4,4 @@ packages:
   - sample-apps/*
   - docs
   # Exclude packages that are not yet ready
-  - "!packages/gcp"
   - "!packages/aws"

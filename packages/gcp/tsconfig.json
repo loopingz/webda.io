@@ -5,16 +5,16 @@
       "es2019",
       "DOM"
     ],
-    "module": "preserve",
+    "module": "nodenext",
     "outDir": "./lib",
     "rootDir": "./src",
     "strict": false,
     "declaration": true,
-    "skipLibCheck": true,
     "sourceMap": true,
     "experimentalDecorators": false,
     "esModuleInterop": true,
-    "moduleResolution": "bundler",
+    "moduleResolution": "nodenext",
+    "skipLibCheck": true,
     "declarationMap": true,
     "types": [
       "node"
@@ -24,13 +24,21 @@
     "src/**/*"
   ],
   "exclude": [
-    "**/node_modules"
+    "**/node_modules",
+    "src/**/*.spec.ts"
   ],
   "ts-node": {
     "transpileOnly": true,
     "preferTsExts": true,
     "compilerOptions": {
-      "experimentalDecorators": false
-    }
+      "experimentalDecorators": false,
+      "declarationMap": true
+    },
+    "include": [
+      "src/**/*.spec.ts"
+    ],
+    "exclude": [
+      "src/models/**/*"
+    ]
   }
 }

@@ -47,6 +47,7 @@ export * from "./application/runner.js";
 export * from "./application/deployment.js";
 export * from "./deployers/deployer.js";
 export * from "./deployers/git.js";
+export * from "./deployers/packager.js";
 export * from "./events/asynceventemitter.js";
 export * from "./events/events.js";
 export * from "./services/oauth.js";

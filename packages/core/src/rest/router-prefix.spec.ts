@@ -50,6 +50,20 @@ class RouterPrefixTest extends WebdaApplicationTest {
   }
 
   @test
+  async httpHelperWaitsForTheResponse() {
+    this.router.addRouteToRouter("/slow/{uuid}", {
+      methods: ["GET"],
+      _method: async (ctx: WebContext) => {
+        await new Promise(resolve => setTimeout(resolve, 20));
+        ctx.write({ slow: ctx.getParameters().uuid });
+      }
+    } as any);
+    const ctx = await this.newContext();
+    // The test helper must await the router: the handler only writes after a delay
+    assert.deepStrictEqual(await this.http({ url: "/slow/plop", context: ctx }), { slow: "plop" });
+  }
+
+  @test
   async routesWithoutPrefix() {
     const ctx = await this.request("GET", "/test/plop");
     assert.notStrictEqual(ctx.statusCode, 404);

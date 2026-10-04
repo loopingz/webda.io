@@ -150,6 +150,22 @@ class HttpServerTest extends WebdaApplicationTest {
   }
 
   @test
+  async startRejectsWhenThePortIsTaken() {
+    await this.server.start("127.0.0.1", 0);
+    const port = (this.server.server.address() as any).port;
+    const other = new HttpServer(
+      "HttpServerTaken",
+      new ServiceParameters().load({ port, trustedProxies: ["127.0.0.1"] }) as any
+    );
+    this.registerService(other);
+    try {
+      await assert.rejects(() => other.start("127.0.0.1", port), /EADDRINUSE/);
+    } finally {
+      await other.stop();
+    }
+  }
+
+  @test
   async serveStaysPendingUntilStopped() {
     const serving = this.server.serve("127.0.0.1", 0);
     assert.ok(serving instanceof CancelablePromise);

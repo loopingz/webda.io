@@ -1,77 +1,777 @@
 {
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
-  "deployers": {
-    "WebdaAWSDeployer/CloudFormation": "lib/deployers/cloudformation:default",
-    "WebdaAWSDeployer/LambdaPackager": "lib/deployers/lambdapackager:default"
-  },
+  "deployers": {},
   "moddas": {
-    "Webda/AWSSecretsManager": "lib/services/secretsmanager:default",
-    "Webda/CloudWatchLogger": "lib/services/cloudwatchlogger:default",
-    "Webda/DynamoStore": "lib/services/dynamodb:default",
-    "Webda/LambdaCaller": "lib/services/lambdacaller:LambdaCaller",
-    "Webda/S3Binary": "lib/services/s3binary:default",
-    "Webda/SQSQueue": "lib/services/sqsqueue:default"
-  },
-  "models": {
-    "graph": {},
-    "tree": {},
-    "plurals": {},
-    "list": {},
-    "reflections": {}
-  },
-  "schemas": {
-    "Webda/AWSSecretsManager": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
+    "Webda/AWSCommands": {
+      "Import": "lib/services/awscommands.service:AWSCommands",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Interface to specify the Service parameters",
+        "properties": {
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
         },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "AWSCommands"
       },
-      "required": [
-        "type"
-      ],
-      "description": "Interface to specify the Service parameters",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CloudWatchLogger"
+      "Configuration": "node_modules/@webda/core/lib/services/serviceparameters:ServiceParameters",
+      "commands": {
+        "aws route53 export": {
+          "description": "Export a Route53 domain to a json file",
+          "method": "route53Export",
+          "args": {
+            "domain": {
+              "type": "string",
+              "required": true
+            },
+            "file": {
+              "type": "string",
+              "required": true
+            }
+          },
+          "requires": [
+            "aws-commands"
+          ],
+          "phase": "resolved"
+        },
+        "aws route53 import": {
+          "description": "Import a Route53 exported format to Route53",
+          "method": "route53Import",
+          "args": {
+            "file": {
+              "type": "string",
+              "required": true
+            }
+          },
+          "requires": [
+            "aws-commands"
+          ],
+          "phase": "resolved"
+        },
+        "aws route53 sync": {
+          "description": "Sync a Route53 exported format to Route53 (remove all others entries)",
+          "method": "route53Sync",
+          "args": {
+            "file": {
+              "type": "string",
+              "required": true
+            },
+            "pretend": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "requires": [
+            "aws-commands"
+          ],
+          "phase": "resolved"
+        },
+        "aws copyTable": {
+          "description": "Copy a DynamoDB table content to another table",
+          "method": "copyTable",
+          "args": {
+            "sourceTable": {
+              "type": "string",
+              "required": true
+            },
+            "targetTable": {
+              "type": "string",
+              "required": true
+            }
+          },
+          "requires": [
+            "aws-commands"
+          ],
+          "phase": "resolved"
+        }
+      }
     },
+    "Webda/AWSSecretsManager": {
+      "Import": "lib/services/secretsmanager.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "credentials": {
+            "additionalProperties": false,
+            "description": "Static credentials, default to the AWS environment variables",
+            "properties": {
+              "accessKeyId": {
+                "type": "string"
+              },
+              "secretAccessKey": {
+                "type": "string"
+              },
+              "sessionToken": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "accessKeyId",
+              "secretAccessKey"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "AWS SecretsManager parameters",
+        "properties": {
+          "credentials": {
+            "$ref": "#/definitions/credentials",
+            "description": "Static credentials, default to the AWS environment variables"
+          },
+          "endpoint": {
+            "description": "Custom endpoint (localstack, minio, ...)",
+            "type": "string"
+          },
+          "region": {
+            "default": "us-east-1",
+            "description": "AWS region",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "AWSSecretsManager"
+      },
+      "Configuration": "lib/services/secretsmanager.service:AWSSecretsManagerParameters"
+    },
+    "Webda/CloudWatchLogger": {
+      "Import": "lib/services/cloudwatchlogger.service:CloudWatchLogger",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "credentials": {
+            "additionalProperties": false,
+            "description": "Static credentials, default to the AWS environment variables",
+            "properties": {
+              "accessKeyId": {
+                "type": "string"
+              },
+              "secretAccessKey": {
+                "type": "string"
+              },
+              "sessionToken": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "accessKeyId",
+              "secretAccessKey"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "Send webda log to CloudWatch",
+        "properties": {
+          "CloudFormation": {
+            "description": "CloudFormation customization"
+          },
+          "CloudFormationSkip": {
+            "default": false,
+            "description": "Skip CloudFormation on deploy",
+            "type": "boolean"
+          },
+          "credentials": {
+            "$ref": "#/definitions/credentials",
+            "description": "Static credentials, default to the AWS environment variables"
+          },
+          "endpoint": {
+            "description": "Custom endpoint (localstack, minio, ...)",
+            "type": "string"
+          },
+          "kmsKeyId": {
+            "description": "KMS key to use when creating the log group",
+            "type": "string"
+          },
+          "logGroupName": {
+            "description": "logGroupName to send logStream to",
+            "type": "string"
+          },
+          "logLevel": {
+            "default": "INFO",
+            "description": "Minimum level of logs to send",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "logStreamNamePrefix": {
+            "description": "Prefix of the log stream name, a random uuid is appended",
+            "type": "string"
+          },
+          "region": {
+            "default": "us-east-1",
+            "description": "AWS region",
+            "type": "string"
+          },
+          "singlePush": {
+            "default": false,
+            "description": "Send each log line as soon as it is produced",
+            "type": "boolean"
+          },
+          "tags": {
+            "description": "Tags to add when creating the log group"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "logGroupName",
+          "type"
+        ],
+        "type": "object",
+        "title": "CloudWatchLogger"
+      },
+      "Configuration": "lib/services/cloudwatchlogger.service:CloudWatchLoggerParameters"
+    },
+    "Webda/DynamoStore": {
+      "Import": "lib/services/dynamodb.service:DynamoStore",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "DynamoGlobalIndexes": {
+            "additionalProperties": {
+              "$ref": "#/definitions/globalIndexes%24%5Bkey%3A%20string%5D"
+            },
+            "description": "DynamoDB global secondary indexes definition",
+            "type": "object"
+          },
+          "credentials": {
+            "additionalProperties": false,
+            "description": "Static credentials, default to the AWS environment variables",
+            "properties": {
+              "accessKeyId": {
+                "type": "string"
+              },
+              "secretAccessKey": {
+                "type": "string"
+              },
+              "sessionToken": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "accessKeyId",
+              "secretAccessKey"
+            ],
+            "type": "object"
+          },
+          "globalIndexes$[key: string]": {
+            "additionalProperties": false,
+            "properties": {
+              "key": {
+                "description": "Hash key of the index",
+                "type": "string"
+              },
+              "sort": {
+                "description": "Range key of the index",
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ],
+            "type": "object"
+          },
+          "modelAliases": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Model Aliases to allow easier rename of Model",
+            "type": "object"
+          },
+          "tables": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Per-model table name overrides, keyed by model identifier\n\nModels not listed use `table`",
+            "type": "object"
+          }
+        },
+        "description": "Define DynamoDB parameters",
+        "properties": {
+          "CloudFormation": {
+            "description": "CloudFormation customization"
+          },
+          "CloudFormationSkip": {
+            "default": false,
+            "description": "Skip CloudFormation on deploy",
+            "type": "boolean"
+          },
+          "credentials": {
+            "$ref": "#/definitions/credentials",
+            "description": "Static credentials, default to the AWS environment variables"
+          },
+          "defaultModel": {
+            "default": true,
+            "description": "When __type model not found, use the model\nIf strict is setup this parameter is not used",
+            "type": "boolean"
+          },
+          "endpoint": {
+            "description": "Custom endpoint (localstack, minio, ...)",
+            "type": "string"
+          },
+          "forceModel": {
+            "default": false,
+            "description": "If set, Store will ignore the __type",
+            "type": "boolean"
+          },
+          "globalIndexes": {
+            "$ref": "#/definitions/DynamoGlobalIndexes",
+            "description": "Additional global indexes"
+          },
+          "modelAliases": {
+            "$ref": "#/definitions/modelAliases",
+            "description": "Model Aliases to allow easier rename of Model"
+          },
+          "models": {
+            "default": [
+              "Webda/RegistryEntry"
+            ],
+            "description": "Models managed by this Store.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "noCache": {
+            "default": false,
+            "description": "Disable default memory cache",
+            "type": "boolean"
+          },
+          "region": {
+            "default": "us-east-1",
+            "description": "AWS region",
+            "type": "string"
+          },
+          "scanPage": {
+            "description": "Number of items to retrieve per scan page",
+            "type": "number"
+          },
+          "slowQueryThreshold": {
+            "default": 30000,
+            "description": "Slow query threshold",
+            "type": "number"
+          },
+          "strict": {
+            "default": false,
+            "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no\nmodel extending this one",
+            "type": "boolean"
+          },
+          "table": {
+            "description": "Table name",
+            "type": "string"
+          },
+          "tables": {
+            "$ref": "#/definitions/tables",
+            "description": "Per-model table name overrides, keyed by model identifier\n\nModels not listed use `table`"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "table",
+          "type"
+        ],
+        "type": "object",
+        "title": "DynamoStore"
+      },
+      "Configuration": "lib/services/dynamodb.service:DynamoStoreParameters"
+    },
+    "Webda/LambdaCaller": {
+      "Import": "lib/services/lambdacaller.service:LambdaCaller",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "credentials": {
+            "additionalProperties": false,
+            "description": "Static credentials, default to the AWS environment variables",
+            "properties": {
+              "accessKeyId": {
+                "type": "string"
+              },
+              "secretAccessKey": {
+                "type": "string"
+              },
+              "sessionToken": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "accessKeyId",
+              "secretAccessKey"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "LambdaCaller parameters",
+        "properties": {
+          "actions": {
+            "default": [],
+            "description": "Actions managed by the runner",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "arn": {
+            "description": "Default ARN to use",
+            "type": "string"
+          },
+          "credentials": {
+            "$ref": "#/definitions/credentials",
+            "description": "Static credentials, default to the AWS environment variables"
+          },
+          "endpoint": {
+            "description": "Custom endpoint (localstack, minio, ...)",
+            "type": "string"
+          },
+          "region": {
+            "default": "us-east-1",
+            "description": "AWS region",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "arn",
+          "type"
+        ],
+        "type": "object",
+        "title": "LambdaCaller"
+      },
+      "Configuration": "lib/services/lambdacaller.service:LambdaCallerParameters"
+    },
+    "Webda/LambdaServer": {
+      "Import": "lib/services/lambdaserver.service:LambdaServer",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "LambdaServer parameters",
+        "properties": {
+          "lambdaRequestHeader": {
+            "description": "Header to add to the response with the Lambda request id",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "waitForEmptyEventLoop": {
+            "default": false,
+            "description": "Set the Lambda callbackWaitsForEmptyEventLoop",
+            "type": "boolean"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "LambdaServer"
+      },
+      "Configuration": "lib/services/lambdaserver.service:LambdaServerParameters"
+    },
+    "Webda/S3Binary": {
+      "Import": "lib/services/s3binary.service:S3Binary",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "credentials": {
+            "additionalProperties": false,
+            "description": "Static credentials, default to the AWS environment variables",
+            "properties": {
+              "accessKeyId": {
+                "type": "string"
+              },
+              "secretAccessKey": {
+                "type": "string"
+              },
+              "sessionToken": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "accessKeyId",
+              "secretAccessKey"
+            ],
+            "type": "object"
+          },
+          "models": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes",
+            "type": "object"
+          }
+        },
+        "description": "S3Binary parameters",
+        "properties": {
+          "CloudFormation": {
+            "description": "CloudFormation customization"
+          },
+          "CloudFormationSkip": {
+            "default": false,
+            "description": "Skip CloudFormation on deploy",
+            "type": "boolean"
+          },
+          "bucket": {
+            "description": "Bucket to store the binaries in",
+            "type": "string"
+          },
+          "credentials": {
+            "$ref": "#/definitions/credentials",
+            "description": "Static credentials, default to the AWS environment variables"
+          },
+          "endpoint": {
+            "description": "Custom endpoint (localstack, minio, ...)",
+            "type": "string"
+          },
+          "forcePathStyle": {
+            "default": false,
+            "description": "Use path style url (required by localstack/minio)",
+            "type": "boolean"
+          },
+          "maxFileSize": {
+            "default": "10 MB",
+            "description": "Define the maximum filesize to accept as direct upload\nGet the max file size in bytes",
+            "returns": "the result number",
+            "type": "number"
+          },
+          "models": {
+            "$ref": "#/definitions/models",
+            "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "region": {
+            "default": "us-east-1",
+            "description": "AWS region",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "bucket",
+          "models",
+          "type"
+        ],
+        "type": "object",
+        "title": "S3Binary"
+      },
+      "Configuration": "lib/services/s3binary.service:S3BinaryParameters"
+    },
+    "Webda/SQSQueue": {
+      "Import": "lib/services/sqsqueue.service:default",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "WaitDelayerDefinition": {
+            "additionalProperties": false,
+            "description": "Configuration object for selecting and parameterizing a `WaitDelayer` from the registry.",
+            "properties": {
+              "interval": {
+                "description": "Base interval in milliseconds passed to the delayer factory.",
+                "type": "number"
+              },
+              "type": {
+                "description": "Key identifying the factory in `WaitDelayerFactories.registry` (e.g. `\"linear\"`, `\"exponential\"`).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "interval",
+              "type"
+            ],
+            "type": "object"
+          },
+          "credentials": {
+            "additionalProperties": false,
+            "description": "Static credentials, default to the AWS environment variables",
+            "properties": {
+              "accessKeyId": {
+                "type": "string"
+              },
+              "secretAccessKey": {
+                "type": "string"
+              },
+              "sessionToken": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "accessKeyId",
+              "secretAccessKey"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "SQS Queue parameters",
+        "properties": {
+          "CloudFormation": {
+            "description": "Any additional CloudFormation parameters"
+          },
+          "CloudFormationSkip": {
+            "default": false,
+            "description": "Skip CloudFormation on deploy",
+            "type": "boolean"
+          },
+          "MessageGroupId": {
+            "description": "MessageGroupId to pass to send and receive",
+            "type": "string"
+          },
+          "WaitTimeSeconds": {
+            "default": 20,
+            "description": "Time to wait pending for an item",
+            "type": "number"
+          },
+          "credentials": {
+            "$ref": "#/definitions/credentials",
+            "description": "Static credentials, default to the AWS environment variables"
+          },
+          "endpoint": {
+            "description": "Custom endpoint (localstack, minio, ...)",
+            "type": "string"
+          },
+          "maxConsumers": {
+            "default": 10,
+            "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
+          },
+          "queue": {
+            "default": "",
+            "description": "Queue URL",
+            "type": "string"
+          },
+          "region": {
+            "default": "us-east-1",
+            "description": "AWS region",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "workerDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "description": "Delayer between two failed attempts to process messages"
+          },
+          "workerParallelism": {
+            "default": true,
+            "description": "Define if worker should process multi message received in //",
+            "type": "boolean"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "SQSQueue"
+      },
+      "Configuration": "lib/services/sqsqueue.service:SQSQueueParameters"
+    }
+  },
+  "models": {},
+  "schemas": {
     "Webda/BinaryFile": {
-      "type": "object",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
       "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
         "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
         },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
         },
         "metadata": {
           "description": "Metadatas stored along with the binary"
         },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
         "originalname": {
-          "type": "string",
-          "description": "Original name"
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
         }
       },
       "required": [
@@ -79,249 +779,13 @@
         "name",
         "size"
       ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
       "title": "BinaryFile"
-    },
-    "Webda/CloudWatchLogger": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "description": "Interface to specify the Service parameters",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CloudWatchLogger"
-    },
-    "Webda/DynamoStore": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "model": {
-          "type": "string",
-          "description": "Webda model to use within the Store",
-          "default": "Webda/CoreModel"
-        },
-        "additionalModels": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Additional models\n\nAllow this store to manage other models",
-          "default": []
-        },
-        "strict": {
-          "type": "boolean",
-          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
-          "default": false
-        },
-        "defaultModel": {
-          "type": "boolean",
-          "description": "When __type model not found, use the model If strict is setup this parameter is not used",
-          "default": true
-        },
-        "forceModel": {
-          "type": "boolean",
-          "description": "If set, Store will ignore the __type",
-          "default": false
-        },
-        "slowQueryThreshold": {
-          "type": "number",
-          "description": "Slow query threshold",
-          "default": 30000
-        },
-        "modelAliases": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Model Aliases to allow easier rename of Model"
-        },
-        "noCache": {
-          "type": "boolean",
-          "description": "Disable default memory cache"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "slowQueryThreshold",
-        "type"
-      ],
-      "description": "Store parameter",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "DynamoStore"
-    },
-    "Webda/LambdaCaller": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "actions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Actions managed by the runner",
-          "default": []
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "LambdaCaller"
-    },
-    "Webda/S3Binary": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "models": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "description": "Define the map of models\n* indicates all models\n\nkey is a Store name the string[] represent all valids attributes to store files in * indicates all attributes"
-        },
-        "maxFileSize": {
-          "type": "number",
-          "description": "Define the maximum filesize to accept as direct upload",
-          "default": "10*1024*1024"
-        },
-        "prefix": {
-          "type": "string"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "models",
-        "type"
-      ],
-      "description": "Default binary parameters",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "S3Binary"
-    },
-    "Webda/SQSQueue": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "workerDelayer": {
-          "type": "object",
-          "properties": {
-            "interval": {
-              "type": "number",
-              "description": "Interval"
-            },
-            "type": {
-              "type": "string",
-              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
-            }
-          },
-          "required": [
-            "interval",
-            "type"
-          ],
-          "description": "Delayer between two failed attempts to process messages"
-        },
-        "workerParallelism": {
-          "type": "boolean",
-          "description": "Define if worker should process multi message received in //",
-          "default": true
-        },
-        "maxConsumers": {
-          "type": "number",
-          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
-          "default": 10
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "maxConsumers",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "SQSQueue"
-    },
-    "WebdaAWSDeployer/CloudFormation": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string"
-        }
-      },
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "LambdaPackager"
-    },
-    "WebdaAWSDeployer/LambdaPackager": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string"
-        }
-      },
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "LambdaPackager"
     }
-  }
+  },
+  "behaviors": {},
+  "capabilities": {
+    "aws-commands": "Webda/AWSCommands"
+  },
+  "sourceDigest": "fe3e6b289358be91e0ab93533f15c0d7"
 }

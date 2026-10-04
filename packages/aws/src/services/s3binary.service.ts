@@ -3,34 +3,68 @@ import { GetObjectCommand, HeadObjectCommandOutput, PutObjectCommand, S3 } from 
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   BinaryFile,
+  BinaryFileInfo,
   BinaryMap,
-  BinaryParameters,
   CloudBinary,
+  CloudBinaryParameters,
   CoreModel,
   OperationContext,
-  WebContext,
+  useModelId,
   WebdaError
 } from "@webda/core";
-import bluebird from "bluebird";
-import { Readable } from "stream";
-import CloudFormationDeployer from "../deployers/cloudformation";
-import { AWSServiceParameters } from "./aws-mixin";
-import { CloudFormationContributor } from "./index";
+import { Readable } from "node:stream";
+import { AWSServiceParameters, loadAWSParameters } from "./aws-parameters.js";
+import type { CloudFormationContributor, CloudFormationDeployerInfo } from "./contributors.js";
 
-export class S3BinaryParameters extends AWSServiceParameters(BinaryParameters) {
+/**
+ * S3Binary parameters
+ */
+export class S3BinaryParameters extends CloudBinaryParameters implements AWSServiceParameters {
+  /**
+   * Custom endpoint (localstack, minio, ...)
+   */
+  endpoint?: string;
+  /**
+   * Static credentials, default to the AWS environment variables
+   */
+  credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string };
+  /**
+   * AWS region
+   * @default "us-east-1"
+   */
+  region?: string;
+
+  /**
+   * Use path style url (required by localstack/minio)
+   * @default false
+   */
   forcePathStyle?: boolean;
+  /**
+   * Bucket to store the binaries in
+   */
   bucket: string;
-  prefix?: string;
-  CloudFormation: any;
-  CloudFormationSkip: boolean;
+  /**
+   * CloudFormation customization
+   */
+  CloudFormation?: any;
+  /**
+   * Skip CloudFormation on deploy
+   */
+  CloudFormationSkip?: boolean;
 
-  constructor(params: any, service: S3Binary) {
-    super(params, service);
+  /**
+   * @override
+   * @param params - raw parameters
+   * @returns this
+   */
+  load(params: any = {}): this {
+    super.load(params);
+    loadAWSParameters(this);
     if (!this.bucket) {
       throw new WebdaError.CodeError("S3BUCKET_PARAMETER_REQUIRED", "Need to define a bucket at least");
     }
     this.forcePathStyle ??= false;
-    this.prefix = "";
+    return this;
   }
 }
 
@@ -54,36 +88,39 @@ export class S3BinaryParameters extends AWSServiceParameters(BinaryParameters) {
  *
  * @WebdaModda
  */
-export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
+export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   extends CloudBinary<T>
   implements CloudFormationContributor
 {
   _s3: S3;
 
   /**
-   * Load the parameters
-   *
-   * @param params
-   */
-  loadParameters(params: any) {
-    return new S3BinaryParameters(params, this);
-  }
-
-  /**
-   * @inheritdoc
+   * Create the S3 client
+   * @override
    */
   computeParameters() {
+    super.computeParameters();
     this._s3 = new S3(this.parameters);
   }
 
   /**
-   * @inheritdoc
+   * Return a signed PUT url if the binary is not yet stored
+   *
+   * @param object - the model owning the binary
+   * @param property - the binary attribute
+   * @param body - the binary information (hash and challenge)
+   * @param context - the operation context
+   * @returns the url to upload to, or undefined if the binary is already stored
    */
-  async putRedirectUrl(ctx: WebContext): Promise<{ url: string; method: string; headers: { [key: string]: string } }> {
-    const body = await ctx.getRequestBody();
-    const { uuid, store, property } = ctx.getParameters();
-    const targetStore = this.verifyMapAndStore(ctx);
-    const object: any = await targetStore.get(uuid);
+  async putRedirectUrl(
+    object: CoreModel,
+    property: string,
+    body?: BinaryFileInfo,
+    context?: OperationContext<BinaryFileInfo>
+  ): Promise<{ url: string; method: string; headers: { [key: string]: string } }> {
+    body ??= await context.getInput();
+    const uuid = object.getUUID();
+    const store = useModelId(object.constructor);
     const base64String = Buffer.from(body.hash, "hex").toString("base64");
     const params = {
       Bucket: this.parameters.bucket,
@@ -122,7 +159,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       if (challenge) {
         // challenge and data prove it exists
         if (challenge === body.challenge) {
-          await this.uploadSuccess(object, property, body);
+          await this.uploadSuccess(<any>object, property, body);
           return;
         }
       }
@@ -130,7 +167,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     } else {
       await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
     }
-    await this.uploadSuccess(object, property, body);
+    await this.uploadSuccess(<any>object, property, body);
     await this.putMarker(body.hash, `${property}_${uuid}`, store);
     return {
       url: await this.getSignedUrl(params.Key, "putObject", params),
@@ -140,7 +177,11 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   }
 
   /**
-   * @inheritdoc
+   * Put an empty marker object next to the binary data
+   * @param hash - the binary hash
+   * @param suffix - the marker name
+   * @param storeName - the model identifier using the binary
+   * @returns the putObject result
    */
   putMarker(hash: string, suffix: string, storeName: string) {
     const s3obj = new S3(this.parameters);
@@ -158,8 +199,8 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    *
    * @param key to the object
    * @param action to perform
-   * @param params
-   * @returns
+   * @param params - additional command parameters
+   * @returns the signed url
    */
   async getSignedUrl(key: string, action: "getObject" | "putObject" = "getObject", params: any = {}): Promise<string> {
     params.Bucket = params.Bucket || this.parameters.bucket;
@@ -176,6 +217,10 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
 
   /**
    * @override
+   * @param binaryMap - the binary to download
+   * @param expire - url validity in seconds
+   * @param _context - the operation context
+   * @returns the signed url
    */
   async getSignedUrlFromMap(binaryMap: BinaryMap, expire: number, _context: OperationContext) {
     const params: any = {};
@@ -189,6 +234,8 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
 
   /**
    * @override
+   * @param info - the binary to retrieve
+   * @returns the binary content stream
    */
   async _get(info: BinaryMap): Promise<Readable> {
     return <Readable>(
@@ -201,8 +248,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
 
   /**
    * Check if an object exists on S3
-   * @param key
-   * @param bucket
+   * @param Key - the object key
+   * @param Bucket - the bucket, default to the configured one
+   * @returns the head result or null if not found
    */
   async exists(Key: string, Bucket: string = this.parameters.bucket): Promise<HeadObjectCommandOutput | null> {
     try {
@@ -219,7 +267,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   }
 
   /**
-   * @inheritdoc
+   * @override
+   * @param hash - the binary hash
+   * @returns the number of objects using the binary
    */
   async getUsageCount(hash: string): Promise<number> {
     // Not efficient if more than 1000 docs
@@ -232,30 +282,36 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   }
 
   /**
-   * @inheritdoc
+   * Delete the binary data and all its markers
+   * @param hash - the binary hash
    */
   async _cleanHash(hash: string): Promise<void> {
-    const files = (
-      await this._s3.listObjectsV2({
-        Bucket: this.parameters.bucket,
-        Prefix: this._getKey(hash, "")
-      })
-    ).Contents;
-    await bluebird.map(
-      files,
-      file =>
-        this._s3.deleteObject({
+    const files = [
+      ...((
+        await this._s3.listObjectsV2({
           Bucket: this.parameters.bucket,
-          Key: file.Key
-        }),
-      {
-        concurrency: 5
-      }
-    );
+          Prefix: this._getKey(hash, "")
+        })
+      ).Contents ?? [])
+    ];
+    // Delete with a concurrency of 5
+    while (files.length) {
+      await Promise.all(
+        files.splice(0, 5).map(file =>
+          this._s3.deleteObject({
+            Bucket: this.parameters.bucket,
+            Key: file.Key
+          })
+        )
+      );
+    }
   }
 
   /**
-   * @inheritdoc
+   * @override
+   * @param hash - the binary hash
+   * @param uuid - the object uuid
+   * @param attribute - the binary attribute, if undefined clean the whole binary
    */
   async _cleanUsage(hash: string, uuid: string, attribute?: string) {
     if (!attribute) {
@@ -270,7 +326,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   }
 
   /**
-   * @inheritdoc
+   * Check if the binary data exists
+   * @param hash - the binary hash
+   * @returns true if it exists
    */
   async _exists(hash: string): Promise<boolean> {
     try {
@@ -289,8 +347,8 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
 
   /**
    * Get a head object
-   * @param hash
-   * @returns
+   * @param hash - the binary hash
+   * @returns the head result or undefined if not found
    */
   async _getS3(hash: string) {
     try {
@@ -310,7 +368,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    *
    * @param key to get
    * @param bucket to retrieve from or default bucket
-   * @returns
+   * @returns the object content stream
    */
   async getObject(key: string, bucket?: string): Promise<Readable> {
     bucket = bucket || this.parameters.bucket;
@@ -325,9 +383,11 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
 
   /**
    *
+   * Iterate over the files of a bucket
+   *
    * @param Bucket to iterate on
-   * @param Prefix to use
    * @param callback to execute with each key
+   * @param Prefix to use
    * @param filter regexp to execute on the key
    */
   async forEachFile(
@@ -378,10 +438,13 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   }
 
   /**
-   * @inheritdoc
+   * @override
+   * @param object - the model owning the binary
+   * @param property - the binary attribute
+   * @param file - the binary to store
    */
   async store(object: CoreModel, property: string, file: BinaryFile): Promise<void> {
-    this.checkMap(object, property);
+    this.checkMap(<any>object, property);
     await file.getHashes();
     const data = await this._getS3(file.hash);
     if (data === undefined) {
@@ -399,16 +462,18 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     // Set challenge aside for now
     await this.putMarker(file.hash, `challenge_${file.challenge}`, "challenge");
 
-    await this.putMarker(file.hash, `${property}_${object.getUuid()}`, object.getStore().getName());
+    await this.putMarker(file.hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));
     await this.uploadSuccess(<any>object, property, file.toBinaryFileInfo());
   }
 
   /**
-   * @inheritdoc
+   * IAM policy required by the service
+   * @param _accountId - AWS account id
+   * @returns the policy statement
    */
   getARNPolicy(_accountId: string) {
     return {
-      Sid: this.constructor.name + this._name,
+      Sid: this.constructor.name + this.getName(),
       Effect: "Allow",
       Action: [
         "s3:AbortMultipartUpload",
@@ -436,16 +501,18 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   }
 
   /**
-   * @inheritdoc
+   * CloudFormation resources for the bucket
+   * @param deployer - the deployer requesting the resources
+   * @returns the resources
    */
-  getCloudFormation(deployer: CloudFormationDeployer) {
+  getCloudFormation(deployer: CloudFormationDeployerInfo) {
     if (this.parameters.CloudFormationSkip) {
       return {};
     }
     const resources = {};
     this.parameters.CloudFormation = this.parameters.CloudFormation || {};
     this.parameters.CloudFormation.Bucket = this.parameters.CloudFormation.Bucket || {};
-    resources[this._name + "Bucket"] = {
+    resources[this.getName() + "Bucket"] = {
       Type: "AWS::S3::Bucket",
       Properties: {
         ...this.parameters.CloudFormation.Bucket,
@@ -458,4 +525,4 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   }
 }
 
-export { S3Binary };
+export default S3Binary;

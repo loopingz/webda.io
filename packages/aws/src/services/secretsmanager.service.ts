@@ -1,10 +1,40 @@
 import { DeleteSecretRequest, SecretsManager } from "@aws-sdk/client-secrets-manager";
 import { ConfigurationProvider, Service, ServiceParameters } from "@webda/core";
-import { AWSServiceParameters } from "./aws-mixin";
-
-export class AWSSecretsManagerParameters extends AWSServiceParameters(ServiceParameters) {}
+import { AWSServiceParameters, loadAWSParameters } from "./aws-parameters.js";
 
 /**
+ * AWS SecretsManager parameters
+ */
+export class AWSSecretsManagerParameters extends ServiceParameters implements AWSServiceParameters {
+  /**
+   * Custom endpoint (localstack, minio, ...)
+   */
+  endpoint?: string;
+  /**
+   * Static credentials, default to the AWS environment variables
+   */
+  credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string };
+  /**
+   * AWS region
+   * @default "us-east-1"
+   */
+  region?: string;
+
+  /**
+   * @override
+   * @param params - raw parameters
+   * @returns this
+   */
+  load(params: any = {}): this {
+    super.load(params);
+    loadAWSParameters(this);
+    return this;
+  }
+}
+
+/**
+ * Use AWS SecretsManager as a configuration provider and secret storage
+ *
  * @WebdaModda
  */
 export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = AWSSecretsManagerParameters>
@@ -14,39 +44,39 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
   _client: SecretsManager;
 
   /**
-   * @inheritdoc
-   */
-  loadParameters(params: any) {
-    return new AWSSecretsManagerParameters(params);
-  }
-
-  /**
-   * @inheritdoc
+   * Create the AWS client
+   * @override
    */
   computeParameters() {
+    super.computeParameters();
     this._client = new SecretsManager(this.parameters);
   }
 
   /**
-   * @inheritdoc
+   * SecretsManager cannot notify changes
+   * @param _id - configuration id
+   * @param _callback - change callback
+   * @returns false
    */
   canTriggerConfiguration(_id: string, _callback: () => void) {
     return false;
   }
 
   /**
-   * @inheritdoc
+   * Retrieve the configuration stored in a secret
+   * @param id - secret id
+   * @returns the secret content
    */
-  async getConfiguration(id: string): Promise<Map<string, any>> {
+  async getConfiguration(id: string): Promise<{ [key: string]: any }> {
     return this.get(id);
   }
 
   /**
    * Create a new secret on AWS SecretsManager
    *
-   * @param id
-   * @param values
-   * @param params
+   * @param id - secret name
+   * @param values - secret content
+   * @param params - additional createSecret parameters
    */
   async create(id: string, values: any = {}, params: any = {}) {
     params.Name = id;
@@ -58,8 +88,8 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
    * Delete a secret
    *
    * @param SecretId to delete
-   * @param RecoveryWindowInDays
-   * @param ForceDeleteWithoutRecovery
+   * @param RecoveryWindowInDays - days before the secret is deleted
+   * @param ForceDeleteWithoutRecovery - delete immediately
    */
   async delete(SecretId: string, RecoveryWindowInDays: number = 7, ForceDeleteWithoutRecovery: boolean = false) {
     let params: DeleteSecretRequest = {
@@ -78,8 +108,8 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
   /**
    * Store data in a AWS secret
    *
-   * @param SecretId
-   * @param value
+   * @param SecretId - secret id
+   * @param value - secret content
    */
   async put(SecretId: string, value: any) {
     await this._client.putSecretValue({
@@ -91,7 +121,7 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
   /**
    * Return SecretValue
    *
-   * @param SecretId
+   * @param SecretId - secret id
    * @returns JSON.parse of SecretString
    */
   async get(SecretId: string) {
@@ -102,12 +132,14 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
   }
 
   /**
-   * @inheritdoc
+   * IAM policy required by the service
+   * @param accountId - AWS account id
+   * @returns the policy statement
    */
-  getARNPolicy(accountId) {
+  getARNPolicy(accountId: string) {
     const region = this.parameters.region || "us-east-1";
     return {
-      Sid: this.constructor.name + this._name,
+      Sid: this.constructor.name + this.getName(),
       Effect: "Allow",
       Action: ["secretsmanager:*"],
       Resource: ["arn:aws:secretsmanager:" + region + ":" + accountId + ":secret:*"]

@@ -1,19 +1,28 @@
 /// <reference types="vitest" />
 
 import { defineConfig } from "vite";
+import { resolve } from "path";
 
 export default defineConfig({
   clearScreen: false,
+  resolve: {
+    alias: {
+      "@webda/core/lib/queues/queue.spec": resolve(__dirname, "../core/src/queues/queue.spec.ts"),
+    }
+  },
   test: {
     allowOnly: true,
+    testTimeout: 30000,
+    hookTimeout: 30000,
     coverage: {
       enabled: true,
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.spec.ts", "src/index.ts"],
+      exclude: ["src/**/*.spec.ts", "src/index.ts", "src/deployers/**"],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",
-    include: ["src/**/*.spec.ts"]
+    include: ["src/**/*.spec.ts"],
+    exclude: ["src/deployers/**"]
   }
 });

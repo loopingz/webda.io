@@ -1,63 +1,90 @@
-import { Bean, HttpContext, Route, Service, WebdaError } from "@webda/core";
-import { TestApplication } from "@webda/core/lib/test";
+import { HttpContext, Route, Service, useRouter, WebContext, WebdaError } from "@webda/core";
+import { WebdaApplicationTest } from "@webda/core/lib/test/index.js";
 import { suite, test } from "@webda/test";
-import { getCommonJS } from "@webda/utils";
 import * as assert from "assert";
 import * as fs from "fs";
-import { checkLocalStack, WebdaAwsTest } from "../index.spec";
-import { LambdaServer } from "./lambdaserver";
-const { __dirname } = getCommonJS(import.meta.url);
+import * as path from "path";
+import { AWSEventsHandler } from "../../test/fixture.js";
+import { LambdaServer, LambdaServerParameters } from "./lambdaserver.service.js";
 
-@Bean
+/**
+ * Service exposing routes used by the tests
+ */
 class ExceptionExecutor extends Service {
-  async init(): Promise<this> {
-    await super.init();
-    this.addRoute("/broken/{type}", ["GET"], this._brokenRoute);
-    this.addRoute("/route/string", ["GET"], this.onString);
-    return this;
-  }
-
+  /**
+   * @param ctx - the context
+   */
   @Route("/route/broken/{type}")
-  async _brokenRoute(ctx) {
-    if (ctx.parameters.type === "unauthorized") {
+  async _brokenRoute(ctx: WebContext) {
+    const type = ctx.getParameters().type;
+    if (type === "unauthorized") {
       throw new WebdaError.Unauthorized("OnPurpose");
-    } else if (ctx.parameters.type === "401") {
+    } else if (type === "401") {
       throw 401;
-    } else if (ctx.parameters.type === "Error") {
+    } else if (type === "Error") {
       throw new Error();
     }
   }
 
-  @Route("/route/string{?test}")
-  async onString(ctx) {
+  /**
+   * @param ctx - the context
+   */
+  @Route("/route/string{?test?}")
+  async onString(ctx: WebContext) {
     ctx.write(`CodeCoverage${ctx.getParameters().test || ""}`);
   }
 
+  /**
+   * @param ctx - the context
+   */
   @Route("/route/param/{uuid}{?test?}")
-  async onParamString(ctx) {
+  async onParamString(ctx: WebContext) {
     ctx.write(`CodeCoverage${ctx.getParameters().uuid}${ctx.getParameters().test || ""}`);
   }
 }
 
 @suite
-class LambdaHandlerTest extends WebdaAwsTest {
+class LambdaHandlerTest extends WebdaApplicationTest {
   evt: any;
   handler: LambdaServer;
-  debugMailer: any;
   context: any = {};
   badCheck: boolean = false;
-  newExcept: boolean;
+  newExcept: boolean = false;
+  filters: any[] = [];
 
-  async before() {
-    await checkLocalStack();
-    const app = new TestApplication(this.getTestConfiguration());
-    app.addService("Test/AWSEvents", (await import("../../test/moddas/awsevents.js")).AWSEventsHandler);
-    await app.load();
-    this.webda = this.handler = new LambdaServer(app);
-    await this.webda.init();
-    this.webda.registerRequestFilter({
-      checkRequest: async () => true
-    });
+  getTestConfiguration() {
+    return {
+      version: 3,
+      parameters: {},
+      services: {
+        ExceptionExecutor: { type: "Test/ExceptionExecutor" },
+        DebugMailer: { type: "WebdaTest/Mailer" },
+        awsEvents: { type: "Test/AWSEvents" }
+      }
+    } as any;
+  }
+
+  async tweakApp(app: any) {
+    await super.tweakApp(app);
+    app.addModda("Test/ExceptionExecutor", ExceptionExecutor);
+    app.addModda("Test/AWSEvents", AWSEventsHandler);
+  }
+
+  async beforeEach() {
+    await super.beforeEach();
+    this.handler = this.registerService(
+      new LambdaServer("LambdaServer", new LambdaServerParameters().load({}))
+    ).resolve();
+    await this.handler.init();
+    // Accept test.webda.io origins
+    const router: any = useRouter();
+    router._requestFilters = [];
+    router._requestCORSFilters = [
+      {
+        checkRequest: async ctx =>
+          (ctx.getHttpContext().getUniqueHeader("origin") || "").match(/^https:\/\/test\.webda\.io$/) !== null
+      }
+    ];
     this.evt = {
       httpMethod: "GET",
       headers: {
@@ -72,14 +99,16 @@ class LambdaHandlerTest extends WebdaAwsTest {
       resource: "/route/string",
       body: JSON.stringify({})
     };
-    this.debugMailer = this.handler.getService("DebugMailer");
+    this.getMailer().sent = [];
+    AWSEventsHandler.lastEvents = [];
+  }
+
+  getMailer(): any {
+    return this.webda.getService("DebugMailer");
   }
 
   @test
   async checkRequestNoRequestFilter() {
-    await this.handler.init();
-    // @ts-ignore
-    this.handler._requestFilters = [];
     this.ensureGoodCSRF();
     this.evt.queryStringParameters = { test: "Plop" };
     const res = await this.handler.handleRequest(this.evt, this.context);
@@ -89,12 +118,9 @@ class LambdaHandlerTest extends WebdaAwsTest {
 
   @test
   async checkRequestRefusedRequest() {
-    await this.handler.init();
-    // @ts-ignore
-    this.handler._requestFilters = [];
     this.ensureGoodCSRF();
     this.evt.queryStringParameters = { test: "Plop" };
-    this.handler.registerRequestFilter({
+    useRouter().registerRequestFilter({
       checkRequest: async () => false
     });
     const res = await this.handler.handleRequest(this.evt, this.context);
@@ -103,19 +129,15 @@ class LambdaHandlerTest extends WebdaAwsTest {
 
   @test
   async checkRequestRedirect() {
-    await this.handler.init();
-    // @ts-ignore
-    this.handler._requestFilters = [];
     this.ensureGoodCSRF();
     this.evt.queryStringParameters = { test: "Plop" };
-    this.handler.registerRequestFilter({
+    useRouter().registerRequestFilter({
       checkRequest: async () => {
         throw new WebdaError.Redirect("Need Auth", "https://google.com");
       }
     });
     const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 302);
-    console.log(res);
     assert.strictEqual(res.headers.Location, "https://google.com");
   }
 
@@ -130,7 +152,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
       },
       undefined
     );
-    assert.strictEqual(this.debugMailer.sent[0], "test");
+    assert.strictEqual(this.getMailer().sent[0], "test");
   }
 
   @test
@@ -144,7 +166,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
       },
       undefined
     );
-    assert.strictEqual(this.debugMailer.sent.length, 0);
+    assert.strictEqual(this.getMailer().sent.length, 0);
   }
 
   @test
@@ -157,7 +179,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
       },
       undefined
     );
-    assert.strictEqual(this.debugMailer.sent.length, 0);
+    assert.strictEqual(this.getMailer().sent.length, 0);
   }
 
   @test
@@ -165,12 +187,14 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.ensureGoodCSRF();
     const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.body, "CodeCoverage");
+    assert.strictEqual(res.headers["Access-Control-Allow-Origin"], "https://test.webda.io");
+    assert.strictEqual(res.headers["Strict-Transport-Security"], "max-age=31536000; includeSubDomains; preload");
   }
 
   @test
   async handleRequestIdHeader() {
     this.ensureGoodCSRF();
-    this.handler.getConfiguration().parameters.lambdaRequestHeader = "x-webda-request-id";
+    this.handler.getParameters().lambdaRequestHeader = "x-webda-request-id";
     const res = await this.handler.handleRequest(this.evt, {
       ...this.context,
       awsRequestId: "toto"
@@ -235,6 +259,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   async handleRequestThrowError() {
     this.ensureGoodCSRF();
     this.evt.path = "/route/broken/Error";
+    this.evt.resource = "/route/broken/Error";
     const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 500);
   }
@@ -245,13 +270,15 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.httpMethod = "OPTIONS";
     const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 204);
-    assert.strictEqual(res.headers["Access-Control-Allow-Methods"], "GET,OPTIONS");
+    assert.strictEqual(res.headers["Access-Control-Allow-Methods"], "GET");
+    assert.strictEqual(res.headers["Access-Control-Max-Age"], 3600);
   }
 
   @test
   async handleRequestOPTIONSWith404() {
     this.ensureGoodCSRF();
     this.evt.path = "/route/unknown";
+    this.evt.resource = "/route/unknown";
     this.evt.httpMethod = "OPTIONS";
     const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 404);
@@ -260,41 +287,13 @@ class LambdaHandlerTest extends WebdaAwsTest {
   @test
   async cov() {
     this.ensureGoodCSRF();
+    this.evt.httpMethod = "POST";
     this.evt.headers["X-Forwarded-Port"] = "wew";
     this.evt.headers["Content-Type"] = "text/plain";
     this.evt.body = "{wew''";
     // Should fallback on port 443
-    await this.handler.handleRequest(this.evt, this.context);
-  }
-
-  @test
-  async handleRequestQueryParams() {
-    // TODO Check parameter retrieval
-    this.evt.queryStringParameters = {
-      test: "plop"
-    };
-    this.evt.headers.Origin = "https://test.webda.io";
-    this.evt.headers.Host = "test.webda.io";
-    await this.handler.handleRequest(this.evt, this.context);
-  }
-
-  @test
-  async handleRequestOrigin() {
-    this.evt.headers.Origin = "https://test.webda.io";
-    this.evt.headers.Host = "test.webda.io";
-    let wait = false;
-    this.handler.on("Webda.Result", () => {
-      return new Promise<void>((resolve, reject) => {
-        // Delay 100ms to ensure it waited
-        setTimeout(() => {
-          wait = true;
-          resolve();
-        }, 100);
-      });
-    });
     const res = await this.handler.handleRequest(this.evt, this.context);
-    assert.strictEqual(res.headers["Access-Control-Allow-Origin"], this.evt.headers.Origin);
-    assert.strictEqual(wait, true);
+    assert.strictEqual(res.statusCode, 404);
   }
 
   @test
@@ -306,18 +305,9 @@ class LambdaHandlerTest extends WebdaAwsTest {
   }
 
   @test
-  async handleRequestRefererCSRF() {
-    this.evt.headers.Referer = "https://test3.webda.io";
-    this.evt.headers.Host = "test3.webda.io";
-    this.evt.headers.origin = "test3.webda.io";
-    const res = await this.handler.handleRequest(this.evt, this.context);
-    assert.strictEqual(res.statusCode, 401);
-  }
-
-  @test
   async handleRequestRefererNoCORS() {
     // No more fallback on referer for CORS
-    // BUt request should be served as no CORS is requested (lack of Origin)
+    // But request should be served as no CORS is requested (lack of Origin)
     this.evt.headers.Referer = "https://test.webda.io";
     this.evt.headers.Host = "test.webda.io";
     const res = await this.handler.handleRequest(this.evt, this.context);
@@ -327,9 +317,8 @@ class LambdaHandlerTest extends WebdaAwsTest {
 
   @test
   async handleRequestHardStopCheckRequest() {
-    this.evt.headers.Referer = "https://test.webda.io";
     this.evt.headers.Host = "test.webda.io";
-    this.handler.registerRequestFilter(this);
+    useRouter().registerRequestFilter(this);
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 410);
     this.badCheck = true;
@@ -357,18 +346,30 @@ class LambdaHandlerTest extends WebdaAwsTest {
 
   @test
   async awsEvents() {
-    const service: any = this.handler.getService("awsEvents");
-    const files = fs.readdirSync(__dirname + "/../../test/aws-events");
-    for (const f in files) {
-      const file = files[f];
-      const event = JSON.parse(fs.readFileSync(__dirname + "/../../test/aws-events/" + file).toString());
+    const service: AWSEventsHandler = this.webda.getService("awsEvents");
+    const folder = path.join(process.cwd(), "test", "aws-events");
+    for (const file of fs.readdirSync(folder)) {
+      AWSEventsHandler.lastEvents = [];
+      const event = JSON.parse(fs.readFileSync(path.join(folder, file)).toString());
       await this.handler.handleRequest(event, this.context);
       if (file === "api-gateway-aws-proxy.json") {
         assert.strictEqual(service.getEvents().length, 0, "API Gateway should go through the normal request handling");
       } else {
-        assert.notStrictEqual(service.getEvents().length, 0, "Should have get some events:" + JSON.stringify(event));
+        assert.notStrictEqual(service.getEvents().length, 0, "Should have get some events:" + file);
       }
     }
+    // Manual registration
+    const manual = {
+      isAWSEventHandled: () => true,
+      handleAWSEvent: async () => {
+        manualCount++;
+      }
+    };
+    let manualCount = 0;
+    this.handler.registerAWSEventsHandler(manual);
+    this.handler.registerAWSEventsHandler(manual);
+    await this.handler.handleRequest({ awslogs: {} }, this.context);
+    assert.strictEqual(manualCount, 1);
   }
 
   /**

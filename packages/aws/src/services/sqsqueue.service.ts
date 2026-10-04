@@ -1,20 +1,32 @@
 import { ReceiveMessageRequest, SendMessageCommandInput, SQS } from "@aws-sdk/client-sqs";
 import { MessageReceipt, Queue, QueueParameters, WebdaError } from "@webda/core";
 import { createHash } from "crypto";
-import CloudFormationDeployer from "../deployers/cloudformation";
-import { AWSServiceParameters, CloudFormationContributor } from "./index";
+import { AWSServiceParameters, loadAWSParameters } from "./aws-parameters.js";
+import type { CloudFormationContributor, CloudFormationDeployerInfo } from "./contributors.js";
 
-export class SQSQueueParameters extends AWSServiceParameters(QueueParameters) {
+/**
+ * SQS Queue parameters
+ */
+export class SQSQueueParameters extends QueueParameters implements AWSServiceParameters {
+  /**
+   * Custom endpoint (localstack, minio, ...)
+   */
+  endpoint?: string;
+  /**
+   * Static credentials, default to the AWS environment variables
+   */
+  credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string };
+  /**
+   * AWS region
+   * @default "us-east-1"
+   */
+  region?: string;
+
   /**
    * Time to wait pending for an item
    * @default 20
    */
   WaitTimeSeconds?: number;
-  /**
-   * Endpoint to pass to the AWS client
-   * Useful for localstack
-   */
-  endpoint?: string;
   /**
    * Queue URL
    * @default ""
@@ -34,10 +46,17 @@ export class SQSQueueParameters extends AWSServiceParameters(QueueParameters) {
    */
   CloudFormation?: any;
 
-  constructor(params: any) {
-    super(params);
-    this.WaitTimeSeconds = this.WaitTimeSeconds ?? 20;
-    this.queue = this.queue ?? "";
+  /**
+   * @override
+   * @param params - raw parameters
+   * @returns this
+   */
+  load(params: any = {}): this {
+    super.load(params);
+    loadAWSParameters(this);
+    this.WaitTimeSeconds ??= 20;
+    this.queue ??= "";
+    return this;
   }
 }
 
@@ -54,15 +73,10 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
    * AWS SQS Client
    */
   sqs: SQS;
-  /**
-   * @inheritdoc
-   */
-  loadParameters(params: any) {
-    return new SQSQueueParameters(params);
-  }
 
   /**
-   * @inheritdoc
+   * Create the SQS client
+   * @returns this
    */
   async init(): Promise<this> {
     await super.init();
@@ -71,7 +85,8 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
   }
 
   /**
-   * @inheritdoc
+   * @override
+   * @returns approximate number of messages in the queue
    */
   async size(): Promise<number> {
     const res = await this.sqs.getQueueAttributes({
@@ -85,9 +100,11 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
   }
 
   /**
-   * @inheritdoc
+   * @override
+   * @param params - the message to send
    */
   async sendMessage(params: T): Promise<void> {
+    this.metrics.messages_sent.inc();
     const sqsParams: SendMessageCommandInput = {
       QueueUrl: this.parameters.queue,
       MessageBody: JSON.stringify(params)
@@ -102,7 +119,9 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
   }
 
   /**
-   * @inheritdoc
+   * @override
+   * @param proto - optional prototype to rehydrate the payload into
+   * @returns the received messages
    */
   async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
     const queueArg: ReceiveMessageRequest = {
@@ -123,14 +142,15 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
    * therefore we need to divide by 10 (the max number of group messaged) to get the number
    * of consumers
    *
-   * @returns
+   * @returns the number of consumers
    */
   getMaxConsumers(): number {
     return Math.ceil(this.parameters.maxConsumers / 10);
   }
 
   /**
-   * @inheritdoc
+   * @override
+   * @param receipt - the message receipt handle
    */
   async deleteMessage(receipt: string): Promise<void> {
     await this.sqs.deleteMessage({
@@ -140,13 +160,17 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
   }
 
   /**
-   * @inheritdoc
+   * Purge the queue (used in tests)
    */
   async __clean(): Promise<void> {
-    return this.__cleanWithRetry(false);
+    await this.__cleanWithRetry(false);
   }
 
-  private async __cleanWithRetry(fail): Promise<void> {
+  /**
+   * Purge the queue, retrying once if a purge is already in progress
+   * @param fail - throw on any error
+   */
+  private async __cleanWithRetry(fail: boolean): Promise<void> {
     try {
       await this.sqs.purgeQueue({
         QueueUrl: this.parameters.queue
@@ -157,14 +181,15 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
       }
       const delay = Math.floor(err.retryDelay * 1100);
       // 10% of margin
-      return new Promise(resolve => {
-        setTimeout(() => {
-          resolve(this.__cleanWithRetry(true));
-        }, delay);
-      });
+      await new Promise(resolve => setTimeout(resolve, delay));
+      await this.__cleanWithRetry(true);
     }
   }
 
+  /**
+   * Parse the queue url
+   * @returns the account id, region and queue name
+   */
   _getQueueInfosFromUrl() {
     let found = this.parameters.queue.match(/.*sqs\.(.*)\.amazonaws.com\/(\d+)\/(.*)/i);
     if (!found) {
@@ -182,11 +207,15 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
     };
   }
 
+  /**
+   * IAM policy required by the service
+   * @returns the policy statement
+   */
   getARNPolicy() {
     // Parse this._params.queue;
     const queue = this._getQueueInfosFromUrl();
     return {
-      Sid: this.constructor.name + this._name,
+      Sid: this.constructor.name + this.getName(),
       Effect: "Allow",
       Action: [
         "sqs:DeleteMessage",
@@ -199,7 +228,12 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
     };
   }
 
-  getCloudFormation(deployer: CloudFormationDeployer) {
+  /**
+   * CloudFormation resources for the queue
+   * @param deployer - the deployer requesting the resources
+   * @returns the resources
+   */
+  getCloudFormation(deployer: CloudFormationDeployerInfo) {
     if (this.parameters.CloudFormationSkip) {
       return {};
     }
@@ -207,7 +241,7 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
     const resources = {};
     this.parameters.CloudFormation = this.parameters.CloudFormation || {};
     this.parameters.CloudFormation.Queue = this.parameters.CloudFormation.Queue || {};
-    resources[this._name + "Queue"] = {
+    resources[this.getName() + "Queue"] = {
       Type: "AWS::SQS::Queue",
       Properties: {
         ...this.parameters.CloudFormation.Queue,

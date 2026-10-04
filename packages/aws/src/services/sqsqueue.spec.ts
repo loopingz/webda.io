@@ -1,146 +1,139 @@
-import { GetQueueUrlCommandOutput, PurgeQueueCommand, SQS } from "@aws-sdk/client-sqs";
+import { PurgeQueueCommand, SQS } from "@aws-sdk/client-sqs";
 import { QueueTest } from "@webda/core/lib/queues/queue.spec";
-import { TestApplication } from "@webda/core/lib/test";
 import { suite, test, timeout } from "@webda/test";
-import { getCommonJS } from "@webda/utils";
 import * as assert from "assert";
 import { mockClient } from "aws-sdk-client-mock";
-import * as path from "path";
-import { checkLocalStack, defaultCreds } from "../index.spec";
-import { SQSQueue } from "./sqsqueue";
-const { __dirname } = getCommonJS(import.meta.url);
+import { checkLocalStack, defaultCreds, LOCALSTACK, localstackParams } from "../../test/fixture.js";
+import { SQSQueue, SQSQueueParameters } from "./sqsqueue.service.js";
+
+const QUEUE = `${LOCALSTACK}/000000000000/webda-test`;
+const FIFO_QUEUE = `${LOCALSTACK}/000000000000/webda-test2.fifo`;
 
 @suite
 class SQSQueueTest extends QueueTest {
-  info: GetQueueUrlCommandOutput;
   queue: SQSQueue;
-  async before() {
-    process.env.AWS_ACCESS_KEY_ID = "plop";
-    process.env.AWS_SECRET_ACCESS_KEY = "plop";
+
+  async beforeAll() {
+    process.env.AWS_ACCESS_KEY_ID = defaultCreds.accessKeyId;
+    process.env.AWS_SECRET_ACCESS_KEY = defaultCreds.secretAccessKey;
     process.env.AWS_DEFAULT_REGION = "us-east-1";
     await checkLocalStack();
-    await super.before();
     await this.install();
-    this.queue = await this.addService(SQSQueue, {
-      endpoint: "http://localhost:4566",
-      queue: "http://localhost:4566/000000000000/webda-test",
-      maxConsumers: 1
-    });
+    await super.beforeAll();
   }
 
-  async tweakApp(app: TestApplication) {
-    super.tweakApp(app);
-    app.addService(
-      "test/awsevents",
-      (await import(path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/")))).default
-    );
+  async beforeEach() {
+    await super.beforeEach();
+    this.queue = this.registerService(
+      new SQSQueue(
+        "SQSQueue",
+        new SQSQueueParameters().load({
+          endpoint: LOCALSTACK,
+          queue: QUEUE,
+          maxConsumers: 1
+        })
+      )
+    ).resolve();
+    await this.queue.init();
   }
 
   async install() {
-    const sqs = new SQS({
-      endpoint: "http://localhost:4566",
-      credentials: defaultCreds,
-      region: "us-east-1"
+    const sqs = new SQS(localstackParams);
+    await sqs.createQueue({ QueueName: "webda-test" });
+    await sqs.createQueue({
+      QueueName: "webda-test2.fifo",
+      Attributes: <any>{
+        FifoQueue: "true"
+      }
     });
-    try {
-      this.info = await sqs.getQueueUrl({
-        QueueName: "webda-test",
-        QueueOwnerAWSAccountId: "000000000000"
-      });
-    } catch (err) {
-      await sqs.createQueue({
-        QueueName: "webda-test"
-      });
-      this.info = await sqs.getQueueUrl({
-        QueueName: "webda-test",
-        QueueOwnerAWSAccountId: "000000000000"
-      });
-    }
-    try {
-      this.info = await sqs.getQueueUrl({
-        QueueName: "webda-test2.fifo",
-        QueueOwnerAWSAccountId: "000000000000"
-      });
-    } catch (err) {
-      await sqs.createQueue({
-        QueueName: "webda-test2.fifo",
-        Attributes: <any>{
-          FifoQueue: "true"
-        }
-      });
-      this.info = await sqs.getQueueUrl({
-        QueueName: "webda-test2.fifo",
-        QueueOwnerAWSAccountId: "000000000000"
-      });
-    }
   }
 
   @test
   @timeout(80000)
   async basic() {
-    const queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
-    queue.getParameters().queue = "http://localhost:4566/000000000000/webda-test";
-    await queue.__clean();
     // Update timeout to 80000ms as Purge can only be sent once every 60s
-    await this.simple(queue, true);
-    queue.getParameters().CloudFormationSkip = true;
-    assert.deepStrictEqual(queue.getCloudFormation(null), {});
+    await this.queue.__clean();
+    await this.simple(this.queue, true);
+    this.queue.getParameters().CloudFormationSkip = true;
+    assert.deepStrictEqual(this.queue.getCloudFormation(null), {});
   }
 
   @test
   async fifo() {
-    const queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
-    queue.getParameters().queue = "http://localhost:4566/000000000000/webda-test2.fifo";
-    queue.getParameters().MessageGroupId = "myGroup";
-    await queue.sendMessage({});
+    this.queue.getParameters().queue = FIFO_QUEUE;
+    this.queue.getParameters().MessageGroupId = "myGroup";
+    this.queue.getParameters().WaitTimeSeconds = 1;
+    // Deduplication is based on the content: use a unique message
+    const fifo = Date.now();
+    await this.queue.sendMessage({ fifo });
+    let found = false;
+    for (let i = 0; i < 10 && !found; i++) {
+      for (const message of await this.queue.receiveMessage<any>()) {
+        found ||= message.Message.fifo === fifo;
+        await this.queue.deleteMessage(message.ReceiptHandle);
+      }
+    }
+    assert.ok(found);
+  }
+
+  @test
+  cloudFormation() {
+    assert.deepStrictEqual(this.queue.getCloudFormation({ getDefaultTags: tags => tags ?? [] }), {
+      SQSQueueQueue: {
+        Type: "AWS::SQS::Queue",
+        Properties: {
+          QueueName: "webda-test",
+          Tags: []
+        }
+      }
+    });
   }
 
   @test
   ARN() {
-    const queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
-    const arn = queue.getARNPolicy();
+    const arn = this.queue.getARNPolicy();
     assert.strictEqual(arn.Action.indexOf("sqs:SendMessage") >= 0, true);
     assert.strictEqual(arn.Resource[0], "arn:aws:sqs:us-east-1:000000000000:webda-test");
+    this.queue.getParameters().queue = "https://sqs.eu-west-1.amazonaws.com/123456789012/myqueue";
+    assert.deepStrictEqual(this.queue._getQueueInfosFromUrl(), {
+      accountId: "123456789012",
+      region: "eu-west-1",
+      name: "myqueue"
+    });
   }
 
   @test
   getQueueInfos() {
-    const queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
-    queue.getParameters().queue = "none";
-    let error = false;
-    try {
-      const info = queue._getQueueInfosFromUrl();
-    } catch (ex) {
-      error = true;
-    }
-    assert.strictEqual(error, true);
+    this.queue.getParameters().queue = "none";
+    assert.throws(() => this.queue._getQueueInfosFromUrl(), /SQS Queue URL malformed/);
   }
 
   @test
   async purgeQueueError() {
-    const queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
-    let mock = mockClient(SQS)
-      .on(PurgeQueueCommand)
-      .callsFake(async () => {
-        const error: any = new Error("AWS.SimpleQueueService.PurgeQueueInProgress");
-        error.name = "AWS.SimpleQueueService.PurgeQueueInProgress";
-        error.retryDelay = 1;
-        throw error;
-      });
-    await assert.rejects(() => queue.__clean(), /AWS.SimpleQueueService.PurgeQueueInProgress/);
-    mock.restore();
-    mock = mockClient(SQS)
-      .on(PurgeQueueCommand)
-      .callsFake(async () => {
-        throw new Error("Other");
-      });
-    await assert.rejects(() => queue.__clean(), /Other/);
-    mock.restore();
+    let mock = mockClient(SQS);
+    mock.on(PurgeQueueCommand).callsFake(async () => {
+      const error: any = new Error("AWS.SimpleQueueService.PurgeQueueInProgress");
+      error.name = "AWS.SimpleQueueService.PurgeQueueInProgress";
+      error.retryDelay = 1;
+      throw error;
+    });
+    try {
+      await assert.rejects(() => this.queue.__clean(), /AWS.SimpleQueueService.PurgeQueueInProgress/);
+    } finally {
+      mock.restore();
+    }
+    mock = mockClient(SQS);
+    mock.on(PurgeQueueCommand).rejects(new Error("Other"));
+    try {
+      await assert.rejects(() => this.queue.__clean(), /Other/);
+    } finally {
+      mock.restore();
+    }
   }
 
   @test
   getMaxConsumers() {
-    const queue = new SQSQueue(this.webda, "plop", { maxConsumers: 30 });
+    const queue = new SQSQueue("plop", new SQSQueueParameters().load({ maxConsumers: 30 }));
     assert.strictEqual(queue.getMaxConsumers(), 3);
     queue.getParameters().maxConsumers = 3;
     assert.strictEqual(queue.getMaxConsumers(), 1);

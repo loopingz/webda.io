@@ -68,6 +68,12 @@ jobs:
           external-url: "http://storage.gcs.127.0.0.1.nip.io:4443"
           scheme: http
 
+      # The Firestore emulator requires a Java 21+ JRE
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
       - uses: "google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db" # v3.0.1
         with:
           install_components: "beta,cloud-firestore-emulator,pubsub-emulator"

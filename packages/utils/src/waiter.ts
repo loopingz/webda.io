@@ -183,27 +183,44 @@ export class CancelablePromise<T = void> extends Promise<T> {
     onCancel: () => Promise<void> = undefined
   ) {
     let localReject;
+    // `this` is not available until super() returns, but the executor runs (and may settle) synchronously
+    const ref: { self?: CancelablePromise<T> } = {};
+    let settled = false;
+    const done = () => {
+      settled = true;
+      if (ref.self) {
+        CancelablePromise.unregisterInteruptableProcess(ref.self);
+      }
+    };
     super((resolve, reject) => {
       localReject = async () => {
         if (onCancel) {
           await onCancel();
         }
         reject("Cancelled");
-        CancelablePromise.unregisterInteruptableProcess(this);
+        done();
       };
-      callback(
-        (...args) => {
-          resolve(...args);
-          CancelablePromise.unregisterInteruptableProcess(this);
-        },
-        (...args) => {
-          reject(...args);
-          CancelablePromise.unregisterInteruptableProcess(this);
-        }
-      );
+      try {
+        callback(
+          (...args) => {
+            resolve(...args);
+            done();
+          },
+          (...args) => {
+            reject(...args);
+            done();
+          }
+        );
+      } catch (err) {
+        reject(err);
+        done();
+      }
     });
+    ref.self = this;
     this.cancel = localReject;
-    CancelablePromise.registerInteruptableProcess(this);
+    if (!settled) {
+      CancelablePromise.registerInteruptableProcess(this);
+    }
   }
 
   /** Set of all active `CancelablePromise` instances. */
@@ -253,13 +270,17 @@ export class CancelableLoopPromise extends Promise<void> {
   constructor(callback: (canceller: () => Promise<void>) => Promise<void>, onCancel: () => Promise<void> = undefined) {
     let localReject;
     let shouldRun = true;
+    // `this` is not available until super() returns, but the first iteration starts synchronously
+    const ref: { self?: CancelableLoopPromise } = {};
     super(resolve => {
       localReject = async () => {
         if (onCancel) {
           await onCancel();
         }
         shouldRun = false;
-        CancelablePromise.unregisterInteruptableProcess(this);
+        if (ref.self) {
+          CancelablePromise.unregisterInteruptableProcess(ref.self);
+        }
       };
       const loop = () => {
         if (shouldRun) {
@@ -268,8 +289,11 @@ export class CancelableLoopPromise extends Promise<void> {
       };
       resolve(callback(localReject).then(loop));
     });
+    ref.self = this;
     this.cancel = localReject;
-    CancelablePromise.registerInteruptableProcess(this);
+    if (shouldRun) {
+      CancelablePromise.registerInteruptableProcess(this);
+    }
   }
 
   /**

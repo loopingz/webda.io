@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import {  Logger } from "@webda/workout";
+import { Logger } from "@webda/workout";
 import {
   CancelableLoopPromise,
   CancelablePromise,
@@ -136,6 +136,75 @@ class WaiterTest {
     });
     await assert.rejects(() => promise, /BOUZOUF/);
     await CancelablePromise.cancelAll();
+  }
+
+  @test
+  async syncSettledCancelablePromise() {
+    // Settled synchronously from the executor: must settle normally and not stay registered
+    let promise = new CancelablePromise<number>(resolve => resolve(1));
+    assert.ok(!CancelablePromise.promises.has(promise));
+    assert.strictEqual(await promise, 1);
+
+    promise = new CancelablePromise<number>((_resolve, reject) => reject(new Error("SYNC_REJECT")));
+    assert.ok(!CancelablePromise.promises.has(promise));
+    await assert.rejects(() => promise, /SYNC_REJECT/);
+
+    promise = new CancelablePromise<number>(() => {
+      throw new Error("SYNC_THROW");
+    });
+    assert.ok(!CancelablePromise.promises.has(promise));
+    await assert.rejects(() => promise, /SYNC_THROW/);
+  }
+
+  @test
+  async asyncExecutorRejectBeforeAwait() {
+    // An async executor rejecting before its first await used to leak a
+    // "Must call super constructor" unhandled rejection
+    const unhandled = [];
+    const listener = err => unhandled.push(err);
+    process.on("unhandledRejection", listener);
+    try {
+      const promise = new CancelablePromise(async (_resolve, reject) => {
+        reject(new Error("ASYNC_REJECT"));
+      });
+      await assert.rejects(() => promise, /ASYNC_REJECT/);
+      await new Promise(resolve => setTimeout(resolve, 10));
+      assert.deepStrictEqual(unhandled, []);
+      assert.ok(!CancelablePromise.promises.has(promise));
+    } finally {
+      process.off("unhandledRejection", listener);
+    }
+  }
+
+  @test
+  async cancelPendingCancelablePromise() {
+    let cancelled = false;
+    const promise = new CancelablePromise(
+      () => {
+        // never settles
+      },
+      async () => {
+        cancelled = true;
+      }
+    );
+    assert.ok(CancelablePromise.promises.has(promise));
+    await promise.cancel();
+    await assert.rejects(() => promise, /Cancelled/);
+    assert.ok(cancelled);
+    assert.ok(!CancelablePromise.promises.has(promise));
+  }
+
+  @test
+  async loopPromiseSyncCancel() {
+    // Cancelling synchronously from the first iteration without onCancel
+    let i = 0;
+    const promise = new CancelableLoopPromise(async canceller => {
+      i++;
+      await canceller();
+    });
+    await promise;
+    assert.strictEqual(i, 1);
+    assert.ok(!CancelablePromise.promises.has(promise as any));
   }
 
   @test

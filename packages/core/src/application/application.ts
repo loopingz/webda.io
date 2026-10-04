@@ -24,6 +24,7 @@ import { JSONSchema7 } from "json-schema";
 import { InstanceCache } from "../cache/cache.js";
 import type { Service } from "../services/service.js";
 import { ModelMetadata } from "@webda/compiler";
+import { applyDeployment, getDeploymentFile, loadDeployment, type Deployment } from "./deployment.js";
 import type { BehaviorMetadata } from "@webda/compiler";
 
 /**
@@ -115,8 +116,14 @@ export class Application {
   protected baseConfiguration: Configuration;
   /**
    * Current deployment
+   *
+   * Defaults to the `WEBDA_DEPLOYMENT` environment variable
    */
-  protected currentDeployment: string;
+  protected currentDeployment: string = process.env.WEBDA_DEPLOYMENT || undefined;
+  /**
+   * Definition of the current deployment, once loaded
+   */
+  protected deployment: Deployment;
 
   /**
    * Contains definitions of current application
@@ -232,8 +239,57 @@ export class Application {
   @InstanceCache()
   async load(): Promise<this> {
     await this.loadConfiguration(this.configurationFile);
+    this.applyCurrentDeployment();
     await this.loadModule(this.baseConfiguration.cachedModules);
     return this;
+  }
+
+  /**
+   * Select the deployment to apply on the configuration
+   *
+   * Must be called before {@link load}
+   *
+   * @param name - deployment name, a `deployments/<name>` file of the application
+   * @returns this
+   */
+  setCurrentDeployment(name: string): this {
+    this.currentDeployment = name;
+    return this;
+  }
+
+  /**
+   * Get the definition of the current deployment
+   *
+   * It includes the `units` and `resources` that are not part of the application configuration
+   *
+   * @returns the deployment or undefined if no deployment is selected
+   */
+  getDeployment(): Deployment | undefined {
+    return this.deployment;
+  }
+
+  /**
+   * Apply the current deployment parameters and services on the configuration
+   *
+   * A packaged application already contains its deployment: the file is only required
+   * when the deployment differs from the packaged one
+   */
+  protected applyCurrentDeployment(): void {
+    const name = this.currentDeployment;
+    if (!name) {
+      return;
+    }
+    const project = this.baseConfiguration.cachedModules?.project;
+    const packaged = project?.deployment?.name === name;
+    if (packaged && !existsSync(join(this.applicationPath, "deployments"))) {
+      return;
+    }
+    this.deploymentFile = getDeploymentFile(this.applicationPath, name);
+    this.deployment = loadDeployment(this.applicationPath, name);
+    applyDeployment(this.baseConfiguration, this.deployment);
+    if (project) {
+      project.deployment = { ...project.deployment, name };
+    }
   }
 
   /**
@@ -640,7 +696,7 @@ export class Application {
    * @returns the result string
    */
   getCurrentDeployment(): string {
-    return this.baseConfiguration.cachedModules.project.deployment.name;
+    return this.baseConfiguration.cachedModules?.project?.deployment?.name ?? this.currentDeployment;
   }
 
   /**

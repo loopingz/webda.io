@@ -135,17 +135,11 @@ export async function executeServiceCommand(
   services: { [key: string]: AbstractService },
   serviceFilter?: string[]
 ): Promise<number> {
-  // Filter services if requested
-  let targetServices = cmdInfo.services;
-  if (serviceFilter && serviceFilter.length > 0) {
-    targetServices = targetServices.filter(s =>
-      serviceFilter.some(f => s.name.endsWith(f) || s.name === f)
-    );
-    if (targetServices.length === 0) {
-      useLog("ERROR", `No services match filter '${serviceFilter.join(",")}' for command '${cmdName}'`);
-      return 1;
-    }
-  }
+  // Filter services if requested, by type (e.g. "HttpServer") or by instance name (e.g. a deployment unit)
+  const filtered = serviceFilter && serviceFilter.length > 0;
+  const typeMatches = (svc: ServiceCommandTarget) => !filtered || serviceFilter.some(f => svc.name.endsWith(f) || svc.name === f);
+  const instanceMatches = (service: AbstractService) =>
+    filtered && typeof service.getName === "function" && serviceFilter.includes(service.getName());
 
   // Build positional args from command arg definitions; an omitted argument keeps
   // its slot as undefined so the following ones stay in position
@@ -161,8 +155,9 @@ export async function executeServiceCommand(
   // Execute each matching service handler. A single target type can map to
   // multiple configured instances (e.g. two HttpServer services on different
   // ports); dispatch to every instance whose constructor matches the type.
-  for (const svc of targetServices) {
-    const matches: AbstractService[] = [];
+  let filterMatched = !filtered;
+  for (const svc of cmdInfo.services) {
+    let matches: AbstractService[] = [];
     // Direct lookup — works when the modda name is used verbatim as service key
     if (services[svc.name]) matches.push(services[svc.name]);
     // Plus every other configured instance of the same class
@@ -173,6 +168,11 @@ export async function executeServiceCommand(
         matches.push(instanceService);
       }
     }
+    if (!typeMatches(svc)) {
+      matches = matches.filter(instanceMatches);
+      if (matches.length === 0) continue;
+    }
+    filterMatched = true;
     if (matches.length === 0) {
       useLog("WARN", `Service '${svc.name}' not found, skipping`);
       continue;
@@ -193,6 +193,10 @@ export async function executeServiceCommand(
     }
   }
 
+  if (!filterMatched) {
+    useLog("ERROR", `No services match filter '${serviceFilter.join(",")}' for command '${cmdName}'`);
+    return 1;
+  }
   if (executed === 0) {
     useLog("ERROR", `No service instance found to run command '${cmdName}'`);
     return 1;

@@ -81,9 +81,19 @@ function stringParameter(templateString: string, replacements: any = {}) {
  * @returns the result
  */
 export function templateVariables(object: any, replacements: any = {}): any {
-  replacements = { ...replacements, ...useApplication().getProjectInfo(), now: Date.now() };
+  return replaceVariables(object, { ...replacements, ...useApplication().getProjectInfo(), now: Date.now() });
+}
+
+/**
+ * Replace the `${...}` variables in every string of an object with exactly the given replacements
+ *
+ * @param object - the string or object, not modified
+ * @param replacements - the variables available to the templates
+ * @returns a copy with the variables replaced
+ */
+export function replaceVariables<T = any>(object: T, replacements: Record<string, any>): T {
   if (typeof object === "string") {
-    return stringParameter(object, replacements);
+    return stringParameter(object, replacements) as T;
   }
    
   return JSON.parse(

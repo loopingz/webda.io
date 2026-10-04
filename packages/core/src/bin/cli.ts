@@ -576,6 +576,64 @@ export function resolveCapabilities(app: Application, requires: string[]): void 
 }
 
 /**
+ * Shutdown sequence of a CLI command: stop Core once, then exit
+ *
+ * The command finishing and a signal can both trigger it: only the first call counts.
+ *
+ * @param core - the Core to stop
+ * @param core.stop - stop every service
+ * @param exit - process exit, replaceable for tests
+ * @returns `shutdown(code)` to stop then exit with the code, and `interrupt()` for SIGINT/SIGTERM
+ */
+export function createCommandShutdown(
+  core: { stop(): Promise<void> },
+  exit: (code: number) => void = code => process.exit(code)
+): { shutdown: (code: number) => Promise<void>; interrupt: () => Promise<void> } {
+  let stopping: Promise<void> | undefined;
+  const shutdown = (code: number): Promise<void> => {
+    stopping ??= (async () => {
+      try {
+        await core.stop();
+      } catch (err) {
+        useLog("ERROR", "Cannot stop the application", err);
+        code ||= 1;
+      }
+      exit(code);
+    })();
+    return stopping;
+  };
+  const interrupt = async (): Promise<void> => {
+    // Settle the long-running commands (serve, worker) before stopping Core
+    try {
+      await CancelablePromise.cancelAll();
+    } catch (err) {
+      useLog("WARN", "Cannot cancel running processes", err);
+    }
+    await shutdown(0);
+  };
+  return { shutdown, interrupt };
+}
+
+/**
+ * Run `interrupt` once on SIGINT or SIGTERM (Kubernetes stops pods with SIGTERM)
+ *
+ * Later signals are ignored while shutting down: on a terminal, Ctrl+C reaches both
+ * the launcher (which forwards it) and the CLI.
+ *
+ * @param interrupt - the interruption handler
+ */
+function onInterrupt(interrupt: () => Promise<void>): void {
+  let interrupted = false;
+  const handler = () => {
+    if (interrupted) return;
+    interrupted = true;
+    void interrupt();
+  };
+  process.on("SIGINT", handler);
+  process.on("SIGTERM", handler);
+}
+
+/**
  * Run a service command with file watching: compiles first, then restarts on changes.
  *
  * @param appPath - application root path
@@ -604,10 +662,15 @@ async function runWithWatch(
     await app.load();
     core = new Core(app);
     await bootCoreForCommand(core, cmdName, cmdInfo);
-    const exitCode = await executeServiceCommand(cmdName, cmdInfo, args, core.getServices(), serviceFilter);
-    if (exitCode !== 0) {
-      useLog("ERROR", `Command '${cmdName}' exited with code ${exitCode}`);
-    }
+    // Long-running commands (serve, worker) stay pending until a restart stops Core: do not wait for them
+    executeServiceCommand(cmdName, cmdInfo, args, core.getServices(), serviceFilter).then(
+      exitCode => {
+        if (exitCode !== 0) {
+          useLog("ERROR", `Command '${cmdName}' exited with code ${exitCode}`);
+        }
+      },
+      err => useLog("ERROR", `Command '${cmdName}' failed`, err)
+    );
   };
 
   const restart = async () => {
@@ -659,12 +722,11 @@ async function runWithWatch(
   await firstBuildReady;
   await bootCore();
 
-  // Handle SIGINT
-  process.once("SIGINT", async () => {
+  // Handle SIGINT and SIGTERM
+  const { interrupt } = createCommandShutdown({ stop: async () => core?.stop() });
+  onInterrupt(async () => {
     compiler.stopWatch();
-    await Promise.all([...CancelablePromise.promises].map(p => p.cancel()));
-    if (core) await core.stop();
-    process.exit(0);
+    await interrupt();
   });
 
   // Keep process alive
@@ -788,11 +850,7 @@ if (isMain) {
         await ensureServiceInConfig(app, serviceName);
 
         const core = new Core(app);
-        process.once("SIGINT", async () => {
-          await Promise.all([...CancelablePromise.promises].map(p => p.cancel()));
-          await core.stop();
-          process.exit(0);
-        });
+        onInterrupt(createCommandShutdown(core).interrupt);
         await core.init();
 
         // Find the service
@@ -849,23 +907,25 @@ if (isMain) {
           await runWithWatch(appPath, app, matchedCommand.name, cmdInfo, matchedCommand.args, serviceFilter);
         } else {
           const core = new Core(app);
-          process.once("SIGINT", async () => {
-            await Promise.all([...CancelablePromise.promises].map(p => p.cancel()));
-            await core.stop();
-            process.exit(0);
-          });
+          const { shutdown, interrupt } = createCommandShutdown(core);
+          onInterrupt(interrupt);
           await bootCoreForCommand(core, matchedCommand.name, cmdInfo);
 
-          const exitCode = await executeServiceCommand(
-            matchedCommand.name,
-            cmdInfo,
-            matchedCommand.args,
-            core.getServices(),
-            serviceFilter
-          );
-          if (exitCode !== 0) {
-            process.exit(exitCode);
+          // Long-running commands (serve, worker) only settle once stopped or interrupted
+          let exitCode: number;
+          try {
+            exitCode = await executeServiceCommand(
+              matchedCommand.name,
+              cmdInfo,
+              matchedCommand.args,
+              core.getServices(),
+              serviceFilter
+            );
+          } catch (err) {
+            useLog("ERROR", `Command '${matchedCommand.name}' failed`, err);
+            exitCode = 1;
           }
+          await shutdown(exitCode);
         }
       }
     } catch (err) {

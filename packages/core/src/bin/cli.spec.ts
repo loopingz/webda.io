@@ -1,8 +1,10 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import type { JSONSchema7 } from "json-schema";
+import { CancelablePromise } from "@webda/utils";
 import {
   buildCli,
+  createCommandShutdown,
   loadOperations,
   addServiceCommandsToCli,
   resolveLogStream,
@@ -331,5 +333,44 @@ class CliLoggingOptionsTest {
     assert.strictEqual(shouldPatchConsole(["serve"]), true);
     assert.strictEqual(shouldPatchConsole(["serve", "--no-console-patch"]), false);
     assert.strictEqual(shouldPatchConsole(["--console-patch=false"]), false);
+  }
+}
+
+@suite
+class CliCommandShutdownTest {
+  @test
+  async stopsCoreThenExitsOnce() {
+    const calls: string[] = [];
+    const core = { stop: async () => void calls.push("stop") };
+    const { shutdown } = createCommandShutdown(core, code => void calls.push(`exit ${code}`));
+    // The command finishing and a signal can both ask for shutdown: only the first one counts
+    await Promise.all([shutdown(0), shutdown(2)]);
+    assert.deepStrictEqual(calls, ["stop", "exit 0"]);
+  }
+
+  @test
+  async failedStopExitsNonZero() {
+    const codes: number[] = [];
+    const core = {
+      stop: async () => {
+        throw new Error("STOP_FAILED");
+      }
+    };
+    await createCommandShutdown(core, code => void codes.push(code)).shutdown(0);
+    assert.deepStrictEqual(codes, [1]);
+  }
+
+  @test
+  async interruptCancelsRunningCommandsAndExits0() {
+    const calls: string[] = [];
+    const serving = new CancelablePromise(
+      () => {},
+      async () => void calls.push("cancel")
+    );
+    const settled = serving.catch(err => err);
+    const core = { stop: async () => void calls.push("stop") };
+    await createCommandShutdown(core, code => void calls.push(`exit ${code}`)).interrupt();
+    assert.strictEqual(await settled, "Cancelled");
+    assert.deepStrictEqual(calls, ["cancel", "stop", "exit 0"]);
   }
 }

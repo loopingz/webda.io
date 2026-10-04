@@ -5,5 +5,4 @@ packages:
   - docs
   # Exclude packages that are not yet ready
   - "!packages/gcp"
-  - "!packages/elasticsearch"
   - "!packages/aws"

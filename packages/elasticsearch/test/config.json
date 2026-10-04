@@ -1,0 +1,22 @@
+{
+  "version": 3,
+  "parameters": {},
+  "services": {
+    "ESService": {
+      "type": "Webda/ElasticSearchService",
+      "client": {
+        "node": "http://localhost:9200"
+      },
+      "indexes": {
+        "users": {
+          "model": "Webda/User",
+          "url": "/users/search"
+        },
+        "simpleusers": {
+          "model": "Webda/SimpleUser",
+          "url": "/simpleusers/search"
+        }
+      }
+    }
+  }
+}

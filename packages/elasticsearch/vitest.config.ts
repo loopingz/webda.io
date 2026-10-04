@@ -6,6 +6,8 @@ export default defineConfig({
   clearScreen: false,
   test: {
     allowOnly: true,
+    testTimeout: 30000,
+    hookTimeout: 30000,
     coverage: {
       enabled: true,
       provider: "v8",

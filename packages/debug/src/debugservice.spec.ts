@@ -891,6 +891,26 @@ class DebugServiceDebugCommandTest {
   }
 
   @test
+  async debugCancelStopsTheTui() {
+    mockHttpServer = undefined;
+    const service = new DebugService();
+    service.resolve();
+    try {
+      const debugging = service.debug(0, 0, false);
+      while (!(service as any).tui) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      const stop = vi.spyOn((service as any).tui, "stop");
+      // SIGINT/SIGTERM cancel the running command
+      await debugging.cancel();
+      await assert.rejects(() => debugging, /Cancelled/);
+      assert.strictEqual(stop.mock.calls.length, 1);
+    } finally {
+      await service.stop();
+    }
+  }
+
+  @test
   async debugHandlesUndefinedHttpServer() {
     mockHttpServer = undefined;
 

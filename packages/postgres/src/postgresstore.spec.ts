@@ -140,6 +140,28 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
   }
 
   @test
+  async createWithoutPrimaryKeyPersistsGeneratedUuid() {
+    // Check both the EventRepository returned by the store and the underlying PostgresRepository
+    const repos: any[] = [
+      this.store!.getRepository(useModel("Webda/Ident")),
+      this.store!.getRepositories().find(r => r instanceof PostgresRepository)
+    ];
+    for (const [repo, data] of repos.flatMap(r => [
+      [r, { _type: "google" }],
+      [r, { _type: "google", uuid: undefined }]
+    ])) {
+      const item: any = await repo.create(<any>data);
+      assert.ok(item.uuid, "a uuid should be generated");
+      assert.notStrictEqual(item.uuid, "undefined");
+      // The stored row carries the generated uuid, so reading it back keeps it
+      const res = await this.store!.getClient().query(`SELECT data FROM smoke_idents WHERE uuid=$1`, [item.uuid]);
+      assert.strictEqual(res.rowCount, 1);
+      assert.strictEqual(res.rows[0].data.uuid, item.uuid);
+      assert.strictEqual((await repo.get(item.uuid)).uuid, item.uuid);
+    }
+  }
+
+  @test
   async createViewsWithEmptyPatternIsNoop() {
     this.store!.getParameters().views = [];
     this.store!.getParameters().viewPrefix = "view_";

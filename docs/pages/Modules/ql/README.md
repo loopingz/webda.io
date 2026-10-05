@@ -70,11 +70,27 @@ const merged = WebdaQL.PrependCondition(
 // => 'status = "published" AND authorId = "u-123" ORDER BY title ASC LIMIT 10'
 ```
 
+### Parameters
+
+Never concatenate user input into a query. Pass values as parameters instead, with `?` and an array or `:name` and an object:
+
+```typescript
+await Task.query("owner = ? AND status IN ?", [user, ["open", "late"]]);
+await Task.query("owner = :owner OR reviewer = :owner", { owner: user });
+
+WebdaQL.bind("priority >= ? LIMIT ?", [2, 10]); // priority >= 2 LIMIT 10
+```
+
+Placeholders are only allowed where a value is expected, values are escaped by type, and `= ?` / `!= ?` with `null` become `IS NULL` / `IS NOT NULL`. Template literals passed straight to a query method are escaped the same way at compile time by `webdac`. See [Parameters](_media/Parameters.md).
+
 ### API reference
 
 | Export | Description |
 |--------|-------------|
 | `QueryValidator` | Parses a WQL string; `eval(obj)` evaluates it, `toString()` normalizes it |
+| `bind(query, params)` | Binds `?` / `:name` placeholders to escaped values |
+| `escape(parts, values)` | Escapes template literal values (used by the compile-time rewrite) |
+| `validateSyntax(query)` | Checks a query against the grammar without evaluating it; placeholders allowed |
 | `PrependCondition(query, condition)` | Merges a condition in front of an existing query, preserving ORDER BY / LIMIT / OFFSET |
 | `ExpressionBuilder` | ANTLR visitor that builds the optimized expression AST |
 | `AndExpression` | Logic AND node |
@@ -87,4 +103,5 @@ const merged = WebdaQL.PrependCondition(
 
 - [WQL Syntax reference](_media/Syntax.md)
 - [Operators](_media/Operators.md)
+- [Parameters](_media/Parameters.md) — binding values safely
 - [Store Translators](_media/Translators.md) — how each Store backend converts WQL

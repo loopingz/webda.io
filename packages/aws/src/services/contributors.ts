@@ -1,8 +1,7 @@
 /**
  * Minimal view of the CloudFormation deployer used by contributors
  *
- * The deployers are not part of the build until a deployment framework
- * is available again, so services only rely on this shape.
+ * Services only rely on this shape so they do not import the deployer
  */
 export interface CloudFormationDeployerInfo {
   /**

@@ -18,11 +18,10 @@ export default defineConfig({
       enabled: true,
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.spec.ts", "src/index.ts", "src/deployers/**"],
+      exclude: ["src/**/*.spec.ts", "src/index.ts"],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",
-    include: ["src/**/*.spec.ts"],
-    exclude: ["src/deployers/**"]
+    include: ["src/**/*.spec.ts"]
   }
 });

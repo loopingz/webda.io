@@ -379,6 +379,7 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
           expression.value
         );
       }
+      // IS NULL / IS NOT NULL map natively: `data#>>'{a}'` is NULL for a missing key and a JSON null
       return new SQLComparisonExpression(
         expression.operator,
         this.mapExpressionAttribute(expression.attribute),

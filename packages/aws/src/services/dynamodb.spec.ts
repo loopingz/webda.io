@@ -252,6 +252,24 @@ class DynamoDBTest extends WebdaAwsTest {
   }
 
   @test
+  async queryIsNull() {
+    await this.repo.create({ uuid: "set", displayName: "Set" } as any);
+    const client = (<any>this.repo).client;
+    const TableName = this.repo.getTable();
+    const stored = (await client.get({ TableName, Key: { uuid: "set" } })).Item;
+    // Same item without the attribute and with a NULL typed attribute, written raw
+    const { displayName: _, ...missing } = stored;
+    await client.put({ TableName, Item: { ...missing, uuid: "missing" } });
+    await client.put({ TableName, Item: { ...stored, uuid: "null", displayName: null } });
+    const uuids = async (query: string) => (await this.repo.query(query)).results.map(r => r.getUUID()).sort();
+    assert.deepStrictEqual(await uuids("displayName IS NULL"), ["missing", "null"]);
+    assert.deepStrictEqual(await uuids("displayName IS NOT NULL"), ["set"]);
+    // On the hash key (Query) with a filter
+    assert.deepStrictEqual(await uuids('uuid = "null" AND displayName IS NULL'), ["null"]);
+    assert.deepStrictEqual(await uuids('uuid = "null" AND displayName IS NOT NULL'), []);
+  }
+
+  @test
   async queryScan() {
     await Promise.all(
       [...Array(20).keys()].map(i =>
@@ -330,6 +348,9 @@ class DynamoDBTest extends WebdaAwsTest {
         } as any)
       )
     );
+    // IS NULL / IS NOT NULL on the sort key cannot be a key condition: filtered in memory
+    assert.strictEqual((await repo.query('state = "CA" AND order IS NOT NULL')).results.length, 10);
+    assert.strictEqual((await repo.query('state = "CA" AND order IS NULL')).results.length, 0);
     let res = await repo.query('state = "CA" AND order < 20 ORDER BY order DESC');
     assert.deepStrictEqual(
       res.results.map((r: any) => r.order),

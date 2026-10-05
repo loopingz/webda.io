@@ -699,6 +699,11 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
           filter.children.push(child);
           return;
         }
+        // Function conditions (IS NULL / IS NOT NULL) are not allowed on a sort key either
+        if (isSortKey && (child.operator === "IS NULL" || child.operator === "IS NOT NULL")) {
+          filter.children.push(child);
+          return;
+        }
 
         // Subfields like team.id needs to be #a1.#a2
         const attr = `a${count++}`;
@@ -709,6 +714,18 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
           ExpressionAttributeNames[subAttr] = v;
         });
         ExpressionAttributeNames[`#${attr}`] = child.attribute[0];
+
+        // IS NULL matches a missing attribute or one stored with the NULL type (JS null).
+        // Empty strings are not stored (see cleanObject), so they also match IS NULL here.
+        if (child.operator === "IS NULL" || child.operator === "IS NOT NULL") {
+          ExpressionAttributeValues[`:${attr}`] = "NULL";
+          FilterExpression.push(
+            child.operator === "IS NULL"
+              ? `(attribute_not_exists(${fullAttr}) OR attribute_type(${fullAttr}, :${attr}))`
+              : `(attribute_exists(${fullAttr}) AND NOT attribute_type(${fullAttr}, :${attr}))`
+          );
+          return;
+        }
 
         let valueExpression = `:${attr}`;
 

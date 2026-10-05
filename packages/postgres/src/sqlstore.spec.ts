@@ -45,6 +45,11 @@ describe("SQLComparisonExpression", () => {
 });
 
 describe("PostgresRepository query translation", () => {
+  it("translates IS NULL and IS NOT NULL", async () => {
+    expect(await where("name IS NULL")).toBe("data#>>'{name}' IS NULL");
+    expect(await where("a.b IS NOT NULL AND c = 'x'")).toBe("data#>>'{a,b}' IS NOT NULL AND data#>>'{c}' = 'x'");
+  });
+
   it("escapes a quote injection attempt", async () => {
     expect(await where("name = 'x'' OR 1=1 --'")).toBe("data#>>'{name}' = 'x'' OR 1=1 --'");
   });

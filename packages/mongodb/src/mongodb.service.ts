@@ -115,6 +115,12 @@ export function mapExpression(expression: WebdaQL.Expression): any {
         return { [attribute]: { $in: expression.value } };
       case "LIKE":
         return { [attribute]: WebdaQL.ComparisonExpression.likeToRegex(<string>expression.value) };
+      case "IS NULL":
+        // Matches documents where the field is null or missing
+        return { [attribute]: null };
+      case "IS NOT NULL":
+        // Matches documents where the field exists and is not null
+        return { [attribute]: { $ne: null } };
     }
   }
   return {};

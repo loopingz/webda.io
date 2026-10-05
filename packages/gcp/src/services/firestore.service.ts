@@ -472,6 +472,11 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
         filter.children.push(child);
         return;
       }
+      if (child.operator === "IS NULL") {
+        // Firestore `== null` does not match documents missing the field
+        filter.children.push(child);
+        return;
+      }
       let operator: FirebaseFirestore.WhereFilterOp;
       const attribute = child.attribute.join(".");
       queryAttributes.add(attribute);
@@ -509,7 +514,9 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
           filter.children.push(child);
           return;
         }
-        if (child.operator !== "!=") {
+        // Firestore `!= null` matches documents where the field exists and is not null
+        const isNotNull = child.operator === "IS NOT NULL";
+        if (child.operator !== "!=" && !isNotNull) {
           rangeAttribute ??= attribute;
           // Range need to apply on only one attribute
           if (rangeAttribute !== attribute) {
@@ -517,9 +524,9 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
             return;
           }
         }
-        operator = <FirebaseFirestore.WhereFilterOp>child.operator;
+        operator = isNotNull ? "!=" : <FirebaseFirestore.WhereFilterOp>child.operator;
       }
-      query = query.where(attribute, operator, child.value);
+      query = query.where(attribute, operator, child.operator === "IS NOT NULL" ? null : child.value);
     });
 
     // OrderBy have quite some complexity with FireStore

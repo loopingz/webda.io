@@ -1,4 +1,6 @@
 import { Service } from "@webda/core";
+import { WaitFor, WaitLinearDelay } from "@webda/utils";
+import { vi } from "vitest";
 import { WebdaApplicationTest } from "@webda/core/lib/test/index.js";
 
 /**
@@ -89,4 +91,14 @@ export class WebdaAwsTest extends WebdaApplicationTest {
     process.env.AWS_DEFAULT_REGION = "us-east-1";
     await super.beforeAll();
   }
+}
+
+/**
+ * Make the waits of a deployer immediate
+ * @param deployer - the deployer
+ */
+export function fastWait(deployer: any) {
+  vi.spyOn(deployer, "waitFor").mockImplementation((callback, retries, title) =>
+    WaitFor(callback, retries, title, undefined, WaitLinearDelay(1))
+  );
 }

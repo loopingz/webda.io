@@ -16,14 +16,6 @@ import * as path from "node:path";
 import { writeZip, ZipEntry } from "./zip.js";
 
 /**
- * Packages imported at runtime by the framework but only declared as development dependencies
- *
- * `@webda/core` imports `@webda/tsc-esm` and `@webda/models` imports `@webda/serialize`:
- * they are added to the package until their package.json declare them as dependencies
- */
-export const RUNTIME_INCLUDES = ["@webda/tsc-esm", "@webda/serialize"];
-
-/**
  * Type of the service handling the Lambda invocations in the package
  */
 export const LAMBDA_SERVER_TYPE = "Webda/LambdaServer";
@@ -101,7 +93,7 @@ export async function createLambdaPackage(
     // Do not package a previous package
     ignores: [...(options.package?.ignores ?? []), path.relative(app.applicationPath, zipPath).split(path.sep)[0]],
     modules: {
-      includes: [...new Set([...RUNTIME_INCLUDES, ...(options.package?.modules?.includes ?? [])])],
+      includes: options.package?.modules?.includes ?? [],
       excludes: [...(options.package?.modules?.excludes ?? []), ...(options.customAwsSdk ? [] : ["aws-sdk"])]
     }
   };

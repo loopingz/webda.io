@@ -1,0 +1,54 @@
+{
+  "name": "@webda/oci",
+  "version": "4.0.0-beta.1",
+  "description": "Build and push OCI container images of a Webda application without Docker",
+  "keywords": [
+    "webda-module",
+    "oci",
+    "container",
+    "docker"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "webdac build",
+    "build:watch": "webdac build --watch",
+    "pretest": "npm run build",
+    "test": "vitest run",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*"
+  },
+  "dependencies": {
+    "@webda/core": "workspace:*",
+    "@webda/workout": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "@vitest/coverage-v8": "^4.1.2",
+    "@webda/compiler": "workspace:^",
+    "@webda/test": "workspace:*",
+    "typescript": "7.1.0-dev.20260929.1",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
+  },
+  "files": [
+    "lib",
+    "webda.module.json"
+  ],
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "webda": {
+    "namespace": "Webda"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "license": "LGPL-3.0-only"
+}

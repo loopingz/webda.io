@@ -1,0 +1,294 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/ContainerDeployer": {
+      "Import": "lib/container.service:ContainerDeployer",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "PackageOptions": {
+            "additionalProperties": false,
+            "description": "Options of {@link packageApplication}",
+            "properties": {
+              "excludePatterns": {
+                "default": [
+                  "\\.d\\.ts$"
+                ],
+                "description": "Regular expressions on the source path of the files to skip",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "ignores": {
+                "description": "Additional top-level entries of the application to skip",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "modules": {
+                "$ref": "#/definitions/package%24modules",
+                "description": "Dependencies to add or remove from the application production dependencies"
+              }
+            },
+            "type": "object"
+          },
+          "Record<string, RegistryCredentials>": {
+            "additionalProperties": {
+              "$ref": "#/definitions/RegistryCredentials"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "Record<string, string>": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "RegistryCredentials": {
+            "additionalProperties": false,
+            "description": "Credentials of a registry",
+            "properties": {
+              "identityToken": {
+                "description": "Identity token (OAuth2 refresh token) as stored by `docker login` for some registries",
+                "type": "string"
+              },
+              "password": {
+                "description": "Password or access token used with the user name",
+                "type": "string"
+              },
+              "token": {
+                "description": "Registry bearer token sent as is, without token exchange",
+                "type": "string"
+              },
+              "username": {
+                "description": "User name",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "package$modules": {
+            "additionalProperties": false,
+            "properties": {
+              "excludes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "includes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Parameters of the {@link ContainerDeployer}\n\nEvery string can use the deployment templates: `${package.version}`, `${git.commit}`,\n`${deployment}`, `${deployer.name}`, `${env.MY_VAR}`, ...",
+        "properties": {
+          "baseImage": {
+            "default": "node:22-slim",
+            "description": "Base image, `scratch` for none",
+            "type": "string"
+          },
+          "cmd": {
+            "default": [
+              "serve",
+              "--bind",
+              "0.0.0.0"
+            ],
+            "description": "Command of the image, the arguments of the entrypoint",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "credentials": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20RegistryCredentials%3E",
+            "description": "Credentials per registry host, they take precedence over `~/.docker/config.json`\n\nUse templates to read them from the environment: `{ \"ghcr.io\": { \"username\": \"${env.GHCR_USER}\", \"password\": \"${env.GHCR_TOKEN}\" } }`"
+          },
+          "entrypoint": {
+            "default": [
+              "node",
+              "<workdir>/node_modules/@webda/core/lib/bin/cli.js"
+            ],
+            "description": "Entrypoint of the image",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "env": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+            "default": {
+              "NODE_ENV": "production"
+            },
+            "description": "Environment variables"
+          },
+          "exposedPorts": {
+            "default": [
+              "18080/tcp"
+            ],
+            "description": "Exposed ports",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "image": {
+            "description": "Repository to push to, without tag: `ghcr.io/my-org/my-app`\n\nRequired to push.",
+            "type": "string"
+          },
+          "insecureRegistries": {
+            "description": "Registries reached over plain http, `localhost` and `127.0.0.1` always are",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "labels": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%3E",
+            "description": "Labels, added to the default OCI ones (version, revision, source, title)"
+          },
+          "mtime": {
+            "default": "the SOURCE_DATE_EPOCH environment variable, or 0",
+            "description": "Modification time of the files and creation time of the image, in seconds",
+            "type": "number"
+          },
+          "output": {
+            "default": ".webda/oci/${deployer.name}",
+            "description": "Output of `container build`: an OCI layout folder, or a tar archive when ending with `.tar`\n\nRelative to the application folder. The folder keeps the downloaded base layers between builds.",
+            "type": "string"
+          },
+          "package": {
+            "$ref": "#/definitions/PackageOptions",
+            "description": "Options of the application packaging"
+          },
+          "platforms": {
+            "default": [
+              "linux/amd64"
+            ],
+            "description": "Platforms to build, several platforms produce a multi-platform index",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tags": {
+            "default": [
+              "${git.version}"
+            ],
+            "description": "Tags of the image\n\nInvalid characters are replaced by `-`, so the snapshot version `1.2.4+20261004120000`\nbecomes `1.2.4-20261004120000`.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "user": {
+            "description": "User the container runs as, the base image one by default",
+            "type": "string"
+          },
+          "workdir": {
+            "default": "/app",
+            "description": "Folder of the application in the image",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "ContainerDeployer"
+      },
+      "Configuration": "lib/container.service:ContainerDeployerParameters",
+      "capabilities": [
+        "deployer"
+      ],
+      "commands": {
+        "container build": {
+          "description": "Build the OCI image of the application into a layout or archive",
+          "method": "build",
+          "args": {
+            "output": {
+              "type": "string"
+            }
+          }
+        },
+        "container push": {
+          "description": "Build the OCI image of the application and push it",
+          "method": "push",
+          "args": {}
+        },
+        "deploy": {
+          "description": "Build and push the OCI image of the application",
+          "method": "deploy",
+          "args": {}
+        }
+      }
+    }
+  },
+  "models": {},
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "challenge": {
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
+        },
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    }
+  },
+  "behaviors": {},
+  "sourceDigest": "1785d11f261698bc1d21d21ab86b5ab1"
+}

@@ -14,8 +14,9 @@ export type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
 
 /**
  * Thrown by `escape` when an interpolated value is not representable as a
- * WebdaQL literal (object, function, symbol, NaN, Infinity, nested array, or a
- * null value anywhere but after `=` / `!=`).
+ * WebdaQL literal (object, function, symbol, NaN, Infinity, a number needing an
+ * exponent, an empty or nested array, or a null value anywhere but after `=` /
+ * `!=`), and by `bind` when parameters do not match the query placeholders.
  */
 export class WebdaQLError extends Error {
   /**
@@ -33,7 +34,7 @@ export class WebdaQLError extends Error {
  * Type-aware WebdaQL value escaper. Called by the rewritten output of any
  * template literal that flows into a `WebdaQLString<T>` parameter:
  *
- *     `name = '${n}' AND age = ${a}`
+ *     `name = ${n} AND age = ${a}`
  *
  * is rewritten by the qlvalidator transformer to:
  *
@@ -41,7 +42,9 @@ export class WebdaQLError extends Error {
  *
  * Each value is escaped according to its runtime type, then concatenated
  * with the surrounding `parts` to form a parameterised query string that
- * cannot be used to inject grammar.
+ * cannot be used to inject grammar. Strings are quoted by the escaping, so
+ * the template must not quote the interpolation itself. Queries built at
+ * runtime use the same escaping through `bind()` and `?` / `:name` parameters.
  *
  * @param parts - the static string fragments from the template literal
  * @param values - the interpolated values to escape and interleave
@@ -84,6 +87,11 @@ function appendNull(out: string): string {
 }
 
 /**
+ * Numbers WebdaQL can write: an optional minus sign, digits and an optional decimal part
+ */
+const NUMBER_LITERAL = /^-?\d+(\.\d+)?$/;
+
+/**
  * Escape a single value to its WebdaQL literal form.
  *
  * @param value - the runtime value to convert to a WebdaQL literal
@@ -96,14 +104,19 @@ export function escapeValue(value: unknown): string {
   }
   if (typeof value === "string") return `'${value.replace(/\\/g, "\\\\").replace(/'/g, "''")}'`;
   if (typeof value === "number") {
-    if (!Number.isFinite(value)) {
+    const literal = String(value);
+    // WebdaQL numbers are plain decimals: NaN, Infinity and exponent forms (1e+21) cannot be written
+    if (!NUMBER_LITERAL.test(literal)) {
       throw new WebdaQLError(`Cannot embed ${value} in a WebdaQL query`);
     }
-    return String(value);
+    return literal;
   }
   if (typeof value === "boolean") return value ? "TRUE" : "FALSE";
   if (value instanceof Date) return `'${value.toISOString().replace(/\\/g, "\\\\").replace(/'/g, "''")}'`;
   if (Array.isArray(value)) {
+    if (value.length === 0) {
+      throw new WebdaQLError("Empty arrays are not representable in WebdaQL");
+    }
     const parts: string[] = [];
     for (const item of value) {
       if (Array.isArray(item)) {
@@ -111,7 +124,7 @@ export function escapeValue(value: unknown): string {
       }
       parts.push(escapeValue(item));
     }
-    return `(${parts.join(", ")})`;
+    return `[${parts.join(", ")}]`;
   }
   throw new WebdaQLError(`Cannot embed value of type ${typeof value} in a WebdaQL query`);
 }

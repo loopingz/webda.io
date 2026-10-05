@@ -32,10 +32,20 @@ function run(parse?: (query: string) => unknown) {
 describe("WebdaQL validation", () => {
   it("flags an unknown attribute and suggests the nearest match", () => {
     const { diagnostics } = run();
-    const unknown = diagnostics.filter(d => d.code === WQL_CODES.UNKNOWN_ATTRIBUTE);
+    const unknown = diagnostics.filter(
+      d => d.code === WQL_CODES.UNKNOWN_ATTRIBUTE && d.messageText.includes("'titel'")
+    );
     expect(unknown).toHaveLength(1);
-    expect(unknown[0].messageText).toContain("'titel'");
     expect(unknown[0].messageText).toContain("Did you mean 'title'?");
+  });
+
+  it("checks the attributes of a query with ? and :name placeholders", () => {
+    const { diagnostics } = run();
+    const unknown = diagnostics.filter(d => d.code === WQL_CODES.UNKNOWN_ATTRIBUTE);
+    expect(unknown.map(d => d.messageText.match(/'([^']+)' in/)?.[1]).sort()).toEqual(["tilte", "titel"]);
+    expect(unknown.find(d => d.messageText.includes("'tilte'"))?.messageText).toContain("Did you mean 'title'?");
+    // Placeholders are values, never attributes
+    expect(diagnostics.some(d => /'(t|createdAt)' in/.test(d.messageText))).toBe(false);
   });
 
   it("accepts a query whose attributes all exist", () => {
@@ -62,6 +72,14 @@ describe("WebdaQL referenced attributes", () => {
     // Keywords are not attributes, and IS needs surrounding whitespace
     expect(referencedAttributes("this = 1 AND notes IS NOT NULL")).toEqual(["this", "notes"]);
   });
+
+  it("ignores ? and :name placeholders, which are values", () => {
+    expect(referencedAttributes("owner = :owner AND tags IN ? AND age >= ? LIMIT ?").sort()).toEqual([
+      "age",
+      "owner",
+      "tags"
+    ]);
+  });
 });
 
 describe("WebdaQL rewriting", () => {
@@ -74,6 +92,9 @@ describe("WebdaQL rewriting", () => {
   it("leaves plain string literals alone and imports escape once", () => {
     const { text } = run();
     expect(text).toContain(`this.find("title = 'x'")`);
+    // A query with placeholders is bound at runtime from its parameters, never rewritten
+    expect(text).toContain(`this.findWith("createdAt > ? AND title = ?", [id, "x"])`);
+    expect(text).toContain(`this.findWith("tilte = :t", { t: id })`);
     expect((text.match(/import \{ escape \}/g) ?? []).length).toBe(1);
   });
 });

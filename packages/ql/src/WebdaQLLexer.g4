@@ -77,6 +77,13 @@ DESC: 'DESC';
 DQUOTED_STRING_LITERAL:                      DQUOTA_STRING;
 SQUOTED_STRING_LITERAL:                      SQUOTA_STRING;
 INTEGER_LITERAL:                             INT_DIGIT+;
+// Signed or decimal numbers; an unsigned integer stays an INTEGER_LITERAL (defined first)
+NUMBER_LITERAL:                              '-'? INT_DIGIT+ ('.' INT_DIGIT+)?;
+
+// Parameters, bound by `bind()` before the query is evaluated
+
+POSITIONAL_PARAMETER:                        '?';
+NAMED_PARAMETER:                             ':' [a-zA-Z_] [a-zA-Z0-9_]*;
 
 // Identifiers
 

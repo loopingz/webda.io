@@ -42,6 +42,10 @@ class WebdaQLStringTest {
     assert.strictEqual(escape(["age = ", ""], [42]), "age = 42");
     assert.strictEqual(escape(["x = ", ""], [3.14]), "x = 3.14");
     assert.strictEqual(escape(["x = ", ""], [-7]), "x = -7");
+    assert.ok(new QueryValidator(escape(["x = ", " AND y = ", ""], [-7, 3.14])).eval({ x: -7, y: 3.14 }));
+    // Numbers WebdaQL cannot write are rejected rather than rendered as `1e+21`
+    assert.throws(() => escape(["x = ", ""], [1e21]), WebdaQLError);
+    assert.throws(() => escape(["x = ", ""], [1e-7]), WebdaQLError);
   }
 
   @test
@@ -104,17 +108,18 @@ class WebdaQLStringTest {
 
   @test
   escapeEmitsStringArraysAsParenthesisedCommaSeparated() {
-    assert.strictEqual(escape(["tags IN ", ""], [["a", "b", "c"]]), "tags IN ('a', 'b', 'c')");
+    assert.strictEqual(escape(["tags IN ", ""], [["a", "b", "c"]]), "tags IN ['a', 'b', 'c']");
+    assert.ok(new QueryValidator(escape(["tags IN ", ""], [["a", "b", "c"]])).eval({ tags: "b" }));
   }
 
   @test
   escapeEmitsNumberArraysTheSameWay() {
-    assert.strictEqual(escape(["x IN ", ""], [[1, 2, 3]]), "x IN (1, 2, 3)");
+    assert.strictEqual(escape(["x IN ", ""], [[1, 2, 3]]), "x IN [1, 2, 3]");
   }
 
   @test
   escapeSupportsMixedScalarArrays() {
-    assert.strictEqual(escape(["x IN ", ""], [[1, "two", true]]), "x IN (1, 'two', TRUE)");
+    assert.strictEqual(escape(["x IN ", ""], [[1, "two", true]]), "x IN [1, 'two', TRUE]");
   }
 
   @test
@@ -125,12 +130,13 @@ class WebdaQLStringTest {
 
   @test
   escapeEscapesEmbeddedQuotesInsideStringArrays() {
-    assert.strictEqual(escape(["x IN ", ""], [["O'Brien"]]), "x IN ('O''Brien')");
+    assert.strictEqual(escape(["x IN ", ""], [["O'Brien"]]), "x IN ['O''Brien']");
   }
 
   @test
-  escapeEmitsEmptyArraysAsParens() {
-    assert.strictEqual(escape(["x IN ", ""], [[]]), "x IN ()");
+  escapeRejectsEmptyArrays() {
+    // WebdaQL sets cannot be empty
+    assert.throws(() => escape(["x IN ", ""], [[]]), WebdaQLError);
   }
 
   @test

@@ -26,10 +26,23 @@ export class QueryService extends Service<QueryParameters> {
     void query;
   }
 
+  /**
+   * Run a query with bound parameters.
+   * @param query - the query, with `?` or `:name` placeholders
+   * @param params - the parameter values
+   * @returns nothing
+   */
+  findWith(query: WebdaQLString<Doc>, params?: unknown[] | Record<string, unknown>): void {
+    void query;
+    void params;
+  }
+
   /** Call sites the generator must inspect. */
   run(id: string): void {
     this.find("title = 'x'");
     this.find(`uuid = '${id}'`);
     this.find("titel = 'typo'");
+    this.findWith("createdAt > ? AND title = ?", [id, "x"]);
+    this.findWith("tilte = :t", { t: id });
   }
 }

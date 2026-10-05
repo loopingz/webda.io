@@ -13,10 +13,12 @@ import {
   IsNullExpressionContext,
   LikeExpressionContext,
   LimitExpressionContext,
+  NumberLiteralContext,
   OffsetExpressionContext,
   OrLogicExpressionContext,
   OrderExpressionContext,
   OrderFieldExpressionContext,
+  ParameterContext,
   SetExpressionContext,
   StringLiteralContext,
   SubExpressionContext,
@@ -24,6 +26,7 @@ import {
   WebdaqlContext
 } from "./WebdaQLParserParser.js";
 import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor.js";
+import { WebdaQLError } from "./webdaql-string.js";
 
 /**
  * Primitive value types supported by WebdaQL expressions
@@ -158,7 +161,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * @param ctx - the limit expression context
    */
   visitLimitExpression(ctx: LimitExpressionContext) {
-    this.limit = this.visitIntegerLiteral(ctx.getChild(1) as IntegerLiteralContext);
+    this.limit = this.visit(ctx.getChild(1)) as unknown as number;
   }
 
   /**
@@ -166,7 +169,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * @param ctx - the offset expression context
    */
   visitOffsetExpression(ctx: OffsetExpressionContext) {
-    this.offset = this.visitStringLiteral(ctx.getChild(1) as StringLiteralContext);
+    this.offset = this.visit(ctx.getChild(1)) as unknown as string;
   }
 
   /**
@@ -404,6 +407,26 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    */
   visitIntegerLiteral(ctx: IntegerLiteralContext): number {
     return parseInt(ctx.text);
+  }
+
+  /**
+   * Read a signed or decimal number literal
+   * @param ctx - the number literal context
+   * @returns the parsed number
+   */
+  visitNumberLiteral(ctx: NumberLiteralContext): number {
+    return parseFloat(ctx.text);
+  }
+
+  /**
+   * A `?` or `:name` placeholder reaching evaluation was never bound
+   * @param ctx - the parameter context
+   * @throws {WebdaQLError} always: use `bind()` or pass the parameters to `query()`
+   */
+  visitParameter(ctx: ParameterContext): never {
+    throw new WebdaQLError(
+      `Unbound parameter '${ctx.text}' in WebdaQL query: pass its value with the query parameters`
+    );
   }
 }
 
@@ -818,6 +841,58 @@ function normalizeFilter(filter: Expression): Expression {
 }
 
 /**
+ * Error listener turning lexer and parser errors into exceptions
+ *
+ * Without it, ANTLR logs the error and recovers: an unknown character was dropped,
+ * so `x = #1` was evaluated as `x = 1`.
+ *
+ * @param sql - the query, for the error message
+ * @returns the error listener
+ */
+function throwingErrorListener(sql: string) {
+  return {
+    syntaxError: (
+      _recognizer: Recognizer<any, any>,
+      _offendingSymbol: any,
+      _line: number,
+      _charPositionInLine: number,
+      msg: string,
+      _e: RecognitionException | undefined
+    ) => {
+      throw new SyntaxError(`${msg} (Query: ${sql})`);
+    }
+  };
+}
+
+/**
+ * Create a lexer and a parser for a query, both throwing on errors
+ * @param sql - the query string
+ * @returns the lexer and the parser
+ */
+function createParser(sql: string): { lexer: WebdaQLLexer; parser: WebdaQLParserParser } {
+  const lexer = new WebdaQLLexer(CharStreams.fromString(sql || ""));
+  lexer.removeErrorListeners();
+  lexer.addErrorListener(throwingErrorListener(sql));
+  const parser = new WebdaQLParserParser(new CommonTokenStream(lexer));
+  parser.removeErrorListeners();
+  parser.addErrorListener(throwingErrorListener(sql));
+  return { lexer, parser };
+}
+
+/**
+ * Check a query against the WebdaQL grammar without evaluating it
+ *
+ * Unlike {@link QueryValidator}, unbound `?` / `:name` parameters are accepted, so a
+ * query can be checked before its parameters are bound.
+ *
+ * @param query - the query string
+ * @throws {SyntaxError} if the query does not follow the grammar
+ */
+export function validateSyntax(query: string): void {
+  createParser(query).parser.webdaql();
+}
+
+/**
  * Parses a WebdaQL query string and provides evaluation, merging, and serialization
  *
  * This is the main entry point for working with WebdaQL queries. It handles:
@@ -850,22 +925,8 @@ export class QueryValidator {
     protected sql: string,
     builder: ExpressionBuilder = new ExpressionBuilder()
   ) {
-    this.lexer = new WebdaQLLexer(CharStreams.fromString(sql || ""));
-    const tokenStream = new CommonTokenStream(this.lexer);
-    const parser = new WebdaQLParserParser(tokenStream);
-    parser.removeErrorListeners();
-    parser.addErrorListener({
-      syntaxError: (
-        _recognizer: Recognizer<Token, any>,
-        _offendingSymbol: Token,
-        _line: number,
-        _charPositionInLine: number,
-        msg: string,
-        _e: RecognitionException
-      ) => {
-        throw new SyntaxError(`${msg} (Query: ${sql})`);
-      }
-    });
+    const { lexer, parser } = createParser(sql);
+    this.lexer = lexer;
     // Parse the input, where `compilationUnit` is whatever entry point you defined
     this.tree = parser.webdaql();
     this.builder = builder;

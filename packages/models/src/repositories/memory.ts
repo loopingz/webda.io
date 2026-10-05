@@ -1,4 +1,5 @@
 import type { ArrayElement } from "@webda/tsc-esm";
+import type { QueryParameters } from "@webda/ql";
 import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable.js";
 import type { Helpers, JSONed, SelfJSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";
 import { deserialize, serialize, serializeRaw } from "@webda/serialize";
@@ -274,10 +275,17 @@ export class MemoryRepository<
    * server-side WHERE clause.
    *
    * @param query - the query string or parsed query
+   * @param params - values for the `?` or `:name` placeholders of a query string
    * @returns the query results with optional continuation token
    */
-  async query(query: string | Query): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
+  async query(
+    query: string | Query,
+    params?: QueryParameters
+  ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
     WebdaQL ??= await import("@webda/ql");
+    if (typeof query === "string" && params !== undefined) {
+      query = WebdaQL.bind(query, params);
+    }
     const ids = this.buildClassFilterIdentifiers();
     let parsed: Query;
 
@@ -388,9 +396,13 @@ export class MemoryRepository<
   /**
    * Add iterator support
    * @param query - the query string
+   * @param params - values for the `?` or `:name` placeholders
    */
-  async *iterate(query: string): AsyncGenerator<InstanceType<T>, any, any> {
+  async *iterate(query: string, params?: QueryParameters): AsyncGenerator<InstanceType<T>, any, any> {
     WebdaQL ??= await import("@webda/ql");
+    if (params !== undefined) {
+      query = WebdaQL.bind(query, params);
+    }
     /* c8 ignore next */
     const q: Query = WebdaQL.parse(query); // Ensure it is valid
     if (!q.limit) {

@@ -22,16 +22,18 @@ A complete WQL query is composed of four optional sections, always in this order
 | Limit | `LIMIT <integer>` | Maximum number of results |
 | Offset | `OFFSET "<token>"` | Continuation token for pagination |
 
+Values (and the `LIMIT` / `OFFSET` values) can also be `?` or `:name` placeholders, bound from parameters: see [Parameters](./Parameters.md).
+
 ## Filter expressions
 
 ```antlr
 expression
-    : identifier LIKE stringLiteral           #likeExpression
-    | identifier IN setExpression             #inExpression
-    | identifier CONTAINS stringLiteral       #containsExpression
+    : identifier LIKE (stringLiteral | parameter)       #likeExpression
+    | identifier IN (setExpression | parameter)         #inExpression
+    | identifier CONTAINS (stringLiteral | parameter)   #containsExpression
     | identifier IS NULL                      #isNullExpression
     | identifier IS NOT NULL                  #isNotNullExpression
-    | identifier (= | != | >= | <= | < | >) values   #binaryComparisonExpression
+    | identifier (= | != | >= | <= | < | >) (values | parameter)   #binaryComparisonExpression
     | expression AND expression               #andLogicExpression
     | expression OR expression                #orLogicExpression
     | LR_BRACKET expression RR_BRACKET        #subExpression
@@ -46,8 +48,12 @@ WQL supports three primitive value types in filter expressions:
 | Type | Examples |
 |------|---------|
 | **String** | `'published'`, `"hello world"` (single or double quotes) |
-| **Integer** | `42`, `0`, `-5` |
+| **Number** | `42`, `0`, `-5`, `3.14` (no exponent form such as `1e3`) |
 | **Boolean** | `TRUE`, `FALSE` |
+
+Sets, used by `IN`, are written with square brackets: `status IN ['draft', 'review']`. They cannot be empty.
+
+A character the grammar does not know (for example `#`) is a syntax error; it is never silently ignored.
 
 ## Identifiers
 

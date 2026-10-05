@@ -14,6 +14,7 @@ import { SubExpressionContext } from "./WebdaQLParserParser.js";
 import { AtomExpressionContext } from "./WebdaQLParserParser.js";
 import { BooleanAtomContext } from "./WebdaQLParserParser.js";
 import { IntegerAtomContext } from "./WebdaQLParserParser.js";
+import { NumberAtomContext } from "./WebdaQLParserParser.js";
 import { StringAtomContext } from "./WebdaQLParserParser.js";
 import { ValuesAtomContext } from "./WebdaQLParserParser.js";
 import { IdentifierAtomContext } from "./WebdaQLParserParser.js";
@@ -29,6 +30,8 @@ import { IdentifierContext } from "./WebdaQLParserParser.js";
 import { BooleanLiteralContext } from "./WebdaQLParserParser.js";
 import { StringLiteralContext } from "./WebdaQLParserParser.js";
 import { IntegerLiteralContext } from "./WebdaQLParserParser.js";
+import { NumberLiteralContext } from "./WebdaQLParserParser.js";
+import { ParameterContext } from "./WebdaQLParserParser.js";
 import { SetExpressionContext } from "./WebdaQLParserParser.js";
 
 /**
@@ -193,6 +196,19 @@ export interface WebdaQLParserListener extends ParseTreeListener {
   exitIntegerAtom?: (ctx: IntegerAtomContext) => void;
 
   /**
+   * Enter a parse tree produced by the `numberAtom`
+   * labeled alternative in `WebdaQLParserParser.values`.
+   * @param ctx the parse tree
+   */
+  enterNumberAtom?: (ctx: NumberAtomContext) => void;
+  /**
+   * Exit a parse tree produced by the `numberAtom`
+   * labeled alternative in `WebdaQLParserParser.values`.
+   * @param ctx the parse tree
+   */
+  exitNumberAtom?: (ctx: NumberAtomContext) => void;
+
+  /**
    * Enter a parse tree produced by the `stringAtom`
    * labeled alternative in `WebdaQLParserParser.values`.
    * @param ctx the parse tree
@@ -299,13 +315,13 @@ export interface WebdaQLParserListener extends ParseTreeListener {
 
   /**
    * Enter a parse tree produced by the `values`
-   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesatomatom`.
+   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesvaluesatomatom`.
    * @param ctx the parse tree
    */
   enterValues?: (ctx: ValuesContext) => void;
   /**
    * Exit a parse tree produced by the `values`
-   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesatomatom`.
+   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesvaluesatomatom`.
    * @param ctx the parse tree
    */
   exitValues?: (ctx: ValuesContext) => void;
@@ -364,6 +380,28 @@ export interface WebdaQLParserListener extends ParseTreeListener {
    * @param ctx the parse tree
    */
   exitIntegerLiteral?: (ctx: IntegerLiteralContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.numberLiteral`.
+   * @param ctx the parse tree
+   */
+  enterNumberLiteral?: (ctx: NumberLiteralContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.numberLiteral`.
+   * @param ctx the parse tree
+   */
+  exitNumberLiteral?: (ctx: NumberLiteralContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.parameter`.
+   * @param ctx the parse tree
+   */
+  enterParameter?: (ctx: ParameterContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.parameter`.
+   * @param ctx the parse tree
+   */
+  exitParameter?: (ctx: ParameterContext) => void;
 
   /**
    * Enter a parse tree produced by `WebdaQLParserParser.setExpression`.

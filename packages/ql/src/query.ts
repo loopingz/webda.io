@@ -9,6 +9,8 @@ import {
   ContainsExpressionContext,
   InExpressionContext,
   IntegerLiteralContext,
+  IsNotNullExpressionContext,
+  IsNullExpressionContext,
   LikeExpressionContext,
   LimitExpressionContext,
   OffsetExpressionContext,
@@ -331,6 +333,24 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
   }
 
   /**
+   * Map the a IS NULL
+   * @param ctx - the IS NULL expression context
+   * @returns the comparison expression
+   */
+  visitIsNullExpression(ctx: IsNullExpressionContext) {
+    return new ComparisonExpression("IS NULL", ctx.getChild(0).text, null);
+  }
+
+  /**
+   * Map the a IS NOT NULL
+   * @param ctx - the IS NOT NULL expression context
+   * @returns the comparison expression
+   */
+  visitIsNotNullExpression(ctx: IsNotNullExpressionContext) {
+    return new ComparisonExpression("IS NOT NULL", ctx.getChild(0).text, null);
+  }
+
+  /**
    * Get the OrExpression, regrouping all the parameters
    *
    * By default the parser is doing a OR (b OR (c OR d)) creating 3 depth expressions
@@ -446,8 +466,16 @@ export abstract class Expression<T = string> {
  * - `LIKE` uses SQL-style pattern matching (`%` = any chars, `_` = single char)
  * - `IN` checks membership in a set (`field IN ['a', 'b']`)
  * - `CONTAINS` checks if an array field contains a value (`field CONTAINS 'a'`)
+ * - `IS NULL` matches a missing, `undefined` or `null` field (`field IS NULL`)
+ * - `IS NOT NULL` matches any other value (`field IS NOT NULL`)
  */
-export type ComparisonOperator = "=" | "<=" | ">=" | "<" | ">" | "!=" | "LIKE" | "IN" | "CONTAINS";
+export type ComparisonOperator =
+  "=" | "<=" | ">=" | "<" | ">" | "!=" | "LIKE" | "IN" | "CONTAINS" | "IS NULL" | "IS NOT NULL";
+
+/**
+ * Comparison operators that take no value
+ */
+export const UNARY_COMPARISON_OPERATORS: readonly ComparisonOperator[] = ["IS NULL", "IS NOT NULL"];
 
 /**
  * A leaf expression comparing an object attribute against a literal value
@@ -577,6 +605,10 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
           return left.includes(this.value);
         }
         return false;
+      case "IS NULL":
+        return left === undefined || left === null;
+      case "IS NOT NULL":
+        return left !== undefined && left !== null;
     }
   }
 
@@ -620,6 +652,9 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
    * @override
    */
   toString() {
+    if (UNARY_COMPARISON_OPERATORS.includes(this.operator)) {
+      return `${this.toStringAttribute()} ${this.toStringOperator()}`;
+    }
     return `${this.toStringAttribute()} ${this.toStringOperator()} ${this.toStringValue(this.value)}`;
   }
 }
@@ -1205,6 +1240,24 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
     const [left, _, right] = ctx.children;
     const value = this.visit(right) as unknown as any[];
     return new PartialComparisonExpression(this, "CONTAINS", left.text, value);
+  }
+
+  /**
+   * Visit an IS NULL expression, returning a PartialComparisonExpression
+   * @param ctx - the IS NULL expression context
+   * @returns the partial comparison expression
+   */
+  visitIsNullExpression(ctx: any) {
+    return new PartialComparisonExpression(this, "IS NULL", ctx.getChild(0).text, null);
+  }
+
+  /**
+   * Visit an IS NOT NULL expression, returning a PartialComparisonExpression
+   * @param ctx - the IS NOT NULL expression context
+   * @returns the partial comparison expression
+   */
+  visitIsNotNullExpression(ctx: any) {
+    return new PartialComparisonExpression(this, "IS NOT NULL", ctx.getChild(0).text, null);
   }
 }
 

@@ -1,35 +1,35 @@
-// Generated from src/stores/webdaql/WebdaQLParser.g4 by ANTLR 4.9.0-SNAPSHOT
+// Generated from src/WebdaQLParser.g4 by ANTLR 4.9.0-SNAPSHOT
 
 import { ParseTreeListener } from "antlr4ts/tree/ParseTreeListener.js";
 
-import {
-  AndLogicExpressionContext,
-  AtomContext,
-  AtomExpressionContext,
-  BinaryComparisonExpressionContext,
-  BooleanAtomContext,
-  BooleanLiteralContext,
-  ContainsExpressionContext,
-  ExpressionContext,
-  IdentifierAtomContext,
-  IdentifierContext,
-  InExpressionContext,
-  IntegerAtomContext,
-  IntegerLiteralContext,
-  LikeExpressionContext,
-  LimitExpressionContext,
-  OffsetExpressionContext,
-  OrderExpressionContext,
-  OrderFieldExpressionContext,
-  OrLogicExpressionContext,
-  SetExpressionContext,
-  StringAtomContext,
-  StringLiteralContext,
-  SubExpressionContext,
-  ValuesAtomContext,
-  ValuesContext,
-  WebdaqlContext
-} from "./WebdaQLParserParser.js";
+import { LikeExpressionContext } from "./WebdaQLParserParser.js";
+import { InExpressionContext } from "./WebdaQLParserParser.js";
+import { ContainsExpressionContext } from "./WebdaQLParserParser.js";
+import { IsNullExpressionContext } from "./WebdaQLParserParser.js";
+import { IsNotNullExpressionContext } from "./WebdaQLParserParser.js";
+import { BinaryComparisonExpressionContext } from "./WebdaQLParserParser.js";
+import { AndLogicExpressionContext } from "./WebdaQLParserParser.js";
+import { OrLogicExpressionContext } from "./WebdaQLParserParser.js";
+import { SubExpressionContext } from "./WebdaQLParserParser.js";
+import { AtomExpressionContext } from "./WebdaQLParserParser.js";
+import { BooleanAtomContext } from "./WebdaQLParserParser.js";
+import { IntegerAtomContext } from "./WebdaQLParserParser.js";
+import { StringAtomContext } from "./WebdaQLParserParser.js";
+import { ValuesAtomContext } from "./WebdaQLParserParser.js";
+import { IdentifierAtomContext } from "./WebdaQLParserParser.js";
+import { WebdaqlContext } from "./WebdaQLParserParser.js";
+import { LimitExpressionContext } from "./WebdaQLParserParser.js";
+import { OffsetExpressionContext } from "./WebdaQLParserParser.js";
+import { OrderFieldExpressionContext } from "./WebdaQLParserParser.js";
+import { OrderExpressionContext } from "./WebdaQLParserParser.js";
+import { ExpressionContext } from "./WebdaQLParserParser.js";
+import { ValuesContext } from "./WebdaQLParserParser.js";
+import { AtomContext } from "./WebdaQLParserParser.js";
+import { IdentifierContext } from "./WebdaQLParserParser.js";
+import { BooleanLiteralContext } from "./WebdaQLParserParser.js";
+import { StringLiteralContext } from "./WebdaQLParserParser.js";
+import { IntegerLiteralContext } from "./WebdaQLParserParser.js";
+import { SetExpressionContext } from "./WebdaQLParserParser.js";
 
 /**
  * This interface defines a complete listener for a parse tree produced by
@@ -74,6 +74,32 @@ export interface WebdaQLParserListener extends ParseTreeListener {
    * @param ctx the parse tree
    */
   exitContainsExpression?: (ctx: ContainsExpressionContext) => void;
+
+  /**
+   * Enter a parse tree produced by the `isNullExpression`
+   * labeled alternative in `WebdaQLParserParser.expression`.
+   * @param ctx the parse tree
+   */
+  enterIsNullExpression?: (ctx: IsNullExpressionContext) => void;
+  /**
+   * Exit a parse tree produced by the `isNullExpression`
+   * labeled alternative in `WebdaQLParserParser.expression`.
+   * @param ctx the parse tree
+   */
+  exitIsNullExpression?: (ctx: IsNullExpressionContext) => void;
+
+  /**
+   * Enter a parse tree produced by the `isNotNullExpression`
+   * labeled alternative in `WebdaQLParserParser.expression`.
+   * @param ctx the parse tree
+   */
+  enterIsNotNullExpression?: (ctx: IsNotNullExpressionContext) => void;
+  /**
+   * Exit a parse tree produced by the `isNotNullExpression`
+   * labeled alternative in `WebdaQLParserParser.expression`.
+   * @param ctx the parse tree
+   */
+  exitIsNotNullExpression?: (ctx: IsNotNullExpressionContext) => void;
 
   /**
    * Enter a parse tree produced by the `binaryComparisonExpression`
@@ -273,13 +299,13 @@ export interface WebdaQLParserListener extends ParseTreeListener {
 
   /**
    * Enter a parse tree produced by the `values`
-   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesatomatom`.
+   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesatomatom`.
    * @param ctx the parse tree
    */
   enterValues?: (ctx: ValuesContext) => void;
   /**
    * Exit a parse tree produced by the `values`
-   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesatomatom`.
+   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesatomatom`.
    * @param ctx the parse tree
    */
   exitValues?: (ctx: ValuesContext) => void;

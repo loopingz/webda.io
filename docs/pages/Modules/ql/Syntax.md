@@ -29,6 +29,8 @@ expression
     : identifier LIKE stringLiteral           #likeExpression
     | identifier IN setExpression             #inExpression
     | identifier CONTAINS stringLiteral       #containsExpression
+    | identifier IS NULL                      #isNullExpression
+    | identifier IS NOT NULL                  #isNotNullExpression
     | identifier (= | != | >= | <= | < | >) values   #binaryComparisonExpression
     | expression AND expression               #andLogicExpression
     | expression OR expression                #orLogicExpression
@@ -95,6 +97,13 @@ title LIKE "Intro%"
 
 ```
 tags CONTAINS 'typescript'
+```
+
+### Null checks
+
+```
+deletedAt IS NULL
+author.email IS NOT NULL
 ```
 
 ### Ordering and pagination

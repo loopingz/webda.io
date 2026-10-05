@@ -133,6 +133,24 @@ console.log(v.eval({ tags: ["javascript"] }));          // false
 
 In MongoDB, CONTAINS translates to the same syntax as `=` on an array field (MongoDB checks if the array contains the value).
 
+## IS NULL / IS NOT NULL operators
+
+`IS NULL` matches a field that is missing, `undefined` or `null`. `IS NOT NULL` matches any other value, including falsy ones such as `0`, `false` or `""`.
+
+```
+deletedAt IS NULL
+author.email IS NOT NULL
+```
+
+```typescript
+const v = new WebdaQL.QueryValidator("deletedAt IS NULL");
+console.log(v.eval({}));                  // true
+console.log(v.eval({ deletedAt: null })); // true
+console.log(v.eval({ deletedAt: 0 }));    // false
+```
+
+`NULL` is not a value: `field = NULL` is a syntax error, use `field IS NULL`.
+
 ## ORDER BY clause
 
 Sort results by one or more fields. Default direction is ASC if omitted.

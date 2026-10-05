@@ -531,4 +531,72 @@ class QueryTest {
     assert.ok(new WebdaQL.PartialValidator("TRUE AND x = 1").eval({}));
     assert.ok(!new WebdaQL.PartialValidator("FALSE").eval({}));
   }
+
+  @test
+  isNull() {
+    const target = { a: null, b: "x", c: 0, d: false, e: "", nested: { f: null, g: 1 } };
+    const cases: { [query: string]: boolean } = {
+      "a IS NULL": true,
+      "a IS NOT NULL": false,
+      "missing IS NULL": true,
+      "missing IS NOT NULL": false,
+      "b IS NULL": false,
+      "b IS NOT NULL": true,
+      // Falsy values are not null
+      "c IS NOT NULL": true,
+      "d IS NOT NULL": true,
+      "e IS NOT NULL": true,
+      "nested.f IS NULL": true,
+      "nested.g IS NOT NULL": true,
+      "nested.missing.deep IS NULL": true,
+      "a IS NULL AND b IS NOT NULL": true,
+      "a IS NOT NULL OR b = 'x'": true
+    };
+    for (const [query, expected] of Object.entries(cases)) {
+      assert.strictEqual(new WebdaQL.QueryValidator(query).eval(target), expected, query);
+    }
+    // Keywords only win on an exact match: identifiers starting with them still parse
+    assert.ok(
+      new WebdaQL.QueryValidator("notes IS NOT NULL AND isActive = TRUE AND nullable IS NULL").eval({
+        notes: "n",
+        isActive: true
+      })
+    );
+    // NULL is not a value
+    assert.throws(() => new WebdaQL.QueryValidator("a = NULL"), SyntaxError);
+    assert.throws(() => new WebdaQL.QueryValidator("a IS 'x'"), SyntaxError);
+  }
+
+  @test
+  isNullToString() {
+    const expression = new WebdaQL.QueryValidator("a IS NULL AND b.c IS NOT NULL").getExpression();
+    assert.strictEqual(expression.toString(), "a IS NULL AND b.c IS NOT NULL");
+    const comparison = (<WebdaQL.AndExpression>expression).children[0] as WebdaQL.ComparisonExpression;
+    assert.strictEqual(comparison.operator, "IS NULL");
+    assert.deepStrictEqual(comparison.attribute, ["a"]);
+    // The printed query parses back to the same expression
+    assert.strictEqual(
+      new WebdaQL.QueryValidator(expression.toString()).getExpression().toString(),
+      expression.toString()
+    );
+    // Merging keeps the operators printable and parsable
+    assert.strictEqual(
+      WebdaQL.PrependCondition("a IS NULL ORDER BY a", "b IS NOT NULL"),
+      "a IS NULL AND b IS NOT NULL ORDER BY a ASC"
+    );
+    const merged = new WebdaQL.QueryValidator("a IS NULL").merge("b IS NOT NULL", "OR").toString();
+    assert.strictEqual(merged, "a IS NULL OR b IS NOT NULL");
+    assert.ok(new WebdaQL.QueryValidator(merged).eval({ a: null }));
+  }
+
+  @test
+  isNullPartial() {
+    // A missing attribute is a partial match
+    const validator = new WebdaQL.PartialValidator("a IS NOT NULL AND b IS NULL");
+    assert.ok(validator.eval({}));
+    assert.ok(validator.wasPartialMatch());
+    assert.ok(!validator.eval({ a: null, b: null }));
+    assert.ok(validator.eval({ a: 1, b: null }));
+    assert.ok(!validator.eval({ a: 1, b: 2 }));
+  }
 }

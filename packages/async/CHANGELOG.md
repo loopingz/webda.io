@@ -105,6 +105,59 @@
   * dependencies
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/async-v4.0.0-beta.1...async-v4.0.0-beta.3) (2026-10-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* @webda/ts-plugin and the `tsc-esm` binary are removed, and applications now build with TypeScript 7.1. Generated code changes where TypeScript 6 was wrong, each verified against the shipped output:
+    - AuditEntry.timestamp, declared `number`, is no longer coerced to Date;
+    - AbstractOwnerModel no longer emits `new ModelLink(T)`, a ReferenceError
+      on first raw-uuid assignment;
+    - sample-app's `User extends WebdaUser` is now treated as a model (TS6's
+      base-chain guard was keyed on class name), so its relations are
+      initialised and coerced;
+    - imports use the specifier the author wrote, not monorepo-relative paths
+      that only resolve inside this repository;
+    - the emitted .d.ts is valid (TS6 referenced PrimaryKeyType unimported and
+      wrote BelongTo without its type argument).
+    A build that cannot write its module now fails; under TS6 a strict
+    file-naming violation was logged and the build still reported success.
+* remove node 18 support
+* remove expose for Store
+
+### Features
+
+* add codemod system ([bbc3086](https://github.com/loopingz/webda.io/commit/bbc3086c1bd4e5c9a7ec9a2ed14772cd8edbf477))
+* add formatting for context ([54dee1e](https://github.com/loopingz/webda.io/commit/54dee1e09da052c5daba778bc45bccff15d033f4))
+* **async:** re-enable module and migrate to current core API ([2c38726](https://github.com/loopingz/webda.io/commit/2c3872647144d728b1d7083b9a243660acd0dbf7))
+* build on TypeScript 7.1; delete @webda/ts-plugin and ts-patch ([0008e97](https://github.com/loopingz/webda.io/commit/0008e97919524d44528a8e3e89ee27cfaa2ee93b))
+* enhance debug panels ([#759](https://github.com/loopingz/webda.io/issues/759)) ([63e6e0c](https://github.com/loopingz/webda.io/commit/63e6e0c3bd7d72fb06b148c7344eb3021d186ae9))
+* move to node 22 ([21daf46](https://github.com/loopingz/webda.io/commit/21daf46c54d4e3912ad1b545e1ce89b9a6a84c35))
+* move to pnpm and disable many modules for now ([ea953b7](https://github.com/loopingz/webda.io/commit/ea953b7faaa47d70bc8136b39e9a3d3336655214))
+* operations system — decouple operations from transport ([#753](https://github.com/loopingz/webda.io/issues/753)) ([54f3151](https://github.com/loopingz/webda.io/commit/54f3151686b9115221790e90c3ee723fb0b8c873))
+* remove expose for Store ([c8a36b1](https://github.com/loopingz/webda.io/commit/c8a36b19c81b830e9c03195388b402e53f987e6e))
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+
+
+### Bug Fixes
+
+* compiler metadata, CLI commands, cron/async hooks and long-running command lifecycle ([#785](https://github.com/loopingz/webda.io/issues/785)) ([0515715](https://github.com/loopingz/webda.io/commit/05157157c9f52af3c8df720f6630053cd2dc8b98))
+* unit test models relations ([2d160f1](https://github.com/loopingz/webda.io/commit/2d160f18d2139b362e8a12f935e15eaad27a808a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.3
+    * @webda/ql bumped to 4.0.0-beta.3
+    * @webda/utils bumped to 4.0.0-beta.3
+    * @webda/workout bumped to 4.0.0-beta.3
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.3
+    * @webda/test bumped to 4.0.0-beta.3
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/async-v3.7.2...async-v4.0.0-beta.1) (2024-08-14)
 
 

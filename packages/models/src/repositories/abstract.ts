@@ -4,6 +4,7 @@ import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS } from "../storable.js";
 import { ModelRefWithCreate } from "../relations.js";
 import { Repository } from "./repository.js";
 import type { ArrayElement } from "@webda/tsc-esm";
+import type { QueryParameters } from "@webda/ql";
 
 /**
  * Base repository implementation providing shared logic for key management,
@@ -228,8 +229,11 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     _condition?: any
   ): Promise<void>;
 
-  abstract query(query: string): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
-  abstract iterate(query: string): AsyncGenerator<InstanceType<T>, any, any>;
+  abstract query(
+    query: string,
+    params?: QueryParameters
+  ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
+  abstract iterate(query: string, params?: QueryParameters): AsyncGenerator<InstanceType<T>, any, any>;
   abstract deleteItemFromCollection<
     K extends Extract<PropertyPaths<InstanceType<T>, any[]>, keyof InstanceType<T>>,
     L extends keyof ArrayElement<InstanceType<T>[K]>

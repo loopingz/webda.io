@@ -2,6 +2,7 @@ import { PK, PrimaryKeyType, ModelClass, WEBDA_PRIMARY_KEY } from "../storable.j
 import type { SelfJSONed, JSONed, Helpers, PropertyPaths, NumericPropertyPaths, PropertyPathType } from "../types.js";
 import { AbstractRepository } from "./abstract.js";
 import { ArrayElement } from "@webda/tsc-esm";
+import type { QueryParameters } from "@webda/ql";
 import { WEBDA_TEST } from "./repository.js";
 
 /**
@@ -54,10 +55,20 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
 
   /**
    * Query with event emission
+   *
+   * Parameters are bound here, so the events carry the bound query and the underlying
+   * repository (often a store one) only ever receives a plain query.
    * @param query - the query to execute
+   * @param params - values for the `?` or `:name` placeholders
    * @returns the query results with optional continuation token
    */
-  async query(query: string): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
+  async query(
+    query: string,
+    params?: QueryParameters
+  ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
+    if (params !== undefined) {
+      query = (await import("@webda/ql")).bind(query, params);
+    }
     await this.emit("Query", { query } as any);
     const res = await this.repository.query(query);
     await this.emit("Queried", { ...res, query } as any);
@@ -67,10 +78,14 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   /**
    * Iterate through all objects
    * @param query - the query filter
+   * @param params - values for the `?` or `:name` placeholders, bound before reaching the underlying repository
    * @returns an async generator of objects
    */
-  iterate(query: string): AsyncGenerator<InstanceType<T>, any, any> {
-    return this.repository.iterate(query);
+  async *iterate(query: string, params?: QueryParameters): AsyncGenerator<InstanceType<T>, any, any> {
+    if (params !== undefined) {
+      query = (await import("@webda/ql")).bind(query, params);
+    }
+    yield* this.repository.iterate(query);
   }
 
   /**

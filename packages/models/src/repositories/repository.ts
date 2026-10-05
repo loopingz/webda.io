@@ -1,5 +1,5 @@
 import type { ArrayElement } from "@webda/tsc-esm";
-import type { WebdaQLString } from "@webda/ql";
+import type { QueryParameters, WebdaQLString } from "@webda/ql";
 import type {
   PrimaryKey,
   PrimaryKeyType,
@@ -108,20 +108,25 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
 
   /**
    * Query the store
-   * @param query
+   * @param query - the WebdaQL query, optionally with `?` or `:name` placeholders
+   * @param params - values for the placeholders: an array for `?`, an object for `:name`
    * @returns
    */
-  query(query: WebdaQLString<InstanceType<T>>): Promise<{
+  query(
+    query: WebdaQLString<InstanceType<T>>,
+    params?: QueryParameters
+  ): Promise<{
     results: InstanceType<T>[];
     continuationToken?: string;
   }>;
 
   /**
    * Iterate over the store
-   * @param query
+   * @param query - the WebdaQL query, optionally with `?` or `:name` placeholders
+   * @param params - values for the placeholders: an array for `?`, an object for `:name`
    * @returns
    */
-  iterate(query: WebdaQLString<InstanceType<T>>): AsyncGenerator<InstanceType<T>>;
+  iterate(query: WebdaQLString<InstanceType<T>>, params?: QueryParameters): AsyncGenerator<InstanceType<T>>;
 
   /**
    * Event listeners

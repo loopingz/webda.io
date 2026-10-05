@@ -14,7 +14,7 @@ import type { JSONed, Helpers, PropertyPaths, PropertyPathType, NumericPropertyP
 import type { Repository } from "./repositories/repository.js";
 import { useRepository } from "./repositories/hooks.js";
 import * as WebdaQL from "@webda/ql";
-import type { WebdaQLString } from "@webda/ql";
+import type { QueryParameters, WebdaQLString } from "@webda/ql";
 
 /** Symbol key holding the parent Storable of a relation. */
 //export const RelationParent = Symbol("RelationParent");
@@ -353,21 +353,27 @@ export class ModelRelated<
 
   /**
    * Query the related objects
-   * @param query - optional additional query filter
+   * @param query - optional additional query filter, optionally with `?` or `:name` placeholders
+   * @param params - values for the placeholders: an array for `?`, an object for `:name`
    * @returns the query results with optional continuation token
    */
-  async query(query: WebdaQLString<T> = "" as WebdaQLString<T>): Promise<{ results: T[]; continuationToken?: string }> {
-    const q = this.getQuery(query);
+  async query(
+    query: WebdaQLString<T> = "" as WebdaQLString<T>,
+    params?: QueryParameters
+  ): Promise<{ results: T[]; continuationToken?: string }> {
+    // Bind before merging the relation condition, which parses the query
+    const q = this.getQuery(params === undefined ? query : WebdaQL.bind<T>(query, params));
     return this.repoSource.query(q);
   }
 
   /**
    * Iterate through linked objects
-   * @param query - the query filter
+   * @param query - the query filter, optionally with `?` or `:name` placeholders
+   * @param params - values for the placeholders: an array for `?`, an object for `:name`
    * @returns an async iterable of linked objects
    */
-  iterate(query: WebdaQLString<T>): AsyncIterable<T> {
-    const q = this.getQuery(query);
+  iterate(query: WebdaQLString<T>, params?: QueryParameters): AsyncIterable<T> {
+    const q = this.getQuery(params === undefined ? query : WebdaQL.bind<T>(query, params));
     return this.repoSource.iterate(q);
   }
 

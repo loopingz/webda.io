@@ -1,4 +1,5 @@
 import type { FilterAttributes, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
+import type { QueryParameters } from "@webda/ql";
 import { WEBDA_DIRTY } from "@webda/utils";
 import type { ModelRefWithCreate, ModelRelated } from "./relations.js";
 import type { JSONed, Settable } from "./types.js";
@@ -88,11 +89,16 @@ export interface ModelClass<S extends Storable = Storable> {
   new (arg: any): S;
   prototype: S;
   ref<T extends ModelClass>(this: T, key: SettablePrimaryKey<InstanceType<T>>): ModelRefWithCreate<InstanceType<T>>;
-  iterate<T extends ModelClass>(this: T, query: string): AsyncGenerator<InstanceType<T>, any, any>;
+  iterate<T extends ModelClass>(
+    this: T,
+    query: string,
+    params?: QueryParameters
+  ): AsyncGenerator<InstanceType<T>, any, any>;
   create<T extends ModelClass>(this: T, data: ConstructorParameters<T>[0], save?: boolean): Promise<InstanceType<T>>;
   query<T extends ModelClass>(
     this: T,
-    query: string
+    query: string,
+    params?: QueryParameters
   ): Promise<{
     results: InstanceType<T>[];
     continuationToken?: string;

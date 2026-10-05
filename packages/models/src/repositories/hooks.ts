@@ -2,7 +2,7 @@ import type { ModelRefWithCreate } from "../relations.js";
 import { PrimaryKeyType, SettablePrimaryKey, WEBDA_PRIMARY_KEY, type Storable, type ModelClass } from "../storable.js";
 import { Helpers } from "../types.js";
 import type { Repository } from "./repository.js";
-import type { WebdaQLString } from "@webda/ql";
+import type { QueryParameters, WebdaQLString } from "@webda/ql";
 
 /**
  * Global registry mapping ModelClass constructors to their Repository instances.
@@ -74,31 +74,40 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
 
     /**
      * Query the object directly
+     *
+     * ```ts
+     * Task.query("owner = ? AND priority >= ?", [user, 2]);
+     * Task.query("owner = :owner", { owner: user });
+     * ```
      * @param this - the model class constructor
-     * @param query - the query string
+     * @param query - the query string, optionally with `?` or `:name` placeholders
+     * @param params - values for the placeholders: an array for `?`, an object for `:name`
      * @returns the query results
      */
     static query<T extends ModelClass>(
       this: T,
-      query: WebdaQLString<InstanceType<T>>
+      query: WebdaQLString<InstanceType<T>>,
+      params?: QueryParameters
     ): Promise<{
       results: InstanceType<T>[];
       continuationToken?: string;
     }> {
-      return useRepository(this).query(query);
+      return useRepository(this).query(query, params);
     }
 
     /**
      * Iterate through all objects
      * @param this - the model class constructor
-     * @param query - the query string
+     * @param query - the query string, optionally with `?` or `:name` placeholders
+     * @param params - values for the placeholders: an array for `?`, an object for `:name`
      * @returns an async generator of model instances
      */
     static async *iterate<T extends ModelClass>(
       this: T,
-      query: WebdaQLString<InstanceType<T>>
+      query: WebdaQLString<InstanceType<T>>,
+      params?: QueryParameters
     ): AsyncGenerator<InstanceType<T>, any, any> {
-      for await (const item of useRepository(this).iterate(query)) {
+      for await (const item of useRepository(this).iterate(query, params)) {
         yield item as InstanceType<T>;
       }
     }

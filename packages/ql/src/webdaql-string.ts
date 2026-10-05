@@ -14,7 +14,8 @@ export type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
 
 /**
  * Thrown by `escape` when an interpolated value is not representable as a
- * WebdaQL literal (object, function, symbol, NaN, Infinity, nested array).
+ * WebdaQL literal (object, function, symbol, NaN, Infinity, nested array, or a
+ * null value anywhere but after `=` / `!=`).
  */
 export class WebdaQLError extends Error {
   /**
@@ -52,10 +53,34 @@ export function escape<T = unknown>(
 ): WebdaQLString<T> {
   let out = parts[0];
   for (let i = 0; i < values.length; i++) {
-    out += escapeValue(values[i]);
+    out = values[i] === null || values[i] === undefined ? appendNull(out) : out + escapeValue(values[i]);
     out += parts[i + 1];
   }
   return out as WebdaQLString<T>;
+}
+
+/**
+ * `=` or `!=` right before an interpolated value, with its surrounding spaces
+ * (`>=` and `<=` are not equalities)
+ */
+const TRAILING_EQUALITY = /\s*(!=|(?<![<>!])=)\s*$/;
+
+/**
+ * Append a `null`/`undefined` value to the query built so far
+ *
+ * WebdaQL has no `NULL` literal, only `IS NULL` and `IS NOT NULL`, so `x = ${null}`
+ * becomes `x IS NULL` and `x != ${null}` becomes `x IS NOT NULL`. Any other position
+ * cannot express a null comparison and is rejected.
+ *
+ * @param out - the query built so far, ending right before the value
+ * @returns the query with the null comparison
+ */
+function appendNull(out: string): string {
+  const match = TRAILING_EQUALITY.exec(out);
+  if (!match) {
+    throw new WebdaQLError("A null value can only be compared with = or != in a WebdaQL query");
+  }
+  return `${out.substring(0, match.index)} ${match[1] === "=" ? "IS NULL" : "IS NOT NULL"}`;
 }
 
 /**
@@ -66,7 +91,9 @@ export function escape<T = unknown>(
  * @internal exported only for testing
  */
 export function escapeValue(value: unknown): string {
-  if (value === null || value === undefined) return "NULL";
+  if (value === null || value === undefined) {
+    throw new WebdaQLError("A null value can only be compared with = or != in a WebdaQL query");
+  }
   if (typeof value === "string") return `'${value.replace(/\\/g, "\\\\").replace(/'/g, "''")}'`;
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {

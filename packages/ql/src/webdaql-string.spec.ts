@@ -51,9 +51,38 @@ class WebdaQLStringTest {
   }
 
   @test
-  escapeEmitsNullUndefinedAsNull() {
-    assert.strictEqual(escape(["x = ", ""], [null]), "x = NULL");
-    assert.strictEqual(escape(["x = ", ""], [undefined]), "x = NULL");
+  escapeRewritesEqualNullToIsNull() {
+    for (const value of [null, undefined]) {
+      assert.strictEqual(escape(["x = ", ""], [value]), "x IS NULL");
+      assert.strictEqual(escape(["x=", ""], [value]), "x IS NULL");
+      assert.strictEqual(escape(["x != ", ""], [value]), "x IS NOT NULL");
+      assert.strictEqual(escape(["x!=", ""], [value]), "x IS NOT NULL");
+      assert.strictEqual(
+        escape(["a = ", " AND x != ", " OR y = ", ""], [1, value, "z"]),
+        "a = 1 AND x IS NOT NULL OR y = 'z'"
+      );
+    }
+  }
+
+  @test
+  escapeNullOutputParses() {
+    for (const [query, expected] of [
+      [escape(["x = ", ""], [null]), "x IS NULL"],
+      [escape(["x != ", " AND y = ", ""], [undefined, 2]), "x IS NOT NULL AND y = 2"],
+      [escape(["(x = ", " OR y = ", ") AND z = ", ""], [null, "a", true]), "(x IS NULL OR y = 'a') AND z = TRUE"]
+    ]) {
+      assert.strictEqual(new QueryValidator(query).toString(), new QueryValidator(expected).toString());
+    }
+    assert.strictEqual(new QueryValidator(escape(["x = ", ""], [null])).eval({ y: 1 }), true);
+    assert.strictEqual(new QueryValidator(escape(["x != ", ""], [null])).eval({ x: 0 }), true);
+  }
+
+  @test
+  escapeRejectsNullWithOtherOperators() {
+    for (const prefix of ["x > ", "x >= ", "x < ", "x <= ", "x LIKE ", "x CONTAINS ", "x IN ", ""]) {
+      assert.throws(() => escape([prefix, ""], [null]), WebdaQLError, `'${prefix}' with null`);
+      assert.throws(() => escape([prefix, ""], [undefined]), WebdaQLError, `'${prefix}' with undefined`);
+    }
   }
 
   @test
@@ -85,7 +114,13 @@ class WebdaQLStringTest {
 
   @test
   escapeSupportsMixedScalarArrays() {
-    assert.strictEqual(escape(["x IN ", ""], [[1, "two", true, null]]), "x IN (1, 'two', TRUE, NULL)");
+    assert.strictEqual(escape(["x IN ", ""], [[1, "two", true]]), "x IN (1, 'two', TRUE)");
+  }
+
+  @test
+  escapeRejectsNullInsideArrays() {
+    assert.throws(() => escape(["x IN ", ""], [[1, null]]), WebdaQLError);
+    assert.throws(() => escape(["x IN ", ""], [[undefined]]), WebdaQLError);
   }
 
   @test
@@ -146,13 +181,7 @@ class WebdaQLStringTest {
 
   @test
   escapedValuesMatchAndRoundTrip() {
-    const values = [
-      "it's \"quoted\"",
-      "a\\'b",
-      "trailing\\",
-      "back\\\\slash",
-      "\\' OR k != '"
-    ];
+    const values = ['it\'s "quoted"', "a\\'b", "trailing\\", "back\\\\slash", "\\' OR k != '"];
     for (const value of values) {
       const query = escape(["k = ", ""], [value]);
       // Match only the correct value
@@ -162,7 +191,10 @@ class WebdaQLStringTest {
       // toString() re-escapes, so a parsed filter can be serialized and parsed again
       const serialized = parse(query).filter.toString();
       assert.ok(new QueryValidator(serialized).eval({ k: value }), `Failed round-trip for ${value}`);
-      assert.ok(!new QueryValidator(serialized).eval({ k: "other" }), `Incorrectly matched other in round-trip for ${value}`);
+      assert.ok(
+        !new QueryValidator(serialized).eval({ k: "other" }),
+        `Incorrectly matched other in round-trip for ${value}`
+      );
     }
   }
 }

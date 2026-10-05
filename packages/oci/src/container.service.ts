@@ -16,12 +16,6 @@ import { formatImageReference, parseImageReference, toTag } from "./reference.js
 import type { TarEntry } from "./tar.js";
 
 /**
- * Runtime dependencies that `@webda/core` and `@webda/models` import but only declare as
- * development dependencies: added to the package until their manifests are fixed
- */
-const MISSING_RUNTIME_DEPENDENCIES = ["@webda/tsc-esm", "@webda/serialize"];
-
-/**
  * Parameters of the {@link ContainerDeployer}
  *
  * Every string can use the deployment templates: `${package.version}`, `${git.commit}`,
@@ -139,7 +133,6 @@ export class ContainerDeployerParameters extends ServiceParameters {
     this.output ??= ".webda/oci/${deployer.name}";
     this.package ??= {};
     this.package.modules ??= {};
-    this.package.modules.includes ??= [...MISSING_RUNTIME_DEPENDENCIES];
     this.credentials ??= {};
     this.insecureRegistries ??= [];
     return this;

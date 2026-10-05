@@ -58,7 +58,7 @@ class ContainerDeployerTest extends WebdaApplicationTest {
     assert.deepStrictEqual(params.entrypoint, ["node", "/srv/node_modules/@webda/core/lib/bin/cli.js"]);
     assert.deepStrictEqual(params.cmd, ["serve", "--bind", "0.0.0.0"]);
     assert.deepStrictEqual(params.tags, ["${git.version}"]);
-    assert.deepStrictEqual(params.package.modules.includes, ["@webda/tsc-esm", "@webda/serialize"]);
+    assert.strictEqual(params.package.modules.includes, undefined);
     assert.deepStrictEqual(params.platforms, ["linux/amd64"]);
   }
 
@@ -87,7 +87,7 @@ class ContainerDeployerTest extends WebdaApplicationTest {
       entries.map(entry => `${entry.path} ${entry.mode.toString(8)}`),
       ["app/package.json 644", "app/node_modules/.bin/tool 755", "app/lib/index.js 644"]
     );
-    assert.deepStrictEqual(packaged.options.modules.includes, ["@webda/tsc-esm", "@webda/serialize"]);
+    assert.strictEqual(packaged.options.modules.includes, undefined);
   }
 
   @test

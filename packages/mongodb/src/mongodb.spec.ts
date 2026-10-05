@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import * as WebdaQL from "@webda/ql";
 import { MongoClient } from "mongodb";
-import { WebdaApplicationTest } from "@webda/core/lib/test";
+import { checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import { EventRepository, StoreNotFoundError, UpdateConditionFailError, useModel } from "@webda/core";
 import { MongoParameters, MongoRepository, MongoStore, mapExpression } from "./mongodb.service.js";
 
@@ -267,6 +267,19 @@ export class MongoStoreTest extends WebdaApplicationTest {
     assert.strictEqual(user.uuid, "u1");
     const res = await repo.query("email = 'u1@webda.io'");
     assert.strictEqual(res.results.length, 1);
+  }
+
+  @test
+  async createWithoutPrimaryKeyPersistsGeneratedUuid() {
+    // Check both the EventRepository returned by the store and the underlying MongoRepository
+    const User = useModel("Webda/User");
+    await checkCreateWithoutPrimaryKey(
+      [this.store.getRepository(User), new MongoRepository(User, ["uuid"], () => this.store._connect())],
+      {
+        data: i => ({ email: `gen${i}@webda.io` }),
+        readStored: async key => (await (await this.store._connect()).findOne({ _id: <any>key })) ?? undefined
+      }
+    );
   }
 
   @test

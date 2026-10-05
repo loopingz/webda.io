@@ -7,6 +7,7 @@ import {
   ScanCommand
 } from "@aws-sdk/client-dynamodb";
 import { StoreNotFoundError, UpdateConditionFailError, User, useRepository } from "@webda/core";
+import { checkCreateWithoutPrimaryKey } from "@webda/core/lib/test/index.js";
 import * as WebdaQL from "@webda/ql";
 import { suite, test } from "@webda/test";
 import { WorkerOutput } from "@webda/workout";
@@ -135,6 +136,16 @@ class DynamoDBTest extends WebdaAwsTest {
   getRepository(store: DynamoStore): DynamoRepository<typeof User> {
     const repo: any = store.getRepository(User);
     return repo.repository ?? repo;
+  }
+
+  @test
+  async createWithoutPrimaryKeyPersistsGeneratedUuid() {
+    // Check both the EventRepository returned by the store and the underlying DynamoRepository
+    await checkCreateWithoutPrimaryKey([this.store.getRepository(User), this.repo], {
+      data: i => ({ displayName: `gen${i}` }),
+      readStored: async key =>
+        (await (<any>this.repo).client.get({ TableName: this.repo.getTable(), Key: { uuid: key } })).Item
+    });
   }
 
   @test

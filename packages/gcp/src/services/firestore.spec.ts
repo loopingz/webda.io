@@ -1,6 +1,6 @@
 import { Firestore } from "@google-cloud/firestore";
 import { EventRepository, StoreNotFoundError, UpdateConditionFailError, useModel } from "@webda/core";
-import { WebdaApplicationTest } from "@webda/core/lib/test";
+import { checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import * as WebdaQL from "@webda/ql";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
@@ -78,6 +78,19 @@ class FireStoreTest extends WebdaApplicationTest {
     const store2 = this.createStore({ collection: "main", models: ["Webda/User", "Webda/Ident"] });
     assert.strictEqual(store2.resolveCollection(useModel("Webda/Ident")), "webda_ident");
     assert.ok(store2.getRepository(useModel("Webda/Ident")) instanceof EventRepository);
+  }
+
+  @test
+  async createWithoutPrimaryKey() {
+    // Check both the EventRepository returned by the store and the underlying FireStoreRepository
+    const firestore: Firestore = this.store.firestore;
+    await checkCreateWithoutPrimaryKey([this.store.getRepository(useModel("Webda/Ident")), this.repo], {
+      data: i => ({ email: `nokey${i}@webda.io` }),
+      readStored: async key => {
+        const snapshot = await firestore.doc(`${this.collection}/${key}`).get();
+        return snapshot.exists ? snapshot.data() : undefined;
+      }
+    });
   }
 
   @test

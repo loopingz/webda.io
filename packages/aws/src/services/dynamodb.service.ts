@@ -334,14 +334,8 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
 
   /** @override */
   async create(data: any, save: boolean = true): Promise<any> {
-    const item = new this.model(data) as InstanceType<T>;
-    if (data && data !== item) {
-      if (typeof (item as any).load === "function") {
-        (item as any).load(data);
-      } else {
-        Object.assign(item as any, data);
-      }
-    }
+    // Build once so a generated primary key is kept (and not reset by an undefined one in data)
+    const item = this.buildItem(data);
     if (save === false) {
       return item;
     }

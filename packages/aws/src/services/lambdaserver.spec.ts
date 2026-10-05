@@ -37,6 +37,19 @@ class ExceptionExecutor extends Service {
   /**
    * @param ctx - the context
    */
+  @Route("/route/absolute")
+  async onAbsolute(ctx: WebContext) {
+    ctx.write(
+      JSON.stringify({
+        relative: ctx.getHttpContext().getRelativeUri(),
+        absolute: ctx.getHttpContext().getAbsoluteUrl("/target")
+      })
+    );
+  }
+
+  /**
+   * @param ctx - the context
+   */
   @Route("/route/param/{uuid}{?test?}")
   async onParamString(ctx: WebContext) {
     ctx.write(`CodeCoverage${ctx.getParameters().uuid}${ctx.getParameters().test || ""}`);
@@ -212,6 +225,20 @@ class LambdaHandlerTest extends WebdaApplicationTest {
     this.evt.pathParameters = { uuid: "myid" };
     const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.body, "CodeCoveragemyidPlop");
+  }
+
+  @test
+  async handleRequestStagedKeepsPrefix() {
+    this.ensureGoodCSRF();
+    this.evt.headers.Host = "api.webda.io";
+    this.evt.path = "/prod/route/absolute";
+    this.evt.resource = "/route/absolute";
+    const res = await this.handler.handleRequest(this.evt, this.context);
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(JSON.parse(res.body), {
+      relative: "/route/absolute",
+      absolute: "https://api.webda.io/prod/target"
+    });
   }
 
   @test

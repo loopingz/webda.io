@@ -12,14 +12,6 @@ const Bucket = "webda-test";
 class S3BinaryTest extends WebdaAwsTest {
   binary: S3Binary;
 
-  async beforeAll() {
-    await super.beforeAll();
-    // The application sets createConfiguration on the compiled classes only: the source class
-    // would inherit the one of BinaryService and lose the S3 parameters
-    S3Binary.createConfiguration = (params: any) =>
-      params instanceof S3BinaryParameters ? params : new S3BinaryParameters().load(params);
-  }
-
   async beforeEach() {
     await super.beforeEach();
     await this.install();

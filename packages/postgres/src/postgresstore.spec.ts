@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
-import { WebdaApplicationTest } from "@webda/core/lib/test";
+import { checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import { EventRepository, useModel } from "@webda/core";
 import PostgresStore from "./postgresstore.service.js";
 import { PostgresRepository } from "./sqlstore.js";
@@ -137,6 +137,22 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     await (this.store as any).__clean?.();
     res = await c.query(`SELECT count(*)::int AS n FROM smoke_idents`);
     assert.strictEqual(res.rows[0].n, 0);
+  }
+
+  @test
+  async createWithoutPrimaryKeyPersistsGeneratedUuid() {
+    // Check both the EventRepository returned by the store and the underlying PostgresRepository
+    await checkCreateWithoutPrimaryKey(
+      [
+        this.store!.getRepository(useModel("Webda/Ident")),
+        this.store!.getRepositories().find(r => r instanceof PostgresRepository)
+      ],
+      {
+        data: () => ({ _type: "google" }),
+        readStored: async key =>
+          (await this.store!.getClient().query(`SELECT data FROM smoke_idents WHERE uuid=$1`, [key])).rows[0]?.data
+      }
+    );
   }
 
   @test

@@ -43,13 +43,10 @@ jobs:
         if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
         run: pnpm install && pnpm run build
 
-      # Prereleases go to their own dist-tag (beta, rc...) so they never move `latest`
+      # Publishes only the packages tagged on this commit, each under its own dist-tag (beta, rc... or latest)
       - name: Publish project
         if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
-        run: |
-          VERSION=$(jq -r .version packages/core/package.json)
-          DIST_TAG=$(echo "$VERSION" | sed -nE 's/^[0-9]+\.[0-9]+\.[0-9]+-([a-z]+)\..*/\1/p')
-          pnpm -r publish --no-git-checks --tag "${DIST_TAG:-latest}"
+        run: ./scripts/publish-release.sh
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

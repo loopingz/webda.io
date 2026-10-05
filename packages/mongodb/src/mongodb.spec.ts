@@ -92,6 +92,8 @@ export class MongoParametersTest {
     assert.deepStrictEqual(map("a != 1"), { a: { $ne: 1 } });
     assert.deepStrictEqual(map("a IN [1, 2]"), { a: { $in: [1, 2] } });
     assert.ok(map("a LIKE 'b%'").a instanceof RegExp);
+    assert.deepStrictEqual(map("a IS NULL"), { a: null });
+    assert.deepStrictEqual(map("a.b IS NOT NULL"), { "a.b": { $ne: null } });
     // Two conditions on the same attribute must both apply
     assert.deepStrictEqual(map("a > 1 AND a < 5"), { $and: [{ a: { $gt: 1 } }, { a: { $lt: 5 } }] });
   }
@@ -209,6 +211,21 @@ export class MongoStoreTest extends WebdaApplicationTest {
     await this.repo.deleteItemFromCollection("c1", "items", 0);
     assert.deepStrictEqual((await this.repo.get("c1")).items, []);
     await assert.rejects(() => this.repo.deleteItemFromCollection("unknown", "items", 0), StoreNotFoundError);
+  }
+
+  @test
+  async queryIsNull() {
+    const collection = await this.store._connect();
+    // A null field, a missing field and a value
+    await collection.insertMany(<any[]>[
+      { _id: "null", uuid: "null", name: null },
+      { _id: "missing", uuid: "missing" },
+      { _id: "set", uuid: "set", name: "set" }
+    ]);
+    const uuids = async (query: string) => (await this.repo.query(query)).results.map(r => r.uuid).sort();
+    assert.deepStrictEqual(await uuids("name IS NULL"), ["missing", "null"]);
+    assert.deepStrictEqual(await uuids("name IS NOT NULL"), ["set"]);
+    assert.deepStrictEqual(await uuids("name IS NULL AND uuid = 'null'"), ["null"]);
   }
 
   @test

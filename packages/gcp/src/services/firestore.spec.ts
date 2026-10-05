@@ -232,6 +232,25 @@ class FireStoreTest extends WebdaApplicationTest {
   }
 
   @test
+  async queryIsNull() {
+    const repo: any = this.repo;
+    // A null field, a missing field and a value, written raw
+    for (const data of [{ uuid: "null", email: null }, { uuid: "missing" }, { uuid: "set", email: "set@webda.io" }]) {
+      await repo.firestore.collection(repo.collection).doc(data.uuid).set(data);
+    }
+    const uuids = (res: any) => res.results.map((r: any) => r.uuid).sort();
+    // Firestore `== null` misses absent fields: IS NULL is filtered in memory
+    let res = await this.find(repo, "email IS NULL");
+    assert.notStrictEqual(res.filter, true);
+    assert.deepStrictEqual(uuids(res), ["missing", "null"]);
+    // IS NOT NULL maps natively to `!= null`
+    res = await this.find(repo, "email IS NOT NULL");
+    assert.strictEqual(res.filter, true);
+    assert.deepStrictEqual(uuids(res), ["set"]);
+    assert.deepStrictEqual(uuids(await repo.query("email IS NULL AND uuid = 'null'")), ["null"]);
+  }
+
+  @test
   async query() {
     const repo = await this.fillForQuery();
     let res = await this.find(repo, 'state = "CA" AND role = 4 LIMIT 1000');

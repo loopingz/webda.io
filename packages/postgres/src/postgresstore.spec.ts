@@ -156,6 +156,24 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
   }
 
   @test
+  async queryIsNull() {
+    const c = this.store!.getClient();
+    // A JSON null, a missing key and a value
+    for (const [uuid, data] of [
+      ["null", { uuid: "null", email: null }],
+      ["missing", { uuid: "missing" }],
+      ["set", { uuid: "set", email: "set@webda.io" }]
+    ] as const) {
+      await c.query(`INSERT INTO smoke_idents(uuid,data) VALUES($1, $2)`, [uuid, JSON.stringify(data)]);
+    }
+    const repo = this.store!.getRepository(useModel("Webda/Ident"));
+    const uuids = async (query: string) => (await repo.query(query)).results.map((r: any) => r.uuid).sort();
+    assert.deepStrictEqual(await uuids("email IS NULL"), ["missing", "null"]);
+    assert.deepStrictEqual(await uuids("email IS NOT NULL"), ["set"]);
+    assert.deepStrictEqual(await uuids("email IS NULL AND uuid = 'null'"), ["null"]);
+  }
+
+  @test
   async createViewsWithEmptyPatternIsNoop() {
     this.store!.getParameters().views = [];
     this.store!.getParameters().viewPrefix = "view_";

@@ -1,6 +1,6 @@
 {
   "name": "@webda/runtime",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0-beta.3",
   "description": "@webda runtime services",
   "keywords": [],
   "author": "Remi Cattiau <remi@cattiau.com>",
@@ -13,7 +13,7 @@
     "pretest": "npm run build",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "test": "echo 'Tests disabled \u2014 spec files need migration from @testdeck/mocha to @webda/test'",
+    "test": "echo 'Tests disabled — spec files need migration from @testdeck/mocha to @webda/test'",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
     "deps:graph": "skott --showCircularDependencies --no-trackTypeOnlyDependencies --displayMode=raw -e .ts",

@@ -4,6 +4,11 @@ on:
       - main
       - maintenance/v3
   workflow_dispatch:
+    inputs:
+      release-as:
+        description: "Force the next version of all packages (e.g. 4.0.0-rc.1, 4.0.0). Leave empty for a normal run."
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -13,11 +18,37 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # Commits a one-shot `release-as` to the config; release-please below runs in the
+      # same job because pushes made with GITHUB_TOKEN do not trigger other workflows
+      - name: Set release-as
+        if: ${{ inputs.release-as != '' }}
+        env:
+          RELEASE_AS: ${{ inputs.release-as }}
+        run: |
+          if ! [[ "$RELEASE_AS" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-([a-z]+)\.[0-9]+)?$ ]]; then
+            echo "::error::Invalid version '$RELEASE_AS', expected X.Y.Z or X.Y.Z-type.N"
+            exit 1
+          fi
+          PRERELEASE_TYPE="${BASH_REMATCH[2]}"
+          jq --arg v "$RELEASE_AS" --arg t "$PRERELEASE_TYPE" \
+            '."release-as" = $v | if $t != "" then ."prerelease-type" = $t else . end' \
+            release-please-config.json > release-please-config.tmp
+          mv release-please-config.tmp release-please-config.json
+          git commit -am "chore: release $RELEASE_AS"
+          git push
+
       - uses: googleapis/release-please-action@v4
         id: release
         with:
           target-branch: ${{ github.ref_name }}
-          prerelease: ${{ contains(github.ref, 'main') }} # when `manifest-release` creates GitHub Releases per package, create those as "Prerelease" releases that have pre-major or prerelease versions. absence defaults to false and all versions are fully Published.
 
       - uses: actions/setup-node@v4
         if: ${{ steps.release.outputs.release_created }}
@@ -28,19 +59,37 @@ jobs:
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         if: ${{ steps.release.outputs.release_created }}
 
-      - name: Checkout repository
+      - name: Update to released commit
         if: ${{ steps.release.outputs.release_created }}
-        uses: actions/checkout@v4
+        run: git pull --ff-only origin ${{ github.ref_name }}
 
       - name: Build
         if: ${{ steps.release.outputs.release_created }}
         run: pnpm install && pnpm run build
 
+      # Prereleases go to their own dist-tag (beta, rc...) so they never move `latest`
       - name: Publish project
         if: ${{ steps.release.outputs.release_created }}
-        run: pnpm -r publish --no-git-checks
+        run: |
+          VERSION=$(jq -r .version packages/core/package.json)
+          DIST_TAG=$(echo "$VERSION" | sed -nE 's/^[0-9]+\.[0-9]+\.[0-9]+-([a-z]+)\..*/\1/p')
+          pnpm -r publish --no-git-checks --tag "${DIST_TAG:-latest}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Drop the one-shot `release-as` once the version it forced has been released
+      - name: Clear release-as
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          RELEASE_AS=$(jq -r '."release-as" // empty' release-please-config.json)
+          if [ -n "$RELEASE_AS" ] && [ "$RELEASE_AS" = "$(jq -r .version packages/core/package.json)" ]; then
+            git checkout -- .
+            jq 'del(."release-as")' release-please-config.json > release-please-config.tmp
+            mv release-please-config.tmp release-please-config.json
+            git commit -am "chore: clear release-as $RELEASE_AS"
+            git pull --rebase origin ${{ github.ref_name }}
+            git push
+          fi
 
       - name: Install docs dependencies
         if: ${{ steps.release.outputs.release_created }}

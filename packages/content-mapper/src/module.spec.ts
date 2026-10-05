@@ -258,11 +258,9 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
     expect(result!.module.capabilities).toEqual(committed.capabilities);
   });
 
-  it("is byte-identical apart from sourceDigest", () => {
+  it("is byte-identical to the committed module", () => {
     if (!committed) return;
-    const { sourceDigest, ...rest } = committed;
-    void sourceDigest;
-    expect(JSON.stringify(result!.module, undefined, 2)).toBe(JSON.stringify(rest, undefined, 2));
+    expect(JSON.stringify(result!.module, undefined, 2)).toBe(JSON.stringify(committed, undefined, 2));
     expect(result!.errors).toEqual([]);
     expect(result!.namingViolations).toEqual([]);
   });

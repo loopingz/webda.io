@@ -121,7 +121,7 @@ The compiler stores a cache in `.webda/cache`:
 }
 ```
 
-If `sourceDigest` matches the current source tree and `moduleDigest` matches `webda.module.json` on disk, the build is skipped entirely. This makes subsequent builds in watch mode very fast.
+If `sourceDigest` matches the current source tree, `moduleDigest` matches `webda.module.json` on disk and every emitted file it references exists, the build is skipped entirely. The digests stay in this cache (which is not committed) rather than in `webda.module.json`, so the generated module only changes when its content does. This makes subsequent builds in watch mode very fast.
 
 ## Integration with `pnpm run build`
 

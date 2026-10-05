@@ -85,14 +85,9 @@ export class Compiler {
     if (!moduleDigest || moduleDigest !== webdaCache.moduleDigest) {
       return true;
     }
-    // The module file must declare the same source digest it was generated
-    // against, which catches replacement files carrying a cached content hash.
     let moduleContent: Record<string, any>;
     try {
       moduleContent = FileUtils.load(modulePath, "json");
-      if (moduleContent.sourceDigest !== currentDigest) {
-        return true;
-      }
     } catch {
       return true;
     }

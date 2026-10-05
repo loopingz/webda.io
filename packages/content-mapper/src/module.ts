@@ -14,8 +14,8 @@
  * PrimaryKey, Plural, behaviours, commands, capabilities, Configuration) and
  * the assembly.
  *
- * `sourceDigest` is deliberately absent: it hashes the project's sources and
- * is computed by the TypeScript 6 compiler, which owns the file on disk.
+ * The module holds no source digest: the compiler keeps it in `.webda/cache`
+ * so the committed file only changes when its content does.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -106,7 +106,7 @@ export interface BehaviorEntry {
   Actions: Record<string, Record<string, unknown>>;
 }
 
-/** `webda.module.json`, without `sourceDigest`. */
+/** `webda.module.json`. */
 export interface WebdaModuleJson {
   $schema: string;
   beans: Record<string, ServiceEntry>;
@@ -1152,7 +1152,7 @@ function manifestOf(appPath: string): any {
 }
 
 /**
- * Generate the complete `webda.module.json` for a project, minus `sourceDigest`.
+ * Generate the complete `webda.module.json` for a project.
  * @param ctx - analysis context over the project
  * @param options - roots, namespace and capabilities
  * @returns the module, naming violations and errors

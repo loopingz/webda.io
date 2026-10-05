@@ -478,15 +478,6 @@ export interface WebdaModule {
    * Merged from dependencies at build/load time; project-level values override.
    */
   capabilities?: { [name: string]: string };
-  /**
-   * Hash of the source files this module was generated from.
-   *
-   * Compared against the project's current source digest to decide whether
-   * the on-disk module file is up-to-date — letting the compiler detect
-   * external mutations (git checkout, manual edit, framework upgrade that
-   * regenerates the file) even when source hashes alone match the cache.
-   */
-  sourceDigest?: string;
 }
 
 /**

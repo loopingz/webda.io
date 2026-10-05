@@ -9,8 +9,8 @@
  * - **emit** — the two-pass build: generate accessors, behaviours and
  *   WebdaQL rewrites into the source, type-check that, and write what was
  *   checked. Nothing is written when pass 2 reports a diagnostic.
- * - **module** — every section of `webda.module.json` except
- *   `sourceDigest`, byte for byte as the TypeScript 6 generator produced it.
+ * - **module** — every section of `webda.module.json`, byte for byte as the
+ *   TypeScript 6 generator produced it.
  *
  * It is spawned rather than imported: the content mapper peers on
  * `typescript@>=7.1.0-dev`, and a process boundary is what lets it run
@@ -37,7 +37,7 @@ export interface NamingViolation {
 
 /** What the generator answers for `webda.module.json`. */
 export interface GeneratedModule {
-  /** Every section except `sourceDigest`. */
+  /** Every section of the module. */
   module: Record<string, unknown>;
   /** Classes in files the mapper cannot claim. */
   namingViolations: NamingViolation[];

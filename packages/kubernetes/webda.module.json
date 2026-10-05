@@ -217,6 +217,5 @@
   "behaviors": {},
   "capabilities": {
     "kubernetes-cron-export": "Webda/KubernetesCronExporter"
-  },
-  "sourceDigest": "4f237ab24a881ae9c8af1424c86f1cc7"
+  }
 }

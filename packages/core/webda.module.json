@@ -3790,6 +3790,5 @@
     "router": "Webda/Router",
     "rest-domain": "Webda/RESTOperationsTransport",
     "http-server": "Webda/HttpServer"
-  },
-  "sourceDigest": "01ab30e2881e8aa529a8cef54c8905ee"
+  }
 }

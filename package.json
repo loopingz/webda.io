@@ -46,7 +46,8 @@
     "docs": "cd docs && pnpm run update:typedoc && pnpm run build && echo 'webda.io' > build/CNAME",
     "docs:publish": "pnpm run docs && gh-pages -t -d docs/build",
     "deps:graph": "pnpm -r run deps:graph",
-    "init": "husky"
+    "init": "husky",
+    "release-as": "./scripts/release-as.sh"
   },
   "pnpm": {
     "overrides": {

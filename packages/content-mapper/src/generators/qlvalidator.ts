@@ -90,11 +90,13 @@ function queryableAttributes(ctx: AnalysisContext, type: any): string[] {
  * @param query - raw query text
  * @returns referenced attribute heads
  */
-function referencedAttributes(query: string): string[] {
+export function referencedAttributes(query: string): string[] {
   const names = new Set<string>();
-  for (const match of query.matchAll(/([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*(?:=|!=|<|>|<=|>=|IN|LIKE)/gi)) {
+  for (const match of query.matchAll(
+    /([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)(?:\s*(?:=|!=|<|>|<=|>=|IN|LIKE)|\s+IS\s+(?:NOT\s+)?NULL\b)/gi
+  )) {
     const head = match[1].split(".")[0];
-    if (!/^(AND|OR|NOT|TRUE|FALSE|IN|LIKE)$/i.test(head)) names.add(head);
+    if (!/^(AND|OR|NOT|TRUE|FALSE|IN|LIKE|IS|NULL)$/i.test(head)) names.add(head);
   }
   return [...names];
 }

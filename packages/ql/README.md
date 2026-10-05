@@ -52,6 +52,7 @@ expression? orderExpression? limitExpression? offsetExpression?
 - Pattern match: `field LIKE "pattern"` (`_` = single char, `%` = any chars)
 - Set membership: `field IN [value, value, ...]`
 - Array contains: `field CONTAINS value`
+- Null checks: `field IS NULL`, `field IS NOT NULL` (missing, `undefined` or `null`)
 - Logic: `AND`, `OR`, `( ... )`
 
 **Pagination / ordering:**

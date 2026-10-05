@@ -1,18 +1,22 @@
-// Generated from src/stores/webdaql/WebdaQLParser.g4 by ANTLR 4.9.0-SNAPSHOT
+// Generated from src/WebdaQLParser.g4 by ANTLR 4.9.0-SNAPSHOT
 
 import { ATN } from "antlr4ts/atn/ATN.js";
 import { ATNDeserializer } from "antlr4ts/atn/ATNDeserializer.js";
-import { ParserATNSimulator } from "antlr4ts/atn/ParserATNSimulator.js";
 import { FailedPredicateException } from "antlr4ts/FailedPredicateException.js";
+import { NotNull } from "antlr4ts/Decorators.js";
 import { NoViableAltException } from "antlr4ts/NoViableAltException.js";
+import { Override } from "antlr4ts/Decorators.js";
 import { Parser } from "antlr4ts/Parser.js";
 import { ParserRuleContext } from "antlr4ts/ParserRuleContext.js";
+import { ParserATNSimulator } from "antlr4ts/atn/ParserATNSimulator.js";
+import { ParseTreeListener } from "antlr4ts/tree/ParseTreeListener.js";
+import { ParseTreeVisitor } from "antlr4ts/tree/ParseTreeVisitor.js";
 import { RecognitionException } from "antlr4ts/RecognitionException.js";
 import { RuleContext } from "antlr4ts/RuleContext.js";
 //import { RuleVersion } from "antlr4ts/RuleVersion.js";
+import { TerminalNode } from "antlr4ts/tree/TerminalNode.js";
 import { Token } from "antlr4ts/Token.js";
 import { TokenStream } from "antlr4ts/TokenStream.js";
-import { TerminalNode } from "antlr4ts/tree/TerminalNode.js";
 import { Vocabulary } from "antlr4ts/Vocabulary.js";
 import { VocabularyImpl } from "antlr4ts/VocabularyImpl.js";
 
@@ -41,19 +45,22 @@ export class WebdaQLParserParser extends Parser {
   public static readonly LIKE = 17;
   public static readonly IN = 18;
   public static readonly CONTAINS = 19;
-  public static readonly TRUE = 20;
-  public static readonly FALSE = 21;
-  public static readonly LIMIT = 22;
-  public static readonly OFFSET = 23;
-  public static readonly ORDER_BY = 24;
-  public static readonly ASC = 25;
-  public static readonly DESC = 26;
-  public static readonly DQUOTED_STRING_LITERAL = 27;
-  public static readonly SQUOTED_STRING_LITERAL = 28;
-  public static readonly INTEGER_LITERAL = 29;
-  public static readonly IDENTIFIER = 30;
-  public static readonly IDENTIFIER_WITH_NUMBER = 31;
-  public static readonly FUNCTION_IDENTIFIER_WITH_UNDERSCORE = 32;
+  public static readonly IS = 20;
+  public static readonly NOT = 21;
+  public static readonly NULL = 22;
+  public static readonly TRUE = 23;
+  public static readonly FALSE = 24;
+  public static readonly LIMIT = 25;
+  public static readonly OFFSET = 26;
+  public static readonly ORDER_BY = 27;
+  public static readonly ASC = 28;
+  public static readonly DESC = 29;
+  public static readonly DQUOTED_STRING_LITERAL = 30;
+  public static readonly SQUOTED_STRING_LITERAL = 31;
+  public static readonly INTEGER_LITERAL = 32;
+  public static readonly IDENTIFIER = 33;
+  public static readonly IDENTIFIER_WITH_NUMBER = 34;
+  public static readonly FUNCTION_IDENTIFIER_WITH_UNDERSCORE = 35;
   public static readonly RULE_webdaql = 0;
   public static readonly RULE_limitExpression = 1;
   public static readonly RULE_offsetExpression = 2;
@@ -105,6 +112,9 @@ export class WebdaQLParserParser extends Parser {
     "'LIKE'",
     "'IN'",
     "'CONTAINS'",
+    "'IS'",
+    "'NOT'",
+    "'NULL'",
     "'TRUE'",
     "'FALSE'",
     "'LIMIT'",
@@ -134,6 +144,9 @@ export class WebdaQLParserParser extends Parser {
     "LIKE",
     "IN",
     "CONTAINS",
+    "IS",
+    "NOT",
+    "NULL",
     "TRUE",
     "FALSE",
     "LIMIT",
@@ -186,7 +199,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public webdaql(): WebdaqlContext {
-    const _localctx: WebdaqlContext = new WebdaqlContext(this._ctx, this.state);
+    let _localctx: WebdaqlContext = new WebdaqlContext(this._ctx, this.state);
     this.enterRule(_localctx, 0, WebdaQLParserParser.RULE_webdaql);
     let _la: number;
     try {
@@ -196,17 +209,20 @@ export class WebdaQLParserParser extends Parser {
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (
-          (_la & ~0x1f) === 0 &&
-          ((1 << _la) &
-            ((1 << WebdaQLParserParser.LR_BRACKET) |
-              (1 << WebdaQLParserParser.TRUE) |
-              (1 << WebdaQLParserParser.FALSE) |
-              (1 << WebdaQLParserParser.DQUOTED_STRING_LITERAL) |
-              (1 << WebdaQLParserParser.SQUOTED_STRING_LITERAL) |
-              (1 << WebdaQLParserParser.INTEGER_LITERAL) |
-              (1 << WebdaQLParserParser.IDENTIFIER) |
-              (1 << WebdaQLParserParser.IDENTIFIER_WITH_NUMBER))) !==
-            0
+          ((_la & ~0x1f) === 0 &&
+            ((1 << _la) &
+              ((1 << WebdaQLParserParser.LR_BRACKET) |
+                (1 << WebdaQLParserParser.TRUE) |
+                (1 << WebdaQLParserParser.FALSE) |
+                (1 << WebdaQLParserParser.DQUOTED_STRING_LITERAL) |
+                (1 << WebdaQLParserParser.SQUOTED_STRING_LITERAL))) !==
+              0) ||
+          (((_la - 32) & ~0x1f) === 0 &&
+            ((1 << (_la - 32)) &
+              ((1 << (WebdaQLParserParser.INTEGER_LITERAL - 32)) |
+                (1 << (WebdaQLParserParser.IDENTIFIER - 32)) |
+                (1 << (WebdaQLParserParser.IDENTIFIER_WITH_NUMBER - 32)))) !==
+              0)
         ) {
           {
             this.state = 26;
@@ -262,7 +278,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public limitExpression(): LimitExpressionContext {
-    const _localctx: LimitExpressionContext = new LimitExpressionContext(this._ctx, this.state);
+    let _localctx: LimitExpressionContext = new LimitExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 2, WebdaQLParserParser.RULE_limitExpression);
     try {
       this.enterOuterAlt(_localctx, 1);
@@ -287,7 +303,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public offsetExpression(): OffsetExpressionContext {
-    const _localctx: OffsetExpressionContext = new OffsetExpressionContext(this._ctx, this.state);
+    let _localctx: OffsetExpressionContext = new OffsetExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 4, WebdaQLParserParser.RULE_offsetExpression);
     try {
       this.enterOuterAlt(_localctx, 1);
@@ -312,7 +328,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public orderFieldExpression(): OrderFieldExpressionContext {
-    const _localctx: OrderFieldExpressionContext = new OrderFieldExpressionContext(this._ctx, this.state);
+    let _localctx: OrderFieldExpressionContext = new OrderFieldExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 6, WebdaQLParserParser.RULE_orderFieldExpression);
     let _la: number;
     try {
@@ -355,7 +371,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public orderExpression(): OrderExpressionContext {
-    const _localctx: OrderExpressionContext = new OrderExpressionContext(this._ctx, this.state);
+    let _localctx: OrderExpressionContext = new OrderExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 8, WebdaQLParserParser.RULE_orderExpression);
     let _la: number;
     try {
@@ -404,18 +420,18 @@ export class WebdaQLParserParser extends Parser {
       _p = 0;
     }
 
-    const _parentctx: ParserRuleContext = this._ctx;
-    const _parentState: number = this.state;
+    let _parentctx: ParserRuleContext = this._ctx;
+    let _parentState: number = this.state;
     let _localctx: ExpressionContext = new ExpressionContext(this._ctx, _parentState);
     let _prevctx: ExpressionContext = _localctx;
-    const _startState: number = 10;
+    let _startState: number = 10;
     this.enterRecursionRule(_localctx, 10, WebdaQLParserParser.RULE_expression, _p);
     let _la: number;
     try {
       let _alt: number;
       this.enterOuterAlt(_localctx, 1);
       {
-        this.state = 81;
+        this.state = 90;
         this._errHandler.sync(this);
         switch (this.interpreter.adaptivePredict(this._input, 6, this._ctx)) {
           case 1:
@@ -463,26 +479,54 @@ export class WebdaQLParserParser extends Parser {
 
           case 4:
             {
-              _localctx = new BinaryComparisonExpressionContext(_localctx);
+              _localctx = new IsNullExpressionContext(_localctx);
               this._ctx = _localctx;
               _prevctx = _localctx;
               this.state = 72;
               this.identifier();
               this.state = 73;
+              this.match(WebdaQLParserParser.IS);
+              this.state = 74;
+              this.match(WebdaQLParserParser.NULL);
+            }
+            break;
+
+          case 5:
+            {
+              _localctx = new IsNotNullExpressionContext(_localctx);
+              this._ctx = _localctx;
+              _prevctx = _localctx;
+              this.state = 76;
+              this.identifier();
+              this.state = 77;
+              this.match(WebdaQLParserParser.IS);
+              this.state = 78;
+              this.match(WebdaQLParserParser.NOT);
+              this.state = 79;
+              this.match(WebdaQLParserParser.NULL);
+            }
+            break;
+
+          case 6:
+            {
+              _localctx = new BinaryComparisonExpressionContext(_localctx);
+              this._ctx = _localctx;
+              _prevctx = _localctx;
+              this.state = 81;
+              this.identifier();
+              this.state = 82;
               _la = this._input.LA(1);
-              if (
-                !(
-                  (_la & ~0x1f) === 0 &&
-                  ((1 << _la) &
-                    ((1 << WebdaQLParserParser.EQUAL) |
-                      (1 << WebdaQLParserParser.NOT_EQUAL) |
-                      (1 << WebdaQLParserParser.GREATER) |
-                      (1 << WebdaQLParserParser.GREATER_OR_EQUAL) |
-                      (1 << WebdaQLParserParser.LESS) |
-                      (1 << WebdaQLParserParser.LESS_OR_EQUAL))) !==
-                    0
-                )
-              ) {
+              if (!(
+                (_la & ~0x1f) === 0 &&
+                ((1 << _la) &
+                  ((1 << WebdaQLParserParser.EQUAL) |
+                    (1 << WebdaQLParserParser.NOT_EQUAL) |
+                    (1 << WebdaQLParserParser.GREATER) |
+                    (1 << WebdaQLParserParser.GREATER_OR_EQUAL) |
+                    (1 << WebdaQLParserParser.LESS) |
+                    (1 << WebdaQLParserParser.LESS_OR_EQUAL))) !==
+                  0
+              )) {
                 this._errHandler.recoverInline(this);
               } else {
                 if (this._input.LA(1) === Token.EOF) {
@@ -492,37 +536,37 @@ export class WebdaQLParserParser extends Parser {
                 this._errHandler.reportMatch(this);
                 this.consume();
               }
-              this.state = 74;
+              this.state = 83;
               this.values();
             }
             break;
 
-          case 5:
+          case 7:
             {
               _localctx = new SubExpressionContext(_localctx);
               this._ctx = _localctx;
               _prevctx = _localctx;
-              this.state = 76;
+              this.state = 85;
               this.match(WebdaQLParserParser.LR_BRACKET);
-              this.state = 77;
+              this.state = 86;
               this.expression(0);
-              this.state = 78;
+              this.state = 87;
               this.match(WebdaQLParserParser.RR_BRACKET);
             }
             break;
 
-          case 6:
+          case 8:
             {
               _localctx = new AtomExpressionContext(_localctx);
               this._ctx = _localctx;
               _prevctx = _localctx;
-              this.state = 80;
+              this.state = 89;
               this.atom();
             }
             break;
         }
         this._ctx._stop = this._input.tryLT(-1);
-        this.state = 91;
+        this.state = 100;
         this._errHandler.sync(this);
         _alt = this.interpreter.adaptivePredict(this._input, 8, this._ctx);
         while (_alt !== 2 && _alt !== ATN.INVALID_ALT_NUMBER) {
@@ -532,20 +576,20 @@ export class WebdaQLParserParser extends Parser {
             }
             _prevctx = _localctx;
             {
-              this.state = 89;
+              this.state = 98;
               this._errHandler.sync(this);
               switch (this.interpreter.adaptivePredict(this._input, 7, this._ctx)) {
                 case 1:
                   {
                     _localctx = new AndLogicExpressionContext(new ExpressionContext(_parentctx, _parentState));
                     this.pushNewRecursionContext(_localctx, _startState, WebdaQLParserParser.RULE_expression);
-                    this.state = 83;
+                    this.state = 92;
                     if (!this.precpred(this._ctx, 4)) {
                       throw this.createFailedPredicateException("this.precpred(this._ctx, 4)");
                     }
-                    this.state = 84;
+                    this.state = 93;
                     this.match(WebdaQLParserParser.AND);
-                    this.state = 85;
+                    this.state = 94;
                     this.expression(5);
                   }
                   break;
@@ -554,20 +598,20 @@ export class WebdaQLParserParser extends Parser {
                   {
                     _localctx = new OrLogicExpressionContext(new ExpressionContext(_parentctx, _parentState));
                     this.pushNewRecursionContext(_localctx, _startState, WebdaQLParserParser.RULE_expression);
-                    this.state = 86;
+                    this.state = 95;
                     if (!this.precpred(this._ctx, 3)) {
                       throw this.createFailedPredicateException("this.precpred(this._ctx, 3)");
                     }
-                    this.state = 87;
+                    this.state = 96;
                     this.match(WebdaQLParserParser.OR);
-                    this.state = 88;
+                    this.state = 97;
                     this.expression(4);
                   }
                   break;
               }
             }
           }
-          this.state = 93;
+          this.state = 102;
           this._errHandler.sync(this);
           _alt = this.interpreter.adaptivePredict(this._input, 8, this._ctx);
         }
@@ -590,7 +634,7 @@ export class WebdaQLParserParser extends Parser {
     let _localctx: ValuesContext = new ValuesContext(this._ctx, this.state);
     this.enterRule(_localctx, 12, WebdaQLParserParser.RULE_values);
     try {
-      this.state = 97;
+      this.state = 106;
       this._errHandler.sync(this);
       switch (this._input.LA(1)) {
         case WebdaQLParserParser.TRUE:
@@ -598,7 +642,7 @@ export class WebdaQLParserParser extends Parser {
           _localctx = new BooleanAtomContext(_localctx);
           this.enterOuterAlt(_localctx, 1);
           {
-            this.state = 94;
+            this.state = 103;
             this.booleanLiteral();
           }
           break;
@@ -606,7 +650,7 @@ export class WebdaQLParserParser extends Parser {
           _localctx = new IntegerAtomContext(_localctx);
           this.enterOuterAlt(_localctx, 2);
           {
-            this.state = 95;
+            this.state = 104;
             this.integerLiteral();
           }
           break;
@@ -615,7 +659,7 @@ export class WebdaQLParserParser extends Parser {
           _localctx = new StringAtomContext(_localctx);
           this.enterOuterAlt(_localctx, 3);
           {
-            this.state = 96;
+            this.state = 105;
             this.stringLiteral();
           }
           break;
@@ -640,7 +684,7 @@ export class WebdaQLParserParser extends Parser {
     let _localctx: AtomContext = new AtomContext(this._ctx, this.state);
     this.enterRule(_localctx, 14, WebdaQLParserParser.RULE_atom);
     try {
-      this.state = 101;
+      this.state = 110;
       this._errHandler.sync(this);
       switch (this._input.LA(1)) {
         case WebdaQLParserParser.TRUE:
@@ -651,7 +695,7 @@ export class WebdaQLParserParser extends Parser {
           _localctx = new ValuesAtomContext(_localctx);
           this.enterOuterAlt(_localctx, 1);
           {
-            this.state = 99;
+            this.state = 108;
             this.values();
           }
           break;
@@ -660,7 +704,7 @@ export class WebdaQLParserParser extends Parser {
           _localctx = new IdentifierAtomContext(_localctx);
           this.enterOuterAlt(_localctx, 2);
           {
-            this.state = 100;
+            this.state = 109;
             this.identifier();
           }
           break;
@@ -682,13 +726,13 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public identifier(): IdentifierContext {
-    const _localctx: IdentifierContext = new IdentifierContext(this._ctx, this.state);
+    let _localctx: IdentifierContext = new IdentifierContext(this._ctx, this.state);
     this.enterRule(_localctx, 16, WebdaQLParserParser.RULE_identifier);
     let _la: number;
     try {
       this.enterOuterAlt(_localctx, 1);
       {
-        this.state = 103;
+        this.state = 112;
         _la = this._input.LA(1);
         if (!(_la === WebdaQLParserParser.IDENTIFIER || _la === WebdaQLParserParser.IDENTIFIER_WITH_NUMBER)) {
           this._errHandler.recoverInline(this);
@@ -716,13 +760,13 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public booleanLiteral(): BooleanLiteralContext {
-    const _localctx: BooleanLiteralContext = new BooleanLiteralContext(this._ctx, this.state);
+    let _localctx: BooleanLiteralContext = new BooleanLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 18, WebdaQLParserParser.RULE_booleanLiteral);
     let _la: number;
     try {
       this.enterOuterAlt(_localctx, 1);
       {
-        this.state = 105;
+        this.state = 114;
         _la = this._input.LA(1);
         if (!(_la === WebdaQLParserParser.TRUE || _la === WebdaQLParserParser.FALSE)) {
           this._errHandler.recoverInline(this);
@@ -750,17 +794,17 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public stringLiteral(): StringLiteralContext {
-    const _localctx: StringLiteralContext = new StringLiteralContext(this._ctx, this.state);
+    let _localctx: StringLiteralContext = new StringLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 20, WebdaQLParserParser.RULE_stringLiteral);
     let _la: number;
     try {
       this.enterOuterAlt(_localctx, 1);
       {
-        this.state = 107;
+        this.state = 116;
         _la = this._input.LA(1);
-        if (
-          !(_la === WebdaQLParserParser.DQUOTED_STRING_LITERAL || _la === WebdaQLParserParser.SQUOTED_STRING_LITERAL)
-        ) {
+        if (!(
+          _la === WebdaQLParserParser.DQUOTED_STRING_LITERAL || _la === WebdaQLParserParser.SQUOTED_STRING_LITERAL
+        )) {
           this._errHandler.recoverInline(this);
         } else {
           if (this._input.LA(1) === Token.EOF) {
@@ -786,12 +830,12 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public integerLiteral(): IntegerLiteralContext {
-    const _localctx: IntegerLiteralContext = new IntegerLiteralContext(this._ctx, this.state);
+    let _localctx: IntegerLiteralContext = new IntegerLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 22, WebdaQLParserParser.RULE_integerLiteral);
     try {
       this.enterOuterAlt(_localctx, 1);
       {
-        this.state = 109;
+        this.state = 118;
         this.match(WebdaQLParserParser.INTEGER_LITERAL);
       }
     } catch (re) {
@@ -809,33 +853,33 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public setExpression(): SetExpressionContext {
-    const _localctx: SetExpressionContext = new SetExpressionContext(this._ctx, this.state);
+    let _localctx: SetExpressionContext = new SetExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 24, WebdaQLParserParser.RULE_setExpression);
     let _la: number;
     try {
       this.enterOuterAlt(_localctx, 1);
       {
-        this.state = 111;
+        this.state = 120;
         this.match(WebdaQLParserParser.LR_SQ_BRACKET);
-        this.state = 112;
+        this.state = 121;
         this.values();
-        this.state = 117;
+        this.state = 126;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === WebdaQLParserParser.COMMA) {
           {
             {
-              this.state = 113;
+              this.state = 122;
               this.match(WebdaQLParserParser.COMMA);
-              this.state = 114;
+              this.state = 123;
               this.values();
             }
           }
-          this.state = 119;
+          this.state = 128;
           this._errHandler.sync(this);
           _la = this._input.LA(1);
         }
-        this.state = 120;
+        this.state = 129;
         this.match(WebdaQLParserParser.RR_SQ_BRACKET);
       }
     } catch (re) {
@@ -871,56 +915,60 @@ export class WebdaQLParserParser extends Parser {
   }
 
   public static readonly _serializedATN: string =
-    '\x03\uC91D\uCABA\u058D\uAFBA\u4F53\u0607\uEA8B\uC241\x03"}\x04\x02\t' +
-    "\x02\x04\x03\t\x03\x04\x04\t\x04\x04\x05\t\x05\x04\x06\t\x06\x04\x07\t" +
-    "\x07\x04\b\t\b\x04\t\t\t\x04\n\t\n\x04\v\t\v\x04\f\t\f\x04\r\t\r\x04\x0E" +
-    "\t\x0E\x03\x02\x05\x02\x1E\n\x02\x03\x02\x05\x02!\n\x02\x03\x02\x05\x02" +
-    "$\n\x02\x03\x02\x05\x02'\n\x02\x03\x02\x03\x02\x03\x03\x03\x03\x03\x03" +
-    "\x03\x04\x03\x04\x03\x04\x03\x05\x03\x05\x05\x053\n\x05\x03\x06\x03\x06" +
-    "\x03\x06\x03\x06\x07\x069\n\x06\f\x06\x0E\x06<\v\x06\x03\x07\x03\x07\x03" +
-    "\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03" +
-    "\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03" +
-    "\x07\x03\x07\x05\x07T\n\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03" +
-    "\x07\x07\x07\\\n\x07\f\x07\x0E\x07_\v\x07\x03\b\x03\b\x03\b\x05\bd\n\b" +
-    "\x03\t\x03\t\x05\th\n\t\x03\n\x03\n\x03\v\x03\v\x03\f\x03\f\x03\r\x03" +
-    "\r\x03\x0E\x03\x0E\x03\x0E\x03\x0E\x07\x0Ev\n\x0E\f\x0E\x0E\x0Ey\v\x0E" +
-    "\x03\x0E\x03\x0E\x03\x0E\x02\x02\x03\f\x0F\x02\x02\x04\x02\x06\x02\b\x02" +
-    "\n\x02\f\x02\x0E\x02\x10\x02\x12\x02\x14\x02\x16\x02\x18\x02\x1A\x02\x02" +
-    "\x07\x03\x02\x1B\x1C\x03\x02\r\x12\x03\x02 !\x03\x02\x16\x17\x03\x02\x1D" +
-    "\x1E\x02\x80\x02\x1D\x03\x02\x02\x02\x04*\x03\x02\x02\x02\x06-\x03\x02" +
-    "\x02\x02\b0\x03\x02\x02\x02\n4\x03\x02\x02\x02\fS\x03\x02\x02\x02\x0E" +
-    "c\x03\x02\x02\x02\x10g\x03\x02\x02\x02\x12i\x03\x02\x02\x02\x14k\x03\x02" +
-    "\x02\x02\x16m\x03\x02\x02\x02\x18o\x03\x02\x02\x02\x1Aq\x03\x02\x02\x02" +
-    "\x1C\x1E\x05\f\x07\x02\x1D\x1C\x03\x02\x02\x02\x1D\x1E\x03\x02\x02\x02" +
-    "\x1E \x03\x02\x02\x02\x1F!\x05\n\x06\x02 \x1F\x03\x02\x02\x02 !\x03\x02" +
-    '\x02\x02!#\x03\x02\x02\x02"$\x05\x04\x03\x02#"\x03\x02\x02\x02#$\x03' +
-    "\x02\x02\x02$&\x03\x02\x02\x02%'\x05\x06\x04\x02&%\x03\x02\x02\x02&'" +
-    "\x03\x02\x02\x02'(\x03\x02\x02\x02()\x07\x02\x02\x03)\x03\x03\x02\x02" +
-    "\x02*+\x07\x18\x02\x02+,\x05\x18\r\x02,\x05\x03\x02\x02\x02-.\x07\x19" +
-    "\x02\x02./\x05\x16\f\x02/\x07\x03\x02\x02\x0202\x05\x12\n\x0213\t\x02" +
-    "\x02\x0221\x03\x02\x02\x0223\x03\x02\x02\x023\t\x03\x02\x02\x0245\x07" +
-    "\x1A\x02\x025:\x05\b\x05\x0267\x07\x06\x02\x0279\x05\b\x05\x0286\x03\x02" +
-    "\x02\x029<\x03\x02\x02\x02:8\x03\x02\x02\x02:;\x03\x02\x02\x02;\v\x03" +
-    "\x02\x02\x02<:\x03\x02\x02\x02=>\b\x07\x01\x02>?\x05\x12\n\x02?@\x07\x13" +
-    "\x02\x02@A\x05\x16\f\x02AT\x03\x02\x02\x02BC\x05\x12\n\x02CD\x07\x14\x02" +
-    "\x02DE\x05\x1A\x0E\x02ET\x03\x02\x02\x02FG\x05\x12\n\x02GH\x07\x15\x02" +
-    "\x02HI\x05\x16\f\x02IT\x03\x02\x02\x02JK\x05\x12\n\x02KL\t\x03\x02\x02" +
-    "LM\x05\x0E\b\x02MT\x03\x02\x02\x02NO\x07\x04\x02\x02OP\x05\f\x07\x02P" +
-    "Q\x07\x05\x02\x02QT\x03\x02\x02\x02RT\x05\x10\t\x02S=\x03\x02\x02\x02" +
-    "SB\x03\x02\x02\x02SF\x03\x02\x02\x02SJ\x03\x02\x02\x02SN\x03\x02\x02\x02" +
-    "SR\x03\x02\x02\x02T]\x03\x02\x02\x02UV\f\x06\x02\x02VW\x07\v\x02\x02W" +
-    "\\\x05\f\x07\x07XY\f\x05\x02\x02YZ\x07\f\x02\x02Z\\\x05\f\x07\x06[U\x03" +
-    "\x02\x02\x02[X\x03\x02\x02\x02\\_\x03\x02\x02\x02][\x03\x02\x02\x02]^" +
-    "\x03\x02\x02\x02^\r\x03\x02\x02\x02_]\x03\x02\x02\x02`d\x05\x14\v\x02" +
-    "ad\x05\x18\r\x02bd\x05\x16\f\x02c`\x03\x02\x02\x02ca\x03\x02\x02\x02c" +
-    "b\x03\x02\x02\x02d\x0F\x03\x02\x02\x02eh\x05\x0E\b\x02fh\x05\x12\n\x02" +
-    "ge\x03\x02\x02\x02gf\x03\x02\x02\x02h\x11\x03\x02\x02\x02ij\t\x04\x02" +
-    "\x02j\x13\x03\x02\x02\x02kl\t\x05\x02\x02l\x15\x03\x02\x02\x02mn\t\x06" +
-    "\x02\x02n\x17\x03\x02\x02\x02op\x07\x1F\x02\x02p\x19\x03\x02\x02\x02q" +
-    "r\x07\t\x02\x02rw\x05\x0E\b\x02st\x07\x06\x02\x02tv\x05\x0E\b\x02us\x03" +
-    "\x02\x02\x02vy\x03\x02\x02\x02wu\x03\x02\x02\x02wx\x03\x02\x02\x02xz\x03" +
-    "\x02\x02\x02yw\x03\x02\x02\x02z{\x07\n\x02\x02{\x1B\x03\x02\x02\x02\x0E" +
-    "\x1D #&2:S[]cgw";
+    "\x03\uC91D\uCABA\u058D\uAFBA\u4F53\u0607\uEA8B\uC241\x03%\x86\x04\x02" +
+    "\t\x02\x04\x03\t\x03\x04\x04\t\x04\x04\x05\t\x05\x04\x06\t\x06\x04\x07" +
+    "\t\x07\x04\b\t\b\x04\t\t\t\x04\n\t\n\x04\v\t\v\x04\f\t\f\x04\r\t\r\x04" +
+    "\x0E\t\x0E\x03\x02\x05\x02\x1E\n\x02\x03\x02\x05\x02!\n\x02\x03\x02\x05" +
+    "\x02$\n\x02\x03\x02\x05\x02\'\n\x02\x03\x02\x03\x02\x03\x03\x03\x03\x03" +
+    "\x03\x03\x04\x03\x04\x03\x04\x03\x05\x03\x05\x05\x053\n\x05\x03\x06\x03" +
+    "\x06\x03\x06\x03\x06\x07\x069\n\x06\f\x06\x0E\x06<\v\x06\x03\x07\x03\x07" +
+    "\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07" +
+    "\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07" +
+    "\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07" +
+    "\x03\x07\x03\x07\x05\x07]\n\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07" +
+    "\x03\x07\x07\x07e\n\x07\f\x07\x0E\x07h\v\x07\x03\b\x03\b\x03\b\x05\bm" +
+    "\n\b\x03\t\x03\t\x05\tq\n\t\x03\n\x03\n\x03\v\x03\v\x03\f\x03\f\x03\r" +
+    "\x03\r\x03\x0E\x03\x0E\x03\x0E\x03\x0E\x07\x0E\x7F\n\x0E\f\x0E\x0E\x0E" +
+    "\x82\v\x0E\x03\x0E\x03\x0E\x03\x0E\x02\x02\x03\f\x0F\x02\x02\x04\x02\x06" +
+    "\x02\b\x02\n\x02\f\x02\x0E\x02\x10\x02\x12\x02\x14\x02\x16\x02\x18\x02" +
+    "\x1A\x02\x02\x07\x03\x02\x1E\x1F\x03\x02\r\x12\x03\x02#$\x03\x02\x19\x1A" +
+    "\x03\x02 !\x02\x8B\x02\x1D\x03\x02\x02\x02\x04*\x03\x02\x02\x02\x06-\x03" +
+    "\x02\x02\x02\b0\x03\x02\x02\x02\n4\x03\x02\x02\x02\f\\\x03\x02\x02\x02" +
+    "\x0El\x03\x02\x02\x02\x10p\x03\x02\x02\x02\x12r\x03\x02\x02\x02\x14t\x03" +
+    "\x02\x02\x02\x16v\x03\x02\x02\x02\x18x\x03\x02\x02\x02\x1Az\x03\x02\x02" +
+    "\x02\x1C\x1E\x05\f\x07\x02\x1D\x1C\x03\x02\x02\x02\x1D\x1E\x03\x02\x02" +
+    "\x02\x1E \x03\x02\x02\x02\x1F!\x05\n\x06\x02 \x1F\x03\x02\x02\x02 !\x03" +
+    '\x02\x02\x02!#\x03\x02\x02\x02"$\x05\x04\x03\x02#"\x03\x02\x02\x02#' +
+    "$\x03\x02\x02\x02$&\x03\x02\x02\x02%\'\x05\x06\x04\x02&%\x03\x02\x02\x02" +
+    "&\'\x03\x02\x02\x02\'(\x03\x02\x02\x02()\x07\x02\x02\x03)\x03\x03\x02" +
+    "\x02\x02*+\x07\x1B\x02\x02+,\x05\x18\r\x02,\x05\x03\x02\x02\x02-.\x07" +
+    "\x1C\x02\x02./\x05\x16\f\x02/\x07\x03\x02\x02\x0202\x05\x12\n\x0213\t" +
+    "\x02\x02\x0221\x03\x02\x02\x0223\x03\x02\x02\x023\t\x03\x02\x02\x0245" +
+    "\x07\x1D\x02\x025:\x05\b\x05\x0267\x07\x06\x02\x0279\x05\b\x05\x0286\x03" +
+    "\x02\x02\x029<\x03\x02\x02\x02:8\x03\x02\x02\x02:;\x03\x02\x02\x02;\v" +
+    "\x03\x02\x02\x02<:\x03\x02\x02\x02=>\b\x07\x01\x02>?\x05\x12\n\x02?@\x07" +
+    "\x13\x02\x02@A\x05\x16\f\x02A]\x03\x02\x02\x02BC\x05\x12\n\x02CD\x07\x14" +
+    "\x02\x02DE\x05\x1A\x0E\x02E]\x03\x02\x02\x02FG\x05\x12\n\x02GH\x07\x15" +
+    "\x02\x02HI\x05\x16\f\x02I]\x03\x02\x02\x02JK\x05\x12\n\x02KL\x07\x16\x02" +
+    "\x02LM\x07\x18\x02\x02M]\x03\x02\x02\x02NO\x05\x12\n\x02OP\x07\x16\x02" +
+    "\x02PQ\x07\x17\x02\x02QR\x07\x18\x02\x02R]\x03\x02\x02\x02ST\x05\x12\n" +
+    "\x02TU\t\x03\x02\x02UV\x05\x0E\b\x02V]\x03\x02\x02\x02WX\x07\x04\x02\x02" +
+    "XY\x05\f\x07\x02YZ\x07\x05\x02\x02Z]\x03\x02\x02\x02[]\x05\x10\t\x02\\" +
+    "=\x03\x02\x02\x02\\B\x03\x02\x02\x02\\F\x03\x02\x02\x02\\J\x03\x02\x02" +
+    "\x02\\N\x03\x02\x02\x02\\S\x03\x02\x02\x02\\W\x03\x02\x02\x02\\[\x03\x02" +
+    "\x02\x02]f\x03\x02\x02\x02^_\f\x06\x02\x02_`\x07\v\x02\x02`e\x05\f\x07" +
+    "\x07ab\f\x05\x02\x02bc\x07\f\x02\x02ce\x05\f\x07\x06d^\x03\x02\x02\x02" +
+    "da\x03\x02\x02\x02eh\x03\x02\x02\x02fd\x03\x02\x02\x02fg\x03\x02\x02\x02" +
+    "g\r\x03\x02\x02\x02hf\x03\x02\x02\x02im\x05\x14\v\x02jm\x05\x18\r\x02" +
+    "km\x05\x16\f\x02li\x03\x02\x02\x02lj\x03\x02\x02\x02lk\x03\x02\x02\x02" +
+    "m\x0F\x03\x02\x02\x02nq\x05\x0E\b\x02oq\x05\x12\n\x02pn\x03\x02\x02\x02" +
+    "po\x03\x02\x02\x02q\x11\x03\x02\x02\x02rs\t\x04\x02\x02s\x13\x03\x02\x02" +
+    "\x02tu\t\x05\x02\x02u\x15\x03\x02\x02\x02vw\t\x06\x02\x02w\x17\x03\x02" +
+    '\x02\x02xy\x07"\x02\x02y\x19\x03\x02\x02\x02z{\x07\t\x02\x02{\x80\x05' +
+    "\x0E\b\x02|}\x07\x06\x02\x02}\x7F\x05\x0E\b\x02~|\x03\x02\x02\x02\x7F" +
+    "\x82\x03\x02\x02\x02\x80~\x03\x02\x02\x02\x80\x81\x03\x02\x02\x02\x81" +
+    "\x83\x03\x02\x02\x02\x82\x80\x03\x02\x02\x02\x83\x84\x07\n\x02\x02\x84" +
+    "\x1B\x03\x02\x02\x02\x0E\x1D #&2:\\dflp\x80";
   public static __ATN: ATN;
   public static get _ATN(): ATN {
     if (!WebdaQLParserParser.__ATN) {
@@ -1252,6 +1300,79 @@ export class ContainsExpressionContext extends ExpressionContext {
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitContainsExpression) {
       return visitor.visitContainsExpression(this);
+    } else {
+      return visitor.visitChildren(this);
+    }
+  }
+}
+export class IsNullExpressionContext extends ExpressionContext {
+  public identifier(): IdentifierContext {
+    return this.getRuleContext(0, IdentifierContext);
+  }
+  public IS(): TerminalNode {
+    return this.getToken(WebdaQLParserParser.IS, 0);
+  }
+  public NULL(): TerminalNode {
+    return this.getToken(WebdaQLParserParser.NULL, 0);
+  }
+  constructor(ctx: ExpressionContext) {
+    super(ctx.parent, ctx.invokingState);
+    this.copyFrom(ctx);
+  }
+  // @Override
+  public enterRule(listener: WebdaQLParserListener): void {
+    if (listener.enterIsNullExpression) {
+      listener.enterIsNullExpression(this);
+    }
+  }
+  // @Override
+  public exitRule(listener: WebdaQLParserListener): void {
+    if (listener.exitIsNullExpression) {
+      listener.exitIsNullExpression(this);
+    }
+  }
+  // @Override
+  public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
+    if (visitor.visitIsNullExpression) {
+      return visitor.visitIsNullExpression(this);
+    } else {
+      return visitor.visitChildren(this);
+    }
+  }
+}
+export class IsNotNullExpressionContext extends ExpressionContext {
+  public identifier(): IdentifierContext {
+    return this.getRuleContext(0, IdentifierContext);
+  }
+  public IS(): TerminalNode {
+    return this.getToken(WebdaQLParserParser.IS, 0);
+  }
+  public NOT(): TerminalNode {
+    return this.getToken(WebdaQLParserParser.NOT, 0);
+  }
+  public NULL(): TerminalNode {
+    return this.getToken(WebdaQLParserParser.NULL, 0);
+  }
+  constructor(ctx: ExpressionContext) {
+    super(ctx.parent, ctx.invokingState);
+    this.copyFrom(ctx);
+  }
+  // @Override
+  public enterRule(listener: WebdaQLParserListener): void {
+    if (listener.enterIsNotNullExpression) {
+      listener.enterIsNotNullExpression(this);
+    }
+  }
+  // @Override
+  public exitRule(listener: WebdaQLParserListener): void {
+    if (listener.exitIsNotNullExpression) {
+      listener.exitIsNotNullExpression(this);
+    }
+  }
+  // @Override
+  public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
+    if (visitor.visitIsNotNullExpression) {
+      return visitor.visitIsNotNullExpression(this);
     } else {
       return visitor.visitChildren(this);
     }

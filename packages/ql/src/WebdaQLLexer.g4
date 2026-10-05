@@ -52,6 +52,12 @@ LIKE: 'LIKE';
 IN: 'IN';
 CONTAINS: 'CONTAINS';
 
+// Null checks
+
+IS: 'IS';
+NOT: 'NOT';
+NULL: 'NULL';
+
 // Booleans
 
 TRUE: 'TRUE';

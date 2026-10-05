@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { openSession } from "./context.ts";
 import { applyEdits, mergePlan } from "./plan.ts";
-import { qlValidatorGenerator, WQL_CODES } from "./generators/qlvalidator.ts";
+import { qlValidatorGenerator, referencedAttributes, WQL_CODES } from "./generators/qlvalidator.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixture = join(here, "..", "test", "fixture");
@@ -49,6 +49,18 @@ describe("WebdaQL validation", () => {
     });
     expect(diagnostics.every(d => d.code === WQL_CODES.GRAMMAR_ERROR)).toBe(true);
     expect(diagnostics[0].messageText).toContain("mismatched input");
+  });
+});
+
+describe("WebdaQL referenced attributes", () => {
+  it("includes attributes checked with IS NULL / IS NOT NULL", () => {
+    expect(referencedAttributes("title IS NULL AND author.name IS NOT NULL AND status = 'x'").sort()).toEqual([
+      "author",
+      "status",
+      "title"
+    ]);
+    // Keywords are not attributes, and IS needs surrounding whitespace
+    expect(referencedAttributes("this = 1 AND notes IS NOT NULL")).toEqual(["this", "notes"]);
   });
 });
 

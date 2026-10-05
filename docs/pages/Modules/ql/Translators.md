@@ -51,6 +51,8 @@ const results = Object.values(this.storage).filter(obj => validator.eval(obj));
 | `viewCount >= 100` | `obj.viewCount >= 100` |
 | `tags CONTAINS 'ts'` | `Array.isArray(obj.tags) && obj.tags.includes('ts')` |
 | `title LIKE 'Intro%'` | `ComparisonExpression.likeToRegex('Intro%').test(obj.title)` |
+| `deletedAt IS NULL` | `obj.deletedAt === undefined \|\| obj.deletedAt === null` |
+| `deletedAt IS NOT NULL` | `obj.deletedAt !== undefined && obj.deletedAt !== null` |
 
 ---
 
@@ -71,6 +73,8 @@ The MongoDB store (`packages/mongodb/src/mongodb.ts`) translates the WQL AST int
 | `field IN [a, b]` | `{ field: { $in: [a, b] } }` |
 | `field LIKE "pattern"` | `{ field: /regex/ }` (via `ComparisonExpression.likeToRegex`) |
 | `field CONTAINS value` | `{ field: value }` (MongoDB natively checks array membership) |
+| `field IS NULL` | `{ field: null }` (matches null and missing fields) |
+| `field IS NOT NULL` | `{ field: { $ne: null } }` |
 | `A AND B` | Merge both objects: `{ ...A, ...B }` |
 | `A OR B` | `{ $or: [A, B] }` |
 
@@ -142,6 +146,8 @@ The PostgreSQL store (`packages/postgres/src/`) uses a two-step approach:
 | `field IN [a, b]` | `field = 'a' OR field = 'b'` (expanded to OR) |
 | `field CONTAINS value` | `(field)::jsonb ? 'value'` (JSONB array membership) |
 | `field LIKE "Intro%"` | `field LIKE 'Intro%'` |
+| `field IS NULL` | `data#>>'{field}' IS NULL` (missing key or JSON null) |
+| `field IS NOT NULL` | `data#>>'{field}' IS NOT NULL` |
 | `A AND B` | `A AND B` |
 | `A OR B` | `A OR B` |
 
@@ -174,6 +180,7 @@ DynamoDB's filter expressions are more restricted than SQL or MongoDB (no full t
 **Key differences:**
 - Queries on non-key attributes require a scan, which is costly
 - DynamoDB does not support `LIKE` natively — the store may evaluate LIKE in-memory after the DynamoDB query
+- `IS NULL` becomes `attribute_not_exists(field) OR attribute_type(field, NULL)` and `IS NOT NULL` its negation; on a GSI sort key they are evaluated in memory. Empty strings are not stored, so they match `IS NULL`
 - OFFSET uses `LastEvaluatedKey` JSON-encoded as a base64 string
 
 ---

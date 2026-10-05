@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
-import { WebdaApplicationTest } from "@webda/core/lib/test";
+import { checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import { EventRepository, useModel } from "@webda/core";
 import PostgresStore from "./postgresstore.service.js";
 import { PostgresRepository } from "./sqlstore.js";
@@ -142,23 +142,17 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
   @test
   async createWithoutPrimaryKeyPersistsGeneratedUuid() {
     // Check both the EventRepository returned by the store and the underlying PostgresRepository
-    const repos: any[] = [
-      this.store!.getRepository(useModel("Webda/Ident")),
-      this.store!.getRepositories().find(r => r instanceof PostgresRepository)
-    ];
-    for (const [repo, data] of repos.flatMap(r => [
-      [r, { _type: "google" }],
-      [r, { _type: "google", uuid: undefined }]
-    ])) {
-      const item: any = await repo.create(<any>data);
-      assert.ok(item.uuid, "a uuid should be generated");
-      assert.notStrictEqual(item.uuid, "undefined");
-      // The stored row carries the generated uuid, so reading it back keeps it
-      const res = await this.store!.getClient().query(`SELECT data FROM smoke_idents WHERE uuid=$1`, [item.uuid]);
-      assert.strictEqual(res.rowCount, 1);
-      assert.strictEqual(res.rows[0].data.uuid, item.uuid);
-      assert.strictEqual((await repo.get(item.uuid)).uuid, item.uuid);
-    }
+    await checkCreateWithoutPrimaryKey(
+      [
+        this.store!.getRepository(useModel("Webda/Ident")),
+        this.store!.getRepositories().find(r => r instanceof PostgresRepository)
+      ],
+      {
+        data: () => ({ _type: "google" }),
+        readStored: async key =>
+          (await this.store!.getClient().query(`SELECT data FROM smoke_idents WHERE uuid=$1`, [key])).rows[0]?.data
+      }
+    );
   }
 
   @test

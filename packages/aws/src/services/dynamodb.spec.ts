@@ -7,6 +7,7 @@ import {
   ScanCommand
 } from "@aws-sdk/client-dynamodb";
 import { StoreNotFoundError, UpdateConditionFailError, User, useRepository } from "@webda/core";
+import { checkCreateWithoutPrimaryKey } from "@webda/core/lib/test/index.js";
 import * as WebdaQL from "@webda/ql";
 import { suite, test } from "@webda/test";
 import { WorkerOutput } from "@webda/workout";
@@ -140,22 +141,11 @@ class DynamoDBTest extends WebdaAwsTest {
   @test
   async createWithoutPrimaryKeyPersistsGeneratedUuid() {
     // Check both the EventRepository returned by the store and the underlying DynamoRepository
-    const repos: any[] = [this.store.getRepository(User), this.repo];
-    let i = 0;
-    for (const [repo, data] of repos.flatMap(r => [
-      [r, { displayName: `gen${i++}` }],
-      [r, { displayName: `gen${i++}`, uuid: undefined }]
-    ])) {
-      const user: any = await repo.create(<any>data);
-      assert.ok(user.uuid, "a uuid should be generated");
-      assert.notStrictEqual(user.uuid, "undefined");
-      // The stored item carries the generated uuid, so reading it back keeps it
-      const stored = (await (<any>this.repo).client.get({ TableName: this.repo.getTable(), Key: { uuid: user.uuid } }))
-        .Item;
-      assert.ok(stored, "item should be stored under the generated uuid");
-      assert.strictEqual(stored.uuid, user.uuid);
-      assert.strictEqual((await repo.get(user.uuid)).uuid, user.uuid);
-    }
+    await checkCreateWithoutPrimaryKey([this.store.getRepository(User), this.repo], {
+      data: i => ({ displayName: `gen${i}` }),
+      readStored: async key =>
+        (await (<any>this.repo).client.get({ TableName: this.repo.getTable(), Key: { uuid: key } })).Item
+    });
   }
 
   @test

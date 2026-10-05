@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import * as WebdaQL from "@webda/ql";
 import { MongoClient } from "mongodb";
-import { WebdaApplicationTest } from "@webda/core/lib/test";
+import { checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import { EventRepository, StoreNotFoundError, UpdateConditionFailError, useModel } from "@webda/core";
 import { MongoParameters, MongoRepository, MongoStore, mapExpression } from "./mongodb.service.js";
 
@@ -273,24 +273,13 @@ export class MongoStoreTest extends WebdaApplicationTest {
   async createWithoutPrimaryKeyPersistsGeneratedUuid() {
     // Check both the EventRepository returned by the store and the underlying MongoRepository
     const User = useModel("Webda/User");
-    const repos: any[] = [
-      this.store.getRepository(User),
-      new MongoRepository(User, ["uuid"], () => this.store._connect())
-    ];
-    let i = 0;
-    for (const [repo, data] of repos.flatMap(r => [
-      [r, { email: `gen${i++}@webda.io` }],
-      [r, { email: `gen${i++}@webda.io`, uuid: undefined }]
-    ])) {
-      const user: any = await repo.create(<any>data);
-      assert.ok(user.uuid, "a uuid should be generated");
-      assert.notStrictEqual(user.uuid, "undefined");
-      // The stored document carries the generated uuid, so reading it back keeps it
-      const doc = await (await this.store._connect()).findOne({ _id: user.uuid });
-      assert.ok(doc, "document should be stored under the generated uuid");
-      assert.strictEqual(doc.uuid, user.uuid);
-      assert.strictEqual((await repo.get(user.uuid)).uuid, user.uuid);
-    }
+    await checkCreateWithoutPrimaryKey(
+      [this.store.getRepository(User), new MongoRepository(User, ["uuid"], () => this.store._connect())],
+      {
+        data: i => ({ email: `gen${i}@webda.io` }),
+        readStored: async key => (await (await this.store._connect()).findOne({ _id: <any>key })) ?? undefined
+      }
+    );
   }
 
   @test

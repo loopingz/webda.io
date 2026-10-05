@@ -46,7 +46,7 @@ export interface SchemaRequest {
   /**
    * What to generate. `topLevel` needs no class and answers with a map;
    * `module` needs no class and answers with the whole `webda.module.json`
-   * (minus `sourceDigest`) as `{ module, namingViolations, errors }`.
+   * as `{ module, namingViolations, errors }`.
    */
   kind: "service" | "model" | "topLevel" | "module" | "emit";
   /** Absolute path of the file declaring the class. */

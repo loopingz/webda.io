@@ -525,7 +525,19 @@
         "type": "object",
         "title": "CronService"
       },
-      "Configuration": "lib/services/serviceparameters:ServiceParameters"
+      "Configuration": "lib/services/serviceparameters:ServiceParameters",
+      "commands": {
+        "cron run": {
+          "description": "Run once the declared cron matching the id",
+          "method": "runCron",
+          "args": {
+            "id": {
+              "type": "string",
+              "required": true
+            }
+          }
+        }
+      }
     },
     "Webda/CryptoService": {
       "Import": "lib/services/cryptoservice.service:CryptoService",
@@ -1678,6 +1690,7 @@
             }
           },
           "requires": [
+            "router",
             "rest-domain"
           ]
         }
@@ -3777,6 +3790,5 @@
     "router": "Webda/Router",
     "rest-domain": "Webda/RESTOperationsTransport",
     "http-server": "Webda/HttpServer"
-  },
-  "sourceDigest": "ef1da6f05be8072804154a5862c403c5"
+  }
 }

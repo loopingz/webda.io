@@ -23,13 +23,7 @@ spec:
               name: scheduled-job
               resources: {}
               command: ["/webda/node_modules/.bin/webda"]
-              args: [
-                "--noCompile",
-                "launch",
-                "\${cron.serviceName}",
-                "\${cron.method}",
-                "\${...cron.args}",
-              ]
+              args: ["cron", "run", "--id", "\${cron.cronId}"]
           restartPolicy: Never
           securityContext: {}
           terminationGracePeriodSeconds: 30
@@ -76,11 +70,12 @@ export default class KubernetesCronExporter extends Service {
     }
     mkdirSync(target, { recursive: true });
     const crons = CronService.loadAnnotations(useCore().getServices());
-    crons.forEach((cron: CronDefinition & { cronId?: string }) => {
-      cron.cronId = CronService.getCronId(cron, "export");
-      const filename = join(target, templateVariables(filenameTemplate, { ...cron, ext }));
+    crons.forEach((cron: CronDefinition) => {
+      // Copy so the shared annotation is not changed, its id must stay stable for `cron run`
+      const exported = { ...cron, cronId: CronService.getExportId(cron) };
+      const filename = join(target, templateVariables(filenameTemplate, { ...exported, ext }));
       this.log("DEBUG", `Exporting ${filename} cron with ${cron.toString()}`);
-      writeFileSync(filename, CronReplace(content, cron, { resources: { tag: image } }));
+      writeFileSync(filename, CronReplace(content, exported as CronDefinition, { resources: { tag: image } }));
     });
     this.log("INFO", `Exported ${crons.length} crons`);
     return crons.length;

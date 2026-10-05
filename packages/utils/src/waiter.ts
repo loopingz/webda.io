@@ -223,6 +223,16 @@ export class CancelablePromise<T = void> extends Promise<T> {
     }
   }
 
+  /**
+   * Return plain Promise for derived methods like `then` and `catch`, so awaiting or
+   * chaining does not register extra promises that `cancelAll()` would reject unobserved.
+   *
+   * @returns the Promise constructor
+   */
+  static get [Symbol.species]() {
+    return Promise;
+  }
+
   /** Set of all active `CancelablePromise` instances. */
   static promises: Set<CancelablePromise<any>> = new Set();
 

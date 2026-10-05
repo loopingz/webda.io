@@ -10,6 +10,7 @@ import { createRequire } from "node:module";
 import { resolve, join } from "node:path";
 import { existsSync } from "node:fs";
 import { spawn } from "node:child_process";
+import { constants } from "node:os";
 
 const cwd = process.cwd();
 
@@ -42,6 +43,13 @@ const child = spawn(process.execPath, [localBin, ...process.argv.slice(2)], {
   cwd
 });
 
-child.on("exit", code => {
-  process.exit(code ?? 0);
+// Forward stop signals: the CLI stops the application then exits (Kubernetes sends SIGTERM to PID 1 only)
+for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
+  process.on(signal, () => {
+    child.kill(signal);
+  });
+}
+
+child.on("exit", (code, signal) => {
+  process.exit(code ?? (signal ? 128 + (constants.signals[signal] ?? 0) : 0));
 });

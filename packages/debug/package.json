@@ -24,6 +24,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@webda/utils": "workspace:*",
     "@webda/workout": "workspace:*",
     "terminal-kit": "^3.1.2",
     "ws": "^8.18.0"

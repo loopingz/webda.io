@@ -94,6 +94,11 @@ export interface ModelAction {
    * Method of the action
    */
   method?: string;
+  /**
+   * Name of the method implementing the action, when the action is exposed
+   * under another name with `@Action({ name })`
+   */
+  handler?: string;
 }
 
 /**

@@ -190,7 +190,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     return {
       execute: () => {
         return runWithContext(ctx, async () => {
-          useRouter().execute(ctx);
+          await useRouter().execute(ctx);
         });
       }
     };

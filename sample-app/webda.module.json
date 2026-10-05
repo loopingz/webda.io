@@ -4151,7 +4151,9 @@
           }
         ]
       },
-      "Ancestors": [],
+      "Ancestors": [
+        "Webda/User"
+      ],
       "Subclasses": [],
       "Reflection": {
         "company": {
@@ -5314,6 +5316,5 @@
       "type": "number"
     }
   },
-  "behaviors": {},
-  "sourceDigest": "09a6fb48b173812272005964afd7439a"
+  "behaviors": {}
 }

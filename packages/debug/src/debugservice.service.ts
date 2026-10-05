@@ -12,6 +12,7 @@ import { LogBuffer } from "./logbuffer.js";
 import { captureBody, normalizeHeaders } from "./bodycapture.js";
 import { getModels, getModel, getServices, getOperations, getRoutes, getConfig, getAppInfo } from "./introspection.js";
 import { DebugTui } from "./tui/tui.js";
+import { CancelablePromise } from "@webda/utils";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const WEBUI_DIR = join(__dirname, "..", "webui");
@@ -101,6 +102,10 @@ export class DebugService extends Service<DebugServiceParameters> {
   private clients: Set<WebSocket> = new Set();
   /** Unsubscribe functions for core event listeners */
   private unsubscribers: (() => void)[] = [];
+  /** Terminal UI of the running debug command */
+  private tui?: DebugTui;
+  /** Settle the running debug command */
+  private running?: () => void;
   /** Timing map: requestId -> start timestamp */
   private timings: Map<string, number> = new Map();
 
@@ -312,20 +317,41 @@ export class DebugService extends Service<DebugServiceParameters> {
    * @param port - Port for the debug dashboard API
    * @param servePort - Port for the application HTTP server
    * @param web - Disable TUI and only serve the web dashboard
+   * @returns a promise settled once the service stops or the TUI quits
    */
   @Command("debug", { description: "Start dev server with debug dashboard", requires: ["router", "rest-domain", "http-server"] })
-  async debug(
+  debug(
     /** @alias p @description Debug dashboard port */
     port: number = 18181,
     /** @alias s @description Application server port */
     servePort: number = 18080,
     /** @description Disable TUI and only serve the web dashboard */
     web?: boolean
-  ): Promise<void> {
+  ): CancelablePromise<void> {
+    // Stays pending until the service stops or the TUI quits
+    return new CancelablePromise<void>(
+      (resolve, reject) => {
+        this.running = resolve;
+        this.startDebug(port, servePort, web).catch(reject);
+      },
+      async () => {
+        this.tui?.stop();
+      }
+    );
+  }
+
+  /**
+   * Start the application server, the debug server and the TUI or browser
+   *
+   * @param port - Port for the debug dashboard API
+   * @param servePort - Port for the application HTTP server
+   * @param web - Disable TUI and only serve the web dashboard
+   */
+  protected async startDebug(port: number, servePort: number, web?: boolean): Promise<void> {
     // Start the main application server
     const httpServer = useDynamicService<any>("HttpServer");
-    if (httpServer?.serve) {
-      await httpServer.serve(undefined, servePort);
+    if (httpServer?.start) {
+      await httpServer.start(undefined, servePort);
       this.log("INFO", `Application server started on port ${servePort}`);
     }
 
@@ -335,8 +361,10 @@ export class DebugService extends Service<DebugServiceParameters> {
 
     // Launch TUI by default, unless --web is passed
     if (!web) {
-      const tui = new DebugTui(port);
-      await tui.start();
+      this.tui = new DebugTui(port);
+      // Quitting the TUI ends the command
+      this.tui.onStop = () => this.settle();
+      await this.tui.start();
     } else if (!process.env.WEBDA_DEBUG_NO_BROWSER) {
       // Headless callers (CI, Playwright's `webServer`, scripted smoke
       // tests) set WEBDA_DEBUG_NO_BROWSER=1 to suppress the auto-open —
@@ -344,6 +372,14 @@ export class DebugService extends Service<DebugServiceParameters> {
       // Chrome to pop a stray tab on every server start.
       this.openBrowser(`http://localhost:${port}`);
     }
+  }
+
+  /**
+   * Settle the running debug command
+   */
+  private settle(): void {
+    this.running?.();
+    this.running = undefined;
   }
 
   /**
@@ -554,6 +590,9 @@ export class DebugService extends Service<DebugServiceParameters> {
     }
 
     this.timings.clear();
+    this.tui?.stop();
+    this.tui = undefined;
+    this.settle();
     await super.stop();
   }
 }

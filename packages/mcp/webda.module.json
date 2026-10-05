@@ -207,6 +207,5 @@
   "behaviors": {},
   "capabilities": {
     "mcp": "Webda/McpService"
-  },
-  "sourceDigest": "357063e1aa5b9792ec0af95d7270db96"
+  }
 }

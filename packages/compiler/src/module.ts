@@ -66,7 +66,6 @@ export function writeModule(compiler: Compiler, generated: GeneratedModule): Web
       throw new Error(generated.errors.join("\n"));
     }
     const mod = generated.module as unknown as WebdaModule;
-    mod.sourceDigest = compiler.project.getDigest();
     FileUtils.save(mod, compiler.project.getAppPath("webda.module.json"));
     if (compiler.project.isApplication()) {
       generateTypescriptLibrary(compiler, mod);

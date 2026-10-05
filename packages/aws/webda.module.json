@@ -786,6 +786,5 @@
   "behaviors": {},
   "capabilities": {
     "aws-commands": "Webda/AWSCommands"
-  },
-  "sourceDigest": "0ce6ddeed76ea088e383226abd745ff9"
+  }
 }

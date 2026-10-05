@@ -870,7 +870,9 @@
         }
       },
       "Actions": {
-        "statusAction": {}
+        "status": {
+          "handler": "statusAction"
+        }
       },
       "Events": [
         "Create",
@@ -1291,7 +1293,9 @@
         }
       },
       "Actions": {
-        "statusAction": {}
+        "status": {
+          "handler": "statusAction"
+        }
       },
       "Events": [
         "Create",
@@ -1709,7 +1713,9 @@
         }
       },
       "Actions": {
-        "statusAction": {}
+        "status": {
+          "handler": "statusAction"
+        }
       },
       "Events": [
         "Create",
@@ -1774,7 +1780,7 @@
       "type": "object",
       "title": "BinaryFile"
     },
-    "Webda/AsyncAction.statusAction.input": {
+    "Webda/AsyncAction.status.input": {
       "type": "object",
       "properties": {
         "context": {
@@ -1857,11 +1863,11 @@
         }
       }
     },
-    "Webda/AsyncAction.statusAction.output": {
+    "Webda/AsyncAction.status.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "not": {}
     },
-    "Webda/AsyncOperationAction.statusAction.input": {
+    "Webda/AsyncOperationAction.status.input": {
       "type": "object",
       "properties": {
         "context": {
@@ -1944,11 +1950,11 @@
         }
       }
     },
-    "Webda/AsyncOperationAction.statusAction.output": {
+    "Webda/AsyncOperationAction.status.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "not": {}
     },
-    "Webda/AsyncWebdaAction.statusAction.input": {
+    "Webda/AsyncWebdaAction.status.input": {
       "type": "object",
       "properties": {
         "context": {
@@ -2031,11 +2037,10 @@
         }
       }
     },
-    "Webda/AsyncWebdaAction.statusAction.output": {
+    "Webda/AsyncWebdaAction.status.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "not": {}
     }
   },
-  "behaviors": {},
-  "sourceDigest": "dc72b57288660c06e0dbd136431fdb4a"
+  "behaviors": {}
 }

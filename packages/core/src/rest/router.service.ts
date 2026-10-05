@@ -625,7 +625,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @param output - file path to write to (prints to stdout if omitted)
    * @param includeHidden - include hidden routes in the output
    */
-  @Command("openapi", { description: "Export the OpenAPI definition", requires: ["rest-domain"] })
+  @Command("openapi", { description: "Export the OpenAPI definition", requires: ["router", "rest-domain"] })
   openapi(
     /** @alias o @description Output file path (stdout if omitted) */
     output?: string,
@@ -789,6 +789,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    */
   discoverFilters(services: Iterable<Service>): void {
     for (const service of services) {
+      // Services that failed to construct are kept as undefined entries
+      if (!service) continue;
       const caps = service.getCapabilities();
       if ("request-filter" in caps) {
         this.registerRequestFilter(service as unknown as RequestFilter);
@@ -809,6 +811,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    */
   discoverRoutes(services: Iterable<Service>): void {
     for (const service of services) {
+      if (!service) continue;
       // @ts-ignore — back-compat for subclasses that still populate this
       const legacy: Record<string, any[]> = service.constructor.routes || {};
       const fromMetadata: Record<string, any[]> =

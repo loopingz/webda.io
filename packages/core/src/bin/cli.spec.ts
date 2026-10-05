@@ -1,8 +1,15 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import type { JSONSchema7 } from "json-schema";
+import { CancelablePromise } from "@webda/utils";
+import { MemoryLogger, useWorkerOutput } from "@webda/workout";
+import { vi } from "vitest";
 import {
   buildCli,
+  createCommandShutdown,
+  onInterrupt,
+  reportServiceCommand,
+  settleServiceCommand,
   loadOperations,
   addServiceCommandsToCli,
   resolveLogStream,
@@ -331,5 +338,168 @@ class CliLoggingOptionsTest {
     assert.strictEqual(shouldPatchConsole(["serve"]), true);
     assert.strictEqual(shouldPatchConsole(["serve", "--no-console-patch"]), false);
     assert.strictEqual(shouldPatchConsole(["--console-patch=false"]), false);
+  }
+}
+
+@suite
+class CliCommandShutdownTest {
+  @test
+  async stopsCoreThenExitsOnce() {
+    const calls: string[] = [];
+    const core = { stop: async () => void calls.push("stop") };
+    const { shutdown } = createCommandShutdown(core, code => void calls.push(`exit ${code}`));
+    // The command finishing and a signal can both ask for shutdown: only the first one counts
+    await Promise.all([shutdown(0), shutdown(2)]);
+    assert.deepStrictEqual(calls, ["stop", "exit 0"]);
+  }
+
+  @test
+  async failedStopExitsNonZero() {
+    const codes: number[] = [];
+    const core = {
+      stop: async () => {
+        throw new Error("STOP_FAILED");
+      }
+    };
+    await createCommandShutdown(core, code => void codes.push(code)).shutdown(0);
+    assert.deepStrictEqual(codes, [1]);
+  }
+
+  @test
+  async interruptCancelsRunningCommandsAndExits0() {
+    const calls: string[] = [];
+    const serving = new CancelablePromise(
+      () => {},
+      async () => void calls.push("cancel")
+    );
+    const settled = serving.catch(err => err);
+    const core = { stop: async () => void calls.push("stop") };
+    await createCommandShutdown(core, code => void calls.push(`exit ${code}`)).interrupt();
+    assert.strictEqual(await settled, "Cancelled");
+    assert.deepStrictEqual(calls, ["cancel", "stop", "exit 0"]);
+  }
+
+  @test
+  async defaultExitIsProcessExit() {
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
+    try {
+      await createCommandShutdown({ stop: async () => {} }).shutdown(3);
+      assert.deepStrictEqual(exit.mock.calls, [[3]]);
+    } finally {
+      exit.mockRestore();
+    }
+  }
+
+  @test
+  async interruptStillStopsWhenCancelFails() {
+    const cancelAll = vi.spyOn(CancelablePromise, "cancelAll").mockRejectedValue(new Error("CANCEL_FAILED"));
+    const calls: string[] = [];
+    try {
+      const logs = await captureLogs(() =>
+        createCommandShutdown(
+          { stop: async () => void calls.push("stop") },
+          code => void calls.push(`exit ${code}`)
+        ).interrupt()
+      );
+      assert.deepStrictEqual(calls, ["stop", "exit 0"]);
+      assert.ok(logs.some(l => l.includes("Cannot cancel running processes")));
+    } finally {
+      cancelAll.mockRestore();
+    }
+  }
+}
+
+/**
+ * Capture the logs emitted while running `fn`
+ * @param fn - the code to run
+ * @returns the log lines
+ */
+async function captureLogs(fn: () => Promise<any> | any): Promise<string[]> {
+  const memoryLogger = new MemoryLogger(useWorkerOutput());
+  try {
+    await fn();
+  } finally {
+    memoryLogger.close();
+  }
+  return memoryLogger
+    .getLogs()
+    .map(l => l.log)
+    .filter(l => l)
+    .map(l => `${l.level} ${(l.args ?? []).map(a => (a instanceof Error ? a.message : a)).join(" ")}`);
+}
+
+@suite
+class CliInterruptTest {
+  /**
+   * Register the handlers on a fake process.on and return them by signal
+   * @returns the handlers registered per signal and the spy to restore
+   */
+  captureHandlers(): { handlers: Record<string, () => void>; restore: () => void } {
+    const handlers: Record<string, () => void> = {};
+    const on = vi.spyOn(process, "on").mockImplementation(((signal: string, handler: () => void) => {
+      handlers[signal] = handler;
+      return process;
+    }) as any);
+    return { handlers, restore: () => on.mockRestore() };
+  }
+
+  @test
+  async sigintAndSigtermInterruptOnce() {
+    const { handlers, restore } = this.captureHandlers();
+    let interrupts = 0;
+    try {
+      onInterrupt(async () => void interrupts++);
+    } finally {
+      restore();
+    }
+    assert.deepStrictEqual(Object.keys(handlers).sort(), ["SIGINT", "SIGTERM"]);
+    // On a terminal Ctrl+C reaches both the launcher (forwarded) and the CLI: later signals are ignored
+    handlers.SIGTERM();
+    handlers.SIGINT();
+    handlers.SIGTERM();
+    assert.strictEqual(interrupts, 1);
+  }
+}
+
+@suite
+class CliSettleServiceCommandTest {
+  @test
+  async exitsWithTheCommandCode() {
+    const codes: number[] = [];
+    await settleServiceCommand(
+      "migrate",
+      async () => 2,
+      async code => void codes.push(code)
+    );
+    assert.deepStrictEqual(codes, [2]);
+  }
+
+  @test
+  async failedCommandExits1() {
+    const codes: number[] = [];
+    const logs = await captureLogs(() =>
+      settleServiceCommand(
+        "migrate",
+        async () => {
+          throw new Error("MIGRATION_FAILED");
+        },
+        async code => void codes.push(code)
+      )
+    );
+    assert.deepStrictEqual(codes, [1]);
+    assert.ok(logs.some(l => l.startsWith("ERROR") && l.includes("Command 'migrate' failed MIGRATION_FAILED")));
+  }
+
+  @test
+  async reportLogsFailuresOnly() {
+    const logs = await captureLogs(async () => {
+      reportServiceCommand("ok", Promise.resolve(0));
+      reportServiceCommand("code", Promise.resolve(4));
+      reportServiceCommand("boom", Promise.reject(new Error("BOOM")));
+      // Let the reports settle
+      await new Promise(resolve => setImmediate(resolve));
+    });
+    const errors = logs.filter(l => l.startsWith("ERROR"));
+    assert.deepStrictEqual(errors, ["ERROR Command 'code' exited with code 4", "ERROR Command 'boom' failed BOOM"]);
   }
 }

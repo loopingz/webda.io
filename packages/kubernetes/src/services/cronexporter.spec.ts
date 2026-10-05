@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
-import { Cron, Service, ServiceParameters } from "@webda/core";
+import { Cron, CronService, Service, ServiceParameters } from "@webda/core";
 import * as assert from "assert";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -36,7 +36,10 @@ class CronExporterTest extends WebdaApplicationTest {
       assert.match(content, /name: cronned-nightly-[0-9a-f]{8}/);
       assert.match(content, /image: webda.io\/app:1.0/);
       assert.match(content, /schedule: 0 3 \* \* \*/);
-      assert.match(content, /"Cronned",\s*"nightly",\s*"arg1", "arg2"/);
+      // The job runs the declared cron through the CLI `cron run` command
+      const id = CronService.getExportId(CronService.loadAnnotations(this.webda.getServices())[0]);
+      assert.match(content, new RegExp(`args: \\["cron", "run", "--id", "${id}"\\]`));
+      assert.ok(!content.includes("launch") && !content.includes("--noCompile"));
       // Custom template and filename
       rmSync(target, { recursive: true });
       const template = join(tmpdir(), "webda-cron-template.sh");

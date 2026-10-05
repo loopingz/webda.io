@@ -515,8 +515,7 @@ class CompilerTest {
       } as unknown as WebdaProject;
       const mod = JSON.stringify({
         moddas: { "Test/Svc": { Import: "lib/services/svc.service:Svc" } },
-        models: { "Test/Model": { Import: "lib/models/model.model:Model" } },
-        sourceDigest: "digest"
+        models: { "Test/Model": { Import: "lib/models/model.model:Model" } }
       });
       writeFileSync(path.join(dir, "webda.module.json"), mod);
       mkdirSync(path.join(dir, ".webda"));

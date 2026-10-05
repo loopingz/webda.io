@@ -68,6 +68,7 @@ vi.mock("@webda/core", () => ({
 vi.mock("./tui/tui.js", () => ({
   DebugTui: class {
     async start() {}
+    stop() {}
   }
 }));
 
@@ -834,10 +835,10 @@ class DebugServiceDebugCommandTest {
   @test
   async debugStartsHttpServerAndDebugServer() {
     // Set up mock HttpServer
-    let serveCalledWith: any[] = [];
+    let startCalledWith: any[] = [];
     mockHttpServer = {
-      serve: async (...args: any[]) => {
-        serveCalledWith = args;
+      start: async (...args: any[]) => {
+        startCalledWith = args;
       }
     };
 
@@ -845,20 +846,67 @@ class DebugServiceDebugCommandTest {
     (service as any).openBrowser = () => {};
     service.resolve();
 
+    let settled = false;
     try {
       // Call debug with web=true to avoid TUI, using port 0 for random ports
-      await service.debug(0, 0, true);
+      const debugging = service.debug(0, 0, true);
+      debugging.then(() => (settled = true));
+      while (!(service as any).server?.listening) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
 
-      // httpServer.serve should have been called
-      assert.strictEqual(serveCalledWith.length, 2);
-      assert.strictEqual(serveCalledWith[0], undefined);
-      assert.strictEqual(serveCalledWith[1], 0);
+      // httpServer.start should have been called
+      assert.strictEqual(startCalledWith.length, 2);
+      assert.strictEqual(startCalledWith[0], undefined);
+      assert.strictEqual(startCalledWith[1], 0);
 
-      // Debug server should be running
-      assert.ok((service as any).server, "Debug server should be created");
+      // The command runs until the service stops
+      await new Promise(resolve => setTimeout(resolve, 50));
+      assert.strictEqual(settled, false, "debug() must not settle while the servers run");
+      await service.stop();
+      await debugging;
+      assert.strictEqual(settled, true);
     } finally {
       await service.stop();
       mockHttpServer = undefined;
+    }
+  }
+
+  @test
+  async debugEndsWhenTheTuiQuits() {
+    mockHttpServer = undefined;
+    const service = new DebugService();
+    service.resolve();
+    try {
+      const debugging = service.debug(0, 0, false);
+      while (!(service as any).tui) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      // Pressing q in the TUI
+      (service as any).tui.onStop();
+      await debugging;
+    } finally {
+      await service.stop();
+    }
+  }
+
+  @test
+  async debugCancelStopsTheTui() {
+    mockHttpServer = undefined;
+    const service = new DebugService();
+    service.resolve();
+    try {
+      const debugging = service.debug(0, 0, false);
+      while (!(service as any).tui) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      const stop = vi.spyOn((service as any).tui, "stop");
+      // SIGINT/SIGTERM cancel the running command
+      await debugging.cancel();
+      await assert.rejects(() => debugging, /Cancelled/);
+      assert.strictEqual(stop.mock.calls.length, 1);
+    } finally {
+      await service.stop();
     }
   }
 
@@ -871,9 +919,14 @@ class DebugServiceDebugCommandTest {
     service.resolve();
 
     try {
-      await service.debug(0, 0, true);
+      const debugging = service.debug(0, 0, true);
+      while (!(service as any).server?.listening) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
       // Should not throw even when HttpServer is undefined
       assert.ok((service as any).server, "Debug server should be created");
+      await service.stop();
+      await debugging;
     } finally {
       await service.stop();
       mockHttpServer = undefined;

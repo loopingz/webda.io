@@ -55,8 +55,18 @@
     "Webda/ApiKey": {
       "Plural": "ApiKeys",
       "Import": "lib/apikey.model:default",
-      "Relations": {},
-      "Ancestors": [],
+      "Relations": {
+        "links": [
+          {
+            "attribute": "_user",
+            "type": "LINK"
+          }
+        ]
+      },
+      "Ancestors": [
+        "Webda/OwnerModel",
+        "Webda/AbstractOwnerModel"
+      ],
       "Subclasses": [],
       "Reflection": {
         "name": {
@@ -379,6 +389,5 @@
       "title": "BinaryFile"
     }
   },
-  "behaviors": {},
-  "sourceDigest": "8b299c761a865c76971ec3b1e8e3b44d"
+  "behaviors": {}
 }

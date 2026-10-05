@@ -107,6 +107,5 @@
   "behaviors": {},
   "capabilities": {
     "grpc": "Webda/GrpcService"
-  },
-  "sourceDigest": "379f4e4db1e568a5692de5f2756a3fad"
+  }
 }

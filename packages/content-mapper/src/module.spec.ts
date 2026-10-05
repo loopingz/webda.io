@@ -2,18 +2,19 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { ClassDeclaration } from "typescript/unstable/ast";
+import type { ClassDeclaration, MethodDeclaration } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
 import { openSession, type Session } from "./context.ts";
 import {
   buildBehaviorActions,
   buildCapabilities,
+  buildModelActions,
   buildCommands,
   generateWebdaModule,
   getPlural,
   sortObject
 } from "./module.ts";
-import { namespaceOf } from "./schema/project.ts";
+import { actionNameOption, namespaceOf } from "./schema/project.ts";
 import { handle } from "./schema/worker.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -107,6 +108,36 @@ describe("module metadata on a fixture", () => {
     const named = buildBehaviorActions(session.ctx, classOf(session, "behaviors.ts", "Named"), "Custom/Named");
     expect(Object.keys(named)).toEqual(["own", "read", "write", "bare"]);
     expect(named.own).toEqual({});
+  });
+
+  it("keys model actions by the @Action name option and records the method as handler", () => {
+    expect(buildModelActions(session.ctx, classOf(session, "actions.ts", "Jobs"))).toEqual({
+      status: { description: "Report", handler: "statusAction" },
+      run: {},
+      same: {},
+      lookup: { global: true, handler: "find" }
+    });
+  });
+
+  it("reads the @Action/@Operation name option only when it is a non-empty string literal", () => {
+    const cls = classOf(session, "actions.ts", "ActionNames");
+    const names = Object.fromEntries(
+      cls.members
+        .filter((m): m is MethodDeclaration => is.isMethodDeclaration(m))
+        .map(m => [(m.name as { text: string }).text, actionNameOption(m)])
+    );
+    expect(names).toEqual({
+      named: "named",
+      operation: "viaOperation",
+      noArgument: undefined,
+      notAnObject: undefined,
+      noName: undefined,
+      computedName: undefined,
+      emptyName: undefined,
+      otherDecorators: undefined,
+      undecorated: undefined,
+      modifierOnly: undefined
+    });
   });
 
   it("rejects static and global Behavior actions", () => {
@@ -227,13 +258,77 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
     expect(result!.module.capabilities).toEqual(committed.capabilities);
   });
 
-  it("is byte-identical apart from sourceDigest", () => {
+  it("is byte-identical to the committed module", () => {
     if (!committed) return;
-    const { sourceDigest, ...rest } = committed;
-    void sourceDigest;
-    expect(JSON.stringify(result!.module, undefined, 2)).toBe(JSON.stringify(rest, undefined, 2));
+    expect(JSON.stringify(result!.module, undefined, 2)).toBe(JSON.stringify(committed, undefined, 2));
     expect(result!.errors).toEqual([]);
     expect(result!.namingViolations).toEqual([]);
+  });
+});
+
+/**
+ * A model extending a model from a dependency package: hawk's `ApiKey` extends
+ * `@webda/core`'s `OwnerModel`. The dependency's models are not local, so their
+ * names come from its `webda.module.json`, and the relations they declare come
+ * from its declaration files.
+ */
+describe("model extending a dependency's model", () => {
+  const root = join(repo, "packages/hawk");
+  const available = existsSync(join(root, "node_modules")) && existsSync(join(repo, "packages/core/webda.module.json"));
+  let result: ReturnType<typeof generateWebdaModule> | undefined;
+  beforeAll(() => {
+    if (!available) return;
+    const session = openSession(join(root, "tsconfig.json"), root);
+    try {
+      result = generateWebdaModule(session.ctx, { appPath: root, namespace: namespaceOf(root) });
+    } finally {
+      session.dispose();
+    }
+  }, 120_000);
+
+  it("records the dependency's models as ancestors", () => {
+    if (!available) return;
+    expect(result!.module.models["Webda/ApiKey"].Ancestors).toEqual(["Webda/OwnerModel", "Webda/AbstractOwnerModel"]);
+    expect(result!.errors).toEqual([]);
+  });
+
+  it("records relations inherited from the dependency's models", () => {
+    if (!available) return;
+    expect(result!.module.models["Webda/ApiKey"].Relations.links).toEqual([{ attribute: "_user", type: "LINK" }]);
+  });
+});
+
+/**
+ * `@Action({ name })` on a model: async's `AsyncAction.statusAction` cannot be
+ * a method called `status` (that is a property), so it is exposed under the
+ * name option. The action, and its schemas, take the exposed name.
+ */
+describe("model action exposed under another name", () => {
+  const root = join(repo, "packages/async");
+  const available = existsSync(join(root, "node_modules")) && existsSync(join(repo, "packages/core/webda.module.json"));
+  let result: ReturnType<typeof generateWebdaModule> | undefined;
+  beforeAll(() => {
+    if (!available) return;
+    const session = openSession(join(root, "tsconfig.json"), root);
+    try {
+      result = generateWebdaModule(session.ctx, { appPath: root, namespace: namespaceOf(root) });
+    } finally {
+      session.dispose();
+    }
+  }, 120_000);
+
+  it("records the action under its name, with the method as handler", () => {
+    if (!available) return;
+    expect(result!.module.models["Webda/AsyncAction"].Actions).toEqual({ status: { handler: "statusAction" } });
+    expect(result!.errors).toEqual([]);
+  });
+
+  it("names the action schemas after the exposed name", () => {
+    if (!available) return;
+    const schemas = Object.keys(result!.module.schemas);
+    expect(schemas).toContain("Webda/AsyncAction.status.input");
+    expect(schemas).toContain("Webda/AsyncAction.status.output");
+    expect(schemas.filter(name => name.includes(".statusAction."))).toEqual([]);
   });
 });
 

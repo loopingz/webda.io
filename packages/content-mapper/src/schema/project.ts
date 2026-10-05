@@ -61,8 +61,9 @@ export function generateTopLevelSchemas(
     schemas[name] = schema;
   }
 
-  for (const [root, method] of actionRoots(ctx, options)) {
-    const name = methodName(method);
+  for (const [root, method, honorName] of actionRoots(ctx, options)) {
+    // Model actions are exposed, and their schemas named, after `@Action({ name })`
+    const name = (honorName && actionNameOption(method)) || methodName(method);
     if (!name) continue;
     schemas[`${root}.${name}.input`] = generateActionInput(method, converterOptions);
     const output = generateActionOutput(method, converterOptions);
@@ -125,8 +126,8 @@ function declaredSchemas(ctx: AnalysisContext, options: TopLevelSchemaOptions): 
  * @param options - roots and namespace
  * @returns root and method pairs, in discovery order
  */
-function actionRoots(ctx: AnalysisContext, options: TopLevelSchemaOptions): [string, MethodDeclaration][] {
-  const pairs: [string, MethodDeclaration][] = [];
+function actionRoots(ctx: AnalysisContext, options: TopLevelSchemaOptions): [string, MethodDeclaration, boolean?][] {
+  const pairs: [string, MethodDeclaration, boolean?][] = [];
   const discovered = discoverWebdaObjects(ctx, options);
 
   const classFor = (fileName: string, className: string): ClassDeclaration | undefined => {
@@ -143,8 +144,8 @@ function actionRoots(ctx: AnalysisContext, options: TopLevelSchemaOptions): [str
     if (!declaration) continue;
     // Instance methods come from the type, so inherited actions count;
     // statics are not on the instance type and are read off the class.
-    for (const method of instanceActions(ctx, declaration)) pairs.push([object.name, method]);
-    for (const method of staticActions(declaration)) pairs.push([object.name, method]);
+    for (const method of instanceActions(ctx, declaration)) pairs.push([object.name, method, true]);
+    for (const method of staticActions(declaration)) pairs.push([object.name, method, true]);
   }
 
   for (const object of discovered) {
@@ -257,6 +258,34 @@ function nameOf(node: Node): string | undefined {
  */
 function methodName(method: MethodDeclaration): string | undefined {
   return (method.name as { text?: string }).text;
+}
+
+/**
+ * The string-literal `name` option of a method's `@Action`/`@Operation`.
+ * @param method - the method declaration
+ * @returns the name, or undefined when the decorator sets none
+ */
+export function actionNameOption(method: MethodDeclaration): string | undefined {
+  for (const modifier of method.modifiers ?? []) {
+    if (modifier.kind !== SyntaxKind.Decorator) continue;
+    const expression = (modifier as { expression?: Node }).expression;
+    if (!expression || !is.isCallExpression(expression)) continue;
+    const name = (expression.expression as { text?: string }).text;
+    if (name !== "Action" && name !== "Operation") continue;
+    const argument = (expression as any).arguments?.[0];
+    if (!argument || !is.isObjectLiteralExpression(argument)) return undefined;
+    for (const property of (argument as any).properties) {
+      if (
+        is.isPropertyAssignment(property) &&
+        (property as any).name?.text === "name" &&
+        is.isStringLiteral((property as any).initializer)
+      ) {
+        return (property as any).initializer.text || undefined;
+      }
+    }
+    return undefined;
+  }
+  return undefined;
 }
 
 /**

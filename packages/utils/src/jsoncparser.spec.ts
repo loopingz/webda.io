@@ -247,5 +247,37 @@ class JSONCParserTest {
     const result = JSONCParser.parse('[\n  1,\n  2,\n  3\n]');
     assert.deepStrictEqual(Array.from(result), [1, 2, 3]);
   }
+
+  @test
+  async proxyKeysReflectWrites() {
+    // Keys added or removed through the proxy must be visible to Object.keys/entries/in,
+    // not only to JSON.stringify (Core iterates configuration services with Object.entries)
+    const result = JSONCParser.parse('{\n  // comment\n  "a": { "type": "A" }\n}');
+    result.b = { type: "B" };
+    assert.deepStrictEqual(Object.keys(result), ["a", "b"]);
+    assert.ok("b" in result);
+    assert.deepStrictEqual(
+      Object.entries(result).map(([k, v]: [string, any]) => [k, v.type]),
+      [
+        ["a", "A"],
+        ["b", "B"]
+      ]
+    );
+    const keys = [];
+    for (const k in result) keys.push(k);
+    assert.deepStrictEqual(keys, ["a", "b"]);
+    result.a = { type: "A2" };
+    assert.strictEqual(Object.entries(result)[0][1].type, "A2");
+    delete result.a;
+    assert.deepStrictEqual(Object.keys(result), ["b"]);
+    assert.ok(!("a" in result));
+    assert.match(result.toString(), /"b"/);
+    assert.doesNotMatch(result.toString(), /"a"/);
+    // Own property checks see the same keys
+    assert.ok(Object.hasOwn(result, "b"));
+    assert.ok(!Object.hasOwn(result, "a"));
+    assert.strictEqual(Object.getOwnPropertyDescriptor(result, "missing"), undefined);
+    assert.deepStrictEqual(Object.getOwnPropertyDescriptor(result, "b")?.enumerable, true);
+  }
 }
 

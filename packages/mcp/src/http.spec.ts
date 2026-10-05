@@ -52,7 +52,7 @@ class McpHttpTest extends McpFixtureTest {
     registerFixture();
     if (!this.port) {
       const http = useService("HttpServer" as any) as any;
-      await http.serve("127.0.0.1", 0);
+      await http.start("127.0.0.1", 0);
       for (let i = 0; i < 100 && !http.server?.listening; i++) {
         await new Promise(r => setTimeout(r, 20));
       }

@@ -187,3 +187,26 @@ describe("dependency models", () => {
     expect(dependencyModelName(join(tmp, "loose", "a.ts"), "A", tmp)).toBeUndefined();
   });
 });
+
+describe("primary key separator", () => {
+  it("records PrimaryKeySeparator, inherits it, and omits it when undeclared", () => {
+    const dir = join(here, "..", "test", "separator-fixture");
+    const session = openSession(join(dir, "tsconfig.json"), dir);
+    try {
+      const discovered = discoverWebdaObjects(session.ctx, {
+        appPath: dir,
+        rootDir: join(dir, "src"),
+        outDir: join(dir, "lib"),
+        namespace: "Sep"
+      });
+      const metadata = buildModelMetadata(discovered, name => `${name}s`);
+      expect(metadata["Sep/Keyed"].PrimaryKey).toEqual(["a", "b"]);
+      expect(metadata["Sep/Keyed"].PrimaryKeySeparator).toBe(":");
+      expect(metadata["Sep/KeyedChild"].PrimaryKeySeparator).toBe(":");
+      expect(metadata["Sep/Plain"].PrimaryKey).toEqual(["uuid"]);
+      expect("PrimaryKeySeparator" in metadata["Sep/Plain"]).toBe(false);
+    } finally {
+      session.dispose();
+    }
+  });
+});

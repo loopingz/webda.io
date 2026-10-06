@@ -126,6 +126,7 @@ export class Compiler {
   /**
    * Create a new compiler for the given project
    * @param project - the Webda project to compile
+   * @param resolveGenerator - locates generator packages; replaceable to simulate a missing one
    */
   constructor(
     public project: WebdaProject,

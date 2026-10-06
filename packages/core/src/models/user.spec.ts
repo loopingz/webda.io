@@ -49,12 +49,6 @@ class UserTest extends WebdaApplicationTest {
   }
 
   @test
-  async password() {
-    const user: User = await User.create({}, false);
-    user.setPassword("bouzouf");
-  }
-
-  @test
   async emailGetter() {
     const user: SimpleUser = await SimpleUser.create({}, false);
     assert.strictEqual(user.getEmail(), undefined);

@@ -2872,6 +2872,12 @@
             "model": "Webda/Ident",
             "targetAttribute": "User"
           }
+        ],
+        "behaviors": [
+          {
+            "attribute": "password",
+            "behavior": "Webda/Password"
+          }
         ]
       },
       "Ancestors": [
@@ -2899,14 +2905,11 @@
             "\"_user\""
           ]
         },
-        "__password": {
-          "type": "string"
+        "password": {
+          "type": "Password"
         },
         "displayName": {
           "type": "string"
-        },
-        "_lastPasswordRecovery": {
-          "type": "number"
         },
         "_avatar": {
           "type": "string"
@@ -2925,12 +2928,26 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Password": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": false,
+              "description": "Password credential of a user: bcrypt hash and change timestamp",
+              "properties": {
+                "__hash": {
+                  "description": "bcrypt hash, never output",
+                  "type": "string"
+                },
+                "changedAt": {
+                  "description": "Last change, ms since epoch",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          },
           "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no\nmodels",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
@@ -2941,10 +2958,6 @@
                 "type": "string"
               },
               "type": "array"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "_roles": {
               "description": "Roles of the user",
@@ -2967,6 +2980,10 @@
               "description": "Contains the locale of the user if known",
               "type": "string"
             },
+            "password": {
+              "$ref": "#/definitions/Password",
+              "description": "Password credential"
+            },
             "uuid": {
               "description": "UUID of the model",
               "format": "uuid",
@@ -2975,6 +2992,7 @@
           },
           "required": [
             "displayName",
+            "password",
             "uuid"
           ],
           "type": "object",
@@ -2983,12 +3001,26 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Password": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": false,
+              "description": "Password credential of a user: bcrypt hash and change timestamp",
+              "properties": {
+                "__hash": {
+                  "description": "bcrypt hash, never output",
+                  "type": "string"
+                },
+                "changedAt": {
+                  "description": "Last change, ms since epoch",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          },
           "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no\nmodels",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
@@ -2999,10 +3031,6 @@
                 "type": "string"
               },
               "type": "array"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "_roles": {
               "description": "Roles of the user",
@@ -3025,6 +3053,10 @@
               "description": "Contains the locale of the user if known",
               "type": "string"
             },
+            "password": {
+              "$ref": "#/definitions/Password",
+              "description": "Password credential"
+            },
             "uuid": {
               "description": "UUID of the model",
               "format": "uuid",
@@ -3033,6 +3065,7 @@
           },
           "required": [
             "displayName",
+            "password",
             "uuid"
           ],
           "type": "object",
@@ -3041,12 +3074,26 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Password": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": false,
+              "description": "Password credential of a user: bcrypt hash and change timestamp",
+              "properties": {
+                "__hash": {
+                  "description": "bcrypt hash, never output",
+                  "type": "string"
+                },
+                "changedAt": {
+                  "description": "Last change, ms since epoch",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          },
           "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no\nmodels",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
@@ -3057,10 +3104,6 @@
                 "type": "string"
               },
               "type": "array"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "_roles": {
               "description": "Roles of the user",
@@ -3083,6 +3126,10 @@
               "description": "Contains the locale of the user if known",
               "type": "string"
             },
+            "password": {
+              "$ref": "#/definitions/Password",
+              "description": "Password credential"
+            },
             "uuid": {
               "description": "UUID of the model",
               "format": "uuid",
@@ -3091,6 +3138,7 @@
           },
           "required": [
             "displayName",
+            "password",
             "uuid"
           ],
           "type": "object",
@@ -3122,20 +3170,24 @@
     "Webda/User": {
       "Plural": "Users",
       "Import": "lib/models/user.model:User",
-      "Relations": {},
+      "Relations": {
+        "behaviors": [
+          {
+            "attribute": "password",
+            "behavior": "Webda/Password"
+          }
+        ]
+      },
       "Ancestors": [],
       "Subclasses": [
         "Webda/SimpleUser"
       ],
       "Reflection": {
-        "__password": {
-          "type": "string"
+        "password": {
+          "type": "Password"
         },
         "displayName": {
           "type": "string"
-        },
-        "_lastPasswordRecovery": {
-          "type": "number"
         },
         "_avatar": {
           "type": "string"
@@ -3156,19 +3208,29 @@
           "WebdaModel": true,
           "additionalProperties": false,
           "class": true,
+          "definitions": {
+            "Password": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": false,
+              "description": "Password credential of a user: bcrypt hash and change timestamp",
+              "properties": {
+                "__hash": {
+                  "description": "bcrypt hash, never output",
+                  "type": "string"
+                },
+                "changedAt": {
+                  "description": "Last change, ms since epoch",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          },
           "description": "First basic model for User",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "displayName": {
               "Frontend": true,
@@ -3184,6 +3246,10 @@
               "description": "Contains the locale of the user if known",
               "type": "string"
             },
+            "password": {
+              "$ref": "#/definitions/Password",
+              "description": "Password credential"
+            },
             "uuid": {
               "description": "UUID of the model",
               "format": "uuid",
@@ -3192,6 +3258,7 @@
           },
           "required": [
             "displayName",
+            "password",
             "uuid"
           ],
           "type": "object",
@@ -3202,19 +3269,29 @@
           "WebdaModel": true,
           "additionalProperties": false,
           "class": true,
+          "definitions": {
+            "Password": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": false,
+              "description": "Password credential of a user: bcrypt hash and change timestamp",
+              "properties": {
+                "__hash": {
+                  "description": "bcrypt hash, never output",
+                  "type": "string"
+                },
+                "changedAt": {
+                  "description": "Last change, ms since epoch",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          },
           "description": "First basic model for User",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "displayName": {
               "Frontend": true,
@@ -3230,6 +3307,10 @@
               "description": "Contains the locale of the user if known",
               "type": "string"
             },
+            "password": {
+              "$ref": "#/definitions/Password",
+              "description": "Password credential"
+            },
             "uuid": {
               "description": "UUID of the model",
               "format": "uuid",
@@ -3238,6 +3319,7 @@
           },
           "required": [
             "displayName",
+            "password",
             "uuid"
           ],
           "type": "object",
@@ -3248,19 +3330,29 @@
           "WebdaModel": true,
           "additionalProperties": false,
           "class": true,
+          "definitions": {
+            "Password": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": false,
+              "description": "Password credential of a user: bcrypt hash and change timestamp",
+              "properties": {
+                "__hash": {
+                  "description": "bcrypt hash, never output",
+                  "type": "string"
+                },
+                "changedAt": {
+                  "description": "Last change, ms since epoch",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          },
           "description": "First basic model for User",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "displayName": {
               "Frontend": true,
@@ -3276,6 +3368,10 @@
               "description": "Contains the locale of the user if known",
               "type": "string"
             },
+            "password": {
+              "$ref": "#/definitions/Password",
+              "description": "Password credential"
+            },
             "uuid": {
               "description": "UUID of the model",
               "format": "uuid",
@@ -3284,6 +3380,7 @@
           },
           "required": [
             "displayName",
+            "password",
             "uuid"
           ],
           "type": "object",
@@ -3355,6 +3452,25 @@
       ],
       "type": "object",
       "title": "BinaryFile"
+    },
+    "Webda/Password.change.input": {
+      "type": "object",
+      "properties": {
+        "current": {
+          "type": "string"
+        },
+        "next": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "current",
+        "next"
+      ]
+    },
+    "Webda/Password.change.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
     },
     "Webda/Binary.delete.input": {
       "type": "object",
@@ -3783,6 +3899,13 @@
             "method": "PUT"
           }
         }
+      }
+    },
+    "Webda/Password": {
+      "Identifier": "Webda/Password",
+      "Import": "lib/models/password.model:Password",
+      "Actions": {
+        "change": {}
       }
     }
   },

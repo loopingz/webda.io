@@ -685,7 +685,7 @@ class Authentication<
     return {
       expire: expire,
       // Might want to add more alea not coming from the db to avoid exploitation of stolen db
-      token: await this.cryptoService.hmac(user.uuid + expire + user.getPassword()),
+      token: await this.cryptoService.hmac(user.uuid + expire + user.password?.__hash),
       login: user.uuid
     };
   }
@@ -702,12 +702,12 @@ class Authentication<
     }
     const user: User = await this.userModel.ref(ident.getUser().toString()).get();
     // Dont allow to do too many request
-    if (!user.lastPasswordRecoveryBefore(Date.now() - this.parameters.email.delay)) {
+    if (!((user as any)._lastPasswordRecovery < Date.now() - this.parameters.email.delay)) {
       throw new WebdaError.TooManyRequests("Password recovery already requested recently");
     }
     await user.patch({
       _lastPasswordRecovery: Date.now()
-    });
+    } as any);
     this.metrics.recovery.inc();
     await this.sendRecoveryEmail(ctx, user, email);
   }
@@ -741,7 +741,7 @@ class Authentication<
       throw new WebdaError.Forbidden("User not found");
     }
     if (
-      !(await this.cryptoService.hmacVerify(body.login.toLowerCase() + body.expire + user.getPassword(), body.token))
+      !(await this.cryptoService.hmacVerify(body.login.toLowerCase() + body.expire + user.password?.__hash, body.token))
     ) {
       throw new WebdaError.Forbidden("Invalid token");
     }
@@ -751,8 +751,8 @@ class Authentication<
     await this._verifyPassword(body.password, user);
     const password = this.hashPassword(body.password);
     await user.patch({
-      __password: password
-    });
+      password: { __hash: password, changedAt: Date.now() }
+    } as any);
     this.metrics.recovered.inc();
     await this.emit("Authentication.PasswordUpdate", <EventAuthenticationPasswordUpdate>{
       user,
@@ -964,7 +964,7 @@ class Authentication<
     const updates: any = {};
     const user: User = await this.userModel.ref(ident.getUser().toString()).get();
     // Check password
-    if (this.checkPassword(user.getPassword(), (await ctx.getRequestBody()).password)) {
+    if (this.checkPassword(user.password?.__hash, (await ctx.getRequestBody()).password)) {
       if (ident._failedLogin > 0) {
         ident._failedLogin = 0;
       }
@@ -1056,7 +1056,7 @@ class Authentication<
           await this.userModel.create(
             {
               ...body,
-              __password
+              password: { __hash: __password, changedAt: Date.now() }
             } as any,
             false
           )

@@ -1,5 +1,6 @@
 import { IOperationContext } from "../contexts/icontext.js";
-import { type ModelEvents, type Settable, UuidModel, WEBDA_EVENTS } from "@webda/models";
+import { Password } from "./password.model.js";
+import { type ModelClass, type ModelEvents, type Settable, UuidModel, WEBDA_EVENTS } from "@webda/models";
 
 export type UserEvents<T> = ModelEvents<T> & {
   Login: { user: T };
@@ -17,24 +18,48 @@ export class User extends UuidModel {
    */
   constructor(data?: Settable<User>) {
     super();
-    Object.assign(this, data);
+    const mapped = User.mapV3(data);
+    Object.assign(this, mapped);
+    // Raw password data (v3 mapping or plain JSON) must become a Password behavior
+    if (mapped?.password && !(mapped.password instanceof Password)) {
+      (this as any).__hydrateBehaviors?.({ password: mapped.password });
+    }
   }
 
   /**
-   * Password of the user if defined
+   * Password credential
    */
-  __password?: string;
+  password: Password;
+
+  /**
+   * Map v3 records (`__password` string) onto the Password behavior shape
+   * @param data - raw data
+   * @returns the mapped data
+   */
+  private static mapV3(data: any): any {
+    if (data && typeof data.__password === "string") {
+      data = { ...data, password: data.password ?? { __hash: data.__password } };
+      delete data.__password;
+      delete data._lastPasswordRecovery;
+    }
+    return data;
+  }
+
+  /**
+   * Map v3 records onto the Password behavior before hydration
+   * @param data - raw data
+   * @param instance - instance to populate
+   * @returns the populated instance
+   */
+  static deserialize<T extends ModelClass, K extends object = InstanceType<T>>(this: T, data: any, instance?: K): K {
+    return super.deserialize.call(this, User.mapV3(data), instance) as K;
+  }
   /**
    * Display name for this user
    * @optional
    * @Frontend
    */
   displayName: string;
-  /**
-   * Last time the password was recovered
-   */
-  _lastPasswordRecovery?: number = 0;
-
   /**
    * Define the user avatar if exists
    */
@@ -92,31 +117,6 @@ export class User extends UuidModel {
    */
   getDisplayName(): string {
     return this.displayName;
-  }
-
-  /**
-   *
-   * @param timestamp - the timestamp
-   * @returns true if the condition is met
-   */
-  lastPasswordRecoveryBefore(timestamp: number): boolean {
-    return this._lastPasswordRecovery < timestamp;
-  }
-
-  /**
-   * Get the password
-   * @returns the result
-   */
-  getPassword() {
-    return this.__password;
-  }
-
-  /**
-   * Set the user password hash
-   * @param password - the password
-   */
-  setPassword(password: string) {
-    this.__password = password;
   }
 
   /**

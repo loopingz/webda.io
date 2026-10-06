@@ -337,6 +337,10 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
       if (currentUserId && ident.getUser().toString() !== currentUserId) {
         throw new IdentLinkedElsewhere();
       }
+      // A provider handing another user than the owner (a registration that lost a race) must not become the owner
+      if (identity.user && identity.user.getUUID() !== ident.getUser().toString()) {
+        throw new AccountExists();
+      }
       return this.establish(ident.getUser().toString(), ident, identity, ctx);
     }
     // An existing ident without owner is adopted by the resolved, current or newly registered user
@@ -371,6 +375,8 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     }
     if (adopting) {
       ident.setUser(userId);
+      // Verification is only kept when this identity proves it
+      ident.verifiedAt = identity.emailVerified ? (ident.verifiedAt ?? new Date()) : undefined;
       await ident.save();
     } else {
       ident = new (this.getIdentModel())({

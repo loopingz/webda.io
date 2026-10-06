@@ -11,9 +11,11 @@ import {
   ServiceParameters,
   useContext,
   useDynamicService,
+  useModelMetadata,
   type User,
   WebdaError
 } from "@webda/core";
+import { WEBDA_PRIMARY_KEY } from "@webda/models";
 import type { AuthProvider } from "../provider.js";
 import { useAuthentication } from "../provider.js";
 import { AccountExists, InvalidCredentials, Throttled, TokenInvalid } from "../errors.js";
@@ -70,21 +72,39 @@ export class EmailPasswordParameters extends ServiceParameters {
 // bcrypt cost-10 hash of a throwaway string: compared against for unknown emails so timing matches
 const DUMMY_HASH = "$2b$10$Loq148myoR.Yp2D2x5zkj.Z0FQq2afzaddIc2PGWzzdJCOEL.FZ4W";
 
-/** Profile keys that must never be copied from client input into the user */
-const FORBIDDEN_PROFILE_KEYS = ["password", "email", "uuid", "mfa", "roles"];
+/**
+ * Profile attributes a client may set: attributes of the user model input schema, minus behaviors, relations,
+ * primary key fields and private (`_`-prefixed) fields
+ * @param model - user model
+ * @returns the allowed attribute names
+ */
+function allowedProfileKeys(model: any): Set<string> {
+  const meta: any = useModelMetadata(model);
+  const relations = meta?.Relations ?? {};
+  const denied = new Set<string>([
+    ...(model.prototype?.[WEBDA_PRIMARY_KEY] ?? ["uuid"]),
+    ...(relations.behaviors ?? []).map((r: any) => r.attribute),
+    ...(relations.links ?? []).map((r: any) => r.attribute),
+    ...(relations.queries ?? []).map((r: any) => r.attribute),
+    ...(relations.maps ?? []).map((r: any) => r.attribute),
+    ...(relations.binaries ?? []).map((r: any) => r.attribute),
+    ...(relations.parent ? [relations.parent.attribute] : [])
+  ]);
+  const props = Object.keys(meta?.Schemas?.Input?.properties ?? {});
+  return new Set(props.filter(k => !denied.has(k) && !k.startsWith("_")));
+}
 
 /**
+ * @param model - user model
  * @param profile - client supplied profile
- * @returns the profile without credentials, identifiers, internal (`__*`) and behavior attributes
+ * @returns the profile restricted to the attributes the model allows
  */
-function sanitizeProfile(profile: any): any {
+function sanitizeProfile(model: any, profile: any): any {
   const safe: any = {};
   if (!profile || typeof profile !== "object" || Array.isArray(profile)) return safe;
+  const allowed = allowedProfileKeys(model);
   for (const [key, value] of Object.entries(profile)) {
-    if (key.startsWith("__") || key.startsWith("_") || FORBIDDEN_PROFILE_KEYS.includes(key)) continue;
-    // Behavior attributes are objects hydrated by the framework
-    if (value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof Date)) continue;
-    safe[key] = value;
+    if (allowed.has(key)) safe[key] = value;
   }
   return safe;
 }
@@ -94,6 +114,10 @@ function sanitizeProfile(profile: any): any {
  *
  * The password policy is process-wide: resolve() registers the one of this provider and stop() restores the
  * default. With several instances the last one resolved wins.
+ *
+ * Known residual exposure: Auth.Email.Register answers AccountExists for a registered email (enumeration), and
+ * login timing differs slightly for known emails. An unverified squatter owning an email blocks its registration
+ * until the real owner goes through account recovery.
  *
  * Under `allowedEmailDomains` an email must be verified: with `verification` "after" or "none" a new registration is
  * unverified and therefore refused (EMAIL_DOMAIN_NOT_ALLOWED); use "before".
@@ -183,6 +207,36 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     } as any);
   }
 
+  /** Per-ident chains serialising failure recording inside this process */
+  protected failureChains = new Map<string, Promise<unknown>>();
+
+  /**
+   * Record a failed login without losing concurrent failures: the counter goes through the repository
+   * atomic increment (shared stores), and updates of one ident are serialised in this process
+   * @param ident - the ident
+   */
+  protected async recordLoginFailure(ident: Ident): Promise<void> {
+    const key = ident.getUUID();
+    const previous = this.failureChains.get(key) ?? Promise.resolve();
+    const next = previous.then(() =>
+      runAsSystem(async () => {
+        const ref = ident.ref();
+        await ref.incrementAttribute("_throttle.attempts" as any, 1);
+        const fresh = await ref.get();
+        await ref.patch({
+          _throttle: { ...recordFailure(fresh._throttle), attempts: fresh._throttle.attempts }
+        } as any);
+      })
+    );
+    const tail = next.catch(() => undefined);
+    this.failureChains.set(key, tail);
+    try {
+      await next;
+    } finally {
+      if (this.failureChains.get(key) === tail) this.failureChains.delete(key);
+    }
+  }
+
   /**
    * Login with email and password
    * @param email - email
@@ -221,12 +275,12 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     }
     if (!ok) {
       if (ident) {
-        await runAsSystem(() => ident.ref().patch({ _throttle: recordFailure(ident._throttle) } as any));
+        await this.recordLoginFailure(ident);
       }
       await auth.emit("Authentication.LoginFailed", { context: ctx, user } as any);
       throw new InvalidCredentials();
     }
-    if (ident._throttle?.attempts) {
+    if (ident._throttle && ident._throttle.attempts) {
       await runAsSystem(() => ident.ref().patch({ _throttle: resetFailures(ident._throttle) } as any));
     }
     return auth.complete({
@@ -297,7 +351,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     };
     // Nothing is created when the email policy refuses
     auth.applyPolicy(base);
-    const safeProfile = sanitizeProfile(profile);
+    const safeProfile = sanitizeProfile(auth.getUserModel(), profile);
     const user: User = await runAsSystem(() =>
       auth.getUserModel().create({ ...safeProfile, email: normalized } as any, false)
     );

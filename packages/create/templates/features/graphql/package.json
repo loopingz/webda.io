@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@webda/graphql": "workspace:*"
+  }
+}

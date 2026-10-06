@@ -100,4 +100,19 @@ class TemplatesTest {
     const memory = JSON.parse((await render({ store: "memory" })).get("webda.config.json"));
     assert.strictEqual(memory.services.Registry, undefined, "memory uses the default Registry");
   }
+
+  @test
+  async transportsAddTheirServices() {
+    const all = JSON.parse(
+      (await render({ transports: ["rest", "graphql", "grpc", "mcp"] })).get("webda.config.json")
+    ).services;
+    assert.deepStrictEqual(all.GraphQLService, { type: "Webda/GraphQLService" });
+    assert.deepStrictEqual(all.GRPCService, { type: "Webda/GrpcService" });
+    assert.deepStrictEqual(all.HttpServerH2c, { type: "Webda/HttpServer", port: 50051, h2c: true });
+    assert.deepStrictEqual(all.MCP, { type: "Webda/McpService" });
+    assert.ok(all.RESTService);
+    const graphqlOnly = JSON.parse((await render({ transports: ["graphql"] })).get("webda.config.json")).services;
+    assert.strictEqual(graphqlOnly.RESTService, undefined);
+    assert.ok(graphqlOnly.HttpServer, "the HTTP server stays for GraphQL");
+  }
 }

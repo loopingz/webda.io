@@ -28,7 +28,9 @@ export const APPS = [
       PGPASSWORD: process.env.PGPASSWORD ?? "webda.io",
       PGDATABASE: process.env.PGDATABASE ?? "webda.io"
     }
-  }
+  },
+  { name: "memory-all-transports", flags: ["--store", "memory", "--transports", "rest,graphql,grpc,mcp"], env: {} },
+  { name: "memory-graphql-only", flags: ["--store", "memory", "--transports", "graphql"], env: {} }
 ];
 
 /**

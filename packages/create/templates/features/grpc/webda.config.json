@@ -1,0 +1,6 @@
+{
+  "services": {
+    "GRPCService": { "type": "Webda/GrpcService" },
+    "HttpServerH2c": { "type": "Webda/HttpServer", "port": 50051, "h2c": true }
+  }
+}

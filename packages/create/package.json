@@ -7,7 +7,11 @@
     "create": "./lib/bin.js"
   },
   "main": "lib/index.js",
-  "files": ["lib", "templates", "agent"],
+  "files": [
+    "lib",
+    "templates",
+    "agent"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/write-versions.mjs",
     "format": "prettier --check src/**/*",

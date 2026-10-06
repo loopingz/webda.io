@@ -62,7 +62,14 @@ function oneOf<T extends string>(flag: string, value: string, allowed: readonly 
  * @returns at least one valid transport
  */
 function parseTransports(value: string): Transport[] {
-  const list = [...new Set(value.split(",").map(item => item.trim()).filter(Boolean))];
+  const list = [
+    ...new Set(
+      value
+        .split(",")
+        .map(item => item.trim())
+        .filter(Boolean)
+    )
+  ];
   if (list.length === 0) {
     throw new OptionsError(`--transports needs at least one of: ${TRANSPORTS.join(", ")}`);
   }

@@ -96,6 +96,7 @@ export interface ModelEntry {
   Actions: Record<string, Record<string, unknown>>;
   Events: string[];
   PrimaryKey: string[];
+  PrimaryKeySeparator?: string;
   Identifier: string;
 }
 
@@ -583,6 +584,20 @@ export function buildModelPrimaryKey(ctx: AnalysisContext, cls: ClassDeclaration
     }
   }
   return keys;
+}
+
+/**
+ * A model's `PrimaryKeySeparator`, from a `[WEBDA_PRIMARY_KEY_SEPARATOR] = ":"` initialiser.
+ * @param ctx - analysis context
+ * @param cls - the model class
+ * @returns the separator, or undefined when the model declares none
+ */
+export function buildModelPrimaryKeySeparator(ctx: AnalysisContext, cls: ClassDeclaration): string | undefined {
+  const symbol = propertiesOf(ctx, cls).find(p =>
+    propertyIsKeyedBySymbol(ctx, p, "@webda/models", "WEBDA_PRIMARY_KEY_SEPARATOR")
+  );
+  const initializer: any = symbol ? (valueDeclarationOf(ctx, symbol) as any)?.initializer : undefined;
+  return initializer && is.isStringLiteral(initializer) ? (initializer as any).text : undefined;
 }
 
 /**
@@ -1327,6 +1342,8 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
     if (events) entry.Events = events;
     const primaryKey = buildModelPrimaryKey(ctx, declaration);
     if (primaryKey) entry.PrimaryKey = primaryKey;
+    const primaryKeySeparator = buildModelPrimaryKeySeparator(ctx, declaration);
+    if (primaryKeySeparator) entry.PrimaryKeySeparator = primaryKeySeparator;
     entry.Plural = tags.WebdaPlural || getPlural(object.name.split("/").pop()!);
   }
 

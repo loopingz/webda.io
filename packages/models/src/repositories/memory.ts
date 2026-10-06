@@ -332,7 +332,31 @@ export class MemoryRepository<
       }
     }
 
-    return MemoryRepository.simulateFind(parsed, [...this.storage.keys()], this);
+    return MemoryRepository.simulateFind(parsed, this.listKeysOfModel(ids), this);
+  }
+
+  /**
+   * List the storage keys that may belong to this model
+   *
+   * A storage shared by several models holds foreign entries whose key shape can be invalid for this
+   * repository: they are skipped from the stored envelope `__type` before any parsing. Entries without a
+   * readable stamp (legacy rows, corrupted payloads) are kept so any error on them still surfaces.
+   * @param ids - class identifiers (model and subclasses), undefined to keep everything
+   * @returns the keys to evaluate
+   */
+  protected listKeysOfModel(ids?: string[]): string[] {
+    const keys = [...this.storage.keys()];
+    if (!ids) return keys;
+    return keys.filter(key => {
+      const raw = this.storage.get(key);
+      if (typeof raw !== "string") return true;
+      try {
+        const type = JSON.parse(raw)?.__type;
+        return typeof type !== "string" || ids.includes(type);
+      } catch {
+        return true;
+      }
+    });
   }
 
   /**
@@ -370,8 +394,7 @@ export class MemoryRepository<
       if (offset >= count) {
         continue;
       }
-      // A storage shared by several models may hold keys that are not valid for this repository: skip them
-      const obj = (await repository.get(uuid as any).catch(() => undefined)) as InstanceType<T>;
+      const obj = (await repository.get(uuid as any)) as InstanceType<T>;
       if (obj && query.filter.eval(obj)) {
         result.results.push(obj);
         if (result.results.length >= limit) {

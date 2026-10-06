@@ -56,3 +56,11 @@ export class Throttled extends WebdaError.HttpError {
     super(message, 429);
   }
 }
+
+/** The email domain is not allowed for this provider (403) */
+export class EmailDomainNotAllowed extends WebdaError.HttpError {
+  /** @param message - error message */
+  constructor(message: string = "Email domain not allowed") {
+    super(message, 403);
+  }
+}

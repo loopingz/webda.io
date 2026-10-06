@@ -21,7 +21,7 @@ import {
 } from "@webda/core";
 import type { ModelClass } from "@webda/models";
 import { AccountExists, IdentLinkedElsewhere, LastLoginMethod, RegistrationDisabled } from "./errors.js";
-import { type AuthProvider, isAuthProvider } from "./provider.js";
+import { type AuthProvider, applyEmailPolicy, isAuthProvider, type ProviderEmailPolicy } from "./provider.js";
 
 /** Account linking policy for unauthenticated logins matching an existing email */
 export type LinkingPolicy = "never" | "verified" | "always";
@@ -163,6 +163,22 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
+   * @param name - provider name
+   * @returns the email policy of that provider, undefined for unknown providers or without policy
+   */
+  protected emailPolicyFor(name: string): ProviderEmailPolicy | undefined {
+    const provider = this.getProvider(name);
+    if (!provider) return undefined;
+    if (typeof provider.getEmailPolicy === "function") return provider.getEmailPolicy();
+    const params: any = provider.getParameters?.();
+    if (!params) return undefined;
+    const { allowedEmailDomains, trustEmailVerification } = params;
+    return allowedEmailDomains === undefined && trustEmailVerification === undefined
+      ? undefined
+      : { allowedEmailDomains, trustEmailVerification };
+  }
+
+  /**
    * @returns public info of every provider
    */
   getProviders(): ProviderInfo[] {
@@ -270,6 +286,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
    * @throws RegistrationDisabled when a new user is needed but registration is off
    */
   async complete(identity: ResolvedIdentity): Promise<AuthResult> {
+    identity = applyEmailPolicy(identity, this.emailPolicyFor(identity.provider));
     const ctx = useContext<any>();
     return runAsSystem(() => this.completeAs(identity, ctx, false));
   }

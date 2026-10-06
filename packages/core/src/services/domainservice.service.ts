@@ -16,10 +16,27 @@ import { registerOperation } from "../core/operations.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
 
 /**
+ * Remove Behavior-typed attributes (Metadata.Relations.behaviors) and private fields from client input.
+ * Behavior state can only be changed through the behavior's own actions.
+ * @param model - the model class
+ * @param input - the client input
+ * @returns the sanitized input
+ */
+export function sanitizeModelInput<T = any>(model: ModelClass<any>, input: T): T {
+  const out: any = stripPrivateFields(input);
+  if (out && typeof out === "object" && !Array.isArray(out)) {
+    for (const rel of useModelMetadata(model)?.Relations?.behaviors ?? []) {
+      delete out[rel.attribute];
+    }
+  }
+  return out;
+}
+
+/**
  * Remove `__`-prefixed keys at any depth from client-supplied input, so private fields
  * (such as a password hash) can never be set through the REST/operations surface
  * @param input - the client input
- * @returns a sanitized deep copy (non plain-object/array values are returned as is); objects emptied by the stripping are dropped
+ * @returns a sanitized deep copy (non plain-object/array values are returned as is)
  */
 export function stripPrivateFields<T = any>(input: T): T {
   if (Array.isArray(input)) {
@@ -31,18 +48,7 @@ export function stripPrivateFields<T = any>(input: T): T {
       if (k.startsWith("__")) {
         continue;
       }
-      const clean = stripPrivateFields(v);
-      // An object holding only private fields has nothing left to set: drop it so it cannot overwrite the stored one
-      if (
-        clean &&
-        typeof clean === "object" &&
-        !Array.isArray(clean) &&
-        Object.keys(clean).length === 0 &&
-        Object.keys(v as any).length > 0
-      ) {
-        continue;
-      }
-      out[k] = clean;
+      out[k] = stripPrivateFields(v);
     }
     return out;
   }
@@ -213,7 +219,7 @@ export class DomainService<
     if (typeof input !== "object" || input === null || input instanceof OperationContext) {
       input = await context.getInput();
     }
-    input = stripPrivateFields(input);
+    input = sanitizeModelInput(model, input);
     return runWithContext(context, async () => {
       // Instantiate the model from raw input, load data, then save
       const object = new (model as any)() as Model;
@@ -241,7 +247,7 @@ export class DomainService<
     if (typeof input !== "object" || input === null) {
       input = await context.getInput();
     }
-    input = stripPrivateFields(input);
+    input = sanitizeModelInput(model, input);
     // Resolve the PK from body or URL params using the model's actual PK fields;
     // fall back to "uuid" for legacy operations without pkFields in the context.
     const params = context.getParameters() ?? {};
@@ -323,7 +329,7 @@ export class DomainService<
     if (typeof input !== "object" || input === null) {
       input = await context.getInput();
     }
-    input = stripPrivateFields(input);
+    input = sanitizeModelInput(model, input);
     // Build the PK from the model's real primary-key fields (same logic as modelUpdate).
     const params = context.getParameters() ?? {};
     const fields = pkFields?.length ? pkFields : ["uuid"];

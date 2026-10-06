@@ -1,6 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
+import bcrypt from "bcryptjs";
 import { DomainServiceParameters, DomainService, stripPrivateFields } from "./domainservice.service.js";
 import { callOperation, listOperations } from "../core/operations.js";
 import { OperationContext } from "../contexts/operationcontext.js";
@@ -311,43 +312,98 @@ class DomainServiceTest extends WebdaApplicationTest {
       c: { e: [{ g: 2 }, 3] },
       h: null
     });
-    assert.deepStrictEqual(stripPrivateFields({ p: { __hash: "x" }, q: {} }), { q: {} });
+    assert.deepStrictEqual(stripPrivateFields({ p: { __hash: "x" } }), { p: {} });
     assert.strictEqual(stripPrivateFields("x"), "x");
     assert.strictEqual(stripPrivateFields(undefined), undefined);
   }
 
-  @test
-  async privateFieldsStrippedOnRest() {
-    // Call handlers directly: the compiled input schema is not what protects private fields
+  /**
+   * Run handlers against the sample-app User declared with a Behavior-typed `password` attribute
+   * @param fn - the test body, given a runner executing a DomainService call in an operation context
+   */
+  private async withPasswordBehavior(
+    fn: (run: (call: (s: DomainService) => Promise<any>) => Promise<any>, User: any, uuid: string) => Promise<void>
+  ) {
     const User = useModel<any>("User");
     registerRepository(User, new MemoryRepository(User, ["uuid"]));
+    const previous = User.Metadata;
+    User.Metadata = Object.freeze({
+      ...previous,
+      Relations: { ...(previous.Relations || {}), behaviors: [{ attribute: "password", behavior: "Webda/Password" }] }
+    });
     const uuid = "550e8400-e29b-41d4-a716-446655440077";
-    const stored0 = await User.create({ uuid, displayName: "Orig", password: { __hash: "keep", changedAt: 1 } });
-    assert.strictEqual(stored0.password.__hash, "keep");
     const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
-    const evil = () => ({ uuid, displayName: "Changed", __foo: "x", password: { __hash: "hacked" } });
-    const run = async (fn: () => Promise<any>) => {
+    const run = async (call: (s: DomainService) => Promise<any>) => {
       const ctx = new FakeOpContext();
       await ctx.init();
       ctx.setExtension("operationContext", { model: User });
       ctx.setParameters({ uuid });
-      return runWithContext(ctx, fn);
+      return runWithContext(ctx, () => call(service));
     };
-    // Patch persists
-    await run(() => service.modelPatch(evil()));
+    try {
+      await User.create({
+        uuid,
+        displayName: "Orig",
+        password: { __hash: await bcrypt.hash("original-pass", 4), changedAt: 1 }
+      });
+      await fn(run, User, uuid);
+    } finally {
+      User.Metadata = previous;
+    }
+  }
+
+  /**
+   * Assert the stored password is untouched
+   * @param User - model class
+   * @param uuid - user uuid
+   * @returns the stored user
+   */
+  private async assertPasswordIntact(User: any, uuid: string) {
     const stored: any = await User.ref(uuid).get();
-    assert.strictEqual(stored.displayName, "Changed");
-    assert.strictEqual(stored.password.__hash, "keep");
+    assert.ok(await bcrypt.compare("original-pass", stored.password.__hash));
+    assert.strictEqual(stored.password.changedAt, 1);
     assert.strictEqual(stored.__foo, undefined);
-    // Update returns the loaded object
-    const updated: any = await run(() => service.modelUpdate(evil()));
-    assert.strictEqual(updated.displayName, "Changed");
-    assert.strictEqual(updated.password.__hash, "keep");
-    assert.strictEqual(updated.__foo, undefined);
-    // Create
-    const created: any = await run(() => service.modelCreate({ ...evil(), uuid: "other-uuid" }));
-    assert.strictEqual(created.password?.__hash, undefined);
-    assert.strictEqual(created.__foo, undefined);
+    return stored;
+  }
+
+  @test
+  async behaviorAttributesNotClientWritablePatch() {
+    await this.withPasswordBehavior(async (run, User, uuid) => {
+      await run(s =>
+        s.modelPatch({ uuid, displayName: "Patched", __foo: "x", password: { changedAt: 1, __hash: "h" } })
+      );
+      const stored = await this.assertPasswordIntact(User, uuid);
+      assert.strictEqual(stored.displayName, "Patched");
+    });
+  }
+
+  @test
+  async behaviorAttributesNotClientWritableUpdate() {
+    await this.withPasswordBehavior(async (run, User, uuid) => {
+      // No password in the PUT
+      let updated = await run(s => s.modelUpdate({ uuid, displayName: "Put1" }));
+      assert.strictEqual(updated.displayName, "Put1");
+      assert.ok(await bcrypt.compare("original-pass", updated.password.__hash));
+      // Password in the PUT is ignored
+      updated = await run(s => s.modelUpdate({ uuid, displayName: "Put2", password: { changedAt: 1 } }));
+      assert.strictEqual(updated.displayName, "Put2");
+      assert.ok(await bcrypt.compare("original-pass", updated.password.__hash));
+      assert.strictEqual(updated.password.changedAt, 1);
+      await this.assertPasswordIntact(User, uuid);
+    });
+  }
+
+  @test
+  async behaviorAttributesNotClientWritableCreate() {
+    await this.withPasswordBehavior(async (run, User) => {
+      const created = await run(s =>
+        s.modelCreate({ uuid: "created-1", displayName: "New", password: { __hash: "x" } })
+      );
+      assert.strictEqual(created.displayName, "New");
+      assert.strictEqual(created.password?.__hash, undefined);
+      const stored: any = await User.ref("created-1").get();
+      assert.strictEqual(stored.password?.__hash, undefined);
+    });
   }
 
   @test

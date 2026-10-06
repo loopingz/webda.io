@@ -2,12 +2,15 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { stub } from "sinon";
 import { TestApplication, WebdaInternalSimpleTest } from "../test/index.js";
-import { ConfigurationProvider, ConfigurationService, ConfigurationServiceParameters } from "./configuration.service.js";
+import {
+  ConfigurationProvider,
+  ConfigurationService,
+  ConfigurationServiceParameters
+} from "./configuration.service.js";
 import { UnpackedConfiguration } from "../application/iconfiguration.js";
-import { useService } from "../core/hooks.js";
+import { useDynamicService, useService } from "../core/hooks.js";
 import { Service } from "../services/service.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
-import { Authentication } from "../services/authentication.service.js";
 import { useCoreEvents } from "../events/events.js";
 
 class TestConfigurationProvider extends Service implements ConfigurationProvider {
@@ -44,7 +47,8 @@ class TestConfigurationService extends WebdaInternalSimpleTest {
         configurationService: "ConfigurationService"
       },
       services: {
-        Authentication: {
+        SampleService: {
+          type: "WebdaTest/FakeService",
           successRedirect: "https://webda.io/user.html",
           failureRedirect: "/login-error",
           email: {
@@ -67,7 +71,7 @@ class TestConfigurationService extends WebdaInternalSimpleTest {
           checkInterval: 2,
           default: {
             services: {
-              Authentication: {
+              SampleService: {
                 providers: {
                   email: {
                     text: "Test"
@@ -91,13 +95,13 @@ class TestConfigurationService extends WebdaInternalSimpleTest {
 
   @test
   async initialLoad() {
-    const auth = useService<Authentication>("Authentication");
-    assert.strictEqual(auth.parameters.email!.text, "Test");
-    assert.strictEqual(auth.parameters.email!.mailer, "DefinedMailer");
+    const auth = useDynamicService<any>("SampleService");
+    assert.strictEqual(auth.getParameters().email!.text, "Test");
+    assert.strictEqual(auth.getParameters().email!.mailer, "DefinedMailer");
     const test = {
       uuid: "test",
       services: {
-        Authentication: {
+        SampleService: {
           email: {
             text: "Plop"
           }
@@ -109,8 +113,8 @@ class TestConfigurationService extends WebdaInternalSimpleTest {
       useCoreEvents("Webda.Configuration.Applied", resolve, true);
       configurationProvider.setConfiguration("test", test);
     });
-    assert.strictEqual(auth.parameters.email!.text, "Plop");
-    assert.strictEqual(auth.parameters.email!.mailer, "DefinedMailer");
+    assert.strictEqual(auth.getParameters().email!.text, "Plop");
+    assert.strictEqual(auth.getParameters().email!.mailer, "DefinedMailer");
     const service = this.webda.getService<ConfigurationService>("ConfigurationService");
     // @ts-ignore
     await service.checkUpdate();

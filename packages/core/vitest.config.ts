@@ -39,7 +39,6 @@ export default defineConfig({
       "src/rest/rest-behaviors.spec.ts",
       "src/rest/router-prefix.spec.ts",
       "src/schemas/*.spec.ts",
-      //"src/services/authentication.spec.ts", // Need refactor
       "src/services/cloudbinary.spec.ts",
       "src/services/cron.spec.ts",
       "src/services/cryptoservice.spec.ts",
@@ -54,8 +53,6 @@ export default defineConfig({
       "src/services/httpserver.spec.ts",
       "src/services/mailer.spec.ts",
       "src/services/notificationservice.spec.ts",
-      //"src/services/oauth.spec.ts", // Need small refactor
-      "src/services/oauth-unit.spec.ts",
       //"src/services/prometheus.spec.ts", // Check parameters loading
       //"src/services/resource.spec.ts",
       "src/services/resource-unit.spec.ts",

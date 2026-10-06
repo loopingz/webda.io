@@ -17,9 +17,9 @@ class UnpackedApplicationTest extends WebdaApplicationTest {
   @test
   defaultConfiguration() {
     assert.strictEqual(
-      useApplication()!.getCurrentConfiguration().services["Authentication"]?.type,
-      "Webda/Authentication",
-      "Type should be auto-guessed based on the service name"
+      useApplication()!.getCurrentConfiguration().services["SampleService"]?.type,
+      "WebdaTest/FakeService",
+      "Type should be taken from the configuration"
     );
   }
 

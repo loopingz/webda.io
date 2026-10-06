@@ -56,7 +56,8 @@
       "type": "MemoryQueue",
       "expire": 3600
     },
-    "Authentication": {
+    "SampleService": {
+      "type": "WebdaTest/FakeService",
       "successRedirect": "https://webda.io/user.html",
       "registerRedirect": "https://webda.io/register.html",
       "failureRedirect": "/login-error",

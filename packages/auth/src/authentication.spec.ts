@@ -60,4 +60,14 @@ class AuthenticationSkeletonTest extends AuthTest {
     this.registerService(dup, "fake2");
     assert.throws(() => this.auth.resolve(), /Duplicate auth provider 'fake'/);
   }
+
+  @test
+  async defaults() {
+    const params = this.auth.getParameters();
+    assert.strictEqual(params.linking, "verified");
+    assert.strictEqual(params.registration, true);
+    assert.strictEqual(params.compatibility.v3, true);
+    assert.strictEqual(params.userModel, "Webda/User");
+    assert.strictEqual(params.identModel, "Webda/Ident");
+  }
 }

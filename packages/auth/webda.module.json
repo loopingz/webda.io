@@ -9,12 +9,13 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "definitions": {
-          "compatibility": {
+          "AuthenticationCompatibility": {
             "additionalProperties": false,
-            "description": "v3 data compatibility",
+            "description": "v3 data compatibility options",
             "properties": {
               "v3": {
-                "default": false,
+                "default": true,
+                "description": "Read and write v3 data layouts",
                 "type": "boolean"
               }
             },
@@ -24,7 +25,10 @@
         "description": "Authentication parameters",
         "properties": {
           "compatibility": {
-            "$ref": "#/definitions/compatibility",
+            "$ref": "#/definitions/AuthenticationCompatibility",
+            "default": {
+              "v3": true
+            },
             "description": "v3 data compatibility"
           },
           "identModel": {
@@ -62,7 +66,6 @@
           }
         },
         "required": [
-          "compatibility",
           "type"
         ],
         "type": "object",

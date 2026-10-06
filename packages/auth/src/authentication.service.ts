@@ -20,32 +20,42 @@ import { type AuthProvider, isAuthProvider } from "./provider.js";
 /** Account linking policy for unauthenticated logins matching an existing email */
 export type LinkingPolicy = "never" | "verified" | "always";
 
+/** v3 data compatibility options */
+export interface AuthenticationCompatibility {
+  /**
+   * Read and write v3 data layouts
+   * @default true
+   */
+  v3?: boolean;
+}
+
 /** Authentication parameters */
 export class AuthenticationParameters extends ServiceParameters {
   /**
    * User model
    * @default "Webda/User"
    */
-  userModel: string;
+  userModel?: string;
   /**
    * Ident model
    * @default "Webda/Ident"
    */
-  identModel: string;
+  identModel?: string;
   /**
    * Linking policy
    * @default "verified"
    */
-  linking: LinkingPolicy;
+  linking?: LinkingPolicy;
   /**
    * Allow automatic registration of new users
    * @default true
    */
-  registration: boolean;
+  registration?: boolean;
   /**
    * v3 data compatibility
+   * @default { "v3": true }
    */
-  compatibility: { v3: boolean };
+  compatibility?: AuthenticationCompatibility;
 
   /**
    * @param params - raw parameters
@@ -114,14 +124,16 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
    * @throws Error when two providers share the same name
    */
   protected discoverProviders(): void {
-    this.providerMap.clear();
+    // The resolve() pass is best-effort (later services may not exist yet), the init() pass is authoritative
+    const providers = new Map<string, AuthProvider>();
     for (const service of Object.values(useCore().getServices())) {
       if (!isAuthProvider(service)) continue;
-      if (this.providerMap.has(service.providerName)) {
+      if (providers.has(service.providerName)) {
         throw new Error(`Duplicate auth provider '${service.providerName}'`);
       }
-      this.providerMap.set(service.providerName, service);
+      providers.set(service.providerName, service);
     }
+    this.providerMap = providers;
   }
 
   /** @override */

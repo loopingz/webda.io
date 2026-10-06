@@ -2,7 +2,75 @@
   "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {},
   "deployers": {},
-  "moddas": {},
+  "moddas": {
+    "Webda/Authentication": {
+      "Import": "lib/authentication.service:Authentication",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "compatibility": {
+            "additionalProperties": false,
+            "description": "v3 data compatibility",
+            "properties": {
+              "v3": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Authentication parameters",
+        "properties": {
+          "compatibility": {
+            "$ref": "#/definitions/compatibility",
+            "description": "v3 data compatibility"
+          },
+          "identModel": {
+            "default": "Webda/Ident",
+            "description": "Ident model",
+            "type": "string"
+          },
+          "linking": {
+            "default": "verified",
+            "description": "Linking policy",
+            "enum": [
+              "never",
+              "verified",
+              "always"
+            ],
+            "type": "string"
+          },
+          "registration": {
+            "default": true,
+            "description": "Allow automatic registration of new users",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "userModel": {
+            "default": "Webda/User",
+            "description": "User model",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "compatibility",
+          "type"
+        ],
+        "type": "object",
+        "title": "Authentication"
+      },
+      "Configuration": "lib/authentication.service:AuthenticationParameters"
+    }
+  },
   "models": {},
   "schemas": {
     "Webda/BinaryFile": {
@@ -46,6 +114,54 @@
       ],
       "type": "object",
       "title": "BinaryFile"
+    },
+    "Authentication.providers.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Authentication.providers.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "items": {
+        "$ref": "#/definitions/ProviderInfo"
+      },
+      "type": "array",
+      "definitions": {
+        "ProviderInfo": {
+          "additionalProperties": false,
+          "description": "Describe an authentication provider exposed by an authentication service",
+          "properties": {
+            "name": {
+              "description": "Provider name",
+              "type": "string"
+            },
+            "startUrl": {
+              "description": "URL to start the authentication flow (oauth, passwordless)",
+              "type": "string"
+            },
+            "type": {
+              "description": "Provider type",
+              "enum": [
+                "password",
+                "oauth",
+                "passwordless"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "type"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "Authentication.me.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Authentication.me.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
     }
   },
   "behaviors": {}

@@ -9,6 +9,8 @@ import {
   buildBehaviorActions,
   buildCapabilities,
   buildModelActions,
+  buildModelPrimaryKey,
+  buildModelPrimaryKeySeparator,
   buildCommands,
   generateWebdaModule,
   getPlural,
@@ -346,5 +348,22 @@ describe("worker module request", () => {
     expect(Object.keys(result.module.behaviors)).toContain("Custom/Named");
     expect(Array.isArray(result.namingViolations)).toBe(true);
     expect(response.errors.missing).toMatch(/not found/);
+  });
+});
+
+describe("module primary key separator", () => {
+  it("inherits PrimaryKey and PrimaryKeySeparator from a parent model", () => {
+    const dir = join(here, "..", "test", "separator-fixture");
+    const session = openSession(join(dir, "tsconfig.json"), dir);
+    try {
+      for (const name of ["Keyed", "KeyedChild"]) {
+        const cls = classOf(session, "keyed.model.ts", name);
+        expect(buildModelPrimaryKey(session.ctx, cls), name).toEqual(["a", "b"]);
+        expect(buildModelPrimaryKeySeparator(session.ctx, cls), name).toBe(":");
+      }
+      expect(buildModelPrimaryKeySeparator(session.ctx, classOf(session, "keyed.model.ts", "Plain"))).toBeUndefined();
+    } finally {
+      session.dispose();
+    }
   });
 });

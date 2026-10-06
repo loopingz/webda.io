@@ -169,6 +169,7 @@ class DomainServiceTest extends WebdaApplicationTest {
       "User.Images.Get",
       "User.Images.GetUrl",
       "User.Images.SetMetadata",
+      "User.Password.Change",
       "User.Patch",
       "User.ProfilePicture.Attach",
       "User.ProfilePicture.AttachChallenge",

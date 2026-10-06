@@ -38,6 +38,7 @@ const SEPARATOR = ":";
 export class Ident extends Model {
   /** Composite primary key */
   [WEBDA_PRIMARY_KEY] = ["providerUid", "provider"] as const;
+  // Must stay a string literal: the content mapper reads it textually
   [WEBDA_PRIMARY_KEY_SEPARATOR] = ":";
   /** Identifier on the provider (normalised email for "email") */
   providerUid: string;

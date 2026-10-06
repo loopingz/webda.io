@@ -118,4 +118,40 @@ class MainTest {
     assert.strictEqual(await main(d), 1);
     assert.ok(logs.some(line => line.includes("Valid values")));
   }
+
+  @test
+  async templateErrorExitsOneWithoutStack() {
+    const { d, cwd, logs } = deps(["app"]);
+    writeFileSync(join(d.agentDir, "AGENTS.md"), "no marker\n");
+    assert.strictEqual(await main(d), 1);
+    assert.ok(logs.some(line => line.includes("WEBDA:APP")));
+    assert.ok(logs.every(line => !line.includes("\n    at ")));
+    assert.deepStrictEqual(readdirSync(cwd), []);
+  }
+
+  @test
+  async writeFailureExitsOne() {
+    // pre-create the target's parent as a file: mkdir fails with ENOTDIR on macOS and Linux
+    const { d, cwd, logs } = deps(["sub/app"]);
+    writeFileSync(join(cwd, "sub"), "x");
+    assert.strictEqual(await main(d), 1);
+    assert.ok(logs.some(line => line.includes("Writing files failed") || line.includes("ENOTDIR")));
+  }
+
+  @test
+  async gitCommitFailureWarns() {
+    const { d, logs } = deps(["app", "--no-install"], (_cmd, args) => ({ status: args[0] === "commit" ? 1 : 0 }));
+    assert.strictEqual(await main(d), 0);
+    assert.ok(logs.some(line => line.includes("git commands failed")));
+  }
+
+  @test
+  async installFailureIncludesRunnerError() {
+    const { d, logs } = deps(["app", "--pm", "npm", "--no-git"], () => ({
+      status: null,
+      error: Object.assign(new Error("spawn npm ENOENT"), { code: "ENOENT" })
+    }));
+    assert.strictEqual(await main(d), 1);
+    assert.ok(logs.some(line => line.includes("spawn npm ENOENT")));
+  }
 }

@@ -3,7 +3,7 @@ import { relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkTarget, generate, writeFiles } from "./generate.js";
 import { initGit, installDependencies, Runner, spawnRunner } from "./install.js";
-import { OptionsError, parseCliArgs } from "./options.js";
+import { parseCliArgs } from "./options.js";
 import { clackPrompter, Prompter, resolveOptions } from "./prompts.js";
 import { fromVersionsFile, fromWorkspace } from "./versions.js";
 
@@ -36,6 +36,8 @@ const HELP = `Usage: npm create @webda <directory> [-- options]
  * @returns process exit code
  */
 export async function main(deps: MainDeps): Promise<number> {
+  let writing = false;
+  let target = "";
   try {
     const args = parseCliArgs(deps.argv);
     if (args.help) {
@@ -53,11 +55,18 @@ export async function main(deps: MainDeps): Promise<number> {
       ? await fromWorkspace(options.linkWorkspace)
       : fromVersionsFile(deps.versions);
     const files = await generate({ options, templatesDir: deps.templatesDir, agentDir: deps.agentDir, resolveVersion });
+    writing = true;
+    target = options.dir;
     await writeFiles(options.dir, files);
+    writing = false;
     deps.log(`Created ${options.dir}`);
-    if (options.install && !installDependencies(options.pm, options.dir, deps.run)) {
-      deps.log(`Installing dependencies failed. Retry with: cd ${options.dir} && ${options.pm} install`);
-      return 1;
+    if (options.install) {
+      const install = installDependencies(options.pm, options.dir, deps.run);
+      if (!install.ok) {
+        const reason = install.error ? ` (${install.error})` : "";
+        deps.log(`Installing dependencies failed${reason}. Retry with: cd ${options.dir} && ${options.pm} install`);
+        return 1;
+      }
     }
     if (options.git) {
       const git = initGit(options.dir, deps.run);
@@ -75,11 +84,9 @@ export async function main(deps: MainDeps): Promise<number> {
     );
     return 0;
   } catch (err) {
-    if (err instanceof OptionsError) {
-      deps.log(err.message);
-      return 1;
-    }
-    throw err;
+    const message = err instanceof Error ? err.message : String(err);
+    deps.log(writing ? `Writing files failed: ${message}. Remove ${target} before retrying.` : message);
+    return 1;
   }
 }
 

@@ -1,7 +1,7 @@
 import type { ArrayElement } from "@webda/tsc-esm";
 import type { QueryParameters } from "@webda/ql";
 import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable.js";
-import type { Helpers, JSONed, SelfJSONed, PropertyPaths, PropertyPathType, NumericPropertyPaths } from "../types.js";
+import type { Helpers, JSONed, SelfJSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";
 import { deserialize, serialize, serializeRaw } from "@webda/serialize";
 import { AbstractRepository } from "./abstract.js";
 import { Repository, WEBDA_TEST } from "./repository.js";
@@ -515,24 +515,6 @@ export class MemoryRepository<
     }
     this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(item));
     return updated;
-  }
-
-  /**
-   * Set one attribute, a dotted path leaves the sibling attributes untouched
-   * @override
-   */
-  async setAttribute<K extends PropertyPaths<InstanceType<T>>, L extends PropertyPaths<InstanceType<T>>>(
-    primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string,
-    attribute: K,
-    value: PropertyPathType<InstanceType<T>, K>,
-    conditionField?: L | null,
-    condition?: any
-  ): Promise<void> {
-    const item = this.getSync(primaryKey);
-    this.checkCondition(item, conditionField, condition);
-    const { holder, key } = this.resolvePath(item, attribute as string);
-    holder[key] = value;
-    this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(item));
   }
 
   /**

@@ -72,6 +72,133 @@
         "title": "Authentication"
       },
       "Configuration": "lib/authentication.service:AuthenticationParameters"
+    },
+    "Webda/EmailPasswordProvider": {
+      "Import": "lib/email/emailpassword.service:EmailPasswordProvider",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "password": {
+            "additionalProperties": false,
+            "description": "Password rules",
+            "properties": {
+              "policy": {
+                "type": "string"
+              },
+              "verifier": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "redirects": {
+            "additionalProperties": false,
+            "description": "Browser redirects for emailed links",
+            "properties": {
+              "failure": {
+                "type": "string"
+              },
+              "register": {
+                "type": "string"
+              },
+              "verified": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "throttle": {
+            "additionalProperties": false,
+            "description": "Throttling",
+            "properties": {
+              "failedBeforeDelay": {
+                "type": "number"
+              },
+              "lockout": {
+                "type": "number"
+              },
+              "resendDelay": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "EmailPasswordProvider parameters",
+        "properties": {
+          "allowedEmailDomains": {
+            "description": "Only these email domains may use this provider (see ProviderEmailPolicy)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "mailer": {
+            "default": "Mailer",
+            "description": "Mailer service name",
+            "type": "string"
+          },
+          "password": {
+            "$ref": "#/definitions/password",
+            "description": "Password rules"
+          },
+          "redirects": {
+            "$ref": "#/definitions/redirects",
+            "description": "Browser redirects for emailed links"
+          },
+          "throttle": {
+            "$ref": "#/definitions/throttle",
+            "description": "Throttling"
+          },
+          "trustEmailVerification": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "description": "Whether the verification of the email is believed (see ProviderEmailPolicy)"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "default": "/auth/email",
+            "description": "Base url for emailed links",
+            "type": "string"
+          },
+          "verification": {
+            "default": "before",
+            "description": "Verification mode",
+            "enum": [
+              "before",
+              "after",
+              "none"
+            ],
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "password",
+          "redirects",
+          "throttle",
+          "type"
+        ],
+        "type": "object",
+        "title": "EmailPasswordProvider"
+      },
+      "Configuration": "lib/email/emailpassword.service:EmailPasswordParameters"
     }
   },
   "models": {},
@@ -265,6 +392,101 @@
     "Authentication.unlink.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "not": {}
+    },
+    "EmailPasswordProvider.login.input": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "email",
+        "password"
+      ]
+    },
+    "EmailPasswordProvider.login.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "accessToken": {
+              "type": "string"
+            },
+            "expiresIn": {
+              "type": "number"
+            },
+            "refreshToken": {
+              "type": "string"
+            },
+            "status": {
+              "const": "ok",
+              "type": "string"
+            },
+            "user": {}
+          },
+          "required": [
+            "accessToken",
+            "expiresIn",
+            "refreshToken",
+            "status",
+            "user"
+          ],
+          "type": "object"
+        },
+        {
+          "$ref": "#/definitions/%232"
+        }
+      ],
+      "description": "Result of an authentication completion",
+      "definitions": {
+        "#2": {
+          "additionalProperties": false,
+          "properties": {
+            "methods": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "status": {
+              "const": "mfa_required",
+              "type": "string"
+            }
+          },
+          "required": [
+            "methods",
+            "status"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "EmailPasswordProvider.register.input": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "profile": {}
+      },
+      "required": [
+        "email",
+        "password"
+      ]
+    },
+    "EmailPasswordProvider.register.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
     }
   },
   "behaviors": {}

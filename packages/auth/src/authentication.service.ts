@@ -293,15 +293,28 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   /**
    * Complete a login for an identity proven by a provider
    * @param identity - resolved identity
+   * @param options - complete options
+   * @param options.newUser - identity.user was just created by the provider: its first ident is not a "link"
    * @returns the result
    * @throws IdentLinkedElsewhere when the ident belongs to another user than the logged one
    * @throws AccountExists when the email matches an account the linking policy does not allow
    * @throws RegistrationDisabled when a new user is needed but registration is off
    */
-  async complete(identity: ResolvedIdentity): Promise<AuthResult> {
-    identity = applyEmailPolicy(identity, this.emailPolicyFor(identity.provider));
+  async complete(identity: ResolvedIdentity, options: { newUser?: boolean } = {}): Promise<AuthResult> {
+    identity = this.applyPolicy(identity);
     const ctx = useContext<any>();
-    return runAsSystem(() => this.completeAs(identity, ctx, false));
+    return runAsSystem(() => this.completeAs(identity, ctx, false, !!options.newUser));
+  }
+
+  /**
+   * Apply the email policy of the identity provider (complete() does it too, idempotently)
+   * Lets a provider refuse an identity before creating anything
+   * @param identity - resolved identity
+   * @returns the identity to use
+   * @throws EmailDomainNotAllowed when the policy refuses it
+   */
+  applyPolicy(identity: ResolvedIdentity): ResolvedIdentity {
+    return applyEmailPolicy(identity, this.emailPolicyFor(identity.provider));
   }
 
   /**
@@ -309,9 +322,15 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
    * @param identity - resolved identity
    * @param ctx - request context
    * @param retried - already retried after a concurrent creation
+   * @param newUser - identity.user was just created by the provider: its first ident is not a "link"
    * @returns the result
    */
-  protected async completeAs(identity: ResolvedIdentity, ctx: any, retried: boolean): Promise<AuthResult> {
+  protected async completeAs(
+    identity: ResolvedIdentity,
+    ctx: any,
+    retried: boolean,
+    newUser: boolean = false
+  ): Promise<AuthResult> {
     const currentUserId: string | undefined = ctx.getSession()?.isLogged() ? ctx.getCurrentUserId() : undefined;
     let ident = await this.findIdent(identity.provider, identity.providerUid);
     if (ident?.getUser()) {
@@ -326,7 +345,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     let userId: string | undefined = currentUserId ?? user?.getUUID();
     const email = identity.email ? Ident.normalizeEmail(identity.email) : undefined;
     const emailIdent = email ? await this.findIdent("email", email) : undefined;
-    let linked = !!userId;
+    let linked = !!userId && !(newUser && !currentUserId);
     let registered: User | undefined;
     const policy = this.parameters.linking;
     // never/verified: only a verified email ident is an owner, an unverified one is treated as absent
@@ -345,7 +364,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
       }
       // Narrow the window of a phantom Register event when a concurrent login just created the ident
       if (!adopting && (await this.findIdent(identity.provider, identity.providerUid))) {
-        return this.completeAs(identity, ctx, retried);
+        return this.completeAs(identity, ctx, retried, newUser);
       }
       user = registered = await this.registerUser(identity, {}, ctx);
       userId = user.getUUID();
@@ -368,7 +387,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
         if (!retried && /Already exists/.test(`${err?.message}`)) {
           // Lost a concurrent first login: drop the user created for nothing, the retry finds the winner's ident
           await registered?.delete();
-          return this.completeAs(identity, ctx, true);
+          return this.completeAs(identity, ctx, true, newUser);
         }
         throw err;
       }

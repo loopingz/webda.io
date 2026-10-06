@@ -1,0 +1,227 @@
+import { suite, test } from "@webda/test";
+import * as assert from "assert";
+import { Ident } from "@webda/core";
+import { EmailTest } from "../test/emailtest.js";
+import { AccountExists, InvalidCredentials, PasswordPolicyError, Throttled } from "../errors.js";
+
+const code = (cls: { name: string }) =>
+  cls.name === "PasswordPolicyError" ? "PASSWORD_POLICY" : cls.name.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase();
+const rejectsWith = (fn: () => Promise<unknown>, cls: { name: string }) =>
+  assert.rejects(fn, (err: any) => err.code === code(cls));
+
+@suite
+class EmailLoginTest extends EmailTest {
+  @test
+  async registerAfterThenLogin() {
+    const ctx = await this.ctx();
+    const res: any = await this.op(
+      "Auth.Email.Register",
+      { email: " New_User@X.com ", password: "longenough", profile: { displayName: "N" } },
+      ctx
+    );
+    assert.strictEqual(res.status, "ok");
+    assert.ok(ctx.getSession().isLogged());
+    assert.strictEqual(this.mailer.sent.length, 1);
+    assert.strictEqual(this.mailer.sent[0].template, "EMAIL_REGISTER");
+    assert.strictEqual(this.mailer.sent[0].to, "new_user@x.com");
+    const ident = await Ident.ref(Ident.key("new_user@x.com", "email")).get();
+    assert.ok(!ident.isVerified());
+    assert.strictEqual(res.user.displayName, "N");
+    assert.strictEqual(JSON.stringify(res).includes("__hash"), false);
+    assert.strictEqual(JSON.stringify(res).includes("password"), false);
+    const again: any = await this.op("Auth.Email.Login", { email: "NEW_USER@x.com", password: "longenough" });
+    assert.strictEqual(again.status, "ok");
+    assert.strictEqual(JSON.stringify(again).includes("__hash"), false);
+    assert.strictEqual(JSON.stringify(again).includes("password"), false);
+  }
+
+  @test
+  async registerBeforeRequiresToken() {
+    this.email.getParameters().verification = "before";
+    const first: any = await this.op("Auth.Email.Register", { email: "b@x.com", password: "longenough" });
+    assert.deepStrictEqual(first, { status: "verification_sent" });
+    assert.ok(!(await Ident.ref(Ident.key("b@x.com", "email")).exists()));
+    const token = this.tokenOf(this.lastMailUrl());
+    const res: any = await this.op("Auth.Email.Register", { email: "b@x.com", password: "longenough", token });
+    assert.strictEqual(res.status, "ok");
+    assert.ok((await Ident.ref(Ident.key("b@x.com", "email")).get()).isVerified());
+  }
+
+  @test
+  async registerBeforeTokenForOtherEmail() {
+    this.email.getParameters().verification = "before";
+    await this.op("Auth.Email.Register", { email: "a@x.com", password: "longenough" });
+    const token = this.tokenOf(this.lastMailUrl());
+    await assert.rejects(
+      () => this.op("Auth.Email.Register", { email: "other@x.com", password: "longenough", token }),
+      (err: any) => err.code === "TOKEN_INVALID"
+    );
+  }
+
+  @test
+  async registerNone() {
+    this.email.getParameters().verification = "none";
+    await this.op("Auth.Email.Register", { email: "n@x.com", password: "longenough" });
+    assert.strictEqual(this.mailer.sent.length, 0);
+    assert.ok(!(await Ident.ref(Ident.key("n@x.com", "email")).get()).isVerified());
+  }
+
+  @test
+  async registerConflictsAndPolicy() {
+    await rejectsWith(
+      () => this.op("Auth.Email.Register", { email: "p@x.com", password: "short" }),
+      PasswordPolicyError
+    );
+    assert.ok(!(await Ident.ref(Ident.key("p@x.com", "email")).exists()));
+    this.email.getParameters().verification = "before";
+    await this.op("Auth.Email.Register", { email: "v@x.com", password: "longenough" });
+    const t = this.tokenOf(this.lastMailUrl());
+    await this.op("Auth.Email.Register", { email: "v@x.com", password: "longenough", token: t });
+    await rejectsWith(
+      () => this.op("Auth.Email.Register", { email: "v@x.com", password: "longenough" }),
+      AccountExists
+    );
+  }
+
+  @test
+  async unverifiedOwnedEmailCannotBeTakenOver() {
+    await this.op("Auth.Email.Register", { email: "u@x.com", password: "longenough" });
+    // Same email, other password: must not log into the first account
+    await rejectsWith(
+      () => this.op("Auth.Email.Register", { email: "u@x.com", password: "otherpassword" }),
+      AccountExists
+    );
+    await rejectsWith(
+      () => this.op("Auth.Email.Login", { email: "u@x.com", password: "otherpassword" }),
+      InvalidCredentials
+    );
+  }
+
+  @test
+  async adoptsUnownedIdent() {
+    const orphan = new Ident({ ...Ident.key("o@x.com", "email"), email: "o@x.com" } as any);
+    await Ident.getRepository().create(orphan);
+    const res: any = await this.op("Auth.Email.Register", { email: "o@x.com", password: "longenough" });
+    assert.strictEqual(res.status, "ok");
+    const ident = await Ident.ref(Ident.key("o@x.com", "email")).get();
+    assert.strictEqual(ident.getUser().toString(), res.user.uuid);
+  }
+
+  @test
+  async profileIsSanitized() {
+    const res: any = await this.op("Auth.Email.Register", {
+      email: "s@x.com",
+      password: "longenough",
+      profile: {
+        displayName: "S",
+        uuid: "forced",
+        email: "evil@x.com",
+        password: { __hash: "x" },
+        __hash: "y",
+        _foo: 1
+      }
+    });
+    assert.strictEqual(res.status, "ok");
+    assert.notStrictEqual(res.user.uuid, "forced");
+    assert.strictEqual(res.user.displayName, "S");
+    const user: any = await this.auth.getUserModel().ref(res.user.uuid).get();
+    assert.strictEqual(user.email, "s@x.com");
+    assert.ok(await user.password.verify("longenough"));
+    assert.strictEqual(user._foo, undefined);
+  }
+
+  @test
+  async registerEventsNotLinked() {
+    const events: string[] = [];
+    this.auth.on("Authentication.Register", () => events.push("Register"));
+    this.auth.on("Authentication.Linked", () => events.push("Linked"));
+    this.auth.on("Authentication.Login", () => events.push("Login"));
+    await this.op("Auth.Email.Register", { email: "e@x.com", password: "longenough" });
+    assert.deepStrictEqual(events, ["Register", "Login"]);
+  }
+
+  @test
+  async sameErrorForUnknownAndWrong() {
+    await this.op("Auth.Email.Register", { email: "w@x.com", password: "longenough" });
+    const unknown = await this.op("Auth.Email.Login", { email: "nobody@x.com", password: "longenough" }).catch(e => e);
+    const wrong = await this.op("Auth.Email.Login", { email: "w@x.com", password: "badbadbad" }).catch(e => e);
+    assert.strictEqual(unknown.code, code(InvalidCredentials));
+    assert.strictEqual(wrong.code, code(InvalidCredentials));
+    assert.strictEqual(unknown.message, wrong.message);
+  }
+
+  @test
+  async lockout() {
+    await this.op("Auth.Email.Register", { email: "l@x.com", password: "longenough" });
+    for (let i = 0; i < 3; i++) {
+      await rejectsWith(
+        () => this.op("Auth.Email.Login", { email: "l@x.com", password: "badbadbad" }),
+        InvalidCredentials
+      );
+    }
+    // correct password while locked is still refused
+    await rejectsWith(() => this.op("Auth.Email.Login", { email: "l@x.com", password: "longenough" }), Throttled);
+    // lockout expiry
+    const ref = Ident.ref(Ident.key("l@x.com", "email"));
+    const ident = await ref.get();
+    await ref.patch({ _throttle: { ...ident._throttle, lastAttemptAt: Date.now() - 900001 } } as any);
+    const ok: any = await this.op("Auth.Email.Login", { email: "l@x.com", password: "longenough" });
+    assert.strictEqual(ok.status, "ok");
+    assert.strictEqual((await ref.get())._throttle.attempts, 0);
+  }
+
+  @test
+  async successResetsFailures() {
+    await this.op("Auth.Email.Register", { email: "r@x.com", password: "longenough" });
+    await rejectsWith(
+      () => this.op("Auth.Email.Login", { email: "r@x.com", password: "badbadbad" }),
+      InvalidCredentials
+    );
+    const ref = Ident.ref(Ident.key("r@x.com", "email"));
+    assert.strictEqual((await ref.get())._throttle.attempts, 1);
+    await this.op("Auth.Email.Login", { email: "r@x.com", password: "longenough" });
+    assert.strictEqual((await ref.get())._throttle.attempts, 0);
+  }
+
+  @test
+  async customPolicyFromConfig() {
+    this.email.getParameters().password.policy = "^magic$";
+    this.email.resolve();
+    await this.op("Auth.Email.Register", { email: "m@x.com", password: "magic" });
+  }
+
+  @test
+  async allowListRefusesAndCreatesNothing() {
+    this.email.getParameters().allowedEmailDomains = ["company.com"];
+    try {
+      const before = (await this.auth.getUserModel().query("")).results.length;
+      // after: unverified, so refused even for an allowed domain
+      await rejectsWith(() => this.op("Auth.Email.Register", { email: "x@other.com", password: "longenough" }), {
+        name: "EmailDomainNotAllowed"
+      });
+      await rejectsWith(() => this.op("Auth.Email.Register", { email: "x@company.com", password: "longenough" }), {
+        name: "EmailDomainNotAllowed"
+      });
+      assert.ok(!(await Ident.ref(Ident.key("x@other.com", "email")).exists()));
+      assert.strictEqual((await this.auth.getUserModel().query("")).results.length, before);
+      assert.strictEqual(this.mailer.sent.length, 0);
+      // before: a verified allowed domain works
+      this.email.getParameters().verification = "before";
+      await rejectsWith(() => this.op("Auth.Email.Register", { email: "x@other.com", password: "longenough" }), {
+        name: "EmailDomainNotAllowed"
+      });
+      assert.strictEqual(this.mailer.sent.length, 0);
+      await this.op("Auth.Email.Register", { email: "y@company.com", password: "longenough" });
+      const token = this.tokenOf(this.lastMailUrl());
+      const res: any = await this.op("Auth.Email.Register", { email: "y@company.com", password: "longenough", token });
+      assert.strictEqual(res.status, "ok");
+    } finally {
+      this.email.getParameters().allowedEmailDomains = undefined;
+    }
+  }
+
+  @test
+  async listedAsProvider() {
+    assert.deepStrictEqual(await this.op("Auth.Providers"), [{ name: "email", type: "password" }]);
+  }
+}

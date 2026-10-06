@@ -1,0 +1,332 @@
+import {
+  type AuthResult,
+  Ident,
+  type Mailer,
+  Operation,
+  Password,
+  type ProviderInfo,
+  registerPasswordPolicy,
+  runAsSystem,
+  Service,
+  ServiceParameters,
+  useContext,
+  useDynamicService,
+  type User,
+  WebdaError
+} from "@webda/core";
+import type { AuthProvider } from "../provider.js";
+import { useAuthentication } from "../provider.js";
+import { AccountExists, InvalidCredentials, Throttled, TokenInvalid } from "../errors.js";
+import { isLocked, recordFailure, resetFailures } from "../throttle.js";
+import { signEmailToken, verifyEmailToken } from "./tokens.js";
+
+/** When the email is verified relative to account creation */
+export type VerificationMode = "before" | "after" | "none";
+
+/** EmailPasswordProvider parameters */
+export class EmailPasswordParameters extends ServiceParameters {
+  /**
+   * Mailer service name
+   * @default "Mailer"
+   */
+  mailer: string;
+  /**
+   * Verification mode
+   * @default "before"
+   */
+  verification: VerificationMode;
+  /** Password rules */
+  password: { policy?: string; verifier?: string };
+  /** Throttling */
+  throttle: { resendDelay?: number; failedBeforeDelay?: number; lockout?: number };
+  /** Browser redirects for emailed links */
+  redirects: { verified?: string; failure?: string; register?: string };
+  /**
+   * Base url for emailed links
+   * @default "/auth/email"
+   */
+  url: string;
+  /** Only these email domains may use this provider (see ProviderEmailPolicy) */
+  allowedEmailDomains?: string[];
+  /** Whether the verification of the email is believed (see ProviderEmailPolicy) */
+  trustEmailVerification?: boolean | string[];
+
+  /**
+   * @param params - raw parameters
+   * @returns this
+   */
+  load(params: any = {}): this {
+    super.load(params);
+    this.mailer ??= "Mailer";
+    this.verification ??= "before";
+    this.password = { policy: ".{8,}", ...(this.password ?? {}) };
+    this.throttle = { resendDelay: 14400000, failedBeforeDelay: 3, lockout: 900000, ...(this.throttle ?? {}) };
+    this.redirects ??= {};
+    this.url ??= "/auth/email";
+    return this;
+  }
+}
+
+// bcrypt cost-10 hash of a throwaway string: compared against for unknown emails so timing matches
+const DUMMY_HASH = "$2b$10$Loq148myoR.Yp2D2x5zkj.Z0FQq2afzaddIc2PGWzzdJCOEL.FZ4W";
+
+/** Profile keys that must never be copied from client input into the user */
+const FORBIDDEN_PROFILE_KEYS = ["password", "email", "uuid", "mfa", "roles"];
+
+/**
+ * @param profile - client supplied profile
+ * @returns the profile without credentials, identifiers, internal (`__*`) and behavior attributes
+ */
+function sanitizeProfile(profile: any): any {
+  const safe: any = {};
+  if (!profile || typeof profile !== "object" || Array.isArray(profile)) return safe;
+  for (const [key, value] of Object.entries(profile)) {
+    if (key.startsWith("__") || key.startsWith("_") || FORBIDDEN_PROFILE_KEYS.includes(key)) continue;
+    // Behavior attributes are objects hydrated by the framework
+    if (value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof Date)) continue;
+    safe[key] = value;
+  }
+  return safe;
+}
+
+/**
+ * Email + password login method
+ *
+ * The password policy is process-wide: resolve() registers the one of this provider and stop() restores the
+ * default. With several instances the last one resolved wins.
+ *
+ * Under `allowedEmailDomains` an email must be verified: with `verification` "after" or "none" a new registration is
+ * unverified and therefore refused (EMAIL_DOMAIN_NOT_ALLOWED); use "before".
+ * @WebdaModda EmailPasswordProvider
+ */
+export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPasswordParameters>
+  extends Service<T>
+  implements AuthProvider
+{
+  static Parameters = EmailPasswordParameters;
+
+  readonly providerName = "email";
+
+  /** @override */
+  resolve(): this {
+    super.resolve();
+    const verifierName = this.parameters.password.verifier;
+    const regexp = new RegExp(this.parameters.password.policy);
+    registerPasswordPolicy(
+      verifierName
+        ? { validate: (p, u) => useDynamicService<any>(verifierName).validate(p, u) }
+        : { validate: async p => regexp.test(p) }
+    );
+    return this;
+  }
+
+  /** @override */
+  async init(): Promise<this> {
+    await super.init();
+    if (this.parameters.verification !== "none" && !useDynamicService(this.parameters.mailer)) {
+      throw new Error(`EmailPasswordProvider requires a Mailer service '${this.parameters.mailer}'`);
+    }
+    return this;
+  }
+
+  /** @override */
+  async stop(): Promise<void> {
+    registerPasswordPolicy(undefined);
+    await super.stop();
+  }
+
+  /**
+   * @returns public info
+   */
+  getPublicInfo(): ProviderInfo {
+    return { name: "email", type: "password" };
+  }
+
+  /**
+   * @param email - normalised email
+   * @returns the email ident
+   */
+  protected async getIdent(email: string): Promise<Ident | undefined> {
+    return runAsSystem(() => (useAuthentication() as any).findIdent("email", email));
+  }
+
+  /**
+   * Absolute link for an emailed token
+   * @param path - path under the provider url
+   * @param token - token
+   * @returns url
+   */
+  buildLink(path: string, token: string): string {
+    const ctx = useContext<any>();
+    const relative = `${this.parameters.url}${path}?token=${encodeURIComponent(token)}`;
+    return ctx?.getHttpContext ? ctx.getHttpContext().getAbsoluteUrl(relative) : relative;
+  }
+
+  /**
+   * @param template - mail template
+   * @param to - recipient
+   * @param url - link
+   * @param token - token
+   */
+  protected async sendMail(
+    template: "EMAIL_REGISTER" | "EMAIL_RECOVERY",
+    to: string,
+    url: string,
+    token: string
+  ): Promise<void> {
+    const ctx = useContext<any>();
+    await useDynamicService<Mailer>(this.parameters.mailer).send({
+      to,
+      locale: ctx?.getLocale?.(),
+      template,
+      replacements: { url, token, to }
+    } as any);
+  }
+
+  /**
+   * Login with email and password
+   * @param email - email
+   * @param password - password
+   * @returns the auth result
+   */
+  // Schemas are compiled per class: name them explicitly so any service instance name works
+  @Operation({
+    id: "Auth.Email.Login",
+    input: "EmailPasswordProvider.login.input",
+    output: "EmailPasswordProvider.login.output",
+    rest: { method: "post", path: "auth/email/login" }
+  })
+  async login(email: string, password: string): Promise<AuthResult> {
+    const normalized = Ident.normalizeEmail(email);
+    const ctx = useContext<any>();
+    const auth = useAuthentication();
+    const ident = await this.getIdent(normalized);
+    const userId = ident?.getUser()?.toString();
+    const user: User | undefined = userId
+      ? await runAsSystem(() => auth.getUserModel().ref(userId).get()).catch(() => undefined)
+      : undefined;
+    const { failedBeforeDelay, lockout } = this.parameters.throttle;
+    if (ident && isLocked(ident._throttle, failedBeforeDelay, lockout)) {
+      throw new Throttled();
+    }
+    let ok: boolean;
+    if (user && (user as any).password) {
+      ok = await (user as any).password.verify(password);
+    } else {
+      // Same cost as a real check so timing does not reveal unknown emails
+      const dummy = new Password();
+      dummy.setHash(DUMMY_HASH);
+      await dummy.verify(`${password}`);
+      ok = false;
+    }
+    if (!ok) {
+      if (ident) {
+        await runAsSystem(() => ident.ref().patch({ _throttle: recordFailure(ident._throttle) } as any));
+      }
+      await auth.emit("Authentication.LoginFailed", { context: ctx, user } as any);
+      throw new InvalidCredentials();
+    }
+    if (ident._throttle?.attempts) {
+      await runAsSystem(() => ident.ref().patch({ _throttle: resetFailures(ident._throttle) } as any));
+    }
+    return auth.complete({
+      provider: "email",
+      providerUid: normalized,
+      email: normalized,
+      emailVerified: ident.isVerified(),
+      amr: ["pwd"],
+      user
+    });
+  }
+
+  /**
+   * Register with email and password
+   * @param email - email
+   * @param password - password
+   * @param token - register token from the emailed link (verification "before")
+   * @param profile - extra user fields
+   * @returns the auth result, or verification_sent
+   */
+  // Schemas are compiled per class: name them explicitly so any service instance name works
+  @Operation({
+    id: "Auth.Email.Register",
+    input: "EmailPasswordProvider.register.input",
+    output: "EmailPasswordProvider.register.output",
+    rest: { method: "post", path: "auth/email/register" }
+  })
+  async register(email: string, password: string, token?: string, profile?: any): Promise<any> {
+    const ctx = useContext<any>();
+    if (ctx.getSession()?.isLogged()) {
+      throw new WebdaError.Gone("Already logged in");
+    }
+    const normalized = Ident.normalizeEmail(email);
+    const mode = this.parameters.verification;
+    const auth = useAuthentication();
+    const existing = await this.getIdent(normalized);
+    // Any owned email ident refuses: logging in as its owner here would skip the password check
+    if (existing?.getUser()) {
+      throw new AccountExists();
+    }
+    let verified = false;
+    if (mode === "before") {
+      if (!token) {
+        // Refuse early what the policy would refuse later
+        auth.applyPolicy({
+          provider: "email",
+          providerUid: normalized,
+          email: normalized,
+          emailVerified: true,
+          amr: ["pwd"]
+        });
+        const t = await signEmailToken("register", { email: normalized });
+        await this.sendMail("EMAIL_REGISTER", normalized, this.buildLink("/verify", t), t);
+        return { status: "verification_sent" };
+      }
+      const claims = await verifyEmailToken(token, "register");
+      if (claims.email !== normalized) {
+        throw new TokenInvalid();
+      }
+      verified = true;
+    }
+    const base = {
+      provider: "email",
+      providerUid: normalized,
+      email: normalized,
+      emailVerified: verified,
+      amr: ["pwd"]
+    };
+    // Nothing is created when the email policy refuses
+    auth.applyPolicy(base);
+    const safeProfile = sanitizeProfile(profile);
+    const user: User = await runAsSystem(() =>
+      auth.getUserModel().create({ ...safeProfile, email: normalized } as any, false)
+    );
+    await (user as any).password.set(password);
+    const identity = { ...base, user };
+    await auth.emit("Authentication.PasswordCreate", {
+      context: ctx,
+      user,
+      password: (user as any).password.__hash
+    } as any);
+    await auth.emit("Authentication.Register", {
+      context: ctx,
+      user,
+      data: safeProfile,
+      identId: `${normalized}:email`,
+      identity
+    } as any);
+    await runAsSystem(() => user.save());
+    let result: AuthResult;
+    try {
+      result = await auth.complete(identity, { newUser: true });
+    } catch (err) {
+      await runAsSystem(() => user.delete());
+      throw err;
+    }
+    if (mode === "after") {
+      const t = await signEmailToken("verify", { email: normalized, sub: user.getUUID() });
+      await this.sendMail("EMAIL_REGISTER", normalized, this.buildLink("/verify", t), t);
+    }
+    return result;
+  }
+}

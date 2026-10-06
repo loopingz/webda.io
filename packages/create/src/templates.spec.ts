@@ -52,6 +52,8 @@ class TemplatesTest {
     ]) {
       assert.ok(files.has(path), `missing ${path}`);
     }
+    assert.ok(files.get("README.md").startsWith("# demo-app\n"), "README.md title");
+    assert.ok(files.get("AGENTS.md").startsWith("# demo-app\n"), "AGENTS.md title");
     assert.deepStrictEqual(JSON.parse(files.get("package.json")).scripts, {
       build: "webdac build",
       debug: "webda debug",
@@ -70,7 +72,7 @@ class TemplatesTest {
           assert.doesNotMatch(path, /(^|\/)_gitignore$/, `${store}/${transports}: ${path}`);
           assert.doesNotMatch(
             content,
-            /__APP_NAME__|__NAMESPACE__|workspace:|"managed"/,
+            /__APP_NAME__|__NAMESPACE__|workspace:|"managed"|\*\*(APP_NAME|NAMESPACE)\*\*/,
             `${store}/${transports}: ${path}`
           );
         }

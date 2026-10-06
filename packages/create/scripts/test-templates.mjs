@@ -1,7 +1,7 @@
 // Generates apps from the templates, linked to this monorepo, then builds and tests each one.
 // Usage: node scripts/test-templates.mjs [app-name...]
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,6 +27,15 @@ function run(cmd, args, cwd, env = {}) {
 }
 
 const selected = process.argv.slice(2);
+const unknown = selected.filter(name => !APPS.some(app => app.name === name));
+if (unknown.length) {
+  console.error(`Unknown app(s): ${unknown.join(", ")}. Known: ${APPS.map(app => app.name).join(", ")}`);
+  process.exit(1);
+}
+if (!existsSync(join(packageDir, "lib/bin.js"))) {
+  console.error("Run pnpm run build in packages/create first");
+  process.exit(1);
+}
 const apps = selected.length ? APPS.filter(app => selected.includes(app.name)) : APPS;
 const root = mkdtempSync(join(tmpdir(), "webda-templates-"));
 const failures = [];

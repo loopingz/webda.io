@@ -1,4 +1,4 @@
-# **APP_NAME**
+# __APP_NAME__
 
 A [Webda](https://webda.io) v4 application.
 

@@ -1,4 +1,4 @@
-# **APP_NAME**
+# __APP_NAME__
 
 A [Webda](https://webda.io) v4 application. Webda is a model-driven Node.js framework: you write models and services, and it exposes them through the configured transports (REST, GraphQL, gRPC, MCP) with validation and permissions.
 

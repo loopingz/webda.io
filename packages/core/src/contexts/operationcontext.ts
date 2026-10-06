@@ -8,7 +8,7 @@ import { JSONUtils } from "@webda/utils";
 import { useLog } from "../loggers/hooks.js";
 import { runAsSystem } from "./execution.js";
 import { IUser } from "../models/types.js";
-import { useModelRepository } from "../core/hooks.js";
+import { useUserResolver } from "../core/hooks.js";
 
 /**
  * OperationInput
@@ -335,7 +335,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
     // Caching the answer
     if (!this.user || refresh) {
       await runAsSystem(async () => {
-        this.user = <IUser>(<unknown>await useModelRepository("User").fromUID(this.getCurrentUserId()).get());
+        this.user = await useUserResolver().resolve(this.getCurrentUserId());
       });
     }
     return <K>this.user;

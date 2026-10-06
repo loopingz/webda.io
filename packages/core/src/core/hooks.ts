@@ -10,6 +10,7 @@ import type { ModelMetadata } from "@webda/compiler";
 import { useModel } from "../application/hooks.js";
 import type { Core } from "./core.js";
 import type { SessionManager } from "../session/manager.model.js";
+import type { IUser } from "../models/types.js";
 const { machineIdSync } = pkg;
 
 /**
@@ -111,4 +112,41 @@ export function getMachineId() {
     // Useful in k8s pod
     return process.env["HOSTNAME"];
   }
+}
+
+/**
+ * Resolves a user id into a user instance
+ */
+export interface UserResolver {
+  /**
+   * @param userId - user id
+   * @returns the user or undefined
+   */
+  resolve(userId: string): Promise<IUser | undefined>;
+}
+
+const defaultUserResolver: UserResolver = {
+  resolve: async (userId: string) => {
+    try {
+      return <IUser>(<unknown>await useModelRepository("User").fromUID(userId).get());
+    } catch {
+      return undefined;
+    }
+  }
+};
+let userResolver: UserResolver = defaultUserResolver;
+
+/**
+ * Replace the user resolver (undefined restores the default "User" model lookup)
+ * @param resolver - resolver
+ */
+export function registerUserResolver(resolver: UserResolver | undefined): void {
+  userResolver = resolver ?? defaultUserResolver;
+}
+
+/**
+ * @returns the active user resolver
+ */
+export function useUserResolver(): UserResolver {
+  return userResolver;
 }

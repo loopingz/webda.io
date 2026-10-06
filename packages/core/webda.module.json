@@ -82,6 +82,7 @@
                 "enum": [
                   "Registry",
                   "CryptoService",
+                  "TokenService",
                   "SessionManager"
                 ],
                 "type": "string"
@@ -112,6 +113,7 @@
                 "enum": [
                   "Registry",
                   "CryptoService",
+                  "TokenService",
                   "SessionManager"
                 ],
                 "type": "string"
@@ -1413,6 +1415,7 @@
               "enum": [
                 "Registry",
                 "CryptoService",
+                "TokenService",
                 "SessionManager"
               ],
               "type": "string"
@@ -1695,6 +1698,40 @@
           ]
         }
       }
+    },
+    "Webda/TokenService": {
+      "Import": "lib/services/token.service:TokenService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "TokenService parameters",
+        "properties": {
+          "accessTtl": {
+            "default": 900,
+            "description": "Access token lifetime in seconds",
+            "type": "number"
+          },
+          "refreshTtl": {
+            "default": 2592000,
+            "description": "Refresh token lifetime in seconds",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "TokenService"
+      },
+      "Configuration": "lib/services/token.service:TokenServiceParameters"
     }
   },
   "models": {
@@ -2601,6 +2638,234 @@
         "uuid"
       ],
       "Identifier": "Webda/OwnerModel"
+    },
+    "Webda/RefreshToken": {
+      "Plural": "RefreshTokens",
+      "Import": "lib/models/refreshtoken.model:RefreshToken",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "hash": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "identId": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "amr": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "family": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "number"
+        },
+        "rotatedAt": {
+          "type": "number"
+        },
+        "revokedAt": {
+          "type": "number"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Stored refresh token (only its SHA-256 hash)",
+          "properties": {
+            "amr": {
+              "description": "Authentication methods",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "expiresAt": {
+              "description": "Expiry, ms since epoch",
+              "type": "number"
+            },
+            "family": {
+              "description": "Rotation family",
+              "type": "string"
+            },
+            "hash": {
+              "description": "SHA-256 hex of the token",
+              "type": "string"
+            },
+            "identId": {
+              "description": "Ident used to log in",
+              "type": "string"
+            },
+            "provider": {
+              "description": "Provider used",
+              "type": "string"
+            },
+            "revokedAt": {
+              "description": "Set when revoked",
+              "type": "number"
+            },
+            "rotatedAt": {
+              "description": "Set once exchanged",
+              "type": "number"
+            },
+            "userId": {
+              "description": "Owner",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expiresAt",
+            "family",
+            "hash",
+            "identId",
+            "userId"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Stored refresh token (only its SHA-256 hash)",
+          "properties": {
+            "amr": {
+              "description": "Authentication methods",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "expiresAt": {
+              "description": "Expiry, ms since epoch",
+              "type": "number"
+            },
+            "family": {
+              "description": "Rotation family",
+              "type": "string"
+            },
+            "hash": {
+              "description": "SHA-256 hex of the token",
+              "type": "string"
+            },
+            "identId": {
+              "description": "Ident used to log in",
+              "type": "string"
+            },
+            "provider": {
+              "description": "Provider used",
+              "type": "string"
+            },
+            "revokedAt": {
+              "description": "Set when revoked",
+              "type": "number"
+            },
+            "rotatedAt": {
+              "description": "Set once exchanged",
+              "type": "number"
+            },
+            "userId": {
+              "description": "Owner",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expiresAt",
+            "family",
+            "hash",
+            "identId",
+            "userId"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Stored refresh token (only its SHA-256 hash)",
+          "properties": {
+            "amr": {
+              "description": "Authentication methods",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "expiresAt": {
+              "description": "Expiry, ms since epoch",
+              "type": "number"
+            },
+            "family": {
+              "description": "Rotation family",
+              "type": "string"
+            },
+            "hash": {
+              "description": "SHA-256 hex of the token",
+              "type": "string"
+            },
+            "identId": {
+              "description": "Ident used to log in",
+              "type": "string"
+            },
+            "provider": {
+              "description": "Provider used",
+              "type": "string"
+            },
+            "revokedAt": {
+              "description": "Set when revoked",
+              "type": "number"
+            },
+            "rotatedAt": {
+              "description": "Set once exchanged",
+              "type": "number"
+            },
+            "userId": {
+              "description": "Owner",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expiresAt",
+            "family",
+            "hash",
+            "identId",
+            "userId"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
+        "hash"
+      ],
+      "Identifier": "Webda/RefreshToken"
     },
     "Webda/RegistryEntry": {
       "Plural": "RegistryEntries",

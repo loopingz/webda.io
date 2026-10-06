@@ -62,6 +62,20 @@ export class MemoryRepository<
     return this.deserialize(item) as Helpers<InstanceType<T>>;
   }
 
+  /**
+   * Synchronous read used by conditional writes to keep check-and-set atomic
+   * @param primaryKey - key of the item
+   * @returns the deserialized item
+   */
+  protected getSync(
+    primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string
+  ): InstanceType<T> {
+    const key = this.getPrimaryKey(primaryKey).toString();
+    const item = this.storage.get(key);
+    if (!item) throw new Error(`Not found: ${key}`);
+    return this.deserialize(item) as InstanceType<T>;
+  }
+
   /** @override */
   async create(data: Helpers<InstanceType<T>>, save: boolean = true): Promise<InstanceType<T>> {
     const item = this.buildItem(data);
@@ -83,7 +97,7 @@ export class MemoryRepository<
     conditionField?: K | null,
     condition?: any
   ): Promise<void> {
-    const item = (await this.get(this.getPrimaryKey(data))) as InstanceType<T>;
+    const item = this.getSync(this.getPrimaryKey(data));
     this.checkCondition(item, conditionField, condition);
     this.storage.set(this.getPrimaryKey(data).toString(), this.serialize(new this.model(data) as InstanceType<T>));
   }
@@ -113,7 +127,8 @@ export class MemoryRepository<
     conditionField?: K | null,
     condition?: any
   ): Promise<void> {
-    const item = (await this.get(primaryKey)) as InstanceType<T>;
+    // Read, check and write without yielding so the condition acts as an atomic compare-and-set
+    const item = this.getSync(primaryKey);
     this.checkCondition(item, conditionField, condition);
     item.load(data);
     this.storage.set(item.getPrimaryKey().toString(), this.serialize(item));

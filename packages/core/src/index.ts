@@ -60,6 +60,8 @@ export * from "./services/authentication.service.js";
 export * from "./services/prometheus.service.js";
 export * from "./services/resource.service.js";
 export * from "./services/cryptoservice.service.js";
+export * from "./services/token.service.js";
+export * from "./models/refreshtoken.model.js";
 export * from "./services/serviceparameters.js";
 export * from "./services/cron.service.js";
 export * from "./services/command.js";

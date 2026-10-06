@@ -5,6 +5,7 @@ import type { Model, ModelClass, Repository } from "@webda/models";
 import type { CustomConstructor } from "@webda/tsc-esm";
 import type { Service } from "../services/service.js";
 import type CryptoService from "../services/cryptoservice.service.js";
+import type { TokenService } from "../services/token.service.js";
 import type { Store } from "../stores/store.js";
 import type { ModelMetadata } from "@webda/compiler";
 import { useModel } from "../application/hooks.js";
@@ -35,6 +36,7 @@ export function setCore(core: Core) {
 export interface ServicesMap {
   Registry: Store;
   CryptoService: CryptoService;
+  TokenService: TokenService;
   SessionManager: SessionManager;
 }
 

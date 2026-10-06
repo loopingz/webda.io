@@ -43,6 +43,8 @@ class CompleteTest extends AuthTest {
     this.auth = useService("Authentication" as any);
     this.auth.getParameters().linking = "verified";
     this.auth.getParameters().registration = true;
+    // drop any per-test mfaMethods override
+    delete (this.auth as any).mfaMethods;
     this.events = [];
     for (const e of ["Authentication.Login", "Authentication.Register", "Authentication.Linked"]) {
       this.auth.on(e as any, () => {
@@ -94,11 +96,12 @@ class CompleteTest extends AuthTest {
   @test
   async linkingTruthTable() {
     // [policy, providerVerified, emailIdentVerified, expected]
-    const table: [string, boolean, boolean, "link" | "conflict"][] = [
+    const table: [string, boolean, boolean, "link" | "conflict" | "new"][] = [
       ["never", true, true, "conflict"],
       ["verified", true, true, "link"],
       ["verified", false, true, "conflict"],
-      ["verified", true, false, "conflict"],
+      ["verified", true, false, "new"],
+      ["never", true, false, "new"],
       ["always", false, false, "link"]
     ];
     let i = 0;
@@ -112,6 +115,11 @@ class CompleteTest extends AuthTest {
       if (expected === "conflict") {
         await rejectsWith(run, AccountExists, `${policy}/${providerVerified}/${identVerified}`);
         assert.ok(!(await Ident.ref(Ident.key(`g${i}`, "google")).exists()));
+      } else if (expected === "new") {
+        await run();
+        assert.notStrictEqual(ctx.getCurrentUserId(), user.getUUID(), `${policy}/${providerVerified}/${identVerified}`);
+        // the unverified email ident is neither replaced nor claimed
+        assert.strictEqual((await Ident.ref(Ident.key(email, "email")).get()).getUser().toString(), user.getUUID());
       } else {
         await run();
         assert.strictEqual(ctx.getCurrentUserId(), user.getUUID(), `${policy}/${providerVerified}/${identVerified}`);
@@ -175,5 +183,45 @@ class CompleteTest extends AuthTest {
     ]);
     assert.strictEqual(a.getCurrentUserId(), b.getCurrentUserId());
     assert.strictEqual((await this.auth.getUserModel().query("")).results.length, before + 1);
+  }
+
+  @test
+  async unverifiedProviderEmailCreatesNoEmailIdent() {
+    const ctx = await this.ctx();
+    await this.inContext(ctx, () => this.auth.complete(google("u1", "squat@x.com", false)));
+    assert.ok(!(await Ident.ref(Ident.key("squat@x.com", "email")).exists()));
+    assert.ok(await Ident.ref(Ident.key("u1", "google")).exists());
+  }
+
+  @test
+  async loggedInAlwaysAttachesToCurrentUser() {
+    const owner = await this.emailUser("own@x.com", true);
+    const me = await this.emailUser("me2@x.com", true);
+    this.auth.getParameters().linking = "always";
+    const ctx = await this.ctx();
+    ctx.getSession().login(me.getUUID(), "me2@x.com:email");
+    await this.inContext(ctx, () => this.auth.complete(google("la", "own@x.com", true)));
+    assert.strictEqual((await Ident.ref(Ident.key("la", "google")).get()).getUser().toString(), me.getUUID());
+    assert.notStrictEqual(me.getUUID(), owner.getUUID());
+  }
+
+  @test
+  async adoptsIdentWithoutOwner() {
+    const user = await this.emailUser("o@x.com", true);
+    await Ident.getRepository().create(new Ident({ ...Ident.key("x@y.com", "email"), email: "x@y.com" } as any));
+    const ctx = await this.ctx();
+    const res: any = await this.inContext(ctx, () =>
+      this.auth.complete({
+        provider: "email",
+        providerUid: "x@y.com",
+        email: "x@y.com",
+        emailVerified: false,
+        amr: ["pwd"],
+        user
+      })
+    );
+    assert.strictEqual(res.status, "ok");
+    assert.strictEqual(ctx.getCurrentUserId(), user.getUUID());
+    assert.strictEqual((await Ident.ref(Ident.key("x@y.com", "email")).get()).getUser().toString(), user.getUUID());
   }
 }

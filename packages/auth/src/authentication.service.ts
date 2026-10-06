@@ -283,64 +283,79 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   protected async completeAs(identity: ResolvedIdentity, ctx: any, retried: boolean): Promise<AuthResult> {
     const currentUserId: string | undefined = ctx.getSession()?.isLogged() ? ctx.getCurrentUserId() : undefined;
     let ident = await this.findIdent(identity.provider, identity.providerUid);
-    if (ident) {
-      if (currentUserId && ident.getUser()?.toString() !== currentUserId) {
+    if (ident?.getUser()) {
+      if (currentUserId && ident.getUser().toString() !== currentUserId) {
         throw new IdentLinkedElsewhere();
       }
       return this.establish(ident.getUser().toString(), ident, identity, ctx);
     }
+    // An existing ident without owner is adopted by the resolved, current or newly registered user
+    const adopting = !!ident;
     let user: User | undefined = identity.user;
     let userId: string | undefined = currentUserId ?? user?.getUUID();
     const email = identity.email ? Ident.normalizeEmail(identity.email) : undefined;
     const emailIdent = email ? await this.findIdent("email", email) : undefined;
     let linked = !!userId;
     let registered: User | undefined;
-    if (!userId && emailIdent?.getUser()) {
-      const policy = this.parameters.linking;
-      const allowed =
-        policy === "always" || (policy === "verified" && identity.emailVerified && emailIdent.isVerified());
-      if (!allowed) {
+    const policy = this.parameters.linking;
+    // never/verified: only a verified email ident is an owner, an unverified one is treated as absent
+    const owner =
+      emailIdent?.getUser() && (policy === "always" || emailIdent.isVerified()) ? emailIdent.getUser() : undefined;
+    if (!userId && owner) {
+      if (policy === "never" || (policy === "verified" && !identity.emailVerified)) {
         throw new AccountExists();
       }
-      userId = emailIdent.getUser().toString();
+      userId = owner.toString();
       linked = true;
     }
     if (!userId) {
       if (!this.parameters.registration) {
         throw new RegistrationDisabled();
       }
+      // Narrow the window of a phantom Register event when a concurrent login just created the ident
+      if (!adopting && (await this.findIdent(identity.provider, identity.providerUid))) {
+        return this.completeAs(identity, ctx, retried);
+      }
       user = registered = await this.registerUser(identity, {}, ctx);
       userId = user.getUUID();
     }
-    ident = new (this.getIdentModel())({
-      ...Ident.key(identity.providerUid, identity.provider),
-      email,
-      __profile: identity.profile,
-      __tokens: identity.tokens,
-      verifiedAt: identity.emailVerified ? new Date() : undefined
-    } as any);
-    ident.setUser(userId);
-    try {
-      await ident.getRepository().create(ident);
-    } catch (err) {
-      if (!retried && /Already exists/.test(`${err?.message}`)) {
-        // Lost a concurrent first login: drop the user created for nothing, the retry finds the winner's ident
-        await registered?.delete();
-        return this.completeAs(identity, ctx, true);
+    if (adopting) {
+      ident.setUser(userId);
+      await ident.save();
+    } else {
+      ident = new (this.getIdentModel())({
+        ...Ident.key(identity.providerUid, identity.provider),
+        email,
+        __profile: identity.profile,
+        __tokens: identity.tokens,
+        verifiedAt: identity.emailVerified ? new Date() : undefined
+      } as any);
+      ident.setUser(userId);
+      try {
+        await ident.getRepository().create(ident);
+      } catch (err) {
+        if (!retried && /Already exists/.test(`${err?.message}`)) {
+          // Lost a concurrent first login: drop the user created for nothing, the retry finds the winner's ident
+          await registered?.delete();
+          return this.completeAs(identity, ctx, true);
+        }
+        throw err;
       }
-      throw err;
     }
-    if (email && !emailIdent && identity.provider !== "email") {
+    // Only an email asserted as verified by the provider may claim the email ident
+    if (email && !emailIdent && identity.emailVerified && identity.provider !== "email") {
       const extra = new (this.getIdentModel())({
         ...Ident.key(email, "email"),
         email,
-        verifiedAt: identity.emailVerified ? new Date() : undefined
+        verifiedAt: new Date()
       } as any);
       extra.setUser(userId);
       await extra
         .getRepository()
         .create(extra)
-        .catch(() => undefined);
+        .catch(err => {
+          if (!/Already exists/.test(`${err?.message}`)) throw err;
+        });
     }
     if (linked) {
       await this.emit("Authentication.Linked", {

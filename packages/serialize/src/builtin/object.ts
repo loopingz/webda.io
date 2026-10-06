@@ -100,6 +100,7 @@ export class ObjectSerializer implements Serializer<any> {
             raw !== null && typeof raw === "object" && !(raw instanceof Date) && typeof raw.toJSON === "function"
               ? raw.toJSON()
               : raw;
+          if (attr === undefined) continue;
           const data = context.prepareAttribute(key, attr);
           if (!data) continue;
           newObj[key] = data.value;

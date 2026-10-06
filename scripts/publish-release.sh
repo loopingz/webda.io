@@ -41,8 +41,9 @@ if [ ${#FILTERS[@]} -eq 0 ]; then
 fi
 
 for DIST_TAG in "${!FILTERS[@]}"; do
-  # Already published versions are skipped by pnpm, so a re-run only publishes what is missing
-  CMD="pnpm -r ${FILTERS[$DIST_TAG]} publish --no-git-checks --tag $DIST_TAG"
+  # Already published versions are skipped by pnpm, so a re-run only publishes what is missing.
+  # Scoped packages default to private on npm: a new package without publishConfig.access would fail
+  CMD="pnpm -r ${FILTERS[$DIST_TAG]} publish --no-git-checks --access public --tag $DIST_TAG"
   echo "$CMD"
   [ -n "${DRY_RUN:-}" ] || $CMD
 done

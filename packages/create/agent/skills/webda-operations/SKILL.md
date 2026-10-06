@@ -11,7 +11,7 @@ Making a model or service method callable by clients, or adding a transport.
 
 ## Pattern
 
-`@Operation()` on a service or model method declares an operation. Every enabled transport exposes it: REST, GraphQL, gRPC and MCP read the same operations, with the same input validation (from the TypeScript signature) and permissions. Models also get create/get/update/patch/delete/query operations automatically.
+`@Operation()` on a service or model method declares an operation. Every enabled transport exposes it: REST, GraphQL, gRPC and MCP read the same operations, with the same input validation (from the TypeScript signature) and permissions. Models also get create/get/update/patch/delete/query operations automatically. The operation id of a service method is the service's configured name in `webda.config.json`, capitalized, then the capitalized method name: `GreetingService.Greet` when configured as `"GreetingService"`.
 
 ```ts
 import { Operation, Service } from "@webda/core";

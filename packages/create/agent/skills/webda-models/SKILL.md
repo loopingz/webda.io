@@ -58,7 +58,7 @@ export class Product extends UuidModel {
   description?: string;
 
   /**
-   * Deleting the category deletes its products
+   * Category the product belongs to
    */
   category!: BelongTo<Category>;
 }
@@ -66,12 +66,12 @@ export class Product extends UuidModel {
 
 Relations:
 
-| Type                                       | Meaning                                                                                  |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| `BelongTo<Parent>`                         | this model belongs to a parent; deleting the parent deletes it                           |
-| `RelateTo<Other>`                          | a link to another model, no cascade                                                      |
-| `OneToMany<Child, ThisModel, "attribute">` | the children whose `attribute` points to this model (read side of `BelongTo`/`RelateTo`) |
-| `ManyToMany<Other>`                        | many-to-many links                                                                       |
+| Type                                       | Meaning                                                                                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `BelongTo<Parent>`                         | this model belongs to a parent: REST nests it under the parent's URL; deleting the parent does not delete it, delete the children yourself |
+| `RelateTo<Other>`                          | a link to another model, no cascade                                                                                                        |
+| `OneToMany<Child, ThisModel, "attribute">` | the children whose `attribute` points to this model (read side of `BelongTo`/`RelateTo`)                                                   |
+| `ManyToMany<Other>`                        | many-to-many links                                                                                                                         |
 
 A `BelongTo` or `RelateTo` field is stored as the key of the target: pass the key of the parent, `parent.getUUID()` for a model with a `uuid` key.
 
@@ -123,7 +123,7 @@ Read and write data through the model (see the `webda-stores` skill): `Product.c
 Editing webda.module.json or .webda/           → generated: change the model and run npm run build
 ```
 
-- Put models in `*.model.ts` files under `src/models/` so the compiler finds them.
+- Name model files `*.model.ts` (the build fails on a model file without that suffix); `src/models/` is the convention.
 - Import related models with `import type` to avoid circular imports.
 
 ## Verify

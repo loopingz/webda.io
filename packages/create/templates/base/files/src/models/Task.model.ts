@@ -18,7 +18,7 @@ export class Task extends UuidModel {
   done!: boolean;
 
   /**
-   * Project the task belongs to; deleting the project deletes its tasks
+   * Project the task belongs to
    */
   project!: BelongTo<Project>;
 }

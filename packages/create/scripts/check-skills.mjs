@@ -14,12 +14,15 @@ export function checkSkills(appDir, skillsDir) {
   const files = [];
   for (const skill of readdirSync(skillsDir)) {
     const content = readFileSync(join(skillsDir, skill, "SKILL.md"), "utf8");
-    const blocks = [...content.matchAll(/```ts\n([\s\S]*?)```/g)].map(match => match[1]);
+    const blocks = [...content.matchAll(/```ts\r?\n([\s\S]*?)```/g)].map(match => match[1]);
     blocks.forEach((code, index) => {
       const file = `${skill}-${index + 1}.ts`;
       writeFileSync(join(outDir, file), code);
       files.push(file);
     });
+  }
+  if (files.length === 0) {
+    throw new Error(`No ts example found in ${skillsDir}`);
   }
   writeFileSync(
     join(outDir, "tsconfig.json"),
@@ -37,8 +40,8 @@ export function checkSkills(appDir, skillsDir) {
     cwd: appDir,
     stdio: "inherit"
   });
-  if (result.status !== 0) {
-    throw new Error("Skill examples do not type-check");
+  if (result.error || result.status !== 0) {
+    throw new Error(`Skill examples do not type-check${result.error ? `: ${result.error.message}` : ""}`);
   }
   console.log(`${files.length} skill example(s) type-check`);
 }

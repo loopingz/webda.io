@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { CounterBehavior, CounterHolder } from "./behavior-fixture.js";
+import { CounterBehavior, CounterHolder } from "./behavior-fixture.model.js";
 
 @suite
 class BehaviorFixtureTest {

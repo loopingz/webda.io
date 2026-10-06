@@ -21,6 +21,7 @@ import {
 } from "@webda/core";
 import type { ModelClass } from "@webda/models";
 import { AccountExists, IdentLinkedElsewhere, LastLoginMethod, RegistrationDisabled } from "./errors.js";
+import { legacyKey, upgradeIdent } from "./compat/upgrade.js";
 import { type AuthProvider, applyEmailPolicy, isAuthProvider, type ProviderEmailPolicy } from "./provider.js";
 
 /** Account linking policy for unauthenticated logins matching an existing email */
@@ -242,13 +243,27 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
+   * Find an ident; with `compatibility.v3`, a miss falls back to the v3 record `"<uid>_<provider>"`, upgraded on
+   * the fly
    * @param provider - provider
    * @param providerUid - uid
    * @returns the ident when it exists
    */
   protected async findIdent(provider: string, providerUid: string): Promise<Ident | undefined> {
-    const ref = this.getIdentModel().ref(Ident.key(providerUid, provider));
-    return (await ref.exists()) ? await ref.get() : undefined;
+    const IdentModel = this.getIdentModel();
+    const ref = IdentModel.ref(Ident.key(providerUid, provider));
+    if (await ref.exists()) {
+      return ref.get();
+    }
+    if (!this.parameters.compatibility?.v3) {
+      return undefined;
+    }
+    const legacy = IdentModel.ref(legacyKey(providerUid, provider) as any);
+    if (!(await legacy.exists())) {
+      return undefined;
+    }
+    const v3 = await legacy.get();
+    return v3.getLegacyUID() ? runAsSystem(() => upgradeIdent(v3, IdentModel)) : undefined;
   }
 
   /**
@@ -539,7 +554,25 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
    * @returns all idents owned by the user
    */
   protected async listIdents(userId: string): Promise<Ident[]> {
-    return runAsSystem(async () => (await this.getIdentModel().query("_user = ?", [userId])).results);
+    return runAsSystem(async () => {
+      const IdentModel = this.getIdentModel();
+      const idents = (await IdentModel.query("_user = ?", [userId])).results;
+      if (!idents.some(i => i.getLegacyUID())) {
+        return idents;
+      }
+      // v3 records are upgraded before use, or ignored without v3 compatibility
+      const result = new Map<string, Ident>();
+      for (const ident of idents) {
+        if (!ident.getLegacyUID()) {
+          result.set(ident.getUUID(), ident);
+        } else if (this.parameters.compatibility?.v3) {
+          const upgraded = await upgradeIdent(ident, IdentModel);
+          // A crash-left duplicate resolves to the record already listed
+          if (!result.has(upgraded.getUUID())) result.set(upgraded.getUUID(), upgraded);
+        }
+      }
+      return [...result.values()];
+    });
   }
 
   /**

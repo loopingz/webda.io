@@ -15,7 +15,12 @@ const jsonValue = fc.letrec(tie => ({
     { maxDepth: 3 },
     tie("leaf"),
     fc.array(tie("value"), { maxLength: 5 }),
-    fc.dictionary(fc.string({ minLength: 1, maxLength: 5 }), tie("value"), { maxKeys: 5 })
+    // Include the keys jsondiffpatch reserves for its own markers
+    fc.dictionary(
+      fc.oneof(fc.string({ minLength: 1, maxLength: 5 }), fc.constantFrom("_t", "~_t")),
+      tie("value"),
+      { maxKeys: 5 }
+    )
   )
 })).value;
 

@@ -3,6 +3,7 @@ import { create as createJdp } from "jsondiffpatch";
 import type { Delta, Path } from "../types.js";
 import { lineApply } from "../strings/line-diff.js";
 import { VersioningError } from "../errors.js";
+import { escapeReservedKeys, unescapeReservedKeys } from "./reserved-keys.js";
 
 /**
  * Unescape a JSON Pointer path segment per RFC 6901 (`~1` → `/`, `~0` → `~`).
@@ -71,7 +72,8 @@ export function patch<T>(a: T, delta: Delta): T {
   const jdp = createJdp({});
   let result: unknown = a;
   if (delta.ops) {
-    result = jdp.patch(structuredClone(a), delta.ops);
+    // escapeReservedKeys returns a copy, so `a` is not mutated
+    result = unescapeReservedKeys(jdp.patch(escapeReservedKeys(a), delta.ops));
   }
   if (delta.stringHunks) {
     // Clone once before the loop; subsequent per-hunk writes mutate in place.

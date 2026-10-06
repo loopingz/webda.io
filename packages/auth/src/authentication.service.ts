@@ -1,20 +1,25 @@
 import {
   type AuthenticationEvents,
   type AuthResult,
-  type Ident,
+  Counter,
+  Ident,
   type IAuthenticationService,
   Operation,
   type ProviderInfo,
+  type ResolvedIdentity,
   registerUserResolver,
+  runAsSystem,
   Service,
   ServiceParameters,
   useContext,
   useCore,
   useModel,
+  useService,
   type User,
   WebdaError
 } from "@webda/core";
 import type { ModelClass } from "@webda/models";
+import { AccountExists, IdentLinkedElsewhere, RegistrationDisabled } from "./errors.js";
 import { type AuthProvider, isAuthProvider } from "./provider.js";
 
 /** Account linking policy for unauthenticated logins matching an existing email */
@@ -81,6 +86,12 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   implements IAuthenticationService
 {
   static Parameters = AuthenticationParameters;
+
+  declare protected metrics?: {
+    login?: Counter;
+    logout?: Counter;
+    registration?: Counter;
+  };
 
   protected providerMap = new Map<string, AuthProvider>();
 
@@ -181,12 +192,216 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     return user.toPublicEntry();
   }
 
+  /** @override */
+  initMetrics(): void {
+    super.initMetrics();
+    this.metrics.login = this.getMetric(Counter, {
+      name: "auth_login",
+      help: "Counter number of login per provider",
+      labelNames: ["provider"]
+    });
+    this.metrics.logout = this.getMetric(Counter, {
+      name: "auth_logout",
+      help: "Counter number of logout"
+    });
+    this.metrics.registration = this.getMetric(Counter, {
+      name: "auth_registration",
+      help: "Counter number of registration per provider",
+      labelNames: ["provider"]
+    });
+  }
+
   /**
-   * Not available yet
-   * @returns never
+   * @param provider - provider
+   * @param providerUid - uid
+   * @returns the ident when it exists
    */
-  async complete(): Promise<AuthResult> {
-    throw new WebdaError.NotImplemented("complete");
+  protected async findIdent(provider: string, providerUid: string): Promise<Ident | undefined> {
+    const ref = this.getIdentModel().ref(Ident.key(providerUid, provider));
+    return (await ref.exists()) ? await ref.get() : undefined;
+  }
+
+  /**
+   * MFA methods enabled for a user (implemented by sub-project 4)
+   * @param user - user
+   * @returns enabled methods, empty when MFA is off
+   */
+  protected mfaMethods(user: User): string[] {
+    const mfa = (user as any)?.mfa;
+    return mfa?.isEnabled?.() ? mfa.methods() : [];
+  }
+
+  /**
+   * Create and save a user for an identity
+   * @param identity - resolved identity
+   * @param data - extra profile data
+   * @param ctx - request context (complete() runs as system, so it passes the real one)
+   * @returns the user
+   */
+  async registerUser(identity: ResolvedIdentity, data: any = {}, ctx: any = useContext<any>()): Promise<User> {
+    const user: User = await this.getUserModel().create(
+      {
+        ...data,
+        email: identity.email,
+        displayName: data.displayName ?? identity.profile?.name,
+        locale: ctx?.getLocale?.()
+      } as any,
+      false
+    );
+    await this.emit("Authentication.Register", {
+      context: ctx,
+      user,
+      data,
+      identId: `${identity.providerUid}:${identity.provider}`,
+      identity
+    } as any);
+    await user.save();
+    this.metrics?.registration?.inc({ provider: identity.provider });
+    return user;
+  }
+
+  /**
+   * Complete a login for an identity proven by a provider
+   * @param identity - resolved identity
+   * @returns the result
+   * @throws IdentLinkedElsewhere when the ident belongs to another user than the logged one
+   * @throws AccountExists when the email matches an account the linking policy does not allow
+   * @throws RegistrationDisabled when a new user is needed but registration is off
+   */
+  async complete(identity: ResolvedIdentity): Promise<AuthResult> {
+    const ctx = useContext<any>();
+    return runAsSystem(() => this.completeAs(identity, ctx, false));
+  }
+
+  /**
+   * Body of {@link complete}, running as system with the request context passed explicitly
+   * @param identity - resolved identity
+   * @param ctx - request context
+   * @param retried - already retried after a concurrent creation
+   * @returns the result
+   */
+  protected async completeAs(identity: ResolvedIdentity, ctx: any, retried: boolean): Promise<AuthResult> {
+    const currentUserId: string | undefined = ctx.getSession()?.isLogged() ? ctx.getCurrentUserId() : undefined;
+    let ident = await this.findIdent(identity.provider, identity.providerUid);
+    if (ident) {
+      if (currentUserId && ident.getUser()?.toString() !== currentUserId) {
+        throw new IdentLinkedElsewhere();
+      }
+      return this.establish(ident.getUser().toString(), ident, identity, ctx);
+    }
+    let user: User | undefined = identity.user;
+    let userId: string | undefined = currentUserId ?? user?.getUUID();
+    const email = identity.email ? Ident.normalizeEmail(identity.email) : undefined;
+    const emailIdent = email ? await this.findIdent("email", email) : undefined;
+    let linked = !!userId;
+    let registered: User | undefined;
+    if (!userId && emailIdent?.getUser()) {
+      const policy = this.parameters.linking;
+      const allowed =
+        policy === "always" || (policy === "verified" && identity.emailVerified && emailIdent.isVerified());
+      if (!allowed) {
+        throw new AccountExists();
+      }
+      userId = emailIdent.getUser().toString();
+      linked = true;
+    }
+    if (!userId) {
+      if (!this.parameters.registration) {
+        throw new RegistrationDisabled();
+      }
+      user = registered = await this.registerUser(identity, {}, ctx);
+      userId = user.getUUID();
+    }
+    ident = new (this.getIdentModel())({
+      ...Ident.key(identity.providerUid, identity.provider),
+      email,
+      __profile: identity.profile,
+      __tokens: identity.tokens,
+      verifiedAt: identity.emailVerified ? new Date() : undefined
+    } as any);
+    ident.setUser(userId);
+    try {
+      await ident.getRepository().create(ident);
+    } catch (err) {
+      if (!retried && /Already exists/.test(`${err?.message}`)) {
+        // Lost a concurrent first login: drop the user created for nothing, the retry finds the winner's ident
+        await registered?.delete();
+        return this.completeAs(identity, ctx, true);
+      }
+      throw err;
+    }
+    if (email && !emailIdent && identity.provider !== "email") {
+      const extra = new (this.getIdentModel())({
+        ...Ident.key(email, "email"),
+        email,
+        verifiedAt: identity.emailVerified ? new Date() : undefined
+      } as any);
+      extra.setUser(userId);
+      await extra
+        .getRepository()
+        .create(extra)
+        .catch(() => undefined);
+    }
+    if (linked) {
+      await this.emit("Authentication.Linked", {
+        context: ctx,
+        user: user ?? (await this.loadUser(userId)),
+        ident
+      } as any);
+    }
+    return this.establish(user ?? userId, ident, identity, ctx);
+  }
+
+  /**
+   * @param userId - uuid
+   * @returns the user
+   */
+  protected loadUser(userId: string): Promise<User> {
+    return this.getUserModel().ref(userId).get();
+  }
+
+  /**
+   * Write the session, issue tokens, emit Login
+   * @param user - user or uuid
+   * @param ident - ident used
+   * @param identity - resolved identity
+   * @param ctx - request context (complete() runs as system, so it passes the real one)
+   * @returns the result
+   */
+  protected async establish(
+    user: User | string,
+    ident: Ident,
+    identity: ResolvedIdentity,
+    ctx: any = useContext<any>()
+  ): Promise<AuthResult> {
+    const userObj: User = typeof user === "string" ? await this.loadUser(user) : user;
+    const userId = userObj.getUUID();
+    const session = ctx.getSession();
+    const methods = this.mfaMethods(userObj);
+    // Any amr other than pwd/oauth is a second factor
+    const secondFactor = identity.amr.some(m => m !== "pwd" && m !== "oauth");
+    const mfa = methods.length ? (secondFactor ? "verified" : "pending") : "none";
+    session.login(userId, ident.getUUID(), { provider: identity.provider, amr: identity.amr, mfa });
+    if (mfa === "pending") {
+      return { status: "mfa_required", methods };
+    }
+    await ident.ref().patch({
+      lastUsedAt: new Date(),
+      ...(identity.profile ? { __profile: identity.profile } : {}),
+      ...(identity.tokens ? { __tokens: identity.tokens } : {})
+    } as any);
+    const tokens = await useService("TokenService").issue(session);
+    await this.emit("Authentication.Login", {
+      context: ctx,
+      userId,
+      user: userObj,
+      identId: ident.getUUID(),
+      ident,
+      provider: identity.provider,
+      identity
+    } as any);
+    this.metrics?.login?.inc({ provider: identity.provider });
+    return { status: "ok", user: userObj.toPublicEntry(), ...tokens };
   }
 
   /**

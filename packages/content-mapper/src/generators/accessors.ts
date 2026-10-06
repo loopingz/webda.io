@@ -452,7 +452,9 @@ function renderToJson(i: string): string {
     `${i}toJSON(): any {`,
     // `as unknown` keeps the runtime check — a base may not define toJSON —
     // without TS2774 under `strict`; it erases to TS6's exact JavaScript.
-    `${i}  const result: any = (super.toJSON as unknown) ? super.toJSON() : {};`,
+    // Model.toJSON() returns `this`: copy it, otherwise assigning the storage below goes through the
+    // accessors again and the stored values never become enumerable keys of the serialized form.
+    `${i}  const result: any = { ...((super.toJSON as unknown) ? super.toJSON() : {}) };`,
     `${i}  for (const key of Object.keys(this)) {`,
     `${i}    result[key] = (this as any)[key];`,
     `${i}  }`,

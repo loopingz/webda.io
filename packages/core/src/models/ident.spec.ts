@@ -39,4 +39,16 @@ class IdentTest extends WebdaApplicationTest {
     assert.strictEqual(ident.getUser().toString(), "user1");
     assert.ok(!ident.isVerified());
   }
+
+  @test
+  async persistsAccessorValues() {
+    const key = Ident.key("p1", "google");
+    const ident = new Ident({ ...key, verifiedAt: new Date() } as any);
+    ident.setUser("user1");
+    await Ident.getRepository().create(ident);
+    const loaded = await Ident.ref(key).get();
+    assert.strictEqual(loaded.getUser().toString(), "user1");
+    assert.ok(loaded.isVerified());
+    assert.ok(loaded.verifiedAt instanceof Date);
+  }
 }

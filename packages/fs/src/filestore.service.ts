@@ -426,11 +426,11 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     const meta = useModelMetadata(model);
     const storage = new FileBackedMap(this.parameters.folder, FileStore.EXTENSION);
-    const inner = new MemoryRepository<T>(model, meta.PrimaryKey, undefined, storage as any);
+    const inner = new MemoryRepository<T>(model, meta.PrimaryKey, meta.PrimaryKeySeparator, storage as any);
     // Wrap in EventRepository so typed CRUD events fire; consumers reach them
     // via useRepository(model).on(...). simulateFind() only calls repo.get(),
     // which EventRepository proxies, so find() is unaffected.
-    return new EventRepository<T>(model, meta.PrimaryKey, inner) as unknown as Repository<T>;
+    return new EventRepository<T>(model, meta.PrimaryKey, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
   }
 
   /**

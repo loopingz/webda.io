@@ -334,10 +334,11 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
   @InstanceCache()
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     // Use our own storage to allow persistence
-    const pks = useModelMetadata(model).PrimaryKey;
-    const inner = new MemoryRepository<T>(model, pks, undefined, this.storage);
+    const meta = useModelMetadata(model);
+    const pks = meta.PrimaryKey;
+    const inner = new MemoryRepository<T>(model, pks, meta.PrimaryKeySeparator, this.storage);
     // Wrap in EventRepository so typed CRUD events (Created/Updated/...) fire;
     // consumers reach them via useRepository(model).on(...).
-    return new EventRepository<T>(model, pks, inner) as unknown as Repository<T>;
+    return new EventRepository<T>(model, pks, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
   }
 }

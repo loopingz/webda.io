@@ -19,13 +19,15 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
    * @param model - The model class constructor
    * @param pks - Array of primary key field names
    * @param repository - The underlying repository to delegate storage operations to
+   * @param separator - Separator used when joining composite key fields (default: "_")
    */
   constructor(
     model: T,
     pks: string[],
-    protected repository: AbstractRepository<T>
+    protected repository: AbstractRepository<T>,
+    separator?: string
   ) {
-    super(model, pks, "_");
+    super(model, pks, separator);
   }
 
   /**

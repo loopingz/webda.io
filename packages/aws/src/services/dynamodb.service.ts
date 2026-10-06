@@ -191,10 +191,11 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
     protected readonly table: string,
     protected readonly globalIndexes: DynamoGlobalIndexes = {},
     protected readonly scanPage?: number,
-    protected readonly storeName: string = table
+    protected readonly storeName: string = table,
+    separator?: string
   ) {
     // Pass an empty Map — we do NOT use in-memory storage
-    super(model, pks, undefined, new Map<string, string>() as any);
+    super(model, pks, separator, new Map<string, string>() as any);
   }
 
   /**
@@ -992,11 +993,12 @@ export class DynamoStore<K extends DynamoStoreParameters = DynamoStoreParameters
       this.resolveTable(model),
       this.parameters.globalIndexes,
       this.parameters.scanPage,
-      this.getName()
+      this.getName(),
+      meta.PrimaryKeySeparator
     );
     // Wrap in EventRepository so typed CRUD events fire; consumers reach them
     // via useRepository(model).on(...).
-    return new EventRepository<T>(model, meta.PrimaryKey, inner) as unknown as Repository<T>;
+    return new EventRepository<T>(model, meta.PrimaryKey, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
   }
 
   /**

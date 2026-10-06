@@ -76,7 +76,12 @@ export class Password {
     if (!this.hasPassword() || typeof plain !== "string") {
       return false;
     }
-    return bcrypt.compare(plain, this.__hash);
+    try {
+      return await bcrypt.compare(plain, this.__hash);
+    } catch {
+      // Malformed stored hash
+      return false;
+    }
   }
 
   /**
@@ -106,7 +111,7 @@ export class Password {
    * @param current - current password
    * @param next - new password
    */
-  @Action({ methods: ["PUT"] })
+  @Action({ rest: { method: "PUT" } })
   async change(current: string, next: string): Promise<void> {
     if (!(await this.verify(current))) {
       throw new WebdaError.Forbidden("Invalid password");

@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
-import { DomainServiceParameters, DomainService } from "./domainservice.service.js";
+import { DomainServiceParameters, DomainService, stripPrivateFields } from "./domainservice.service.js";
 import { callOperation, listOperations } from "../core/operations.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import * as WebdaError from "../errors/errors.js";
@@ -305,6 +305,52 @@ class DomainServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  stripPrivateFieldsHelper() {
+    assert.deepStrictEqual(stripPrivateFields({ a: 1, __b: 2, c: { __d: 1, e: [{ __f: 1, g: 2 }, 3] }, h: null }), {
+      a: 1,
+      c: { e: [{ g: 2 }, 3] },
+      h: null
+    });
+    assert.deepStrictEqual(stripPrivateFields({ p: { __hash: "x" }, q: {} }), { q: {} });
+    assert.strictEqual(stripPrivateFields("x"), "x");
+    assert.strictEqual(stripPrivateFields(undefined), undefined);
+  }
+
+  @test
+  async privateFieldsStrippedOnRest() {
+    // Call handlers directly: the compiled input schema is not what protects private fields
+    const User = useModel<any>("User");
+    registerRepository(User, new MemoryRepository(User, ["uuid"]));
+    const uuid = "550e8400-e29b-41d4-a716-446655440077";
+    const stored0 = await User.create({ uuid, displayName: "Orig", password: { __hash: "keep", changedAt: 1 } });
+    assert.strictEqual(stored0.password.__hash, "keep");
+    const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
+    const evil = () => ({ uuid, displayName: "Changed", __foo: "x", password: { __hash: "hacked" } });
+    const run = async (fn: () => Promise<any>) => {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.setExtension("operationContext", { model: User });
+      ctx.setParameters({ uuid });
+      return runWithContext(ctx, fn);
+    };
+    // Patch persists
+    await run(() => service.modelPatch(evil()));
+    const stored: any = await User.ref(uuid).get();
+    assert.strictEqual(stored.displayName, "Changed");
+    assert.strictEqual(stored.password.__hash, "keep");
+    assert.strictEqual(stored.__foo, undefined);
+    // Update returns the loaded object
+    const updated: any = await run(() => service.modelUpdate(evil()));
+    assert.strictEqual(updated.displayName, "Changed");
+    assert.strictEqual(updated.password.__hash, "keep");
+    assert.strictEqual(updated.__foo, undefined);
+    // Create
+    const created: any = await run(() => service.modelCreate({ ...evil(), uuid: "other-uuid" }));
+    assert.strictEqual(created.password?.__hash, undefined);
+    assert.strictEqual(created.__foo, undefined);
+  }
+
+  @test
   async modelGetWithUuid() {
     const { Brand, repo } = this.setupBrandRepo();
     const uuid = "get-test-uuid";
@@ -601,10 +647,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     ctx.setParameters({ namespace: "ns-1", slug: "my-brand" });
     ctx.setInput(JSON.stringify({ name: "Updated" }));
     await runWithContext(ctx, async () => {
-      await assert.rejects(
-        () => service.modelUpdate({ name: "Updated" }),
-        WebdaError.NotFound
-      );
+      await assert.rejects(() => service.modelUpdate({ name: "Updated" }), WebdaError.NotFound);
     });
   }
 
@@ -622,10 +665,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     ctx.setParameters({ slug: "does-not-exist" });
     ctx.setInput(JSON.stringify({ name: "NopePatched" }));
     await runWithContext(ctx, async () => {
-      await assert.rejects(
-        () => service.modelPatch({ name: "NopePatched" }),
-        WebdaError.NotFound
-      );
+      await assert.rejects(() => service.modelPatch({ name: "NopePatched" }), WebdaError.NotFound);
     });
   }
 
@@ -665,10 +705,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     const ctx = new FakeOpContext();
     await ctx.init();
     await runWithContext(ctx, async () => {
-      await assert.rejects(
-        () => (service as any).loadModel(Brand, { namespace: "x", slug: "y" }),
-        WebdaError.NotFound
-      );
+      await assert.rejects(() => (service as any).loadModel(Brand, { namespace: "x", slug: "y" }), WebdaError.NotFound);
     });
     assert.strictEqual(events.length, 1);
     assert.strictEqual(events[0].uuid, JSON.stringify({ namespace: "x", slug: "y" }));

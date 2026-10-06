@@ -21,15 +21,15 @@ export class User extends UuidModel {
     const mapped = User.mapV3(data);
     Object.assign(this, mapped);
     // Raw password data (v3 mapping or plain JSON) must become a Password behavior
-    if (mapped?.password && !(mapped.password instanceof Password)) {
-      (this as any).__hydrateBehaviors?.({ password: mapped.password });
+    if (!(this.password instanceof Password)) {
+      (this as any).__hydrateBehaviors?.({ password: mapped?.password ?? {} });
     }
   }
 
   /**
    * Password credential
    */
-  password: Password;
+  password?: Password;
 
   /**
    * Map v3 records (`__password` string) onto the Password behavior shape

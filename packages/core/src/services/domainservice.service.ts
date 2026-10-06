@@ -15,6 +15,40 @@ import { useInstanceStorage } from "../core/instancestorage.js";
 import { registerOperation } from "../core/operations.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
 
+/**
+ * Remove `__`-prefixed keys at any depth from client-supplied input, so private fields
+ * (such as a password hash) can never be set through the REST/operations surface
+ * @param input - the client input
+ * @returns a sanitized deep copy (non plain-object/array values are returned as is); objects emptied by the stripping are dropped
+ */
+export function stripPrivateFields<T = any>(input: T): T {
+  if (Array.isArray(input)) {
+    return input.map(i => stripPrivateFields(i)) as any;
+  }
+  if (input && typeof input === "object" && Object.getPrototypeOf(input) === Object.prototype) {
+    const out: any = {};
+    for (const [k, v] of Object.entries(input)) {
+      if (k.startsWith("__")) {
+        continue;
+      }
+      const clean = stripPrivateFields(v);
+      // An object holding only private fields has nothing left to set: drop it so it cannot overwrite the stored one
+      if (
+        clean &&
+        typeof clean === "object" &&
+        !Array.isArray(clean) &&
+        Object.keys(clean).length === 0 &&
+        Object.keys(v as any).length > 0
+      ) {
+        continue;
+      }
+      out[k] = clean;
+    }
+    return out;
+  }
+  return input;
+}
+
 /** Parameters for DomainService, controlling model exposure, URL naming, and query methods */
 export class DomainServiceParameters extends ServiceParameters {
   /**
@@ -179,6 +213,7 @@ export class DomainService<
     if (typeof input !== "object" || input === null || input instanceof OperationContext) {
       input = await context.getInput();
     }
+    input = stripPrivateFields(input);
     return runWithContext(context, async () => {
       // Instantiate the model from raw input, load data, then save
       const object = new (model as any)() as Model;
@@ -206,17 +241,21 @@ export class DomainService<
     if (typeof input !== "object" || input === null) {
       input = await context.getInput();
     }
+    input = stripPrivateFields(input);
     // Resolve the PK from body or URL params using the model's actual PK fields;
     // fall back to "uuid" for legacy operations without pkFields in the context.
     const params = context.getParameters() ?? {};
     const fields = pkFields?.length ? pkFields : ["uuid"];
     const pk: any =
       fields.length === 1
-        ? input?.[fields[0]] ?? params[fields[0]]
-        : fields.reduce((acc, f) => {
-            acc[f] = input?.[f] ?? params[f];
-            return acc;
-          }, {} as Record<string, unknown>);
+        ? (input?.[fields[0]] ?? params[fields[0]])
+        : fields.reduce(
+            (acc, f) => {
+              acc[f] = input?.[f] ?? params[f];
+              return acc;
+            },
+            {} as Record<string, unknown>
+          );
     const object = await this.loadModel(model, pk);
     object["load"](input);
     return object;
@@ -284,16 +323,20 @@ export class DomainService<
     if (typeof input !== "object" || input === null) {
       input = await context.getInput();
     }
+    input = stripPrivateFields(input);
     // Build the PK from the model's real primary-key fields (same logic as modelUpdate).
     const params = context.getParameters() ?? {};
     const fields = pkFields?.length ? pkFields : ["uuid"];
     const pk: any =
       fields.length === 1
-        ? input?.[fields[0]] ?? params[fields[0]]
-        : fields.reduce((acc, f) => {
-            acc[f] = input?.[f] ?? params[f];
-            return acc;
-          }, {} as Record<string, unknown>);
+        ? (input?.[fields[0]] ?? params[fields[0]])
+        : fields.reduce(
+            (acc, f) => {
+              acc[f] = input?.[f] ?? params[f];
+              return acc;
+            },
+            {} as Record<string, unknown>
+          );
     const object = await this.loadModel(model, pk);
     await object.patch(input);
     return object;
@@ -531,8 +574,7 @@ export class DomainService<
       if (!behaviorMeta) {
         return;
       }
-      const attributeCap =
-        behaviorRel.attribute.substring(0, 1).toUpperCase() + behaviorRel.attribute.substring(1);
+      const attributeCap = behaviorRel.attribute.substring(0, 1).toUpperCase() + behaviorRel.attribute.substring(1);
       Object.keys(behaviorMeta.Actions || {}).forEach(actionName => {
         const actionCap = actionName.substring(0, 1).toUpperCase() + actionName.substring(1);
         const id = `${name}.${attributeCap}.${actionCap}`;
@@ -650,5 +692,4 @@ export class DomainService<
     void behavior; // tagged in operationContext for future use
     return behaviorInstance[action](...passArgs);
   }
-
 }

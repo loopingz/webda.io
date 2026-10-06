@@ -2992,7 +2992,6 @@
           },
           "required": [
             "displayName",
-            "password",
             "uuid"
           ],
           "type": "object",
@@ -3065,7 +3064,6 @@
           },
           "required": [
             "displayName",
-            "password",
             "uuid"
           ],
           "type": "object",
@@ -3138,7 +3136,6 @@
           },
           "required": [
             "displayName",
-            "password",
             "uuid"
           ],
           "type": "object",
@@ -3258,7 +3255,6 @@
           },
           "required": [
             "displayName",
-            "password",
             "uuid"
           ],
           "type": "object",
@@ -3319,7 +3315,6 @@
           },
           "required": [
             "displayName",
-            "password",
             "uuid"
           ],
           "type": "object",
@@ -3380,7 +3375,6 @@
           },
           "required": [
             "displayName",
-            "password",
             "uuid"
           ],
           "type": "object",
@@ -3905,7 +3899,11 @@
       "Identifier": "Webda/Password",
       "Import": "lib/models/password.model:Password",
       "Actions": {
-        "change": {}
+        "change": {
+          "rest": {
+            "method": "PUT"
+          }
+        }
       }
     }
   },

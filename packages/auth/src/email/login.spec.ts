@@ -267,15 +267,37 @@ class EmailLoginTest extends EmailTest {
   }
 
   @test
-  async parallelFailuresAreAllCounted() {
+  async parallelFailuresAreCountedAndLockEngages() {
     await this.op("Auth.Email.Register", { email: "par@x.com", password: "longenough" });
     const res = await Promise.allSettled(
       Array.from({ length: 5 }, () => this.op("Auth.Email.Login", { email: "par@x.com", password: "badbadbad" }))
     );
-    assert.strictEqual(res.length, 5);
+    const codes = res.map((r: any) => r.reason?.code);
+    assert.ok(codes.filter(c => c === "INVALID_CREDENTIALS").length <= 3, codes.join());
+    assert.strictEqual(
+      codes.filter(c => c === "THROTTLED").length,
+      5 - codes.filter(c => c === "INVALID_CREDENTIALS").length
+    );
     const ident = await Ident.ref(Ident.key("par@x.com", "email")).get();
     assert.strictEqual(ident._throttle.attempts, 5);
     await rejectsWith(() => this.op("Auth.Email.Login", { email: "par@x.com", password: "longenough" }), Throttled);
+  }
+
+  @test
+  async correctPasswordInsideBurstIsThrottled() {
+    await this.op("Auth.Email.Register", { email: "bu@x.com", password: "longenough" });
+    for (let i = 0; i < 3; i++) {
+      await rejectsWith(
+        () => this.op("Auth.Email.Login", { email: "bu@x.com", password: "badbadbad" }),
+        InvalidCredentials
+      );
+    }
+    const res = await Promise.allSettled([
+      ...Array.from({ length: 4 }, () => this.op("Auth.Email.Login", { email: "bu@x.com", password: "badbadbad" })),
+      this.op("Auth.Email.Login", { email: "bu@x.com", password: "longenough" })
+    ]);
+    assert.ok(res.every(r => r.status === "rejected"));
+    assert.ok(res.every((r: any) => r.reason.code === "THROTTLED"));
   }
 
   @test

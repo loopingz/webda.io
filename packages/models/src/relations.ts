@@ -184,7 +184,7 @@ export class ModelRef<T extends Storable> {
       | Record<NumericPropertyPaths<T>, number>,
     conditionField?: PropertyPaths<T>,
     condition?: PropertyPathType<T, PropertyPaths<T>>
-  ): Promise<void> {
+  ): Promise<void | Record<string, number>> {
     return this.getRepository().incrementAttributes(this.getKey(), info, conditionField, condition);
   }
   /**
@@ -263,7 +263,7 @@ export class ModelRef<T extends Storable> {
     value?: number,
     conditionField?: PropertyPaths<T>,
     condition?: PropertyPathType<T, PropertyPaths<T>>
-  ): Promise<void> {
+  ): Promise<void | Record<string, number>> {
     return this.incrementAttributes([{ property: property, value: value }], conditionField, condition);
   }
 }

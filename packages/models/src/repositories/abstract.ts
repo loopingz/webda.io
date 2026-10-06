@@ -227,7 +227,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     info: (L | { property: L; value?: number })[] | Record<L, number>,
     _conditionField?: K | null,
     _condition?: any
-  ): Promise<void>;
+  ): Promise<void | Record<string, number>>;
 
   abstract query(
     query: string,

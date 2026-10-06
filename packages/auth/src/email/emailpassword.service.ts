@@ -19,7 +19,6 @@ import { WEBDA_PRIMARY_KEY } from "@webda/models";
 import type { AuthProvider } from "../provider.js";
 import { useAuthentication } from "../provider.js";
 import { AccountExists, InvalidCredentials, Throttled, TokenInvalid } from "../errors.js";
-import { isLocked, recordFailure, resetFailures } from "../throttle.js";
 import { signEmailToken, verifyEmailToken } from "./tokens.js";
 
 /** When the email is verified relative to account creation */
@@ -207,34 +206,39 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     } as any);
   }
 
-  /** Per-ident chains serialising failure recording inside this process */
-  protected failureChains = new Map<string, Promise<unknown>>();
-
   /**
-   * Record a failed login without losing concurrent failures: the counter goes through the repository
-   * atomic increment (shared stores), and updates of one ident are serialised in this process
+   * Count a login attempt before verifying it and decide whether the ident is locked
+   *
+   * Rule, equivalent to `isLocked(throttle, failedBeforeDelay, lockout)` on the state before this attempt:
+   * the attempt counter is incremented first (atomically, and the new value is returned), so this attempt is
+   * locked when the count of PREVIOUS attempts (`attempts - 1`) is at least `failedBeforeDelay`, unless that lock
+   * has expired, ie the last attempt recorded when this call started is older than `lockout`. The timestamp of
+   * the last counted attempt is only refreshed by attempts that are not refused, so hammering a locked ident does
+   * not extend the lock. Atomicity: the increment is atomic in the memory repository and in stores whose
+   * `incrementAttributes` is atomic (DynamoDB, Mongo, SQL, Firestore); the timestamp is a plain set of one
+   * attribute (last writer wins, the counter is never written back from a snapshot). A burst starting exactly when
+   * an expired lock is read is verified as a whole: it is bounded to one burst per lock window.
    * @param ident - the ident
+   * @returns true when this attempt must be refused without checking the password
    */
-  protected async recordLoginFailure(ident: Ident): Promise<void> {
-    const key = ident.getUUID();
-    const previous = this.failureChains.get(key) ?? Promise.resolve();
-    const next = previous.then(() =>
-      runAsSystem(async () => {
-        const ref = ident.ref();
-        await ref.incrementAttribute("_throttle.attempts" as any, 1);
-        const fresh = await ref.get();
-        await ref.patch({
-          _throttle: { ...recordFailure(fresh._throttle), attempts: fresh._throttle.attempts }
-        } as any);
-      })
-    );
-    const tail = next.catch(() => undefined);
-    this.failureChains.set(key, tail);
-    try {
-      await next;
-    } finally {
-      if (this.failureChains.get(key) === tail) this.failureChains.delete(key);
+  protected async countAttempt(ident: Ident): Promise<boolean> {
+    const { failedBeforeDelay, lockout } = this.parameters.throttle;
+    const before = ident._throttle;
+    // A lock whose last attempt is older than the lockout is over: attempts restart a window
+    const expired =
+      !!before &&
+      before.attempts >= failedBeforeDelay &&
+      !!before.lastAttemptAt &&
+      before.lastAttemptAt + lockout <= Date.now();
+    const ref = ident.ref();
+    const updated = await runAsSystem(() => ref.incrementAttributes(["_throttle.attempts" as any]));
+    const attempts =
+      (updated as any)?.["_throttle.attempts"] ?? (await runAsSystem(() => ref.get()))._throttle.attempts;
+    const locked = !expired && attempts - 1 >= failedBeforeDelay;
+    if (!locked) {
+      await runAsSystem(() => ref.setAttribute("_throttle.lastAttemptAt" as any, Date.now() as any));
     }
+    return locked;
   }
 
   /**
@@ -259,8 +263,8 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     const user: User | undefined = userId
       ? await runAsSystem(() => auth.getUserModel().ref(userId).get()).catch(() => undefined)
       : undefined;
-    const { failedBeforeDelay, lockout } = this.parameters.throttle;
-    if (ident && isLocked(ident._throttle, failedBeforeDelay, lockout)) {
+    // Count before verifying: parallel guesses are each counted and refused once the threshold is crossed
+    if (ident && (await this.countAttempt(ident))) {
       throw new Throttled();
     }
     let ok: boolean;
@@ -274,15 +278,10 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
       ok = false;
     }
     if (!ok) {
-      if (ident) {
-        await this.recordLoginFailure(ident);
-      }
       await auth.emit("Authentication.LoginFailed", { context: ctx, user } as any);
       throw new InvalidCredentials();
     }
-    if (ident._throttle && ident._throttle.attempts) {
-      await runAsSystem(() => ident.ref().patch({ _throttle: resetFailures(ident._throttle) } as any));
-    }
+    await runAsSystem(() => ident.ref().setAttribute("_throttle.attempts" as any, 0 as any));
     return auth.complete({
       provider: "email",
       providerUid: normalized,

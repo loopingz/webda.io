@@ -1,7 +1,7 @@
 import type { ArrayElement } from "@webda/tsc-esm";
 import type { QueryParameters } from "@webda/ql";
 import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable.js";
-import type { Helpers, JSONed, SelfJSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";
+import type { Helpers, JSONed, SelfJSONed, PropertyPaths, PropertyPathType, NumericPropertyPaths } from "../types.js";
 import { deserialize, serialize, serializeRaw } from "@webda/serialize";
 import { AbstractRepository } from "./abstract.js";
 import { Repository, WEBDA_TEST } from "./repository.js";
@@ -472,41 +472,66 @@ export class MemoryRepository<
     return this.storage.has(this.getPrimaryKey(primaryKey).toString());
   }
 
-  /** @override */
+  /**
+   * Resolve the parent object and last key of a dotted path, creating intermediate objects
+   * @param item - root object
+   * @param path - dotted path
+   * @returns the holder and the last key
+   */
+  protected resolvePath(item: any, path: string): { holder: any; key: string } {
+    const parts = path.split(".");
+    let holder = item;
+    for (let i = 0; i < parts.length - 1; i++) {
+      holder[parts[i]] ??= {};
+      holder = holder[parts[i]];
+    }
+    return { holder, key: parts[parts.length - 1] };
+  }
+
+  /**
+   * Increment attributes atomically: the read-modify-write never yields, so concurrent calls all count
+   * @override
+   * @returns the new value of each incremented attribute, by path
+   */
   async incrementAttributes<K extends PropertyPaths<InstanceType<T>>, L extends NumericPropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string,
     info: (L | { property: L; value?: number })[] | Record<L, number>,
     _conditionField?: K | null,
     _condition?: any
-  ): Promise<void> {
-    const item = (await this.get(primaryKey)) as InstanceType<T>;
-    if (Array.isArray(info)) {
-      for (const entry of info) {
-        const prop = typeof entry === "string" ? entry : (entry as any).property;
-        const inc = typeof entry === "string" ? 1 : ((entry as any).value ?? 1);
-        const parts = prop.split(".");
-        let current: any = item;
-        for (let i = 0; i < parts.length - 1; i++) {
-          const part = parts[i];
-          current[part] ??= {};
-          current = current[part];
-        }
-        const lastPart = parts[parts.length - 1];
-        (current as any)[lastPart] = ((current as any)[lastPart] || 0) + inc;
-      }
-    } else {
-      for (const prop in info) {
-        const parts = prop.split(".");
-        let current: any = item;
-        for (let i = 0; i < parts.length - 1; i++) {
-          const part = parts[i];
-          current[part] ??= {};
-          current = current[part];
-        }
-        const lastPart = parts[parts.length - 1];
-        (current as any)[lastPart] = ((current as any)[lastPart] || 0) + info[prop]!;
-      }
+  ): Promise<Record<string, number>> {
+    const item = this.getSync(primaryKey);
+    const entries: [string, number][] = Array.isArray(info)
+      ? info.map(entry =>
+          typeof entry === "string"
+            ? ([entry, 1] as [string, number])
+            : ([(entry as any).property, (entry as any).value ?? 1] as [string, number])
+        )
+      : Object.entries(info).map(([prop, value]) => [prop, value as number] as [string, number]);
+    const updated: Record<string, number> = {};
+    for (const [prop, inc] of entries) {
+      const { holder, key } = this.resolvePath(item, prop);
+      holder[key] = (holder[key] || 0) + inc;
+      updated[prop] = holder[key];
     }
+    this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(item));
+    return updated;
+  }
+
+  /**
+   * Set one attribute, a dotted path leaves the sibling attributes untouched
+   * @override
+   */
+  async setAttribute<K extends PropertyPaths<InstanceType<T>>, L extends PropertyPaths<InstanceType<T>>>(
+    primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string,
+    attribute: K,
+    value: PropertyPathType<InstanceType<T>, K>,
+    conditionField?: L | null,
+    condition?: any
+  ): Promise<void> {
+    const item = this.getSync(primaryKey);
+    this.checkCondition(item, conditionField, condition);
+    const { holder, key } = this.resolvePath(item, attribute as string);
+    holder[key] = value;
     this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(item));
   }
 

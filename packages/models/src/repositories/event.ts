@@ -39,20 +39,21 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     info: (L | { property: L; value?: number })[] | Record<L, number>,
     _conditionField?: K | null,
     _condition?: any
-  ): Promise<void> {
+  ): Promise<void | Record<string, number>> {
     await this.emit("PartialUpdate", {
       object_id: primaryKey,
       partial_update: {
         increments: info
       }
     } as any);
-    await this.repository.incrementAttributes(primaryKey, info, _conditionField, _condition);
+    const updated = await this.repository.incrementAttributes(primaryKey, info, _conditionField, _condition);
     await this.emit("PartialUpdated", {
       object_id: primaryKey,
       partial_update: {
         increments: info
       }
     } as any);
+    return updated;
   }
 
   /**
@@ -189,6 +190,24 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       }
     } as any);
   }
+  /**
+   * Set an attribute with event emission, delegated to the repository so its (atomic) implementation is used
+   * @override
+   */
+  async setAttribute<K extends PropertyPaths<InstanceType<T>>, L extends PropertyPaths<InstanceType<T>>>(
+    primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string,
+    attribute: K,
+    value: PropertyPathType<InstanceType<T>, K>,
+    conditionField?: L | null,
+    condition?: PropertyPathType<InstanceType<T>, L> | JSONed<PropertyPathType<InstanceType<T>, L>>
+  ): Promise<void> {
+    const data = { [attribute]: value } as any;
+    const id = this.getPrimaryKey(primaryKey);
+    await this.emit("Patch", { object_id: id, object: data } as any);
+    await this.repository.setAttribute(primaryKey, attribute, value, conditionField, condition);
+    await this.emit("Patched", { object_id: id, object: data } as any);
+  }
+
   /**
    * Remove attribute with event emission
    * @override

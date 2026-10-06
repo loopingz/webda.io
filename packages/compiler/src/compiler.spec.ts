@@ -624,4 +624,83 @@ class CompilerTest {
       rmSync(dir, { recursive: true, force: true });
     }
   }
+
+  /**
+   * WEBDA_SCHEMA_WORKER pins the content-mapper entry the build runs, so its manifest gives the
+   * recorded version, and a manifest of another package or without version is not trusted blindly.
+   */
+  @test
+  async generatorVersionsFollowSchemaWorkerOverride() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webdac-worker-"));
+    const previous = process.env.WEBDA_SCHEMA_WORKER;
+    try {
+      const pkg = path.join(dir, "pinned", "content-mapper");
+      mkdirSync(path.join(pkg, "lib"), { recursive: true });
+      writeFileSync(
+        path.join(pkg, "package.json"),
+        JSON.stringify({ name: "@webda/content-mapper", version: "1.2.3" })
+      );
+      // A nested manifest of another package must be skipped while walking up
+      writeFileSync(path.join(pkg, "lib", "package.json"), JSON.stringify({ type: "module" }));
+      const worker = path.join(pkg, "lib", "worker.js");
+      writeFileSync(worker, "");
+      process.env.WEBDA_SCHEMA_WORKER = worker;
+      assert.strictEqual(getGeneratorVersions(dir)["@webda/content-mapper"], "1.2.3");
+
+      // A manifest without version reports unknown
+      const bare = path.join(dir, "bare");
+      mkdirSync(bare);
+      writeFileSync(path.join(bare, "package.json"), JSON.stringify({ name: "@webda/content-mapper" }));
+      writeFileSync(path.join(bare, "worker.js"), "");
+      process.env.WEBDA_SCHEMA_WORKER = path.join(bare, "worker.js");
+      const other = mkdtempSync(path.join(tmpdir(), "webdac-worker2-"));
+      try {
+        assert.strictEqual(getGeneratorVersions(other)["@webda/content-mapper"], "unknown");
+      } finally {
+        rmSync(other, { recursive: true, force: true });
+      }
+    } finally {
+      if (previous === undefined) {
+        delete process.env.WEBDA_SCHEMA_WORKER;
+      } else {
+        process.env.WEBDA_SCHEMA_WORKER = previous;
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  /**
+   * A generator change is announced at INFO level with the old and new versions.
+   */
+  @test
+  async generatorChangeIsLogged() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webdac-log-"));
+    try {
+      const workerOutput = new WorkerOutput();
+      const logs = new MemoryLogger(workerOutput, "INFO");
+      useWorkerOutput(workerOutput);
+      const project = {
+        getAppPath: (p: string = "") => path.join(dir, p),
+        getDigest: () => "digest"
+      } as unknown as WebdaProject;
+      writeFileSync(path.join(dir, "webda.module.json"), JSON.stringify({ moddas: {}, models: {} }));
+      mkdirSync(path.join(dir, ".webda"));
+      mkdirSync(path.join(dir, "lib"));
+      const compiler = new Compiler(project, () => {
+        throw new Error("not installed");
+      });
+      (compiler as any).updateCache();
+      const cachePath = path.join(dir, ".webda", "cache");
+      const cache = JSON.parse(readFileSync(cachePath, "utf8"));
+      writeFileSync(cachePath, JSON.stringify({ ...cache, generator: { "@webda/compiler": "0.0.1" } }));
+      assert.strictEqual(compiler.requireCompilation(), true);
+      const messages = logs.getMessages().map((m: any) => (m.log?.args ?? []).join(" "));
+      assert.ok(
+        messages.some(m => m.includes("Generator changed: @webda/compiler 0.0.1 → unknown, rebuilding")),
+        JSON.stringify(logs.getMessages())
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
 }

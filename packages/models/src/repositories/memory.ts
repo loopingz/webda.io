@@ -203,19 +203,20 @@ export class MemoryRepository<
    * @returns the deserialized model instance
    */
   deserialize(item: string): InstanceType<T> {
-    const instance = deserialize(item) as InstanceType<T>;
     // Re-parse the envelope to read `__type` (the serializer's deserialize
     // path strips it because it's not in `value`). This is cheap relative to
     // deserialize itself.
     let typeFromEnvelope: string | undefined;
+    let raw: any;
     try {
-      const raw = JSON.parse(item);
+      raw = JSON.parse(item);
       if (raw && typeof raw === "object") {
         typeFromEnvelope = (raw as any).__type;
       }
     } catch {
       // Non-JSON or malformed; skip the stamp — instance is still usable.
     }
+    const instance = (this.isPlainRow(raw) ? this.hydratePlainRow(raw) : deserialize(item)) as InstanceType<T>;
     const stamped = typeFromEnvelope ?? (this.model as any)?.Metadata?.Identifier;
     if (stamped) {
       Object.defineProperty(instance, "__type", {
@@ -224,6 +225,43 @@ export class MemoryRepository<
         configurable: true,
         writable: true
       });
+    }
+    return instance;
+  }
+
+  /**
+   * Whether a stored row is a plain JSON object without a serializer envelope
+   *
+   * Rows written by earlier versions (e.g. a v3 FileStore folder or MemoryStore persistence file) store the
+   * object itself, its type in a top-level `__type`.
+   * @param raw - the parsed row
+   * @returns true for a plain object row
+   */
+  protected isPlainRow(raw: any): boolean {
+    return (
+      raw !== null &&
+      typeof raw === "object" &&
+      !Array.isArray(raw) &&
+      raw.$serializer === undefined &&
+      typeof this.model === "function"
+    );
+  }
+
+  /**
+   * Hydrate a plain JSON row as an instance of the repository model (or of the subclass named by its
+   * `__type`), the same way document stores hydrate their rows
+   * @param raw - the parsed row
+   * @returns the model instance
+   */
+  protected hydratePlainRow(raw: any): InstanceType<T> {
+    const { __type, ...data } = raw;
+    const subclasses: any[] = (this.model as any)?.Metadata?.Subclasses ?? [];
+    const clazz: any = subclasses.find(c => c?.Metadata?.Identifier === __type) ?? this.model;
+    const instance = new clazz(data);
+    if (typeof instance.load === "function") {
+      instance.load(data);
+    } else {
+      Object.assign(instance, data);
     }
     return instance;
   }

@@ -29,6 +29,16 @@ export const WEBDA_EVENTS: unique symbol = Symbol("Events definition");
  * Symbol for internal storage of model properties that require custom getters/setters (e.g. for handling multiple input types like Date).
  */
 export const WEBDA_STORAGE: unique symbol = Symbol("Storage definition");
+/**
+ * Raw storage key carried (non-enumerable) by a primary key parsed from a legacy UID
+ *
+ * A model class may declare `static parseLegacyUID(uid: string): Record<string, any> | undefined` to accept
+ * storage keys written under an older key layout (e.g. v3 `"<uid>_<provider>"` idents now keyed
+ * `"<providerUid>:<provider>"`). Repositories consult it only when a key does not split into the
+ * composite primary key; the parsed key then serializes back to the raw legacy key, so `get`, `exists`
+ * and `delete` address the legacy record on every store.
+ */
+export const WEBDA_LEGACY_UID: unique symbol = Symbol("Legacy UID");
 
 /**
  * Define the events for the model

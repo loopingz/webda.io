@@ -88,6 +88,40 @@ export class Ident extends Model {
   }
 
   /**
+   * Parse a v3 storage key `"<providerUid>_<provider>"`, split on its LAST "_" (provider names never
+   * contain "_", provider uids such as emails may)
+   *
+   * Consulted by repositories for keys that are not `"<providerUid>:<provider>"` (see `WEBDA_LEGACY_UID`),
+   * so v3 records stay addressable and queryable until they are upgraded.
+   * @param uid - raw storage key
+   * @returns the key parts, or undefined when the key is not a v3 ident key
+   */
+  static parseLegacyUID(uid: string): { providerUid: string; provider: string } | undefined {
+    if (typeof uid !== "string" || uid.includes(SEPARATOR)) {
+      return undefined;
+    }
+    const i = uid.lastIndexOf("_");
+    if (i <= 0 || i === uid.length - 1) {
+      return undefined;
+    }
+    return { providerUid: uid.substring(0, i), provider: uid.substring(i + 1) };
+  }
+
+  /**
+   * v3 storage key of a record stored before the composite key (v3 kept it as `uuid` in the body)
+   *
+   * Such an ident has no `providerUid`: it must be upgraded (`@webda/auth` `upgradeIdent`) before use.
+   * @returns the v3 key, or undefined for a current ident
+   */
+  getLegacyUID(): string | undefined {
+    const uuid = (this as any).uuid;
+    if (this.providerUid || typeof uuid !== "string" || !Ident.parseLegacyUID(uuid)) {
+      return undefined;
+    }
+    return uuid;
+  }
+
+  /**
    * Normalise an email for use as providerUid
    * @param email - raw email
    * @returns trimmed lowercase email

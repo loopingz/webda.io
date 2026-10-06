@@ -56,4 +56,37 @@ class FileStoreMultiModelTest extends WebdaApplicationTest {
     fs.writeFileSync(path.join(folder, "broken.json"), "{not json");
     await assert.rejects(() => User.query(""));
   }
+
+  @test
+  async v3RecordsLoadAndQuery() {
+    // v3 FileStore layout: plain JSON files, idents keyed "<uid>_<provider>"
+    const write = (key: string, row: any) => fs.writeFileSync(path.join(folder, `${key}.json`), JSON.stringify(row));
+    write("v3user", { uuid: "v3user", __type: "Webda/User", email: "o_ld@x.com", __password: "$2a$10$abc" });
+    write("o_ld@x.com_email", {
+      uuid: "o_ld@x.com_email",
+      __type: "Webda/Ident",
+      _type: "email",
+      _user: "v3user",
+      email: "o_ld@x.com"
+    });
+    const ident = new Ident({ ...Ident.key("123", "google") } as any);
+    ident.setUser("v3user");
+    await Ident.getRepository().create(ident);
+    // v3 users hydrate as User, the v3 password mapped
+    const user: any = await User.ref("v3user").get();
+    assert.ok(user instanceof User);
+    assert.strictEqual(user.password.__hash, "$2a$10$abc");
+    // Ident queries see v3 records as legacy idents instead of throwing
+    const results = (await Ident.query("_user = ?", ["v3user"])).results;
+    assert.deepStrictEqual(results.map(i => i.getLegacyUID() ?? i.getUUID()).sort(), ["123:google", "o_ld@x.com_email"]);
+    assert.deepStrictEqual(
+      (await User.query("")).results.map(u => u.getUUID()),
+      ["v3user"]
+    );
+    // and stay addressable by their v3 key
+    assert.ok(await Ident.ref("o_ld@x.com_email" as any).exists());
+    await Ident.ref("o_ld@x.com_email" as any).delete();
+    assert.ok(!fs.existsSync(path.join(folder, "o_ld@x.com_email.json")));
+    assert.ok(fs.existsSync(path.join(folder, "123:google.json")));
+  }
 }

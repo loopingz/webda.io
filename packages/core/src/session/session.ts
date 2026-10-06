@@ -1,6 +1,20 @@
 import { NotEnumerable } from "@webda/tsc-esm";
 
 /**
+ * MFA progress of a session
+ */
+export type MfaState = "none" | "pending" | "verified";
+
+/**
+ * Options for {@link Session.login}
+ */
+export interface LoginOptions {
+  provider?: string;
+  amr?: string[];
+  mfa?: MfaState;
+}
+
+/**
  * Session
  */
 export class Session {
@@ -25,13 +39,43 @@ export class Session {
   roles: string[];
 
   /**
+   * Authentication provider used
+   */
+  provider?: string;
+
+  /**
+   * Authentication methods used
+   */
+  amr?: string[];
+
+  /**
+   * MFA state of the session
+   */
+  mfa?: MfaState;
+
+  /**
+   * Refresh token family identifier
+   */
+  refreshFamily?: string;
+
+  /**
+   * Session is stateless (not persisted in cookies)
+   */
+  @NotEnumerable
+  stateless?: boolean;
+
+  /**
    * Login
    * @param userId - the user identifier
    * @param identUsed - the identity used
+   * @param options - login options including provider, amr, and mfa state
    */
-  login(userId: string, identUsed: string) {
+  login(userId: string, identUsed: string, options: LoginOptions = {}) {
     this.userId = userId;
     this.identUsed = identUsed;
+    this.provider = options.provider;
+    this.amr = options.amr ?? [];
+    this.mfa = options.mfa ?? "none";
   }
   /**
    * Logout
@@ -40,6 +84,10 @@ export class Session {
     delete this.userId;
     delete this.identUsed;
     delete this.roles;
+    delete this.provider;
+    delete this.amr;
+    delete this.mfa;
+    delete this.refreshFamily;
   }
 
   /**
@@ -47,7 +95,15 @@ export class Session {
    * @returns true if the condition is met
    */
   isLogged(): boolean {
-    return this.userId !== undefined;
+    return this.userId !== undefined && this.mfa !== "pending";
+  }
+
+  /**
+   * If session is pending MFA verification
+   * @returns true if the condition is met
+   */
+  isPending(): boolean {
+    return this.userId !== undefined && this.mfa === "pending";
   }
 
   /**

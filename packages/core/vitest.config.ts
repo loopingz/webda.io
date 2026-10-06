@@ -63,7 +63,7 @@ export default defineConfig({
       "src/services/servicecommands.spec.ts",
       "src/services/service.spec.ts",
       "src/services/serviceparameters.spec.ts",
-      // "src/session/*.spec.ts",
+      "src/session/session.spec.ts",
       "src/stores/store.spec.ts",
       "src/stores/memory-separator.spec.ts",
       //"src/stores/*.spec.ts",

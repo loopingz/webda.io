@@ -15,7 +15,12 @@ for (const dir of readdirSync(packagesDir)) {
   if (!pkg.name?.startsWith("@webda/") || pkg.private) continue;
   versions[pkg.name] = pkg.version;
   if (pkg.name === "@webda/core") {
-    for (const tool of tools) versions[tool] = pkg.devDependencies[tool];
+    for (const tool of tools) versions[tool] = pkg.devDependencies?.[tool];
+  }
+}
+for (const tool of tools) {
+  if (!versions[tool]) {
+    throw new Error(`write-versions: @webda/core devDependencies has no ${tool}`);
   }
 }
 writeFileSync(join(packageDir, "lib", "versions.json"), JSON.stringify(versions, null, 2) + "\n");

@@ -29,6 +29,7 @@
     "packages/mock": {},
     "packages/models": {},
     "packages/mongodb": {},
+    "packages/oci": {},
     "packages/otel": {},
     "packages/postgres": {},
     "packages/ql": {},

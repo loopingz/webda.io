@@ -279,5 +279,27 @@ class JSONCParserTest {
     assert.strictEqual(Object.getOwnPropertyDescriptor(result, "missing"), undefined);
     assert.deepStrictEqual(Object.getOwnPropertyDescriptor(result, "b")?.enumerable, true);
   }
-}
 
+  @test
+  async assignProxyValues() {
+    // Values read from the proxy (objects, arrays, null) can be written back elsewhere in the tree
+    const result = JSONCParser.parse('{\n  // comment\n  "a": { "type": "A", "list": [1, 2] },\n  "n": null\n}');
+    result.b = result.a;
+    result.c = result.a.list;
+    result.d = null;
+    result.e = { nested: result.a, list: result.a.list };
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(result.b)), { type: "A", list: [1, 2] });
+    assert.deepStrictEqual(Array.from(result.c), [1, 2]);
+    assert.strictEqual(result.d, null);
+    assert.strictEqual(result.e.nested.type, "A");
+    assert.deepStrictEqual(Array.from(result.e.list), [1, 2]);
+    assert.deepStrictEqual(JSONCParser.parse(result.toString()).toJSON(), {
+      a: { type: "A", list: [1, 2] },
+      n: null,
+      b: { type: "A", list: [1, 2] },
+      c: [1, 2],
+      d: null,
+      e: { nested: { type: "A", list: [1, 2] }, list: [1, 2] }
+    });
+  }
+}

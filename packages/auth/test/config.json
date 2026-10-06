@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "parameters": { "ignoreBeans": true },
+  "services": {
+    "AuthStore": { "type": "Webda/MemoryStore", "models": ["Webda/User", "Webda/Ident", "Webda/RefreshToken"] },
+    "DefinedMailer": { "type": "WebdaTest/Mailer" }
+  }
+}

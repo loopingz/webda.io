@@ -1,6 +1,7 @@
 {
   "packages/amqp": "4.0.0-beta.1",
   "packages/async": "4.0.0-beta.1",
+  "packages/auth": "4.0.0-beta.1",
   "packages/aws": "4.0.0-beta.1",
   "packages/cache": "4.0.0-beta.1",
   "packages/cloudevents": "4.0.0-beta.2",

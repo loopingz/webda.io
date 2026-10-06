@@ -5,6 +5,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkSkills } from "./check-skills.mjs";
 
 const packageDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(packageDir, "..", "..");
@@ -29,7 +30,12 @@ export const APPS = [
       PGDATABASE: process.env.PGDATABASE ?? "webda.io"
     }
   },
-  { name: "memory-all-transports", flags: ["--store", "memory", "--transports", "rest,graphql,grpc,mcp"], env: {} },
+  {
+    name: "memory-all-transports",
+    flags: ["--store", "memory", "--transports", "rest,graphql,grpc,mcp"],
+    env: {},
+    after: dir => checkSkills(dir, join(packageDir, "agent", "skills"))
+  },
   { name: "memory-graphql-only", flags: ["--store", "memory", "--transports", "graphql"], env: {} }
 ];
 

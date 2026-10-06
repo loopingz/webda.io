@@ -36,12 +36,12 @@ npm test        # build, then run the tests
 
 Read the matching skill before working on a task:
 
-| Task                                                       | Skill                                         |
-| ---------------------------------------------------------- | --------------------------------------------- |
-| Add or change a model, its validation or relations         | `.agents/skills/webda-models/SKILL.md`        |
-| Add or change a service                                    | `.agents/skills/webda-services/SKILL.md`      |
-| Expose behaviour as an operation; REST, GraphQL, gRPC, MCP | `.agents/skills/webda-operations/SKILL.md`    |
-| Configuration, parameters, deployment overrides            | `.agents/skills/webda-configuration/SKILL.md` |
-| Choose or switch the store; read and write data            | `.agents/skills/webda-stores/SKILL.md`        |
-| Write or fix tests                                         | `.agents/skills/webda-testing/SKILL.md`       |
-| Deploy, add an environment, build an image or a Lambda package | `.agents/skills/webda-deploy/SKILL.md` |
+| Task                                                           | Skill                                         |
+| -------------------------------------------------------------- | --------------------------------------------- |
+| Add or change a model, its validation or relations             | `.agents/skills/webda-models/SKILL.md`        |
+| Add or change a service                                        | `.agents/skills/webda-services/SKILL.md`      |
+| Expose behaviour as an operation; REST, GraphQL, gRPC, MCP     | `.agents/skills/webda-operations/SKILL.md`    |
+| Configuration, parameters, deployment overrides                | `.agents/skills/webda-configuration/SKILL.md` |
+| Choose or switch the store; read and write data                | `.agents/skills/webda-stores/SKILL.md`        |
+| Write or fix tests                                             | `.agents/skills/webda-testing/SKILL.md`       |
+| Deploy, add an environment, build an image or a Lambda package | `.agents/skills/webda-deploy/SKILL.md`        |

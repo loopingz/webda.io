@@ -32,6 +32,7 @@ export interface Composed {
  * @param base - base app
  * @param overlays - overlays in application order
  * @param options - `rest: false` removes the base `RESTService`
+ * @param options.rest - whether to include REST service
  * @returns merged files, package.json, configuration and agent notes
  */
 export function compose(base: Template, overlays: Template[], options: { rest: boolean }): Composed {

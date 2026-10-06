@@ -62,6 +62,10 @@ export const clackPrompter: Prompter = {
  * Apply defaults and, in interactive mode, ask for missing values
  * @param args - parsed command line
  * @param context - interactivity, prompter, working directory and package manager user agent
+ * @param context.interactive - whether running in interactive mode
+ * @param context.prompter - prompter implementation for interactive input
+ * @param context.cwd - current working directory
+ * @param context.userAgent - package manager user agent
  * @returns complete options with an absolute `dir`
  */
 export async function resolveOptions(

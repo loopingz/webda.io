@@ -42,6 +42,10 @@ export function checkTarget(dir: string): void {
 /**
  * Compose the application files in memory
  * @param input - options, template folders and version resolver
+ * @param input.options - application creation options
+ * @param input.templatesDir - path to template directories
+ * @param input.agentDir - path to agent directory
+ * @param input.resolveVersion - function to resolve package versions
  * @returns relative path → content
  */
 export async function generate(input: {

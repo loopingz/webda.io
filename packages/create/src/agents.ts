@@ -15,6 +15,8 @@ const TRANSPORT_LABELS: Record<Transport, string> = { rest: "REST", graphql: "Gr
 /**
  * Lines describing the generated app for the "This app" section of AGENTS.md
  * @param options - selected store and transports
+ * @param options.store - selected store backend
+ * @param options.transports - selected transport protocols
  * @returns one line per aspect
  */
 export function describeApp(options: { store: Store; transports: Transport[] }): string[] {

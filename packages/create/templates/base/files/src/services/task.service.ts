@@ -1,6 +1,9 @@
 import { Operation, Service, useLog } from "@webda/core";
 import { Task } from "../models/Task.model.js";
 
+/**
+ * Parameters of TaskService, set in webda.config.json
+ */
 export class TaskServiceParameters extends Service.Parameters {}
 
 /**

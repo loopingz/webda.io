@@ -4,6 +4,7 @@ import {
   Counter,
   Ident,
   type IAuthenticationService,
+  type IssuedTokens,
   Operation,
   type ProviderInfo,
   type ResolvedIdentity,
@@ -19,7 +20,7 @@ import {
   WebdaError
 } from "@webda/core";
 import type { ModelClass } from "@webda/models";
-import { AccountExists, IdentLinkedElsewhere, RegistrationDisabled } from "./errors.js";
+import { AccountExists, IdentLinkedElsewhere, LastLoginMethod, RegistrationDisabled } from "./errors.js";
 import { type AuthProvider, isAuthProvider } from "./provider.js";
 
 /** Account linking policy for unauthenticated logins matching an existing email */
@@ -420,10 +421,94 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
-   * Not available yet
-   * @returns never
+   * @returns the logged user id
+   * @throws WebdaError.Unauthorized when no fully logged session exists
    */
+  protected requireUser(): string {
+    const ctx = useContext<any>();
+    if (!ctx.getSession()?.isLogged()) {
+      throw new WebdaError.Unauthorized("Login required");
+    }
+    return ctx.getCurrentUserId();
+  }
+
+  /**
+   * Logout and revoke the current refresh family; also abandons a pending MFA session
+   */
+  @Operation({ id: "Auth.Logout", rest: { method: "post", path: "auth/logout" } })
   async logout(): Promise<void> {
-    throw new WebdaError.NotImplemented("logout");
+    const ctx = useContext<any>();
+    const session = ctx.getSession();
+    if (!session?.isLogged() && !session?.isPending()) {
+      throw new WebdaError.Unauthorized("Login required");
+    }
+    const family = session.refreshFamily;
+    if (family) {
+      await runAsSystem(() => useService("TokenService").revokeFamily(family));
+    }
+    await this.emit("Authentication.Logout", { context: ctx } as any);
+    this.metrics?.logout?.inc();
+    ctx.newSession();
+  }
+
+  /**
+   * Exchange a refresh token
+   * @param refreshToken - refresh token
+   * @returns new tokens
+   */
+  @Operation({ id: "Auth.Refresh", rest: { method: "post", path: "auth/refresh" } })
+  async refresh(refreshToken: string): Promise<IssuedTokens> {
+    const { session, ...tokens } = await runAsSystem(() => useService("TokenService").refresh(refreshToken));
+    return tokens;
+  }
+
+  /**
+   * @returns idents of the current user
+   */
+  @Operation({ id: "Auth.Idents", rest: { method: "get", path: "auth/idents" } })
+  async idents(): Promise<
+    { provider: string; providerUid: string; email?: string; verifiedAt?: Date; lastUsedAt?: Date }[]
+  > {
+    const userId = this.requireUser();
+    return (await this.listIdents(userId)).map(i => ({
+      provider: i.provider,
+      providerUid: i.providerUid,
+      email: i.email,
+      verifiedAt: i.verifiedAt,
+      lastUsedAt: i.lastUsedAt
+    }));
+  }
+
+  /**
+   * @param userId - user
+   * @returns all idents owned by the user
+   */
+  protected async listIdents(userId: string): Promise<Ident[]> {
+    return runAsSystem(async () => (await this.getIdentModel().query("_user = ?", [userId])).results);
+  }
+
+  /**
+   * Remove one of the current user's idents
+   * @param provider - provider
+   * @param providerUid - uid
+   * @throws LastLoginMethod when no other login method would remain
+   */
+  @Operation({ id: "Auth.Unlink", rest: { method: "post", path: "auth/idents/unlink" } })
+  async unlink(provider: string, providerUid: string): Promise<void> {
+    const userId = this.requireUser();
+    const idents = await this.listIdents(userId);
+    const target = idents.find(i => i.provider === provider && i.providerUid === providerUid);
+    if (!target) {
+      throw new WebdaError.NotFound("Ident not found");
+    }
+    const remaining = idents.filter(i => i !== target);
+    const user: User = await this.loadUser(userId);
+    const usesPassword = (user as any).password?.hasPassword?.();
+    const lastEmail = provider === "email" && !remaining.some(i => i.provider === "email");
+    if (remaining.length === 0 || (usesPassword && lastEmail)) {
+      throw new LastLoginMethod();
+    }
+    await runAsSystem(() => target.ref().delete());
+    await this.emit("Authentication.Unlinked", { context: useContext(), user, ident: target } as any);
   }
 }

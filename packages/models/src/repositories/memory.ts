@@ -370,7 +370,8 @@ export class MemoryRepository<
       if (offset >= count) {
         continue;
       }
-      const obj = (await repository.get(uuid as any)) as InstanceType<T>;
+      // A storage shared by several models may hold keys that are not valid for this repository: skip them
+      const obj = (await repository.get(uuid as any).catch(() => undefined)) as InstanceType<T>;
       if (obj && query.filter.eval(obj)) {
         result.results.push(obj);
         if (result.results.length >= limit) {

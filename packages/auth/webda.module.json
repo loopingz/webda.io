@@ -165,6 +165,106 @@
     },
     "Authentication.me.output": {
       "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "Authentication.logout.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Authentication.logout.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Authentication.refresh.input": {
+      "type": "object",
+      "properties": {
+        "refreshToken": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "refreshToken"
+      ]
+    },
+    "Authentication.refresh.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "description": "Tokens returned by a successful login or refresh",
+      "properties": {
+        "accessToken": {
+          "type": "string"
+        },
+        "expiresIn": {
+          "type": "number"
+        },
+        "refreshToken": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "accessToken",
+        "expiresIn",
+        "refreshToken"
+      ],
+      "type": "object"
+    },
+    "Authentication.idents.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Authentication.idents.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "items": {
+        "$ref": "#/definitions/%5B%5D"
+      },
+      "type": "array",
+      "definitions": {
+        "[]": {
+          "additionalProperties": false,
+          "properties": {
+            "email": {
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "provider": {
+              "type": "string"
+            },
+            "providerUid": {
+              "type": "string"
+            },
+            "verifiedAt": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          "required": [
+            "provider",
+            "providerUid"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "Authentication.unlink.input": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "providerUid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "providerUid"
+      ]
+    },
+    "Authentication.unlink.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
     }
   },
   "behaviors": {}

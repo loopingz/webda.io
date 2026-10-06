@@ -1,1 +1,1 @@
-MongoDB runs locally with `docker compose up -d`. The connection comes from `WEBDA_MONGO_URL` (see `.env.example`); never put credentials in `webda.config.json`.
+MongoDB runs locally: `docker compose up -d`, then `cp .env.example .env`. The connection comes from `WEBDA_MONGO_URL` (see `.env.example`); tests load `.env` automatically; for `npm run debug` or `npm run serve`, export the variables first (`set -a; . ./.env; set +a`); never put credentials in `webda.config.json`.

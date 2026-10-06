@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { relative } from "node:path";
+import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkTarget, generate, writeFiles } from "./generate.js";
 import { initGit, installDependencies, Runner, spawnRunner } from "./install.js";
@@ -52,7 +52,7 @@ export async function main(deps: MainDeps): Promise<number> {
     });
     checkTarget(options.dir);
     const resolveVersion = options.linkWorkspace
-      ? await fromWorkspace(options.linkWorkspace)
+      ? await fromWorkspace(resolve(deps.cwd, options.linkWorkspace))
       : fromVersionsFile(deps.versions);
     const files = await generate({ options, templatesDir: deps.templatesDir, agentDir: deps.agentDir, resolveVersion });
     writing = true;
@@ -78,7 +78,7 @@ export async function main(deps: MainDeps): Promise<number> {
       [
         "Next steps:",
         `  cd ${cd}`,
-        `  ${options.pm} run debug        # http://localhost:18080`,
+        `  ${options.pm} run debug        # build, then dev server on http://localhost:18080`,
         "Open the project in your coding agent: it reads AGENTS.md; skills are in .agents/skills/"
       ].join("\n")
     );

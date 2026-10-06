@@ -57,7 +57,7 @@ Credentials in webda.config.json             → environment variables (.env.exa
 
 ## Verify
 
-`npm test`. For MongoDB or PostgreSQL, start the database (`docker compose up -d`) and export the variables from `.env.example` first.
+`npm test`. For MongoDB or PostgreSQL, start the database (`docker compose up -d`) and `cp .env.example .env`: tests load `.env` automatically; for `npm run debug` or `npm run serve`, export the variables first (`set -a; . ./.env; set +a`).
 
 ## Reference
 

@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { describeApp, renderAgentsMd } from "./agents.js";
@@ -31,6 +31,9 @@ export function finalizePaths(files: FileMap, tokens: Record<string, string>): F
  * @param dir - target directory
  */
 export function checkTarget(dir: string): void {
+  if (existsSync(dir) && !statSync(dir).isDirectory()) {
+    throw new OptionsError(`${dir} exists and is not a directory`);
+  }
   if (existsSync(dir) && readdirSync(dir).length > 0) {
     throw new OptionsError(`${dir} already exists and is not empty`);
   }

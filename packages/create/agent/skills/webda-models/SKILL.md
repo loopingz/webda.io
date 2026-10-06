@@ -66,12 +66,12 @@ export class Product extends UuidModel {
 
 Relations:
 
-| Type                                       | Meaning                                                                                                                                    |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `BelongTo<Parent>`                         | this model belongs to a parent: REST nests it under the parent's URL; deleting the parent does not delete it, delete the children yourself |
-| `RelateTo<Other>`                          | a link to another model, no cascade                                                                                                        |
-| `OneToMany<Child, ThisModel, "attribute">` | the children whose `attribute` points to this model (read side of `BelongTo`/`RelateTo`)                                                   |
-| `ManyToMany<Other>`                        | many-to-many links                                                                                                                         |
+| Type                                       | Meaning                                                                                              |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `BelongTo<Parent>`                         | this model belongs to a parent; deleting the parent does not delete it, delete the children yourself |
+| `RelateTo<Other>`                          | a link to another model, no cascade                                                                  |
+| `OneToMany<Child, ThisModel, "attribute">` | the children whose `attribute` points to this model (read side of `BelongTo`/`RelateTo`)             |
+| `ManyToMany<Other>`                        | many-to-many links                                                                                   |
 
 A `BelongTo` or `RelateTo` field is stored as the key of the target: pass the key of the parent, `parent.getUUID()` for a model with a `uuid` key.
 

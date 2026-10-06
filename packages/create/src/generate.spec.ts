@@ -89,4 +89,12 @@ class GenerateTest {
     assert.throws(() => checkTarget(dir), OptionsError);
     assert.ok(!existsSync(join(dir, "new")));
   }
+
+  @test
+  rejectsAFileTarget() {
+    const dir = mkdtempSync(join(tmpdir(), "webda-target-"));
+    const file = join(dir, "file.txt");
+    writeFileSync(file, "x");
+    assert.throws(() => checkTarget(file), /exists and is not a directory/);
+  }
 }

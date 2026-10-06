@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "webdac build",
+    "predebug": "webdac build",
     "debug": "webda debug",
+    "preserve": "webdac build",
+    "serve": "webda serve",
     "pretest": "webdac build",
     "test": "vitest run"
   },

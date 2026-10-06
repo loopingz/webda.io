@@ -54,9 +54,13 @@ class TemplatesTest {
     }
     assert.ok(files.get("README.md").startsWith("# demo-app\n"), "README.md title");
     assert.ok(files.get("AGENTS.md").startsWith("# demo-app\n"), "AGENTS.md title");
+    assert.ok(files.get("vitest.config.ts").includes("loadEnv"), "vitest loads .env");
     assert.deepStrictEqual(JSON.parse(files.get("package.json")).scripts, {
       build: "webdac build",
+      predebug: "webdac build",
       debug: "webda debug",
+      preserve: "webdac build",
+      serve: "webda serve",
       pretest: "webdac build",
       test: "vitest run"
     });

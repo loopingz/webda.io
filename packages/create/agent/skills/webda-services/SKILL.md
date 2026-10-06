@@ -11,7 +11,7 @@ Behaviour that is not about a single model: integrations, scheduled work, comput
 
 ## Pattern
 
-A service lives in `src/services/<name>.service.ts`, has a parameters class, and the `@WebdaModda` JSDoc tag so the compiler registers it. It is enabled in `webda.config.json` under `services`, where its parameters are set.
+A service lives in `src/services/<name>.service.ts`, has a parameters class (the file must be named `*.service.ts`: the build fails on a service file without that suffix), and the `@WebdaModda` JSDoc tag so the compiler registers it. It is enabled in `webda.config.json` under `services`, where its parameters are set.
 
 ```ts
 import { Service, useLog } from "@webda/core";

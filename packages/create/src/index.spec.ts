@@ -63,6 +63,14 @@ function deps(argv: string[], run?: Runner) {
 @suite
 class MainTest {
   @test
+  async resolvesRelativeLinkWorkspaceAgainstCwd() {
+    const { d, cwd } = deps(["app", "--pm", "pnpm", "--link-workspace", "ws"]);
+    mkdirSync(join(cwd, "ws/packages/x"), { recursive: true });
+    writeFileSync(join(cwd, "ws/packages/x/package.json"), JSON.stringify({ name: "x" }));
+    assert.strictEqual(await main(d), 0);
+  }
+
+  @test
   async generatesInstallsAndCommits() {
     const { d, commands, cwd, logs } = deps(["app", "--pm", "pnpm"]);
     assert.strictEqual(await main(d), 0);

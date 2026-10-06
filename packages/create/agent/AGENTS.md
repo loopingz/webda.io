@@ -6,7 +6,8 @@ A [Webda](https://webda.io) v4 application. Webda is a model-driven Node.js fram
 
 ```bash
 npm run build   # compile src/ to lib/ and generate webda.module.json and .webda/
-npm run debug   # dev server on http://localhost:18080, reloads on change
+npm run debug   # build, then start the dev server with the interactive debug console on http://localhost:18080
+npm run serve   # build, then start the HTTP server on http://localhost:18080 (no terminal UI)
 npm test        # build, then run the tests
 ```
 
@@ -24,6 +25,7 @@ npm test        # build, then run the tests
 - Configuration belongs in `webda.config.json`, not in code.
 - Never edit generated files: `.webda/`, `webda.module.json`, `lib/`.
 - After a change, run `npm run build` then `npm test`.
+- Agents and non-interactive shells: use `npm run serve`; `npm run debug` opens a fullscreen terminal UI.
 
 ## This app
 
@@ -38,6 +40,6 @@ Read the matching skill before working on a task:
 | Add or change a model, its validation or relations         | `.agents/skills/webda-models/SKILL.md`        |
 | Add or change a service                                    | `.agents/skills/webda-services/SKILL.md`      |
 | Expose behaviour as an operation; REST, GraphQL, gRPC, MCP | `.agents/skills/webda-operations/SKILL.md`    |
-| Configuration and parameters           | `.agents/skills/webda-configuration/SKILL.md` |
+| Configuration and parameters                               | `.agents/skills/webda-configuration/SKILL.md` |
 | Choose or switch the store; read and write data            | `.agents/skills/webda-stores/SKILL.md`        |
 | Write or fix tests                                         | `.agents/skills/webda-testing/SKILL.md`       |

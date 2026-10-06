@@ -498,7 +498,7 @@ export class MemoryRepository<
     info: (L | { property: L; value?: number })[] | Record<L, number>,
     _conditionField?: K | null,
     _condition?: any
-  ): Promise<Record<string, number>> {
+  ): Promise<void | Record<string, number>> {
     const item = this.getSync(primaryKey);
     const entries: [string, number][] = Array.isArray(info)
       ? info.map(entry =>

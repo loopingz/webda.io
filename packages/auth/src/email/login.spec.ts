@@ -301,6 +301,27 @@ class EmailLoginTest extends EmailTest {
   }
 
   @test
+  async countingWorksWhenIncrementReturnsVoid() {
+    await this.op("Auth.Email.Register", { email: "vd@x.com", password: "longenough" });
+    const repo: any = Ident.getRepository();
+    const original = repo.incrementAttributes;
+    repo.incrementAttributes = async (...args: any[]) => {
+      await original.apply(repo, args);
+    };
+    try {
+      for (let i = 0; i < 3; i++) {
+        await rejectsWith(
+          () => this.op("Auth.Email.Login", { email: "vd@x.com", password: "badbadbad" }),
+          InvalidCredentials
+        );
+      }
+      await rejectsWith(() => this.op("Auth.Email.Login", { email: "vd@x.com", password: "longenough" }), Throttled);
+    } finally {
+      repo.incrementAttributes = original;
+    }
+  }
+
+  @test
   async adoptionDoesNotKeepUnprovenVerification() {
     const orphan = new Ident({
       ...Ident.key("ad@x.com", "email"),

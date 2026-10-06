@@ -21,6 +21,7 @@ export interface AuthProvider extends Service {
 export interface ProviderEmailPolicy {
   /**
    * Only identities whose email domain is listed may log in (case-insensitive, exact domain match, no wildcard).
+   * The email must also be verified and trusted (see trustEmailVerification). An empty list refuses everyone.
    * Undefined means all domains.
    */
   allowedEmailDomains?: string[];
@@ -59,15 +60,21 @@ export function applyEmailPolicy(
   if (!policy) return identity;
   const domain = identity.email ? emailDomain(identity.email) : undefined;
   const norm = (list: string[]) => list.map(d => d.trim().toLowerCase());
-  if (policy.allowedEmailDomains && (!domain || !norm(policy.allowedEmailDomains).includes(domain))) {
+  const trust = policy.trustEmailVerification;
+  let out = identity;
+  if (identity.emailVerified && trust !== undefined && trust !== true) {
+    if (trust === false || !domain || !norm(trust).includes(domain)) {
+      out = { ...identity, emailVerified: false };
+    }
+  }
+  // The allow-list only admits a present, listed and (still) verified email
+  if (
+    policy.allowedEmailDomains &&
+    (!domain || !out.emailVerified || !norm(policy.allowedEmailDomains).includes(domain))
+  ) {
     throw new EmailDomainNotAllowed();
   }
-  const trust = policy.trustEmailVerification;
-  if (trust === undefined || trust === true || !identity.emailVerified) return identity;
-  if (trust === false || !domain || !norm(trust).includes(domain)) {
-    return { ...identity, emailVerified: false };
-  }
-  return identity;
+  return out;
 }
 
 /**

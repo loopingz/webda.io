@@ -173,6 +173,19 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     const params: any = provider.getParameters?.();
     if (!params) return undefined;
     const { allowedEmailDomains, trustEmailVerification } = params;
+    const strings = (v: unknown) => Array.isArray(v) && v.every(d => typeof d === "string");
+    if (allowedEmailDomains !== undefined && !strings(allowedEmailDomains)) {
+      throw new Error(`Invalid email policy for provider '${name}': allowedEmailDomains must be a string[]`);
+    }
+    if (
+      trustEmailVerification !== undefined &&
+      typeof trustEmailVerification !== "boolean" &&
+      !strings(trustEmailVerification)
+    ) {
+      throw new Error(
+        `Invalid email policy for provider '${name}': trustEmailVerification must be a boolean or string[]`
+      );
+    }
     return allowedEmailDomains === undefined && trustEmailVerification === undefined
       ? undefined
       : { allowedEmailDomains, trustEmailVerification };

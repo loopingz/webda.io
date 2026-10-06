@@ -141,6 +141,41 @@ class EmailPolicyTest extends AuthTest {
     await this.login(google("l3", "new@other.com"));
     assert.ok(!(await Ident.ref(Ident.key("l3", "google")).get()).isVerified());
     assert.ok(!(await Ident.ref(Ident.key("new@other.com", "email")).exists()));
-    assert.strictEqual(other.getUUID() !== owner.getUUID(), true);
+    const created = await Ident.ref(Ident.key("l3", "google")).get();
+    assert.notStrictEqual(created.getUser().toString(), owner.getUUID());
+    assert.notStrictEqual(created.getUser().toString(), other.getUUID());
+  }
+
+  @test
+  async allowListRequiresTrustedVerifiedEmail() {
+    const before = await this.counts();
+    this.setPolicy({ allowedEmailDomains: ["company.com"] });
+    await rejectsWith(() => this.login(google("v1", "x@company.com", false)), EmailDomainNotAllowed);
+    this.setPolicy({ allowedEmailDomains: ["company.com"], trustEmailVerification: false });
+    await rejectsWith(() => this.login(google("v2", "x@company.com", true)), EmailDomainNotAllowed);
+    this.setPolicy({ allowedEmailDomains: ["company.com"], trustEmailVerification: ["other.com"] });
+    await rejectsWith(() => this.login(google("v3", "x@company.com", true)), EmailDomainNotAllowed);
+    this.setPolicy({ allowedEmailDomains: [] });
+    await rejectsWith(() => this.login(google("v4", "x@company.com", true)), EmailDomainNotAllowed);
+    assert.deepStrictEqual(await this.counts(), before);
+    this.setPolicy({ allowedEmailDomains: ["company.com"], trustEmailVerification: ["company.com"] });
+    await this.login(google("v5", "x@company.com", true));
+    this.setPolicy({ allowedEmailDomains: ["company.com"] });
+    await this.login(google("v6", "y@company.com", true));
+  }
+
+  @test
+  async invalidPolicyTypes() {
+    for (const bad of [
+      { allowedEmailDomains: "company.com" },
+      { trustEmailVerification: "yes" },
+      { allowedEmailDomains: [1] }
+    ]) {
+      this.setPolicy({ allowedEmailDomains: undefined, trustEmailVerification: undefined, ...bad });
+      await assert.rejects(
+        () => this.login(google("w1", "x@company.com")),
+        /Invalid email policy for provider 'google'/
+      );
+    }
   }
 }

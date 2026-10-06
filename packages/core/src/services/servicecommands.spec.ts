@@ -637,3 +637,37 @@ class EnsureCommandServicesTest {
     assert.strictEqual(config.services["Webda/Router"].type, "Webda/Router");
   }
 }
+
+@suite
+class ExecuteServiceCommandInstanceFilterTest {
+  @test
+  async filterByInstanceName() {
+    const calls: string[] = [];
+    class CloudFormationDeployer {
+      constructor(private name: string) {}
+      getName() {
+        return this.name;
+      }
+      async deploy() {
+        calls.push(this.name);
+      }
+    }
+    const services: any = {
+      Stack: new CloudFormationDeployer("Stack"),
+      Other: new CloudFormationDeployer("Other")
+    };
+    const cmdInfo: any = {
+      description: "",
+      services: [{ name: "Webda/CloudFormationDeployer", method: "deploy", type: "Webda/CloudFormationDeployer" }],
+      args: {},
+      requires: []
+    };
+    assert.strictEqual(await executeServiceCommand("deploy", cmdInfo, {}, services, ["Other"]), 0);
+    assert.deepStrictEqual(calls, ["Other"]);
+    calls.length = 0;
+    // A type filter still runs every instance of that type
+    assert.strictEqual(await executeServiceCommand("deploy", cmdInfo, {}, services, ["CloudFormationDeployer"]), 0);
+    assert.deepStrictEqual(calls.sort(), ["Other", "Stack"]);
+    assert.strictEqual(await executeServiceCommand("deploy", cmdInfo, {}, services, ["Unknown"]), 1);
+  }
+}

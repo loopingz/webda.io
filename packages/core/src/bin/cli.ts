@@ -6,7 +6,15 @@ import type { JSONSchema7 } from "json-schema";
 import { isMainModule } from "@webda/tsc-esm";
 import { Application, installConfigurationFactories } from "../application/application.js";
 import { UnpackedApplication } from "../application/unpackedapplication.js";
-import { collectServiceCommands, executeServiceCommand } from "../services/servicecommands.js";
+import {
+  collectServiceCommands,
+  executeServiceCommand,
+  type ServiceCommandInfo,
+  type ServiceCommandTarget
+} from "../services/servicecommands.js";
+import { getDeploymentUnitServices, mergeDeploymentUnits } from "../application/deployment.js";
+import { DEPLOYER_CAPABILITY } from "../deployers/deployer.js";
+import * as WebdaError from "../errors/errors.js";
 import { Core } from "../core/core.js";
 import { bootCoreForCommand } from "./cli-phase.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
@@ -526,13 +534,14 @@ function loadApplication(appPath: string): Application {
  * @param app - The loaded Application
  * @param services - Service targets from the command metadata
  */
-export function ensureCommandServices(
-  app: Application,
-  services: import("../services/servicecommands.js").ServiceCommandTarget[]
-): void {
+export function ensureCommandServices(app: Application, services: ServiceCommandTarget[]): void {
   const appConfig = app.getConfiguration();
   appConfig.services ??= {};
   for (const svc of services) {
+    // Deployers only come from the units of the selected deployment
+    if (isDeployerType(app, svc.type)) {
+      continue;
+    }
     const hasProvider =
       Object.values(appConfig.services).some(
         (cfg: any) => cfg.type === svc.type || cfg.type === svc.type.split("/").pop()
@@ -541,6 +550,101 @@ export function ensureCommandServices(
       appConfig.services[svc.name] = { type: svc.type };
     }
   }
+}
+
+/**
+ * Whether a service type is a deployer, from its compiled capabilities
+ *
+ * @param app - the loaded Application
+ * @param type - the service type
+ * @returns true if the type declares the deployer capability
+ */
+export function isDeployerType(app: Pick<Application, "getModules">, type: string): boolean {
+  const modules = app.getModules?.();
+  const entry = modules?.moddas?.[type] ?? modules?.beans?.[type];
+  return (entry?.capabilities ?? []).includes(DEPLOYER_CAPABILITY);
+}
+
+/**
+ * Global options taking a separate value, used to find the command name in the raw arguments
+ */
+const GLOBAL_OPTIONS_WITH_VALUE = ["--log-stream", "--service"];
+
+/**
+ * Extract the deployment selection from the raw CLI arguments
+ *
+ * `-d <name>` (or `-d<name>`) selects the deployment when it comes before the command name, so a
+ * command keeps its own `-d` alias; `--deployment <name>` (or `--deployment=<name>`) is accepted anywhere.
+ *
+ * @param argv - the raw CLI arguments
+ * @returns the deployment name and the arguments without the deployment option
+ */
+export function extractDeploymentArgument(argv: string[]): { deployment?: string; argv: string[] } {
+  const remaining: string[] = [];
+  let deployment: string | undefined;
+  let commandSeen = false;
+  const valueOf = (option: string, index: number): string => {
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith("-")) {
+      throw new WebdaError.CodeError("DEPLOYMENT_REQUIRED", `Option ${option} requires a deployment name`);
+    }
+    return value;
+  };
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--") {
+      remaining.push(...argv.slice(i));
+      break;
+    }
+    if (arg === "--deployment" || (!commandSeen && arg === "-d")) {
+      deployment = valueOf(arg, i++);
+    } else if (arg.startsWith("--deployment=")) {
+      deployment = arg.substring("--deployment=".length);
+    } else if (!commandSeen && arg.startsWith("-d") && !arg.startsWith("--") && arg.length > 2) {
+      deployment = arg.substring(2);
+    } else {
+      // A bare word is the command, unless it is the value of a global option
+      if (!arg.startsWith("-") && !GLOBAL_OPTIONS_WITH_VALUE.includes(remaining[remaining.length - 1])) {
+        commandSeen = true;
+      }
+      remaining.push(arg);
+    }
+  }
+  return { deployment, argv: remaining };
+}
+
+/**
+ * Add the units of the selected deployment that run a command as services
+ *
+ * Only the units whose type provides the command are added: the deployers are never
+ * instantiated for the application commands (serve, debug, ...).
+ *
+ * @param app - the loaded Application
+ * @param cmdName - the command name
+ * @param cmdInfo - the command metadata
+ * @returns the names of the units added
+ * @throws CodeError DEPLOYMENT_REQUIRED if only deployers run the command and no unit does
+ */
+export function prepareDeploymentUnits(app: Application, cmdName: string, cmdInfo: ServiceCommandInfo): string[] {
+  const types = cmdInfo.services.map(svc => svc.type);
+  const deployment = app.getDeployment();
+  const units = deployment ? getDeploymentUnitServices(deployment, type => app.completeNamespace(type)) : {};
+  const selected = Object.fromEntries(Object.entries(units).filter(([, unit]) => types.includes(unit.type)));
+  mergeDeploymentUnits(app.getConfiguration(), selected);
+  const deployerTypes = types.filter(type => isDeployerType(app, type));
+  if (Object.keys(selected).length === 0 && deployerTypes.length > 0 && deployerTypes.length === types.length) {
+    if (!deployment) {
+      throw new WebdaError.CodeError(
+        "DEPLOYMENT_REQUIRED",
+        `Command '${cmdName}' is run by deployers: select a deployment with -d <name>`
+      );
+    }
+    throw new WebdaError.CodeError(
+      "DEPLOYMENT_REQUIRED",
+      `Deployment '${app.getCurrentDeployment()}' has no unit of type ${deployerTypes.join(", ")} for command '${cmdName}'`
+    );
+  }
+  return Object.keys(selected);
 }
 
 /**
@@ -779,7 +883,12 @@ if (isMain) {
       patchConsole();
     }
     try {
+      // The deployment is applied when loading the application
+      const { deployment, argv: cliArgv } = extractDeploymentArgument(rawArgv);
       const app = loadApplication(appPath);
+      if (deployment) {
+        app.setCurrentDeployment(deployment);
+      }
       useInstanceStorage().application = app;
       await app.load();
 
@@ -799,7 +908,13 @@ if (isMain) {
       }
 
       // Build the CLI with operations (if available) and service commands
-      const cli = yargs(rawArgv).scriptName("webda").usage("$0 <command> [options]");
+      const cli = yargs(cliArgv).scriptName("webda").usage("$0 <command> [options]");
+
+      // Extracted from raw argv before loading the application; declared here for --help
+      cli.option("deployment", {
+        type: "string",
+        description: "Deployment to apply (deployments/<name>), also -d <name> before the command or WEBDA_DEPLOYMENT"
+      });
 
       // Logging options are applied from raw argv before parsing; declared here for --help and validation
       cli.option("log-stream", {
@@ -931,7 +1046,8 @@ if (isMain) {
         const cmdInfo = serviceCommands[matchedCommand.name];
         const serviceFilter = matchedCommand.args.service?.split(",");
 
-        // Ensure services required by this command exist in the configuration
+        // Add the deployment units running this command, then the services required by it
+        prepareDeploymentUnits(app, matchedCommand.name, cmdInfo);
         ensureCommandServices(app, cmdInfo.services);
 
         // Auto-inject capability providers required by this command

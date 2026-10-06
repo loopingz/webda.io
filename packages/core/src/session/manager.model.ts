@@ -107,7 +107,7 @@ export class CookieSessionManager<
     }
     // A Bearer scheme is authoritative: an invalid token yields an anonymous session, never the cookie
     const authorization = context.getHttpContext().getHeader("authorization");
-    if (typeof authorization === "string" && /^bearer\s/i.test(authorization)) {
+    if (typeof authorization === "string" && /^bearer(\s|$)/i.test(authorization)) {
       return this.loadFromToken(context, authorization.substring(7).trim());
     }
     const session = new Session();
@@ -136,7 +136,7 @@ export class CookieSessionManager<
     }
     // If store is found session info are stored in db
     if (this.sessionModel) {
-      if (this.sessionModel.exists(session.uuid)) {
+      if (await this.sessionModel.exists(session.uuid)) {
         await this.sessionModel.update({
           uuid: session.uuid,
           session,

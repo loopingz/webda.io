@@ -3,6 +3,7 @@ import * as assert from "assert";
 import { Session, UnknownSession } from "./session.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { useService } from "../core/hooks.js";
+import { useCrypto } from "../services/cryptoservice.service.js";
 
 @suite
 class SessionTest {
@@ -119,12 +120,49 @@ class BearerSessionTest extends WebdaApplicationTest {
 
   @test
   async statelessNotSaved() {
-    const ctx = await this.contextWith({});
+    const manager = useService("SessionManager");
+    const saveAndCount = async (stateless: boolean) => {
+      const ctx = await this.contextWith({});
+      const s = new Session();
+      s.stateless = stateless;
+      s.login("u1", "x:email");
+      await manager.save(ctx, s);
+      // SecureCookie.save is async and not awaited by save()
+      await new Promise(resolve => setTimeout(resolve, 20));
+      return Object.keys(ctx.getResponseCookies() ?? {}).length;
+    };
+    assert.ok((await saveAndCount(false)) > 0, "control: regular session must set a cookie");
+    assert.strictEqual(await saveAndCount(true), 0);
+  }
+
+  @test
+  async bareBearerIsAnonymous() {
+    const manager = useService("SessionManager");
+    const first = await this.newContext();
     const s = new Session();
-    s.stateless = true;
     s.login("u1", "x:email");
-    await useService("SessionManager").save(ctx, s);
-    const h = ctx.getResponseHeaders();
-    assert.strictEqual(h["Set-Cookie"] ?? h["set-cookie"], undefined);
+    await manager.save(first, s);
+    await new Promise(resolve => setTimeout(resolve, 20));
+    const ctx = await this.contextWith({ authorization: "Bearer" });
+    const sent: any = first.getResponseCookies();
+    ctx.getHttpContext().cookies = {};
+    for (const name of Object.keys(sent)) {
+      ctx.getHttpContext().cookies[name] = sent[name].value;
+    }
+    const loaded = await manager.load(ctx);
+    assert.ok(!loaded.isLogged());
+    assert.ok(loaded.stateless);
+  }
+
+  @test
+  async pendingMfaToken() {
+    const token = await useCrypto().jwtSign({ sub: "u1", ident: "x:email", amr: ["pwd"], fam: "f", mfa: "pending" }, {
+      audience: "webda-access",
+      expiresIn: 60
+    } as any);
+    const ctx = await this.contextWith({ authorization: `Bearer ${token}` });
+    const loaded = await useService("SessionManager").load(ctx);
+    assert.ok(!loaded.isLogged());
+    assert.ok(loaded.isPending());
   }
 }

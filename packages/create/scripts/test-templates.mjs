@@ -9,7 +9,27 @@ import { fileURLToPath } from "node:url";
 const packageDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(packageDir, "..", "..");
 
-export const APPS = [{ name: "memory-rest", flags: ["--store", "memory", "--transports", "rest"], env: {} }];
+// MongoDB and Postgres match the service containers of .github/workflows/ci.yml
+export const APPS = [
+  { name: "memory-rest", flags: ["--store", "memory", "--transports", "rest"], env: {} },
+  { name: "file-rest", flags: ["--store", "file", "--transports", "rest"], env: {} },
+  {
+    name: "mongodb-rest",
+    flags: ["--store", "mongodb", "--transports", "rest"],
+    env: { WEBDA_MONGO_URL: process.env.WEBDA_MONGO_URL ?? "mongodb://root:webda.io@localhost:37017" }
+  },
+  {
+    name: "postgres-rest",
+    flags: ["--store", "postgres", "--transports", "rest"],
+    env: {
+      PGHOST: process.env.PGHOST ?? "localhost",
+      PGPORT: process.env.PGPORT ?? "5432",
+      PGUSER: process.env.PGUSER ?? "webda.io",
+      PGPASSWORD: process.env.PGPASSWORD ?? "webda.io",
+      PGDATABASE: process.env.PGDATABASE ?? "webda.io"
+    }
+  }
+];
 
 /**
  * Run a command, failing the harness on a non-zero exit

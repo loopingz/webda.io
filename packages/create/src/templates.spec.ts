@@ -79,4 +79,25 @@ class TemplatesTest {
       }
     }
   }
+
+  @test
+  async storesReplaceTheRegistry() {
+    const expected = {
+      file: { type: "Webda/FileStore", folder: "./data" },
+      mongodb: { type: "Webda/MongoStore", collection: "registry" },
+      postgres: { type: "Webda/PostgresStore", table: "registry" }
+    };
+    for (const [store, registry] of Object.entries(expected)) {
+      const files = await render({ store: store as any });
+      const config = JSON.parse(files.get("webda.config.json"));
+      assert.deepStrictEqual(config.services.Registry, registry, store);
+      const deps = JSON.parse(files.get("package.json")).dependencies;
+      assert.ok(
+        Object.keys(deps).some(name => ["@webda/fs", "@webda/mongo", "@webda/postgres"].includes(name)),
+        store
+      );
+    }
+    const memory = JSON.parse((await render({ store: "memory" })).get("webda.config.json"));
+    assert.strictEqual(memory.services.Registry, undefined, "memory uses the default Registry");
+  }
 }

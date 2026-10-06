@@ -1,0 +1,8 @@
+services:
+  mongodb:
+    image: mongo:8
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: webda
+      MONGO_INITDB_ROOT_PASSWORD: webda

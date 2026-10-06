@@ -1,0 +1,1 @@
+PostgreSQL runs locally with `docker compose up -d`. The connection comes from the standard `PG*` variables (see `.env.example`); never put credentials in `webda.config.json`. Tables are created automatically.

@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import * as path from "path";
 import { Compiler } from "./index.js";
+import { getGeneratorVersions } from "./compiler.js";
 import { WebdaModule, WebdaProject } from "./definition.js";
 import { generateOperations } from "./operations.js";
 import { FileLogger, MemoryLogger, useWorkerOutput, WorkerOutput } from "@webda/workout";
@@ -563,6 +564,62 @@ class CompilerTest {
       const { generator, ...legacy } = cache;
       writeFileSync(cachePath, JSON.stringify(legacy));
       assert.strictEqual(compiler.requireCompilation(), true, "a cache without generator must rebuild");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  /**
+   * The recorded content-mapper is the one the build runs: the application's
+   * copy wins over the compiler's, like `resolveWorker` in schema-backend.
+   */
+  @test
+  async generatorVersionsPreferApplicationCopy() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webdac-appcm-"));
+    try {
+      const pkg = path.join(dir, "node_modules", "@webda", "content-mapper");
+      mkdirSync(pkg, { recursive: true });
+      writeFileSync(
+        path.join(pkg, "package.json"),
+        JSON.stringify({
+          name: "@webda/content-mapper",
+          version: "9.9.9",
+          exports: { "./schema-worker-cli": "./worker.js" }
+        })
+      );
+      writeFileSync(path.join(pkg, "worker.js"), "");
+      assert.strictEqual(getGeneratorVersions(dir)["@webda/content-mapper"], "9.9.9");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  /**
+   * An unresolvable generator reports "unknown", and a cache written with it
+   * does not force a rebuild on every run.
+   */
+  @test
+  async generatorVersionsUnknownDoesNotLoop() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webdac-unknown-"));
+    try {
+      const versions = getGeneratorVersions(dir, () => {
+        throw new Error("not installed");
+      });
+      assert.deepStrictEqual(versions, { "@webda/compiler": "unknown", "@webda/content-mapper": "unknown" });
+      const project = {
+        getAppPath: (p: string = "") => path.join(dir, p),
+        getDigest: () => "digest"
+      } as unknown as WebdaProject;
+      writeFileSync(path.join(dir, "webda.module.json"), JSON.stringify({ moddas: {}, models: {} }));
+      mkdirSync(path.join(dir, ".webda"));
+      mkdirSync(path.join(dir, "lib"));
+      const cachePath = path.join(dir, ".webda", "cache");
+      const compiler = new Compiler(project, () => {
+        throw new Error("not installed");
+      });
+      (compiler as any).updateCache();
+      assert.strictEqual(JSON.parse(readFileSync(cachePath, "utf8")).generator["@webda/content-mapper"], "unknown");
+      assert.strictEqual(compiler.requireCompilation(), false);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

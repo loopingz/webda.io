@@ -32,7 +32,8 @@ class IdentTest extends WebdaApplicationTest {
     const ident = await Ident.ref(key).get();
     assert.strictEqual(ident.getUUID(), "john_doe@x.com:email");
     assert.strictEqual(ident.provider, "email");
-    assert.deepStrictEqual(ident._throttle, { attempts: 0 });
+    assert.deepStrictEqual(ident._throttle, {});
+    assert.strictEqual(ident._loginAttempts, 0);
     const again = await Ident.getRepository().fromUID("john_doe@x.com:email").get();
     assert.strictEqual(again.providerUid, "john_doe@x.com");
     ident.setUser("user1");

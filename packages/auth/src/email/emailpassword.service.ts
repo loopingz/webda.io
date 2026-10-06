@@ -20,6 +20,7 @@ import type { AuthProvider } from "../provider.js";
 import { useAuthentication } from "../provider.js";
 import { AccountExists, InvalidCredentials, Throttled, TokenInvalid } from "../errors.js";
 import { signEmailToken, verifyEmailToken } from "./tokens.js";
+import { isLocked } from "../throttle.js";
 
 /** When the email is verified relative to account creation */
 export type VerificationMode = "before" | "after" | "none";
@@ -209,34 +210,32 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
   /**
    * Count a login attempt before verifying it and decide whether the ident is locked
    *
-   * Rule, equivalent to `isLocked(throttle, failedBeforeDelay, lockout)` on the state before this attempt:
-   * the attempt counter is incremented first (atomically, and the new value is returned), so this attempt is
-   * locked when the count of PREVIOUS attempts (`attempts - 1`) is at least `failedBeforeDelay`, unless that lock
-   * has expired, ie the last attempt recorded when this call started is older than `lockout`. The timestamp of
-   * the last counted attempt is only refreshed by attempts that are not refused, so hammering a locked ident does
-   * not extend the lock. Atomicity: the increment is atomic in the memory repository and in stores whose
-   * `incrementAttributes` is atomic (DynamoDB, Mongo, SQL, Firestore); the timestamp is a plain set of one
-   * attribute (last writer wins, the counter is never written back from a snapshot). A burst starting exactly when
-   * an expired lock is read is verified as a whole: it is bounded to one burst per lock window.
+   * Rule, equivalent to `isLocked(ident, failedBeforeDelay, lockout)` on the state before this attempt:
+   * `_loginAttempts` is incremented first (atomically; the new value is returned by the memory repository and
+   * re-read otherwise), so this attempt is locked when the count of PREVIOUS attempts (`_loginAttempts - 1`) is at
+   * least `failedBeforeDelay`, unless that lock has expired, ie `_lastLoginAttemptAt` as read when this call started
+   * is older than `lockout`. `_lastLoginAttemptAt` is only refreshed by attempts that are not refused, so hammering
+   * a locked ident does not extend the lock. Both are top-level attributes: stores implement atomic increment and
+   * single attribute set on them (nested-path atomic operations are not portable across stores). The timestamp
+   * is a plain set (last writer wins); the counter is never written back from a snapshot. A burst starting exactly
+   * when an expired lock is read is verified as a whole: it is bounded to one burst per lock window.
    * @param ident - the ident
    * @returns true when this attempt must be refused without checking the password
    */
   protected async countAttempt(ident: Ident): Promise<boolean> {
     const { failedBeforeDelay, lockout } = this.parameters.throttle;
-    const before = ident._throttle;
+    const now = Date.now();
     // A lock whose last attempt is older than the lockout is over: attempts restart a window
     const expired =
-      !!before &&
-      before.attempts >= failedBeforeDelay &&
-      !!before.lastAttemptAt &&
-      before.lastAttemptAt + lockout <= Date.now();
+      (ident._loginAttempts ?? 0) >= failedBeforeDelay &&
+      !!ident._lastLoginAttemptAt &&
+      !isLocked(ident, failedBeforeDelay, lockout, now);
     const ref = ident.ref();
-    const updated = await runAsSystem(() => ref.incrementAttributes(["_throttle.attempts" as any]));
-    const attempts =
-      (updated as any)?.["_throttle.attempts"] ?? (await runAsSystem(() => ref.get()))._throttle.attempts;
+    const updated = await runAsSystem(() => ref.incrementAttribute("_loginAttempts"));
+    const attempts = (updated as any)?.["_loginAttempts"] ?? (await runAsSystem(() => ref.get()))._loginAttempts;
     const locked = !expired && attempts - 1 >= failedBeforeDelay;
     if (!locked) {
-      await runAsSystem(() => ref.setAttribute("_throttle.lastAttemptAt" as any, Date.now() as any));
+      await runAsSystem(() => ref.setAttribute("_lastLoginAttemptAt", now));
     }
     return locked;
   }
@@ -281,7 +280,8 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
       await auth.emit("Authentication.LoginFailed", { context: ctx, user } as any);
       throw new InvalidCredentials();
     }
-    await runAsSystem(() => ident.ref().setAttribute("_throttle.attempts" as any, 0 as any));
+    // A success always follows a counted attempt (a user implies an ident), so the counter is non-zero here
+    await runAsSystem(() => ident.ref().setAttribute("_loginAttempts", 0));
     return auth.complete({
       provider: "email",
       providerUid: normalized,

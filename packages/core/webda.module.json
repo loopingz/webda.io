@@ -2077,6 +2077,12 @@
         "_throttle": {
           "type": "IdentThrottle"
         },
+        "_loginAttempts": {
+          "type": "number"
+        },
+        "_lastLoginAttemptAt": {
+          "type": "number"
+        },
         "__profile": {
           "type": "any"
         },
@@ -2092,24 +2098,13 @@
           "definitions": {
             "IdentThrottle": {
               "additionalProperties": false,
-              "description": "Throttling state of an ident (failed logins, emails sent)",
+              "description": "Email sending throttle state of an ident (login failures are top-level `Ident` attributes)",
               "properties": {
-                "attempts": {
-                  "description": "Failed attempts count",
-                  "type": "number"
-                },
-                "lastAttemptAt": {
-                  "description": "Timestamp of the last attempt",
-                  "type": "number"
-                },
                 "lastSentAt": {
                   "description": "Timestamp of the last email sent",
                   "type": "number"
                 }
               },
-              "required": [
-                "attempts"
-              ],
               "type": "object"
             },
             "IdentTokens": {
@@ -2137,9 +2132,17 @@
               "$ref": "#/definitions/IdentTokens",
               "description": "Provider tokens"
             },
+            "_lastLoginAttemptAt": {
+              "description": "Timestamp (ms) of the last counted login attempt",
+              "type": "number"
+            },
+            "_loginAttempts": {
+              "description": "Login attempts counted since the last successful login\n\nTop-level so stores can increment it atomically (nested-path atomic operations are not portable)",
+              "type": "number"
+            },
             "_throttle": {
               "$ref": "#/definitions/IdentThrottle",
-              "description": "Throttling state"
+              "description": "Email sending throttle state"
             },
             "_user": {
               "description": "Owner",
@@ -2183,24 +2186,13 @@
           "definitions": {
             "IdentThrottle": {
               "additionalProperties": false,
-              "description": "Throttling state of an ident (failed logins, emails sent)",
+              "description": "Email sending throttle state of an ident (login failures are top-level `Ident` attributes)",
               "properties": {
-                "attempts": {
-                  "description": "Failed attempts count",
-                  "type": "number"
-                },
-                "lastAttemptAt": {
-                  "description": "Timestamp of the last attempt",
-                  "type": "number"
-                },
                 "lastSentAt": {
                   "description": "Timestamp of the last email sent",
                   "type": "number"
                 }
               },
-              "required": [
-                "attempts"
-              ],
               "type": "object"
             },
             "IdentTokens": {
@@ -2228,9 +2220,17 @@
               "$ref": "#/definitions/IdentTokens",
               "description": "Provider tokens"
             },
+            "_lastLoginAttemptAt": {
+              "description": "Timestamp (ms) of the last counted login attempt",
+              "type": "number"
+            },
+            "_loginAttempts": {
+              "description": "Login attempts counted since the last successful login\n\nTop-level so stores can increment it atomically (nested-path atomic operations are not portable)",
+              "type": "number"
+            },
             "_throttle": {
               "$ref": "#/definitions/IdentThrottle",
-              "description": "Throttling state"
+              "description": "Email sending throttle state"
             },
             "_user": {
               "description": "Owner",
@@ -2274,24 +2274,13 @@
           "definitions": {
             "IdentThrottle": {
               "additionalProperties": false,
-              "description": "Throttling state of an ident (failed logins, emails sent)",
+              "description": "Email sending throttle state of an ident (login failures are top-level `Ident` attributes)",
               "properties": {
-                "attempts": {
-                  "description": "Failed attempts count",
-                  "type": "number"
-                },
-                "lastAttemptAt": {
-                  "description": "Timestamp of the last attempt",
-                  "type": "number"
-                },
                 "lastSentAt": {
                   "description": "Timestamp of the last email sent",
                   "type": "number"
                 }
               },
-              "required": [
-                "attempts"
-              ],
               "type": "object"
             },
             "IdentTokens": {
@@ -2319,9 +2308,17 @@
               "$ref": "#/definitions/IdentTokens",
               "description": "Provider tokens"
             },
+            "_lastLoginAttemptAt": {
+              "description": "Timestamp (ms) of the last counted login attempt",
+              "type": "number"
+            },
+            "_loginAttempts": {
+              "description": "Login attempts counted since the last successful login\n\nTop-level so stores can increment it atomically (nested-path atomic operations are not portable)",
+              "type": "number"
+            },
             "_throttle": {
               "$ref": "#/definitions/IdentThrottle",
-              "description": "Throttling state"
+              "description": "Email sending throttle state"
             },
             "_user": {
               "description": "Owner",

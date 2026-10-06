@@ -164,10 +164,11 @@ class EmailLoginTest extends EmailTest {
     // lockout expiry
     const ref = Ident.ref(Ident.key("l@x.com", "email"));
     const ident = await ref.get();
-    await ref.patch({ _throttle: { ...ident._throttle, lastAttemptAt: Date.now() - 900001 } } as any);
+    assert.strictEqual(ident._loginAttempts, 4);
+    await ref.patch({ _lastLoginAttemptAt: Date.now() - 900001 } as any);
     const ok: any = await this.op("Auth.Email.Login", { email: "l@x.com", password: "longenough" });
     assert.strictEqual(ok.status, "ok");
-    assert.strictEqual((await ref.get())._throttle.attempts, 0);
+    assert.strictEqual((await ref.get())._loginAttempts, 0);
   }
 
   @test
@@ -178,9 +179,9 @@ class EmailLoginTest extends EmailTest {
       InvalidCredentials
     );
     const ref = Ident.ref(Ident.key("r@x.com", "email"));
-    assert.strictEqual((await ref.get())._throttle.attempts, 1);
+    assert.strictEqual((await ref.get())._loginAttempts, 1);
     await this.op("Auth.Email.Login", { email: "r@x.com", password: "longenough" });
-    assert.strictEqual((await ref.get())._throttle.attempts, 0);
+    assert.strictEqual((await ref.get())._loginAttempts, 0);
   }
 
   @test
@@ -279,7 +280,7 @@ class EmailLoginTest extends EmailTest {
       5 - codes.filter(c => c === "INVALID_CREDENTIALS").length
     );
     const ident = await Ident.ref(Ident.key("par@x.com", "email")).get();
-    assert.strictEqual(ident._throttle.attempts, 5);
+    assert.strictEqual(ident._loginAttempts, 5);
     await rejectsWith(() => this.op("Auth.Email.Login", { email: "par@x.com", password: "longenough" }), Throttled);
   }
 

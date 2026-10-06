@@ -11,12 +11,8 @@ export interface IdentTokens {
   refresh?: string;
 }
 
-/** Throttling state of an ident (failed logins, emails sent) */
+/** Email sending throttle state of an ident (login failures are top-level `Ident` attributes) */
 export interface IdentThrottle {
-  /** Failed attempts count */
-  attempts: number;
-  /** Timestamp of the last attempt */
-  lastAttemptAt?: number;
   /** Timestamp of the last email sent */
   lastSentAt?: number;
 }
@@ -52,8 +48,16 @@ export class Ident extends Model {
   verifiedAt?: Date;
   /** Last login with this ident */
   lastUsedAt?: Date;
-  /** Throttling state */
-  _throttle: IdentThrottle = { attempts: 0 };
+  /** Email sending throttle state */
+  _throttle: IdentThrottle = {};
+  /**
+   * Login attempts counted since the last successful login
+   *
+   * Top-level so stores can increment it atomically (nested-path atomic operations are not portable)
+   */
+  _loginAttempts: number = 0;
+  /** Timestamp (ms) of the last counted login attempt */
+  _lastLoginAttemptAt?: number;
   /** Provider profile */
   __profile?: any;
   /** Provider tokens */

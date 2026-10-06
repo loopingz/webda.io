@@ -1,34 +1,36 @@
-import type { IdentThrottle } from "@webda/core";
+import type { Ident, IdentThrottle } from "@webda/core";
+
+/** Login failure state of an ident: its top-level `_loginAttempts` / `_lastLoginAttemptAt` attributes */
+export type LoginAttempts = Pick<Ident, "_loginAttempts" | "_lastLoginAttemptAt">;
 
 /**
- * Check if a throttle state is locked due to too many failures
- * @param t - throttle state
+ * Check if an ident is locked due to too many failed logins
+ * @param s - login failure state (an ident)
  * @param failedBefore - failures before locking
- * @param lockoutMs - lock duration after the last failure
+ * @param lockoutMs - lock duration after the last attempt
  * @param now - clock
  * @returns true while locked
  */
-export function isLocked(t: IdentThrottle, failedBefore: number, lockoutMs: number, now: number = Date.now()): boolean {
-  return !!t && t.attempts >= failedBefore && (t.lastAttemptAt ?? 0) + lockoutMs > now;
+export function isLocked(s: LoginAttempts, failedBefore: number, lockoutMs: number, now: number = Date.now()): boolean {
+  return !!s && (s._loginAttempts ?? 0) >= failedBefore && (s._lastLoginAttemptAt ?? 0) + lockoutMs > now;
 }
 
 /**
- * Record a failure in the throttle state
- * @param t - throttle state
+ * Record a failure in the login failure state
+ * @param s - login failure state
  * @param now - clock
  * @returns state with one more failure
  */
-export function recordFailure(t: IdentThrottle, now: number = Date.now()): IdentThrottle {
-  return { ...(t ?? { attempts: 0 }), attempts: (t?.attempts ?? 0) + 1, lastAttemptAt: now };
+export function recordFailure(s: LoginAttempts, now: number = Date.now()): LoginAttempts {
+  return { _loginAttempts: (s?._loginAttempts ?? 0) + 1, _lastLoginAttemptAt: now };
 }
 
 /**
- * Clear all failures from throttle state
- * @param t - throttle state
- * @returns state with failures cleared (send timestamp kept)
+ * Clear all login failures
+ * @returns state with failures cleared
  */
-export function resetFailures(t: IdentThrottle): IdentThrottle {
-  return { attempts: 0, lastSentAt: t?.lastSentAt };
+export function resetFailures(): LoginAttempts {
+  return { _loginAttempts: 0, _lastLoginAttemptAt: undefined };
 }
 
 /**
@@ -49,5 +51,5 @@ export function canSend(t: IdentThrottle, delayMs: number, now: number = Date.no
  * @returns state with the send timestamp set
  */
 export function markSent(t: IdentThrottle, now: number = Date.now()): IdentThrottle {
-  return { ...(t ?? { attempts: 0 }), lastSentAt: now };
+  return { ...(t ?? {}), lastSentAt: now };
 }

@@ -8,22 +8,16 @@ import { MemoryRepository, registerRepository } from "@webda/models";
 
 @suite
 class UserResolverTest extends WebdaApplicationTest {
+  private userRepo: MemoryRepository<typeof User> | undefined;
+
   getTestConfiguration() {
-    return {
-      services: {
-        AuthStore: {
-          type: "Webda/MemoryStore",
-          models: ["Webda/User"]
-        }
-      }
-    };
+    return { parameters: { ignoreBeans: true }, services: {} };
   }
 
-  async beforeAll(init?: boolean): Promise<void> {
-    await super.beforeAll(init);
-    // Register User repository for default resolver tests
-    const userRepo = new MemoryRepository(User, ["uuid"]);
-    registerRepository(User, userRepo);
+  async beforeEach() {
+    // Register User repository for tests that need it
+    this.userRepo = new MemoryRepository(User, ["uuid"]);
+    registerRepository(User, this.userRepo);
   }
 
   afterEach() {
@@ -57,16 +51,20 @@ class UserResolverTest extends WebdaApplicationTest {
   }
 
   @test
-  async defaultResolverThrowsOnRepositoryError() {
-    const thrownError = new Error("Repository connection failed");
+  async resolverErrorsPropagateToGetCurrentUser() {
+    const thrownError = new Error("boom");
+
+    // Register a resolver that throws a non-not-found error
     registerUserResolver({
       resolve: async () => {
         throw thrownError;
       }
     });
+
     const ctx = await this.newContext();
     await ctx.init();
     ctx.getSession().login("u1", "x:email");
+    // The resolver error should propagate
     await assert.rejects(() => ctx.getCurrentUser(), thrownError);
   }
 }

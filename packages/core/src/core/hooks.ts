@@ -2,7 +2,6 @@ import type { IStore } from "./icore.js";
 import { useInstanceStorage } from "./instancestorage.js";
 import pkg from "node-machine-id";
 import type { Model, ModelClass, Repository } from "@webda/models";
-import { useRepository } from "@webda/models";
 import type { CustomConstructor } from "@webda/tsc-esm";
 import type { Service } from "../services/service.js";
 import type CryptoService from "../services/cryptoservice.service.js";
@@ -12,7 +11,6 @@ import { useModel } from "../application/hooks.js";
 import type { Core } from "./core.js";
 import type { SessionManager } from "../session/manager.model.js";
 import type { IUser } from "../models/types.js";
-import { User } from "../models/user.model.js";
 const { machineIdSync } = pkg;
 
 /**
@@ -129,20 +127,12 @@ export interface UserResolver {
 
 const defaultUserResolver: UserResolver = {
   resolve: async (userId: string) => {
-    try {
-      return <IUser>(<unknown>await useRepository(User).fromUID(userId).get());
-    } catch (err) {
-      // Return undefined only for not-found errors; rethrow everything else
-      // StoreNotFoundError has code property set to "STORE_NOTFOUND"
-      if ((err as any)?.code === "STORE_NOTFOUND") {
-        return undefined;
-      }
-      // MemoryRepository throws Error("Not found: <key>")
-      if (err instanceof Error && err.message.startsWith("Not found:")) {
-        return undefined;
-      }
-      throw err;
+    const store = useModelStore("User") as any;
+    const repo = store.getRepository(useModel("User")) as any;
+    if (!(await repo.exists(userId))) {
+      return undefined;
     }
+    return <IUser>(<unknown>await repo.get(userId));
   }
 };
 let userResolver: UserResolver = defaultUserResolver;

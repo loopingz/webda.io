@@ -1,0 +1,7 @@
+{
+  "name": "webda",
+  "description": "Skills for building Webda v4 applications: models, services, operations, configuration, stores and tests",
+  "homepage": "https://webda.io",
+  "repository": "https://github.com/loopingz/webda.io",
+  "license": "LGPL-3.0-only"
+}

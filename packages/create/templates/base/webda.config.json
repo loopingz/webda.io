@@ -1,0 +1,19 @@
+{
+  "$schema": ".webda/config.schema.json",
+  "version": 4,
+  "parameters": {},
+  "services": {
+    "HttpServer": {
+      "type": "Webda/HttpServer"
+    },
+    "DomainService": {
+      "type": "Webda/DomainService"
+    },
+    "RESTService": {
+      "type": "Webda/RESTOperationsTransport"
+    },
+    "TaskService": {
+      "type": "TaskService"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "__APP_NAME__",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "webdac build",
+    "predebug": "webdac build",
+    "debug": "webda debug",
+    "preserve": "webdac build",
+    "serve": "webda serve",
+    "pretest": "webdac build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@webda/core": "workspace:*",
+    "@webda/models": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "managed",
+    "@webda/compiler": "workspace:*",
+    "@webda/debug": "workspace:*",
+    "@webda/test": "workspace:*",
+    "typescript": "managed",
+    "vite": "managed",
+    "vitest": "managed"
+  },
+  "webda": {
+    "namespace": "__NAMESPACE__"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

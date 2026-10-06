@@ -133,6 +133,17 @@ jobs:
           FIRESTORE_EMULATOR_HOST: 127.0.0.1:8289
           GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/webda.io/webda.io/packages/gcp/webda-test.json
 
+      - name: Test app templates
+        run: pnpm --filter @webda/create run test:templates
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          WEBDA_MONGO_URL: mongodb://root:webda.io@localhost:37017
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: webda.io
+          PGPASSWORD: webda.io
+          PGDATABASE: webda.io
+
       - name: Show GCP emulator logs
         if: failure()
         run: cat /tmp/pubsub-emulator.log /tmp/firestore-emulator.log || true

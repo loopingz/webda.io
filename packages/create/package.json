@@ -1,0 +1,43 @@
+{
+  "name": "@webda/create",
+  "version": "4.0.0-beta.3",
+  "description": "Create a Webda application with guidance for coding agents",
+  "type": "module",
+  "bin": {
+    "create": "./lib/bin.js"
+  },
+  "main": "lib/index.js",
+  "files": [
+    "lib",
+    "templates",
+    "agent"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/write-versions.mjs",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "pretest": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:templates": "node scripts/test-templates.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "@webda/test": "workspace:*",
+    "typescript": "7.1.0-dev.20260929.1",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "license": "LGPL-3.0-only",
+  "dependencies": {
+    "@clack/prompts": "^1.8.1"
+  }
+}

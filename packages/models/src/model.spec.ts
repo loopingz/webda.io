@@ -7,6 +7,7 @@ import { SelfJSONed, WebdaFieldsMixIn } from "./types";
 import { registerRepository } from "./repositories/hooks";
 import { Merge } from "@webda/tsc-esm";
 import { track } from "@webda/utils";
+import { hasSerializer, serializeRaw, unregisterSerializer } from "@webda/serialize";
 import { supportsAtomicOperations, supportsCollectionOperations } from "./repositories/repository";
 
 // Import index to cover re-exports
@@ -341,5 +342,27 @@ class ModelTest {
     await (model as any).emit("Created", payload);
 
     assert.deepStrictEqual(received, payload);
+  }
+
+  /**
+   * An identifier keys the serializer by the fully-qualified model name, so two classes sharing a
+   * JS constructor name do not collide, and a model with no accessor storage serializes as usual.
+   */
+  @test
+  async registerSerializerUsesIdentifierAndPlainFields() {
+    class IdentifiedModel extends Model {
+      [WEBDA_PRIMARY_KEY] = ["uuid"] as const;
+      uuid = "u1";
+      title = "plain";
+    }
+    IdentifiedModel.registerSerializer(true, "Tests/Identified");
+    assert.ok(hasSerializer("@webda/models/Tests/Identified"));
+    assert.ok(!hasSerializer("@webda/models/IdentifiedModel"));
+    const model = new IdentifiedModel();
+    // No WEBDA_STORAGE content: falls back to the plain ObjectSerializer walk
+    const raw = serializeRaw(model);
+    assert.strictEqual(raw.value.title, "plain");
+    assert.strictEqual(raw.value.uuid, "u1");
+    unregisterSerializer("@webda/models/Tests/Identified");
   }
 }

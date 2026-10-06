@@ -1,0 +1,1 @@
+{ "services": { "Registry": { "type": "Webda/FileStore", "folder": "./data" } } }

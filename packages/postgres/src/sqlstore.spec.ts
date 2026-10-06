@@ -97,3 +97,109 @@ describe("PostgresRepository query translation", () => {
     expect(repo.duplicateExpression(tree).toString()).toBe("data#>>'{name}' = 'a' AND TRUE AND TRUE AND FALSE");
   });
 });
+
+/**
+ * Every statement a repository issues must go through the table-readiness hook first, so a
+ * table is never queried before it exists. The fake client answers like a table that holds
+ * one row and records the order of hook and statements.
+ */
+describe("PostgresRepository table readiness", () => {
+  class Item {
+    uuid!: string;
+    name?: string;
+    load(data: any) {
+      Object.assign(this, data);
+      return this;
+    }
+  }
+
+  function makeReadyRepository(rowCount = 1) {
+    const events: string[] = [];
+    const client: SQLClient = {
+      query: async (q: string) => {
+        events.push(q);
+        return { rows: [{ data: { uuid: "a", name: "found" } }], rowCount };
+      }
+    };
+    const repo = new PostgresRepository(Item as any, ["uuid"], client, "items", undefined, async () => {
+      events.push("prepare");
+    });
+    return { repo, events };
+  }
+
+  it("prepares before get, query and iterate and maps rows to models", async () => {
+    const { repo, events } = makeReadyRepository();
+    const item = await repo.get("a");
+    expect(item).toBeInstanceOf(Item);
+    expect(item.name).toBe("found");
+    expect(events).toEqual(["prepare", "SELECT data FROM items WHERE uuid=$1"]);
+
+    events.length = 0;
+    const { results } = await repo.query("name = 'found'");
+    expect(results.map((r: any) => r.name)).toEqual(["found"]);
+    expect(events[0]).toBe("prepare");
+    expect(events[1]).toMatch(/^SELECT \* FROM items WHERE /);
+
+    events.length = 0;
+    const iterated: any[] = [];
+    for await (const r of repo.iterate("name = 'found' LIMIT 100")) {
+      iterated.push(r);
+    }
+    expect(iterated).toHaveLength(1);
+    expect(events[0]).toBe("prepare");
+  });
+
+  it("prepares before every write and read statement", async () => {
+    const { repo, events } = makeReadyRepository();
+    const calls: Array<[string, () => Promise<any>, RegExp]> = [
+      ["create", () => repo.create({ uuid: "a" }), /^INSERT INTO items/],
+      ["update", () => repo.update({ uuid: "a" }, "name", "x"), /^UPDATE items SET data=\$1/],
+      ["patch", () => repo.patch("a", { name: "b" }, "name", "x"), /data \|\| \$1::jsonb/],
+      ["delete", () => repo.delete("a"), /^DELETE FROM items WHERE uuid=\$1$/],
+      ["conditional delete", () => repo.delete("a", "name", "x"), /^DELETE FROM items WHERE uuid=\$1 AND/],
+      ["exists", () => repo.exists("a"), /^SELECT uuid FROM items/],
+      ["removeAttribute", () => repo.removeAttribute("a", "name"), /data - \$1/],
+      ["incrementAttributes", () => repo.incrementAttributes("a", { count: 2 } as any), /jsonb_set/],
+      ["upsertItemToCollection", () => repo.upsertItemToCollection("a", "tags", { v: 1 } as any), /'\[\{"v":1\}\]'/],
+      ["deleteItemFromCollection", () => repo.deleteItemFromCollection("a", "tags", 0), /- 0/],
+      ["__clean", () => repo.__clean(), /^DELETE FROM items$/]
+    ];
+    for (const [name, run, statement] of calls) {
+      events.length = 0;
+      await run();
+      expect(events[0], name).toBe("prepare");
+      expect(events[1], name).toMatch(statement);
+    }
+  });
+
+  it("does not run the statement when the table cannot be prepared", async () => {
+    const statements: string[] = [];
+    const client: SQLClient = {
+      query: async (q: string) => {
+        statements.push(q);
+        return { rows: [], rowCount: 1 };
+      }
+    };
+    const repo = new PostgresRepository(Item as any, ["uuid"], client, "items", undefined, async () => {
+      throw new Error("create failed");
+    });
+    await expect(repo.get("a")).rejects.toThrow("create failed");
+    expect(statements).toEqual([]);
+  });
+
+  it("reports failed conditions and missing rows from the statement result", async () => {
+    const { repo } = makeReadyRepository(0);
+    await expect(repo.update({ uuid: "a" })).rejects.toThrow();
+    await expect(repo.patch("a", {})).rejects.toThrow();
+    await expect(repo.delete("a", "name", "x")).rejects.toThrow();
+    await expect(repo.removeAttribute("a", "name")).rejects.toThrow();
+    await expect(repo.removeAttribute("a", "name", "name", "x")).rejects.toThrow();
+    await expect(repo.incrementAttributes("a", ["count"])).rejects.toThrow();
+    await expect(repo.upsertItemToCollection("a", "tags", {} as any)).rejects.toThrow();
+    await expect(repo.upsertItemToCollection("a", "tags", {} as any, 0, "k", "v")).rejects.toThrow();
+    await expect(repo.deleteItemFromCollection("a", "tags", 0)).rejects.toThrow();
+    await expect(repo.deleteItemFromCollection("a", "tags", 0, "k", "v")).rejects.toThrow();
+    await expect(repo.get("a")).rejects.toThrow("Not found");
+    expect(await repo.exists("a")).toBe(false);
+  });
+});

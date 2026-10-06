@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@webda/grpc": "workspace:*"
+  }
+}

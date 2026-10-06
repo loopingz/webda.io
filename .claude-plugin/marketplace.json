@@ -1,0 +1,11 @@
+{
+  "name": "webda",
+  "owner": { "name": "Loopingz" },
+  "plugins": [
+    {
+      "name": "webda",
+      "source": "./packages/create/agent",
+      "description": "Skills for building Webda v4 applications"
+    }
+  ]
+}

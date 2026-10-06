@@ -7,12 +7,13 @@ import {
   ModelRefCustomMap,
   JunctionLink,
   ModelRef,
+  ModelParent,
   RelationData
 } from "./relations";
 import { MemoryRepository } from "./repositories/memory";
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
-import { PrimaryKeyEquals, WEBDA_PLURAL, WEBDA_PRIMARY_KEY } from "./storable";
+import { PrimaryKeyEquals, WEBDA_PLURAL, WEBDA_PRIMARY_KEY, WEBDA_STORAGE } from "./storable";
 import { registerRepository } from "./repositories/hooks";
 import { track } from "../../utils/lib/dirty";
 import { Test } from "mocha";
@@ -30,6 +31,62 @@ class TestSimpleModel extends UuidModel {
 }
 
 TestSimpleModel.registerSerializer();
+
+/**
+ * A model shaped exactly like `@webda/content-mapper`'s output for
+ *
+ * ```ts
+ * class TestLinkedModel extends UuidModel {
+ *   title: string;
+ *   createdAt: Date;
+ *   parent: BelongTo<TestSimpleModel>;
+ *   tags: ModelLinksSimpleArray<TestSimpleModel>;
+ * }
+ * ```
+ *
+ * Vitest does not run the content mapper, so the generated accessors are
+ * written out here: each value lives in `WEBDA_STORAGE`, behind a
+ * non-enumerable prototype accessor.
+ */
+class TestLinkedModel extends UuidModel {
+  title: string;
+  get createdAt(): Date {
+    return this[WEBDA_STORAGE]["createdAt"];
+  }
+  set createdAt(value: string | number | Date) {
+    this[WEBDA_STORAGE]["createdAt"] = value !== undefined && value !== null ? new Date(value) : value;
+  }
+  get parent(): ModelParent<TestSimpleModel> {
+    return this[WEBDA_STORAGE]["parent"];
+  }
+  set parent(value: any) {
+    if (value instanceof ModelLink) {
+      this[WEBDA_STORAGE]["parent"] = value;
+    } else if (value != null) {
+      const inst: ModelParent<TestSimpleModel> = this[WEBDA_STORAGE]["parent"] || new ModelLink(TestSimpleModel);
+      inst.set(value as any);
+      this[WEBDA_STORAGE]["parent"] = inst;
+    } else {
+      this[WEBDA_STORAGE]["parent"] = value;
+    }
+  }
+  get tags(): ModelLinksSimpleArray<TestSimpleModel> {
+    return this[WEBDA_STORAGE]["tags"];
+  }
+  set tags(value: any) {
+    if (value instanceof ModelLinksSimpleArray) {
+      this[WEBDA_STORAGE]["tags"] = value;
+    } else if (value != null) {
+      const inst: ModelLinksSimpleArray<TestSimpleModel> =
+        this[WEBDA_STORAGE]["tags"] || new ModelLinksSimpleArray(TestSimpleModel);
+      inst.set(value as any);
+      this[WEBDA_STORAGE]["tags"] = inst;
+    } else {
+      this[WEBDA_STORAGE]["tags"] = value;
+    }
+  }
+}
+TestLinkedModel.registerSerializer();
 
 @suite
 class RelationsTest {
@@ -209,6 +266,49 @@ class RelationsTest {
     assert.ok(loaded.children instanceof ModelRelated);
     assert.ok(loaded.children.getQuery().includes("owner1"), "relation is bound to the loaded instance");
     assert.strictEqual((await repo.query("")).results.length, 1);
+  }
+
+  /**
+   * Values held by generated accessors live in `WEBDA_STORAGE`, which neither
+   * `for...in` nor `Object.keys` reach. A link set at creation must still be
+   * stored as its primary key, be queryable, and come back as a link.
+   */
+  @test
+  async accessorLinksAreStored() {
+    registerRepository(TestSimpleModel, new MemoryRepository<typeof TestSimpleModel>(TestSimpleModel, ["uuid"]));
+    const repo = new MemoryRepository<typeof TestLinkedModel>(TestLinkedModel, ["uuid"]);
+    registerRepository(TestLinkedModel, repo);
+
+    await repo.create({
+      uuid: "t1",
+      title: "Task",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      parent: "p1",
+      tags: ["s1", "s2"]
+    } as any);
+    await repo.create({ uuid: "t2", title: "Other", parent: "p2" } as any);
+
+    const stored = JSON.parse((repo as any).storage.get("t1")).value;
+    assert.strictEqual(stored.parent, "p1");
+    assert.deepStrictEqual(stored.tags, ["s1", "s2"]);
+    assert.strictEqual(stored.createdAt, "2026-01-01T00:00:00.000Z");
+
+    assert.deepStrictEqual(
+      (await repo.query("parent = ?", ["p1"])).results.map(r => r.uuid),
+      ["t1"]
+    );
+
+    const loaded = (await repo.get("t1")) as TestLinkedModel;
+    assert.ok(loaded.parent instanceof ModelLink);
+    assert.strictEqual(loaded.parent.getPrimaryKey(), "p1");
+    assert.ok(loaded.tags instanceof ModelLinksSimpleArray);
+    assert.deepStrictEqual(loaded.tags.toJSON(), ["s1", "s2"]);
+    assert.ok(loaded.createdAt instanceof Date);
+    assert.strictEqual(loaded.createdAt.toISOString(), "2026-01-01T00:00:00.000Z");
+
+    // A patch goes through the same serializer
+    await repo.patch("t1", { parent: "p2" } as any);
+    assert.deepStrictEqual((await repo.query("parent = ?", ["p2"])).results.map(r => r.uuid).sort(), ["t1", "t2"]);
   }
 
   @test
@@ -401,7 +501,10 @@ class RelationsTest {
     assert.ok(found);
 
     // findIndex
-    assert.strictEqual(links.findIndex(item => item.getPrimaryKey() === "s2"), 1);
+    assert.strictEqual(
+      links.findIndex(item => item.getPrimaryKey() === "s2"),
+      1
+    );
 
     // map
     const mapped = links.map(item => item.getPrimaryKey());

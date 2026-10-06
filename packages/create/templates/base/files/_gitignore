@@ -1,0 +1,6 @@
+node_modules
+lib
+.webda
+.registry
+data/
+.env

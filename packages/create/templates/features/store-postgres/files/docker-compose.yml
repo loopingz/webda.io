@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: webda
+      POSTGRES_PASSWORD: webda
+      POSTGRES_DB: webda

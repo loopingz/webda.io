@@ -2134,41 +2134,15 @@
         "links": [
           {
             "attribute": "_user",
+            "model": "Webda/User",
             "type": "LINK"
           }
         ]
       },
-      "Ancestors": [
-        "Webda/OwnerModel",
-        "Webda/AbstractOwnerModel"
-      ],
+      "Ancestors": [],
       "Subclasses": [],
       "Reflection": {
-        "_type": {
-          "type": "string"
-        },
-        "uid": {
-          "type": "string"
-        },
-        "__profile": {
-          "type": "any"
-        },
-        "__tokens": {
-          "type": "IdentTokens"
-        },
-        "_lastUsed": {
-          "type": "Date"
-        },
-        "_failedLogin": {
-          "type": "number"
-        },
-        "_lastValidationEmail": {
-          "type": "number"
-        },
-        "_validation": {
-          "type": "Date"
-        },
-        "email": {
+        "providerUid": {
           "type": "string"
         },
         "provider": {
@@ -2180,11 +2154,23 @@
             "User"
           ]
         },
-        "public": {
-          "type": "boolean"
-        },
-        "uuid": {
+        "email": {
           "type": "string"
+        },
+        "verifiedAt": {
+          "type": "Date"
+        },
+        "lastUsedAt": {
+          "type": "Date"
+        },
+        "_throttle": {
+          "type": "IdentThrottle"
+        },
+        "__profile": {
+          "type": "any"
+        },
+        "__tokens": {
+          "type": "IdentTokens"
         }
       },
       "Schemas": {
@@ -2192,91 +2178,89 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
-          "class": true,
           "definitions": {
+            "IdentThrottle": {
+              "additionalProperties": false,
+              "description": "Throttling state of an ident (failed logins, emails sent)",
+              "properties": {
+                "attempts": {
+                  "description": "Failed attempts count",
+                  "type": "number"
+                },
+                "lastAttemptAt": {
+                  "description": "Timestamp of the last attempt",
+                  "type": "number"
+                },
+                "lastSentAt": {
+                  "description": "Timestamp of the last email sent",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "attempts"
+              ],
+              "type": "object"
+            },
             "IdentTokens": {
               "additionalProperties": false,
               "description": "OAuth tokens associated with an identity provider",
               "properties": {
                 "access": {
+                  "description": "Access token",
                   "type": "string"
                 },
                 "refresh": {
+                  "description": "Refresh token",
                   "type": "string"
                 }
               },
-              "required": [
-                "access",
-                "refresh"
-              ],
               "type": "object"
             }
           },
-          "description": "First basic model for Ident",
+          "description": "An identity linked to a user: `<providerUid>:<provider>`",
           "properties": {
             "__profile": {
               "description": "Provider profile"
             },
             "__tokens": {
               "$ref": "#/definitions/IdentTokens",
-              "description": "Tokens for this ident"
+              "description": "Provider tokens"
             },
-            "_failedLogin": {
-              "description": "If the ident is validated",
-              "type": "number"
-            },
-            "_lastUsed": {
-              "description": "Last time the ident was used",
-              "format": "date-time",
-              "type": "string"
-            },
-            "_lastValidationEmail": {
-              "description": "If EmailIdent",
-              "type": "number"
-            },
-            "_type": {
-              "description": "Type of the ident",
-              "type": "string"
+            "_throttle": {
+              "$ref": "#/definitions/IdentThrottle",
+              "description": "Throttling state"
             },
             "_user": {
-              "description": "Default owner of the object",
-              "type": "string"
-            },
-            "_validation": {
-              "description": "When the ident was validated",
-              "format": "date-time",
+              "description": "Owner",
               "type": "string"
             },
             "email": {
-              "description": "Email for this ident if it exist",
+              "description": "Email asserted for this ident",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "description": "Last login with this ident",
+              "format": "date-time",
               "type": "string"
             },
             "provider": {
-              "description": "Provider id",
+              "description": "Provider name",
               "type": "string"
             },
-            "public": {
-              "default": false,
-              "description": "Define if the object is publicly readable",
-              "type": "boolean"
-            },
-            "uid": {
-              "description": "Uid on the provider",
+            "providerUid": {
+              "description": "Identifier on the provider (normalised email for \"email\")",
               "type": "string"
             },
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
+            "verifiedAt": {
+              "description": "When the ident was verified",
+              "format": "date-time",
               "type": "string"
             }
           },
           "required": [
-            "__profile",
-            "__tokens",
-            "_type",
             "_user",
-            "uid",
-            "uuid"
+            "provider",
+            "providerUid"
           ],
           "type": "object",
           "$webda": "toDto$auto"
@@ -2285,91 +2269,89 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
-          "class": true,
           "definitions": {
+            "IdentThrottle": {
+              "additionalProperties": false,
+              "description": "Throttling state of an ident (failed logins, emails sent)",
+              "properties": {
+                "attempts": {
+                  "description": "Failed attempts count",
+                  "type": "number"
+                },
+                "lastAttemptAt": {
+                  "description": "Timestamp of the last attempt",
+                  "type": "number"
+                },
+                "lastSentAt": {
+                  "description": "Timestamp of the last email sent",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "attempts"
+              ],
+              "type": "object"
+            },
             "IdentTokens": {
               "additionalProperties": false,
               "description": "OAuth tokens associated with an identity provider",
               "properties": {
                 "access": {
+                  "description": "Access token",
                   "type": "string"
                 },
                 "refresh": {
+                  "description": "Refresh token",
                   "type": "string"
                 }
               },
-              "required": [
-                "access",
-                "refresh"
-              ],
               "type": "object"
             }
           },
-          "description": "First basic model for Ident",
+          "description": "An identity linked to a user: `<providerUid>:<provider>`",
           "properties": {
             "__profile": {
               "description": "Provider profile"
             },
             "__tokens": {
               "$ref": "#/definitions/IdentTokens",
-              "description": "Tokens for this ident"
+              "description": "Provider tokens"
             },
-            "_failedLogin": {
-              "description": "If the ident is validated",
-              "type": "number"
-            },
-            "_lastUsed": {
-              "description": "Last time the ident was used",
-              "format": "date-time",
-              "type": "string"
-            },
-            "_lastValidationEmail": {
-              "description": "If EmailIdent",
-              "type": "number"
-            },
-            "_type": {
-              "description": "Type of the ident",
-              "type": "string"
+            "_throttle": {
+              "$ref": "#/definitions/IdentThrottle",
+              "description": "Throttling state"
             },
             "_user": {
-              "description": "Default owner of the object",
-              "type": "string"
-            },
-            "_validation": {
-              "description": "When the ident was validated",
-              "format": "date-time",
+              "description": "Owner",
               "type": "string"
             },
             "email": {
-              "description": "Email for this ident if it exist",
+              "description": "Email asserted for this ident",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "description": "Last login with this ident",
+              "format": "date-time",
               "type": "string"
             },
             "provider": {
-              "description": "Provider id",
+              "description": "Provider name",
               "type": "string"
             },
-            "public": {
-              "default": false,
-              "description": "Define if the object is publicly readable",
-              "type": "boolean"
-            },
-            "uid": {
-              "description": "Uid on the provider",
+            "providerUid": {
+              "description": "Identifier on the provider (normalised email for \"email\")",
               "type": "string"
             },
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
+            "verifiedAt": {
+              "description": "When the ident was verified",
+              "format": "date-time",
               "type": "string"
             }
           },
           "required": [
-            "__profile",
-            "__tokens",
-            "_type",
             "_user",
-            "uid",
-            "uuid"
+            "provider",
+            "providerUid"
           ],
           "type": "object",
           "$webda": "fromDto$auto"
@@ -2378,91 +2360,89 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
-          "class": true,
           "definitions": {
+            "IdentThrottle": {
+              "additionalProperties": false,
+              "description": "Throttling state of an ident (failed logins, emails sent)",
+              "properties": {
+                "attempts": {
+                  "description": "Failed attempts count",
+                  "type": "number"
+                },
+                "lastAttemptAt": {
+                  "description": "Timestamp of the last attempt",
+                  "type": "number"
+                },
+                "lastSentAt": {
+                  "description": "Timestamp of the last email sent",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "attempts"
+              ],
+              "type": "object"
+            },
             "IdentTokens": {
               "additionalProperties": false,
               "description": "OAuth tokens associated with an identity provider",
               "properties": {
                 "access": {
+                  "description": "Access token",
                   "type": "string"
                 },
                 "refresh": {
+                  "description": "Refresh token",
                   "type": "string"
                 }
               },
-              "required": [
-                "access",
-                "refresh"
-              ],
               "type": "object"
             }
           },
-          "description": "First basic model for Ident",
+          "description": "An identity linked to a user: `<providerUid>:<provider>`",
           "properties": {
             "__profile": {
               "description": "Provider profile"
             },
             "__tokens": {
               "$ref": "#/definitions/IdentTokens",
-              "description": "Tokens for this ident"
+              "description": "Provider tokens"
             },
-            "_failedLogin": {
-              "description": "If the ident is validated",
-              "type": "number"
-            },
-            "_lastUsed": {
-              "description": "Last time the ident was used",
-              "format": "date-time",
-              "type": "string"
-            },
-            "_lastValidationEmail": {
-              "description": "If EmailIdent",
-              "type": "number"
-            },
-            "_type": {
-              "description": "Type of the ident",
-              "type": "string"
+            "_throttle": {
+              "$ref": "#/definitions/IdentThrottle",
+              "description": "Throttling state"
             },
             "_user": {
-              "description": "Default owner of the object",
-              "type": "string"
-            },
-            "_validation": {
-              "description": "When the ident was validated",
-              "format": "date-time",
+              "description": "Owner",
               "type": "string"
             },
             "email": {
-              "description": "Email for this ident if it exist",
+              "description": "Email asserted for this ident",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "description": "Last login with this ident",
+              "format": "date-time",
               "type": "string"
             },
             "provider": {
-              "description": "Provider id",
+              "description": "Provider name",
               "type": "string"
             },
-            "public": {
-              "default": false,
-              "description": "Define if the object is publicly readable",
-              "type": "boolean"
-            },
-            "uid": {
-              "description": "Uid on the provider",
+            "providerUid": {
+              "description": "Identifier on the provider (normalised email for \"email\")",
               "type": "string"
             },
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
+            "verifiedAt": {
+              "description": "When the ident was verified",
+              "format": "date-time",
               "type": "string"
             }
           },
           "required": [
-            "__profile",
-            "__tokens",
-            "_type",
             "_user",
-            "uid",
-            "uuid"
+            "provider",
+            "providerUid"
           ],
           "type": "object",
           "$webda": "toJSON$return"
@@ -2484,9 +2464,11 @@
         "Queried"
       ],
       "PrimaryKey": [
-        "uuid"
+        "providerUid",
+        "provider"
       ],
-      "Identifier": "Webda/Ident"
+      "Identifier": "Webda/Ident",
+      "PrimaryKeySeparator": ":"
     },
     "Webda/OwnerModel": {
       "Plural": "OwnerModels",
@@ -2502,9 +2484,7 @@
       "Ancestors": [
         "Webda/AbstractOwnerModel"
       ],
-      "Subclasses": [
-        "Webda/Ident"
-      ],
+      "Subclasses": [],
       "Reflection": {
         "_user": {
           "type": "ModelLink",

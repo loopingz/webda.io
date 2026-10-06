@@ -50,7 +50,7 @@ export interface EventAuthenticationLogin<T extends User = User> extends EventWi
   userId: string;
   user?: T;
   identId: string;
-  ident: Ident;
+  ident: any;
 }
 
 /**
@@ -251,7 +251,7 @@ class Authentication<
   /**
    * Ident model to use
    */
-  protected identModel: Repository<ModelClass<Ident>>;
+  protected identModel: Repository<any>;
   /**
    * User model to use
    */
@@ -302,7 +302,7 @@ class Authentication<
   computeParameters(): void {
     super.computeParameters();
 
-    this.identModel = useModelRepository<Ident>(this.parameters.identModel);
+    this.identModel = useModelRepository<any>(this.parameters.identModel);
     this.userModel = useModelRepository<User>(this.parameters.userModel);
 
     if (this.parameters.password.verifier) {
@@ -565,7 +565,7 @@ class Authentication<
       identId += postfix;
     }
 
-    let ident: Ident = await this.identModel.ref(identId).get();
+    let ident: any = await this.identModel.ref(identId).get();
     // Ident is known
     if (ident) {
       await this.login(ctx, ident.getUser().toString(), ident, provider);
@@ -696,7 +696,7 @@ class Authentication<
    */
   async _passwordRecoveryEmail(ctx: WebContext) {
     const email = ctx.parameter("email");
-    const ident: Ident = await this.identModel.ref(email + "_email").get();
+    const ident: any = await this.identModel.ref(email + "_email").get();
     if (!ident) {
       throw new WebdaError.NotFound("Email not found");
     }
@@ -924,7 +924,7 @@ class Authentication<
    * @param provider - the provider name
    * @returns the result
    */
-  async login(ctx: WebContext, user: User | string, ident: Ident, provider: string) {
+  async login(ctx: WebContext, user: User | string, ident: any, provider: string) {
     const event: EventAuthenticationLogin = {
       context: ctx,
       userId: "",
@@ -960,7 +960,7 @@ class Authentication<
    * @param ctx - the operation context
    * @param ident - the identity object
    */
-  protected async handleLogin(ctx: WebContext<LoginBody>, ident: Ident) {
+  protected async handleLogin(ctx: WebContext<LoginBody>, ident: any) {
     const updates: any = {};
     const user: User = await this.userModel.ref(ident.getUser().toString()).get();
     // Check password
@@ -1010,7 +1010,7 @@ class Authentication<
 
     const mailConfig = this.parameters.email;
     const uuid = body.login.toLowerCase() + "_email";
-    let ident: Ident = await this.identModel.ref(uuid).get();
+    let ident: any = await this.identModel.ref(uuid).get();
     if (ident !== undefined && ident.getUser() !== undefined) {
       // Register on an known user
       if (!body.register) {

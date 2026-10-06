@@ -755,11 +755,11 @@ class StoreParametersTest {
 class StoreFieldsMigrationTest extends WebdaApplicationTest {
   @test
   async populatesModelsArrayAndMetadatas() {
-    const store = new MemoryStore("multi", { models: ["Webda/Ident", "Webda/User"] });
+    const store = new MemoryStore("multi", { models: ["WebdaTest/Ident", "Webda/User"] });
     store.resolve();
     assert.strictEqual((store as any)._models.length, 2);
     assert.strictEqual((store as any)._modelMetadatas.size, 2);
-    assert.strictEqual((store as any)._modelsHierarchy["Webda/Ident"], 0);
+    assert.strictEqual((store as any)._modelsHierarchy["WebdaTest/Ident"], 0);
     assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
     assert.strictEqual(store.getModels().length, 2);
   }

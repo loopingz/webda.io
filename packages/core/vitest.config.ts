@@ -1,9 +1,11 @@
 /// <reference types="vitest" />
 
+import { webdaContentMapper } from "@webda/content-mapper/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
   clearScreen: false,
+  plugins: [webdaContentMapper()],
   test: {
     allowOnly: true,
     testTimeout: 20000,
@@ -14,9 +16,6 @@ export default defineConfig({
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.spec.ts", "src/index.ts"],
       reporter: ["lcov", "html", "text"]
-    },
-    testTransformMode: {
-      web: ["./esbuild.webda.ts"]
     },
     passWithNoTests: true,
     setupFiles: ["./vitest.chdir.mts"],

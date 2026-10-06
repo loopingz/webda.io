@@ -79,6 +79,7 @@
     "@vitest/coverage-istanbul": "^4.1.2",
     "@vitest/coverage-v8": "^4.1.2",
     "@webda/compiler": "workspace:^",
+    "@webda/content-mapper": "workspace:^",
     "@webda/test": "workspace:^",
     "@webda/tsc-esm": "workspace:*",
     "axios": "^1.14.0",

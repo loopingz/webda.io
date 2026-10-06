@@ -23,38 +23,38 @@ export interface Prompter {
 
 /**
  * Throw on Ctrl-C, otherwise return the answer
- * @param value - clack answer (may be a cancel symbol)
- * @returns the answer or throws if cancelled
+ * @param value - clack answer
+ * @returns the answer
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function answer(value: any): any {
+function answer<T>(value: T | symbol): T {
   if (clack.isCancel(value)) {
     throw new OptionsError("Cancelled");
   }
-  return value;
+  return value as T;
 }
 
 export const clackPrompter: Prompter = {
   async text(message, initial) {
-    const result = await clack.text({ message, initialValue: initial });
-    return answer(result);
+    return answer(await clack.text({ message, initialValue: initial })) as any;
   },
   async select(message, options, initial) {
-    const result = await clack.select<string>({
-      message,
-      options: options.map(value => ({ value, label: value })),
-      initialValue: initial
-    });
-    return answer(result);
+    return answer(
+      await clack.select({
+        message,
+        options: options.map(value => ({ value, label: value })) as any,
+        initialValue: initial
+      })
+    ) as any;
   },
   async multiselect(message, options, initial) {
-    const result = await clack.multiselect<string>({
-      message,
-      options: options.map(value => ({ value, label: value })),
-      initialValues: initial,
-      required: false
-    });
-    return answer(result);
+    return answer(
+      await clack.multiselect({
+        message,
+        options: options.map(value => ({ value, label: value })) as any,
+        initialValues: initial,
+        required: false
+      })
+    ) as any;
   }
 };
 

@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import { getCommonJS, JSONUtils } from "@webda/utils";
 import * as assert from "assert";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "path";
 import { Compiler } from "./index.js";
@@ -380,7 +380,6 @@ class CompilerTest {
       undefined,
       "TestBean should not have commands since it has no @Command methods"
     );
-
   }
 
   @test
@@ -530,6 +529,40 @@ class CompilerTest {
       assert.strictEqual(compiler.requireCompilation(), true, "a single missing output must trigger a build");
       rmSync(path.join(dir, "lib"), { recursive: true });
       assert.strictEqual(compiler.requireCompilation(), true, "a deleted lib/ must trigger a build");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  /**
+   * The generator packages emit the accessors and schemas, so upgrading them
+   * must rebuild an app whose sources did not change.
+   */
+  @test
+  async requireCompilationChecksGenerator() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webdac-generator-"));
+    try {
+      const project = {
+        getAppPath: (p: string = "") => path.join(dir, p),
+        getDigest: () => "digest"
+      } as unknown as WebdaProject;
+      writeFileSync(path.join(dir, "webda.module.json"), JSON.stringify({ moddas: {}, models: {} }));
+      mkdirSync(path.join(dir, ".webda"));
+      mkdirSync(path.join(dir, "lib"));
+      const cachePath = path.join(dir, ".webda", "cache");
+      const compiler = new Compiler(project);
+      (compiler as any).updateCache();
+      const cache = JSON.parse(readFileSync(cachePath, "utf8"));
+      assert.deepStrictEqual(Object.keys(cache.generator).sort(), ["@webda/compiler", "@webda/content-mapper"]);
+      assert.strictEqual(compiler.requireCompilation(), false, "matching generator must not rebuild");
+      writeFileSync(
+        cachePath,
+        JSON.stringify({ ...cache, generator: { ...cache.generator, "@webda/content-mapper": "0.0.0-old" } })
+      );
+      assert.strictEqual(compiler.requireCompilation(), true, "a different generator version must rebuild");
+      const { generator, ...legacy } = cache;
+      writeFileSync(cachePath, JSON.stringify(legacy));
+      assert.strictEqual(compiler.requireCompilation(), true, "a cache without generator must rebuild");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

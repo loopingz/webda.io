@@ -1,10 +1,57 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, watch as watchFiles, type FSWatcher } from "node:fs";
+import { createRequire } from "node:module";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { FileUtils } from "@webda/utils";
 import { useLog } from "@webda/workout";
 import type { WebdaProject } from "./definition.js";
 import { writeModule } from "./module.js";
 import { build } from "./schema-backend.js";
+
+/** Packages whose version decides whether a cached build is still valid. */
+const GENERATOR_PACKAGES = ["@webda/compiler", "@webda/content-mapper"];
+
+let generatorVersions: Record<string, string> | undefined;
+
+/**
+ * Installed versions of the packages that generate the build output.
+ *
+ * Read once per process. A package that cannot be resolved reports "unknown"
+ * rather than failing the build.
+ * @returns package name to installed version
+ */
+function getGeneratorVersions(): Record<string, string> {
+  if (!generatorVersions) {
+    const require = createRequire(import.meta.url);
+    generatorVersions = {};
+    for (const name of GENERATOR_PACKAGES) {
+      let version = "unknown";
+      try {
+        // Not every package exports ./package.json, so find the entry point
+        // and walk up to the package root.
+        // The compiler's own manifest sits next to `lib/` (or `src/`).
+        let dir =
+          name === "@webda/compiler" ? fileURLToPath(new URL(".", import.meta.url)) : join(require.resolve(name), "..");
+        while (dir !== join(dir, "..")) {
+          const manifest = join(dir, "package.json");
+          if (existsSync(manifest)) {
+            const pkg = JSON.parse(readFileSync(manifest, "utf8"));
+            if (pkg.name === name) {
+              version = pkg.version ?? "unknown";
+              break;
+            }
+          }
+          dir = join(dir, "..");
+        }
+      } catch {
+        // Keep "unknown"
+      }
+      generatorVersions[name] = version;
+    }
+  }
+  return generatorVersions;
+}
 
 /**
  * Compiler
@@ -72,7 +119,18 @@ export class Compiler {
     const webdaCache: {
       sourceDigest?: string;
       moduleDigest?: string;
+      generator?: Record<string, string>;
     } = FileUtils.load(f, "json");
+    const generator = getGeneratorVersions();
+    for (const name of GENERATOR_PACKAGES) {
+      if (webdaCache.generator?.[name] !== generator[name]) {
+        useLog(
+          "INFO",
+          `Generator changed: ${name} ${webdaCache.generator?.[name] ?? "(not recorded)"} → ${generator[name]}, rebuilding`
+        );
+        return true;
+      }
+    }
     const currentDigest = this.project.getDigest();
     if (webdaCache.sourceDigest !== currentDigest) {
       return true;
@@ -201,9 +259,11 @@ export class Compiler {
     const webdaCache: {
       sourceDigest?: string;
       moduleDigest?: string;
+      generator?: Record<string, string>;
     } = existsSync(f) ? FileUtils.load(f, "json") : {};
     webdaCache.sourceDigest = this.project.getDigest();
     webdaCache.moduleDigest = this.fileDigest(this.project.getAppPath("webda.module.json"));
+    webdaCache.generator = { ...getGeneratorVersions() };
     FileUtils.save(webdaCache, f, "json");
   }
 

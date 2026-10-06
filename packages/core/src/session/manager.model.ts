@@ -7,6 +7,7 @@ import { Context, isWebContext } from "../contexts/icontext.js";
 import { getUuid } from "@webda/utils";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { Session } from "./session.js";
+import { useService } from "../core/hooks.js";
 import { type ModelClass, type Repository, UuidModel } from "@webda/models";
 
 /**
@@ -24,6 +25,24 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
    * @param session
    */
   abstract save(context: Context, session: Session): Promise<void>;
+
+  /**
+   * Build a stateless session from an access token (any transport)
+   * @param context - the context
+   * @param token - access token
+   * @returns the session, anonymous when the token is invalid
+   */
+  async loadFromToken(context: Context, token: string): Promise<Session> {
+    const session = new Session();
+    session.stateless = true;
+    const claims = await useService("TokenService").verifyAccess(token);
+    if (claims) {
+      session.login(claims.sub, claims.ident, { provider: claims.provider, amr: claims.amr, mfa: claims.mfa });
+      session.roles = claims.roles;
+      session.refreshFamily = claims.fam;
+    }
+    return session;
+  }
 }
 
 /** Persistent session data stored in a model with a TTL */
@@ -86,6 +105,11 @@ export class CookieSessionManager<
     if (!isWebContext(context)) {
       return new Session();
     }
+    // A Bearer scheme is authoritative: an invalid token yields an anonymous session, never the cookie
+    const authorization = context.getHttpContext().getHeader("authorization");
+    if (typeof authorization === "string" && /^bearer\s/i.test(authorization)) {
+      return this.loadFromToken(context, authorization.substring(7).trim());
+    }
     const session = new Session();
     const cookie = await SecureCookie.load(this.parameters.cookie.name, session, context, this.parameters.jwt);
     if (this.sessionModel) {
@@ -105,6 +129,9 @@ export class CookieSessionManager<
    */
   async save(context: Context, session: Session) {
     if (!isWebContext(context)) {
+      return;
+    }
+    if (session.stateless) {
       return;
     }
     // If store is found session info are stored in db

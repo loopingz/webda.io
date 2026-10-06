@@ -1,6 +1,8 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Session, UnknownSession } from "./session.js";
+import { WebdaApplicationTest } from "../test/application.js";
+import { useService } from "../core/hooks.js";
 
 @suite
 class SessionTest {
@@ -38,5 +40,91 @@ class SessionTest {
     const session = new Session();
     session.stateless = true;
     assert.ok(!Object.keys(session).includes("stateless"));
+  }
+}
+
+@suite
+class BearerSessionTest extends WebdaApplicationTest {
+  getTestConfiguration() {
+    return {
+      parameters: { ignoreBeans: true },
+      services: { AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken"] } }
+    };
+  }
+
+  async contextWith(headers: Record<string, string>) {
+    const ctx = await this.newContext();
+    Object.assign(ctx.getHttpContext().headers, headers);
+    return ctx;
+  }
+
+  async token() {
+    const s = new Session();
+    s.login("u1", "a@b.c:email", { provider: "email", amr: ["pwd"] });
+    return (await useService("TokenService").issue(s)).accessToken;
+  }
+
+  @test
+  async bearerWins() {
+    const ctx = await this.contextWith({ authorization: `Bearer ${await this.token()}` });
+    const loaded = await useService("SessionManager").load(ctx);
+    assert.strictEqual(loaded.userId, "u1");
+    assert.ok(loaded.stateless);
+    assert.ok(loaded.isLogged());
+    assert.deepStrictEqual(loaded.amr, ["pwd"]);
+  }
+
+  @test
+  async lowercaseScheme() {
+    const ctx = await this.contextWith({ authorization: `bearer ${await this.token()}` });
+    const loaded = await useService("SessionManager").load(ctx);
+    assert.ok(loaded.isLogged());
+  }
+
+  @test
+  async invalidBearerIsAnonymous() {
+    const ctx = await this.contextWith({ authorization: "Bearer nope" });
+    const loaded = await useService("SessionManager").load(ctx);
+    assert.ok(!loaded.isLogged());
+  }
+
+  @test
+  async invalidBearerDoesNotFallBackToCookie() {
+    const manager = useService("SessionManager");
+    const first = await this.newContext();
+    const s = new Session();
+    s.login("u1", "x:email");
+    await manager.save(first, s);
+    const ctx = await this.contextWith({ authorization: "Bearer nope" });
+    const sent: any = first.getResponseCookies();
+    ctx.getHttpContext().cookies = {};
+    for (const name of Object.keys(sent)) {
+      ctx.getHttpContext().cookies[name] = sent[name].value;
+    }
+    // Sanity: the same cookie alone does authenticate
+    delete ctx.getHttpContext().headers["authorization"];
+    assert.ok((await manager.load(ctx)).isLogged());
+    ctx.getHttpContext().headers["authorization"] = "Bearer nope";
+    const loaded = await manager.load(ctx);
+    assert.ok(!loaded.isLogged());
+  }
+
+  @test
+  async nonBearerSchemeIgnored() {
+    const ctx = await this.contextWith({ authorization: "Basic abc" });
+    const loaded = await useService("SessionManager").load(ctx);
+    assert.ok(!loaded.stateless);
+    assert.ok(!loaded.isLogged());
+  }
+
+  @test
+  async statelessNotSaved() {
+    const ctx = await this.contextWith({});
+    const s = new Session();
+    s.stateless = true;
+    s.login("u1", "x:email");
+    await useService("SessionManager").save(ctx, s);
+    const h = ctx.getResponseHeaders();
+    assert.strictEqual(h["Set-Cookie"] ?? h["set-cookie"], undefined);
   }
 }

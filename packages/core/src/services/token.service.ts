@@ -75,11 +75,16 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
 
   /**
    * Issue an access + refresh token pair for a logged session
-   * @param session - logged session
+   *
+   * Roles are not persisted: refreshed access tokens carry no roles until they are re-derived.
+   * @param session - logged session (must not be anonymous nor pending MFA)
    * @param family - existing family when rotating
    * @returns the tokens
    */
   async issue(session: Session, family: string = getUuid("base64")): Promise<IssuedTokens> {
+    if (!session.isLogged()) {
+      throw new TokenInvalid("Session is not fully authenticated");
+    }
     const refreshToken = randomBytes(32).toString("base64url");
     await RefreshToken.create({
       hash: this.hash(refreshToken),
@@ -87,6 +92,7 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       identId: session.identUsed,
       provider: session.provider,
       amr: session.amr ?? [],
+      mfa: session.mfa ?? "none",
       family,
       expiresAt: Date.now() + this.parameters.refreshTtl * 1000
     } as any);
@@ -132,8 +138,11 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       throw new TokenInvalid();
     }
     const ref = RefreshToken.ref({ hash: this.hash(refreshToken) } as any);
-    const stored: RefreshToken | undefined = await ref.get().catch(() => undefined);
-    if (!stored || stored.revokedAt || stored.expiresAt < Date.now()) {
+    if (!(await ref.exists())) {
+      throw new TokenInvalid();
+    }
+    const stored: RefreshToken = await ref.get();
+    if (stored.revokedAt || stored.expiresAt < Date.now()) {
       throw new TokenInvalid();
     }
     if (stored.rotatedAt) {
@@ -143,14 +152,37 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
     // Compare-and-set: only one caller can move rotatedAt from undefined to a value
     try {
       await ref.patch({ rotatedAt: Date.now() } as any, "rotatedAt" as any, undefined);
-    } catch {
-      // Lost the race (or storage failure): treat as reuse and kill the family
+    } catch (err) {
+      if (!this.isConditionFailure(err)) {
+        throw err;
+      }
+      // Lost the race: treat as reuse and kill the family
       await this.revokeFamily(stored.family);
       throw new TokenInvalid("Refresh token reused");
     }
     const session = new Session();
-    session.login(stored.userId, stored.identId, { provider: stored.provider, amr: stored.amr });
-    return { ...(await this.issue(session, stored.family)), session };
+    session.login(stored.userId, stored.identId, {
+      provider: stored.provider,
+      amr: stored.amr,
+      mfa: stored.mfa ?? "none"
+    });
+    const tokens = await this.issue(session, stored.family);
+    // A revocation may have run between our read and the issue: its scan would have missed the new record
+    for await (const _ of RefreshToken.iterate("family = ? AND revokedAt IS NOT NULL LIMIT 1", [stored.family])) {
+      await RefreshToken.ref({ hash: this.hash(tokens.refreshToken) } as any).patch({
+        revokedAt: Date.now()
+      } as any);
+      throw new TokenInvalid("Refresh token revoked");
+    }
+    return { ...tokens, session };
+  }
+
+  /**
+   * @param err - error thrown by a conditional write
+   * @returns true if the error is a failed write condition
+   */
+  protected isConditionFailure(err: any): boolean {
+    return /condition/i.test(`${err?.name} ${err?.message}`);
   }
 
   /**

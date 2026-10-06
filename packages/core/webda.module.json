@@ -2664,6 +2664,9 @@
             "string"
           ]
         },
+        "mfa": {
+          "type": "MfaState"
+        },
         "family": {
           "type": "string"
         },
@@ -2705,6 +2708,16 @@
             },
             "identId": {
               "description": "Ident used to log in",
+              "type": "string"
+            },
+            "mfa": {
+              "default": "none",
+              "description": "MFA state of the session that issued the token",
+              "enum": [
+                "none",
+                "pending",
+                "verified"
+              ],
               "type": "string"
             },
             "provider": {
@@ -2763,6 +2776,16 @@
               "description": "Ident used to log in",
               "type": "string"
             },
+            "mfa": {
+              "default": "none",
+              "description": "MFA state of the session that issued the token",
+              "enum": [
+                "none",
+                "pending",
+                "verified"
+              ],
+              "type": "string"
+            },
             "provider": {
               "description": "Provider used",
               "type": "string"
@@ -2817,6 +2840,16 @@
             },
             "identId": {
               "description": "Ident used to log in",
+              "type": "string"
+            },
+            "mfa": {
+              "default": "none",
+              "description": "MFA state of the session that issued the token",
+              "enum": [
+                "none",
+                "pending",
+                "verified"
+              ],
               "type": "string"
             },
             "provider": {

@@ -23,9 +23,9 @@ class TokenServiceTest extends WebdaApplicationTest {
     this.service = useService("TokenService");
   }
 
-  session(): Session {
+  session(user: string = "u1"): Session {
     const s = new Session();
-    s.login("u1", "a@b.c:email", { provider: "email", amr: ["pwd"] });
+    s.login(user, "a@b.c:email", { provider: "email", amr: ["pwd"] });
     return s;
   }
 
@@ -117,5 +117,65 @@ class TokenServiceTest extends WebdaApplicationTest {
     // The winner's new token must be dead too: the family was revoked
     const winner = (results.find(r => r.status === "fulfilled") as PromiseFulfilledResult<any>).value;
     await assert.rejects(() => this.service.refresh(winner.refreshToken), TokenInvalid);
+  }
+
+  @test
+  async issueRequiresLoggedSession() {
+    const pending = new Session();
+    pending.login("fresh1", "a@b.c:email", { provider: "email", amr: ["pwd"], mfa: "pending" });
+    await assert.rejects(() => this.service.issue(pending), TokenInvalid);
+    await assert.rejects(() => this.service.issue(new Session()), TokenInvalid);
+    assert.strictEqual((await RefreshToken.query("userId = 'fresh1'")).results.length, 0);
+  }
+
+  @test
+  async mfaSurvivesRefresh() {
+    const s = new Session();
+    s.login("u1", "a@b.c:email", { provider: "email", amr: ["pwd", "otp"], mfa: "verified" });
+    const t = await this.service.issue(s);
+    const r = await this.service.refresh(t.refreshToken);
+    assert.strictEqual((await this.service.verifyAccess(r.accessToken)).mfa, "verified");
+    assert.strictEqual(r.session.mfa, "verified");
+  }
+
+  @test
+  async revocationDuringRefresh() {
+    const t = await this.service.issue(this.session("u2"));
+    const repo: any = RefreshToken.getRepository();
+    const original = repo.patch.bind(repo);
+    let injected = false;
+    repo.patch = async (...args: any[]) => {
+      if (!injected) {
+        injected = true;
+        await this.service.revokeUser("u2");
+      }
+      return original(...args);
+    };
+    try {
+      await assert.rejects(() => this.service.refresh(t.refreshToken), TokenInvalid);
+    } finally {
+      repo.patch = original;
+    }
+    const all = (await RefreshToken.query("userId = 'u2'")).results;
+    assert.ok(all.length >= 1);
+    assert.strictEqual(all.filter(r => !r.revokedAt).length, 0);
+  }
+
+  @test
+  async storageErrorDoesNotRevoke() {
+    const t = await this.service.issue(this.session("u3"));
+    const repo: any = RefreshToken.getRepository();
+    const original = repo.patch.bind(repo);
+    repo.patch = async () => {
+      throw new Error("db down");
+    };
+    try {
+      await assert.rejects(() => this.service.refresh(t.refreshToken), /db down/);
+    } finally {
+      repo.patch = original;
+    }
+    const all = (await RefreshToken.query("userId = 'u3'")).results;
+    assert.strictEqual(all.filter(r => r.revokedAt).length, 0);
+    assert.ok(await this.service.refresh(t.refreshToken));
   }
 }

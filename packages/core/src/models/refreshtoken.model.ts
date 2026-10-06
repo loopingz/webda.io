@@ -1,4 +1,5 @@
 import { Model, WEBDA_PRIMARY_KEY } from "@webda/models";
+import type { MfaState } from "../session/session.js";
 
 /**
  * Stored refresh token (only its SHA-256 hash)
@@ -16,6 +17,8 @@ export class RefreshToken extends Model {
   provider?: string;
   /** Authentication methods */
   amr: string[] = [];
+  /** MFA state of the session that issued the token */
+  mfa: MfaState = "none";
   /** Rotation family */
   family: string;
   /** Expiry, ms since epoch */

@@ -94,8 +94,11 @@
           },
           "redirects": {
             "additionalProperties": false,
-            "description": "Browser redirects for emailed links",
+            "description": "Browser redirects for emailed links. `confirm` (default `failure`) receives a verification link opened without\nthe matching session, with `?reason=LOGIN_REQUIRED&token=...`: log in then call Auth.Email.Verify with the token",
             "properties": {
+              "confirm": {
+                "type": "string"
+              },
               "failure": {
                 "type": "string"
               },
@@ -145,7 +148,7 @@
           },
           "redirects": {
             "$ref": "#/definitions/redirects",
-            "description": "Browser redirects for emailed links"
+            "description": "Browser redirects for emailed links. `confirm` (default `failure`) receives a verification link opened without\nthe matching session, with `?reason=LOGIN_REQUIRED&token=...`: log in then call Auth.Email.Verify with the token"
           },
           "throttle": {
             "$ref": "#/definitions/throttle",

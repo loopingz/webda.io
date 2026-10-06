@@ -43,8 +43,11 @@ export class EmailPasswordParameters extends ServiceParameters {
   password: { policy?: string; verifier?: string };
   /** Throttling */
   throttle: { resendDelay?: number; failedBeforeDelay?: number; lockout?: number };
-  /** Browser redirects for emailed links */
-  redirects: { verified?: string; failure?: string; register?: string };
+  /**
+   * Browser redirects for emailed links. `confirm` (default `failure`) receives a verification link opened without
+   * the matching session, with `?reason=LOGIN_REQUIRED&token=...`: log in then call Auth.Email.Verify with the token
+   */
+  redirects: { verified?: string; failure?: string; register?: string; confirm?: string };
   /**
    * Base url for emailed links
    * @default "/auth/email"
@@ -386,7 +389,11 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
   }
 
   /**
-   * Send (or resend) a verification link; adds the email to the current account when logged in
+   * Send (or resend) a verification link
+   *
+   * Logged in: the link proves the email for the current account (`sub` is only in the token, the ident stays
+   * unowned until Auth.Email.Verify is called by the same session). Logged out: always answers with no content and
+   * never reveals anything; a link is only sent for an unowned or unknown email.
    * @param email - email
    */
   @Operation({
@@ -398,41 +405,74 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     const ctx = useContext<any>();
     const normalized = Ident.normalizeEmail(email);
     const userId: string | undefined = ctx.getSession()?.isLogged() ? ctx.getCurrentUserId() : undefined;
-    await runAsSystem(async () => {
+    const { resendDelay } = this.parameters.throttle;
+    const mail = await runAsSystem(async () => {
       const auth = useAuthentication();
       let ident = await this.getIdent(normalized);
       const owner = ident?.getUser()?.toString();
-      if (owner && userId && owner !== userId) {
-        throw new IdentLinkedElsewhere();
+      if (!userId && (owner || ident?.isVerified())) {
+        return undefined;
       }
-      if (ident?.isVerified()) {
-        throw new WebdaError.PreconditionFailed("Email already verified");
+      if (userId) {
+        if (owner && owner !== userId) {
+          throw new IdentLinkedElsewhere();
+        }
+        if (ident?.isVerified()) {
+          throw new WebdaError.PreconditionFailed("Email already verified");
+        }
       }
-      if (ident && !canSend(ident._throttle, this.parameters.throttle.resendDelay)) {
-        throw new Throttled();
+      if (ident && !canSend(ident._throttle, resendDelay)) {
+        if (userId) throw new Throttled();
+        return undefined;
       }
       if (!ident) {
+        // Unowned: only tracks the send throttle
         ident = new (auth.getIdentModel())({ ...Ident.key(normalized, "email"), email: normalized } as any);
-        if (userId) ident.setUser(userId);
         ident._throttle = markSent(undefined);
         await ident.getRepository().create(ident);
       } else {
-        const patch: any = { _throttle: markSent(ident._throttle) };
-        if (userId && !owner) {
-          ident.setUser(userId);
-          patch._user = ident._user;
-        }
-        await ident.ref().patch(patch);
+        await ident.ref().patch({ _throttle: markSent(ident._throttle) } as any);
       }
-      // An owned ident (even resent while logged out) is verified for its owner; otherwise this is a pre-registration
-      const sub = userId ?? owner;
-      const t = await signEmailToken(sub ? "verify" : "register", { email: normalized, sub });
-      await this.sendMail("EMAIL_REGISTER", normalized, this.buildLink("/verify", t), t);
+      const t = await signEmailToken(userId ? "verify" : "register", { email: normalized, sub: userId });
+      return { url: this.buildLink("/verify", t), token: t };
     });
+    if (!mail) return;
+    if (userId) {
+      await this.sendMail("EMAIL_REGISTER", normalized, mail.url, mail.token);
+    } else {
+      // Not awaited: the answer must not depend on whether a mail was sent
+      this.sendMailDetached("EMAIL_REGISTER", normalized, mail.url, mail.token);
+    }
   }
 
   /**
-   * Mark an email as verified
+   * Send a mail without awaiting it; failures are logged without any secret
+   * @param template - mail template
+   * @param to - recipient
+   * @param url - link
+   * @param token - token
+   */
+  protected sendMailDetached(template: "EMAIL_REGISTER" | "EMAIL_RECOVERY", to: string, url: string, token: string) {
+    const pending: Promise<void> = this.sendMail(template, to, url, token)
+      .catch(err => this.log("ERROR", `Cannot send ${template} mail`, err?.code ?? err?.name))
+      .finally(() => this.pendingMails.delete(pending));
+    this.pendingMails.add(pending);
+  }
+
+  /** Mails sent without being awaited */
+  protected pendingMails = new Set<Promise<void>>();
+
+  /**
+   * Wait for the mails sent without being awaited (logged out verification, recovery)
+   */
+  async flushMails(): Promise<void> {
+    while (this.pendingMails.size) {
+      await Promise.all([...this.pendingMails]);
+    }
+  }
+
+  /**
+   * Mark an email as verified: only the session of the user named by the token can complete it
    * @param token - verify token
    * @returns status
    */
@@ -443,16 +483,50 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     rest: { method: "post", path: "auth/email/verify" }
   })
   async verify(token: string): Promise<{ status: "verified" }> {
+    return this.verifyWith(token, useContext<any>());
+  }
+
+  /**
+   * Verify with an explicit context
+   * @param token - verify token
+   * @param ctx - context whose session must match the token
+   * @returns status
+   */
+  protected async verifyWith(token: string, ctx: any): Promise<{ status: "verified" }> {
     const claims = await verifyEmailToken(token, "verify");
+    await this.completeVerify(claims, ctx);
+    return { status: "verified" };
+  }
+
+  /**
+   * @param claims - verified token claims
+   * @param ctx - context
+   * @returns true when the session is logged as the user of the token
+   */
+  protected sessionMatches(claims: { sub?: string }, ctx: any): boolean {
+    return !!claims.sub && !!ctx?.getSession?.()?.isLogged() && ctx.getCurrentUserId() === claims.sub;
+  }
+
+  /**
+   * Complete a verification; nothing changes unless every check passes
+   * @param claims - verified token claims
+   * @param ctx - context
+   */
+  protected async completeVerify(claims: { email: string; sub?: string }, ctx: any): Promise<void> {
+    if (!ctx?.getSession?.()?.isLogged()) {
+      throw new WebdaError.Unauthorized("Login required");
+    }
+    if (!this.sessionMatches(claims, ctx)) {
+      throw new IdentLinkedElsewhere();
+    }
     await runAsSystem(async () => {
       const ident = await this.getIdent(claims.email);
       if (!ident) {
         throw new TokenInvalid();
       }
       const owner = ident.getUser()?.toString();
-      if (owner ? claims.sub !== owner : !claims.sub) {
-        // The token must come from the owner: never verify an ident on behalf of someone else
-        throw owner ? new IdentLinkedElsewhere() : new TokenInvalid();
+      if (owner && owner !== claims.sub) {
+        throw new IdentLinkedElsewhere();
       }
       const patch: any = {};
       if (!ident.isVerified()) patch.verifiedAt = new Date();
@@ -462,7 +536,6 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
       }
       if (Object.keys(patch).length) await ident.ref().patch(patch);
     });
-    return { status: "verified" };
   }
 
   /**
@@ -491,7 +564,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
         sub: user.getUUID(),
         pwdAt: (user as any).password.changedAt
       });
-      await this.sendMail("EMAIL_RECOVERY", normalized, this.buildLink("/recover", t), t);
+      this.sendMailDetached("EMAIL_RECOVERY", normalized, this.buildLink("/recover", t), t);
     });
   }
 
@@ -519,7 +592,11 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
       }
       await (user as any).password.set(password);
       await user.save();
-      await (useDynamicService("TokenService") as any)?.revokeUser?.(user.getUUID());
+      const tokens = useDynamicService<any>("TokenService");
+      if (!tokens) {
+        throw new Error("Password recovery requires the TokenService to revoke sessions");
+      }
+      await tokens.revokeUser(user.getUUID());
       // Receiving the mail proves possession of the address
       const ident = await this.getIdent(claims.email);
       if (ident && !ident.isVerified() && ident.getUser()?.toString() === user.getUUID()) {
@@ -564,10 +641,17 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
   @Route("./verify{?token}", ["GET"], { hidden: true })
   async verifyRedirect(ctx: WebContext): Promise<void> {
     const { verified, failure, register } = this.parameters.redirects;
+    const confirm = this.parameters.redirects.confirm ?? failure;
     const token = ctx.parameter("token");
     const redirect = (url: string) => ctx.writeHead(302, { Location: url });
     try {
-      await this.verify(token);
+      const claims = await verifyEmailToken(token, "verify");
+      if (!this.sessionMatches(claims, ctx)) {
+        // Nothing changes: a mail scanner prefetching the link must not verify anything
+        redirect(`${confirm}?reason=LOGIN_REQUIRED&token=${encodeURIComponent(token)}`);
+        return;
+      }
+      await this.completeVerify(claims, ctx);
       redirect(`${verified}?validation=email`);
     } catch (err) {
       try {

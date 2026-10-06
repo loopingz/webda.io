@@ -1,6 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Ident, runAsSystem } from "@webda/core";
+import { Ident, runAsSystem, useCore } from "@webda/core";
+import { vi } from "vitest";
 import { EmailTest } from "../test/emailtest.js";
 
 const rejectsWith = (fn: () => Promise<unknown>, code: string) => assert.rejects(fn, (err: any) => err.code === code);
@@ -12,17 +13,31 @@ class RecoveryTest extends EmailTest {
     this.email.getParameters().redirects = {
       verified: "https://app/ok",
       failure: "https://app/ko",
-      register: "https://app/reg"
+      register: "https://app/reg",
+      confirm: "https://app/confirm"
     };
+  }
+
+  /** Wait for the mails sent without being awaited */
+  async flush() {
+    await this.email.flushMails();
+  }
+
+  /** Call the GET route with a token and the session of ctx, return the redirect */
+  async redirectOf(token: string, ctx?: any): Promise<string> {
+    const c: any = Object.assign(ctx ?? (await this.ctx()), { parameter: () => token });
+    await this.inContext(c, () => this.email.verifyRedirect(c));
+    return c.getResponseHeaders().Location;
   }
 
   @test
   async verifyAfterRegistration() {
-    await this.op("Auth.Email.Register", { email: "a@x.com", password: "longenough" });
+    const ctx = await this.ctx();
+    await this.op("Auth.Email.Register", { email: "a@x.com", password: "longenough" }, ctx);
     const token = this.tokenOf(this.lastMailUrl());
-    assert.deepStrictEqual(await this.op("Auth.Email.Verify", { token }), { status: "verified" });
+    assert.deepStrictEqual(await this.op("Auth.Email.Verify", { token }, ctx), { status: "verified" });
     assert.ok((await Ident.ref(Ident.key("a@x.com", "email")).get()).isVerified());
-    assert.deepStrictEqual(await this.op("Auth.Email.Verify", { token }), { status: "verified" });
+    assert.deepStrictEqual(await this.op("Auth.Email.Verify", { token }, ctx), { status: "verified" });
   }
 
   @test
@@ -31,12 +46,15 @@ class RecoveryTest extends EmailTest {
     await this.op("Auth.Email.Register", { email: "main@x.com", password: "longenough" }, ctx);
     this.mailer.sent = [];
     await this.op("Auth.Email.StartVerification", { email: "second@x.com" }, ctx);
-    const ident = await Ident.ref(Ident.key("second@x.com", "email")).get();
-    assert.strictEqual(ident.getUser().toString(), ctx.getCurrentUserId());
+    // Unowned until the link is used by the same session
+    let ident = await Ident.ref(Ident.key("second@x.com", "email")).get();
+    assert.ok(!ident.getUser());
     assert.ok(!ident.isVerified());
     await rejectsWith(() => this.op("Auth.Email.StartVerification", { email: "second@x.com" }, ctx), "THROTTLED");
-    await this.op("Auth.Email.Verify", { token: this.tokenOf(this.lastMailUrl()) });
-    assert.ok((await Ident.ref(Ident.key("second@x.com", "email")).get()).isVerified());
+    await this.op("Auth.Email.Verify", { token: this.tokenOf(this.lastMailUrl()) }, ctx);
+    ident = await Ident.ref(Ident.key("second@x.com", "email")).get();
+    assert.ok(ident.isVerified());
+    assert.strictEqual(ident.getUser().toString(), ctx.getCurrentUserId());
     await rejectsWith(
       () => this.op("Auth.Email.StartVerification", { email: "second@x.com" }, ctx),
       "PRECONDITION_FAILED"
@@ -57,24 +75,112 @@ class RecoveryTest extends EmailTest {
   @test
   async verifyOwnership() {
     const { signEmailToken } = await import("./tokens.js");
-    await this.op("Auth.Email.Register", { email: "own@x.com", password: "longenough" });
+    const ctx = await this.ctx();
+    await this.op("Auth.Email.Register", { email: "own@x.com", password: "longenough" }, ctx);
+    const me = ctx.getCurrentUserId();
     // Different sub on an owned ident: refused, nothing verified
     const other = await signEmailToken("verify", { email: "own@x.com", sub: "someone-else" });
-    await rejectsWith(() => this.op("Auth.Email.Verify", { token: other }), "IDENT_LINKED_ELSEWHERE");
-    assert.ok(!(await Ident.ref(Ident.key("own@x.com", "email")).get()).isVerified());
+    await rejectsWith(() => this.op("Auth.Email.Verify", { token: other }, ctx), "IDENT_LINKED_ELSEWHERE");
     // No sub on an owned ident: refused
     const nosub = await signEmailToken("verify", { email: "own@x.com" });
-    await rejectsWith(() => this.op("Auth.Email.Verify", { token: nosub }), "IDENT_LINKED_ELSEWHERE");
+    await rejectsWith(() => this.op("Auth.Email.Verify", { token: nosub }, ctx), "IDENT_LINKED_ELSEWHERE");
     assert.ok(!(await Ident.ref(Ident.key("own@x.com", "email")).get()).isVerified());
-    // Unowned ident and a sub: the sub becomes the owner
+    // Unowned ident and a matching session: the sub becomes the owner
     const Model = this.auth.getIdentModel();
     const free = new Model({ ...Ident.key("free@x.com", "email"), email: "free@x.com" } as any);
     await runAsSystem(() => free.getRepository().create(free));
-    const mine = await signEmailToken("verify", { email: "free@x.com", sub: "me-uuid" });
-    await this.op("Auth.Email.Verify", { token: mine });
+    const mine = await signEmailToken("verify", { email: "free@x.com", sub: me });
+    await this.op("Auth.Email.Verify", { token: mine }, ctx);
     const ident = await Ident.ref(Ident.key("free@x.com", "email")).get();
     assert.ok(ident.isVerified());
-    assert.strictEqual(ident.getUser().toString(), "me-uuid");
+    assert.strictEqual(ident.getUser().toString(), me);
+  }
+
+  @test
+  async squatterChain() {
+    // A registers the victim's email (after mode) and the link reaches the victim
+    const ctxA = await this.ctx();
+    await this.op("Auth.Email.Register", { email: "victim@x.com", password: "longenough" }, ctxA);
+    const token = this.tokenOf(this.lastMailUrl());
+    const a = ctxA.getCurrentUserId();
+    // Victim logged out
+    await rejectsWith(() => this.op("Auth.Email.Verify", { token }), "UNAUTHORIZED");
+    // Victim logged in as someone else
+    const victim = await this.ctx();
+    await this.op("Auth.Email.Register", { email: "real@x.com", password: "longenough" }, victim);
+    await rejectsWith(() => this.op("Auth.Email.Verify", { token }, victim), "IDENT_LINKED_ELSEWHERE");
+    assert.ok(!(await Ident.ref(Ident.key("victim@x.com", "email")).get()).isVerified());
+    // The victim's later verified OAuth login must not land in A's account
+    const ctxO = await this.ctx();
+    const res: any = await this.inContext(ctxO, () =>
+      this.auth.complete({
+        provider: "google",
+        providerUid: "victim-google",
+        email: "victim@x.com",
+        emailVerified: true,
+        amr: ["oauth"]
+      } as any)
+    );
+    const g = await Ident.ref(Ident.key("victim-google", "google")).get();
+    assert.notStrictEqual(g.getUser().toString(), a);
+    assert.notStrictEqual(res.user?.uuid, a);
+  }
+
+  @test
+  async verifyRedirectNeedsSession() {
+    const ctxA = await this.ctx();
+    await this.op("Auth.Email.Register", { email: "rd@x.com", password: "longenough" }, ctxA);
+    const token = this.tokenOf(this.lastMailUrl());
+    // No session (mail scanner): nothing changes
+    assert.strictEqual(
+      await this.redirectOf(token),
+      `https://app/confirm?reason=LOGIN_REQUIRED&token=${encodeURIComponent(token)}`
+    );
+    assert.ok(!(await Ident.ref(Ident.key("rd@x.com", "email")).get()).isVerified());
+    // Another user: nothing changes either
+    const other = await this.ctx();
+    await this.op("Auth.Email.Register", { email: "other@x.com", password: "longenough" }, other);
+    assert.ok((await this.redirectOf(token, other)).startsWith("https://app/confirm?reason=LOGIN_REQUIRED"));
+    assert.ok(!(await Ident.ref(Ident.key("rd@x.com", "email")).get()).isVerified());
+    // The owner's session verifies
+    assert.strictEqual(await this.redirectOf(token, ctxA), "https://app/ok?validation=email");
+    assert.ok((await Ident.ref(Ident.key("rd@x.com", "email")).get()).isVerified());
+  }
+
+  @test
+  async verifyRedirectFailureAndRegister() {
+    assert.strictEqual(await this.redirectOf("bad"), "https://app/ko?reason=TOKEN_INVALID");
+    this.email.getParameters().verification = "before";
+    await this.op("Auth.Email.Register", { email: "pre@x.com", password: "longenough" });
+    const token = this.tokenOf(this.lastMailUrl());
+    assert.strictEqual(
+      await this.redirectOf(token),
+      `https://app/reg?token=${encodeURIComponent(token)}&email=${encodeURIComponent("pre@x.com")}`
+    );
+  }
+
+  @test
+  async startVerificationLoggedOutIsUniform() {
+    // verified + owned
+    const ctx = await this.ctx();
+    await this.op("Auth.Email.Register", { email: "v@x.com", password: "longenough" }, ctx);
+    await this.op("Auth.Email.Verify", { token: this.tokenOf(this.lastMailUrl()) }, ctx);
+    // owned, unverified
+    await this.op("Auth.Email.Register", { email: "o@x.com", password: "longenough" });
+    // unowned
+    const Model = this.auth.getIdentModel();
+    const free = new Model({ ...Ident.key("u@x.com", "email"), email: "u@x.com" } as any);
+    await runAsSystem(() => free.getRepository().create(free));
+    this.mailer.sent = [];
+    for (const email of ["v@x.com", "o@x.com", "u@x.com", "unknown@x.com"]) {
+      assert.strictEqual(await this.op("Auth.Email.StartVerification", { email }), undefined);
+    }
+    await this.flush();
+    assert.deepStrictEqual(this.mailer.sent.map((m: any) => m.to).sort(), ["u@x.com", "unknown@x.com"]);
+    // Resend is silently throttled
+    await this.op("Auth.Email.StartVerification", { email: "unknown@x.com" });
+    await this.flush();
+    assert.strictEqual(this.mailer.sent.length, 2);
   }
 
   @test
@@ -83,6 +189,7 @@ class RecoveryTest extends EmailTest {
     const login = await this.op("Auth.Email.Login", { email: "r@x.com", password: "longenough" });
     this.mailer.sent = [];
     assert.strictEqual(await this.op("Auth.Password.StartRecovery", { email: "r@x.com" }), undefined);
+    await this.flush();
     assert.strictEqual(this.mailer.sent[0].template, "EMAIL_RECOVERY");
     const token = this.tokenOf(this.lastMailUrl());
     const ctx = await this.ctx();
@@ -102,13 +209,33 @@ class RecoveryTest extends EmailTest {
   }
 
   @test
+  async recoverRequiresTokenService() {
+    await this.op("Auth.Email.Register", { email: "ts@x.com", password: "longenough" });
+    await this.op("Auth.Password.StartRecovery", { email: "ts@x.com" });
+    await this.flush();
+    const token = this.tokenOf(this.lastMailUrl());
+    const core: any = useCore();
+    const original = core.getService.bind(core);
+    const spy = vi
+      .spyOn(core, "getService")
+      .mockImplementation((name: any) => (name === "TokenService" ? undefined : original(name)));
+    try {
+      await assert.rejects(() => this.op("Auth.Password.Recover", { token, password: "brandnewpass" }), /TokenService/);
+    } finally {
+      spy.mockRestore();
+    }
+  }
+
+  @test
   async recoveryDoesNotLeak() {
     assert.strictEqual(await this.op("Auth.Password.StartRecovery", { email: "ghost@x.com" }), undefined);
+    await this.flush();
     assert.strictEqual(this.mailer.sent.length, 0);
     await this.op("Auth.Email.Register", { email: "t@x.com", password: "longenough" });
     this.mailer.sent = [];
     await this.op("Auth.Password.StartRecovery", { email: "t@x.com" });
     await this.op("Auth.Password.StartRecovery", { email: "t@x.com" });
+    await this.flush();
     assert.strictEqual(this.mailer.sent.length, 1);
   }
 
@@ -125,35 +252,9 @@ class RecoveryTest extends EmailTest {
       (await this.op("Auth.Email.Login", { email: "c@x.com", password: "brandnewpass" })).status,
       "ok"
     );
-    // Not logged in: refused
     await rejectsWith(
       () => this.op("Auth.Password.Change", { current: "brandnewpass", next: "yetanotherpass" }),
       "UNAUTHORIZED"
-    );
-  }
-
-  @test
-  async verifyRedirect() {
-    await this.op("Auth.Email.Register", { email: "rd@x.com", password: "longenough" });
-    const token = this.tokenOf(this.lastMailUrl());
-    const ok = await this.ctx();
-    await this.inContext(ok, () => this.email.verifyRedirect(Object.assign(ok, { parameter: () => token }) as any));
-    assert.strictEqual(ok.getResponseHeaders().Location, "https://app/ok?validation=email");
-    const ko = await this.ctx();
-    await this.inContext(ko, () => this.email.verifyRedirect(Object.assign(ko, { parameter: () => "bad" }) as any));
-    assert.strictEqual(ko.getResponseHeaders().Location, "https://app/ko?reason=TOKEN_INVALID");
-  }
-
-  @test
-  async verifyRedirectRegister() {
-    this.email.getParameters().verification = "before";
-    await this.op("Auth.Email.Register", { email: "pre@x.com", password: "longenough" });
-    const token = this.tokenOf(this.lastMailUrl());
-    const c = await this.ctx();
-    await this.inContext(c, () => this.email.verifyRedirect(Object.assign(c, { parameter: () => token }) as any));
-    assert.strictEqual(
-      c.getResponseHeaders().Location,
-      `https://app/reg?token=${encodeURIComponent(token)}&email=${encodeURIComponent("pre@x.com")}`
     );
   }
 }

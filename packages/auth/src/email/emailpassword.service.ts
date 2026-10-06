@@ -4,6 +4,7 @@ import {
   type Mailer,
   Operation,
   Password,
+  Route,
   type ProviderInfo,
   registerPasswordPolicy,
   runAsSystem,
@@ -13,14 +14,15 @@ import {
   useDynamicService,
   useModelMetadata,
   type User,
+  type WebContext,
   WebdaError
 } from "@webda/core";
 import { WEBDA_PRIMARY_KEY } from "@webda/models";
 import type { AuthProvider } from "../provider.js";
 import { useAuthentication } from "../provider.js";
-import { AccountExists, InvalidCredentials, Throttled, TokenInvalid } from "../errors.js";
+import { AccountExists, IdentLinkedElsewhere, InvalidCredentials, Throttled, TokenInvalid } from "../errors.js";
 import { signEmailToken, verifyEmailToken } from "./tokens.js";
-import { isLocked } from "../throttle.js";
+import { canSend, isLocked, markSent } from "../throttle.js";
 
 /** When the email is verified relative to account creation */
 export type VerificationMode = "before" | "after" | "none";
@@ -381,5 +383,199 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
       await this.sendMail("EMAIL_REGISTER", normalized, this.buildLink("/verify", t), t);
     }
     return result;
+  }
+
+  /**
+   * Send (or resend) a verification link; adds the email to the current account when logged in
+   * @param email - email
+   */
+  @Operation({
+    id: "Auth.Email.StartVerification",
+    input: "EmailPasswordProvider.startVerification.input",
+    rest: { method: "post", path: "auth/email/verification" }
+  })
+  async startVerification(email: string): Promise<void> {
+    const ctx = useContext<any>();
+    const normalized = Ident.normalizeEmail(email);
+    const userId: string | undefined = ctx.getSession()?.isLogged() ? ctx.getCurrentUserId() : undefined;
+    await runAsSystem(async () => {
+      const auth = useAuthentication();
+      let ident = await this.getIdent(normalized);
+      const owner = ident?.getUser()?.toString();
+      if (owner && userId && owner !== userId) {
+        throw new IdentLinkedElsewhere();
+      }
+      if (ident?.isVerified()) {
+        throw new WebdaError.PreconditionFailed("Email already verified");
+      }
+      if (ident && !canSend(ident._throttle, this.parameters.throttle.resendDelay)) {
+        throw new Throttled();
+      }
+      if (!ident) {
+        ident = new (auth.getIdentModel())({ ...Ident.key(normalized, "email"), email: normalized } as any);
+        if (userId) ident.setUser(userId);
+        ident._throttle = markSent(undefined);
+        await ident.getRepository().create(ident);
+      } else {
+        const patch: any = { _throttle: markSent(ident._throttle) };
+        if (userId && !owner) {
+          ident.setUser(userId);
+          patch._user = ident._user;
+        }
+        await ident.ref().patch(patch);
+      }
+      // An owned ident (even resent while logged out) is verified for its owner; otherwise this is a pre-registration
+      const sub = userId ?? owner;
+      const t = await signEmailToken(sub ? "verify" : "register", { email: normalized, sub });
+      await this.sendMail("EMAIL_REGISTER", normalized, this.buildLink("/verify", t), t);
+    });
+  }
+
+  /**
+   * Mark an email as verified
+   * @param token - verify token
+   * @returns status
+   */
+  @Operation({
+    id: "Auth.Email.Verify",
+    input: "EmailPasswordProvider.verify.input",
+    output: "EmailPasswordProvider.verify.output",
+    rest: { method: "post", path: "auth/email/verify" }
+  })
+  async verify(token: string): Promise<{ status: "verified" }> {
+    const claims = await verifyEmailToken(token, "verify");
+    await runAsSystem(async () => {
+      const ident = await this.getIdent(claims.email);
+      if (!ident) {
+        throw new TokenInvalid();
+      }
+      const owner = ident.getUser()?.toString();
+      if (owner ? claims.sub !== owner : !claims.sub) {
+        // The token must come from the owner: never verify an ident on behalf of someone else
+        throw owner ? new IdentLinkedElsewhere() : new TokenInvalid();
+      }
+      const patch: any = {};
+      if (!ident.isVerified()) patch.verifiedAt = new Date();
+      if (!owner) {
+        ident.setUser(claims.sub);
+        patch._user = ident._user;
+      }
+      if (Object.keys(patch).length) await ident.ref().patch(patch);
+    });
+    return { status: "verified" };
+  }
+
+  /**
+   * Start password recovery; always succeeds to avoid revealing accounts
+   * @param email - email
+   */
+  @Operation({
+    id: "Auth.Password.StartRecovery",
+    input: "EmailPasswordProvider.startRecovery.input",
+    rest: { method: "post", path: "auth/password/recovery" }
+  })
+  async startRecovery(email: string): Promise<void> {
+    const normalized = Ident.normalizeEmail(email);
+    await runAsSystem(async () => {
+      const ident = await this.getIdent(normalized);
+      if (!ident?.getUser() || !canSend(ident._throttle, this.parameters.throttle.resendDelay)) return;
+      const user: User = await useAuthentication()
+        .getUserModel()
+        .ref(ident.getUser().toString())
+        .get()
+        .catch(() => undefined);
+      if (!(user as any)?.password?.hasPassword()) return;
+      await ident.ref().patch({ _throttle: markSent(ident._throttle) } as any);
+      const t = await signEmailToken("recover", {
+        email: normalized,
+        sub: user.getUUID(),
+        pwdAt: (user as any).password.changedAt
+      });
+      await this.sendMail("EMAIL_RECOVERY", normalized, this.buildLink("/recover", t), t);
+    });
+  }
+
+  /**
+   * Set a new password from a recovery link (does not log in)
+   * @param token - recover token
+   * @param password - new password
+   */
+  @Operation({
+    id: "Auth.Password.Recover",
+    input: "EmailPasswordProvider.recover.input",
+    rest: { method: "post", path: "auth/password/recover" }
+  })
+  async recover(token: string, password: string): Promise<void> {
+    const claims = await verifyEmailToken(token, "recover");
+    await runAsSystem(async () => {
+      const auth = useAuthentication();
+      const user: User = await auth
+        .getUserModel()
+        .ref(claims.sub)
+        .get()
+        .catch(() => undefined);
+      if (!user || !(user as any).password || (user as any).password.changedAt !== claims.pwdAt) {
+        throw new TokenInvalid();
+      }
+      await (user as any).password.set(password);
+      await user.save();
+      await (useDynamicService("TokenService") as any)?.revokeUser?.(user.getUUID());
+      // Receiving the mail proves possession of the address
+      const ident = await this.getIdent(claims.email);
+      if (ident && !ident.isVerified() && ident.getUser()?.toString() === user.getUUID()) {
+        await ident.ref().patch({ verifiedAt: new Date() } as any);
+      }
+      await auth.emit("Authentication.PasswordUpdate", {
+        context: useContext(),
+        user,
+        password: (user as any).password.__hash
+      } as any);
+    });
+  }
+
+  /**
+   * Change the current user's password
+   * @param current - current password
+   * @param next - new password
+   */
+  @Operation({
+    id: "Auth.Password.Change",
+    input: "EmailPasswordProvider.changePassword.input",
+    rest: { method: "post", path: "auth/password/change" }
+  })
+  async changePassword(current: string, next: string): Promise<void> {
+    const ctx = useContext<any>();
+    if (!ctx.getSession()?.isLogged()) {
+      throw new WebdaError.Unauthorized("Login required");
+    }
+    const user: User = await ctx.getCurrentUser();
+    await runAsSystem(() => (user as any).password.change(current, next));
+    await useAuthentication().emit("Authentication.PasswordUpdate", {
+      context: ctx,
+      user,
+      password: (user as any).password.__hash
+    } as any);
+  }
+
+  /**
+   * Browser landing for emailed links: verifies then redirects, never throws
+   * @param ctx - web context
+   */
+  @Route("./verify{?token}", ["GET"], { hidden: true })
+  async verifyRedirect(ctx: WebContext): Promise<void> {
+    const { verified, failure, register } = this.parameters.redirects;
+    const token = ctx.parameter("token");
+    const redirect = (url: string) => ctx.writeHead(302, { Location: url });
+    try {
+      await this.verify(token);
+      redirect(`${verified}?validation=email`);
+    } catch (err) {
+      try {
+        const claims = await verifyEmailToken(token, "register");
+        redirect(`${register}?token=${encodeURIComponent(token)}&email=${encodeURIComponent(claims.email)}`);
+      } catch {
+        redirect(`${failure}?reason=${encodeURIComponent((err as any)?.code ?? "TOKEN_INVALID")}`);
+      }
+    }
   }
 }

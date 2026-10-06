@@ -487,6 +487,99 @@
     },
     "EmailPasswordProvider.register.output": {
       "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "EmailPasswordProvider.startVerification.input": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "email"
+      ]
+    },
+    "EmailPasswordProvider.startVerification.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "EmailPasswordProvider.verify.input": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "token"
+      ]
+    },
+    "EmailPasswordProvider.verify.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "verified",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "type": "object"
+    },
+    "EmailPasswordProvider.startRecovery.input": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "email"
+      ]
+    },
+    "EmailPasswordProvider.startRecovery.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "EmailPasswordProvider.recover.input": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "token",
+        "password"
+      ]
+    },
+    "EmailPasswordProvider.recover.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "EmailPasswordProvider.changePassword.input": {
+      "type": "object",
+      "properties": {
+        "current": {
+          "type": "string"
+        },
+        "next": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "current",
+        "next"
+      ]
+    },
+    "EmailPasswordProvider.changePassword.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
     }
   },
   "behaviors": {}

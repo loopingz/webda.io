@@ -1,13 +1,13 @@
 ---
 name: webda-configuration
-description: Use when changing webda.config.json, application parameters or the parameters of a service in a Webda app
+description: Use when changing webda.config.json, application parameters, the parameters of a service or the per-environment deployments of a Webda app
 ---
 
 # Webda configuration
 
 ## When to use
 
-Enabling or configuring a service, or setting application parameters.
+Enabling or configuring a service, setting application parameters or overriding them per environment.
 
 ## Pattern
 
@@ -30,6 +30,7 @@ Enabling or configuring a service, or setting application parameters.
 - `type` is `Namespace/Name`; types of your app can omit the namespace.
 - `parameters` are shared by every service; a few keys are framework settings (`website`, `static`, `apiUrl`, `metrics`), any other key is yours.
 - Values are not interpolated: `${VAR}` stays a literal string. Secrets come from the environment variables each service reads (for example `WEBDA_MONGO_URL`, `PGHOST`), never from the file.
+- `deployments/<name>.json` overrides `parameters` and `services` for one environment. Select it with `-d <name>` before the command (`webda -d production serve`), `--deployment <name>` or `WEBDA_DEPLOYMENT`. Objects are deep merged over `webda.config.json` and arrays are replaced. Its `units` (deployers) are covered by webda-deploy.
 
 Read the configuration in code through the service parameters (`this.parameters.delayHours`) or the application parameters:
 

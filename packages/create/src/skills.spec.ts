@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const skillsDir = fileURLToPath(new URL("../agent/skills", import.meta.url));
 const SKILLS = [
   "webda-configuration",
+  "webda-deploy",
   "webda-models",
   "webda-operations",
   "webda-services",

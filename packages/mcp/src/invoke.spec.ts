@@ -6,11 +6,16 @@ import { CancelledError, errorToToolResult, runOperation, toToolResult, truncate
 import { operationToTool } from "./tools.js";
 
 const echoEntry = () =>
-  operationToTool("Fixture.Echo", { id: "Fixture.Echo", input: "void", output: "Fixture.Echo.output", method: "echo" }, () => ({
-    type: "object",
-    properties: { text: { type: "string" } }
-  }));
-const plainEntry = (id: string) => operationToTool(id, { id, input: "void", output: "void", method: "m" }, () => undefined);
+  operationToTool(
+    "Fixture.Echo",
+    { id: "Fixture.Echo", input: "void", output: "Fixture.Echo.output", method: "echo" },
+    () => ({
+      type: "object",
+      properties: { text: { type: "string" } }
+    })
+  );
+const plainEntry = (id: string) =>
+  operationToTool(id, { id, input: "void", output: "void", method: "m" }, () => undefined);
 
 @suite
 class InvokeTest extends McpFixtureTest {
@@ -25,8 +30,14 @@ class InvokeTest extends McpFixtureTest {
   @test
   async returnsScalarsAndVoid() {
     registerFixture();
-    assert.deepStrictEqual(await runOperation("Fixture.Version", { session: new Session() }), { value: "1.2.3", streamed: false });
-    assert.deepStrictEqual(await runOperation("Fixture.Noop", { session: new Session() }), { value: undefined, streamed: false });
+    assert.deepStrictEqual(await runOperation("Fixture.Version", { session: new Session() }), {
+      value: "1.2.3",
+      streamed: false
+    });
+    assert.deepStrictEqual(await runOperation("Fixture.Noop", { session: new Session() }), {
+      value: undefined,
+      streamed: false
+    });
   }
 
   @test
@@ -44,7 +55,25 @@ class InvokeTest extends McpFixtureTest {
       { index: 2, total: 3 },
       { index: 3, total: 3 }
     ]);
-    assert.deepStrictEqual(seen.map(s => s[1]), [1, 2, 3]);
+    assert.deepStrictEqual(
+      seen.map(s => s[1]),
+      [1, 2, 3]
+    );
+  }
+
+  @test
+  async privateFieldsNeverLeave() {
+    registerFixture();
+    const expected = { a: 1, n: { ok: 2 } };
+    const plain = await runOperation("Fixture.Private", { session: new Session() });
+    assert.deepStrictEqual(plain.value, expected);
+    const seen: unknown[] = [];
+    const streamed = await runOperation("Fixture.PrivateStream", {
+      session: new Session(),
+      onChunk: chunk => seen.push(chunk)
+    });
+    assert.deepStrictEqual(streamed.value, [expected]);
+    assert.deepStrictEqual(seen, [expected]);
   }
 
   @test
@@ -80,7 +109,10 @@ class InvokeTest extends McpFixtureTest {
   @test
   toolResultForObject() {
     const result = toToolResult(echoEntry(), { text: "hi" }, false, 1024);
-    assert.deepStrictEqual(result, { content: [{ type: "text", text: '{"text":"hi"}' }], structuredContent: { text: "hi" } });
+    assert.deepStrictEqual(result, {
+      content: [{ type: "text", text: '{"text":"hi"}' }],
+      structuredContent: { text: "hi" }
+    });
   }
 
   @test
@@ -105,7 +137,10 @@ class InvokeTest extends McpFixtureTest {
   nonWebdaErrorsWithResponseCodeAreMasked() {
     // Duck-typed getResponseCode without getCode must not throw inside the handler
     const foreign = Object.assign(new Error("foreign"), { getResponseCode: () => 400 });
-    assert.deepStrictEqual(errorToToolResult(foreign), { isError: true, content: [{ type: "text", text: "Internal error" }] });
+    assert.deepStrictEqual(errorToToolResult(foreign), {
+      isError: true,
+      content: [{ type: "text", text: "Internal error" }]
+    });
   }
 
   @test

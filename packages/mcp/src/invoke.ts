@@ -1,5 +1,6 @@
 import { callOperation, Session, SimpleOperationContext, WebdaError } from "@webda/core";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { JSONUtils } from "@webda/utils";
 import { useLog } from "@webda/workout";
 import type { ToolEntry } from "./tools.js";
 
@@ -48,9 +49,11 @@ export class McpOperationContext extends SimpleOperationContext {
       // Throwing ends callOperation's for-await loop, which calls the generator's return()
       throw new CancelledError();
     }
-    this.chunks.push(output);
+    // Same public-audience filtering as OperationContext.write: `__` keys never leave the server
+    const chunk = output === undefined ? output : JSON.parse(JSONUtils.stringify(output, undefined, 0, true));
+    this.chunks.push(chunk);
     try {
-      this.onChunk?.(output, this.chunks.length);
+      this.onChunk?.(chunk, this.chunks.length);
     } catch (err) {
       useLog("WARN", "MCP progress notification failed", err);
     }
@@ -98,7 +101,10 @@ export function sessionContext(session: Session): SimpleOperationContext {
  * @param options - session, input, cancellation and streaming hooks
  * @returns the parsed result, or the chunks when the operation streamed
  */
-export async function runOperation(operationId: string, options: RunOptions): Promise<{ value: unknown; streamed: boolean }> {
+export async function runOperation(
+  operationId: string,
+  options: RunOptions
+): Promise<{ value: unknown; streamed: boolean }> {
   if (options.signal?.aborted) {
     throw new CancelledError();
   }
@@ -154,7 +160,12 @@ export function truncateUtf8(text: string, maxBytes: number): { text: string; tr
  * @param maxOutputBytes - truncation threshold for the text content
  * @returns the tool result
  */
-export function toToolResult(_entry: ToolEntry, value: unknown, streamed: boolean, maxOutputBytes: number): CallToolResult {
+export function toToolResult(
+  _entry: ToolEntry,
+  value: unknown,
+  streamed: boolean,
+  maxOutputBytes: number
+): CallToolResult {
   let structured: Record<string, unknown> | undefined;
   if (streamed) {
     structured = { items: value };

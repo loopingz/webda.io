@@ -85,6 +85,16 @@ SubClassModel.registerSerializer();
 @suite
 class ModelTest {
   @test
+  toDTOStripsPrivate() {
+    const model = new TestModel();
+    Object.assign(model, { id: "1", name: "n", __secret: "s", nested: { __hash: "h", ok: 1 } });
+    const dto: any = model.toDTO();
+    assert.strictEqual(dto.__secret, undefined);
+    assert.deepStrictEqual(dto.nested, { ok: 1 });
+    assert.strictEqual(dto.name, "n");
+  }
+
+  @test
   async repositories() {
     // Ensuring that the repositories are re  gistered correctly
     const repo1 = new MemoryRepository(UuidModel, ["uuid"]);

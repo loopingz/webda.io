@@ -90,6 +90,20 @@ export class McpFixtureService extends Service {
   }
 
   /**
+   * @returns an object carrying server-only fields
+   */
+  priv() {
+    return { a: 1, __x: "s", n: { __h: "h", ok: 2 } };
+  }
+
+  /**
+   * @yields chunks carrying server-only fields
+   */
+  async *privStream() {
+    yield { a: 1, __x: "s", n: { __h: "h", ok: 2 } };
+  }
+
+  /**
    * Yields once, waits for the test to open the gate, then yields again
    * @yields two steps
    */
@@ -227,6 +241,8 @@ export function registerFixture(): void {
   op("Fixture.Secret", "secret", { permission: "userId = 'alice'" });
   op("Fixture.Count", "count", { input: "Fixture.Count" });
   op("Fixture.Gate", "gate");
+  op("Fixture.Private", "priv");
+  op("Fixture.PrivateStream", "privStream");
   op("Fixture.Fail", "fail", { input: "Fixture.Fail" });
   op("Fixture.Big", "big");
   op("Fixture.Loose", "loose", { output: "Fixture.Echo.output" });

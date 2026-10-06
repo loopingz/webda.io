@@ -168,9 +168,7 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
     // available so two classes that share a JS constructor name — like an app
     // override shadowing a framework-provided model — don't collide on the
     // same serializer key.
-    const typeKey = identifier
-      ? `@webda/models/${identifier}`
-      : `@webda/models/${this.prototype.constructor.name}`;
+    const typeKey = identifier ? `@webda/models/${identifier}` : `@webda/models/${this.prototype.constructor.name}`;
     // The base ObjectSerializer.deserializer is responsible for invoking the
     // model's compile-time-emitted `__hydrateBehaviors(rawData)` method (when
     // present), so a model loaded from a store ends up with the same wired
@@ -188,6 +186,26 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
    */
   toJSON(): this {
     return this;
+  }
+
+  /**
+   * Public representation of the model: its JSON form without `__`-prefixed
+   * (server-only) keys, at any depth. Dates are serialized as strings.
+   * @returns the DTO
+   */
+  toDTO(): any {
+    const strip = (value: any): any => {
+      if (Array.isArray(value)) return value.map(strip);
+      if (value && typeof value === "object") {
+        const out: any = {};
+        for (const [k, v] of Object.entries(value)) {
+          if (!k.startsWith("__")) out[k] = strip(v);
+        }
+        return out;
+      }
+      return value;
+    };
+    return strip(JSON.parse(JSON.stringify(this)));
   }
 
   /**

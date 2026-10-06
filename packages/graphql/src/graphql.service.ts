@@ -304,6 +304,11 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
+   * `__` (server-only) fields already warned about, so each is logged once
+   */
+  private privateWarned = new Set<string>();
+
+  /**
    * Build GraphQL field definitions from a JSON Schema, enriching with relation resolvers from the model graph
    * @param schema - JSON Schema describing the model properties
    * @param defaultName - fallback name for generated types
@@ -425,6 +430,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       });
     }
     for (const i in schema.properties) {
+      if (i.startsWith("__") && !input && !this.privateWarned.has(`${defaultName}.${i}`)) {
+        this.privateWarned.add(`${defaultName}.${i}`);
+        this.log("WARN", `GraphQL may expose __ field ${i} of ${defaultName}; use toDTO()`);
+      }
       // Was initiated by the known graph
       if (fields[i] || skipFields.includes(i) || ((<JSONSchema7>schema.properties[i]).readOnly && input)) {
         continue;

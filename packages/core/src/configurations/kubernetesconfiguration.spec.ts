@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { mkdirSync, unlinkSync, symlinkSync } from "fs";
 import pkg from "fs-extra";
 import * as path from "path";
-import { Authentication, useCoreEvents, useService } from "../index.js";
+import { useCoreEvents, useDynamicService, useService } from "../index.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { getCommonJS } from "@webda/utils";
 const { emptyDirSync, outputFileSync } = pkg;
@@ -16,7 +16,7 @@ class AbstractKubernetesConfigurationServiceTest extends WebdaApplicationTest {
     "webda.json": JSON.stringify(
       {
         services: {
-          Authentication: {
+          SampleService: {
             email: {
               text: "Plop1",
               text2: "Plop6"
@@ -36,7 +36,8 @@ class AbstractKubernetesConfigurationServiceTest extends WebdaApplicationTest {
         configurationService: "KubernetesConfigurationService"
       },
       services: {
-        Authentication: {
+        SampleService: {
+          type: "WebdaTest/FakeService",
           email: {
             from: "",
             subject: "",
@@ -117,9 +118,9 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
   @test
   @timeout(30000)
   async updatedConfigMap() {
-    const auth = useService<Authentication>("Authentication");
-    assert.strictEqual(auth.parameters.email!.text, "Plop1");
-    assert.strictEqual(auth.parameters.email!.mailer, "DefinedMailer");
+    const auth = useDynamicService<any>("SampleService");
+    assert.strictEqual(auth.getParameters().email!.text, "Plop1");
+    assert.strictEqual(auth.getParameters().email!.mailer, "DefinedMailer");
     console.log("Update config map", Date.now());
     await new Promise(resolve => {
       useCoreEvents("Webda.Configuration.Applied", resolve, true);
@@ -127,7 +128,7 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
         ...this.content,
         "webda.json": JSON.stringify({
           services: {
-            Authentication: {
+            SampleService: {
               email: {
                 text: "Plop2"
               }
@@ -136,8 +137,8 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
         })
       });
     });
-    assert.strictEqual(auth.parameters.email!.text, "Plop2");
-    assert.strictEqual(auth.parameters.email!.mailer, "DefinedMailer");
+    assert.strictEqual(auth.getParameters().email!.text, "Plop2");
+    assert.strictEqual(auth.getParameters().email!.mailer, "DefinedMailer");
     console.log("Update config map 2");
     await new Promise(resolve => {
       useCoreEvents("Webda.Configuration.Applied", resolve, true);
@@ -145,7 +146,7 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
         ...this.content,
         "webda.json": JSON.stringify({
           services: {
-            Authentication: {
+            SampleService: {
               email: {
                 text: "Plop3"
               }
@@ -154,7 +155,7 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
         })
       });
     });
-    assert.strictEqual(auth.parameters.email!.text, "Plop3");
-    assert.strictEqual(auth.parameters.email!.mailer, "DefinedMailer");
+    assert.strictEqual(auth.getParameters().email!.text, "Plop3");
+    assert.strictEqual(auth.getParameters().email!.mailer, "DefinedMailer");
   }
 }

@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { DirtyModelMixin, ExceptPartial, Model, UuidModel, WEBDA_DELETED } from "./model.model.js";
 import { isStorable, isModelClass, PrimaryKeyEquals, ModelClass, WEBDA_PRIMARY_KEY } from "./storable";
 import { MemoryRepository } from "./repositories/memory";
-import { SelfJSONed, WebdaFieldsMixIn } from "./types";
+import { DTO, SelfDTO, SelfJSONed, WebdaFieldsMixIn } from "./types";
 import { registerRepository } from "./repositories/hooks";
 import { Merge } from "@webda/tsc-esm";
 import { track } from "@webda/utils";
@@ -85,6 +85,28 @@ SubClassModel.registerSerializer();
 
 @suite
 class ModelTest {
+  @test
+  toDTOKeepsStructuralType() {
+    // Compile-time: DTO<TestModel> must not collapse to any
+    type IsAny<T> = 0 extends 1 & T ? true : false;
+    const notAny: IsAny<DTO<TestModel>> = false;
+    const sameAsSelf: DTO<TestModel> extends SelfDTO<TestModel> ? true : false = true;
+    assert.strictEqual(notAny, false);
+    assert.strictEqual(sameAsSelf, true);
+    const name: string = new TestModel().toDTO().name;
+    assert.strictEqual(name, undefined);
+  }
+
+  @test
+  toDTOStripsPrivate() {
+    const model = new TestModel();
+    Object.assign(model, { id: "1", name: "n", __secret: "s", nested: { __hash: "h", ok: 1 } });
+    const dto: any = model.toDTO();
+    assert.strictEqual(dto.__secret, undefined);
+    assert.deepStrictEqual(dto.nested, { ok: 1 });
+    assert.strictEqual(dto.name, "n");
+  }
+
   @test
   async repositories() {
     // Ensuring that the repositories are re  gistered correctly

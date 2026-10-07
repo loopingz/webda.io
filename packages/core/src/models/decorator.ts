@@ -60,11 +60,11 @@ export const Masked = createPropertyDecorator((value: any, context, mask: string
       const descriptor = Object.getOwnPropertyDescriptor(this, context.name) || {};
       Object.defineProperty(this, context.name, {
         ...descriptor,
-         
+
         get: function maskedGet() {
           return this[`__${context.name}`];
         },
-         
+
         set: function maskedSet(value) {
           value = value.padEnd(mask.length, "?");
           for (let i = 0; i < mask.length; i++) {
@@ -88,7 +88,7 @@ export const Encrypted = createPropertyDecorator((value: any, context) => {
       const descriptor = Object.getOwnPropertyDescriptor(this, context.name) || {};
       Object.defineProperty(this, context.name, {
         ...descriptor,
-         
+
         get: function encryptedGet() {
           const val = this[`__${context.name}`];
           if (val && val.startsWith("ENCRYPTED:")) {
@@ -96,7 +96,7 @@ export const Encrypted = createPropertyDecorator((value: any, context) => {
           }
           return val;
         },
-         
+
         set: function encryptedSet(value) {
           this[`__${context.name}`] = "ENCRYPTED:" + value;
         }

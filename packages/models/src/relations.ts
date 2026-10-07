@@ -184,7 +184,7 @@ export class ModelRef<T extends Storable> {
       | Record<NumericPropertyPaths<T>, number>,
     conditionField?: PropertyPaths<T>,
     condition?: PropertyPathType<T, PropertyPaths<T>>
-  ): Promise<void> {
+  ): Promise<void | Record<string, number>> {
     return this.getRepository().incrementAttributes(this.getKey(), info, conditionField, condition);
   }
   /**
@@ -263,7 +263,7 @@ export class ModelRef<T extends Storable> {
     value?: number,
     conditionField?: PropertyPaths<T>,
     condition?: PropertyPathType<T, PropertyPaths<T>>
-  ): Promise<void> {
+  ): Promise<void | Record<string, number>> {
     return this.incrementAttributes([{ property: property, value: value }], conditionField, condition);
   }
 }
@@ -272,8 +272,7 @@ export class ModelRef<T extends Storable> {
  * Union of all relation property keys on a model (both ModelRelated and ModelLinker fields).
  */
 export type ModelRelations<T extends object> =
-  | FilterAttributes<T, ModelRelated<any, any, any>>
-  | FilterAttributes<T, ModelLinker>;
+  FilterAttributes<T, ModelRelated<any, any, any>> | FilterAttributes<T, ModelLinker>;
 
 /**
  * Model reference with create and upsert methods

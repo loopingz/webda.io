@@ -27,9 +27,9 @@ class FakeServiceParameters extends ServiceParameters {
 }
 
 class FakeService<T extends FakeServiceParameters = FakeServiceParameters> extends Service<T> {
-  @Inject("Authentication2", true)
+  @Inject("SampleService2", true)
   serv!: Service;
-  @Inject("bean", "Authentication", true)
+  @Inject("bean", "SampleService", true)
   serv2!: Service;
   @Inject("params:bean", undefined, true)
   serv3!: Service;
@@ -72,7 +72,7 @@ class FakeService<T extends FakeServiceParameters = FakeServiceParameters> exten
 }
 
 class FakeService2 extends Service {
-  @Inject("Authentication2")
+  @Inject("SampleService2")
   serv!: Service;
   constructor(name: string, params: Partial<ServiceParameters> = {}) {
     super(name, new ServiceParameters().load(params));
@@ -110,7 +110,7 @@ class ServiceTest extends WebdaApplicationTest {
   getTestConfiguration() {
     return {
       services: {
-        Authentication: {
+        SampleService: {
           type: "FakeService"
         }
       }
@@ -127,9 +127,9 @@ class ServiceTest extends WebdaApplicationTest {
     FakeService.catchInjector = false;
     let service = new FakeService("plop");
     assert.throws(() => service.resolve(), /Injector did not found bean 'undefined'\(parameter:bean\) for 'plop'/);
-    service = await this.registerService(new FakeService("plop", { bean: "Authentication" }));
+    service = await this.registerService(new FakeService("plop", { bean: "SampleService" }));
     assert.strictEqual(service.serv, undefined);
-    assert.throws(() => new FakeService2("kf").resolve(), /Injector did not found bean 'Authentication2' for 'kf'/);
+    assert.throws(() => new FakeService2("kf").resolve(), /Injector did not found bean 'SampleService2' for 'kf'/);
   }
 
   @test
@@ -138,7 +138,7 @@ class ServiceTest extends WebdaApplicationTest {
     await ctx.init();
     ctx.setInput(JSON.stringify({ output: "plop" }));
     assert.rejects(() => callOperation(ctx, "MyOperation2"));
-    const service = await this.registerService(new FakeService("plop", { bean: "Authentication" }));
+    const service = await this.registerService(new FakeService("plop", { bean: "SampleService" }));
     service.initOperations();
     const schemaRegistry = useApplication()?.["baseConfiguration"].cachedModules!.schemas;
     schemaRegistry!["plop.myoperation.input"] = {
@@ -493,7 +493,7 @@ class RouterTest extends WebdaApplicationTest {
     router.addRouteToRouter("/test-options", {
       methods: ["GET"],
       executor: "TestRoute",
-      _method: async (ctx) => ctx.write("ok")
+      _method: async ctx => ctx.write("ok")
     });
     // OPTIONS without CORS filter should return 404
     const httpContext = new HttpContext("test.webda.io", "OPTIONS", "/test-options");
@@ -509,7 +509,7 @@ class RouterTest extends WebdaApplicationTest {
     router.addRouteToRouter("/test-cors-options", {
       methods: ["GET", "POST"],
       executor: "TestRoute",
-      _method: async (ctx) => ctx.write("ok")
+      _method: async ctx => ctx.write("ok")
     });
     // Register a CORS filter that allows everything
     router.registerCORSFilter({
@@ -534,7 +534,7 @@ class RouterTest extends WebdaApplicationTest {
     router.addRouteToRouter("/test-func", {
       methods: ["GET"],
       executor: "TestRoute",
-      _method: async (_ctx) => {
+      _method: async _ctx => {
         called = true;
       }
     });
@@ -567,7 +567,7 @@ class RouterTest extends WebdaApplicationTest {
     router.addRouteToRouter("/test-denied", {
       methods: ["GET"],
       executor: "TestRoute",
-      _method: async (ctx) => ctx.write("should not reach")
+      _method: async ctx => ctx.write("should not reach")
     });
     const httpContext = new HttpContext("test.webda.io", "GET", "/test-denied");
     const ctx = new WebContext(httpContext);

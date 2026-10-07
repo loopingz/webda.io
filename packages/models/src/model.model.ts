@@ -9,7 +9,7 @@ import {
   ModelClass
 } from "./storable.js";
 import { DirtyState, WEBDA_DIRTY } from "@webda/utils";
-import type { Helpers, SelfJSONed } from "./types.js";
+import type { Helpers, SelfDTO, SelfJSONed } from "./types.js";
 import { randomUUID } from "crypto";
 import { type ModelRef, RelationRole } from "./relations.js";
 import type { Repository } from "./repositories/repository.js";
@@ -222,6 +222,30 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
    */
   toJSON(): this {
     return this;
+  }
+
+  /**
+   * Public representation of the model: its JSON form without `__`-prefixed
+   * (server-only) keys, at any depth. Dates are serialized as strings.
+   *
+   * Implemented as a `JSON.parse(JSON.stringify(this))` round-trip, so circular
+   * references throw, BigInt throws and Buffers become `{ type: "Buffer", data }`.
+   * A model with such fields must override `toDTO`.
+   * @returns the DTO
+   */
+  toDTO(): SelfDTO<this> {
+    const strip = (value: any): any => {
+      if (Array.isArray(value)) return value.map(strip);
+      if (value && typeof value === "object") {
+        const out: any = {};
+        for (const [k, v] of Object.entries(value)) {
+          if (!k.startsWith("__")) out[k] = strip(v);
+        }
+        return out;
+      }
+      return value;
+    };
+    return strip(JSON.parse(JSON.stringify(this)));
   }
 
   /**

@@ -80,7 +80,13 @@ export interface ModuleRelations {
   parent?: { attribute: string; model?: string };
   links?: { attribute: string; model?: string; type: string }[];
   queries?: { attribute: string; model?: string; targetAttribute?: string }[];
-  maps?: { attribute: string; cascadeDelete: boolean; model?: string; targetLink: string; targetAttributes: string[] }[];
+  maps?: {
+    attribute: string;
+    cascadeDelete: boolean;
+    model?: string;
+    targetLink: string;
+    targetAttributes: string[];
+  }[];
   behaviors?: { attribute: string; behavior: string }[];
 }
 
@@ -96,6 +102,7 @@ export interface ModelEntry {
   Actions: Record<string, Record<string, unknown>>;
   Events: string[];
   PrimaryKey: string[];
+  PrimaryKeySeparator?: string;
   Identifier: string;
 }
 
@@ -498,7 +505,10 @@ function decoratedStaticMethods(ctx: AnalysisContext, cls: ClassDeclaration): Me
  * @param cls - the model class
  * @returns action name to metadata
  */
-export function buildModelActions(ctx: AnalysisContext, cls: ClassDeclaration): Record<string, Record<string, unknown>> {
+export function buildModelActions(
+  ctx: AnalysisContext,
+  cls: ClassDeclaration
+): Record<string, Record<string, unknown>> {
   let actions: Record<string, Record<string, unknown>> = {};
   // Source 1: the declarative `[WEBDA_ACTIONS]` member.
   const declared = propertiesOf(ctx, cls).find(p => propertyIsKeyedBySymbol(ctx, p, "@webda/models", "WEBDA_ACTIONS"));
@@ -583,6 +593,20 @@ export function buildModelPrimaryKey(ctx: AnalysisContext, cls: ClassDeclaration
     }
   }
   return keys;
+}
+
+/**
+ * A model's `PrimaryKeySeparator`, from a `[WEBDA_PRIMARY_KEY_SEPARATOR] = ":"` initialiser.
+ * @param ctx - analysis context
+ * @param cls - the model class
+ * @returns the separator, or undefined when the model declares none
+ */
+export function buildModelPrimaryKeySeparator(ctx: AnalysisContext, cls: ClassDeclaration): string | undefined {
+  const symbol = propertiesOf(ctx, cls).find(p =>
+    propertyIsKeyedBySymbol(ctx, p, "@webda/models", "WEBDA_PRIMARY_KEY_SEPARATOR")
+  );
+  const initializer: any = symbol ? (valueDeclarationOf(ctx, symbol) as any)?.initializer : undefined;
+  return initializer && is.isStringLiteral(initializer) ? (initializer as any).text : undefined;
 }
 
 /**
@@ -815,7 +839,11 @@ export function buildBehaviorActions(
  * @param namespace - project namespace
  * @returns the identifier
  */
-function behaviorOfTypeReference(ctx: AnalysisContext, typeRef: any, namespace: string | undefined): string | undefined {
+function behaviorOfTypeReference(
+  ctx: AnalysisContext,
+  typeRef: any,
+  namespace: string | undefined
+): string | undefined {
   if (!typeRef?.typeName) return undefined;
   // `getTypeAtLocation(typeName)` answers with a symbol-less type on 7.1; the
   // type of the reference itself carries the class symbol.
@@ -826,9 +854,7 @@ function behaviorOfTypeReference(ctx: AnalysisContext, typeRef: any, namespace: 
     symbol = undefined;
   }
   symbol ??= resolveAlias(ctx, ctx.checker.getSymbolAtLocation(typeRef.typeName));
-  const declaration = declarationsOf(ctx, symbol).find(
-    d => is.isClassDeclaration(d) || is.isClassExpression(d)
-  );
+  const declaration = declarationsOf(ctx, symbol).find(d => is.isClassDeclaration(d) || is.isClassExpression(d));
   if (!declaration) return undefined;
   return behaviorIdentifier(declaration, namespace);
 }
@@ -1327,6 +1353,8 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
     if (events) entry.Events = events;
     const primaryKey = buildModelPrimaryKey(ctx, declaration);
     if (primaryKey) entry.PrimaryKey = primaryKey;
+    const primaryKeySeparator = buildModelPrimaryKeySeparator(ctx, declaration);
+    if (primaryKeySeparator) entry.PrimaryKeySeparator = primaryKeySeparator;
     entry.Plural = tags.WebdaPlural || getPlural(object.name.split("/").pop()!);
   }
 

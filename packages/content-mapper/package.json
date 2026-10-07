@@ -24,6 +24,11 @@
       "require": "./lib/coercions.js",
       "node": "./lib/coercions.js"
     },
+    "./vite": {
+      "types": "./lib/vite.d.ts",
+      "import": "./lib/vite.js",
+      "node": "./lib/vite.js"
+    },
     "./server": {
       "types": "./lib/server.d.ts",
       "import": "./lib/server.js",

@@ -16,6 +16,7 @@ import { UnknownSession } from "../session/session";
 import { CookieOptions } from "../session/cookie";
 import { runWithContext, useContext } from "./execution";
 import { GlobalContext } from "./globalcontext";
+import { Ident } from "../models/ident.model";
 
 export class WebContextMock extends WebContext {
   constructor(httpContext: HttpContext) {
@@ -42,7 +43,9 @@ class ContextAppTest extends WebdaAsyncStorageTest {
   async beforeEach() {
     // Mocks
     setApplication({
-      getCurrentConfiguration: () => { return this.getTestConfiguration(); }
+      getCurrentConfiguration: () => {
+        return this.getTestConfiguration();
+      }
     } as any);
     setCore({
       getLocales: () => ["es-ES", "en", "fr-FR"],
@@ -52,11 +55,10 @@ class ContextAppTest extends WebdaAsyncStorageTest {
             save: async () => {},
             load: async () => {
               return {
-                getProxy: () => {
-                }
-              }
+                getProxy: () => {}
+              };
             }
-          }
+          };
         }
       }
     } as any);
@@ -583,6 +585,26 @@ class SessionTest {
     assert.ok(session.isDirty());
     session.logout();
     assert.ok(!session.isLogged());
+  }
+}
+
+@suite
+class PendingSessionContextTest {
+  @test
+  async pendingMfaIsNotTheUser() {
+    const ctx = new SimpleOperationContext(undefined as any);
+    const session = new Session();
+    session.login("u1", "u1@x.com:email", { mfa: "pending" });
+    ctx.setSession(session);
+    assert.strictEqual(ctx.getCurrentUserId(), undefined);
+    assert.strictEqual(await ctx.getCurrentUser(), undefined);
+    // An ident owned by u1 (canAct only reads the owner)
+    const ident = { _user: "u1", canAct: Ident.prototype.canAct };
+    assert.notStrictEqual(await ident.canAct(ctx, "get"), true);
+    // Once the second factor is verified the session acts as the user
+    session.mfa = "verified";
+    assert.strictEqual(ctx.getCurrentUserId(), "u1");
+    assert.strictEqual(await ident.canAct(ctx, "get"), true);
   }
 }
 

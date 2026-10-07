@@ -2,20 +2,14 @@ import { Query } from "@webda/ql";
 import { OwnerModel } from "../models/ownermodel.model.js";
 import { Store, StoreFindResult, StoreParameters } from "../stores/store.js";
 import { Service } from "../services/service.js";
-import { Ident as WebdaIdent } from "../models/ident.model.js";
+import { LegacyIdentFixture } from "./legacyident.fixture.model.js";
 import { UnpackedApplication } from "../application/unpackedapplication.js";
 import { CachedModule, Configuration, SectionEnum, UnpackedConfiguration } from "../application/iconfiguration.js";
 import { WorkerOutput } from "@webda/workout";
 import { execSync } from "node:child_process";
 import path from "node:path";
 import { FileUtils } from "@webda/utils";
-import {
-  ModelEvents,
-  PrimaryKey,
-  ModelClass,
-  Repository,
-  MemoryRepository
-} from "@webda/models";
+import { ModelEvents, PrimaryKey, ModelClass, Repository, MemoryRepository } from "@webda/models";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { IOperationContext } from "../contexts/icontext.js";
 
@@ -373,7 +367,7 @@ export class FakeService extends Service {
  * @class
  * @WebdaIgnore
  */
-export class TestIdent extends WebdaIdent {
+export class TestIdent extends LegacyIdentFixture {
   /**
    * Define test actions for this ident model
    * @returns the result

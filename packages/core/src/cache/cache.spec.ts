@@ -4,7 +4,7 @@ import { InstanceCache, ProcessCache, SessionCache, ContextCache } from "./cache
 import { runWithInstanceStorage } from "../core/instancestorage.js";
 import { runWithContext } from "../contexts/execution.js";
 import { ModelDefinition } from "../models/types.js";
-import { Ident } from "../models/ident.model.js";
+import { TestIdent } from "../test/objects.js";
 import { User } from "../models/user.model.js";
 import * as util from "util";
 
@@ -84,11 +84,11 @@ class CacheTest {
     return runWithInstanceStorage({}, async () => {
       callCount = 0;
       const obj1 = new MyObject();
-      obj1.modelMethod(Ident as any);
+      obj1.modelMethod(TestIdent as any);
       assert.strictEqual(callCount, 1);
-      obj1.modelMethod(Ident as any);
+      obj1.modelMethod(TestIdent as any);
       assert.strictEqual(callCount, 1);
-      obj1.modelMethod(Ident as any);
+      obj1.modelMethod(TestIdent as any);
       assert.strictEqual(callCount, 1);
       obj1.modelMethod(User as any);
       assert.strictEqual(callCount, 2);

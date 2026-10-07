@@ -15,6 +15,63 @@ import { useInstanceStorage } from "../core/instancestorage.js";
 import { registerOperation } from "../core/operations.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
 
+/**
+ * Remove Behavior-typed attributes (Metadata.Relations.behaviors) and private fields from client input.
+ * Behavior state can only be changed through the behavior's own actions.
+ * @param model - the model class
+ * @param input - the client input
+ * @returns the sanitized input
+ */
+export function sanitizeModelInput<T = any>(model: ModelClass<any>, input: T): T {
+  const out: any = stripPrivateFields(input);
+  if (out && typeof out === "object" && !Array.isArray(out)) {
+    for (const rel of useModelMetadata(model)?.Relations?.behaviors ?? []) {
+      delete out[rel.attribute];
+    }
+  }
+  return out;
+}
+
+/**
+ * Remove `__`-prefixed keys at any depth from client-supplied input, so private fields
+ * (such as a password hash) can never be set through the REST/operations surface
+ * @param input - the client input
+ * @returns a sanitized deep copy (non plain-object/array values are returned as is)
+ */
+export function stripPrivateFields<T = any>(input: T): T {
+  if (Array.isArray(input)) {
+    return input.map(i => stripPrivateFields(i)) as any;
+  }
+  if (input && typeof input === "object" && Object.getPrototypeOf(input) === Object.prototype) {
+    // Object.fromEntries defines own properties: no dynamic assignment can reach a prototype
+    return Object.fromEntries(
+      Object.entries(input)
+        .filter(([k]) => !k.startsWith("__") && k !== "constructor" && k !== "prototype")
+        .map(([k, v]) => [k, stripPrivateFields(v)])
+    ) as any;
+  }
+  return input;
+}
+
+/**
+ * Models that hold authentication state: never exposed by a DomainService (REST, GraphQL, operations), nor any of
+ * their subclasses, unless explicitly listed in its `models` parameter
+ */
+export const INTERNAL_MODELS: readonly string[] = ["Webda/Ident", "Webda/RefreshToken"];
+
+/**
+ * @param model - a model class
+ * @returns true when the model is, or descends from, one of {@link INTERNAL_MODELS}
+ */
+export function isInternalModel(model: any): boolean {
+  for (let clazz = model; clazz && clazz !== Function.prototype; clazz = Object.getPrototypeOf(clazz)) {
+    if (INTERNAL_MODELS.includes(clazz.Metadata?.Identifier)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Parameters for DomainService, controlling model exposure, URL naming, and query methods */
 export class DomainServiceParameters extends ServiceParameters {
   /**
@@ -77,6 +134,15 @@ export class DomainServiceParameters extends ServiceParameters {
    */
   isIncluded(model: string) {
     return !this.isExcluded(model) && (this.models.includes("*") || this.models.includes(model));
+  }
+
+  /**
+   * Is a model explicitly listed (not through the wildcard) in `models`
+   * @param model - the model identifier
+   * @returns the result
+   */
+  isExplicitlyIncluded(model: string) {
+    return !this.isExcluded(model) && this.models.includes(model);
   }
 
   /**
@@ -179,6 +245,7 @@ export class DomainService<
     if (typeof input !== "object" || input === null || input instanceof OperationContext) {
       input = await context.getInput();
     }
+    input = sanitizeModelInput(model, input);
     return runWithContext(context, async () => {
       // Instantiate the model from raw input, load data, then save
       const object = new (model as any)() as Model;
@@ -206,17 +273,21 @@ export class DomainService<
     if (typeof input !== "object" || input === null) {
       input = await context.getInput();
     }
+    input = sanitizeModelInput(model, input);
     // Resolve the PK from body or URL params using the model's actual PK fields;
     // fall back to "uuid" for legacy operations without pkFields in the context.
     const params = context.getParameters() ?? {};
     const fields = pkFields?.length ? pkFields : ["uuid"];
     const pk: any =
       fields.length === 1
-        ? input?.[fields[0]] ?? params[fields[0]]
-        : fields.reduce((acc, f) => {
-            acc[f] = input?.[f] ?? params[f];
-            return acc;
-          }, {} as Record<string, unknown>);
+        ? (input?.[fields[0]] ?? params[fields[0]])
+        : fields.reduce(
+            (acc, f) => {
+              acc[f] = input?.[f] ?? params[f];
+              return acc;
+            },
+            {} as Record<string, unknown>
+          );
     const object = await this.loadModel(model, pk);
     object["load"](input);
     return object;
@@ -284,16 +355,20 @@ export class DomainService<
     if (typeof input !== "object" || input === null) {
       input = await context.getInput();
     }
+    input = sanitizeModelInput(model, input);
     // Build the PK from the model's real primary-key fields (same logic as modelUpdate).
     const params = context.getParameters() ?? {};
     const fields = pkFields?.length ? pkFields : ["uuid"];
     const pk: any =
       fields.length === 1
-        ? input?.[fields[0]] ?? params[fields[0]]
-        : fields.reduce((acc, f) => {
-            acc[f] = input?.[f] ?? params[f];
-            return acc;
-          }, {} as Record<string, unknown>);
+        ? (input?.[fields[0]] ?? params[fields[0]])
+        : fields.reduce(
+            (acc, f) => {
+              acc[f] = input?.[f] ?? params[f];
+              return acc;
+            },
+            {} as Record<string, unknown>
+          );
     const object = await this.loadModel(model, pk);
     await object.patch(input);
     return object;
@@ -324,6 +399,17 @@ export class DomainService<
     } else {
       return model[handler](context);
     }
+  }
+
+  /**
+   * Whether a model may be exposed: models of {@link INTERNAL_MODELS} and their subclasses need an explicit listing
+   * in the `models` parameter
+   * @param model - model class
+   * @param identifier - model identifier
+   * @returns true when the model may be exposed
+   */
+  isExposable(model: any, identifier: string): boolean {
+    return !isInternalModel(model) || this.parameters.isExplicitlyIncluded(identifier);
   }
 
   /**
@@ -370,6 +456,10 @@ export class DomainService<
 
       // Overlap object are hidden by design
       if (!this.app.isFinalModel(Metadata.Identifier)) {
+        continue;
+      }
+      // Authentication state models (and subclasses) are internal unless explicitly listed
+      if (!this.isExposable(model, Metadata.Identifier)) {
         continue;
       }
       const shortId = Metadata.Identifier.split("/").pop();
@@ -531,8 +621,7 @@ export class DomainService<
       if (!behaviorMeta) {
         return;
       }
-      const attributeCap =
-        behaviorRel.attribute.substring(0, 1).toUpperCase() + behaviorRel.attribute.substring(1);
+      const attributeCap = behaviorRel.attribute.substring(0, 1).toUpperCase() + behaviorRel.attribute.substring(1);
       Object.keys(behaviorMeta.Actions || {}).forEach(actionName => {
         const actionCap = actionName.substring(0, 1).toUpperCase() + actionName.substring(1);
         const id = `${name}.${attributeCap}.${actionCap}`;
@@ -650,5 +739,4 @@ export class DomainService<
     void behavior; // tagged in operationContext for future use
     return behaviorInstance[action](...passArgs);
   }
-
 }

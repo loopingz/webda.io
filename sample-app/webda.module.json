@@ -4136,6 +4136,10 @@
           {
             "attribute": "images",
             "behavior": "Webda/BinariesImpl"
+          },
+          {
+            "attribute": "password",
+            "behavior": "Webda/Password"
           }
         ],
         "queries": [
@@ -4190,14 +4194,11 @@
             "\"owner\""
           ]
         },
-        "__password": {
-          "type": "string"
+        "password": {
+          "type": "Password"
         },
         "displayName": {
           "type": "string"
-        },
-        "_lastPasswordRecovery": {
-          "type": "number"
         },
         "_avatar": {
           "type": "string"
@@ -4295,6 +4296,12 @@
               ],
               "type": "object"
             },
+            "Record<string, any>": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": {},
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            },
             "images[]$metadata": {
               "additionalProperties": false,
               "type": "object"
@@ -4318,17 +4325,9 @@
           },
           "description": "User model",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "company": {
               "ModelLink": "but implies a Cascade delete",
@@ -4362,6 +4361,10 @@
               "description": "User's display name",
               "type": "string"
             },
+            "password": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "Password credential"
+            },
             "profilePicture": {
               "$ref": "#/definitions/BinaryFileInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
             },
@@ -4385,19 +4388,19 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Record<string, any>": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": {},
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            }
+          },
           "description": "User model",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "company": {
               "ModelLink": "but implies a Cascade delete",
@@ -4421,6 +4424,10 @@
             "name": {
               "description": "User's display name",
               "type": "string"
+            },
+            "password": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "Password credential"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -4519,6 +4526,12 @@
               ],
               "type": "object"
             },
+            "Record<string, any>": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": {},
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            },
             "images[]$metadata": {
               "additionalProperties": false,
               "type": "object"
@@ -4542,17 +4555,9 @@
           },
           "description": "User model",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "company": {
               "ModelLink": "but implies a Cascade delete",
@@ -4585,6 +4590,10 @@
             "name": {
               "description": "User's display name",
               "type": "string"
+            },
+            "password": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+              "description": "Password credential"
             },
             "profilePicture": {
               "$ref": "#/definitions/BinaryFileInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"

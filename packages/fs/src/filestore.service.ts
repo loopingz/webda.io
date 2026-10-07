@@ -123,7 +123,8 @@ class FileBackedMap extends Map<string, string> {
     const files = fs
       .readdirSync(this.folder)
       .filter(f => f.endsWith(ext))
-      .map(f => f.slice(0, f.length - ext.length));
+      .map(f => f.slice(0, f.length - ext.length))
+      .sort();
     return files.values();
   }
 
@@ -194,17 +195,9 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
    * @override
    */
   async find(query: WebdaQL.Query): Promise<StoreFindResult<any>> {
-    const files = fs
-      .readdirSync(this.parameters.folder)
-      .filter(file => {
-        return !fs.statSync(path.join(this.parameters.folder, file)).isDirectory();
-      })
-      .map(f => f.substring(0, f.length - FileStore.EXTENSION.length))
-      .sort();
-
-    // Use the repository for this store's model to simulate a find
+    // The repository lists the keys of its model only (foreign entries of the folder are skipped by type)
     const repo = this.getRepository(this._models[0]) as MemoryRepository<any>;
-    return MemoryRepository.simulateFind(query as any, files, repo as any);
+    return repo.query(query as any);
   }
 
   /**
@@ -426,11 +419,11 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     const meta = useModelMetadata(model);
     const storage = new FileBackedMap(this.parameters.folder, FileStore.EXTENSION);
-    const inner = new MemoryRepository<T>(model, meta.PrimaryKey, undefined, storage as any);
+    const inner = new MemoryRepository<T>(model, meta.PrimaryKey, meta.PrimaryKeySeparator, storage as any);
     // Wrap in EventRepository so typed CRUD events fire; consumers reach them
     // via useRepository(model).on(...). simulateFind() only calls repo.get(),
     // which EventRepository proxies, so find() is unaffected.
-    return new EventRepository<T>(model, meta.PrimaryKey, inner) as unknown as Repository<T>;
+    return new EventRepository<T>(model, meta.PrimaryKey, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
   }
 
   /**

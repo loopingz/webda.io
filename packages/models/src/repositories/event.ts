@@ -19,13 +19,15 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
    * @param model - The model class constructor
    * @param pks - Array of primary key field names
    * @param repository - The underlying repository to delegate storage operations to
+   * @param separator - Separator used when joining composite key fields (default: "_")
    */
   constructor(
     model: T,
     pks: string[],
-    protected repository: AbstractRepository<T>
+    protected repository: AbstractRepository<T>,
+    separator?: string
   ) {
-    super(model, pks, "_");
+    super(model, pks, separator);
   }
 
   /**
@@ -37,20 +39,21 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     info: (L | { property: L; value?: number })[] | Record<L, number>,
     _conditionField?: K | null,
     _condition?: any
-  ): Promise<void> {
+  ): Promise<void | Record<string, number>> {
     await this.emit("PartialUpdate", {
       object_id: primaryKey,
       partial_update: {
         increments: info
       }
     } as any);
-    await this.repository.incrementAttributes(primaryKey, info, _conditionField, _condition);
+    const updated = await this.repository.incrementAttributes(primaryKey, info, _conditionField, _condition);
     await this.emit("PartialUpdated", {
       object_id: primaryKey,
       partial_update: {
         increments: info
       }
     } as any);
+    return updated;
   }
 
   /**

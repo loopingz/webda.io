@@ -62,6 +62,20 @@ export class MemoryRepository<
     return this.deserialize(item) as Helpers<InstanceType<T>>;
   }
 
+  /**
+   * Synchronous read used by conditional writes to keep check-and-set atomic
+   * @param primaryKey - key of the item
+   * @returns the deserialized item
+   */
+  protected getSync(
+    primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string
+  ): InstanceType<T> {
+    const key = this.getPrimaryKey(primaryKey).toString();
+    const item = this.storage.get(key);
+    if (!item) throw new Error(`Not found: ${key}`);
+    return this.deserialize(item) as InstanceType<T>;
+  }
+
   /** @override */
   async create(data: Helpers<InstanceType<T>>, save: boolean = true): Promise<InstanceType<T>> {
     const item = this.buildItem(data);
@@ -83,7 +97,7 @@ export class MemoryRepository<
     conditionField?: K | null,
     condition?: any
   ): Promise<void> {
-    const item = (await this.get(this.getPrimaryKey(data))) as InstanceType<T>;
+    const item = this.getSync(this.getPrimaryKey(data));
     this.checkCondition(item, conditionField, condition);
     this.storage.set(this.getPrimaryKey(data).toString(), this.serialize(new this.model(data) as InstanceType<T>));
   }
@@ -113,7 +127,8 @@ export class MemoryRepository<
     conditionField?: K | null,
     condition?: any
   ): Promise<void> {
-    const item = (await this.get(primaryKey)) as InstanceType<T>;
+    // Read, check and write without yielding so the condition acts as an atomic compare-and-set
+    const item = this.getSync(primaryKey);
     this.checkCondition(item, conditionField, condition);
     item.load(data);
     this.storage.set(item.getPrimaryKey().toString(), this.serialize(item));
@@ -188,19 +203,20 @@ export class MemoryRepository<
    * @returns the deserialized model instance
    */
   deserialize(item: string): InstanceType<T> {
-    const instance = deserialize(item) as InstanceType<T>;
     // Re-parse the envelope to read `__type` (the serializer's deserialize
     // path strips it because it's not in `value`). This is cheap relative to
     // deserialize itself.
     let typeFromEnvelope: string | undefined;
+    let raw: any;
     try {
-      const raw = JSON.parse(item);
+      raw = JSON.parse(item);
       if (raw && typeof raw === "object") {
         typeFromEnvelope = (raw as any).__type;
       }
     } catch {
       // Non-JSON or malformed; skip the stamp — instance is still usable.
     }
+    const instance = (this.isPlainRow(raw) ? this.hydratePlainRow(raw) : deserialize(item)) as InstanceType<T>;
     const stamped = typeFromEnvelope ?? (this.model as any)?.Metadata?.Identifier;
     if (stamped) {
       Object.defineProperty(instance, "__type", {
@@ -209,6 +225,74 @@ export class MemoryRepository<
         configurable: true,
         writable: true
       });
+    }
+    return instance;
+  }
+
+  /**
+   * Whether a stored row is a plain JSON object without a serializer envelope
+   *
+   * Rows written by earlier versions (e.g. a v3 FileStore folder or MemoryStore persistence file) store the
+   * object itself, its type in a top-level `__type`.
+   * @param raw - the parsed row
+   * @returns true for a plain object row
+   */
+  protected isPlainRow(raw: any): boolean {
+    return (
+      raw !== null &&
+      typeof raw === "object" &&
+      !Array.isArray(raw) &&
+      raw.$serializer === undefined &&
+      typeof this.model === "function"
+    );
+  }
+
+  /**
+   * Find the class to hydrate a row typed `identifier`: the repository model, one of its transitive subclasses,
+   * or the repository model for one of its ancestors
+   * @param identifier - model identifier
+   * @returns the class, `this.model` when it carries no Metadata, or undefined when unrelated
+   */
+  protected findModelClass(identifier: string): any {
+    const root: any = this.model;
+    if (!root?.Metadata?.Identifier) {
+      return root;
+    }
+    const seen = new Set<any>();
+    const queue: any[] = [root];
+    while (queue.length) {
+      const clazz = queue.shift();
+      if (!clazz || seen.has(clazz)) continue;
+      seen.add(clazz);
+      if (clazz.Metadata?.Identifier === identifier) return clazz;
+      queue.push(...(clazz.Metadata?.Subclasses ?? []));
+    }
+    // An ancestor-typed row (e.g. written before an application subclassed the model) is read as this model
+    for (let parent = Object.getPrototypeOf(root); parent && parent !== Function.prototype;) {
+      if (parent.Metadata?.Identifier === identifier) return root;
+      parent = Object.getPrototypeOf(parent);
+    }
+    return undefined;
+  }
+
+  /**
+   * Hydrate a plain JSON row as an instance of the repository model (or of the transitive subclass named by its
+   * `__type`; an ancestor type hydrates as the repository model), the same way document stores hydrate their rows;
+   * a row typed as an unrelated model is refused
+   * @param raw - the parsed row
+   * @returns the model instance
+   */
+  protected hydratePlainRow(raw: any): InstanceType<T> {
+    const { __type, ...data } = raw;
+    const clazz: any = __type === undefined ? this.model : this.findModelClass(__type);
+    if (!clazz) {
+      throw new Error(`Row of type '${__type}' does not belong to ${(this.model as any)?.Metadata?.Identifier}`);
+    }
+    const instance = new clazz(data);
+    if (typeof instance.load === "function") {
+      instance.load(data);
+    } else {
+      Object.assign(instance, data);
     }
     return instance;
   }
@@ -317,7 +401,31 @@ export class MemoryRepository<
       }
     }
 
-    return MemoryRepository.simulateFind(parsed, [...this.storage.keys()], this);
+    return MemoryRepository.simulateFind(parsed, this.listKeysOfModel(ids), this);
+  }
+
+  /**
+   * List the storage keys that may belong to this model
+   *
+   * A storage shared by several models holds foreign entries whose key shape can be invalid for this
+   * repository: they are skipped from the stored envelope `__type` before any parsing. Entries without a
+   * readable stamp (legacy rows, corrupted payloads) are kept so any error on them still surfaces.
+   * @param ids - class identifiers (model and subclasses), undefined to keep everything
+   * @returns the keys to evaluate
+   */
+  protected listKeysOfModel(ids?: string[]): string[] {
+    const keys = [...this.storage.keys()];
+    if (!ids) return keys;
+    return keys.filter(key => {
+      const raw = this.storage.get(key);
+      if (typeof raw !== "string") return true;
+      try {
+        const type = JSON.parse(raw)?.__type;
+        return typeof type !== "string" || ids.includes(type);
+      } catch {
+        return true;
+      }
+    });
   }
 
   /**
@@ -433,42 +541,67 @@ export class MemoryRepository<
     return this.storage.has(this.getPrimaryKey(primaryKey).toString());
   }
 
-  /** @override */
+  /**
+   * Resolve the parent object and last key of a dotted path, creating intermediate objects
+   * @param item - root object
+   * @param path - dotted path
+   * @returns the holder and the last key
+   */
+  protected resolvePath(item: any, path: string): { holder: any; key: string } {
+    const parts = path.split(".");
+    for (const part of parts) {
+      if (part === "__proto__" || part === "constructor" || part === "prototype") {
+        throw new Error(`Invalid path segment '${part}' in '${path}'`);
+      }
+    }
+    let holder = item;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i];
+      // Only ever descend into own properties, so the walk can never reach a prototype
+      if (!Object.prototype.hasOwnProperty.call(holder, part) || holder[part] === null || holder[part] === undefined) {
+        Object.defineProperty(holder, part, { value: {}, writable: true, enumerable: true, configurable: true });
+      }
+      holder = holder[part];
+    }
+    return { holder, key: parts[parts.length - 1] };
+  }
+
+  /**
+   * Increment attributes atomically: the read-modify-write never yields, so concurrent calls all count
+   * @override
+   * @returns the new value of each incremented attribute, by path
+   */
   async incrementAttributes<K extends PropertyPaths<InstanceType<T>>, L extends NumericPropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string,
     info: (L | { property: L; value?: number })[] | Record<L, number>,
     _conditionField?: K | null,
     _condition?: any
-  ): Promise<void> {
-    const item = (await this.get(primaryKey)) as InstanceType<T>;
-    if (Array.isArray(info)) {
-      for (const entry of info) {
-        const prop = typeof entry === "string" ? entry : (entry as any).property;
-        const inc = typeof entry === "string" ? 1 : ((entry as any).value ?? 1);
-        const parts = prop.split(".");
-        let current: any = item;
-        for (let i = 0; i < parts.length - 1; i++) {
-          const part = parts[i];
-          current[part] ??= {};
-          current = current[part];
-        }
-        const lastPart = parts[parts.length - 1];
-        (current as any)[lastPart] = ((current as any)[lastPart] || 0) + inc;
+  ): Promise<void | Record<string, number>> {
+    const item = this.getSync(primaryKey);
+    const entries: [string, number][] = Array.isArray(info)
+      ? info.map(entry =>
+          typeof entry === "string"
+            ? ([entry, 1] as [string, number])
+            : ([(entry as any).property, (entry as any).value ?? 1] as [string, number])
+        )
+      : Object.entries(info).map(([prop, value]) => [prop, value as number] as [string, number]);
+    const updated: Record<string, number> = {};
+    for (const [prop, inc] of entries) {
+      const { holder, key } = this.resolvePath(item, prop);
+      if (key === "__proto__" || key === "constructor" || key === "prototype" || holder === Object.prototype) {
+        throw new Error(`Invalid path segment in '${prop}'`);
       }
-    } else {
-      for (const prop in info) {
-        const parts = prop.split(".");
-        let current: any = item;
-        for (let i = 0; i < parts.length - 1; i++) {
-          const part = parts[i];
-          current[part] ??= {};
-          current = current[part];
-        }
-        const lastPart = parts[parts.length - 1];
-        (current as any)[lastPart] = ((current as any)[lastPart] || 0) + info[prop]!;
-      }
+      const current = Object.prototype.hasOwnProperty.call(holder, key) ? holder[key] : 0;
+      Object.defineProperty(holder, key, {
+        value: (current || 0) + inc,
+        writable: true,
+        enumerable: true,
+        configurable: true
+      });
+      updated[prop] = holder[key];
     }
     this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(item));
+    return updated;
   }
 
   /**

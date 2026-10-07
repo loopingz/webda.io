@@ -1,6 +1,6 @@
 import type { PK, PrimaryKey, PrimaryKeyAttributes, PrimaryKeyType, ModelClass } from "../storable.js";
 import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types.js";
-import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS } from "../storable.js";
+import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS, WEBDA_LEGACY_UID } from "../storable.js";
 import { ModelRefWithCreate } from "../relations.js";
 import { Repository } from "./repository.js";
 import type { ArrayElement } from "@webda/tsc-esm";
@@ -77,7 +77,15 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     return this.ref(this.parseUID(uid));
   }
 
-  /** @override */
+  /**
+   * Parse a serialized primary key
+   *
+   * A composite key that does not split into the primary key fields is offered to the model's optional
+   * `static parseLegacyUID(uid)` hook (see `WEBDA_LEGACY_UID`): the returned key keeps the raw uid as its
+   * string form so it addresses the legacy storage entry. Without a hook, or when the hook declines, the
+   * uid is rejected.
+   * @override
+   */
   parseUID(uid: string, forceObject?: boolean): PrimaryKeyType<InstanceType<T>> | PrimaryKey<InstanceType<T>> {
     if (this.pks.length === 1) {
       return forceObject
@@ -86,6 +94,10 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     }
     const parts = uid.split(this.separator);
     if (parts.length !== this.pks.length) {
+      const legacy = this.parseLegacyUID(uid);
+      if (legacy) {
+        return legacy;
+      }
       throw new Error(`Invalid UID: ${uid}`);
     }
     const result = {} as PrimaryKey<InstanceType<T>>;
@@ -93,6 +105,22 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
       result[this.pks[i] as keyof InstanceType<T>] = parts[i] as any;
     }
     return result;
+  }
+
+  /**
+   * Parse a uid through the model's `parseLegacyUID` hook
+   * @param uid - the raw storage key
+   * @returns a key whose string form is the raw uid, or undefined when the model does not recognise it
+   */
+  protected parseLegacyUID(uid: string): PrimaryKey<InstanceType<T>> | undefined {
+    const parsed = (this.model as any)?.parseLegacyUID?.(uid);
+    if (!parsed || typeof parsed !== "object") {
+      return undefined;
+    }
+    const key: any = { ...parsed };
+    Object.defineProperty(key, WEBDA_LEGACY_UID, { value: uid, enumerable: false });
+    Object.defineProperty(key, "toString", { value: () => uid, enumerable: false });
+    return key;
   }
 
   /** @override */
@@ -128,6 +156,10 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
       }
       // Composite key passed as string — parse it
       object = this.parseUID(object as string);
+    }
+    // A key parsed from a legacy uid already addresses its raw storage entry
+    if (object[WEBDA_LEGACY_UID] !== undefined) {
+      return object;
     }
     // Single PK field
     if (pkFields.length === 1) {
@@ -227,7 +259,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     info: (L | { property: L; value?: number })[] | Record<L, number>,
     _conditionField?: K | null,
     _condition?: any
-  ): Promise<void>;
+  ): Promise<void | Record<string, number>>;
 
   abstract query(
     query: string,

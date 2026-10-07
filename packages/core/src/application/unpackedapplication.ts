@@ -113,6 +113,11 @@ export class UnpackedApplication extends Application {
       autoCreate: true
     };
 
+    // TokenService by default
+    configuration.services["TokenService"] ??= {
+      type: "Webda/TokenService"
+    };
+
     // By default use CookieSessionManager
     // TODO Should not be added here as it is only for HTTP
     configuration.services["SessionManager"] ??= {

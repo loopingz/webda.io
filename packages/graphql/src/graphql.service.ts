@@ -40,6 +40,7 @@ import { WebSocketServer } from "ws";
 import { AnyScalarType } from "./types/any.js";
 import { DateScalar } from "./types/date.js";
 import { GraphQLLong } from "./types/long.js";
+import { createFromInput, isInputAttribute, updateFromInput } from "./mutations.js";
 
 const GraphIQL = `
 <!doctype html>
@@ -304,6 +305,11 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
+   * `__` (server-only) fields already warned about, so each is logged once
+   */
+  private privateWarned = new Set<string>();
+
+  /**
    * Build GraphQL field definitions from a JSON Schema, enriching with relation resolvers from the model graph
    * @param schema - JSON Schema describing the model properties
    * @param defaultName - fallback name for generated types
@@ -425,8 +431,16 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       });
     }
     for (const i in schema.properties) {
-      // Was initiated by the known graph
-      if (fields[i] || skipFields.includes(i) || ((<JSONSchema7>schema.properties[i]).readOnly && input)) {
+      if (i.startsWith("__") && !input && !this.privateWarned.has(`${defaultName}.${i}`)) {
+        this.privateWarned.add(`${defaultName}.${i}`);
+        this.log("WARN", `GraphQL may expose __ field ${i} of ${defaultName}; use toDTO()`);
+      }
+      // Was initiated by the known graph; inputs never carry private or behavior attributes
+      if (
+        fields[i] ||
+        skipFields.includes(i) ||
+        (input && ((<JSONSchema7>schema.properties[i]).readOnly || !isInputAttribute(i, webdaGraph)))
+      ) {
         continue;
       }
       const prop: any = this.getGraphQLSchemaFromSchema(
@@ -568,6 +582,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       // instead of both being registered under the same GraphQL type name.
       if (!this.app.isFinalModel(metadata.Identifier)) continue;
       if (!this.parameters.isIncluded(metadata.Identifier)) continue;
+      // Authentication state models (Ident, RefreshToken and subclasses) are internal unless explicitly listed
+      if (!this.isExposable(model, metadata.Identifier)) continue;
       const schema = this.app.getSchema(i);
       if (!schema) continue;
       const name = (metadata.ShortName || i.split("/").pop()).replace("/", "_");
@@ -589,18 +605,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             [name]: { type: input }
           },
           resolve: async (_, args, context) => {
-            const object = new (model as any)();
-            object.load(args[name]);
-            this.log("INFO", "Create", object, context.getCurrentUserId());
-            if ((await (object as any).canAct?.(context, "create")) !== true) {
-              throw new GraphQLError("Permission denied", {
-                extensions: {
-                  code: "PERMISSION_DENIED"
-                }
-              });
-            }
-            await object.save();
-            return object;
+            this.log("INFO", "Create", name, context.getCurrentUserId());
+            return createFromInput(model, args[name], context);
           }
         };
       }
@@ -613,17 +619,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
               type: GraphQLString
             }
           },
-          resolve: async (_, args, context) => {
-            const object = await model.ref(args.uuid).get();
-            if ((await object?.canAct?.(context, "update")) !== true) {
-              throw new GraphQLError("Permission denied", {
-                extensions: {
-                  code: "PERMISSION_DENIED"
-                }
-              });
-            }
-            return object.load(args[name]).save();
-          }
+          resolve: async (_, args, context) => updateFromInput(model, args.uuid, args[name], context)
         };
       }
       // check for actions

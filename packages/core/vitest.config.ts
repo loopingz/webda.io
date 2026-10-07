@@ -1,9 +1,11 @@
 /// <reference types="vitest" />
 
+import { webdaContentMapper } from "@webda/content-mapper/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
   clearScreen: false,
+  plugins: [webdaContentMapper()],
   test: {
     allowOnly: true,
     testTimeout: 20000,
@@ -14,9 +16,6 @@ export default defineConfig({
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.spec.ts", "src/index.ts"],
       reporter: ["lcov", "html", "text"]
-    },
-    testTransformMode: {
-      web: ["./esbuild.webda.ts"]
     },
     passWithNoTests: true,
     setupFiles: ["./vitest.chdir.mts"],
@@ -34,13 +33,13 @@ export default defineConfig({
       //"src/models/ownermodel.spec.ts",
       "src/models/ident.spec.ts",
       "src/models/user.spec.ts",
+      "src/models/password.spec.ts",
       "src/queues/*.spec.ts",
       //"src/rest/*.spec.ts",
       "src/rest/restoperationstransport.spec.ts",
       "src/rest/rest-behaviors.spec.ts",
       "src/rest/router-prefix.spec.ts",
       "src/schemas/*.spec.ts",
-      //"src/services/authentication.spec.ts", // Need refactor
       "src/services/cloudbinary.spec.ts",
       "src/services/cron.spec.ts",
       "src/services/cryptoservice.spec.ts",
@@ -55,17 +54,17 @@ export default defineConfig({
       "src/services/httpserver.spec.ts",
       "src/services/mailer.spec.ts",
       "src/services/notificationservice.spec.ts",
-      //"src/services/oauth.spec.ts", // Need small refactor
-      "src/services/oauth-unit.spec.ts",
       //"src/services/prometheus.spec.ts", // Check parameters loading
       //"src/services/resource.spec.ts",
       "src/services/resource-unit.spec.ts",
       "src/services/command.spec.ts",
       "src/services/servicecommands.spec.ts",
       "src/services/service.spec.ts",
+      "src/services/token.spec.ts",
       "src/services/serviceparameters.spec.ts",
-      // "src/session/*.spec.ts",
+      "src/session/session.spec.ts",
       "src/stores/store.spec.ts",
+      "src/stores/memory-separator.spec.ts",
       //"src/stores/*.spec.ts",
       "src/templates/*.spec.ts",
       "src/test/*.spec.ts",

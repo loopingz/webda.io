@@ -3,7 +3,8 @@ import * as assert from "assert";
 import { stub } from "sinon";
 import { randomUUID } from "crypto";
 import { TestIdent } from "../test/objects.js";
-import { Ident, MemoryStore, OperationContext, Store, User } from "../index.js";
+import { LegacyIdentFixture } from "../test/legacyident.fixture.model.js";
+import { MemoryStore, OperationContext, Store, User } from "../index.js";
 import { CoreModel } from "../models/coremodel.model.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store.js";
@@ -33,7 +34,7 @@ export class UserTest extends User {
   idents: any[];
 }
 
-export class IdentTest extends Ident {
+export class IdentTest extends LegacyIdentFixture {
   _lastUpdate: Date;
   counter: number;
   counter2: number;
@@ -754,11 +755,11 @@ class StoreParametersTest {
 class StoreFieldsMigrationTest extends WebdaApplicationTest {
   @test
   async populatesModelsArrayAndMetadatas() {
-    const store = new MemoryStore("multi", { models: ["Webda/Ident", "Webda/User"] });
+    const store = new MemoryStore("multi", { models: ["WebdaTest/Ident", "Webda/User"] });
     store.resolve();
     assert.strictEqual((store as any)._models.length, 2);
     assert.strictEqual((store as any)._modelMetadatas.size, 2);
-    assert.strictEqual((store as any)._modelsHierarchy["Webda/Ident"], 0);
+    assert.strictEqual((store as any)._modelsHierarchy["WebdaTest/Ident"], 0);
     assert.strictEqual((store as any)._modelsHierarchy["Webda/User"], 0);
     assert.strictEqual(store.getModels().length, 2);
   }
@@ -796,8 +797,8 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
   async setModelDefinitionHelperOverridesFirstModel() {
     const store = new MemoryStore("override", { models: ["Webda/User"] });
     store.resolve();
-    store.setModelDefinitionHelper(Ident as any);
-    assert.strictEqual(store.getModels()[0], Ident);
+    store.setModelDefinitionHelper(IdentTest as any);
+    assert.strictEqual(store.getModels()[0], IdentTest);
   }
 }
 

@@ -13,7 +13,18 @@ import {
   OperationContext
 } from "@webda/core";
 import type { User } from "@webda/core";
-import type { Authentication, EventAuthenticationRegister } from "@webda/core";
+import type { IAuthenticationService, EventAuthenticationRegister } from "@webda/core";
+
+/**
+ * Authentication service as used by the invitation service
+ *
+ * The legacy helpers are kept loosely typed until this package is ported to the new authentication
+ */
+type InvitationAuthentication = IAuthenticationService & {
+  getUserModel(): any;
+  getIdentModel(): any;
+  on(event: string, listener: (evt: any) => any): any;
+};
 import type { NotificationService } from "@webda/core";
 import { ModelRef, ModelRefWithCreate, Repository } from "@webda/models";
 
@@ -207,7 +218,7 @@ export class InvitationService<
   E extends InvitationServiceEvents = InvitationServiceEvents
 > extends Service<T, E> {
   @Inject("params:authenticationService")
-  authenticationService: Authentication;
+  authenticationService: InvitationAuthentication;
 
   // Optional service
   // @ts-ignore - Optional inject
@@ -602,13 +613,7 @@ export class InvitationService<
       // Notify ident
       const ident = invitation.invitation.split("_");
       await this.sendNotification(
-        await Ident.create(
-          <any>{
-            _type: ident.pop(),
-            uuid: ident.join("_")
-          },
-          false
-        ),
+        new Ident({ provider: ident.pop(), providerUid: ident.join("_"), email: ident.join("_") } as any),
         {
           model,
           metadata,
@@ -662,15 +667,15 @@ export class InvitationService<
     if ((user[this.parameters.mapAttribute] || []).filter(p => p.model === model.getUUID()).length) {
       return;
     }
-    await (this.authenticationService
-      .getUserModel()
-      .ref(user.getUUID()) as any)
-      .upsertItemToCollection(this.parameters.mapAttribute, {
+    await (this.authenticationService.getUserModel().ref(user.getUUID()) as any).upsertItemToCollection(
+      this.parameters.mapAttribute,
+      {
         model: model.getUUID(),
         metadata,
         inviter: inviter.toPublicEntry(),
         pending: !this.parameters.autoAccept
-      });
+      }
+    );
     // Notify user
     await this.sendNotification(user, {
       model,

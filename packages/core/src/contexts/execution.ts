@@ -50,7 +50,7 @@ function attachModels(models: any[], context: Context) {
  * @returns the list of results
  */
 export function runAsSystem<T>(run: () => T, attach: IContextAware[] = []): T {
-  return this.runWithContext(globalContext, run, attach);
+  return runWithContext(globalContext, run, attach);
 }
 /**
  * Run this function as user

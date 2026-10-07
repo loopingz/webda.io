@@ -9,6 +9,8 @@ import {
   buildBehaviorActions,
   buildCapabilities,
   buildModelActions,
+  buildModelPrimaryKey,
+  buildModelPrimaryKeySeparator,
   buildCommands,
   generateWebdaModule,
   getPlural,
@@ -37,7 +39,9 @@ function classOf(session: Session, file: string, name: string): ClassDeclaration
 
 describe("module helpers", () => {
   it("pluralises like @webda/compiler", () => {
-    expect(["Key", "City", "Knife", "Leaf", "Criterion", "Analysis", "Woman", "Box", "Hero", "Bus", "User"].map(getPlural)).toEqual([
+    expect(
+      ["Key", "City", "Knife", "Leaf", "Criterion", "Analysis", "Woman", "Box", "Hero", "Bus", "User"].map(getPlural)
+    ).toEqual([
       "Keys",
       "Cities",
       "Knives",
@@ -171,7 +175,12 @@ describe("module metadata on a fixture", () => {
     expect(module.behaviors["Custom/Named"]).toEqual({
       Identifier: "Custom/Named",
       Import: "lib/behaviors:Named",
-      Actions: { own: {}, read: { description: "Read", summary: "S", rest: { route: "{id}", method: "GET" } }, write: {}, bare: {} }
+      Actions: {
+        own: {},
+        read: { description: "Read", summary: "S", rest: { route: "{id}", method: "GET" } },
+        write: {},
+        bare: {}
+      }
     });
     expect(errors).toHaveLength(2);
     // Nothing here extends @webda/core or @webda/models.
@@ -346,5 +355,22 @@ describe("worker module request", () => {
     expect(Object.keys(result.module.behaviors)).toContain("Custom/Named");
     expect(Array.isArray(result.namingViolations)).toBe(true);
     expect(response.errors.missing).toMatch(/not found/);
+  });
+});
+
+describe("module primary key separator", () => {
+  it("inherits PrimaryKey and PrimaryKeySeparator from a parent model", () => {
+    const dir = join(here, "..", "test", "separator-fixture");
+    const session = openSession(join(dir, "tsconfig.json"), dir);
+    try {
+      for (const name of ["Keyed", "KeyedChild"]) {
+        const cls = classOf(session, "keyed.model.ts", name);
+        expect(buildModelPrimaryKey(session.ctx, cls), name).toEqual(["a", "b"]);
+        expect(buildModelPrimaryKeySeparator(session.ctx, cls), name).toBe(":");
+      }
+      expect(buildModelPrimaryKeySeparator(session.ctx, classOf(session, "keyed.model.ts", "Plain"))).toBeUndefined();
+    } finally {
+      session.dispose();
+    }
   });
 });

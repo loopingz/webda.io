@@ -151,6 +151,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
    * @param collection - the collection name
    * @param indexes - compound indexes declared on the store
    * @param log - logger of the store
+   * @param separator - primary key separator
    */
   constructor(
     model: T,
@@ -158,10 +159,11 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
     protected readonly firestore: Firestore,
     protected readonly collection: string,
     indexes: FireStoreIndex[] = [],
-    protected readonly log: (level: any, ...args: any[]) => void = () => {}
+    protected readonly log: (level: any, ...args: any[]) => void = () => {},
+    separator?: string
   ) {
     // Pass an empty Map — we do NOT use in-memory storage
-    super(model, pks, undefined, new Map<string, string>() as any);
+    super(model, pks, separator, new Map<string, string>() as any);
     indexes.forEach(a => {
       const key = Object.keys(a).sort().join("/");
       // Should contain the array of accessible order
@@ -706,11 +708,12 @@ export default class FireStore<K extends FireStoreParameters = FireStoreParamete
       this.firestore,
       this.resolveCollection(model),
       this.parameters.compoundIndexes,
-      (level, ...args) => this.log(level, ...args)
+      (level, ...args) => this.log(level, ...args),
+      meta.PrimaryKeySeparator
     );
     // Wrap in EventRepository so typed CRUD events fire; consumers reach them
     // via useRepository(model).on(...).
-    return new EventRepository<T>(model, meta.PrimaryKey, inner) as unknown as Repository<T>;
+    return new EventRepository<T>(model, meta.PrimaryKey, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
   }
 
   /**

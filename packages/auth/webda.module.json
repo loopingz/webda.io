@@ -1,0 +1,611 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/Authentication": {
+      "Import": "lib/authentication.service:Authentication",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "AuthenticationCompatibility": {
+            "additionalProperties": false,
+            "description": "v3 data compatibility options",
+            "properties": {
+              "v3": {
+                "default": true,
+                "description": "Read and write v3 data layouts",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Authentication parameters",
+        "properties": {
+          "compatibility": {
+            "$ref": "#/definitions/AuthenticationCompatibility",
+            "default": {
+              "v3": true
+            },
+            "description": "v3 data compatibility"
+          },
+          "identModel": {
+            "default": "Webda/Ident",
+            "description": "Ident model",
+            "type": "string"
+          },
+          "linking": {
+            "default": "verified",
+            "description": "Linking policy",
+            "enum": [
+              "never",
+              "verified",
+              "always"
+            ],
+            "type": "string"
+          },
+          "registration": {
+            "default": true,
+            "description": "Allow automatic registration of new users",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "userModel": {
+            "default": "Webda/User",
+            "description": "User model",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "Authentication"
+      },
+      "Configuration": "lib/authentication.service:AuthenticationParameters",
+      "commands": {
+        "auth migrate": {
+          "description": "Migrate v3 authentication data (idents, users) to v4",
+          "method": "migrate",
+          "args": {
+            "dryRun": {
+              "type": "boolean",
+              "default": false,
+              "description": "Only count the records to migrate, write nothing"
+            },
+            "batch": {
+              "type": "number",
+              "default": 100,
+              "description": "Page size of the store scans"
+            }
+          },
+          "phase": "initialized"
+        }
+      }
+    },
+    "Webda/EmailPasswordProvider": {
+      "Import": "lib/email/emailpassword.service:EmailPasswordProvider",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "password": {
+            "additionalProperties": false,
+            "description": "Password rules",
+            "properties": {
+              "policy": {
+                "type": "string"
+              },
+              "verifier": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "redirects": {
+            "additionalProperties": false,
+            "description": "Browser redirects for emailed links (no defaults: init() refuses a missing required one). `failure` and `recover`\nare always required, `verified` and `register` unless `verification` is \"none\". `recover` receives the recovery\nlink as `?token=...` (the page then calls Auth.Password.Recover). `confirm` (default `failure`) receives a\nverification link opened without the matching session, with `?reason=LOGIN_REQUIRED&token=...`: log in then call\nAuth.Email.Verify with the token",
+            "properties": {
+              "confirm": {
+                "type": "string"
+              },
+              "failure": {
+                "type": "string"
+              },
+              "recover": {
+                "type": "string"
+              },
+              "register": {
+                "type": "string"
+              },
+              "verified": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "throttle": {
+            "additionalProperties": false,
+            "description": "Throttling",
+            "properties": {
+              "failedBeforeDelay": {
+                "type": "number"
+              },
+              "lockout": {
+                "type": "number"
+              },
+              "resendDelay": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "EmailPasswordProvider parameters",
+        "properties": {
+          "allowedEmailDomains": {
+            "description": "Only these email domains may use this provider (see ProviderEmailPolicy)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "mailer": {
+            "default": "Mailer",
+            "description": "Mailer service name",
+            "type": "string"
+          },
+          "password": {
+            "$ref": "#/definitions/password",
+            "description": "Password rules"
+          },
+          "redirects": {
+            "$ref": "#/definitions/redirects",
+            "description": "Browser redirects for emailed links (no defaults: init() refuses a missing required one). `failure` and `recover`\nare always required, `verified` and `register` unless `verification` is \"none\". `recover` receives the recovery\nlink as `?token=...` (the page then calls Auth.Password.Recover). `confirm` (default `failure`) receives a\nverification link opened without the matching session, with `?reason=LOGIN_REQUIRED&token=...`: log in then call\nAuth.Email.Verify with the token"
+          },
+          "throttle": {
+            "$ref": "#/definitions/throttle",
+            "description": "Throttling"
+          },
+          "trustEmailVerification": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "description": "Whether the verification of the email is believed (see ProviderEmailPolicy)"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "default": "/auth/email",
+            "description": "Base url for emailed links",
+            "type": "string"
+          },
+          "verification": {
+            "default": "before",
+            "description": "Verification mode",
+            "enum": [
+              "before",
+              "after",
+              "none"
+            ],
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "password",
+          "redirects",
+          "throttle",
+          "type"
+        ],
+        "type": "object",
+        "title": "EmailPasswordProvider"
+      },
+      "Configuration": "lib/email/emailpassword.service:EmailPasswordParameters"
+    }
+  },
+  "models": {},
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "challenge": {
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
+        },
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    },
+    "Authentication.providers.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Authentication.providers.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "items": {
+        "$ref": "#/definitions/ProviderInfo"
+      },
+      "type": "array",
+      "definitions": {
+        "ProviderInfo": {
+          "additionalProperties": false,
+          "description": "Describe an authentication provider exposed by an authentication service",
+          "properties": {
+            "name": {
+              "description": "Provider name",
+              "type": "string"
+            },
+            "startUrl": {
+              "description": "URL to start the authentication flow (oauth, passwordless)",
+              "type": "string"
+            },
+            "type": {
+              "description": "Provider type",
+              "enum": [
+                "password",
+                "oauth",
+                "passwordless"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "type"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "Authentication.me.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Authentication.me.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "Authentication.logout.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Authentication.logout.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Authentication.refresh.input": {
+      "type": "object",
+      "properties": {
+        "refreshToken": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "refreshToken"
+      ]
+    },
+    "Authentication.refresh.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "description": "Tokens returned by a successful login or refresh",
+      "properties": {
+        "accessToken": {
+          "type": "string"
+        },
+        "expiresIn": {
+          "type": "number"
+        },
+        "refreshToken": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "accessToken",
+        "expiresIn",
+        "refreshToken"
+      ],
+      "type": "object"
+    },
+    "Authentication.idents.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "Authentication.idents.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "items": {
+        "$ref": "#/definitions/%5B%5D"
+      },
+      "type": "array",
+      "definitions": {
+        "[]": {
+          "additionalProperties": false,
+          "properties": {
+            "email": {
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "provider": {
+              "type": "string"
+            },
+            "providerUid": {
+              "type": "string"
+            },
+            "verifiedAt": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          "required": [
+            "provider",
+            "providerUid"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "Authentication.unlink.input": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "providerUid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "providerUid"
+      ]
+    },
+    "Authentication.unlink.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "EmailPasswordProvider.login.input": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "email",
+        "password"
+      ]
+    },
+    "EmailPasswordProvider.login.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "accessToken": {
+              "type": "string"
+            },
+            "expiresIn": {
+              "type": "number"
+            },
+            "refreshToken": {
+              "type": "string"
+            },
+            "status": {
+              "const": "ok",
+              "type": "string"
+            },
+            "user": {}
+          },
+          "required": [
+            "accessToken",
+            "expiresIn",
+            "refreshToken",
+            "status",
+            "user"
+          ],
+          "type": "object"
+        },
+        {
+          "$ref": "#/definitions/%232"
+        }
+      ],
+      "description": "Result of an authentication completion",
+      "definitions": {
+        "#2": {
+          "additionalProperties": false,
+          "properties": {
+            "methods": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "status": {
+              "const": "mfa_required",
+              "type": "string"
+            }
+          },
+          "required": [
+            "methods",
+            "status"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "EmailPasswordProvider.register.input": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "profile": {}
+      },
+      "required": [
+        "email",
+        "password"
+      ]
+    },
+    "EmailPasswordProvider.register.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "EmailPasswordProvider.startVerification.input": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "email"
+      ]
+    },
+    "EmailPasswordProvider.startVerification.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "EmailPasswordProvider.verify.input": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "token"
+      ]
+    },
+    "EmailPasswordProvider.verify.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "verified",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "type": "object"
+    },
+    "EmailPasswordProvider.startRecovery.input": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "email"
+      ]
+    },
+    "EmailPasswordProvider.startRecovery.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "EmailPasswordProvider.recover.input": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "token",
+        "password"
+      ]
+    },
+    "EmailPasswordProvider.recover.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "EmailPasswordProvider.changePassword.input": {
+      "type": "object",
+      "properties": {
+        "current": {
+          "type": "string"
+        },
+        "next": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "current",
+        "next"
+      ]
+    },
+    "EmailPasswordProvider.changePassword.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    }
+  },
+  "behaviors": {}
+}

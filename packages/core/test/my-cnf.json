@@ -1,6 +1,6 @@
 {
   "services": {
-    "Authentication": {
+    "SampleService": {
       "email": {
         "text": "Test"
       }

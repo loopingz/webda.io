@@ -9,6 +9,7 @@
   "prerelease-type": "beta",
   "packages": {
     "packages/amqp": {},
+    "packages/auth": {},
     "packages/async": {},
     "packages/aws": {},
     "packages/cache": {},

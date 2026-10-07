@@ -237,12 +237,12 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
       meta.PrimaryKey,
       this.client as any,
       table,
-      undefined,
+      meta.PrimaryKeySeparator,
       () => this.ensureTable(inner)
     );
     // Wrap in EventRepository so typed CRUD events fire; consumers reach them
     // via useRepository(model).on(...).
-    return new EventRepository<T>(model, meta.PrimaryKey, inner) as unknown as Repository<T>;
+    return new EventRepository<T>(model, meta.PrimaryKey, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
   }
 
   /**

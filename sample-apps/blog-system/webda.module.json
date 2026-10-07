@@ -11,6 +11,7 @@
             "enum": [
               "Registry",
               "CryptoService",
+              "TokenService",
               "SessionManager",
               "AuditService",
               "DomainService",

@@ -57,130 +57,6 @@
       },
       "Configuration": "lib/services/audit.model:AuditServiceParameters"
     },
-    "Webda/Authentication": {
-      "Import": "lib/services/authentication.service:Authentication",
-      "Schema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "additionalProperties": false,
-        "definitions": {
-          "email": {
-            "additionalProperties": false,
-            "description": "Enable the email authentication",
-            "properties": {
-              "delay": {
-                "default": "3600000 * 4",
-                "description": "Minimal delay between two password recovery or validation email",
-                "type": "number"
-              },
-              "failedLoginBeforeDelay": {
-                "default": 3,
-                "description": "When a delay is added between two attempt to authenticate",
-                "type": "number"
-              },
-              "mailer": {
-                "description": "Mailer service name",
-                "enum": [
-                  "Registry",
-                  "CryptoService",
-                  "SessionManager"
-                ],
-                "type": "string"
-              },
-              "postValidation": {
-                "default": false,
-                "description": "Allow user to create their account without validating their email first",
-                "type": "boolean"
-              },
-              "skipEmailValidation": {
-                "default": false,
-                "description": "Do not even validate the email at all",
-                "type": "boolean"
-              }
-            },
-            "type": "object"
-          },
-          "password": {
-            "additionalProperties": false,
-            "properties": {
-              "regexp": {
-                "default": "{8,}",
-                "description": "Regexp that password must check",
-                "type": "string"
-              },
-              "verifier": {
-                "description": "Password verifier Service name",
-                "enum": [
-                  "Registry",
-                  "CryptoService",
-                  "SessionManager"
-                ],
-                "type": "string"
-              }
-            },
-            "type": "object"
-          }
-        },
-        "description": "Parameters for the Authentication service including identity, email, and password settings",
-        "properties": {
-          "email": {
-            "$ref": "#/definitions/email",
-            "description": "Enable the email authentication"
-          },
-          "failureRedirect": {
-            "description": "Redirect to this page when email validation failed",
-            "type": "string"
-          },
-          "identModel": {
-            "default": "Webda/Ident",
-            "description": "Idents store for authentication identifiers",
-            "type": "string"
-          },
-          "password": {
-            "$ref": "#/definitions/password"
-          },
-          "registerRedirect": {
-            "description": "Redirect to this page once email is validate to finish the registration process",
-            "type": "string"
-          },
-          "salt": {
-            "description": "Number of salt iteration for bcrypt.hashSync",
-            "type": "string"
-          },
-          "successRedirect": {
-            "description": "Redirect to this page when email validation succeed",
-            "type": "string"
-          },
-          "type": {
-            "description": "Type of the service",
-            "type": "string"
-          },
-          "url": {
-            "default": "/auth",
-            "type": "string"
-          },
-          "userModel": {
-            "default": "Webda/User",
-            "description": "User store for authentication users",
-            "type": "string"
-          },
-          "openapi": {
-            "type": "object",
-            "additionalProperties": true
-          }
-        },
-        "required": [
-          "failureRedirect",
-          "password",
-          "registerRedirect",
-          "salt",
-          "successRedirect",
-          "type"
-        ],
-        "type": "object",
-        "title": "Authentication"
-      },
-      "Configuration": "lib/services/authentication.service:AuthenticationParameters"
-    },
     "Webda/Binary": {
       "Import": "lib/services/binary.service:BinaryService",
       "Schema": {
@@ -1413,6 +1289,7 @@
               "enum": [
                 "Registry",
                 "CryptoService",
+                "TokenService",
                 "SessionManager"
               ],
               "type": "string"
@@ -1695,6 +1572,40 @@
           ]
         }
       }
+    },
+    "Webda/TokenService": {
+      "Import": "lib/services/token.service:TokenService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "TokenService parameters",
+        "properties": {
+          "accessTtl": {
+            "default": 900,
+            "description": "Access token lifetime in seconds",
+            "type": "number"
+          },
+          "refreshTtl": {
+            "default": 2592000,
+            "description": "Refresh token lifetime in seconds",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "TokenService"
+      },
+      "Configuration": "lib/services/token.service:TokenServiceParameters"
     }
   },
   "models": {
@@ -2134,41 +2045,15 @@
         "links": [
           {
             "attribute": "_user",
+            "model": "Webda/User",
             "type": "LINK"
           }
         ]
       },
-      "Ancestors": [
-        "Webda/OwnerModel",
-        "Webda/AbstractOwnerModel"
-      ],
+      "Ancestors": [],
       "Subclasses": [],
       "Reflection": {
-        "_type": {
-          "type": "string"
-        },
-        "uid": {
-          "type": "string"
-        },
-        "__profile": {
-          "type": "any"
-        },
-        "__tokens": {
-          "type": "IdentTokens"
-        },
-        "_lastUsed": {
-          "type": "Date"
-        },
-        "_failedLogin": {
-          "type": "number"
-        },
-        "_lastValidationEmail": {
-          "type": "number"
-        },
-        "_validation": {
-          "type": "Date"
-        },
-        "email": {
+        "providerUid": {
           "type": "string"
         },
         "provider": {
@@ -2180,11 +2065,29 @@
             "User"
           ]
         },
-        "public": {
-          "type": "boolean"
-        },
-        "uuid": {
+        "email": {
           "type": "string"
+        },
+        "verifiedAt": {
+          "type": "Date"
+        },
+        "lastUsedAt": {
+          "type": "Date"
+        },
+        "_throttle": {
+          "type": "IdentThrottle"
+        },
+        "_loginAttempts": {
+          "type": "number"
+        },
+        "_lastLoginAttemptAt": {
+          "type": "number"
+        },
+        "__profile": {
+          "type": "any"
+        },
+        "__tokens": {
+          "type": "IdentTokens"
         }
       },
       "Schemas": {
@@ -2192,91 +2095,86 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
-          "class": true,
           "definitions": {
+            "IdentThrottle": {
+              "additionalProperties": false,
+              "description": "Email sending throttle state of an ident (login failures are top-level `Ident` attributes)",
+              "properties": {
+                "lastSentAt": {
+                  "description": "Timestamp of the last email sent",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
             "IdentTokens": {
               "additionalProperties": false,
               "description": "OAuth tokens associated with an identity provider",
               "properties": {
                 "access": {
+                  "description": "Access token",
                   "type": "string"
                 },
                 "refresh": {
+                  "description": "Refresh token",
                   "type": "string"
                 }
               },
-              "required": [
-                "access",
-                "refresh"
-              ],
               "type": "object"
             }
           },
-          "description": "First basic model for Ident",
+          "description": "An identity linked to a user: `<providerUid>:<provider>`",
           "properties": {
             "__profile": {
               "description": "Provider profile"
             },
             "__tokens": {
               "$ref": "#/definitions/IdentTokens",
-              "description": "Tokens for this ident"
+              "description": "Provider tokens"
             },
-            "_failedLogin": {
-              "description": "If the ident is validated",
+            "_lastLoginAttemptAt": {
+              "description": "Timestamp (ms) of the last counted login attempt",
               "type": "number"
             },
-            "_lastUsed": {
-              "description": "Last time the ident was used",
-              "format": "date-time",
-              "type": "string"
-            },
-            "_lastValidationEmail": {
-              "description": "If EmailIdent",
+            "_loginAttempts": {
+              "description": "Login attempts counted since the last successful login\n\nTop-level so stores can increment it atomically (nested-path atomic operations are not portable)",
               "type": "number"
             },
-            "_type": {
-              "description": "Type of the ident",
-              "type": "string"
+            "_throttle": {
+              "$ref": "#/definitions/IdentThrottle",
+              "description": "Email sending throttle state"
             },
             "_user": {
-              "description": "Default owner of the object",
-              "type": "string"
-            },
-            "_validation": {
-              "description": "When the ident was validated",
-              "format": "date-time",
+              "description": "Owner",
               "type": "string"
             },
             "email": {
-              "description": "Email for this ident if it exist",
+              "description": "Email asserted for this ident",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "description": "Last login with this ident",
+              "format": "date-time",
               "type": "string"
             },
             "provider": {
-              "description": "Provider id",
+              "description": "Provider name",
               "type": "string"
             },
-            "public": {
-              "default": false,
-              "description": "Define if the object is publicly readable",
-              "type": "boolean"
-            },
-            "uid": {
-              "description": "Uid on the provider",
+            "providerUid": {
+              "description": "Identifier on the provider (normalised email for \"email\")",
               "type": "string"
             },
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
+            "verifiedAt": {
+              "description": "When the ident was verified",
+              "format": "date-time",
               "type": "string"
             }
           },
           "required": [
-            "__profile",
-            "__tokens",
-            "_type",
             "_user",
-            "uid",
-            "uuid"
+            "provider",
+            "providerUid"
           ],
           "type": "object",
           "$webda": "toDto$auto"
@@ -2285,91 +2183,86 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
-          "class": true,
           "definitions": {
+            "IdentThrottle": {
+              "additionalProperties": false,
+              "description": "Email sending throttle state of an ident (login failures are top-level `Ident` attributes)",
+              "properties": {
+                "lastSentAt": {
+                  "description": "Timestamp of the last email sent",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
             "IdentTokens": {
               "additionalProperties": false,
               "description": "OAuth tokens associated with an identity provider",
               "properties": {
                 "access": {
+                  "description": "Access token",
                   "type": "string"
                 },
                 "refresh": {
+                  "description": "Refresh token",
                   "type": "string"
                 }
               },
-              "required": [
-                "access",
-                "refresh"
-              ],
               "type": "object"
             }
           },
-          "description": "First basic model for Ident",
+          "description": "An identity linked to a user: `<providerUid>:<provider>`",
           "properties": {
             "__profile": {
               "description": "Provider profile"
             },
             "__tokens": {
               "$ref": "#/definitions/IdentTokens",
-              "description": "Tokens for this ident"
+              "description": "Provider tokens"
             },
-            "_failedLogin": {
-              "description": "If the ident is validated",
+            "_lastLoginAttemptAt": {
+              "description": "Timestamp (ms) of the last counted login attempt",
               "type": "number"
             },
-            "_lastUsed": {
-              "description": "Last time the ident was used",
-              "format": "date-time",
-              "type": "string"
-            },
-            "_lastValidationEmail": {
-              "description": "If EmailIdent",
+            "_loginAttempts": {
+              "description": "Login attempts counted since the last successful login\n\nTop-level so stores can increment it atomically (nested-path atomic operations are not portable)",
               "type": "number"
             },
-            "_type": {
-              "description": "Type of the ident",
-              "type": "string"
+            "_throttle": {
+              "$ref": "#/definitions/IdentThrottle",
+              "description": "Email sending throttle state"
             },
             "_user": {
-              "description": "Default owner of the object",
-              "type": "string"
-            },
-            "_validation": {
-              "description": "When the ident was validated",
-              "format": "date-time",
+              "description": "Owner",
               "type": "string"
             },
             "email": {
-              "description": "Email for this ident if it exist",
+              "description": "Email asserted for this ident",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "description": "Last login with this ident",
+              "format": "date-time",
               "type": "string"
             },
             "provider": {
-              "description": "Provider id",
+              "description": "Provider name",
               "type": "string"
             },
-            "public": {
-              "default": false,
-              "description": "Define if the object is publicly readable",
-              "type": "boolean"
-            },
-            "uid": {
-              "description": "Uid on the provider",
+            "providerUid": {
+              "description": "Identifier on the provider (normalised email for \"email\")",
               "type": "string"
             },
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
+            "verifiedAt": {
+              "description": "When the ident was verified",
+              "format": "date-time",
               "type": "string"
             }
           },
           "required": [
-            "__profile",
-            "__tokens",
-            "_type",
             "_user",
-            "uid",
-            "uuid"
+            "provider",
+            "providerUid"
           ],
           "type": "object",
           "$webda": "fromDto$auto"
@@ -2378,91 +2271,86 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
-          "class": true,
           "definitions": {
+            "IdentThrottle": {
+              "additionalProperties": false,
+              "description": "Email sending throttle state of an ident (login failures are top-level `Ident` attributes)",
+              "properties": {
+                "lastSentAt": {
+                  "description": "Timestamp of the last email sent",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
             "IdentTokens": {
               "additionalProperties": false,
               "description": "OAuth tokens associated with an identity provider",
               "properties": {
                 "access": {
+                  "description": "Access token",
                   "type": "string"
                 },
                 "refresh": {
+                  "description": "Refresh token",
                   "type": "string"
                 }
               },
-              "required": [
-                "access",
-                "refresh"
-              ],
               "type": "object"
             }
           },
-          "description": "First basic model for Ident",
+          "description": "An identity linked to a user: `<providerUid>:<provider>`",
           "properties": {
             "__profile": {
               "description": "Provider profile"
             },
             "__tokens": {
               "$ref": "#/definitions/IdentTokens",
-              "description": "Tokens for this ident"
+              "description": "Provider tokens"
             },
-            "_failedLogin": {
-              "description": "If the ident is validated",
+            "_lastLoginAttemptAt": {
+              "description": "Timestamp (ms) of the last counted login attempt",
               "type": "number"
             },
-            "_lastUsed": {
-              "description": "Last time the ident was used",
-              "format": "date-time",
-              "type": "string"
-            },
-            "_lastValidationEmail": {
-              "description": "If EmailIdent",
+            "_loginAttempts": {
+              "description": "Login attempts counted since the last successful login\n\nTop-level so stores can increment it atomically (nested-path atomic operations are not portable)",
               "type": "number"
             },
-            "_type": {
-              "description": "Type of the ident",
-              "type": "string"
+            "_throttle": {
+              "$ref": "#/definitions/IdentThrottle",
+              "description": "Email sending throttle state"
             },
             "_user": {
-              "description": "Default owner of the object",
-              "type": "string"
-            },
-            "_validation": {
-              "description": "When the ident was validated",
-              "format": "date-time",
+              "description": "Owner",
               "type": "string"
             },
             "email": {
-              "description": "Email for this ident if it exist",
+              "description": "Email asserted for this ident",
+              "type": "string"
+            },
+            "lastUsedAt": {
+              "description": "Last login with this ident",
+              "format": "date-time",
               "type": "string"
             },
             "provider": {
-              "description": "Provider id",
+              "description": "Provider name",
               "type": "string"
             },
-            "public": {
-              "default": false,
-              "description": "Define if the object is publicly readable",
-              "type": "boolean"
-            },
-            "uid": {
-              "description": "Uid on the provider",
+            "providerUid": {
+              "description": "Identifier on the provider (normalised email for \"email\")",
               "type": "string"
             },
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
+            "verifiedAt": {
+              "description": "When the ident was verified",
+              "format": "date-time",
               "type": "string"
             }
           },
           "required": [
-            "__profile",
-            "__tokens",
-            "_type",
             "_user",
-            "uid",
-            "uuid"
+            "provider",
+            "providerUid"
           ],
           "type": "object",
           "$webda": "toJSON$return"
@@ -2484,9 +2372,11 @@
         "Queried"
       ],
       "PrimaryKey": [
-        "uuid"
+        "providerUid",
+        "provider"
       ],
-      "Identifier": "Webda/Ident"
+      "Identifier": "Webda/Ident",
+      "PrimaryKeySeparator": ":"
     },
     "Webda/OwnerModel": {
       "Plural": "OwnerModels",
@@ -2502,9 +2392,7 @@
       "Ancestors": [
         "Webda/AbstractOwnerModel"
       ],
-      "Subclasses": [
-        "Webda/Ident"
-      ],
+      "Subclasses": [],
       "Reflection": {
         "_user": {
           "type": "ModelLink",
@@ -2621,6 +2509,267 @@
         "uuid"
       ],
       "Identifier": "Webda/OwnerModel"
+    },
+    "Webda/RefreshToken": {
+      "Plural": "RefreshTokens",
+      "Import": "lib/models/refreshtoken.model:RefreshToken",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "hash": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "identId": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "amr": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "mfa": {
+          "type": "MfaState"
+        },
+        "family": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "number"
+        },
+        "rotatedAt": {
+          "type": "number"
+        },
+        "revokedAt": {
+          "type": "number"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Stored refresh token (only its SHA-256 hash)",
+          "properties": {
+            "amr": {
+              "description": "Authentication methods",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "expiresAt": {
+              "description": "Expiry, ms since epoch",
+              "type": "number"
+            },
+            "family": {
+              "description": "Rotation family",
+              "type": "string"
+            },
+            "hash": {
+              "description": "SHA-256 hex of the token",
+              "type": "string"
+            },
+            "identId": {
+              "description": "Ident used to log in",
+              "type": "string"
+            },
+            "mfa": {
+              "default": "none",
+              "description": "MFA state of the session that issued the token",
+              "enum": [
+                "none",
+                "pending",
+                "verified"
+              ],
+              "type": "string"
+            },
+            "provider": {
+              "description": "Provider used",
+              "type": "string"
+            },
+            "revokedAt": {
+              "description": "Set when revoked",
+              "type": "number"
+            },
+            "rotatedAt": {
+              "description": "Set once exchanged",
+              "type": "number"
+            },
+            "userId": {
+              "description": "Owner",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expiresAt",
+            "family",
+            "hash",
+            "identId",
+            "userId"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Stored refresh token (only its SHA-256 hash)",
+          "properties": {
+            "amr": {
+              "description": "Authentication methods",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "expiresAt": {
+              "description": "Expiry, ms since epoch",
+              "type": "number"
+            },
+            "family": {
+              "description": "Rotation family",
+              "type": "string"
+            },
+            "hash": {
+              "description": "SHA-256 hex of the token",
+              "type": "string"
+            },
+            "identId": {
+              "description": "Ident used to log in",
+              "type": "string"
+            },
+            "mfa": {
+              "default": "none",
+              "description": "MFA state of the session that issued the token",
+              "enum": [
+                "none",
+                "pending",
+                "verified"
+              ],
+              "type": "string"
+            },
+            "provider": {
+              "description": "Provider used",
+              "type": "string"
+            },
+            "revokedAt": {
+              "description": "Set when revoked",
+              "type": "number"
+            },
+            "rotatedAt": {
+              "description": "Set once exchanged",
+              "type": "number"
+            },
+            "userId": {
+              "description": "Owner",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expiresAt",
+            "family",
+            "hash",
+            "identId",
+            "userId"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "description": "Stored refresh token (only its SHA-256 hash)",
+          "properties": {
+            "amr": {
+              "description": "Authentication methods",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "expiresAt": {
+              "description": "Expiry, ms since epoch",
+              "type": "number"
+            },
+            "family": {
+              "description": "Rotation family",
+              "type": "string"
+            },
+            "hash": {
+              "description": "SHA-256 hex of the token",
+              "type": "string"
+            },
+            "identId": {
+              "description": "Ident used to log in",
+              "type": "string"
+            },
+            "mfa": {
+              "default": "none",
+              "description": "MFA state of the session that issued the token",
+              "enum": [
+                "none",
+                "pending",
+                "verified"
+              ],
+              "type": "string"
+            },
+            "provider": {
+              "description": "Provider used",
+              "type": "string"
+            },
+            "revokedAt": {
+              "description": "Set when revoked",
+              "type": "number"
+            },
+            "rotatedAt": {
+              "description": "Set once exchanged",
+              "type": "number"
+            },
+            "userId": {
+              "description": "Owner",
+              "type": "string"
+            }
+          },
+          "required": [
+            "expiresAt",
+            "family",
+            "hash",
+            "identId",
+            "userId"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
+        "hash"
+      ],
+      "Identifier": "Webda/RefreshToken"
     },
     "Webda/RegistryEntry": {
       "Plural": "RegistryEntries",
@@ -2872,6 +3021,12 @@
             "model": "Webda/Ident",
             "targetAttribute": "User"
           }
+        ],
+        "behaviors": [
+          {
+            "attribute": "password",
+            "behavior": "Webda/Password"
+          }
         ]
       },
       "Ancestors": [
@@ -2899,14 +3054,11 @@
             "\"_user\""
           ]
         },
-        "__password": {
-          "type": "string"
+        "password": {
+          "type": "Password"
         },
         "displayName": {
           "type": "string"
-        },
-        "_lastPasswordRecovery": {
-          "type": "number"
         },
         "_avatar": {
           "type": "string"
@@ -2925,12 +3077,26 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Password": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": false,
+              "description": "Password credential of a user: bcrypt hash and change timestamp",
+              "properties": {
+                "__hash": {
+                  "description": "bcrypt hash, never output",
+                  "type": "string"
+                },
+                "changedAt": {
+                  "description": "Last change, ms since epoch",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          },
           "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no\nmodels",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
@@ -2941,10 +3107,6 @@
                 "type": "string"
               },
               "type": "array"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "_roles": {
               "description": "Roles of the user",
@@ -2966,6 +3128,10 @@
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
+            },
+            "password": {
+              "$ref": "#/definitions/Password",
+              "description": "Password credential"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -2983,12 +3149,26 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Password": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": false,
+              "description": "Password credential of a user: bcrypt hash and change timestamp",
+              "properties": {
+                "__hash": {
+                  "description": "bcrypt hash, never output",
+                  "type": "string"
+                },
+                "changedAt": {
+                  "description": "Last change, ms since epoch",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          },
           "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no\nmodels",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
@@ -2999,10 +3179,6 @@
                 "type": "string"
               },
               "type": "array"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "_roles": {
               "description": "Roles of the user",
@@ -3024,6 +3200,10 @@
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
+            },
+            "password": {
+              "$ref": "#/definitions/Password",
+              "description": "Password credential"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -3041,12 +3221,26 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
+          "definitions": {
+            "Password": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": false,
+              "description": "Password credential of a user: bcrypt hash and change timestamp",
+              "properties": {
+                "__hash": {
+                  "description": "bcrypt hash, never output",
+                  "type": "string"
+                },
+                "changedAt": {
+                  "description": "Last change, ms since epoch",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          },
           "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no\nmodels",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
@@ -3057,10 +3251,6 @@
                 "type": "string"
               },
               "type": "array"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "_roles": {
               "description": "Roles of the user",
@@ -3082,6 +3272,10 @@
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
+            },
+            "password": {
+              "$ref": "#/definitions/Password",
+              "description": "Password credential"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -3122,20 +3316,24 @@
     "Webda/User": {
       "Plural": "Users",
       "Import": "lib/models/user.model:User",
-      "Relations": {},
+      "Relations": {
+        "behaviors": [
+          {
+            "attribute": "password",
+            "behavior": "Webda/Password"
+          }
+        ]
+      },
       "Ancestors": [],
       "Subclasses": [
         "Webda/SimpleUser"
       ],
       "Reflection": {
-        "__password": {
-          "type": "string"
+        "password": {
+          "type": "Password"
         },
         "displayName": {
           "type": "string"
-        },
-        "_lastPasswordRecovery": {
-          "type": "number"
         },
         "_avatar": {
           "type": "string"
@@ -3156,19 +3354,29 @@
           "WebdaModel": true,
           "additionalProperties": false,
           "class": true,
+          "definitions": {
+            "Password": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": false,
+              "description": "Password credential of a user: bcrypt hash and change timestamp",
+              "properties": {
+                "__hash": {
+                  "description": "bcrypt hash, never output",
+                  "type": "string"
+                },
+                "changedAt": {
+                  "description": "Last change, ms since epoch",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          },
           "description": "First basic model for User",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "displayName": {
               "Frontend": true,
@@ -3183,6 +3391,10 @@
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
+            },
+            "password": {
+              "$ref": "#/definitions/Password",
+              "description": "Password credential"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -3202,19 +3414,29 @@
           "WebdaModel": true,
           "additionalProperties": false,
           "class": true,
+          "definitions": {
+            "Password": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": false,
+              "description": "Password credential of a user: bcrypt hash and change timestamp",
+              "properties": {
+                "__hash": {
+                  "description": "bcrypt hash, never output",
+                  "type": "string"
+                },
+                "changedAt": {
+                  "description": "Last change, ms since epoch",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          },
           "description": "First basic model for User",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "displayName": {
               "Frontend": true,
@@ -3229,6 +3451,10 @@
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
+            },
+            "password": {
+              "$ref": "#/definitions/Password",
+              "description": "Password credential"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -3248,19 +3474,29 @@
           "WebdaModel": true,
           "additionalProperties": false,
           "class": true,
+          "definitions": {
+            "Password": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": false,
+              "description": "Password credential of a user: bcrypt hash and change timestamp",
+              "properties": {
+                "__hash": {
+                  "description": "bcrypt hash, never output",
+                  "type": "string"
+                },
+                "changedAt": {
+                  "description": "Last change, ms since epoch",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          },
           "description": "First basic model for User",
           "properties": {
-            "__password": {
-              "description": "Password of the user if defined",
-              "type": "string"
-            },
             "_avatar": {
               "description": "Define the user avatar if exists",
               "type": "string"
-            },
-            "_lastPasswordRecovery": {
-              "description": "Last time the password was recovered",
-              "type": "number"
             },
             "displayName": {
               "Frontend": true,
@@ -3275,6 +3511,10 @@
             "locale": {
               "description": "Contains the locale of the user if known",
               "type": "string"
+            },
+            "password": {
+              "$ref": "#/definitions/Password",
+              "description": "Password credential"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -3355,6 +3595,25 @@
       ],
       "type": "object",
       "title": "BinaryFile"
+    },
+    "Webda/Password.change.input": {
+      "type": "object",
+      "properties": {
+        "current": {
+          "type": "string"
+        },
+        "next": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "current",
+        "next"
+      ]
+    },
+    "Webda/Password.change.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
     },
     "Webda/Binary.delete.input": {
       "type": "object",
@@ -3780,6 +4039,17 @@
         "setMetadata": {
           "rest": {
             "route": "{index}/{hash}",
+            "method": "PUT"
+          }
+        }
+      }
+    },
+    "Webda/Password": {
+      "Identifier": "Webda/Password",
+      "Import": "lib/models/password.model:Password",
+      "Actions": {
+        "change": {
+          "rest": {
             "method": "PUT"
           }
         }

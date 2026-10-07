@@ -5,11 +5,13 @@ import type { Model, ModelClass, Repository } from "@webda/models";
 import type { CustomConstructor } from "@webda/tsc-esm";
 import type { Service } from "../services/service.js";
 import type CryptoService from "../services/cryptoservice.service.js";
+import type { TokenService } from "../services/token.service.js";
 import type { Store } from "../stores/store.js";
 import type { ModelMetadata } from "@webda/compiler";
 import { useModel } from "../application/hooks.js";
 import type { Core } from "./core.js";
 import type { SessionManager } from "../session/manager.model.js";
+import type { IUser } from "../models/types.js";
 const { machineIdSync } = pkg;
 
 /**
@@ -34,6 +36,7 @@ export function setCore(core: Core) {
 export interface ServicesMap {
   Registry: Store;
   CryptoService: CryptoService;
+  TokenService: TokenService;
   SessionManager: SessionManager;
 }
 
@@ -111,4 +114,42 @@ export function getMachineId() {
     // Useful in k8s pod
     return process.env["HOSTNAME"];
   }
+}
+
+/**
+ * Resolves a user id into a user instance
+ */
+export interface UserResolver {
+  /**
+   * @param userId - user id
+   * @returns the user or undefined
+   */
+  resolve(userId: string): Promise<IUser | undefined>;
+}
+
+const defaultUserResolver: UserResolver = {
+  resolve: async (userId: string) => {
+    const store = useModelStore("User") as any;
+    const repo = store.getRepository(useModel("User")) as any;
+    if (!(await repo.exists(userId))) {
+      return undefined;
+    }
+    return <IUser>(<unknown>await repo.get(userId));
+  }
+};
+let userResolver: UserResolver = defaultUserResolver;
+
+/**
+ * Replace the user resolver (undefined restores the default "User" model lookup)
+ * @param resolver - resolver
+ */
+export function registerUserResolver(resolver: UserResolver | undefined): void {
+  userResolver = resolver ?? defaultUserResolver;
+}
+
+/**
+ * @returns the active user resolver
+ */
+export function useUserResolver(): UserResolver {
+  return userResolver;
 }

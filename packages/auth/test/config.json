@@ -1,0 +1,20 @@
+{
+  "version": 3,
+  "parameters": { "ignoreBeans": true },
+  "services": {
+    "AuthStore": { "type": "Webda/MemoryStore", "models": ["Webda/User", "Webda/Ident", "Webda/RefreshToken"] },
+    "DefinedMailer": { "type": "WebdaTest/Mailer" },
+    "Authentication": { "type": "Webda/Authentication" },
+    "googleStub": { "type": "WebdaTest/Stub_google" },
+    "emailAuth": {
+      "type": "Webda/EmailPasswordProvider",
+      "mailer": "DefinedMailer",
+      "redirects": {
+        "verified": "https://app/verified",
+        "failure": "https://app/failure",
+        "register": "https://app/register",
+        "recover": "https://app/recover"
+      }
+    }
+  }
+}

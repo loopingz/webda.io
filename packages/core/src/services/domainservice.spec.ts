@@ -1,7 +1,8 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
-import { DomainServiceParameters, DomainService } from "./domainservice.service.js";
+import bcrypt from "bcryptjs";
+import { DomainServiceParameters, DomainService, stripPrivateFields } from "./domainservice.service.js";
 import { callOperation, listOperations } from "../core/operations.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import * as WebdaError from "../errors/errors.js";
@@ -10,6 +11,8 @@ import { MemoryRepository, registerRepository } from "@webda/models";
 import type { UuidModel } from "@webda/models";
 import { runWithContext } from "../contexts/execution.js";
 import { useDynamicService, useModelMetadata } from "../core/hooks.js";
+import { Ident } from "../models/ident.model.js";
+import { RefreshToken } from "../models/refreshtoken.model.js";
 
 /**
  * Fake operation context that allows setting custom input for testing
@@ -168,6 +171,7 @@ class DomainServiceTest extends WebdaApplicationTest {
       "User.Images.Get",
       "User.Images.GetUrl",
       "User.Images.SetMetadata",
+      "User.Password.Change",
       "User.Patch",
       "User.ProfilePicture.Attach",
       "User.ProfilePicture.AttachChallenge",
@@ -209,6 +213,46 @@ class DomainServiceTest extends WebdaApplicationTest {
     assert.ok(hwGlobal);
     assert.deepStrictEqual(hwGlobal.tags, ["Hardware"]);
     assert.ok(hwGlobal.rest);
+  }
+
+  @test
+  async authModelSubclassesAreInternal() {
+    const app: any = useApplication();
+    const models = app.getModels();
+    const created: string[] = [];
+    // Application subclasses of the auth models, final in the application namespace
+    for (const [name, parent] of [
+      ["CustomIdent", Ident],
+      ["CustomRefreshToken", RefreshToken]
+    ] as const) {
+      const Sub: any = class extends (parent as any) {};
+      Sub.Metadata = { ...((parent as any).Metadata ?? {}), Identifier: `WebdaDemo/${name}`, ShortName: name };
+      if (!(parent as any).Metadata) {
+        (parent as any).Metadata = { Identifier: `Webda/${name.replace("Custom", "")}` };
+        created.push(name);
+      }
+      Sub.Metadata.Actions ??= {};
+      Sub.Metadata.Plural = `${name}s`;
+      models[`WebdaDemo/${name}`] = Sub;
+    }
+    try {
+      assert.ok(app.isFinalModel("WebdaDemo/CustomIdent"));
+      this.registerService(new DomainService("internalCheck", new DomainServiceParameters().load({})), "internalCheck");
+      useDynamicService<DomainService>("internalCheck").initOperations();
+      let ops = Object.keys(listOperations());
+      assert.ok(!ops.some(o => o.startsWith("CustomIdent.") || o.startsWith("CustomRefreshToken.")), ops.join(","));
+      // An explicit listing opts in
+      this.registerService(
+        new DomainService("internalOptIn", new DomainServiceParameters().load({ models: ["WebdaDemo/CustomIdent"] })),
+        "internalOptIn"
+      );
+      useDynamicService<DomainService>("internalOptIn").initOperations();
+      ops = Object.keys(listOperations());
+      assert.ok(ops.includes("CustomIdent.Update"));
+    } finally {
+      delete models["WebdaDemo/CustomIdent"];
+      delete models["WebdaDemo/CustomRefreshToken"];
+    }
   }
 
   @test async deleteAsyncHttp() {
@@ -302,6 +346,114 @@ class DomainServiceTest extends WebdaApplicationTest {
     // Verify the output was written (Brand.Create returns the created model)
     const output = ctx.getOutput();
     assert.ok(output, "Output should have been written");
+  }
+
+  @test
+  stripPrivateFieldsHelper() {
+    assert.deepStrictEqual(stripPrivateFields({ a: 1, __b: 2, c: { __d: 1, e: [{ __f: 1, g: 2 }, 3] }, h: null }), {
+      a: 1,
+      c: { e: [{ g: 2 }, 3] },
+      h: null
+    });
+    assert.deepStrictEqual(stripPrivateFields({ p: { __hash: "x" } }), { p: {} });
+    assert.strictEqual(stripPrivateFields("x"), "x");
+    // Prototype pollution vectors are dropped
+    const polluted = stripPrivateFields(
+      JSON.parse('{"a":1,"constructor":{"x":1},"prototype":{"y":1},"n":{"__proto__":{"polluted":true},"ok":1}}')
+    );
+    assert.deepStrictEqual(polluted, { a: 1, n: { ok: 1 } });
+    assert.strictEqual(({} as any).polluted, undefined);
+    assert.strictEqual(Object.getPrototypeOf(polluted.n), Object.prototype);
+    assert.strictEqual(stripPrivateFields(undefined), undefined);
+  }
+
+  /**
+   * Run handlers against the sample-app User declared with a Behavior-typed `password` attribute
+   * @param fn - the test body, given a runner executing a DomainService call in an operation context
+   */
+  private async withPasswordBehavior(
+    fn: (run: (call: (s: DomainService) => Promise<any>) => Promise<any>, User: any, uuid: string) => Promise<void>
+  ) {
+    const User = useModel<any>("User");
+    registerRepository(User, new MemoryRepository(User, ["uuid"]));
+    const previous = User.Metadata;
+    User.Metadata = Object.freeze({
+      ...previous,
+      Relations: { ...(previous.Relations || {}), behaviors: [{ attribute: "password", behavior: "Webda/Password" }] }
+    });
+    const uuid = "550e8400-e29b-41d4-a716-446655440077";
+    const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
+    const run = async (call: (s: DomainService) => Promise<any>) => {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.setExtension("operationContext", { model: User });
+      ctx.setParameters({ uuid });
+      return runWithContext(ctx, () => call(service));
+    };
+    try {
+      await User.create({
+        uuid,
+        displayName: "Orig",
+        password: { __hash: await bcrypt.hash("original-pass", 4), changedAt: 1 }
+      });
+      await fn(run, User, uuid);
+    } finally {
+      User.Metadata = previous;
+    }
+  }
+
+  /**
+   * Assert the stored password is untouched
+   * @param User - model class
+   * @param uuid - user uuid
+   * @returns the stored user
+   */
+  private async assertPasswordIntact(User: any, uuid: string) {
+    const stored: any = await User.ref(uuid).get();
+    assert.ok(await bcrypt.compare("original-pass", stored.password.__hash));
+    assert.strictEqual(stored.password.changedAt, 1);
+    assert.strictEqual(stored.__foo, undefined);
+    return stored;
+  }
+
+  @test
+  async behaviorAttributesNotClientWritablePatch() {
+    await this.withPasswordBehavior(async (run, User, uuid) => {
+      await run(s =>
+        s.modelPatch({ uuid, displayName: "Patched", __foo: "x", password: { changedAt: 1, __hash: "h" } })
+      );
+      const stored = await this.assertPasswordIntact(User, uuid);
+      assert.strictEqual(stored.displayName, "Patched");
+    });
+  }
+
+  @test
+  async behaviorAttributesNotClientWritableUpdate() {
+    await this.withPasswordBehavior(async (run, User, uuid) => {
+      // No password in the PUT
+      let updated = await run(s => s.modelUpdate({ uuid, displayName: "Put1" }));
+      assert.strictEqual(updated.displayName, "Put1");
+      assert.ok(await bcrypt.compare("original-pass", updated.password.__hash));
+      // Password in the PUT is ignored
+      updated = await run(s => s.modelUpdate({ uuid, displayName: "Put2", password: { changedAt: 1 } }));
+      assert.strictEqual(updated.displayName, "Put2");
+      assert.ok(await bcrypt.compare("original-pass", updated.password.__hash));
+      assert.strictEqual(updated.password.changedAt, 1);
+      await this.assertPasswordIntact(User, uuid);
+    });
+  }
+
+  @test
+  async behaviorAttributesNotClientWritableCreate() {
+    await this.withPasswordBehavior(async (run, User) => {
+      const created = await run(s =>
+        s.modelCreate({ uuid: "created-1", displayName: "New", password: { __hash: "x" } })
+      );
+      assert.strictEqual(created.displayName, "New");
+      assert.strictEqual(created.password?.__hash, undefined);
+      const stored: any = await User.ref("created-1").get();
+      assert.strictEqual(stored.password?.__hash, undefined);
+    });
   }
 
   @test
@@ -601,10 +753,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     ctx.setParameters({ namespace: "ns-1", slug: "my-brand" });
     ctx.setInput(JSON.stringify({ name: "Updated" }));
     await runWithContext(ctx, async () => {
-      await assert.rejects(
-        () => service.modelUpdate({ name: "Updated" }),
-        WebdaError.NotFound
-      );
+      await assert.rejects(() => service.modelUpdate({ name: "Updated" }), WebdaError.NotFound);
     });
   }
 
@@ -622,10 +771,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     ctx.setParameters({ slug: "does-not-exist" });
     ctx.setInput(JSON.stringify({ name: "NopePatched" }));
     await runWithContext(ctx, async () => {
-      await assert.rejects(
-        () => service.modelPatch({ name: "NopePatched" }),
-        WebdaError.NotFound
-      );
+      await assert.rejects(() => service.modelPatch({ name: "NopePatched" }), WebdaError.NotFound);
     });
   }
 
@@ -665,10 +811,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     const ctx = new FakeOpContext();
     await ctx.init();
     await runWithContext(ctx, async () => {
-      await assert.rejects(
-        () => (service as any).loadModel(Brand, { namespace: "x", slug: "y" }),
-        WebdaError.NotFound
-      );
+      await assert.rejects(() => (service as any).loadModel(Brand, { namespace: "x", slug: "y" }), WebdaError.NotFound);
     });
     assert.strictEqual(events.length, 1);
     assert.strictEqual(events[0].uuid, JSON.stringify({ namespace: "x", slug: "y" }));

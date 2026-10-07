@@ -212,7 +212,7 @@ export interface AtomicOperations<T extends ModelClass = ModelClass> {
     info: ({ property: L; value?: number } | L)[] | Record<L, number>,
     conditionField?: K | null,
     condition?: PropertyPathType<InstanceType<T>, K> | JSONed<PropertyPathType<InstanceType<T>, K>>
-  ): Promise<void>;
+  ): Promise<void | Record<string, number>>;
 
   /**
    * Atomically increment a single numeric field

@@ -4,7 +4,6 @@ import { existsSync } from "fs";
 import sinon from "sinon";
 import {
   Application,
-  Ident,
   MemoryStore,
   MemoryWithQueryRepository,
   runWithContext,
@@ -17,6 +16,7 @@ import { StoreNotFoundError } from "./store.js";
 import { PermissionModel, StoreTest } from "./store.spec.js";
 import * as WebdaQL from "@webda/ql";
 import { WebdaApplicationTest } from "../test/application.js";
+import { LegacyIdentFixture } from "../test/legacyident.fixture.model.js";
 import { Model, ModelClass, SelfJSONed, UuidModel, WEBDA_PRIMARY_KEY } from "@webda/models";
 
 /**
@@ -205,20 +205,20 @@ class AdditionalMemoryTest extends WebdaApplicationTest {
   async multiModel() {
     const identStore: MemoryStore = await this.addService(
       MemoryStore,
-      { models: ["Webda/Ident"], strict: false },
+      { models: ["WebdaTest/Ident"], strict: false },
       "Idents"
     );
     await identStore.create("user", new User().setUuid("user"));
-    await identStore.create("ident", new Ident().load({ uuid: "ident" }, true));
+    await identStore.create("ident", new LegacyIdentFixture().load({ uuid: "ident" }, true));
     assert.ok((await identStore.get("user")) instanceof User);
-    assert.ok((await identStore.get("ident")) instanceof Ident);
+    assert.ok((await identStore.get("ident")) instanceof LegacyIdentFixture);
     identStore.getParameters().defaultModel = true;
     identStore.storage["user"] = identStore.storage["user"].replace(/User/, "User2");
-    assert.strictEqual((await identStore.get("user")).constructor.name, "Ident");
-    assert.ok((await identStore.get("ident")) instanceof Ident);
+    assert.strictEqual((await identStore.get("user")).constructor.name, "LegacyIdentFixture");
+    assert.ok((await identStore.get("ident")) instanceof LegacyIdentFixture);
     identStore.getParameters().defaultModel = false;
     assert.ok((await identStore.get("user")) === undefined);
-    assert.ok((await identStore.get("ident")) instanceof Ident);
+    assert.ok((await identStore.get("ident")) instanceof LegacyIdentFixture);
   }
 
   @test

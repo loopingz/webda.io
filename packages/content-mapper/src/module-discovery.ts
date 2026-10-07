@@ -36,6 +36,8 @@ export interface ModelMetadata {
   Subclasses: string[];
   /** Attributes forming the primary key. */
   PrimaryKey: string[];
+  /** Separator joining a composite primary key, when declared. */
+  PrimaryKeySeparator?: string;
 }
 
 /** One discovered Webda object. */
@@ -56,6 +58,8 @@ export interface DiscoveredObject {
   baseNames: string[];
   /** Primary key attributes, when declared. */
   primaryKey: string[];
+  /** Primary key separator, when declared. */
+  primaryKeySeparator?: string;
 }
 
 /** Discovery options. */
@@ -286,8 +290,12 @@ export function discoverWebdaObjects(ctx: AnalysisContext, options: DiscoveryOpt
         importTarget: `${outputTarget(sf.fileName, options)}:${exportName}`,
         fileName: sf.fileName,
         className: cls.name.text,
-        baseNames: chain.slice(1).map((type: any) => (type.getSymbol?.() ?? type.symbol)?.name).filter(Boolean),
-        primaryKey: primaryKeyOfChain(ctx, sf, cls, chain)
+        baseNames: chain
+          .slice(1)
+          .map((type: any) => (type.getSymbol?.() ?? type.symbol)?.name)
+          .filter(Boolean),
+        primaryKey: primaryKeyOfChain(ctx, sf, cls, chain),
+        primaryKeySeparator: primaryKeySeparatorOfChain(ctx, sf, cls, chain)
       });
     }
   }
@@ -323,12 +331,65 @@ export function discoverWebdaObjects(ctx: AnalysisContext, options: DiscoveryOpt
 function primaryKeyOf(ctx: AnalysisContext, sf: any, cls: any): string[] {
   for (const member of cls.members ?? []) {
     const name = (member as any).name;
-    if (!name || !/WEBDA_PRIMARY_KEY/.test(ctx.textOf(sf, name))) continue;
+    if (!name) continue;
+    const nameText = ctx.textOf(sf, name);
+    if (!/WEBDA_PRIMARY_KEY/.test(nameText) || /WEBDA_PRIMARY_KEY_SEPARATOR/.test(nameText)) continue;
     const text = ctx.textOf(sf, member);
     const keys = [...text.matchAll(/["']([A-Za-z_$][\w$]*)["']/g)].map(match => match[1]);
     if (keys.length) return keys;
   }
   return [];
+}
+
+/**
+ * Primary key separator declared on the class itself
+ * @param ctx - analysis context
+ * @param sf - file declaring the class
+ * @param cls - the class declaration
+ * @returns the separator, or undefined when the class declares none
+ */
+function primaryKeySeparatorOf(ctx: AnalysisContext, sf: any, cls: any): string | undefined {
+  for (const member of cls.members ?? []) {
+    const name = (member as any).name;
+    if (!name || !/WEBDA_PRIMARY_KEY_SEPARATOR/.test(ctx.textOf(sf, name))) continue;
+    const match = /=\s*["']([^"']+)["']/.exec(ctx.textOf(sf, member));
+    if (match) return match[1];
+  }
+  return undefined;
+}
+
+/**
+ * Walk a class and its ancestors, nearest first, returning the first value the extractor finds.
+ * @param ctx - analysis context
+ * @param sf - file declaring the class
+ * @param cls - the class declaration
+ * @param chain - the class's type chain, nearest first
+ * @param extract - reads a value off one class declaration
+ * @param empty - result when no class in the chain has a value
+ * @returns the first value found, or `empty`
+ */
+function inheritedFromChain<T>(
+  ctx: AnalysisContext,
+  sf: any,
+  cls: any,
+  chain: any[],
+  extract: (ctx: AnalysisContext, sf: any, cls: any) => T,
+  empty: T
+): T {
+  const own = extract(ctx, sf, cls);
+  if (own !== undefined && (own as any).length !== 0) return own;
+
+  for (const type of chain.slice(1)) {
+    const symbol = type.getSymbol?.() ?? type.symbol;
+    const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.[0];
+    const node = declaration?.resolve(ctx.project);
+    if (!node) continue;
+    const owner = (node as any).getSourceFile?.() ?? (node as any)._sourceFile;
+    if (!owner) continue;
+    const inherited = extract(ctx, owner, node);
+    if (inherited !== undefined && (inherited as any).length !== 0) return inherited;
+  }
+  return empty;
 }
 
 /**
@@ -344,20 +405,19 @@ function primaryKeyOf(ctx: AnalysisContext, sf: any, cls: any): string[] {
  * @returns key attribute names
  */
 function primaryKeyOfChain(ctx: AnalysisContext, sf: any, cls: any, chain: any[]): string[] {
-  const own = primaryKeyOf(ctx, sf, cls);
-  if (own.length) return own;
+  return inheritedFromChain<string[]>(ctx, sf, cls, chain, primaryKeyOf, []);
+}
 
-  for (const type of chain.slice(1)) {
-    const symbol = type.getSymbol?.() ?? type.symbol;
-    const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.[0];
-    const node = declaration?.resolve(ctx.project);
-    if (!node) continue;
-    const owner = (node as any).getSourceFile?.() ?? (node as any)._sourceFile;
-    if (!owner) continue;
-    const inherited = primaryKeyOf(ctx, owner, node);
-    if (inherited.length) return inherited;
-  }
-  return [];
+/**
+ * Primary key separator for a class, inherited when it declares none.
+ * @param ctx - analysis context
+ * @param sf - file declaring the class
+ * @param cls - the class declaration
+ * @param chain - the class's type chain, nearest first
+ * @returns the separator, or undefined when no class in the chain declares one
+ */
+function primaryKeySeparatorOfChain(ctx: AnalysisContext, sf: any, cls: any, chain: any[]): string | undefined {
+  return inheritedFromChain<string | undefined>(ctx, sf, cls, chain, primaryKeySeparatorOf, undefined);
 }
 
 const packageRootCache = new Map<string, string | undefined>();
@@ -481,7 +541,8 @@ export function buildModelMetadata(
       Plural: plural(model.name.split("/").pop() ?? model.name),
       Ancestors: ancestors,
       Subclasses: [],
-      PrimaryKey: model.primaryKey
+      PrimaryKey: model.primaryKey,
+      ...(model.primaryKeySeparator ? { PrimaryKeySeparator: model.primaryKeySeparator } : {})
     };
   }
 
@@ -562,9 +623,7 @@ export function reflectAttributes(ctx: AnalysisContext, sf: any, cls: any): Reco
     }
 
     const text = ctx.textOf(owner, typeNode);
-    reflection[name] = text.endsWith("[]")
-      ? { type: "Array", typeParameters: [text.slice(0, -2)] }
-      : { type: text };
+    reflection[name] = text.endsWith("[]") ? { type: "Array", typeParameters: [text.slice(0, -2)] } : { type: text };
   }
 
   return reflection;

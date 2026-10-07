@@ -372,7 +372,7 @@ export class Core implements ICore {
    * @returns the list of results
    */
   getLocales(): string[] {
-    if (!this.configuration || !this.configuration.parameters.locales) {
+    if (!this.configuration?.parameters?.locales) {
       return ["en-GB"];
     }
     return this.configuration.parameters.locales;

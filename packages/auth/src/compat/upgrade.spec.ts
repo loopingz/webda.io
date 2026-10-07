@@ -1,0 +1,355 @@
+import { suite, test } from "@webda/test";
+import * as assert from "assert";
+import { Ident, useService } from "@webda/core";
+import { registerRepository } from "@webda/models";
+import { EmailTest } from "../test/emailtest.js";
+import { seedV3, seedV3Ident, type RawWriter } from "../test/v3.js";
+import { isLegacyIdent, legacyIdents, legacyKey, splitLegacyKey, upgradeIdent } from "./upgrade.js";
+
+/** Application ident model subclassing the core Ident */
+class CustomIdent extends Ident {}
+
+@suite
+class V3UpgradeTest extends EmailTest {
+  /**
+   * @returns the raw storage of the auth store
+   */
+  get storage(): Map<string, string> {
+    return (useService("AuthStore" as any) as any).storage;
+  }
+
+  /** Raw writer into the MemoryStore storage map */
+  write: RawWriter = (key, row) => this.storage.set(key, JSON.stringify(row));
+
+  @test
+  splitKeys() {
+    assert.deepStrictEqual(splitLegacyKey("john_doe@x.com_email"), {
+      providerUid: "john_doe@x.com",
+      provider: "email"
+    });
+    assert.deepStrictEqual(splitLegacyKey("12345_google"), { providerUid: "12345", provider: "google" });
+    assert.strictEqual(splitLegacyKey("nounderscore"), undefined);
+    assert.strictEqual(splitLegacyKey("a:b_email"), undefined);
+    assert.strictEqual(legacyKey("a_b@x.com", "email"), "a_b@x.com_email");
+  }
+
+  @test
+  async lazyLoginUpgrades() {
+    const userId = await seedV3(this.write, "old_user@x.com", { validated: true, password: "v3password" });
+    const ctx = await this.ctx();
+    const res: any = await this.op("Auth.Email.Login", { email: "old_user@x.com", password: "v3password" }, ctx);
+    assert.strictEqual(res.status, "ok");
+    assert.strictEqual(ctx.getCurrentUserId(), userId);
+    const ident = await Ident.ref(Ident.key("old_user@x.com", "email")).get();
+    assert.strictEqual(ident.getLegacyUID(), undefined);
+    assert.strictEqual(ident.getUser().toString(), userId);
+    assert.strictEqual(ident.email, "old_user@x.com");
+    assert.ok(ident.isVerified());
+    assert.strictEqual(ident.verifiedAt.toISOString(), "2020-01-01T00:00:00.000Z");
+    // v3 _failedLogin carried over then reset by the successful login; send throttle carried over
+    assert.strictEqual(ident._loginAttempts, 0);
+    assert.strictEqual(ident._throttle.lastSentAt, 42);
+    assert.strictEqual(this.storage.has("old_user@x.com_email"), false);
+    for (const field of ["_failedLogin", "_validation", "_lastValidationEmail", "_type", "uuid"]) {
+      assert.strictEqual((ident as any)[field], undefined, field);
+    }
+  }
+
+  @test
+  async fieldMap() {
+    seedV3Ident(this.write, "g_1", "google", "owner1", {
+      provider: "google",
+      email: "g@x.com",
+      __profile: { name: "G" },
+      __tokens: { access: "a", refresh: "r" },
+      _lastUsed: "2021-02-03T00:00:00.000Z",
+      _failedLogin: 2,
+      _lastValidationEmail: "2021-01-01T00:00:00.000Z"
+    });
+    const legacy = await Ident.ref("g_1_google" as any).get();
+    const ident = await upgradeIdent(legacy);
+    assert.strictEqual(ident.getUUID(), "g_1:google");
+    assert.strictEqual(ident.getUser().toString(), "owner1");
+    assert.strictEqual(ident.email, "g@x.com");
+    assert.deepStrictEqual(ident.__profile, { name: "G" });
+    assert.deepStrictEqual(ident.__tokens, { access: "a", refresh: "r" });
+    assert.strictEqual(ident.lastUsedAt.toISOString(), "2021-02-03T00:00:00.000Z");
+    assert.strictEqual(ident._loginAttempts, 2);
+    assert.strictEqual(ident._throttle.lastSentAt, Date.parse("2021-01-01T00:00:00.000Z"));
+    assert.ok(!ident.isVerified());
+    // persisted as such
+    const stored = await Ident.ref(Ident.key("g_1", "google")).get();
+    assert.strictEqual(stored._loginAttempts, 2);
+    assert.strictEqual(stored.getUser().toString(), "owner1");
+  }
+
+  @test
+  async v3LockWithoutTimestampIsExpired() {
+    const userId = await seedV3(this.write, "locked@x.com", { validated: true, password: "v3password" });
+    // v3 counted failures without any timestamp of the last one: the lock is treated as expired
+    seedV3Ident(this.write, "locked@x.com", "email", userId, {
+      email: "locked@x.com",
+      _failedLogin: 5,
+      _validation: "2020-01-01T00:00:00.000Z"
+    });
+    const res: any = await this.op("Auth.Email.Login", { email: "locked@x.com", password: "v3password" });
+    assert.strictEqual(res.status, "ok");
+    assert.strictEqual((await Ident.ref(Ident.key("locked@x.com", "email")).get())._loginAttempts, 0);
+  }
+
+  @test
+  async v3LastFailedLoginIsMapped() {
+    const userId = await seedV3(this.write, "recent@x.com", { validated: true, password: "v3password" });
+    const now = Date.now();
+    seedV3Ident(this.write, "recent@x.com", "email", userId, {
+      email: "recent@x.com",
+      _failedLogin: 5,
+      _lastFailedLogin: now
+    });
+    seedV3Ident(this.write, "g_2", "google", userId, { _lastFailedLogin: "2021-01-01T00:00:00.000Z" });
+    const google = await upgradeIdent(await Ident.ref("g_2_google" as any).get());
+    assert.strictEqual(google._lastLoginAttemptAt, Date.parse("2021-01-01T00:00:00.000Z"));
+    // A recent v3 lock still applies
+    await assert.rejects(
+      () => this.op("Auth.Email.Login", { email: "recent@x.com", password: "v3password" }),
+      (err: any) => err.code === "THROTTLED"
+    );
+    assert.strictEqual((await Ident.ref(Ident.key("recent@x.com", "email")).get())._lastLoginAttemptAt, now);
+  }
+
+  @test
+  async unvalidatedV3StillLogsIn() {
+    await seedV3(this.write, "nv@x.com", { validated: false, password: "v3password" });
+    assert.strictEqual((await this.op("Auth.Email.Login", { email: "nv@x.com", password: "v3password" })).status, "ok");
+    assert.ok(!(await Ident.ref(Ident.key("nv@x.com", "email")).get()).isVerified());
+  }
+
+  @test
+  async wrongPasswordStillUpgradesAndCounts() {
+    await seedV3(this.write, "wp@x.com", { validated: true, password: "v3password" });
+    await assert.rejects(() => this.op("Auth.Email.Login", { email: "wp@x.com", password: "nope-nope" }));
+    const ident = await Ident.ref(Ident.key("wp@x.com", "email")).get();
+    // v3 count (1) + this attempt
+    assert.strictEqual(ident._loginAttempts, 2);
+  }
+
+  @test
+  async identsListUpgradesLegacy() {
+    const userId = await seedV3(this.write, "list_me@x.com", { validated: true, password: "v3password" });
+    seedV3Ident(this.write, "4242", "google", userId, { email: "list_me@x.com" });
+    const ctx = await this.ctx();
+    // Login upgrades the email ident only
+    await this.op("Auth.Email.Login", { email: "list_me@x.com", password: "v3password" }, ctx);
+    assert.ok(this.storage.has("4242_google"));
+    const list: any[] = await this.op("Auth.Idents", {}, ctx);
+    assert.deepStrictEqual(list.map(i => `${i.providerUid}:${i.provider}`).sort(), [
+      "4242:google",
+      "list_me@x.com:email"
+    ]);
+    assert.strictEqual(this.storage.has("4242_google"), false);
+    assert.ok(await Ident.ref(Ident.key("4242", "google")).exists());
+    // Unlink sees the upgraded data
+    await this.op("Auth.Unlink", { provider: "google", providerUid: "4242" }, ctx);
+    assert.ok(!(await Ident.ref(Ident.key("4242", "google")).exists()));
+  }
+
+  @test
+  async identQueryWithV3Records() {
+    seedV3Ident(this.write, "q_1@x.com", "email", "quser");
+    seedV3Ident(this.write, "q2", "github", "quser");
+    const results = (await Ident.query("_user = ?", ["quser"])).results;
+    assert.strictEqual(results.length, 2);
+    assert.ok(results.every(i => i instanceof Ident && i.getLegacyUID()));
+    const legacy: string[] = [];
+    for await (const ident of legacyIdents(Ident as any, "_user = 'quser'")) {
+      legacy.push(ident.getLegacyUID());
+    }
+    assert.deepStrictEqual(legacy.sort(), ["q2_github", "q_1@x.com_email"]);
+  }
+
+  @test
+  async upgradeIsIdempotent() {
+    await seedV3(this.write, "idem@x.com", { validated: true, password: "v3password", userId: "idem-user" });
+    const raw = this.storage.get("idem@x.com_email");
+    const first = await upgradeIdent(await Ident.ref("idem@x.com_email" as any).get());
+    assert.strictEqual(first.getUUID(), "idem@x.com:email");
+    assert.strictEqual(this.storage.has("idem@x.com_email"), false);
+    await Ident.ref(Ident.key("idem@x.com", "email")).setAttribute("_loginAttempts", 7);
+    // Simulate a crash after the create: the v3 record is still there
+    this.storage.set("idem@x.com_email", raw);
+    const again = await upgradeIdent(await Ident.ref("idem@x.com_email" as any).get());
+    assert.strictEqual(again.getUUID(), "idem@x.com:email");
+    // The existing record is kept as is
+    assert.strictEqual(again._loginAttempts, 7);
+    assert.strictEqual(this.storage.has("idem@x.com_email"), false);
+    await assert.rejects(() => upgradeIdent(again), /Not a v3 ident/);
+  }
+
+  @test
+  async foreignPlainRowIsNotUpgraded() {
+    // Another model's plain row whose key happens to look like "<email>_email"
+    const row = { uuid: "victim@x_email", __type: "Webda/User", email: "victim@x", _user: "attacker" };
+    this.write("victim@x_email", row);
+    await assert.rejects(
+      () => this.op("Auth.Email.Login", { email: "victim@x", password: "whatever1" }),
+      (err: any) => err.code === "INVALID_CREDENTIALS"
+    );
+    assert.deepStrictEqual(JSON.parse(this.storage.get("victim@x_email")), row);
+    assert.ok(!(await Ident.ref(Ident.key("victim@x", "email")).exists()));
+  }
+
+  @test
+  async foreignEnvelopedRowIsNotUpgraded() {
+    await this.auth.getUserModel().create({ uuid: "victim2@x_email", email: "victim2@x" } as any);
+    const raw = this.storage.get("victim2@x_email");
+    await assert.rejects(
+      () => this.op("Auth.Email.Login", { email: "victim2@x", password: "whatever1" }),
+      (err: any) => err.code === "INVALID_CREDENTIALS"
+    );
+    assert.strictEqual(this.storage.get("victim2@x_email"), raw);
+    assert.ok(!(await Ident.ref(Ident.key("victim2@x", "email")).exists()));
+  }
+
+  @test
+  async upgradeRaceWithAnotherOwner() {
+    // Two v3 records normalising to the same key: the other one's upgrade wins the race
+    seedV3Ident(this.write, "Race2@x.com", "email", "loser");
+    const repo: any = Ident.getRepository();
+    const original = repo.create;
+    try {
+      repo.create = async (item: any) => {
+        const winner = new Ident({ ...Ident.key("race2@x.com", "email"), email: "race2@x.com" } as any);
+        winner.setUser("winner");
+        await original.call(repo, winner);
+        throw new Error("Already exists");
+      };
+      await assert.rejects(
+        async () => upgradeIdent(await Ident.ref("Race2@x.com_email" as any).get()),
+        (err: any) => err.code === "IDENT_CONFLICT" && err.getResponseCode() === 409
+      );
+    } finally {
+      repo.create = original;
+    }
+    // The loser keeps its v3 record, the winner its ident
+    assert.ok(this.storage.has("Race2@x.com_email"));
+    assert.strictEqual((await Ident.ref(Ident.key("race2@x.com", "email")).get()).getUser().toString(), "winner");
+  }
+
+  @test
+  async upgradeRaceOnAnyStore() {
+    seedV3Ident(this.write, "race@x.com", "email", "race-user");
+    const repo: any = Ident.getRepository();
+    const original = repo.create;
+    try {
+      // A store reporting a lost race with its own error: the record exists, the upgrade proceeds
+      repo.create = async (item: any) => {
+        await original.call(repo, item);
+        throw new Error("ConditionalCheckFailedException");
+      };
+      const ident = await upgradeIdent(await Ident.ref("race@x.com_email" as any).get());
+      assert.strictEqual(ident.getUUID(), "race@x.com:email");
+      assert.strictEqual(this.storage.has("race@x.com_email"), false);
+      // A real failure (nothing created) is rethrown and the v3 record kept
+      seedV3Ident(this.write, "fail@x.com", "email", "race-user");
+      repo.create = async () => {
+        throw new Error("Backend unavailable");
+      };
+      await assert.rejects(
+        async () => upgradeIdent(await Ident.ref("fail@x.com_email" as any).get()),
+        /Backend unavailable/
+      );
+      assert.ok(this.storage.has("fail@x.com_email"));
+    } finally {
+      repo.create = original;
+    }
+  }
+
+  @test
+  async findIdentChecksUpgradedKey() {
+    // A v3 record whose provider field disagrees with its key
+    seedV3Ident(this.write, "pm@x.com", "email", "pm-user", { provider: "google" });
+    assert.strictEqual(await (this.auth as any).findIdent("email", "pm@x.com"), undefined);
+  }
+
+  /**
+   * Use CustomIdent (`WebdaTest/CustomIdent`) as the ident model, on the auth store
+   */
+  useCustomIdent() {
+    const meta: any = (Ident as any).Metadata;
+    this.registerModel(CustomIdent as any, "WebdaTest/CustomIdent", {
+      ...meta,
+      Identifier: "WebdaTest/CustomIdent",
+      Ancestors: ["Webda/Ident"],
+      Subclasses: []
+    });
+    (CustomIdent as any).registerSerializer(true, "WebdaTest/CustomIdent");
+    registerRepository(CustomIdent as any, (useService("AuthStore" as any) as any).getRepository(CustomIdent));
+    this.auth.getParameters().identModel = "WebdaTest/CustomIdent";
+  }
+
+  @test
+  async customIdentModelUpgrades() {
+    this.useCustomIdent();
+    try {
+      const userId = await seedV3(this.write, "sub_class@x.com", { validated: true, password: "v3password" });
+      const ctx = await this.ctx();
+      const res: any = await this.op("Auth.Email.Login", { email: "sub_class@x.com", password: "v3password" }, ctx);
+      assert.strictEqual(res.status, "ok");
+      assert.strictEqual(ctx.getCurrentUserId(), userId);
+      const ident = await CustomIdent.ref(Ident.key("sub_class@x.com", "email")).get();
+      assert.ok(ident instanceof CustomIdent);
+      assert.ok(ident.isVerified());
+      assert.strictEqual(JSON.parse(this.storage.get("sub_class@x.com:email")).__type, "WebdaTest/CustomIdent");
+      assert.strictEqual(this.storage.has("sub_class@x.com_email"), false);
+      // An unrelated row under a v3 key is still refused
+      const row = { uuid: "victim3@x_email", __type: "Webda/User", email: "victim3@x", _user: "attacker" };
+      this.write("victim3@x_email", row);
+      await assert.rejects(
+        () => this.op("Auth.Email.Login", { email: "victim3@x", password: "whatever1" }),
+        (err: any) => err.code === "INVALID_CREDENTIALS"
+      );
+      assert.deepStrictEqual(JSON.parse(this.storage.get("victim3@x_email")), row);
+    } finally {
+      this.auth.getParameters().identModel = "Webda/Ident";
+    }
+  }
+
+  @test
+  isLegacyIdentTypes() {
+    class MidIdent extends Ident {}
+    class LeafIdent extends MidIdent {}
+    Object.defineProperty(LeafIdent, "Metadata", { value: { Identifier: "T/Leaf", Subclasses: [] } });
+    Object.defineProperty(MidIdent, "Metadata", { value: { Identifier: "T/Mid", Subclasses: [LeafIdent] } });
+    const row = (type?: string) => {
+      const ident: any = new LeafIdent({ uuid: "t@x.com_email" } as any);
+      if (type) Object.defineProperty(ident, "__type", { value: type, enumerable: false });
+      return ident;
+    };
+    for (const type of [undefined, "Webda/Ident", "T/Mid", "T/Leaf"]) {
+      assert.ok(isLegacyIdent(row(type), MidIdent as any), `${type}`);
+    }
+    assert.ok(!isLegacyIdent(row("Webda/User"), MidIdent as any));
+    assert.ok(!isLegacyIdent(new Ident({ uuid: "t@x.com_email" } as any), MidIdent as any));
+    assert.ok(!isLegacyIdent(new LeafIdent({ ...Ident.key("t@x.com", "email") } as any), MidIdent as any));
+  }
+
+  @test
+  async compatibilityOff() {
+    const userId = await seedV3(this.write, "off@x.com", { validated: true, password: "v3password" });
+    this.auth.getParameters().compatibility.v3 = false;
+    try {
+      await assert.rejects(
+        () => this.op("Auth.Email.Login", { email: "off@x.com", password: "v3password" }),
+        (err: any) => err.code === "INVALID_CREDENTIALS"
+      );
+      assert.ok(this.storage.has("off@x.com_email"));
+      assert.ok(!(await Ident.ref(Ident.key("off@x.com", "email")).exists()));
+      // Listing ignores (and keeps) v3 records
+      const list = await (this.auth as any).listIdents(userId);
+      assert.deepStrictEqual(list, []);
+      assert.ok(this.storage.has("off@x.com_email"));
+    } finally {
+      this.auth.getParameters().compatibility.v3 = true;
+    }
+  }
+}

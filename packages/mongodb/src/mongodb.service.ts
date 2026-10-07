@@ -492,11 +492,12 @@ export class MongoStore<K extends MongoParameters = MongoParameters> extends Sto
    */
   @InstanceCache()
   getRepository<T extends ModelClass>(model: T): Repository<T> {
-    const pks = useModelMetadata(model).PrimaryKey;
-    const inner = new MongoRepository<T>(model, pks, () => this._connect());
+    const meta = useModelMetadata(model);
+    const pks = meta.PrimaryKey;
+    const inner = new MongoRepository<T>(model, pks, () => this._connect(), meta.PrimaryKeySeparator);
     // Wrap in EventRepository so typed CRUD events fire; consumers reach them
     // via useRepository(model).on(...).
-    return new EventRepository<T>(model, pks, inner) as unknown as Repository<T>;
+    return new EventRepository<T>(model, pks, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
   }
 
   /**

@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Authentication, useApplication, useCoreEvents, useRegistry, WebContext, Bean } from "../index.js";
+import { useApplication, useCoreEvents, useRegistry, WebContext, Bean } from "../index.js";
 import { WebdaInternalTest } from "../test/index.js";
 import { JSONUtils } from "@webda/utils";
 import { MemoryRepository } from "@webda/models";
@@ -23,7 +23,7 @@ class CoreTest extends WebdaInternalTest {
   @test
   getServiceSample() {
     console.log(this.webda.getServices());
-    assert.notStrictEqual(this.webda.getService("Authentication"), undefined);
+    assert.notStrictEqual(this.webda.getService("SampleService"), undefined);
   }
 
   @test
@@ -46,7 +46,7 @@ class CoreTest extends WebdaInternalTest {
 
   @test
   async updateConfiguration() {
-    const service = this.webda.getService<Authentication>("Authentication");
+    const service = this.webda.getService<any>("SampleService");
     assert.strictEqual(service.getParameters().password.regexp, ".{8,}");
     assert.strictEqual(service.getParameters().email.mailer, "DefinedMailer");
     let deltaFired: any;
@@ -55,7 +55,7 @@ class CoreTest extends WebdaInternalTest {
     });
     this.webda.updateConfiguration({
       services: {
-        Authentication: {
+        SampleService: {
           password: {
             regexp: ".{12,}"
           }
@@ -64,7 +64,7 @@ class CoreTest extends WebdaInternalTest {
     });
     assert.strictEqual(service.getParameters().password.regexp, ".{12,}");
     assert.strictEqual(service.getParameters().email.mailer, "DefinedMailer");
-    assert.deepStrictEqual(Object.keys(deltaFired), ["Authentication"]);
+    assert.deepStrictEqual(Object.keys(deltaFired), ["SampleService"]);
   }
 
   @test
@@ -87,7 +87,7 @@ class CoreTest extends WebdaInternalTest {
     const stub = this.stub(this.webda, "log");
     this.webda.updateConfiguration({
       services: {
-        Authentication: {
+        SampleService: {
           type: "DifferentType"
         }
       }
@@ -174,8 +174,7 @@ class CoreTest extends WebdaInternalTest {
     // `handleBinary(model, attribute)` on each.
     const made = (score2For: { model: string; attr: string }, fallback: number = -1) => {
       const fake: any = Object.create(BinaryService.prototype);
-      fake.handleBinary = (m: string, a: string) =>
-        m === score2For.model && a === score2For.attr ? 2 : fallback;
+      fake.handleBinary = (m: string, a: string) => (m === score2For.model && a === score2For.attr ? 2 : fallback);
       return fake;
     };
 

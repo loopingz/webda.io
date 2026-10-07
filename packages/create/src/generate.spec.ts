@@ -75,6 +75,30 @@ class GenerateTest {
   }
 
   @test
+  async writesNpmrcOnlyForNpm() {
+    for (const pm of ["npm", "pnpm", "yarn"] as const) {
+      const files = await generate({
+        ...fixture(),
+        options: {
+          dir: "/work/app",
+          store: "file",
+          transports: ["rest"],
+          namespace: "App",
+          pm,
+          install: false,
+          git: false
+        },
+        resolveVersion: fromVersionsFile({ "@webda/core": "4.0.0", "@webda/fs": "4.0.0" })
+      });
+      if (pm === "npm") {
+        assert.match(files.get(".npmrc"), /^legacy-peer-deps=true$/m);
+      } else {
+        assert.ok(!files.has(".npmrc"), `${pm} gets no .npmrc`);
+      }
+    }
+  }
+
+  @test
   renamesNestedGitignore() {
     const files = finalizePaths(new Map([["sub/_gitignore", "x"]]), {});
     assert.deepStrictEqual([...files.keys()], ["sub/.gitignore"]);

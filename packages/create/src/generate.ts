@@ -7,6 +7,11 @@ import { CreateOptions, OptionsError, toPackageName } from "./options.js";
 import { FileMap, loadTemplate, readTree } from "./template.js";
 import { applyVersions, VersionResolver } from "./versions.js";
 
+/** npm 10 (bundled with Node 22) crashes resolving the optional peers of vitest/vite */
+export const NPMRC = `# npm 10 crashes on the optional peer dependencies of vitest/vite: safe to remove with npm >= 11
+legacy-peer-deps=true
+`;
+
 /**
  * Rename `_gitignore` files and replace `__TOKEN__` placeholders
  * @param files - generated files
@@ -67,6 +72,7 @@ export async function generate(input: {
   applyVersions(pkg, input.resolveVersion);
   const files: FileMap = new Map(composed.files);
   files.set("package.json", JSON.stringify(pkg, null, 2) + "\n");
+  if (options.pm === "npm") files.set(".npmrc", NPMRC);
   files.set("webda.config.json", JSON.stringify(composed.config, null, 2) + "\n");
   const agentsTemplate = await readFile(join(agentDir, "AGENTS.md"), "utf8");
   files.set("AGENTS.md", renderAgentsMd(agentsTemplate, describeApp(options), composed.agentNotes));

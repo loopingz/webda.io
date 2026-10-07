@@ -20,7 +20,9 @@ proves an identity and hands a `ResolvedIdentity` to `Authentication.complete`:
 ```
 
 Any service exposing `providerName` and `getPublicInfo()` is discovered as a provider; two providers with the same name
-are refused at startup.
+are refused at startup. `Authentication.complete()` (and `applyPolicy()`) refuse an identity whose `provider` is not
+the name of a registered provider with `BAD_REQUEST` (400): a made-up name would escape the email policy of the
+provider it impersonates.
 
 ## Installation
 
@@ -262,6 +264,7 @@ Listen on the `Authentication` service. All payloads include `context`.
 | `THROTTLED`                | 429  | Too many attempts, or a mail was sent too recently               |
 | `PASSWORD_POLICY`          | 400  | The password does not satisfy the policy                         |
 | `INVALID_IDENT`            | 400  | Malformed ident                                                  |
+| `BAD_REQUEST`              | 400  | `complete()` called for a provider name that is not registered   |
 
 Importable from `@webda/auth` (`AccountExists`, `Throttled`, ...).
 

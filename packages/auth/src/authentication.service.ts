@@ -354,6 +354,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
    * @throws IdentLinkedElsewhere when the ident belongs to another user than the logged one
    * @throws AccountExists when the email matches an account the linking policy does not allow
    * @throws RegistrationDisabled when a new user is needed but registration is off
+   * @throws WebdaError.BadRequest when `identity.provider` is not a registered AuthProvider
    */
   async complete(identity: ResolvedIdentity, options: { newUser?: boolean } = {}): Promise<AuthResult> {
     identity = this.applyPolicy(identity);
@@ -367,8 +368,13 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
    * @param identity - resolved identity
    * @returns the identity to use
    * @throws EmailDomainNotAllowed when the policy refuses it
+   * @throws WebdaError.BadRequest when `identity.provider` is not a registered AuthProvider: an unknown name would
+   * escape the email policy of the provider it impersonates
    */
   applyPolicy(identity: ResolvedIdentity): ResolvedIdentity {
+    if (!this.getProvider(identity?.provider)) {
+      throw new WebdaError.BadRequest(`Unknown auth provider '${identity?.provider}'`);
+    }
     return applyEmailPolicy(identity, this.emailPolicyFor(identity.provider));
   }
 

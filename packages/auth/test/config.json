@@ -5,6 +5,7 @@
     "AuthStore": { "type": "Webda/MemoryStore", "models": ["Webda/User", "Webda/Ident", "Webda/RefreshToken"] },
     "DefinedMailer": { "type": "WebdaTest/Mailer" },
     "Authentication": { "type": "Webda/Authentication" },
+    "googleStub": { "type": "WebdaTest/Stub_google" },
     "emailAuth": {
       "type": "Webda/EmailPasswordProvider",
       "mailer": "DefinedMailer",

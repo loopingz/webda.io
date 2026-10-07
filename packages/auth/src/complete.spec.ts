@@ -1,7 +1,9 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Ident, useService } from "@webda/core";
+import { TestApplication } from "@webda/core/lib/test/objects.js";
 import { AuthTest } from "./test/authtest.js";
+import { addStubProviders, stubProvidersConfig } from "./test/stubprovider.js";
 import { Authentication } from "./authentication.service.js";
 import { AccountExists, IdentLinkedElsewhere, RegistrationDisabled } from "./errors.js";
 
@@ -33,9 +35,15 @@ class CompleteTest extends AuthTest {
       parameters: { ignoreBeans: true },
       services: {
         AuthStore: { type: "Webda/MemoryStore", models: ["Webda/User", "Webda/Ident", "Webda/RefreshToken"] },
-        Authentication: { type: "Webda/Authentication" }
+        Authentication: { type: "Webda/Authentication" },
+        ...stubProvidersConfig("google", "email")
       }
     };
+  }
+
+  async tweakApp(app: TestApplication) {
+    await super.tweakApp(app);
+    addStubProviders(app, "google", "email");
   }
 
   async beforeEach() {
@@ -153,6 +161,18 @@ class CompleteTest extends AuthTest {
     this.auth.getParameters().registration = false;
     const ctx = await this.ctx();
     await rejectsWith(() => this.inContext(ctx, () => this.auth.complete(google("5"))), RegistrationDisabled);
+  }
+
+  @test
+  async unknownProviderRefused() {
+    const before = (await this.auth.getUserModel().query("")).results.length;
+    const ctx = await this.ctx();
+    await rejectsWith(() => this.inContext(ctx, () => this.auth.complete({ ...google("sp"), provider: "spoofed" })), {
+      name: "BadRequest"
+    });
+    assert.strictEqual((await this.auth.getUserModel().query("")).results.length, before);
+    assert.ok(!(await Ident.ref(Ident.key("sp", "spoofed")).exists()));
+    assert.ok(!ctx.getSession().isLogged());
   }
 
   @test

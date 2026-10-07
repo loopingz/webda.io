@@ -1,5 +1,7 @@
 import { useService } from "@webda/core";
+import type { TestApplication } from "@webda/core/lib/test/objects.js";
 import { AuthTest } from "./authtest.js";
+import { addStubProviders } from "./stubprovider.js";
 import type { Authentication } from "../authentication.service.js";
 import type { EmailPasswordProvider } from "../email/emailpassword.service.js";
 
@@ -9,6 +11,13 @@ import type { EmailPasswordProvider } from "../email/emailpassword.service.js";
 export abstract class EmailTest extends AuthTest {
   auth: Authentication;
   email: EmailPasswordProvider;
+
+  /** @override */
+  async tweakApp(app: TestApplication) {
+    await super.tweakApp(app);
+    // test/config.json declares a "google" provider of this type
+    addStubProviders(app, "google");
+  }
 
   /** @override */
   async beforeEach() {

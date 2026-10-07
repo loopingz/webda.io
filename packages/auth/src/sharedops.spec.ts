@@ -1,7 +1,9 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Ident, useService } from "@webda/core";
+import { TestApplication } from "@webda/core/lib/test/objects.js";
 import { AuthTest } from "./test/authtest.js";
+import { addStubProviders, stubProvidersConfig } from "./test/stubprovider.js";
 import { Authentication } from "./authentication.service.js";
 import { LastLoginMethod, TokenInvalid } from "./errors.js";
 
@@ -32,9 +34,15 @@ class SharedOpsTest extends AuthTest {
       parameters: { ignoreBeans: true },
       services: {
         AuthStore: { type: "Webda/MemoryStore", models: ["Webda/User", "Webda/Ident", "Webda/RefreshToken"] },
-        Authentication: { type: "Webda/Authentication" }
+        Authentication: { type: "Webda/Authentication" },
+        ...stubProvidersConfig("google")
       }
     };
+  }
+
+  async tweakApp(app: TestApplication) {
+    await super.tweakApp(app);
+    addStubProviders(app, "google");
   }
 
   async beforeEach() {

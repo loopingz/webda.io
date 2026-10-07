@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Ident, runAsSystem, useCore } from "@webda/core";
+import { Ident, runAsSystem, useCore, useService } from "@webda/core";
 import { vi } from "vitest";
 import { EmailTest } from "../test/emailtest.js";
 
@@ -28,6 +28,62 @@ class RecoveryTest extends EmailTest {
     const c: any = Object.assign(ctx ?? (await this.ctx()), { parameter: () => token });
     await this.inContext(c, () => this.email.verifyRedirect(c));
     return c.getResponseHeaders().Location;
+  }
+
+  /**
+   * Round trip a session through the cookie session manager, as the next request would see it
+   * @param ctx - context holding the session
+   * @returns the session loaded from the cookie
+   */
+  async reload(ctx: any): Promise<any> {
+    const manager: any = useService("SessionManager" as any);
+    const out = await this.newContext<any>();
+    await manager.save(out, ctx.getSession());
+    // SecureCookie.save is not awaited by save()
+    await new Promise(resolve => setTimeout(resolve, 20));
+    const next = await this.newContext<any>();
+    const sent: any = out.getResponseCookies();
+    next.getHttpContext().cookies = {};
+    for (const name of Object.keys(sent)) next.getHttpContext().cookies[name] = sent[name].value;
+    return manager.load(next);
+  }
+
+  /**
+   * @param accessToken - access token
+   * @returns the session loaded from the Bearer token
+   */
+  async bearer(accessToken: string): Promise<any> {
+    const next = await this.newContext<any>();
+    next.getHttpContext().headers["authorization"] = `Bearer ${accessToken}`;
+    return (useService("SessionManager" as any) as any).load(next);
+  }
+
+  @test
+  async recoveryEndsSessions() {
+    const ctx = await this.ctx();
+    const login: any = await this.op("Auth.Email.Register", { email: "se@x.com", password: "longenough" }, ctx);
+    assert.ok((await this.reload(ctx)).isLogged());
+    assert.ok((await this.bearer(login.accessToken)).isLogged());
+    await this.op("Auth.Password.StartRecovery", { email: "se@x.com" });
+    await this.flush();
+    // changedAt must be strictly after authAt
+    await new Promise(resolve => setTimeout(resolve, 5));
+    await this.op("Auth.Password.Recover", { token: this.tokenOf(this.lastMailUrl()), password: "brandnewpass" });
+    assert.ok(!(await this.reload(ctx)).isLogged());
+    assert.ok(!(await this.bearer(login.accessToken)).isLogged());
+  }
+
+  @test
+  async changePasswordEndsOtherSessions() {
+    const ctx = await this.ctx();
+    await this.op("Auth.Email.Register", { email: "cs@x.com", password: "longenough" }, ctx);
+    const other = await this.ctx();
+    await this.op("Auth.Email.Login", { email: "cs@x.com", password: "longenough" }, other);
+    await new Promise(resolve => setTimeout(resolve, 5));
+    await this.op("Auth.Password.Change", { current: "longenough", next: "brandnewpass" }, ctx);
+    assert.ok(!(await this.reload(other)).isLogged());
+    // The session that changed the password stays logged in
+    assert.ok((await this.reload(ctx)).isLogged());
   }
 
   @test

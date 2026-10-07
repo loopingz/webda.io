@@ -33,6 +33,8 @@ export interface AccessClaims {
   roles?: string[];
   fam: string;
   mfa: MfaState;
+  /** When the session was authenticated (ms): checked against the user's last password change */
+  authAt?: number;
 }
 
 /** TokenService parameters */
@@ -97,6 +99,8 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       expiresAt: Date.now() + this.parameters.refreshTtl * 1000
     } as any);
     session.refreshFamily = family;
+    // A refreshed session is re-authenticated by its (unrevoked) refresh token
+    session.authAt ??= Date.now();
     const claims: AccessClaims = {
       sub: session.userId,
       ident: session.identUsed,
@@ -104,7 +108,8 @@ export class TokenService<T extends TokenServiceParameters = TokenServiceParamet
       amr: session.amr ?? [],
       roles: session.roles,
       fam: family,
-      mfa: session.mfa ?? "none"
+      mfa: session.mfa ?? "none",
+      authAt: session.authAt
     };
     const accessToken = await useCrypto().jwtSign(claims, {
       audience: ACCESS_AUDIENCE,

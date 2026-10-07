@@ -574,7 +574,8 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
   }
 
   /**
-   * Set a new password from a recovery link (does not log in)
+   * Set a new password from a recovery link (does not log in): revokes the refresh tokens and ends every session of
+   * the user (see `Session.authAt`), resets the login attempts of the email ident
    * @param token - recover token
    * @param password - new password
    */
@@ -617,7 +618,8 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
   }
 
   /**
-   * Change the current user's password
+   * Change the current user's password: revokes the refresh tokens and ends the other sessions of the user, the
+   * calling cookie session is re-stamped and stays logged in
    * @param current - current password
    * @param next - new password
    */
@@ -633,6 +635,8 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     }
     const user: User = await ctx.getCurrentUser();
     await runAsSystem(() => (user as any).password.change(current, next));
+    // Every session authenticated before the change ends, except this one (a Bearer caller logs in again)
+    ctx.getSession().authAt = Date.now();
     await useAuthentication().emit("Authentication.PasswordUpdate", {
       context: ctx,
       user,

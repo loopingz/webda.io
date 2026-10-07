@@ -505,6 +505,8 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     const secondFactor = identity.amr.some(m => m !== "pwd" && m !== "oauth");
     const mfa = methods.length ? (secondFactor ? "verified" : "pending") : "none";
     session.login(userId, ident.getUUID(), { provider: identity.provider, amr: identity.amr, mfa });
+    // A later password change of the user ends this session (checked by the session manager on load)
+    session.authAt = Date.now();
     if (mfa === "pending") {
       return { status: "mfa_required", methods };
     }

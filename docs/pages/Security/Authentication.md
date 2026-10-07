@@ -108,22 +108,22 @@ There is no `LegacyIdent` model: v3 ident records stored under the `"<uid>_<prov
 
 All operations are exposed through the REST API with the path shown (relative to the API root) and as operations by id.
 
-| Operation id                   | REST                              | Inputs                                    | Result / notes                                                                            |
-| ------------------------------ | --------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `Auth.Providers`               | `GET auth/providers`              | -                                         | list of `{ name, type, startUrl? }`                                                       |
-| `Auth.Me`                      | `GET auth/me`                     | -                                         | public entry of the user, 404 when not logged in                                          |
-| `Auth.Logout`                  | `POST auth/logout`                | -                                         | revokes the refresh family of the session, clears the session; also abandons pending MFA  |
-| `Auth.Refresh`                 | `POST auth/refresh`               | `refreshToken`                            | `{ accessToken, refreshToken, expiresIn }`                                                |
-| `Auth.Idents`                  | `GET auth/idents`                 | -                                         | `[{ provider, providerUid, email?, verifiedAt?, lastUsedAt? }]`; upgrades v3 idents first |
-| `Auth.Unlink`                  | `POST auth/idents/unlink`         | `provider`, `providerUid`                 | 409 `LAST_LOGIN_METHOD` if no other login method would remain                             |
-| `Auth.Email.Login`             | `POST auth/email/login`           | `email`, `password`                       | `{ status: "ok", user, accessToken, ... }` or `{ status: "mfa_required", methods }`       |
-| `Auth.Email.Register`          | `POST auth/email/register`        | `email`, `password`, `token?`, `profile?` | `{ status: "verification_sent" }` (mode `before`, no token) or the login result           |
-| `Auth.Email.StartVerification` | `POST auth/email/verification`    | `email`                                   | 204. Logged out: never reveals whether the email exists                                   |
-| `Auth.Email.Verify`            | `POST auth/email/verify`          | `token`                                   | `{ status: "verified" }`. Needs a session of the user named by the token                  |
-| (GET link)                     | `GET auth/email/verify?token=...` | `token`                                   | 302 redirect, see below                                                                   |
-| `Auth.Password.StartRecovery`  | `POST auth/password/recovery`     | `email`                                   | always 204 (never reveals accounts)                                                       |
-| `Auth.Password.Recover`        | `POST auth/password/recover`      | `token`, `password`                       | sets the password, marks the email verified, revokes all sessions; does not log in        |
-| `Auth.Password.Change`         | `POST auth/password/change`       | `current`, `next`                         | requires login; emits `Authentication.PasswordUpdate`                                     |
+| Operation id                   | REST                              | Inputs                                    | Result / notes                                                                              |
+| ------------------------------ | --------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `Auth.Providers`               | `GET auth/providers`              | -                                         | list of `{ name, type, startUrl? }`                                                         |
+| `Auth.Me`                      | `GET auth/me`                     | -                                         | public entry of the user, 404 when not logged in                                            |
+| `Auth.Logout`                  | `POST auth/logout`                | -                                         | revokes the refresh family of the session, clears the session; also abandons pending MFA    |
+| `Auth.Refresh`                 | `POST auth/refresh`               | `refreshToken`                            | `{ accessToken, refreshToken, expiresIn }`                                                  |
+| `Auth.Idents`                  | `GET auth/idents`                 | -                                         | `[{ provider, providerUid, email?, verifiedAt?, lastUsedAt? }]`; upgrades v3 idents first   |
+| `Auth.Unlink`                  | `POST auth/idents/unlink`         | `provider`, `providerUid`                 | 409 `LAST_LOGIN_METHOD` if no other login method would remain                               |
+| `Auth.Email.Login`             | `POST auth/email/login`           | `email`, `password`                       | `{ status: "ok", user, accessToken, ... }` or `{ status: "mfa_required", methods }`         |
+| `Auth.Email.Register`          | `POST auth/email/register`        | `email`, `password`, `token?`, `profile?` | `{ status: "verification_sent" }` (mode `before`, no token) or the login result             |
+| `Auth.Email.StartVerification` | `POST auth/email/verification`    | `email`                                   | 204. Logged out: never reveals whether the email exists                                     |
+| `Auth.Email.Verify`            | `POST auth/email/verify`          | `token`                                   | `{ status: "verified" }`. Needs a session of the user named by the token                    |
+| (GET link)                     | `GET auth/email/verify?token=...` | `token`                                   | 302 redirect, see below                                                                     |
+| `Auth.Password.StartRecovery`  | `POST auth/password/recovery`     | `email`                                   | always 204 (never reveals accounts)                                                         |
+| `Auth.Password.Recover`        | `POST auth/password/recover`      | `token`, `password`                       | sets the password, marks the email verified, ends all sessions (see below); does not log in |
+| `Auth.Password.Change`         | `POST auth/password/change`       | `current`, `next`                         | requires login; ends the other sessions (see below); emits `Authentication.PasswordUpdate`  |
 
 The CLI command `webda auth migrate` is described in the [migration guide](../Migration/Authentication-v3-to-v4.md).
 
@@ -156,6 +156,26 @@ Failed logins are counted **before** the password is checked, with atomic increm
   `Auth.Refresh` rotates it. Presenting an already used token revokes the whole token family (reuse detection).
   `TokenService.issue()` refuses a session whose MFA is pending, and the MFA state is persisted with the refresh token.
 - `Auth.Logout` revokes the family; access tokens already issued remain valid until they expire.
+
+### Sessions and password changes
+
+A login stamps `session.authAt` (and the access token carries it as the `authAt` claim). When the session manager loads
+a cookie session or a Bearer token carrying `authAt`, it reads the user (one read per request, through the user
+resolver registered by `Authentication`) and treats the session as **anonymous** when `user.password.changedAt` is
+later than `authAt`. A failing read also yields an anonymous session. So:
+
+- `Auth.Password.Recover` revokes every refresh token of the user and ends all of its cookie sessions and access tokens.
+- `Auth.Password.Change` does the same for every other session; the calling cookie session is re-stamped and stays
+  logged in. A Bearer caller must log in again (its refresh token is revoked too).
+
+Sessions without `authAt` (created before this check existed, or by custom code calling `session.login()`) are not
+checked.
+
+### Pending MFA sessions
+
+A session whose MFA is pending is not logged in: `ctx.getCurrentUserId()` and `ctx.getCurrentUser()` return
+`undefined`, so permission checks (`canAct`) treat it as anonymous. Code that needs the pending user reads
+`ctx.getSession().userId`.
 
 `TokenService` parameters: `accessTtl`, `refreshTtl`.
 
@@ -244,6 +264,7 @@ Emailed tokens are purpose-scoped JWTs (audience `webda-email`): register and ve
 ## Known limitations
 
 - GraphQL create/update mutations do not yet strip behavior attributes (REST does).
-- Access tokens stay valid until expiry after logout or revocation (default 15 minutes).
+- Access tokens stay valid until expiry after logout or refresh-family revocation (default 15 minutes); a password
+  change does end them (see above).
 - Google (OAuth) login is disabled until the OAuth providers are ported to `@webda/auth`.
 - `Auth.Email.Register` answers `ACCOUNT_EXISTS` for a registered email, so it can be used to enumerate accounts.

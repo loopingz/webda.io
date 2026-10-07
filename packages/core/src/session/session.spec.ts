@@ -2,7 +2,8 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Session, UnknownSession } from "./session.js";
 import { WebdaApplicationTest } from "../test/application.js";
-import { useService } from "../core/hooks.js";
+import { registerUserResolver, useService } from "../core/hooks.js";
+import { useModel } from "../application/hooks.js";
 import { useCrypto } from "../services/cryptoservice.service.js";
 
 @suite
@@ -49,7 +50,7 @@ class BearerSessionTest extends WebdaApplicationTest {
   getTestConfiguration() {
     return {
       parameters: { ignoreBeans: true },
-      services: { AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken"] } }
+      services: { AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken", "Webda/User"] } }
     };
   }
 
@@ -152,6 +153,61 @@ class BearerSessionTest extends WebdaApplicationTest {
     const loaded = await manager.load(ctx);
     assert.ok(!loaded.isLogged());
     assert.ok(loaded.stateless);
+  }
+
+  /**
+   * Copy the cookies set on a context into a new one
+   * @param from - context the session was saved on
+   * @returns a context presenting those cookies
+   */
+  async withCookies(from: any) {
+    await new Promise(resolve => setTimeout(resolve, 20));
+    const ctx = await this.contextWith({});
+    const sent: any = from.getResponseCookies();
+    ctx.getHttpContext().cookies = {};
+    for (const name of Object.keys(sent)) {
+      ctx.getHttpContext().cookies[name] = sent[name].value;
+    }
+    return ctx;
+  }
+
+  @test
+  async passwordChangeEndsOlderSessions() {
+    // As registered by the Authentication service
+    registerUserResolver({ resolve: async id => (useModel("User") as any).ref(id).get() });
+    try {
+      await this.checkPasswordChangeEndsOlderSessions();
+    } finally {
+      registerUserResolver(undefined);
+    }
+  }
+
+  async checkPasswordChangeEndsOlderSessions() {
+    const manager = useService("SessionManager");
+    const user: any = await useModel("User").create({ email: "pw1@x.com" } as any);
+    const uid = user.getUUID();
+    user.password.setHash("$2b$10$hash", 1000);
+    await user.save();
+    const first = await this.newContext();
+    const s = new Session();
+    s.login(uid, "pw1@x.com:email");
+    s.authAt = 2000;
+    await manager.save(first, s);
+    const token = (await useService("TokenService").issue(s)).accessToken;
+    // Authenticated after the last change: kept
+    assert.ok((await manager.load(await this.withCookies(first))).isLogged());
+    assert.ok((await manager.load(await this.contextWith({ authorization: `Bearer ${token}` }))).isLogged());
+    // Password changed after the authentication: anonymous
+    user.password.setHash("$2b$10$other", 3000);
+    await user.save();
+    assert.ok(!(await manager.load(await this.withCookies(first))).isLogged());
+    assert.ok(!(await manager.load(await this.contextWith({ authorization: `Bearer ${token}` }))).isLogged());
+    // A session without authAt is not checked
+    const legacy = await this.newContext();
+    const l = new Session();
+    l.login(uid, "pw1@x.com:email");
+    await manager.save(legacy, l);
+    assert.ok((await manager.load(await this.withCookies(legacy))).isLogged());
   }
 
   @test

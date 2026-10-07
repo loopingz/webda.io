@@ -59,6 +59,12 @@ export class Session {
   refreshFamily?: string;
 
   /**
+   * When the session was authenticated (ms timestamp, stamped by the Authentication service): a session older than
+   * the last password change of its user is loaded as anonymous
+   */
+  authAt?: number;
+
+  /**
    * Session is stateless (not persisted in cookies)
    */
   @NotEnumerable
@@ -88,6 +94,7 @@ export class Session {
     delete this.amr;
     delete this.mfa;
     delete this.refreshFamily;
+    delete this.authAt;
   }
 
   /**

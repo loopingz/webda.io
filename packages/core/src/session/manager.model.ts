@@ -7,7 +7,8 @@ import { Context, isWebContext } from "../contexts/icontext.js";
 import { getUuid } from "@webda/utils";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { Session } from "./session.js";
-import { useService } from "../core/hooks.js";
+import { useService, useUserResolver } from "../core/hooks.js";
+import { runAsSystem } from "../contexts/execution.js";
 import { type ModelClass, type Repository, UuidModel } from "@webda/models";
 
 /**
@@ -40,8 +41,34 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
       session.login(claims.sub, claims.ident, { provider: claims.provider, amr: claims.amr, mfa: claims.mfa });
       session.roles = claims.roles;
       session.refreshFamily = claims.fam;
+      session.authAt = claims.authAt;
+      if (await this.isOutdated(session)) {
+        session.logout();
+      }
     }
     return session;
+  }
+
+  /**
+   * Whether the user of an authenticated session changed their password after the session was authenticated
+   *
+   * Costs one user read (through the registered user resolver) per load of a session carrying `authAt`. A failing
+   * read counts as outdated: the session is then anonymous for that request.
+   * @param session - loaded session
+   * @returns true when the session must be treated as anonymous
+   */
+  protected async isOutdated(session: Session): Promise<boolean> {
+    if (session.userId === undefined || typeof session.authAt !== "number") {
+      return false;
+    }
+    try {
+      const user: any = await runAsSystem(() => useUserResolver().resolve(session.userId));
+      const changedAt = user?.password?.changedAt;
+      return typeof changedAt === "number" && changedAt > session.authAt;
+    } catch (err) {
+      this.log("WARN", "Cannot check the session against the user password, session ignored", err?.message);
+      return true;
+    }
   }
 }
 
@@ -120,6 +147,10 @@ export class CookieSessionManager<
       session.uuid ??= getUuid("base64");
     } else {
       Object.assign(session, cookie);
+    }
+    // A password change ends the sessions authenticated before it
+    if (await this.isOutdated(session)) {
+      session.logout();
     }
     return session;
   }

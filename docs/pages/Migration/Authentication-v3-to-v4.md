@@ -53,7 +53,10 @@ New operations: `Auth.Refresh`, `Auth.Idents`, `Auth.Unlink`, `Auth.Password.Cha
   `Authorization: Bearer`.
 - Verifying an email requires a logged-in session matching the token's user; a verify link opened without it redirects
   to `redirects.confirm` with `reason=LOGIN_REQUIRED&token=...` and changes nothing.
-- Successful password recovery marks the email as verified and revokes all sessions of the user.
+- Successful password recovery marks the email as verified, resets the login attempts and ends all sessions of the
+  user (refresh tokens revoked; cookie sessions and access tokens authenticated before the change are loaded as
+  anonymous). A password change ends the other sessions.
+- A session waiting for its second factor has no current user (`getCurrentUserId()` is `undefined`).
 - Account linking follows the `linking` policy (default `verified`): an unauthenticated login on an email owned by a
   verified ident gets `ACCOUNT_EXISTS` unless the provider asserts the email as verified.
 - Login failures are counted before the password check, on the `_loginAttempts` / `_lastLoginAttemptAt` ident fields
@@ -93,6 +96,6 @@ Field map: `_failedLogin` -> `_loginAttempts`, `_lastFailedLogin` -> `_lastLogin
 ## Known issues
 
 - GraphQL create/update mutations do not yet sanitize behavior attributes.
-- Access tokens are not revocable: they stay valid until expiry after logout.
+- Access tokens stay valid until expiry after logout (a password change does end them).
 - Google login is disabled until the OAuth providers are ported to `@webda/auth`.
 - `__`-prefixed fields are now server-only: an application that wrote them through REST must use an operation instead.

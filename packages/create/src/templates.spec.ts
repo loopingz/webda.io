@@ -1,5 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { generate } from "./generate.js";
 import { CreateOptions, STORES, Transport } from "./options.js";
@@ -55,6 +57,8 @@ class TemplatesTest {
     assert.ok(files.get("README.md").startsWith("# demo-app\n"), "README.md title");
     assert.ok(files.get("AGENTS.md").startsWith("# demo-app\n"), "AGENTS.md title");
     assert.ok(files.get("vitest.config.ts").includes("loadEnv"), "vitest loads .env");
+    const coreDevDeps = JSON.parse(readFileSync(join(repoRoot, "packages/core/package.json"), "utf8")).devDependencies;
+    assert.strictEqual(JSON.parse(files.get("package.json")).devDependencies.sinon, coreDevDeps.sinon);
     assert.deepStrictEqual(JSON.parse(files.get("package.json")).scripts, {
       build: "webdac build",
       predebug: "webdac build",

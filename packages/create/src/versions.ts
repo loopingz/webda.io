@@ -5,7 +5,7 @@ import { join } from "node:path";
 export type VersionResolver = (name: string) => string | undefined;
 
 /** Tool versions taken from @webda/core devDependencies so apps build like the monorepo */
-export const EXTERNAL_TOOLS = ["typescript", "vite", "vitest", "@types/node"];
+export const EXTERNAL_TOOLS = ["typescript", "vite", "vitest", "sinon", "@types/node"];
 
 /**
  * Replace template versions (`workspace:*` for @webda packages, `managed` for tools)

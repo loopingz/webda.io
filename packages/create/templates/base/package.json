@@ -21,6 +21,7 @@
     "@webda/compiler": "workspace:*",
     "@webda/debug": "workspace:*",
     "@webda/test": "workspace:*",
+    "sinon": "managed",
     "typescript": "managed",
     "vite": "managed",
     "vitest": "managed"

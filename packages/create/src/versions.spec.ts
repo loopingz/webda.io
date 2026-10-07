@@ -3,7 +3,7 @@ import * as assert from "node:assert";
 import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { applyVersions, fromVersionsFile, fromWorkspace } from "./versions.js";
+import { applyVersions, EXTERNAL_TOOLS, fromVersionsFile, fromWorkspace } from "./versions.js";
 
 @suite
 class VersionsTest {
@@ -21,6 +21,14 @@ class VersionsTest {
   }
 
   @test
+  pinsSinonAsATool() {
+    assert.ok(EXTERNAL_TOOLS.includes("sinon"));
+    const pkg = { devDependencies: { sinon: "managed" } };
+    applyVersions(pkg, fromVersionsFile({ sinon: "^21.0.3" }));
+    assert.deepStrictEqual(pkg.devDependencies, { sinon: "^21.0.3" });
+  }
+
+  @test
   failsOnUnknownPackage() {
     assert.throws(
       () => applyVersions({ dependencies: { "@webda/nope": "workspace:*" } }, fromVersionsFile({})),
@@ -35,13 +43,17 @@ class VersionsTest {
     mkdirSync(join(root, "packages/mongodb"), { recursive: true });
     writeFileSync(
       join(root, "packages/core/package.json"),
-      JSON.stringify({ name: "@webda/core", devDependencies: { typescript: "7.1.0", vitest: "^4.1.2" } })
+      JSON.stringify({
+        name: "@webda/core",
+        devDependencies: { typescript: "7.1.0", vitest: "^4.1.2", sinon: "^21.0.3" }
+      })
     );
     writeFileSync(join(root, "packages/mongodb/package.json"), JSON.stringify({ name: "@webda/mongo" }));
     const resolve = await fromWorkspace(root);
     assert.strictEqual(resolve("@webda/core"), `link:${join(root, "packages/core")}`);
     assert.strictEqual(resolve("@webda/mongo"), `link:${join(root, "packages/mongodb")}`);
     assert.strictEqual(resolve("typescript"), "7.1.0");
+    assert.strictEqual(resolve("sinon"), "^21.0.3");
     assert.strictEqual(resolve("@webda/unknown"), undefined);
   }
 }

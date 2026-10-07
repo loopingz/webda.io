@@ -16,6 +16,9 @@ pnpm create @webda my-app --store postgres --transports rest,graphql --yes
 | `--no-install`, `--no-git` | skip install / git init                        |                                         |
 | `--yes`, `-y`              | accept defaults, never prompt                  |                                         |
 
+With `npm`, the generated app also gets a `.npmrc` setting `legacy-peer-deps=true`: npm 10 (bundled with Node 22) crashes
+on the optional peer dependencies of vitest/vite. It is safe to remove with npm >= 11.
+
 The generated app contains `AGENTS.md`, `CLAUDE.md` and skills in `.agents/skills/`.
 In an existing v4 project, Claude Code users can install the same skills:
 

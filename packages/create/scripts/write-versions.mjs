@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const packageDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const packagesDir = join(packageDir, "..");
-const tools = ["typescript", "vite", "vitest", "@types/node"];
+const tools = ["typescript", "vite", "vitest", "sinon", "@types/node"];
 const versions = {};
 for (const dir of readdirSync(packagesDir)) {
   const file = join(packagesDir, dir, "package.json");

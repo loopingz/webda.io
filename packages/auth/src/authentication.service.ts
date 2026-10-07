@@ -632,7 +632,8 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
    * Remove one of the current user's idents
    * @param provider - provider
    * @param providerUid - uid
-   * @throws LastLoginMethod when no other login method would remain
+   * @throws LastLoginMethod when no usable login method would remain (non-email idents, plus email idents when the
+   * user has a password), or when it would remove the last email ident of a user with a password
    */
   @Operation({ id: "Auth.Unlink", rest: { method: "post", path: "auth/idents/unlink" } })
   async unlink(provider: string, providerUid: string): Promise<void> {
@@ -644,9 +645,11 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     }
     const remaining = idents.filter(i => i !== target);
     const user: User = await this.loadUser(userId);
-    const usesPassword = (user as any).password?.hasPassword?.();
+    const usesPassword = !!(user as any).password?.hasPassword?.();
+    // An email ident is only a login method (and a recovery path) when the user has a password
+    const usable = remaining.filter(i => i.provider !== "email" || usesPassword);
     const lastEmail = provider === "email" && !remaining.some(i => i.provider === "email");
-    if (remaining.length === 0 || (usesPassword && lastEmail)) {
+    if (usable.length === 0 || (usesPassword && lastEmail)) {
       throw new LastLoginMethod();
     }
     await runAsSystem(() => target.ref().delete());

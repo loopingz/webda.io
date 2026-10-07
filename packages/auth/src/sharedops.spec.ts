@@ -101,6 +101,20 @@ class SharedOpsTest extends AuthTest {
   }
 
   @test
+  async unlinkKeepsAUsableLoginMethod() {
+    // OAuth-only user: the email ident has no password behind it, it is no login method
+    const { ctx } = await this.login("o1");
+    await rejectsWith(() => this.op("Auth.Unlink", { provider: "google", providerUid: "o1" }, ctx), LastLoginMethod);
+    assert.ok(await Ident.ref(Ident.key("o1", "google")).exists());
+    // With a password the email ident is usable
+    const user = await ctx.getCurrentUser<any>();
+    await user.password.set("longenough");
+    await user.save();
+    await this.op("Auth.Unlink", { provider: "google", providerUid: "o1" }, ctx);
+    assert.ok(!(await Ident.ref(Ident.key("o1", "google")).exists()));
+  }
+
+  @test
   async unlinkKeepsPasswordLogin() {
     const { ctx } = await this.login("p1");
     const user = await ctx.getCurrentUser<any>();

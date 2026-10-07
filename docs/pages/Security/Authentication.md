@@ -143,7 +143,8 @@ logged-out browser, cannot verify anything.
 
 Failed logins are counted **before** the password is checked, with atomic increments on the ident's top-level
 `_loginAttempts` and `_lastLoginAttemptAt` attributes, so parallel guesses are counted on every store. After
-`failedBeforeDelay` attempts the ident is locked for `lockout` ms (`THROTTLED`, 429). A success resets the counters.
+`failedBeforeDelay` attempts the ident is locked for `lockout` ms (`THROTTLED`, 429). A success, or a successful
+`Auth.Password.Recover`, resets the counter. A count without `_lastLoginAttemptAt` (upgraded v3 data) is an expired lock.
 `Auth.Email.Register` refuses any email already owned (`ACCOUNT_EXISTS`).
 
 ## Tokens

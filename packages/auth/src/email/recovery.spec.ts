@@ -209,6 +209,23 @@ class RecoveryTest extends EmailTest {
   }
 
   @test
+  async recoveryResetsLoginAttempts() {
+    await this.op("Auth.Email.Register", { email: "lk@x.com", password: "longenough" });
+    for (let i = 0; i < 4; i++) {
+      await assert.rejects(() => this.op("Auth.Email.Login", { email: "lk@x.com", password: "wrongwrong" }));
+    }
+    await rejectsWith(() => this.op("Auth.Email.Login", { email: "lk@x.com", password: "longenough" }), "THROTTLED");
+    await this.op("Auth.Password.StartRecovery", { email: "lk@x.com" });
+    await this.flush();
+    await this.op("Auth.Password.Recover", { token: this.tokenOf(this.lastMailUrl()), password: "brandnewpass" });
+    assert.strictEqual((await Ident.ref(Ident.key("lk@x.com", "email")).get())._loginAttempts, 0);
+    assert.strictEqual(
+      (await this.op("Auth.Email.Login", { email: "lk@x.com", password: "brandnewpass" })).status,
+      "ok"
+    );
+  }
+
+  @test
   async recoverRequiresTokenService() {
     await this.op("Auth.Email.Register", { email: "ts@x.com", password: "longenough" });
     await this.op("Auth.Password.StartRecovery", { email: "ts@x.com" });

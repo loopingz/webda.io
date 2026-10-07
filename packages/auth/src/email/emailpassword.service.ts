@@ -220,7 +220,8 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
    * re-read otherwise), so this attempt is locked when the count of PREVIOUS attempts (`_loginAttempts - 1`) is at
    * least `failedBeforeDelay`, unless that lock has expired, ie `_lastLoginAttemptAt` as read when this call started
    * is older than `lockout`. `_lastLoginAttemptAt` is only refreshed by attempts that are not refused, so hammering
-   * a locked ident does not extend the lock. Both are top-level attributes: stores implement atomic increment and
+   * a locked ident does not extend the lock; a count reaching the threshold without timestamp is an expired lock.
+   * Both are top-level attributes: stores implement atomic increment and
    * single attribute set on them (nested-path atomic operations are not portable across stores). The timestamp
    * is a plain set (last writer wins); the counter is never written back from a snapshot. A burst starting exactly
    * when an expired lock is read is verified as a whole: it is bounded to one burst per lock window.
@@ -230,11 +231,12 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
   protected async countAttempt(ident: Ident): Promise<boolean> {
     const { failedBeforeDelay, lockout } = this.parameters.throttle;
     const now = Date.now();
-    // A lock whose last attempt is older than the lockout is over: attempts restart a window
+    // A lock whose last attempt is older than the lockout is over: attempts restart a window. A count without any
+    // timestamp (v3 `_failedLogin` upgraded without `_lastFailedLogin`) is an expired lock too: v4 always stamps an
+    // attempt it verifies, so only such data reaches the threshold unstamped
     const expired =
       (ident._loginAttempts ?? 0) >= failedBeforeDelay &&
-      !!ident._lastLoginAttemptAt &&
-      !isLocked(ident, failedBeforeDelay, lockout, now);
+      (!ident._lastLoginAttemptAt || !isLocked(ident, failedBeforeDelay, lockout, now));
     const ref = ident.ref();
     const updated = await runAsSystem(() => ref.incrementAttribute("_loginAttempts"));
     const attempts = (updated as any)?.["_loginAttempts"] ?? (await runAsSystem(() => ref.get()))._loginAttempts;
@@ -600,10 +602,11 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
         throw new Error("Password recovery requires the TokenService to revoke sessions");
       }
       await tokens.revokeUser(user.getUUID());
-      // Receiving the mail proves possession of the address
+      // Receiving the mail proves possession of the address; the new password also ends any login lock
       const ident = await this.getIdent(claims.email);
-      if (ident && !ident.isVerified() && ident.getUser()?.toString() === user.getUUID()) {
-        await ident.ref().patch({ verifiedAt: new Date() } as any);
+      if (ident && ident.getUser()?.toString() === user.getUUID()) {
+        await ident.ref().setAttribute("_loginAttempts", 0);
+        if (!ident.isVerified()) await ident.ref().patch({ verifiedAt: new Date() } as any);
       }
       await auth.emit("Authentication.PasswordUpdate", {
         context: useContext(),

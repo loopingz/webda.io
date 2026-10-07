@@ -100,6 +100,7 @@ function identIdentifiers(IdentModel: any): Set<string> {
  * Idempotent and crash-safe: when the new record already exists (an earlier upgrade stopped before the delete,
  * or a concurrent one won) it is kept as is and only the v3 record is deleted. Field map: `_user` → owner,
  * `_validation` → `verifiedAt`, `_lastUsed` → `lastUsedAt`, `_failedLogin` → `_loginAttempts`,
+ * `_lastFailedLogin` → `_lastLoginAttemptAt` (number or date; absent, the count is treated as an expired lock),
  * `_lastValidationEmail` → `_throttle.lastSentAt`; `email`, `__profile`, `__tokens` are kept; provider is
  * `provider ?? _type ?? key suffix`, providerUid the key prefix (normalised for the email provider: v3 kept the
  * email case). Callers run it as system.
@@ -143,6 +144,7 @@ export async function upgradeIdent(
       lastUsedAt: toDate(v3._lastUsed),
       _throttle: { lastSentAt: toTimestamp(v3._lastValidationEmail) },
       _loginAttempts: typeof v3._failedLogin === "number" ? v3._failedLogin : 0,
+      _lastLoginAttemptAt: toTimestamp(v3._lastFailedLogin),
       __profile: v3.__profile,
       __tokens: v3.__tokens
     } as any);

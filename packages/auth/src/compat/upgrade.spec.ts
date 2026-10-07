@@ -84,6 +84,40 @@ class V3UpgradeTest extends EmailTest {
   }
 
   @test
+  async v3LockWithoutTimestampIsExpired() {
+    const userId = await seedV3(this.write, "locked@x.com", { validated: true, password: "v3password" });
+    // v3 counted failures without any timestamp of the last one: the lock is treated as expired
+    seedV3Ident(this.write, "locked@x.com", "email", userId, {
+      email: "locked@x.com",
+      _failedLogin: 5,
+      _validation: "2020-01-01T00:00:00.000Z"
+    });
+    const res: any = await this.op("Auth.Email.Login", { email: "locked@x.com", password: "v3password" });
+    assert.strictEqual(res.status, "ok");
+    assert.strictEqual((await Ident.ref(Ident.key("locked@x.com", "email")).get())._loginAttempts, 0);
+  }
+
+  @test
+  async v3LastFailedLoginIsMapped() {
+    const userId = await seedV3(this.write, "recent@x.com", { validated: true, password: "v3password" });
+    const now = Date.now();
+    seedV3Ident(this.write, "recent@x.com", "email", userId, {
+      email: "recent@x.com",
+      _failedLogin: 5,
+      _lastFailedLogin: now
+    });
+    seedV3Ident(this.write, "g_2", "google", userId, { _lastFailedLogin: "2021-01-01T00:00:00.000Z" });
+    const google = await upgradeIdent(await Ident.ref("g_2_google" as any).get());
+    assert.strictEqual(google._lastLoginAttemptAt, Date.parse("2021-01-01T00:00:00.000Z"));
+    // A recent v3 lock still applies
+    await assert.rejects(
+      () => this.op("Auth.Email.Login", { email: "recent@x.com", password: "v3password" }),
+      (err: any) => err.code === "THROTTLED"
+    );
+    assert.strictEqual((await Ident.ref(Ident.key("recent@x.com", "email")).get())._lastLoginAttemptAt, now);
+  }
+
+  @test
   async unvalidatedV3StillLogsIn() {
     await seedV3(this.write, "nv@x.com", { validated: false, password: "v3password" });
     assert.strictEqual((await this.op("Auth.Email.Login", { email: "nv@x.com", password: "v3password" })).status, "ok");

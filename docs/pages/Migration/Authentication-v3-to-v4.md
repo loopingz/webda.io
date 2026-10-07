@@ -78,8 +78,9 @@ v3 stores idents under `"<providerUid>_<provider>"` keys and passwords in `User.
    `incomplete`, run it again.
 4. Set `compatibility.v3: false` once the report is clean.
 
-Field map: `_failedLogin` -> `_loginAttempts`, `_lastValidationEmail` -> `_throttle.lastSentAt`, `_validation` ->
-`verifiedAt`, `__password` -> `password.__hash`.
+Field map: `_failedLogin` -> `_loginAttempts`, `_lastFailedLogin` -> `_lastLoginAttemptAt`, `_lastValidationEmail` ->
+`_throttle.lastSentAt`, `_validation` -> `verifiedAt`, `__password` -> `password.__hash`. A v3 failure count without
+`_lastFailedLogin` is treated as an expired lock: the next login is verified normally and counting resumes.
 
 ### Collisions and malformed keys
 

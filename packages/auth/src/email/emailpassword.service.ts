@@ -338,8 +338,8 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
           emailVerified: true,
           amr: ["pwd"]
         });
-        const t = await signEmailToken("register", { email: normalized });
-        await this.sendMail("EMAIL_REGISTER", normalized, this.buildLink("/verify", t), t);
+        // Same silent throttle as a logged-out StartVerification: the answer never depends on it
+        await this.sendUnownedLink(normalized);
         return { status: "verification_sent" };
       }
       const claims = await verifyEmailToken(token, "register");
@@ -407,44 +407,67 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     const ctx = useContext<any>();
     const normalized = Ident.normalizeEmail(email);
     const userId: string | undefined = ctx.getSession()?.isLogged() ? ctx.getCurrentUserId() : undefined;
-    const { resendDelay } = this.parameters.throttle;
-    const mail = await runAsSystem(async () => {
-      const auth = useAuthentication();
-      let ident = await this.getIdent(normalized);
-      const owner = ident?.getUser()?.toString();
-      if (!userId && (owner || ident?.isVerified())) {
-        return undefined;
-      }
-      if (userId) {
-        if (owner && owner !== userId) {
-          throw new IdentLinkedElsewhere();
-        }
-        if (ident?.isVerified()) {
-          throw new WebdaError.PreconditionFailed("Email already verified");
-        }
-      }
-      if (ident && !canSend(ident._throttle, resendDelay)) {
-        if (userId) throw new Throttled();
-        return undefined;
-      }
-      if (!ident) {
-        // Unowned: only tracks the send throttle
-        ident = new (auth.getIdentModel())({ ...Ident.key(normalized, "email"), email: normalized } as any);
-        ident._throttle = markSent(undefined);
-        await ident.getRepository().create(ident);
-      } else {
-        await ident.ref().patch({ _throttle: markSent(ident._throttle) } as any);
-      }
-      const t = await signEmailToken(userId ? "verify" : "register", { email: normalized, sub: userId });
-      return { url: this.buildLink("/verify", t), token: t };
-    });
-    if (!mail) return;
-    if (userId) {
-      await this.sendMail("EMAIL_REGISTER", normalized, mail.url, mail.token);
-    } else {
-      // Not awaited: the answer must not depend on whether a mail was sent
-      this.sendMailDetached("EMAIL_REGISTER", normalized, mail.url, mail.token);
+    if (!userId) {
+      return this.sendUnownedLink(normalized);
     }
+    const token = await runAsSystem(() => this.prepareLink(normalized, userId));
+    await this.sendMail("EMAIL_REGISTER", normalized, this.buildLink("/verify", token), token);
+  }
+
+  /**
+   * Logged-out link: a register link is emailed, without awaiting the mail, only for an unknown or unowned and
+   * unverified email whose send throttle allows it; anything else is silently ignored
+   * @param normalized - normalised email
+   */
+  protected async sendUnownedLink(normalized: string): Promise<void> {
+    const token = await runAsSystem(() => this.prepareLink(normalized, undefined));
+    if (!token) return;
+    // Not awaited: the answer must not depend on whether a mail was sent. The link is built in the request context
+    this.sendMailDetached("EMAIL_REGISTER", normalized, this.buildLink("/verify", token), token);
+  }
+
+  /**
+   * Check and mark the send throttle of an email ident, then sign the token to email; runs as system
+   * @param normalized - normalised email
+   * @param userId - logged user (verify token), undefined for a logged-out register token
+   * @returns the token to send, undefined when nothing must be sent (logged out only)
+   * @throws IdentLinkedElsewhere / PreconditionFailed / Throttled (logged in only)
+   */
+  protected async prepareLink(normalized: string, userId: string | undefined): Promise<string | undefined> {
+    const { resendDelay } = this.parameters.throttle;
+    const auth = useAuthentication();
+    let ident = await this.getIdent(normalized);
+    const owner = ident?.getUser()?.toString();
+    if (!userId && (owner || ident?.isVerified())) {
+      return undefined;
+    }
+    if (userId) {
+      if (owner && owner !== userId) {
+        throw new IdentLinkedElsewhere();
+      }
+      if (ident?.isVerified()) {
+        throw new WebdaError.PreconditionFailed("Email already verified");
+      }
+    }
+    if (ident && !canSend(ident._throttle, resendDelay)) {
+      if (userId) throw new Throttled();
+      return undefined;
+    }
+    if (!ident) {
+      // Unowned: only tracks the send throttle
+      ident = new (auth.getIdentModel())({ ...Ident.key(normalized, "email"), email: normalized } as any);
+      ident._throttle = markSent(undefined);
+      try {
+        await ident.getRepository().create(ident);
+      } catch (err) {
+        // A concurrent request just created it, and sends the mail: stay silent when logged out
+        if (userId) throw err;
+        return undefined;
+      }
+    } else {
+      await ident.ref().patch({ _throttle: markSent(ident._throttle) } as any);
+    }
+    return signEmailToken(userId ? "verify" : "register", { email: normalized, sub: userId });
   }
 
   /**

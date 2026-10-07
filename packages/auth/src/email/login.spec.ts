@@ -40,7 +40,9 @@ class EmailLoginTest extends EmailTest {
     this.email.getParameters().verification = "before";
     const first: any = await this.op("Auth.Email.Register", { email: "b@x.com", password: "longenough" });
     assert.deepStrictEqual(first, { status: "verification_sent" });
-    assert.ok(!(await Ident.ref(Ident.key("b@x.com", "email")).exists()));
+    // Only the send throttle is tracked until the link is used
+    assert.ok(!(await Ident.ref(Ident.key("b@x.com", "email")).get()).getUser());
+    await this.email.flushMails();
     const token = this.tokenOf(this.lastMailUrl());
     const res: any = await this.op("Auth.Email.Register", { email: "b@x.com", password: "longenough", token });
     assert.strictEqual(res.status, "ok");
@@ -48,9 +50,24 @@ class EmailLoginTest extends EmailTest {
   }
 
   @test
+  async registerBeforeIsThrottled() {
+    this.email.getParameters().verification = "before";
+    for (let i = 0; i < 3; i++) {
+      assert.deepStrictEqual(await this.op("Auth.Email.Register", { email: "bomb@x.com", password: "longenough" }), {
+        status: "verification_sent"
+      });
+    }
+    await this.email.flushMails();
+    assert.strictEqual(this.mailer.sent.length, 1);
+    // Only the send throttle is tracked: the ident has no owner
+    assert.ok(!(await Ident.ref(Ident.key("bomb@x.com", "email")).get()).getUser());
+  }
+
+  @test
   async registerBeforeTokenForOtherEmail() {
     this.email.getParameters().verification = "before";
     await this.op("Auth.Email.Register", { email: "a@x.com", password: "longenough" });
+    await this.email.flushMails();
     const token = this.tokenOf(this.lastMailUrl());
     await assert.rejects(
       () => this.op("Auth.Email.Register", { email: "other@x.com", password: "longenough", token }),
@@ -75,6 +92,7 @@ class EmailLoginTest extends EmailTest {
     assert.ok(!(await Ident.ref(Ident.key("p@x.com", "email")).exists()));
     this.email.getParameters().verification = "before";
     await this.op("Auth.Email.Register", { email: "v@x.com", password: "longenough" });
+    await this.email.flushMails();
     const t = this.tokenOf(this.lastMailUrl());
     await this.op("Auth.Email.Register", { email: "v@x.com", password: "longenough", token: t });
     await rejectsWith(
@@ -213,6 +231,7 @@ class EmailLoginTest extends EmailTest {
       });
       assert.strictEqual(this.mailer.sent.length, 0);
       await this.op("Auth.Email.Register", { email: "y@company.com", password: "longenough" });
+      await this.email.flushMails();
       const token = this.tokenOf(this.lastMailUrl());
       const res: any = await this.op("Auth.Email.Register", { email: "y@company.com", password: "longenough", token });
       assert.strictEqual(res.status, "ok");

@@ -208,6 +208,7 @@ class RecoveryTest extends EmailTest {
     assert.strictEqual(await this.redirectOf("bad"), "https://app/ko?reason=TOKEN_INVALID");
     this.email.getParameters().verification = "before";
     await this.op("Auth.Email.Register", { email: "pre@x.com", password: "longenough" });
+    await this.flush();
     const token = this.tokenOf(this.lastMailUrl());
     assert.strictEqual(
       await this.redirectOf(token),

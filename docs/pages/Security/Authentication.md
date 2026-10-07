@@ -140,6 +140,9 @@ logged-out browser, cannot verify anything.
 - with a register token: redirects to `redirects.register`
 - verify token without a matching session: no state change, redirects to `redirects.confirm` (default
   `redirects.failure`) with `?reason=LOGIN_REQUIRED&token=...`. Log in, then call `Auth.Email.Verify` with the token
+- `Auth.Email.Register` in `before` mode without a token answers `{ status: "verification_sent" }` and sends the
+  register link like a logged-out `Auth.Email.StartVerification`: in the background, at most once per
+  `throttle.resendDelay` per address (further calls are silently ignored), never for an owned or verified email
 - `Auth.Email.StartVerification` while logged in emails a link for the current account; the ident only becomes yours
   when `Auth.Email.Verify` is called by that same session
 

@@ -61,7 +61,8 @@ New operations: `Auth.Refresh`, `Auth.Idents`, `Auth.Unlink`, `Auth.Password.Cha
   verified ident gets `ACCOUNT_EXISTS` unless the provider asserts the email as verified.
 - Login failures are counted before the password check, on the `_loginAttempts` / `_lastLoginAttemptAt` ident fields
   (v3: `_failedLogin`).
-- Logged-out `StartVerification` and `StartRecovery` never reveal whether an email exists.
+- Logged-out `StartVerification` and `StartRecovery` never reveal whether an email exists. They, and a `before` mode
+  `Auth.Email.Register` without token, send at most one mail per `throttle.resendDelay` per address.
 - The user password is a `password` behavior (`user.password.set(...)`, `.verify(...)`), not methods of `User`.
 - Server-only fields: the REST/DomainService layer strips every `__`-prefixed key (any depth) and behavior attributes
   from client input on create/update/patch, and an update keeps the stored behavior state.

@@ -52,6 +52,23 @@ function toTimestamp(value: any): number | undefined {
 }
 
 /**
+ * Whether a row loaded under a v3 key really is a v3 ident of this application
+ *
+ * The row must be an instance of the ident model, carry a v3 key and be stored untyped, as `Webda/Ident` or as
+ * the ident model itself: a v3-looking key of a shared store may hold another model's row.
+ * @param row - the loaded row
+ * @param IdentModel - ident model of the application
+ * @returns true for a v3 ident
+ */
+export function isLegacyIdent(row: any, IdentModel: ModelClass<Ident> = Ident as any): row is Ident {
+  if (!(row instanceof (IdentModel as any)) || !(row as Ident).getLegacyUID()) {
+    return false;
+  }
+  const type = row.__type;
+  return type === undefined || type === "Webda/Ident" || type === (IdentModel as any).Metadata?.Identifier;
+}
+
+/**
  * Upgrade a v3 ident: create the `"<providerUid>:<provider>"` record, then delete the v3 one
  *
  * Idempotent and crash-safe: when the new record already exists (an earlier upgrade stopped before the delete,
@@ -59,15 +76,16 @@ function toTimestamp(value: any): number | undefined {
  * `_validation` → `verifiedAt`, `_lastUsed` → `lastUsedAt`, `_failedLogin` → `_loginAttempts`,
  * `_lastValidationEmail` → `_throttle.lastSentAt`; `email`, `__profile`, `__tokens` are kept; provider is
  * `provider ?? _type ?? key suffix`, providerUid the key prefix. Callers run it as system.
+ * @throws Error when `legacy` is not a v3 ident (see {@link isLegacyIdent})
  * @param legacy - a v3 ident (`legacy.getLegacyUID()` is set)
  * @param IdentModel - ident model of the application
  * @returns the upgraded ident
  */
 export async function upgradeIdent(legacy: Ident, IdentModel: ModelClass<Ident> = Ident as any): Promise<Ident> {
-  const uid = legacy.getLegacyUID();
+  const uid = isLegacyIdent(legacy, IdentModel) ? legacy.getLegacyUID() : undefined;
   const parts = uid ? splitLegacyKey(uid) : undefined;
   if (!parts) {
-    throw new Error(`Not a v3 ident: ${uid ?? legacy.getUUID()}`);
+    throw new Error("Not a v3 ident");
   }
   const v3: any = legacy;
   const key = Ident.key(parts.providerUid, v3.provider ?? v3._type ?? parts.provider);
@@ -91,7 +109,8 @@ export async function upgradeIdent(legacy: Ident, IdentModel: ModelClass<Ident> 
     try {
       ident = await created.getRepository().create(created);
     } catch (err) {
-      if (!/Already exists/.test(`${err?.message}`)) throw err;
+      // Store-agnostic lost race: the record now exists, whatever error the store reported
+      if (!(await ref.exists())) throw err;
       ident = await ref.get();
     }
   }

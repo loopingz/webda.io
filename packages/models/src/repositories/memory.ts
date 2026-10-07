@@ -248,15 +248,39 @@ export class MemoryRepository<
   }
 
   /**
-   * Hydrate a plain JSON row as an instance of the repository model (or of the subclass named by its
-   * `__type`), the same way document stores hydrate their rows
+   * Find the repository model or one of its transitive subclasses by identifier
+   * @param identifier - model identifier
+   * @returns the class, `this.model` when it carries no Metadata, or undefined when unrelated
+   */
+  protected findModelClass(identifier: string): any {
+    const root: any = this.model;
+    if (!root?.Metadata?.Identifier) {
+      return root;
+    }
+    const seen = new Set<any>();
+    const queue: any[] = [root];
+    while (queue.length) {
+      const clazz = queue.shift();
+      if (!clazz || seen.has(clazz)) continue;
+      seen.add(clazz);
+      if (clazz.Metadata?.Identifier === identifier) return clazz;
+      queue.push(...(clazz.Metadata?.Subclasses ?? []));
+    }
+    return undefined;
+  }
+
+  /**
+   * Hydrate a plain JSON row as an instance of the repository model (or of the transitive subclass named by its
+   * `__type`), the same way document stores hydrate their rows; a row typed as an unrelated model is refused
    * @param raw - the parsed row
    * @returns the model instance
    */
   protected hydratePlainRow(raw: any): InstanceType<T> {
     const { __type, ...data } = raw;
-    const subclasses: any[] = (this.model as any)?.Metadata?.Subclasses ?? [];
-    const clazz: any = subclasses.find(c => c?.Metadata?.Identifier === __type) ?? this.model;
+    const clazz: any = __type === undefined ? this.model : this.findModelClass(__type);
+    if (!clazz) {
+      throw new Error(`Row of type '${__type}' does not belong to ${(this.model as any)?.Metadata?.Identifier}`);
+    }
     const instance = new clazz(data);
     if (typeof instance.load === "function") {
       instance.load(data);

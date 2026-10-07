@@ -21,7 +21,7 @@ import {
 } from "@webda/core";
 import type { ModelClass } from "@webda/models";
 import { AccountExists, IdentLinkedElsewhere, LastLoginMethod, RegistrationDisabled } from "./errors.js";
-import { legacyKey, upgradeIdent } from "./compat/upgrade.js";
+import { isLegacyIdent, legacyKey, upgradeIdent } from "./compat/upgrade.js";
 import { type AuthProvider, applyEmailPolicy, isAuthProvider, type ProviderEmailPolicy } from "./provider.js";
 
 /** Account linking policy for unauthenticated logins matching an existing email */
@@ -262,8 +262,18 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     if (!(await legacy.exists())) {
       return undefined;
     }
-    const v3 = await legacy.get();
-    return v3.getLegacyUID() ? runAsSystem(() => upgradeIdent(v3, IdentModel)) : undefined;
+    // The v3-looking key of a shared store may hold another model's row: only a v3 ident is upgraded
+    const v3 = await legacy.get().catch(() => undefined);
+    if (!isLegacyIdent(v3, IdentModel)) {
+      this.log("WARN", `Ignoring a non-ident row stored under a v3 '${provider}' ident key`);
+      return undefined;
+    }
+    const ident = await runAsSystem(() => upgradeIdent(v3, IdentModel));
+    if (ident.provider !== provider || ident.providerUid !== providerUid) {
+      this.log("WARN", `v3 '${provider}' ident upgraded under another key: ignored`);
+      return undefined;
+    }
+    return ident;
   }
 
   /**
@@ -533,6 +543,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
+   * List the current user's idents; with `compatibility.v3`, listing upgrades the user's v3 ident records first
    * @returns idents of the current user
    */
   @Operation({ id: "Auth.Idents", rest: { method: "get", path: "auth/idents" } })
@@ -566,6 +577,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
         if (!ident.getLegacyUID()) {
           result.set(ident.getUUID(), ident);
         } else if (this.parameters.compatibility?.v3) {
+          if (!isLegacyIdent(ident, IdentModel)) continue;
           const upgraded = await upgradeIdent(ident, IdentModel);
           // A crash-left duplicate resolves to the record already listed
           if (!result.has(upgraded.getUUID())) result.set(upgraded.getUUID(), upgraded);

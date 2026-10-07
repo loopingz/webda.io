@@ -148,6 +148,67 @@ class V3UpgradeTest extends EmailTest {
   }
 
   @test
+  async foreignPlainRowIsNotUpgraded() {
+    // Another model's plain row whose key happens to look like "<email>_email"
+    const row = { uuid: "victim@x_email", __type: "Webda/User", email: "victim@x", _user: "attacker" };
+    this.write("victim@x_email", row);
+    await assert.rejects(
+      () => this.op("Auth.Email.Login", { email: "victim@x", password: "whatever1" }),
+      (err: any) => err.code === "INVALID_CREDENTIALS"
+    );
+    assert.deepStrictEqual(JSON.parse(this.storage.get("victim@x_email")), row);
+    assert.ok(!(await Ident.ref(Ident.key("victim@x", "email")).exists()));
+  }
+
+  @test
+  async foreignEnvelopedRowIsNotUpgraded() {
+    await this.auth.getUserModel().create({ uuid: "victim2@x_email", email: "victim2@x" } as any);
+    const raw = this.storage.get("victim2@x_email");
+    await assert.rejects(
+      () => this.op("Auth.Email.Login", { email: "victim2@x", password: "whatever1" }),
+      (err: any) => err.code === "INVALID_CREDENTIALS"
+    );
+    assert.strictEqual(this.storage.get("victim2@x_email"), raw);
+    assert.ok(!(await Ident.ref(Ident.key("victim2@x", "email")).exists()));
+  }
+
+  @test
+  async upgradeRaceOnAnyStore() {
+    seedV3Ident(this.write, "race@x.com", "email", "race-user");
+    const repo: any = Ident.getRepository();
+    const original = repo.create;
+    try {
+      // A store reporting a lost race with its own error: the record exists, the upgrade proceeds
+      repo.create = async (item: any) => {
+        await original.call(repo, item);
+        throw new Error("ConditionalCheckFailedException");
+      };
+      const ident = await upgradeIdent(await Ident.ref("race@x.com_email" as any).get());
+      assert.strictEqual(ident.getUUID(), "race@x.com:email");
+      assert.strictEqual(this.storage.has("race@x.com_email"), false);
+      // A real failure (nothing created) is rethrown and the v3 record kept
+      seedV3Ident(this.write, "fail@x.com", "email", "race-user");
+      repo.create = async () => {
+        throw new Error("Backend unavailable");
+      };
+      await assert.rejects(
+        async () => upgradeIdent(await Ident.ref("fail@x.com_email" as any).get()),
+        /Backend unavailable/
+      );
+      assert.ok(this.storage.has("fail@x.com_email"));
+    } finally {
+      repo.create = original;
+    }
+  }
+
+  @test
+  async findIdentChecksUpgradedKey() {
+    // A v3 record whose provider field disagrees with its key
+    seedV3Ident(this.write, "pm@x.com", "email", "pm-user", { provider: "google" });
+    assert.strictEqual(await (this.auth as any).findIdent("email", "pm@x.com"), undefined);
+  }
+
+  @test
   async compatibilityOff() {
     const userId = await seedV3(this.write, "off@x.com", { validated: true, password: "v3password" });
     this.auth.getParameters().compatibility.v3 = false;

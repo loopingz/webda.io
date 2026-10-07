@@ -35,7 +35,16 @@ class LegacyComposite extends Composite {
 }
 LegacyComposite.registerSerializer();
 
-(Single as any).Metadata = { Identifier: "Test/Single", Subclasses: [] };
+/** Child of Single */
+class SingleChild extends Single {}
+SingleChild.registerSerializer();
+/** Grandchild of Single (reached only transitively) */
+class SingleGrandChild extends SingleChild {}
+SingleGrandChild.registerSerializer();
+
+(SingleGrandChild as any).Metadata = { Identifier: "Test/SingleGrandChild", Subclasses: [] };
+(SingleChild as any).Metadata = { Identifier: "Test/SingleChild", Subclasses: [SingleGrandChild] };
+(Single as any).Metadata = { Identifier: "Test/Single", Subclasses: [SingleChild] };
 (Composite as any).Metadata = { Identifier: "Test/Composite", Subclasses: [] };
 (LegacyComposite as any).Metadata = { Identifier: "Test/LegacyComposite", Subclasses: [] };
 
@@ -118,5 +127,19 @@ class MemoryRepositorySharedKeysTest {
     await repo.delete(repo.parseUID("a_b@x_c") as any);
     assert.strictEqual(shared.has("a_b@x_c"), false);
     assert.ok(shared.has("x:y"));
+  }
+
+  @test
+  async plainRowsTypeChecked() {
+    const { shared, single } = this.setup();
+    // Transitive subclass resolved from __type
+    shared.set("g1", JSON.stringify({ uuid: "g1", __type: "Test/SingleGrandChild", name: "g" }));
+    assert.ok((await single.get("g1")) instanceof SingleGrandChild);
+    // An unrelated type is refused, not re-typed as the repository model
+    shared.set("f1", JSON.stringify({ uuid: "f1", __type: "Test/Composite", a: "x" }));
+    await assert.rejects(() => single.get("f1"), /Test\/Composite/);
+    // A row without type is the repository model
+    shared.set("n1", JSON.stringify({ uuid: "n1", name: "n" }));
+    assert.ok((await single.get("n1")) instanceof Single);
   }
 }

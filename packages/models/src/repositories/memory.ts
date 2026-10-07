@@ -556,8 +556,12 @@ export class MemoryRepository<
     }
     let holder = item;
     for (let i = 0; i < parts.length - 1; i++) {
-      holder[parts[i]] ??= {};
-      holder = holder[parts[i]];
+      const part = parts[i];
+      // Only ever descend into own properties, so the walk can never reach a prototype
+      if (!Object.prototype.hasOwnProperty.call(holder, part) || holder[part] === null || holder[part] === undefined) {
+        Object.defineProperty(holder, part, { value: {}, writable: true, enumerable: true, configurable: true });
+      }
+      holder = holder[part];
     }
     return { holder, key: parts[parts.length - 1] };
   }
@@ -587,7 +591,13 @@ export class MemoryRepository<
       if (key === "__proto__" || key === "constructor" || key === "prototype" || holder === Object.prototype) {
         throw new Error(`Invalid path segment in '${prop}'`);
       }
-      holder[key] = (holder[key] || 0) + inc;
+      const current = Object.prototype.hasOwnProperty.call(holder, key) ? holder[key] : 0;
+      Object.defineProperty(holder, key, {
+        value: (current || 0) + inc,
+        writable: true,
+        enumerable: true,
+        configurable: true
+      });
       updated[prop] = holder[key];
     }
     this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(item));

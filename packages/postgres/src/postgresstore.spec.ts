@@ -54,7 +54,7 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
         ...params,
         autoCreateTable: true,
         table: "smoke_idents",
-        models: ["WebdaTest/Ident"]
+        models: ["Webda/OwnerModel"]
       } as any,
       "smoke"
     );
@@ -113,7 +113,7 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
         usePool: false,
         autoCreateTable: false,
         table: "smoke_idents",
-        models: ["WebdaTest/Ident"]
+        models: ["Webda/OwnerModel"]
       } as any,
       "smoke_single"
     );
@@ -144,7 +144,7 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     // Check both the EventRepository returned by the store and the underlying PostgresRepository
     await checkCreateWithoutPrimaryKey(
       [
-        this.store!.getRepository(useModel("WebdaTest/Ident")),
+        this.store!.getRepository(useModel("Webda/OwnerModel")),
         this.store!.getRepositories().find(r => r instanceof PostgresRepository)
       ],
       {
@@ -166,7 +166,7 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     ] as const) {
       await c.query(`INSERT INTO smoke_idents(uuid,data) VALUES($1, $2)`, [uuid, JSON.stringify(data)]);
     }
-    const repo = this.store!.getRepository(useModel("WebdaTest/Ident"));
+    const repo = this.store!.getRepository(useModel("Webda/OwnerModel"));
     const uuids = async (query: string) => (await repo.query(query)).results.map((r: any) => r.uuid).sort();
     assert.deepStrictEqual(await uuids("email IS NULL"), ["missing", "null"]);
     assert.deepStrictEqual(await uuids("email IS NOT NULL"), ["set"]);
@@ -194,17 +194,17 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
 export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
   @test
   async resolveTableSingleModelUsesParametersTable() {
-    const store = new PostgresStore("singleTable", { models: ["WebdaTest/Ident"], table: "idents" });
-    assert.strictEqual(store.resolveTable(useModel("WebdaTest/Ident")), "idents");
+    const store = new PostgresStore("singleTable", { models: ["Webda/OwnerModel"], table: "idents" });
+    assert.strictEqual(store.resolveTable(useModel("Webda/OwnerModel")), "idents");
   }
 
   @test
   async resolveTableMultiModelIgnoresParametersTable() {
     const store = new PostgresStore("multiTable", {
-      models: ["WebdaTest/Ident", "Webda/User"],
+      models: ["Webda/OwnerModel", "Webda/User"],
       table: "idents"
     });
-    assert.strictEqual(store.resolveTable(useModel("WebdaTest/Ident")), "webdatest_ident");
+    assert.strictEqual(store.resolveTable(useModel("Webda/OwnerModel")), "webda_ownermodel");
     assert.strictEqual(store.resolveTable(useModel("Webda/User")), "webda_user");
   }
 
@@ -222,7 +222,7 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
     // Registry-like store: the configured model keeps `table`, a model routed to it as fallback does not
     const store = new PostgresStore("fallbackTable", { models: ["Webda/RegistryEntry"], table: "registry" });
     assert.strictEqual(store.resolveTable(useModel("Webda/RegistryEntry")), "registry");
-    assert.strictEqual(store.resolveTable(useModel("WebdaTest/Ident")), "webdatest_ident");
+    assert.strictEqual(store.resolveTable(useModel("Webda/OwnerModel")), "webda_ownermodel");
   }
 
   @test
@@ -240,13 +240,13 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
         return { rows: [], rowCount: 1 };
       }
     } as any;
-    // WebdaTest/Ident is not a configured model: it reaches this store through Store.computeStores fallback
-    const repo = store.getRepository(useModel("WebdaTest/Ident"));
+    // Webda/OwnerModel is not a configured model: it reaches this store through Store.computeStores fallback
+    const repo = store.getRepository(useModel("Webda/OwnerModel"));
     await Promise.all([repo.create({ _type: "google" } as any), repo.create({ _type: "github" } as any)]);
     await repo.create({ _type: "gitlab" } as any);
     assert.strictEqual(statements.length, 4);
-    assert.match(statements[0], /^CREATE TABLE IF NOT EXISTS webdatest_ident /);
-    assert.ok(statements.slice(1).every(q => q.startsWith("INSERT INTO webdatest_ident(")));
+    assert.match(statements[0], /^CREATE TABLE IF NOT EXISTS webda_ownermodel /);
+    assert.ok(statements.slice(1).every(q => q.startsWith("INSERT INTO webda_ownermodel(")));
   }
 
   @test
@@ -263,9 +263,9 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
         return { rows: [], rowCount: 1 };
       }
     } as any;
-    await store.getRepository(useModel("WebdaTest/Ident")).create({ _type: "google" } as any);
+    await store.getRepository(useModel("Webda/OwnerModel")).create({ _type: "google" } as any);
     assert.strictEqual(statements.length, 1);
-    assert.ok(statements[0].startsWith("INSERT INTO webdatest_ident("));
+    assert.ok(statements[0].startsWith("INSERT INTO webda_ownermodel("));
   }
 
   @test
@@ -287,7 +287,7 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
         return { rows: [], rowCount: 1 };
       }
     } as any;
-    const repo = store.getRepository(useModel("WebdaTest/Ident"));
+    const repo = store.getRepository(useModel("Webda/OwnerModel"));
     // First statement: CREATE fails and the statement itself is never sent
     await assert.rejects(() => repo.create({ _type: "google" } as any), /create failed/);
     assert.strictEqual(statements.length, 1);
@@ -307,7 +307,7 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
   async ensureTableIsNoopWhenAutoCreateDisabled() {
     const store = new PostgresStore(
       "noCreate",
-      new PostgresParameters().load({ models: ["WebdaTest/Ident"], table: "idents", autoCreateTable: false })
+      new PostgresParameters().load({ models: ["Webda/OwnerModel"], table: "idents", autoCreateTable: false })
     );
     store.resolve();
     const statements: string[] = [];
@@ -317,23 +317,23 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
         return { rows: [{ data: { _type: "google" } }], rowCount: 1 };
       }
     } as any;
-    const repo = store.getRepository(useModel("WebdaTest/Ident"));
-    await store.ensureTable(new PostgresRepository(useModel("WebdaTest/Ident"), ["uuid"], store.client as any, "idents"));
+    const repo = store.getRepository(useModel("Webda/OwnerModel"));
+    await store.ensureTable(new PostgresRepository(useModel("Webda/OwnerModel"), ["uuid"], store.client as any, "idents"));
     await repo.exists("x");
     assert.deepStrictEqual(statements, ["SELECT uuid FROM idents WHERE uuid=$1"]);
   }
 
   @test
   async getRepositoryWrapsInEventRepository() {
-    const store = new PostgresStore("reposWrap", { models: ["WebdaTest/Ident"], table: "idents", strict: true });
+    const store = new PostgresStore("reposWrap", { models: ["Webda/OwnerModel"], table: "idents", strict: true });
     store.resolve();
-    const repo = store.getRepository(useModel("WebdaTest/Ident"));
+    const repo = store.getRepository(useModel("Webda/OwnerModel"));
     assert.ok(repo instanceof EventRepository);
   }
 
   @test
   async getRepositoriesReturnsUnwrappedPostgresRepositories() {
-    const store = new PostgresStore("reposUnwrap", { models: ["WebdaTest/Ident"], table: "idents", strict: true });
+    const store = new PostgresStore("reposUnwrap", { models: ["Webda/OwnerModel"], table: "idents", strict: true });
     store.resolve();
     const repos = store.getRepositories();
     assert.ok(repos.length >= 1);

@@ -28,7 +28,7 @@ class FireStoreTest extends WebdaApplicationTest {
   async beforeEach() {
     await super.beforeEach();
     this.collection = `idents-${randomUUID()}`;
-    this.store = this.createStore({ collection: this.collection, models: ["Webda/Ident"] });
+    this.store = this.createStore({ collection: this.collection, models: ["WebdaTest/Ident"] });
     this.repo = this.store.getRepositories()[0];
   }
 
@@ -70,21 +70,21 @@ class FireStoreTest extends WebdaApplicationTest {
   resolveCollection() {
     const store = this.createStore({
       collection: "main",
-      models: ["Webda/Ident", "Webda/User"],
+      models: ["WebdaTest/Ident", "Webda/User"],
       collections: { "Webda/User": "people" }
     });
-    assert.strictEqual(store.resolveCollection(useModel("Webda/Ident")), "main");
+    assert.strictEqual(store.resolveCollection(useModel("WebdaTest/Ident")), "main");
     assert.strictEqual(store.resolveCollection(useModel("Webda/User")), "people");
-    const store2 = this.createStore({ collection: "main", models: ["Webda/User", "Webda/Ident"] });
-    assert.strictEqual(store2.resolveCollection(useModel("Webda/Ident")), "webda_ident");
-    assert.ok(store2.getRepository(useModel("Webda/Ident")) instanceof EventRepository);
+    const store2 = this.createStore({ collection: "main", models: ["Webda/User", "WebdaTest/Ident"] });
+    assert.strictEqual(store2.resolveCollection(useModel("WebdaTest/Ident")), "webdatest_ident");
+    assert.ok(store2.getRepository(useModel("WebdaTest/Ident")) instanceof EventRepository);
   }
 
   @test
   async createWithoutPrimaryKey() {
     // Check both the EventRepository returned by the store and the underlying FireStoreRepository
     const firestore: Firestore = this.store.firestore;
-    await checkCreateWithoutPrimaryKey([this.store.getRepository(useModel("Webda/Ident")), this.repo], {
+    await checkCreateWithoutPrimaryKey([this.store.getRepository(useModel("WebdaTest/Ident")), this.repo], {
       data: i => ({ email: `nokey${i}@webda.io` }),
       readStored: async key => {
         const snapshot = await firestore.doc(`${this.collection}/${key}`).get();
@@ -194,7 +194,7 @@ class FireStoreTest extends WebdaApplicationTest {
   async fillForQuery(): Promise<FireStoreRepository<any>> {
     const store = this.createStore({
       collection: `query-${randomUUID()}`,
-      models: ["Webda/Ident"],
+      models: ["WebdaTest/Ident"],
       compoundIndexes: [{ state: "asc", "team.id": "asc" }]
     });
     const repo = store.getRepositories()[0];

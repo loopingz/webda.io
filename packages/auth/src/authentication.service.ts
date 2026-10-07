@@ -22,7 +22,7 @@ import {
   WebdaError
 } from "@webda/core";
 import type { ModelClass } from "@webda/models";
-import { AccountExists, IdentLinkedElsewhere, LastLoginMethod, RegistrationDisabled } from "./errors.js";
+import { AccountExists, IdentConflict, IdentLinkedElsewhere, LastLoginMethod, RegistrationDisabled } from "./errors.js";
 import { isLegacyIdent, legacyIdents, legacyKey, splitLegacyKey, upgradeIdent } from "./compat/upgrade.js";
 import { type AuthProvider, applyEmailPolicy, isAuthProvider, type ProviderEmailPolicy } from "./provider.js";
 
@@ -605,7 +605,15 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
           result.set(ident.getUUID(), ident);
         } else if (this.parameters.compatibility?.v3) {
           if (!isLegacyIdent(ident, IdentModel)) continue;
-          const upgraded = await upgradeIdent(ident, IdentModel);
+          let upgraded: Ident;
+          try {
+            upgraded = await upgradeIdent(ident, IdentModel);
+          } catch (err) {
+            if (!(err instanceof IdentConflict)) throw err;
+            // Kept for the operator (`webda auth migrate` reports it): the account stays usable meanwhile
+            this.log("WARN", `v3 ident ${ident.getLegacyUID()} conflicts with another user's ident: skipped`);
+            continue;
+          }
           // A crash-left duplicate resolves to the record already listed
           if (!result.has(upgraded.getUUID())) result.set(upgraded.getUUID(), upgraded);
         }
@@ -648,6 +656,13 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
    * until one upgrades nothing. Users: a user whose stored record still has the v3 `__password` is saved again in
    * the v4 `password` shape. Idempotent: a second run migrates nothing. Failures are reported by key and logged,
    * the migration goes on.
+   *
+   * Operator notes:
+   * - A v3 ident whose upgraded key another user already holds (e.g. two v3 email keys differing only by case) is
+   *   reported in `idents.failed` (IDENT_CONFLICT) and kept: decide which user keeps the email, then delete or
+   *   rename the other v3 row and run the command again.
+   * - A malformed ident key in the store stops the scan: remove that row manually.
+   * - Re-running is always safe: migrated records are not touched again.
    * @param dryRun - only count, write nothing
    * @param batch - page size of the scans
    * @returns the report
@@ -656,7 +671,12 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     description: "Migrate v3 authentication data (idents, users) to v4",
     phase: "initialized"
   })
-  async migrate(dryRun: boolean = false, batch: number = 100): Promise<MigrationReport> {
+  async migrate(
+    /** @description Only count the records to migrate, write nothing */
+    dryRun: boolean = false,
+    /** @description Page size of the store scans */
+    batch: number = 100
+  ): Promise<MigrationReport> {
     const pageSize = Math.max(1, Math.floor(Number(batch)) || 100);
     const report: MigrationReport = {
       dryRun: !!dryRun,
@@ -689,8 +709,22 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     }
     const seen = new Set<string>();
     for (const model of models) {
-      for await (const row of legacyIdents(model, `LIMIT ${pageSize}`)) {
-        const uid = row.getLegacyUID();
+      const scan = legacyIdents(model, `LIMIT ${pageSize}`);
+      while (true) {
+        let next: IteratorResult<Ident>;
+        try {
+          next = await scan.next();
+        } catch (err) {
+          const identifier = (model as any).Metadata?.Identifier ?? model.name;
+          const error: any = new Error(
+            `Cannot scan the ${identifier} records of the store: ${err?.message ?? err}. ` +
+              "A malformed ident key must be removed from the store manually; the migration is safe to re-run."
+          );
+          error.cause = err;
+          throw error;
+        }
+        if (next.done) break;
+        const uid = next.value.getLegacyUID();
         if (seen.has(uid)) continue;
         seen.add(uid);
         yield uid;

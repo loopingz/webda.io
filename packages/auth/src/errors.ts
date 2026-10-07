@@ -17,6 +17,14 @@ export class IdentLinkedElsewhere extends WebdaError.HttpError {
   }
 }
 
+/** A v3 ident upgrades to a key another user already holds; resolve it manually (409) */
+export class IdentConflict extends WebdaError.HttpError {
+  /** @param message - error message */
+  constructor(message: string = "Upgraded ident key already belongs to another user") {
+    super(message, 409);
+  }
+}
+
 /** The last login method cannot be removed (409) */
 export class LastLoginMethod extends WebdaError.HttpError {
   /** @param message - error message */

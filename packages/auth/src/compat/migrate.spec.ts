@@ -126,6 +126,37 @@ class MigrateTest extends EmailTest {
   }
 
   @test
+  async collidingRowDoesNotBreakListing() {
+    const userId = await seedV3(this.write, "owner_a@x.com", { validated: true, password: "v3password" });
+    const ctx = await this.ctx();
+    await this.op("Auth.Email.Login", { email: "owner_a@x.com", password: "v3password" }, ctx);
+    // A's v3 "Taken@x.com" normalises to a key another user already holds
+    seedV3Ident(this.write, "Taken@x.com", "email", userId);
+    const taken = new Ident({ ...Ident.key("taken@x.com", "email"), email: "taken@x.com" } as any);
+    taken.setUser("user-b");
+    await Ident.getRepository().create(taken);
+    const list: any[] = await this.op("Auth.Idents", {}, ctx);
+    assert.deepStrictEqual(
+      list.map(i => `${i.providerUid}:${i.provider}`),
+      ["owner_a@x.com:email"]
+    );
+    assert.ok(this.storage.has("Taken@x.com_email"));
+    // The operator sees it in the migration report
+    const run = await this.auth.migrate(false);
+    assert.deepStrictEqual(run.idents.failed, ["Taken@x.com_email"]);
+  }
+
+  @test
+  async malformedKeyAbortsClearly() {
+    seedV3Ident(this.write, "ok1", "github", "u1");
+    this.write("_google", { uuid: "_google", __type: "Webda/Ident", _type: "google", _user: "x" });
+    await assert.rejects(
+      () => this.auth.migrate(false),
+      (err: any) => /Webda\/Ident/.test(err.message) && /remove/i.test(err.message) && /re-run/i.test(err.message)
+    );
+  }
+
+  @test
   async normalisesEmailKeys() {
     const userId = await seedV3(this.write, "Mixed.Case@X.com", { validated: true, password: "v3password" });
     const run = await this.auth.migrate(false);

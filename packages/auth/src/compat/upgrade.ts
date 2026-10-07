@@ -1,5 +1,6 @@
 import { Ident } from "@webda/core";
 import type { ModelClass } from "@webda/models";
+import { IdentConflict } from "../errors.js";
 
 /**
  * v3 ident records
@@ -102,8 +103,9 @@ function identIdentifiers(IdentModel: any): Set<string> {
  * `_lastValidationEmail` → `_throttle.lastSentAt`; `email`, `__profile`, `__tokens` are kept; provider is
  * `provider ?? _type ?? key suffix`, providerUid the key prefix (normalised for the email provider: v3 kept the
  * email case). Callers run it as system.
- * @throws Error when `legacy` is not a v3 ident (see {@link isLegacyIdent}), or when the upgraded key already
- * exists with another owner (the v3 record is kept)
+ * @throws Error when `legacy` is not a v3 ident (see {@link isLegacyIdent})
+ * @throws IdentConflict when the upgraded key exists, or is created concurrently, with another owner: the v3
+ * record is kept for a manual resolution
  * @param legacy - a v3 ident (`legacy.getLegacyUID()` is set)
  * @param IdentModel - ident model of the application
  * @param options - options
@@ -127,11 +129,12 @@ export async function upgradeIdent(
   const key = Ident.key(providerUid, provider);
   const ref = IdentModel.ref(key);
   const owner = v3._user?.toString();
-  let ident: Ident | undefined = (await ref.exists()) ? await ref.get() : undefined;
-  if (ident && ident.getUser()?.toString() !== owner) {
-    // Another account already holds the upgraded key (e.g. two v3 keys differing only by case)
-    throw new Error("Upgraded ident key already belongs to another user");
-  }
+  // Another account may already hold the upgraded key (e.g. two v3 keys differing only by case)
+  const checkOwner = (existing: Ident): Ident => {
+    if (existing.getUser()?.toString() !== owner) throw new IdentConflict();
+    return existing;
+  };
+  let ident: Ident | undefined = (await ref.exists()) ? checkOwner(await ref.get()) : undefined;
   if (!ident) {
     const created: Ident = new IdentModel({
       ...key,
@@ -154,7 +157,8 @@ export async function upgradeIdent(
     } catch (err) {
       // Store-agnostic lost race: the record now exists, whatever error the store reported
       if (!(await ref.exists())) throw err;
-      ident = await ref.get();
+      // The race may have been won by another v3 record of another user: never delete this one then
+      ident = checkOwner(await ref.get());
     }
   }
   if (!options.dryRun) {

@@ -79,11 +79,13 @@
           "args": {
             "dryRun": {
               "type": "boolean",
-              "default": false
+              "default": false,
+              "description": "Only count the records to migrate, write nothing"
             },
             "batch": {
               "type": "number",
-              "default": 100
+              "default": 100,
+              "description": "Page size of the store scans"
             }
           },
           "phase": "initialized"

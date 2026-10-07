@@ -177,6 +177,31 @@ class V3UpgradeTest extends EmailTest {
   }
 
   @test
+  async upgradeRaceWithAnotherOwner() {
+    // Two v3 records normalising to the same key: the other one's upgrade wins the race
+    seedV3Ident(this.write, "Race2@x.com", "email", "loser");
+    const repo: any = Ident.getRepository();
+    const original = repo.create;
+    try {
+      repo.create = async (item: any) => {
+        const winner = new Ident({ ...Ident.key("race2@x.com", "email"), email: "race2@x.com" } as any);
+        winner.setUser("winner");
+        await original.call(repo, winner);
+        throw new Error("Already exists");
+      };
+      await assert.rejects(
+        async () => upgradeIdent(await Ident.ref("Race2@x.com_email" as any).get()),
+        (err: any) => err.code === "IDENT_CONFLICT" && err.getResponseCode() === 409
+      );
+    } finally {
+      repo.create = original;
+    }
+    // The loser keeps its v3 record, the winner its ident
+    assert.ok(this.storage.has("Race2@x.com_email"));
+    assert.strictEqual((await Ident.ref(Ident.key("race2@x.com", "email")).get()).getUser().toString(), "winner");
+  }
+
+  @test
   async upgradeRaceOnAnyStore() {
     seedV3Ident(this.write, "race@x.com", "email", "race-user");
     const repo: any = Ident.getRepository();

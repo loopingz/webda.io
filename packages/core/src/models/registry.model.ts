@@ -4,7 +4,6 @@ import {
   type Repository,
   type SelfJSONed,
   type Settable,
-  useRepository,
   UuidModel
 } from "@webda/models";
 import { useLog } from "@webda/workout";

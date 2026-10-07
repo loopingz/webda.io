@@ -45,7 +45,7 @@ export function stripPrivateFields<T = any>(input: T): T {
   if (input && typeof input === "object" && Object.getPrototypeOf(input) === Object.prototype) {
     const out: any = {};
     for (const [k, v] of Object.entries(input)) {
-      if (k.startsWith("__")) {
+      if (k.startsWith("__") || k === "__proto__" || k === "constructor" || k === "prototype") {
         continue;
       }
       out[k] = stripPrivateFields(v);

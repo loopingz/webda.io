@@ -357,6 +357,13 @@ class DomainServiceTest extends WebdaApplicationTest {
     });
     assert.deepStrictEqual(stripPrivateFields({ p: { __hash: "x" } }), { p: {} });
     assert.strictEqual(stripPrivateFields("x"), "x");
+    // Prototype pollution vectors are dropped
+    const polluted = stripPrivateFields(
+      JSON.parse('{"a":1,"constructor":{"x":1},"prototype":{"y":1},"n":{"__proto__":{"polluted":true},"ok":1}}')
+    );
+    assert.deepStrictEqual(polluted, { a: 1, n: { ok: 1 } });
+    assert.strictEqual(({} as any).polluted, undefined);
+    assert.strictEqual(Object.getPrototypeOf(polluted.n), Object.prototype);
     assert.strictEqual(stripPrivateFields(undefined), undefined);
   }
 

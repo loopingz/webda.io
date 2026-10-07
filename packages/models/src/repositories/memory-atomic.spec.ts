@@ -77,4 +77,16 @@ class MemoryAtomicTest {
     assert.strictEqual(repo.backend.c.count, 6);
     assert.strictEqual(((await ref.get()) as any).count, 6);
   }
+
+  @test
+  async prototypeKeysAreRejected() {
+    const repo = new MemoryRepository(Counter, ["uuid"], ":", new Map());
+    await repo.create(new Counter({ uuid: "c" } as any));
+    const ref = repo.ref("c" as any);
+    for (const path of ["__proto__.polluted", "constructor.prototype.x", "nested.__proto__.polluted"]) {
+      await assert.rejects(() => ref.incrementAttribute(path as any), /Invalid path segment/);
+    }
+    assert.strictEqual(({} as any).polluted, undefined);
+    assert.strictEqual(({} as any).x, undefined);
+  }
 }

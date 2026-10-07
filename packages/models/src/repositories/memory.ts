@@ -549,6 +549,11 @@ export class MemoryRepository<
    */
   protected resolvePath(item: any, path: string): { holder: any; key: string } {
     const parts = path.split(".");
+    for (const part of parts) {
+      if (part === "__proto__" || part === "constructor" || part === "prototype") {
+        throw new Error(`Invalid path segment '${part}' in '${path}'`);
+      }
+    }
     let holder = item;
     for (let i = 0; i < parts.length - 1; i++) {
       holder[parts[i]] ??= {};

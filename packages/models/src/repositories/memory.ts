@@ -248,7 +248,8 @@ export class MemoryRepository<
   }
 
   /**
-   * Find the repository model or one of its transitive subclasses by identifier
+   * Find the class to hydrate a row typed `identifier`: the repository model, one of its transitive subclasses,
+   * or the repository model for one of its ancestors
    * @param identifier - model identifier
    * @returns the class, `this.model` when it carries no Metadata, or undefined when unrelated
    */
@@ -266,12 +267,18 @@ export class MemoryRepository<
       if (clazz.Metadata?.Identifier === identifier) return clazz;
       queue.push(...(clazz.Metadata?.Subclasses ?? []));
     }
+    // An ancestor-typed row (e.g. written before an application subclassed the model) is read as this model
+    for (let parent = Object.getPrototypeOf(root); parent && parent !== Function.prototype;) {
+      if (parent.Metadata?.Identifier === identifier) return root;
+      parent = Object.getPrototypeOf(parent);
+    }
     return undefined;
   }
 
   /**
    * Hydrate a plain JSON row as an instance of the repository model (or of the transitive subclass named by its
-   * `__type`), the same way document stores hydrate their rows; a row typed as an unrelated model is refused
+   * `__type`; an ancestor type hydrates as the repository model), the same way document stores hydrate their rows;
+   * a row typed as an unrelated model is refused
    * @param raw - the parsed row
    * @returns the model instance
    */

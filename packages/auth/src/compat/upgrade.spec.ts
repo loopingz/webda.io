@@ -1,9 +1,13 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Ident, useService } from "@webda/core";
+import { registerRepository } from "@webda/models";
 import { EmailTest } from "../test/emailtest.js";
 import { seedV3, seedV3Ident, type RawWriter } from "../test/v3.js";
-import { legacyIdents, legacyKey, splitLegacyKey, upgradeIdent } from "./upgrade.js";
+import { isLegacyIdent, legacyIdents, legacyKey, splitLegacyKey, upgradeIdent } from "./upgrade.js";
+
+/** Application ident model subclassing the core Ident */
+class CustomIdent extends Ident {}
 
 @suite
 class V3UpgradeTest extends EmailTest {
@@ -206,6 +210,68 @@ class V3UpgradeTest extends EmailTest {
     // A v3 record whose provider field disagrees with its key
     seedV3Ident(this.write, "pm@x.com", "email", "pm-user", { provider: "google" });
     assert.strictEqual(await (this.auth as any).findIdent("email", "pm@x.com"), undefined);
+  }
+
+  /**
+   * Use CustomIdent (`WebdaTest/CustomIdent`) as the ident model, on the auth store
+   */
+  useCustomIdent() {
+    const meta: any = (Ident as any).Metadata;
+    this.registerModel(CustomIdent as any, "WebdaTest/CustomIdent", {
+      ...meta,
+      Identifier: "WebdaTest/CustomIdent",
+      Ancestors: ["Webda/Ident"],
+      Subclasses: []
+    });
+    (CustomIdent as any).registerSerializer(true, "WebdaTest/CustomIdent");
+    registerRepository(CustomIdent as any, (useService("AuthStore" as any) as any).getRepository(CustomIdent));
+    this.auth.getParameters().identModel = "WebdaTest/CustomIdent";
+  }
+
+  @test
+  async customIdentModelUpgrades() {
+    this.useCustomIdent();
+    try {
+      const userId = await seedV3(this.write, "sub_class@x.com", { validated: true, password: "v3password" });
+      const ctx = await this.ctx();
+      const res: any = await this.op("Auth.Email.Login", { email: "sub_class@x.com", password: "v3password" }, ctx);
+      assert.strictEqual(res.status, "ok");
+      assert.strictEqual(ctx.getCurrentUserId(), userId);
+      const ident = await CustomIdent.ref(Ident.key("sub_class@x.com", "email")).get();
+      assert.ok(ident instanceof CustomIdent);
+      assert.ok(ident.isVerified());
+      assert.strictEqual(JSON.parse(this.storage.get("sub_class@x.com:email")).__type, "WebdaTest/CustomIdent");
+      assert.strictEqual(this.storage.has("sub_class@x.com_email"), false);
+      // An unrelated row under a v3 key is still refused
+      const row = { uuid: "victim3@x_email", __type: "Webda/User", email: "victim3@x", _user: "attacker" };
+      this.write("victim3@x_email", row);
+      await assert.rejects(
+        () => this.op("Auth.Email.Login", { email: "victim3@x", password: "whatever1" }),
+        (err: any) => err.code === "INVALID_CREDENTIALS"
+      );
+      assert.deepStrictEqual(JSON.parse(this.storage.get("victim3@x_email")), row);
+    } finally {
+      this.auth.getParameters().identModel = "Webda/Ident";
+    }
+  }
+
+  @test
+  isLegacyIdentTypes() {
+    class MidIdent extends Ident {}
+    class LeafIdent extends MidIdent {}
+    Object.defineProperty(LeafIdent, "Metadata", { value: { Identifier: "T/Leaf", Subclasses: [] } });
+    Object.defineProperty(MidIdent, "Metadata", { value: { Identifier: "T/Mid", Subclasses: [LeafIdent] } });
+    const row = (type?: string) => {
+      const ident: any = new LeafIdent({ uuid: "t@x.com_email" } as any);
+      if (type) Object.defineProperty(ident, "__type", { value: type, enumerable: false });
+      return ident;
+    };
+    for (const type of [undefined, "Webda/Ident", "T/Mid", "T/Leaf"]) {
+      assert.ok(isLegacyIdent(row(type), MidIdent as any), `${type}`);
+    }
+    assert.ok(!isLegacyIdent(row("Webda/User"), MidIdent as any));
+    assert.ok(!isLegacyIdent(new Ident({ uuid: "t@x.com_email" } as any), MidIdent as any));
+    assert.ok(!isLegacyIdent(new LeafIdent({ ...Ident.key("t@x.com", "email") } as any), MidIdent as any));
   }
 
   @test

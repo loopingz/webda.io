@@ -54,8 +54,9 @@ function toTimestamp(value: any): number | undefined {
 /**
  * Whether a row loaded under a v3 key really is a v3 ident of this application
  *
- * The row must be an instance of the ident model, carry a v3 key and be stored untyped, as `Webda/Ident` or as
- * the ident model itself: a v3-looking key of a shared store may hold another model's row.
+ * The row must be an instance of the ident model, carry a v3 key and be stored untyped, as `Webda/Ident`, or as
+ * the ident model, one of its ancestors or transitive subclasses: a v3-looking key of a shared store may hold
+ * another model's row.
  * @param row - the loaded row
  * @param IdentModel - ident model of the application
  * @returns true for a v3 ident
@@ -65,7 +66,31 @@ export function isLegacyIdent(row: any, IdentModel: ModelClass<Ident> = Ident as
     return false;
   }
   const type = row.__type;
-  return type === undefined || type === "Webda/Ident" || type === (IdentModel as any).Metadata?.Identifier;
+  return type === undefined || identIdentifiers(IdentModel).has(type);
+}
+
+/**
+ * Identifiers a v3 ident row of this ident model may be stored as: `Webda/Ident`, the model, its ancestors and
+ * its transitive subclasses
+ * @param IdentModel - ident model of the application
+ * @returns the identifiers
+ */
+function identIdentifiers(IdentModel: any): Set<string> {
+  const ids = new Set<string>(["Webda/Ident"]);
+  for (let parent = Object.getPrototypeOf(IdentModel); parent && parent !== Function.prototype;) {
+    if (parent.Metadata?.Identifier) ids.add(parent.Metadata.Identifier);
+    parent = Object.getPrototypeOf(parent);
+  }
+  const queue: any[] = [IdentModel];
+  const seen = new Set<any>();
+  while (queue.length) {
+    const clazz = queue.shift();
+    if (!clazz || seen.has(clazz)) continue;
+    seen.add(clazz);
+    if (clazz.Metadata?.Identifier) ids.add(clazz.Metadata.Identifier);
+    queue.push(...(clazz.Metadata?.Subclasses ?? []));
+  }
+  return ids;
 }
 
 /**

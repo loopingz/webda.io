@@ -138,6 +138,13 @@ class MemoryRepositorySharedKeysTest {
     // An unrelated type is refused, not re-typed as the repository model
     shared.set("f1", JSON.stringify({ uuid: "f1", __type: "Test/Composite", a: "x" }));
     await assert.rejects(() => single.get("f1"), /Test\/Composite/);
+    // An ancestor-typed row read through a subclass repository hydrates as the subclass
+    const child = new MemoryRepository(SingleGrandChild, ["uuid"], ":", shared);
+    shared.set("a1", JSON.stringify({ uuid: "a1", __type: "Test/Single", name: "a" }));
+    const ancestor: any = await child.get("a1");
+    assert.ok(ancestor instanceof SingleGrandChild);
+    assert.strictEqual(ancestor.name, "a");
+    await assert.rejects(() => child.get("f1"), /Test\/Composite/);
     // A row without type is the repository model
     shared.set("n1", JSON.stringify({ uuid: "n1", name: "n" }));
     assert.ok((await single.get("n1")) instanceof Single);

@@ -173,6 +173,10 @@ checked.
 
 ### Pending MFA sessions
 
+When the user has MFA enabled, a login is only complete when the provider's `amr` contains a primary factor (`pwd` or
+`oauth`, exported as `PRIMARY_FACTORS`) **and** one of the user's enabled MFA methods (for example `totp`). Any other
+`amr` leaves the session pending and answers `{ status: "mfa_required", methods }`.
+
 A session whose MFA is pending is not logged in: `ctx.getCurrentUserId()` and `ctx.getCurrentUser()` return
 `undefined`, so permission checks (`canAct`) treat it as anonymous. Code that needs the pending user reads
 `ctx.getSession().userId`.

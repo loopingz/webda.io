@@ -175,6 +175,17 @@ class CompleteTest extends AuthTest {
   }
 
   @test
+  async mfaNeedsAnEnabledMethodAndAPrimaryFactor() {
+    (this.auth as any).mfaMethods = () => ["totp"];
+    for (const amr of [["otp"], ["oauth", "otp"], ["oauth", "sms"], ["totp"]]) {
+      const ctx = await this.ctx();
+      const res: any = await this.inContext(ctx, () => this.auth.complete({ ...google("9"), amr }));
+      assert.deepStrictEqual(res, { status: "mfa_required", methods: ["totp"] }, amr.join(","));
+      assert.ok(!ctx.getSession().isLogged());
+    }
+  }
+
+  @test
   async concurrentFirstLogin() {
     const before = (await this.auth.getUserModel().query("")).results.length;
     const [a, b] = await Promise.all([

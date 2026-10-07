@@ -60,6 +60,9 @@ export interface MigrationReport {
   incomplete?: boolean;
 }
 
+/** Authentication methods (amr) that are a primary factor: a second factor only counts on top of one of them */
+export const PRIMARY_FACTORS: readonly string[] = ["pwd", "oauth"];
+
 /** Maximum ident passes of one migration */
 const MIGRATION_MAX_PASSES = 100;
 
@@ -501,8 +504,9 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     const userId = userObj.getUUID();
     const session = ctx.getSession();
     const methods = this.mfaMethods(userObj);
-    // Any amr other than pwd/oauth is a second factor
-    const secondFactor = identity.amr.some(m => m !== "pwd" && m !== "oauth");
+    // MFA is satisfied by one of the user's enabled methods on top of a primary factor
+    const amr = identity.amr ?? [];
+    const secondFactor = amr.some(m => methods.includes(m)) && amr.some(m => PRIMARY_FACTORS.includes(m));
     const mfa = methods.length ? (secondFactor ? "verified" : "pending") : "none";
     session.login(userId, ident.getUUID(), { provider: identity.provider, amr: identity.amr, mfa });
     // A later password change of the user ends this session (checked by the session manager on load)

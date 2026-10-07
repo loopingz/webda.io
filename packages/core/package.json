@@ -72,6 +72,22 @@
     "yaml": "^2.8.3",
     "yargs": "^18.0.0"
   },
+  "peerDependencies": {
+    "sinon": "^21.0.3",
+    "vitest": "^4.1.2",
+    "@webda/test": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "sinon": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    },
+    "@webda/test": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/node": "25.5.0",
     "@types/nodemailer": "^7.0.11",

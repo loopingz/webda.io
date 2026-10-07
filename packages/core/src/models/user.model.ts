@@ -1,5 +1,5 @@
 import { IOperationContext } from "../contexts/icontext.js";
-import { Password } from "./password.model.js";
+import { Password, V3_PASSWORD_MAPPED } from "./password.model.js";
 import { type ModelClass, type ModelEvents, type Settable, UuidModel, WEBDA_EVENTS } from "@webda/models";
 
 export type UserEvents<T> = ModelEvents<T> & {
@@ -20,6 +20,7 @@ export class User extends UuidModel {
     super();
     const mapped = User.mapV3(data);
     Object.assign(this, mapped);
+    if (mapped !== data) User.flagV3(this);
     // Raw password data (v3 mapping or plain JSON) must become a Password behavior
     if (!(this.password instanceof Password)) {
       (this as any).__hydrateBehaviors?.({ password: mapped?.password ?? {} });
@@ -46,13 +47,29 @@ export class User extends UuidModel {
   }
 
   /**
+   * Flag an instance whose data went through the v3 mapping (see {@link V3_PASSWORD_MAPPED})
+   * @param instance - the user
+   */
+  private static flagV3(instance: any): void {
+    Object.defineProperty(instance, V3_PASSWORD_MAPPED, {
+      value: true,
+      enumerable: false,
+      configurable: true,
+      writable: true
+    });
+  }
+
+  /**
    * Map v3 records onto the Password behavior before hydration
    * @param data - raw data
    * @param instance - instance to populate
    * @returns the populated instance
    */
   static deserialize<T extends ModelClass, K extends object = InstanceType<T>>(this: T, data: any, instance?: K): K {
-    return super.deserialize.call(this, User.mapV3(data), instance) as K;
+    const mapped = User.mapV3(data);
+    const result = super.deserialize.call(this, mapped, instance) as K;
+    if (mapped !== data) User.flagV3(result);
+    return result;
   }
   /**
    * Display name for this user

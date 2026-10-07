@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Password, PasswordPolicyError, registerPasswordPolicy } from "./password.model.js";
+import { Password, PasswordPolicyError, registerPasswordPolicy, V3_PASSWORD_MAPPED } from "./password.model.js";
 import { User } from "./user.model.js";
 import { WebdaApplicationTest } from "../test/application";
 import { MemoryRepository, registerRepository } from "@webda/models";
@@ -54,6 +54,9 @@ class PasswordTest extends WebdaApplicationTest {
     assert.ok(user.password instanceof Password);
     assert.strictEqual(user.password.__hash, "$2a$10$abcdefghijklmnopqrstuv");
     assert.strictEqual((user as any).__password, undefined);
+    assert.ok((user as any)[V3_PASSWORD_MAPPED]);
+    assert.ok(!Object.keys(user).includes(V3_PASSWORD_MAPPED as any));
+    assert.ok(!(new User().load({ uuid: "u2", password: { __hash: "h" } } as any) as any)[V3_PASSWORD_MAPPED]);
   }
 
   @test
@@ -62,6 +65,8 @@ class PasswordTest extends WebdaApplicationTest {
     assert.ok(user.password instanceof Password);
     assert.strictEqual(user.password.__hash, "$2a$10$abcdefghijklmnopqrstuv");
     assert.strictEqual((user as any).__password, undefined);
+    assert.ok((user as any)[V3_PASSWORD_MAPPED]);
+    assert.ok(!(new User({ uuid: "u2" } as any) as any)[V3_PASSWORD_MAPPED]);
   }
 
   @test

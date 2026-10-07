@@ -43,6 +43,12 @@ export class PasswordPolicyError extends WebdaError.HttpError {
 }
 
 /**
+ * Non-enumerable flag set on a User whose data carried a v3 top-level `__password` mapped onto `password` at
+ * hydration: its stored record still has the v3 layout until it is saved again (`webda auth migrate`)
+ */
+export const V3_PASSWORD_MAPPED = Symbol("v3PasswordMapped");
+
+/**
  * Password credential of a user: bcrypt hash and change timestamp
  * @WebdaBehavior Webda/Password
  */

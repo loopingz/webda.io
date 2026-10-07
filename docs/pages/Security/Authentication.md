@@ -115,7 +115,7 @@ All operations are exposed through the REST API with the path shown (relative to
 | `Auth.Logout`                  | `POST auth/logout`                | -                                         | revokes the refresh family of the session, clears the session; also abandons pending MFA    |
 | `Auth.Refresh`                 | `POST auth/refresh`               | `refreshToken`                            | `{ accessToken, refreshToken, expiresIn }`                                                  |
 | `Auth.Idents`                  | `GET auth/idents`                 | -                                         | `[{ provider, providerUid, email?, verifiedAt?, lastUsedAt? }]`; upgrades v3 idents first   |
-| `Auth.Unlink`                  | `POST auth/idents/unlink`         | `provider`, `providerUid`                 | 409 `LAST_LOGIN_METHOD` if no other login method would remain                               |
+| `Auth.Unlink`                  | `POST auth/idents/unlink`         | `provider`, `providerUid`                 | 409 `LAST_LOGIN_METHOD` if no usable login method would remain (see below)                  |
 | `Auth.Email.Login`             | `POST auth/email/login`           | `email`, `password`                       | `{ status: "ok", user, accessToken, ... }` or `{ status: "mfa_required", methods }`         |
 | `Auth.Email.Register`          | `POST auth/email/register`        | `email`, `password`, `token?`, `profile?` | `{ status: "verification_sent" }` (mode `before`, no token) or the login result             |
 | `Auth.Email.StartVerification` | `POST auth/email/verification`    | `email`                                   | 204. Logged out: never reveals whether the email exists                                     |
@@ -124,6 +124,10 @@ All operations are exposed through the REST API with the path shown (relative to
 | `Auth.Password.StartRecovery`  | `POST auth/password/recovery`     | `email`                                   | always 204 (never reveals accounts)                                                         |
 | `Auth.Password.Recover`        | `POST auth/password/recover`      | `token`, `password`                       | sets the password, marks the email verified, ends all sessions (see below); does not log in |
 | `Auth.Password.Change`         | `POST auth/password/change`       | `current`, `next`                         | requires login; ends the other sessions (see below); emits `Authentication.PasswordUpdate`  |
+
+`Auth.Unlink` only counts the **usable** remaining login methods: idents of other providers, plus email idents when
+the user has a password (without one an email ident allows neither login nor recovery). It also refuses to remove the
+last email ident of a user with a password.
 
 The CLI command `webda auth migrate` is described in the [migration guide](../Migration/Authentication-v3-to-v4.md).
 

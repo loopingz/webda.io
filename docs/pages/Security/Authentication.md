@@ -106,6 +106,10 @@ Users, idents and refresh tokens are regular models; map them to a store like an
 }
 ```
 
+A model mapped to no store falls back to the application registry store. That is acceptable for a single instance
+only: **multi-instance deployments must map `Webda/RefreshToken` (and the user and ident models) to a shared store**,
+otherwise a refresh token issued by one instance is unknown to the others and revocation does not reach them.
+
 `Webda/Ident` and `Webda/RefreshToken`, and any application subclass of them (for example a custom `identModel`), are
 never exposed by the `DomainService` (REST, GraphQL, model operations): their fields (`_user`, `verifiedAt`,
 `_loginAttempts`, ...) would allow an account takeover. Only an explicit listing in the DomainService `models` parameter
@@ -234,19 +238,20 @@ Other rules:
 
 Listen on the `Authentication` service. All payloads include `context`.
 
-| Event                           | Payload                                                      |
-| ------------------------------- | ------------------------------------------------------------ |
-| `Authentication.Register`       | `user`, `data`, `identId`, `identity`                        |
-| `Authentication.Login`          | `userId`, `user`, `identId`, `ident`, `provider`, `identity` |
-| `Authentication.LoginFailed`    | `user`, `ident`                                              |
-| `Authentication.Logout`         | -                                                            |
-| `Authentication.GetMe`          | `user`                                                       |
-| `Authentication.PasswordCreate` | `user`, `password`                                           |
-| `Authentication.PasswordUpdate` | `user`, `password`                                           |
-| `Authentication.Linked`         | `user`, `ident`                                              |
-| `Authentication.Unlinked`       | `user`, `ident`                                              |
+| Event                           | Payload                                                                                                                                        |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Authentication.Register`       | `user`, `data`, `identId`, `identity`                                                                                                          |
+| `Authentication.Login`          | `userId`, `user`, `identId`, `ident`, `provider`, `identity`                                                                                   |
+| `Authentication.LoginFailed`    | `user` (undefined for an unknown email)                                                                                                        |
+| `Authentication.Logout`         | -                                                                                                                                              |
+| `Authentication.GetMe`          | `user`                                                                                                                                         |
+| `Authentication.PasswordCreate` | `user`, `password`                                                                                                                             |
+| `Authentication.PasswordUpdate` | `user`, `password`                                                                                                                             |
+| `Authentication.Linked`         | `user`, `ident`                                                                                                                                |
+| `Authentication.Unlinked`       | `user`, `ident` (projection: `uuid`, `provider`, `providerUid`, `email`, `verifiedAt`, `lastUsedAt`, `userId`; no provider tokens nor profile) |
 
-`Authentication.Register` is emitted before the new user is saved: it can still change it.
+`Authentication.Register` is emitted before the new user is saved: it can still change it. `Authentication.LoginFailed`
+carries `{ context, user }` only (`user` is undefined for an unknown email).
 
 ## Errors
 

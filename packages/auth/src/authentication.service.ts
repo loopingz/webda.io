@@ -659,7 +659,17 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
       throw new LastLoginMethod();
     }
     await runAsSystem(() => target.ref().delete());
-    await this.emit("Authentication.Unlinked", { context: useContext(), user, ident: target } as any);
+    // A projection: the provider tokens and profile of the removed ident never leave this service
+    const ident = {
+      uuid: target.getUUID(),
+      provider: target.provider,
+      providerUid: target.providerUid,
+      email: target.email,
+      verifiedAt: target.verifiedAt,
+      lastUsedAt: target.lastUsedAt,
+      userId
+    };
+    await this.emit("Authentication.Unlinked", { context: useContext(), user, ident } as any);
   }
 
   /**

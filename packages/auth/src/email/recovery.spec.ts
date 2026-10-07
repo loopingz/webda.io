@@ -339,6 +339,9 @@ class RecoveryTest extends EmailTest {
     } finally {
       spy.mockRestore();
     }
+    // Nothing changed: the old password still works, the link is still usable
+    assert.strictEqual((await this.op("Auth.Email.Login", { email: "ts@x.com", password: "longenough" })).status, "ok");
+    await this.op("Auth.Password.Recover", { token, password: "brandnewpass" });
   }
 
   @test

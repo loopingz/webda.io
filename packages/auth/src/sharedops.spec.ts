@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Ident, useService } from "@webda/core";
+import { Ident, runAsSystem, useService } from "@webda/core";
 import { TestApplication } from "@webda/core/lib/test/objects.js";
 import { AuthTest } from "./test/authtest.js";
 import { addStubProviders, stubProvidersConfig } from "./test/stubprovider.js";
@@ -120,6 +120,27 @@ class SharedOpsTest extends AuthTest {
     await user.save();
     await this.op("Auth.Unlink", { provider: "google", providerUid: "o1" }, ctx);
     assert.ok(!(await Ident.ref(Ident.key("o1", "google")).exists()));
+  }
+
+  @test
+  async unlinkedEventHasNoSecrets() {
+    const { ctx } = await this.login("ev1");
+    const user = await ctx.getCurrentUser<any>();
+    await user.password.set("longenough");
+    await user.save();
+    await runAsSystem(() =>
+      Ident.ref(Ident.key("ev1", "google")).patch({ __tokens: { access: "secret" }, __profile: { name: "P" } } as any)
+    );
+    const events: any[] = [];
+    this.auth.on("Authentication.Unlinked" as any, (evt: any) => {
+      events.push(evt);
+    });
+    await this.op("Auth.Unlink", { provider: "google", providerUid: "ev1" }, ctx);
+    assert.strictEqual(events.length, 1);
+    assert.strictEqual(events[0].ident.provider, "google");
+    assert.strictEqual(events[0].ident.providerUid, "ev1");
+    assert.strictEqual(events[0].ident.__tokens, undefined);
+    assert.strictEqual(events[0].ident.__profile, undefined);
   }
 
   @test

@@ -632,12 +632,13 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
       if (!user || !(user as any).password || (user as any).password.changedAt !== claims.pwdAt) {
         throw new TokenInvalid();
       }
-      await (user as any).password.set(password);
-      await user.save();
+      // Checked before anything changes: a recovery that cannot revoke the sessions must not set the password
       const tokens = useDynamicService<any>("TokenService");
       if (!tokens) {
         throw new Error("Password recovery requires the TokenService to revoke sessions");
       }
+      await (user as any).password.set(password);
+      await user.save();
       await tokens.revokeUser(user.getUUID());
       // Receiving the mail proves possession of the address; the new password also ends any login lock
       const ident = await this.getIdent(claims.email);

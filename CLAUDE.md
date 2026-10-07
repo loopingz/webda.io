@@ -800,20 +800,19 @@ import { GraphQLService } from "@webda/graphql";
 ### Authentication
 
 ```typescript
-import { Authentication } from "@webda/authentication";
+import { Authentication, EmailPasswordProvider } from "@webda/auth";
 
-// Configure authentication
+// Authentication holds the shared logic, each login method is a provider service
 {
   "services": {
-    "auth": {
-      "type": "Authentication",
-      "providers": {
-        "google": {
-          "type": "GoogleOAuth",
-          "clientId": "${GOOGLE_CLIENT_ID}",
-          "clientSecret": "${GOOGLE_CLIENT_SECRET}"
-        }
-      }
+    "Authentication": {
+      "type": "Webda/Authentication",
+      "linking": "verified"
+    },
+    "emailAuth": {
+      "type": "Webda/EmailPasswordProvider",
+      "mailer": "Mailer",
+      "verification": "before"
     }
   }
 }

@@ -156,6 +156,599 @@
       },
       "Configuration": "lib/services/secretsmanager.service:AWSSecretsManagerParameters"
     },
+    "Webda/CloudFormationDeployer": {
+      "Import": "lib/deployers/cloudformation.service:CloudFormationDeployer",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "APIGateway": {
+            "additionalProperties": {},
+            "description": "Create an API Gateway for the Lambda function",
+            "properties": {
+              "Name": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "APIGatewayBasePathMapping": {
+            "additionalProperties": false,
+            "description": "Base path mapping of the custom domain",
+            "properties": {
+              "BasePath": {
+                "type": "string"
+              },
+              "DomainName": {
+                "type": "string"
+              },
+              "RestApiId": {
+                "type": "string"
+              },
+              "Stage": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "APIGatewayDomain": {
+            "additionalProperties": {},
+            "description": "Custom domain of the API Gateway",
+            "properties": {
+              "CertificateArn": {
+                "type": "string"
+              },
+              "DomainName": {
+                "type": "string"
+              },
+              "EndpointConfiguration": {
+                "$ref": "#/definitions/APIGatewayDomain%24EndpointConfiguration"
+              },
+              "SecurityPolicy": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "DomainName"
+            ],
+            "type": "object"
+          },
+          "APIGatewayDomain$EndpointConfiguration": {
+            "additionalProperties": false,
+            "properties": {
+              "Types": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "Types"
+            ],
+            "type": "object"
+          },
+          "APIGatewayStage": {
+            "additionalProperties": {},
+            "description": "Properties of the API Gateway stage",
+            "properties": {
+              "StageName": {
+                "default": "the deployment name",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "Certificates": {
+            "additionalProperties": {
+              "$ref": "#/definitions/Certificates%24%5Bkey%3A%20string%5D"
+            },
+            "description": "SSL certificates to create\n\nSample\n```\nCertificates: {\n  \"test.webda.io\": {\n     SubjectAlternativeNames: [\"test2.webda.io\"]\n  }\n}\n```",
+            "type": "object"
+          },
+          "Certificates$[key: string]": {
+            "additionalProperties": {},
+            "properties": {
+              "SubjectAlternativeNames": {
+                "description": "Any alternative names to add to the certificate",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "Tags": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/definitions/Certificates%24%5Bkey%3A%20string%5D%24Tags%231%5B%5D"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "$ref": "#/definitions/Certificates%24%5Bkey%3A%20string%5D%24Tags%232"
+                  }
+                ],
+                "description": "Tags as an AWS array or as a map"
+              }
+            },
+            "type": "object"
+          },
+          "Certificates$[key: string]$Tags#1[]": {
+            "additionalProperties": false,
+            "properties": {
+              "Key": {
+                "type": "string"
+              },
+              "Value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "Key",
+              "Value"
+            ],
+            "type": "object"
+          },
+          "Certificates$[key: string]$Tags#2": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "Lambda": {
+            "additionalProperties": {},
+            "description": "Deploy a Lambda package with your application",
+            "properties": {
+              "FunctionName": {
+                "description": "FunctionName to create",
+                "type": "string"
+              },
+              "Handler": {
+                "default": "node_modules/@webda/aws/lib/deployers/lambda-entrypoint.handler",
+                "description": "Should not require to be overriden",
+                "type": "string"
+              },
+              "MemorySize": {
+                "default": 2048,
+                "description": "Memory to set on the Lambda\n\nLess memory is less expensive/ms but slower",
+                "type": "number"
+              },
+              "Role": {
+                "description": "Role to set on the function"
+              },
+              "Runtime": {
+                "default": "nodejs22.x",
+                "description": "Type of Runtime to use",
+                "type": "string"
+              },
+              "Timeout": {
+                "default": 30,
+                "description": "Timeout in seconds for your Lambda",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "LambdaPackageOptions": {
+            "additionalProperties": false,
+            "description": "Options to build a Lambda package",
+            "properties": {
+              "customAwsSdk": {
+                "default": false,
+                "description": "The application includes its own aws-sdk v2: by default `aws-sdk` is excluded",
+                "type": "boolean"
+              },
+              "entrypoint": {
+                "description": "File to add as `entrypoint.js` at the root of the package\n\nThe default handler is `node_modules/@webda/aws/lib/deployers/lambda-entrypoint.handler`\nso it is not needed",
+                "type": "string"
+              },
+              "package": {
+                "$ref": "#/definitions/PackageOptions",
+                "description": "How to select the files of the application"
+              },
+              "zipPath": {
+                "default": "dist/lambda.zip",
+                "description": "Path of the zip to create",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "LambdaPackager$package$modules": {
+            "additionalProperties": false,
+            "properties": {
+              "excludes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "includes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "PackageOptions": {
+            "additionalProperties": false,
+            "description": "Options of {@link packageApplication}",
+            "properties": {
+              "excludePatterns": {
+                "default": [
+                  "\\.d\\.ts$"
+                ],
+                "description": "Regular expressions on the source path of the files to skip",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "ignores": {
+                "description": "Additional top-level entries of the application to skip",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "modules": {
+                "$ref": "#/definitions/LambdaPackager%24package%24modules",
+                "description": "Dependencies to add or remove from the application production dependencies"
+              }
+            },
+            "type": "object"
+          },
+          "Policy": {
+            "additionalProperties": false,
+            "description": "Policy to create\n\nThis deployer can automatically create the policy tailored to your application needs\nAll the AWS services from this package advertise the type of permissions they need",
+            "properties": {
+              "Groups": {
+                "items": {},
+                "type": "array"
+              },
+              "PolicyDocument": {},
+              "PolicyName": {
+                "description": "PolicyName to use",
+                "type": "string"
+              },
+              "Roles": {
+                "items": {},
+                "type": "array"
+              },
+              "Users": {
+                "items": {},
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "Role": {
+            "additionalProperties": {},
+            "description": "Role to create",
+            "properties": {
+              "AssumeRolePolicyDocument": {
+                "$ref": "#/definitions/Role%24AssumeRolePolicyDocument"
+              },
+              "Path": {
+                "type": "string"
+              },
+              "Policies": {
+                "items": {},
+                "type": "array"
+              },
+              "RoleName": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "Role$AssumeRolePolicyDocument": {
+            "additionalProperties": false,
+            "properties": {
+              "Statement": {
+                "items": {},
+                "type": "array"
+              },
+              "Version": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "Statement"
+            ],
+            "type": "object"
+          },
+          "Statics[]": {
+            "additionalProperties": false,
+            "properties": {
+              "AssetsPath": {
+                "description": "Path to store on the AssetsBucket",
+                "type": "string"
+              },
+              "Bucket": {
+                "description": "Bucket parameter to add, a bucket named after the domain is created"
+              },
+              "CloudFront": {
+                "description": "CloudFront parameter to add"
+              },
+              "DomainName": {
+                "description": "Domain name to deploy on",
+                "type": "string"
+              },
+              "Source": {
+                "description": "Source on local folder",
+                "type": "string"
+              }
+            },
+            "required": [
+              "DomainName",
+              "Source"
+            ],
+            "type": "object"
+          },
+          "Tags#1[]": {
+            "additionalProperties": false,
+            "properties": {
+              "Key": {
+                "type": "string"
+              },
+              "Value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "Key",
+              "Value"
+            ],
+            "type": "object"
+          },
+          "Tags#2": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "endpoints": {
+            "additionalProperties": false,
+            "description": "Endpoints to use by differents services\nUsefull to test with localstack or other AWS emulations",
+            "properties": {
+              "ACM": {
+                "type": "string"
+              },
+              "APIGateway": {
+                "type": "string"
+              },
+              "CloudFormation": {
+                "type": "string"
+              },
+              "CloudFront": {
+                "type": "string"
+              },
+              "EC2": {
+                "type": "string"
+              },
+              "Route53": {
+                "type": "string"
+              },
+              "S3": {
+                "type": "string"
+              },
+              "STS": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "CloudFormation deployer parameters\n\nDefine how to generate CloudFormation resources",
+        "properties": {
+          "APIGateway": {
+            "$ref": "#/definitions/APIGateway",
+            "description": "Create an API Gateway for the Lambda function"
+          },
+          "APIGatewayBasePathMapping": {
+            "$ref": "#/definitions/APIGatewayBasePathMapping",
+            "description": "Base path mapping of the custom domain"
+          },
+          "APIGatewayDeployment": {
+            "description": "Properties of the API Gateway deployment",
+            "type": "object"
+          },
+          "APIGatewayDomain": {
+            "$ref": "#/definitions/APIGatewayDomain",
+            "description": "Custom domain of the API Gateway"
+          },
+          "APIGatewayImportOpenApi": {
+            "description": "Import Open API to APIGateway\n\nThis is the restApiId to import to",
+            "type": "string"
+          },
+          "APIGatewayStage": {
+            "$ref": "#/definitions/APIGatewayStage",
+            "description": "Properties of the API Gateway stage"
+          },
+          "AWSAccountId": {
+            "description": "AWS Account Id",
+            "type": "string"
+          },
+          "AssetsBucket": {
+            "description": "AssetsBucket to copy Lambda package, CloudFormation template and OpenAPI definitions\n\nDefault to the `webda.aws.AssetsBucket` of the package.json",
+            "type": "string"
+          },
+          "AssetsPrefix": {
+            "default": "${deployment}/${deployer.name}/",
+            "description": "Prefix to use when copying to the AssetsBucket",
+            "type": "string"
+          },
+          "Certificates": {
+            "$ref": "#/definitions/Certificates",
+            "description": "SSL certificates to create\n\nSample\n```\nCertificates: {\n  \"test.webda.io\": {\n     SubjectAlternativeNames: [\"test2.webda.io\"]\n  }\n}\n```"
+          },
+          "ChangeSetType": {
+            "description": "CREATE is the default\n\nIMPORT is not well supported as AWS support seems weak aswell",
+            "enum": [
+              "CREATE",
+              "IMPORT"
+            ],
+            "type": "string"
+          },
+          "CustomResources": {
+            "description": "Any additional CloudFormation resources"
+          },
+          "Description": {
+            "description": "Description of the stack and the OpenAPI\nhttps://github.com/loopingz/webda.io/issues/17",
+            "type": "string"
+          },
+          "DomainName": {
+            "description": "Default DomainName",
+            "type": "string"
+          },
+          "Fargate": {
+            "description": "Add the ECS tasks principal to the generated Role",
+            "type": "object"
+          },
+          "FileName": {
+            "default": "cloudformation-${resources.name}",
+            "description": "Name of the template on the AssetsBucket",
+            "type": "string"
+          },
+          "Format": {
+            "default": "JSON",
+            "description": "Format for CloudFormation template\n\nYAML format can generate issue",
+            "enum": [
+              "JSON",
+              "YAML"
+            ],
+            "type": "string"
+          },
+          "Image": {
+            "description": "Container image of the application, built separately (`webda container build`)\n\nAvailable to the templates as `${resources.Image}`",
+            "type": "string"
+          },
+          "KeepPackage": {
+            "default": false,
+            "description": "Keep locally the Lambda package after S3 uploads",
+            "type": "boolean"
+          },
+          "Lambda": {
+            "$ref": "#/definitions/Lambda",
+            "description": "Deploy a Lambda package with your application"
+          },
+          "LambdaPackager": {
+            "$ref": "#/definitions/LambdaPackageOptions",
+            "description": "How to build the Lambda package"
+          },
+          "OpenAPIFileName": {
+            "default": "${resources.name}-openapi-${package.version}",
+            "description": "Name of your OpenAPI inside the AssetsBucket",
+            "type": "string"
+          },
+          "OpenAPITitle": {
+            "description": "Title for your OpenAPI definition\nhttps://github.com/loopingz/webda.io/issues/17",
+            "type": "string"
+          },
+          "Policy": {
+            "$ref": "#/definitions/Policy",
+            "description": "Policy to create\n\nThis deployer can automatically create the policy tailored to your application needs\nAll the AWS services from this package advertise the type of permissions they need"
+          },
+          "Resources": {
+            "description": "Add the CloudFormation contributions of the application services\n({@link CloudFormationContributor})"
+          },
+          "ResourcesToImport": {
+            "description": "Resources to import in the template",
+            "items": {},
+            "type": "array"
+          },
+          "Role": {
+            "$ref": "#/definitions/Role",
+            "description": "Role to create"
+          },
+          "StackName": {
+            "default": "the unit name",
+            "description": "Name of the CloudFormation stack",
+            "type": "string"
+          },
+          "StackOptions": {
+            "description": "Options of the stack: Tags, NotificationARNs, ..."
+          },
+          "Statics": {
+            "description": "Deploy static website",
+            "items": {
+              "$ref": "#/definitions/Statics%5B%5D"
+            },
+            "type": "array"
+          },
+          "Tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/definitions/Tags%231%5B%5D"
+                },
+                "type": "array"
+              },
+              {
+                "$ref": "#/definitions/Tags%232"
+              }
+            ],
+            "description": "Default Tags to use with resources created by deployers"
+          },
+          "accessKeyId": {
+            "description": "AWS_ACCESS_KEY_ID to use\n\nUsing static key is not recommended",
+            "type": "string"
+          },
+          "endpoints": {
+            "$ref": "#/definitions/endpoints",
+            "description": "Endpoints to use by differents services\nUsefull to test with localstack or other AWS emulations"
+          },
+          "name": {
+            "description": "Name of the unit",
+            "type": "string"
+          },
+          "region": {
+            "default": "us-east-1",
+            "description": "AWS_REGION to use",
+            "type": "string"
+          },
+          "secretAccessKey": {
+            "description": "AWS_SECRET_ACCESS_KEY to use\n\nUsing static key is not recommended",
+            "type": "string"
+          },
+          "sessionToken": {
+            "description": "AWS_SESSION_TOKEN Token\n\nEven if it is possible to add it here\nIt is not sustainable as this token at its best will\nhave a lifetime of 12 hours",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "CloudFormationDeployer"
+      },
+      "Configuration": "lib/deployers/cloudformation.service:CloudFormationDeployerParameters",
+      "capabilities": [
+        "deployer"
+      ],
+      "commands": {
+        "deploy": {
+          "description": "Deploy the application with AWS CloudFormation",
+          "method": "deploy",
+          "args": {},
+          "requires": [
+            "router",
+            "rest-domain"
+          ]
+        }
+      }
+    },
     "Webda/CloudWatchLogger": {
       "Import": "lib/services/cloudwatchlogger.service:CloudWatchLogger",
       "Schema": {
@@ -488,6 +1081,111 @@
         "title": "LambdaCaller"
       },
       "Configuration": "lib/services/lambdacaller.service:LambdaCallerParameters"
+    },
+    "Webda/LambdaPackager": {
+      "Import": "lib/deployers/lambdapackager.service:LambdaPackager",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "PackageOptions": {
+            "additionalProperties": false,
+            "description": "Options of {@link packageApplication}",
+            "properties": {
+              "excludePatterns": {
+                "default": [
+                  "\\.d\\.ts$"
+                ],
+                "description": "Regular expressions on the source path of the files to skip",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "ignores": {
+                "description": "Additional top-level entries of the application to skip",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "modules": {
+                "$ref": "#/definitions/package%24modules",
+                "description": "Dependencies to add or remove from the application production dependencies"
+              }
+            },
+            "type": "object"
+          },
+          "package$modules": {
+            "additionalProperties": false,
+            "properties": {
+              "excludes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "includes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Lambda Packager parameters",
+        "properties": {
+          "customAwsSdk": {
+            "default": false,
+            "description": "The application includes its own aws-sdk v2",
+            "type": "boolean"
+          },
+          "entrypoint": {
+            "description": "File to add as `entrypoint.js` at the root of the package",
+            "type": "string"
+          },
+          "name": {
+            "description": "Name of the unit",
+            "type": "string"
+          },
+          "package": {
+            "$ref": "#/definitions/PackageOptions",
+            "description": "How to select the files of the application"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "zipPath": {
+            "default": "dist/lambda-${package.version}.zip",
+            "description": "Path of the zip to create",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "LambdaPackager"
+      },
+      "Configuration": "lib/deployers/lambdapackager.service:LambdaPackagerParameters",
+      "capabilities": [
+        "deployer"
+      ],
+      "commands": {
+        "aws package": {
+          "description": "Package the application as an AWS Lambda zip",
+          "method": "package",
+          "args": {},
+          "phase": "resolved"
+        }
+      }
     },
     "Webda/LambdaServer": {
       "Import": "lib/services/lambdaserver.service:LambdaServer",

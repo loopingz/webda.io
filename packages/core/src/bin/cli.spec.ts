@@ -10,6 +10,9 @@ import {
   onInterrupt,
   reportServiceCommand,
   settleServiceCommand,
+  ensureCommandServices,
+  extractDeploymentArgument,
+  prepareDeploymentUnits,
   loadOperations,
   addServiceCommandsToCli,
   resolveLogStream,
@@ -501,5 +504,123 @@ class CliSettleServiceCommandTest {
     });
     const errors = logs.filter(l => l.startsWith("ERROR"));
     assert.deepStrictEqual(errors, ["ERROR Command 'code' exited with code 4", "ERROR Command 'boom' failed BOOM"]);
+  }
+}
+
+/**
+ * Minimal application exposing modules, configuration and deployment
+ * @param deployment - the selected deployment
+ * @param services - configured application services
+ * @returns a fake application
+ */
+function deploymentApp(deployment: any, services: any = {}): any {
+  const config = { parameters: {}, services };
+  return {
+    config,
+    getConfiguration: () => config,
+    getDeployment: () => deployment,
+    getCurrentDeployment: () => (deployment ? "Production" : undefined),
+    completeNamespace: (type: string) => (type.includes("/") ? type : `Webda/${type}`),
+    getModules: () => ({
+      moddas: {
+        "Webda/CloudFormationDeployer": { Import: "", capabilities: ["deployer"] },
+        "Webda/ImageBuilder": { Import: "", capabilities: ["deployer"] },
+        "Webda/HttpServer": { Import: "" }
+      },
+      beans: {}
+    })
+  };
+}
+
+@suite
+class CliDeploymentTest {
+  @test
+  extractDeployment() {
+    assert.deepStrictEqual(extractDeploymentArgument(["-d", "Production", "deploy", "-d"]), {
+      deployment: "Production",
+      argv: ["deploy", "-d"]
+    });
+    assert.deepStrictEqual(extractDeploymentArgument(["--log-stream", "stderr", "-dProduction", "deploy"]), {
+      deployment: "Production",
+      argv: ["--log-stream", "stderr", "deploy"]
+    });
+    assert.deepStrictEqual(extractDeploymentArgument(["--console-patch", "deploy", "-d", "x"]), {
+      deployment: undefined,
+      argv: ["--console-patch", "deploy", "-d", "x"]
+    });
+    // After the command name, -d belongs to the command
+    assert.deepStrictEqual(extractDeploymentArgument(["deploy", "-d", "x"]), {
+      deployment: undefined,
+      argv: ["deploy", "-d", "x"]
+    });
+    // --deployment is accepted anywhere
+    assert.deepStrictEqual(extractDeploymentArgument(["deploy", "--deployment=Dev"]), {
+      deployment: "Dev",
+      argv: ["deploy"]
+    });
+    assert.deepStrictEqual(extractDeploymentArgument(["deploy", "--deployment", "Dev", "--", "--deployment", "x"]), {
+      deployment: "Dev",
+      argv: ["deploy", "--", "--deployment", "x"]
+    });
+    assert.throws(() => extractDeploymentArgument(["-d"]), /requires a deployment name/);
+  }
+
+  @test
+  mergesOnlyUnitsProvidingTheCommand() {
+    const app = deploymentApp(
+      {
+        resources: { region: "eu-west-1" },
+        units: [
+          { name: "Stack", type: "CloudFormationDeployer" },
+          { name: "Image", type: "ImageBuilder" }
+        ]
+      },
+      { HttpServer: { type: "Webda/HttpServer" } }
+    );
+    const cmdInfo: any = {
+      services: [{ name: "Webda/CloudFormationDeployer", method: "deploy", type: "Webda/CloudFormationDeployer" }]
+    };
+    assert.deepStrictEqual(prepareDeploymentUnits(app, "deploy", cmdInfo), ["Stack"]);
+    assert.deepStrictEqual(app.config.services.Stack, { type: "Webda/CloudFormationDeployer", region: "eu-west-1" });
+    assert.strictEqual(app.config.services.Image, undefined);
+    // The deployer is provided by the unit: no default instance is injected
+    ensureCommandServices(app, cmdInfo.services);
+    assert.deepStrictEqual(Object.keys(app.config.services), ["HttpServer", "Stack"]);
+  }
+
+  @test
+  appCommandsDoNotInstantiateUnits() {
+    const app = deploymentApp({ units: [{ name: "Stack", type: "CloudFormationDeployer" }] });
+    const cmdInfo: any = { services: [{ name: "Webda/HttpServer", method: "serve", type: "Webda/HttpServer" }] };
+    assert.deepStrictEqual(prepareDeploymentUnits(app, "serve", cmdInfo), []);
+    assert.strictEqual(app.config.services.Stack, undefined);
+  }
+
+  @test
+  deployerCommandRequiresADeployment() {
+    const cmdInfo: any = {
+      services: [{ name: "Webda/CloudFormationDeployer", method: "deploy", type: "Webda/CloudFormationDeployer" }]
+    };
+    assert.throws(
+      () => prepareDeploymentUnits(deploymentApp(undefined), "deploy", cmdInfo),
+      /Command 'deploy' is run by deployers: select a deployment with -d <name>/
+    );
+    assert.throws(
+      () => prepareDeploymentUnits(deploymentApp({ units: [{ name: "Image", type: "ImageBuilder" }] }), "deploy", cmdInfo),
+      /Deployment 'Production' has no unit of type Webda\/CloudFormationDeployer for command 'deploy'/
+    );
+    // Deployers are never injected by default
+    const app = deploymentApp(undefined);
+    ensureCommandServices(app, cmdInfo.services);
+    assert.deepStrictEqual(app.config.services, {});
+  }
+
+  @test
+  unitConflictsWithAppService() {
+    const app = deploymentApp({ units: [{ name: "store", type: "CloudFormationDeployer" }] }, { store: { type: "X" } });
+    const cmdInfo: any = {
+      services: [{ name: "Webda/CloudFormationDeployer", method: "deploy", type: "Webda/CloudFormationDeployer" }]
+    };
+    assert.throws(() => prepareDeploymentUnits(app, "deploy", cmdInfo), /conflicts with the application service 'store'/);
   }
 }

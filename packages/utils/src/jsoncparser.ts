@@ -10,8 +10,15 @@ abstract class JSONCNode {
    * @returns the corresponding JSONC node
    */
   static fromValue(arg0: any): JSONCObject | JSONCValue | JSONCArray {
-    if (arg0["$$target"] instanceof JSONCNode || arg0 instanceof JSONCArrayProxy) {
-      return <any>arg0;
+    if (arg0 === null || typeof arg0 !== "object") {
+      return new JSONCValue(arg0);
+    }
+    // A value read from a proxy keeps its node, with its comments
+    if (arg0["$$target"] instanceof JSONCNode) {
+      return arg0["$$target"] as JSONCObject;
+    }
+    if (arg0 instanceof JSONCArrayProxy) {
+      return arg0["array"] as JSONCArray;
     }
     if (Array.isArray(arg0)) {
       return new JSONCArray(arg0);

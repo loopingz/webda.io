@@ -1,4 +1,6 @@
-import { dirname, join } from "node:path";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import { runTwoPass, type TwoPassResult } from "./twopass.ts";
@@ -39,6 +41,30 @@ describe("emit parity with the TypeScript 6 transformers", () => {
     // storage, so without this every accessor value would vanish.
     expect(book).toMatch(/toJSON\(\): any \{/);
     expect(book).toContain("Object.assign(result, (this as any)[WEBDA_STORAGE]);");
+  });
+
+  it("serialises accessor values without touching the instance", async () => {
+    // `Model.toJSON()` returns `this`, so merging the storage into it only
+    // re-ran the setters and `JSON.stringify` still saw no accessor value.
+    const dir = mkdtempSync(join(tmpdir(), "content-mapper-parity-"));
+    try {
+      for (const file of readdirSync(join(fixture, "src"))) {
+        const source = join(fixture, "src", file);
+        const generated = [...result.injected].find(([name]) => basename(name) === file)?.[1];
+        writeFileSync(join(dir, file), generated ?? readFileSync(source, "utf8"));
+      }
+      const { Book } = await import(join(dir, "book.model.ts"));
+      const book = new Book();
+      book.author = "a1";
+
+      const json = book.toJSON();
+      expect(json).not.toBe(book);
+      expect(json.author).toBe(book.author);
+      // JSON.stringify serialises the own enumerable keys of what toJSON returns
+      expect(Object.keys(json)).toContain("author");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("resolves an alias to its runtime class and imports it from the alias's module", () => {

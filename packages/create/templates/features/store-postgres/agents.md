@@ -1,0 +1,1 @@
+PostgreSQL runs locally: `docker compose up -d`, then `cp .env.example .env`. The connection comes from the standard `PG*` variables (see `.env.example`); tests load `.env` automatically; for `npm run debug` or `npm run serve`, export the variables first (`set -a; . ./.env; set +a`); never put credentials in `webda.config.json`. Tables are created automatically.

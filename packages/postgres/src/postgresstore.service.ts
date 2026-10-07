@@ -96,6 +96,11 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
    * Tracked so {@link stop} only releases pools it took a refcount on.
    */
   protected ownsPool = false;
+  /**
+   * Pending or completed `CREATE TABLE IF NOT EXISTS` per table name, so each table is
+   * created once even when several repositories share it or statements run concurrently.
+   */
+  protected tablesReady = new Map<string, Promise<void>>();
 
   /**
    * @override
@@ -132,6 +137,7 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
       });
     }
     this.client = undefined as any;
+    this.tablesReady.clear();
     await super.stop();
   }
 
@@ -141,6 +147,7 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
    * Resolution order:
    * 1. `parameters.tables[meta.Identifier]` — explicit per-model override
    * 2. Single-model back-compat: when only one model is configured, `parameters.table` maps to it
+   *    (and to its subclasses) — not to models routed to this store as fallback
    * 3. Default — model identifier lowercased with "/" replaced by "_"
    *
    * @param model - the model class to resolve the table for
@@ -155,8 +162,12 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
     if (this.parameters.tables?.[meta.Identifier]) {
       return this.parameters.tables[meta.Identifier];
     }
-    // Single-model back-compat: parameters.table maps to the one model
-    if (this.parameters.models?.length === 1 && this.parameters.table) {
+    // Single-model back-compat: parameters.table maps to the one model and its hierarchy
+    if (
+      this.parameters.models?.length === 1 &&
+      this.parameters.table &&
+      (this.parameters.models[0] === meta.Identifier || this.handleModel(model) >= 0)
+    ) {
       return this.parameters.table;
     }
     // Default derivation
@@ -172,16 +183,32 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
       return;
     }
     // Delegate the per-model DDL to each PostgresRepository.setupTable().
-    // Deduplicate by table name so shared-table models don't issue redundant DDL.
-    const done = new Set<string>();
+    // ensureTable deduplicates by table name so shared-table models don't issue redundant DDL.
     for (const repo of this.getRepositories()) {
-      const table = repo.getTable();
-      if (done.has(table)) {
-        continue;
-      }
-      done.add(table);
-      await repo.setupTable();
+      await this.ensureTable(repo);
     }
+  }
+
+  /**
+   * Ensure the table backing a repository exists, once per table name.
+   * Repositories await it before their first statement, so models routed to this store
+   * after init (e.g. Registry fallback in Store.computeStores) get their table too.
+   * When `autoCreateTable` is false, this is a no-op.
+   * @param repo - the repository whose table to create
+   */
+  async ensureTable(repo: PostgresRepository<any>): Promise<void> {
+    if (!this.parameters.autoCreateTable) {
+      return;
+    }
+    const table = repo.getTable();
+    let ready = this.tablesReady.get(table);
+    if (!ready) {
+      ready = repo.setupTable();
+      this.tablesReady.set(table, ready);
+      // Allow a retry after a failed creation
+      ready.catch(() => this.tablesReady.get(table) === ready && this.tablesReady.delete(table));
+    }
+    await ready;
   }
 
   /**
@@ -194,7 +221,8 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
 
   /**
    * Build and return a PostgresRepository for the given model, using the
-   * per-model table name resolved by `resolveTable`.
+   * per-model table name resolved by `resolveTable`. The repository ensures its
+   * table exists (see {@link ensureTable}) before its first statement.
    *
    * The result is cached per model class via `@InstanceCache`.
    * @param model - the model class
@@ -204,12 +232,13 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     const meta = useModelMetadata(model);
     const table = this.resolveTable(model);
-    const inner = new PostgresRepository<T>(
+    const inner: PostgresRepository<T> = new PostgresRepository<T>(
       model,
       meta.PrimaryKey,
       this.client as any,
       table,
-      meta.PrimaryKeySeparator
+      meta.PrimaryKeySeparator,
+      () => this.ensureTable(inner)
     );
     // Wrap in EventRepository so typed CRUD events fire; consumers reach them
     // via useRepository(model).on(...).

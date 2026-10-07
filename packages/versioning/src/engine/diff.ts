@@ -5,6 +5,7 @@ import type { VersioningConfig } from "../config.js";
 import { chooseStrategy } from "../strings/strategy.js";
 import { lineDiff } from "../strings/line-diff.js";
 import type { Delta, Path, UnifiedDiff } from "../types.js";
+import { escapeReservedKeys } from "./reserved-keys.js";
 
 // Known limitation: jsondiffpatch's objectHash receives no path context, so this
 // single hash fn is applied to EVERY array. When two arrays are configured with
@@ -119,7 +120,7 @@ function extractLineHunks(
 export function diff(a: unknown, b: unknown, cfg: VersioningConfig = {}): Delta {
   const { bStripped, hunks } = extractLineHunks(a, b, cfg);
   const jdp = makeJdp(cfg);
-  const ops = jdp.diff(a, bStripped) as JsonDiffPatchDelta | undefined;
+  const ops = jdp.diff(escapeReservedKeys(a), escapeReservedKeys(bStripped)) as JsonDiffPatchDelta | undefined;
   const hasHunks = Object.keys(hunks).length > 0;
   return {
     __versioning: 1,

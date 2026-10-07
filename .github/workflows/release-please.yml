@@ -4,6 +4,11 @@ on:
       - main
       - maintenance/v3
   workflow_dispatch:
+    inputs:
+      publish_ref:
+        description: "Release tag to build and publish without a new release (e.g. core-v4.0.0-beta.3), to recover from a skipped or failed publish"
+        type: string
+        required: false
 
 permissions:
   contents: write
@@ -13,50 +18,59 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
+      # In a monorepo `release_created` only covers the root package; `releases_created` covers all
       - uses: googleapis/release-please-action@v4
         id: release
         with:
           target-branch: ${{ github.ref_name }}
 
+      - name: Checkout repository
+        if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.publish_ref || github.sha }}
+
+      # The release scripts come from the workflow commit, which can be newer than `publish_ref`
+      - name: Checkout release scripts
+        if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
+        uses: actions/checkout@v4
+        with:
+          path: .release-tools
+          sparse-checkout: scripts/publish-release.sh
+          sparse-checkout-cone-mode: false
+
       - uses: actions/setup-node@v4
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
         with:
           node-version: 22
           registry-url: "https://registry.npmjs.org"
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-        if: ${{ steps.release.outputs.release_created }}
-
-      - name: Checkout repository
-        if: ${{ steps.release.outputs.release_created }}
-        uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
 
       - name: Build
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
         run: pnpm install && pnpm run build
 
-      # Prereleases go to their own dist-tag (beta, rc...) so they never move `latest`
+      # Publishes only the packages tagged on this commit, each under its own dist-tag (beta, rc... or latest)
       - name: Publish project
-        if: ${{ steps.release.outputs.release_created }}
-        run: |
-          VERSION=$(jq -r .version packages/core/package.json)
-          DIST_TAG=$(echo "$VERSION" | sed -nE 's/^[0-9]+\.[0-9]+\.[0-9]+-([a-z]+)\..*/\1/p')
-          pnpm -r publish --no-git-checks --tag "${DIST_TAG:-latest}"
+        if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
+        run: .release-tools/scripts/publish-release.sh
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Install docs dependencies
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
         run: cd docs && pnpm install
 
       - name: Build docs
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
         run: pnpm run docs
 
       - name: Deploy docs
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
         uses: JamesIves/github-pages-deploy-action@4.1.4
         with:
           branch: gh-pages

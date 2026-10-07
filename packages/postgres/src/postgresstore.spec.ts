@@ -3,7 +3,7 @@ import * as assert from "node:assert";
 import pg from "pg";
 import { checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import { EventRepository, useModel } from "@webda/core";
-import PostgresStore from "./postgresstore.service.js";
+import PostgresStore, { PostgresParameters } from "./postgresstore.service.js";
 import { PostgresRepository } from "./sqlstore.js";
 
 const params = {
@@ -215,6 +215,112 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
       tables: { "Webda/User": "users_v2" }
     });
     assert.strictEqual(store.resolveTable(useModel("Webda/User")), "users_v2");
+  }
+
+  @test
+  async resolveTableSingleModelTableIsNotSharedWithFallbackModels() {
+    // Registry-like store: the configured model keeps `table`, a model routed to it as fallback does not
+    const store = new PostgresStore("fallbackTable", { models: ["Webda/RegistryEntry"], table: "registry" });
+    assert.strictEqual(store.resolveTable(useModel("Webda/RegistryEntry")), "registry");
+    assert.strictEqual(store.resolveTable(useModel("Webda/Ident")), "webda_ident");
+  }
+
+  @test
+  async fallbackRepositoryCreatesItsTableBeforeFirstStatement() {
+    // Load the parameters as the application does, so autoCreateTable gets its default (true)
+    const store = new PostgresStore(
+      "fallbackCreate",
+      new PostgresParameters().load({ models: ["Webda/RegistryEntry"], table: "registry" })
+    );
+    store.resolve();
+    const statements: string[] = [];
+    store.client = {
+      query: async (q: string) => {
+        statements.push(q);
+        return { rows: [], rowCount: 1 };
+      }
+    } as any;
+    // Webda/Ident is not a configured model: it reaches this store through Store.computeStores fallback
+    const repo = store.getRepository(useModel("Webda/Ident"));
+    await Promise.all([repo.create({ _type: "google" } as any), repo.create({ _type: "github" } as any)]);
+    await repo.create({ _type: "gitlab" } as any);
+    assert.strictEqual(statements.length, 4);
+    assert.match(statements[0], /^CREATE TABLE IF NOT EXISTS webda_ident /);
+    assert.ok(statements.slice(1).every(q => q.startsWith("INSERT INTO webda_ident(")));
+  }
+
+  @test
+  async fallbackRepositorySkipsCreateWhenAutoCreateDisabled() {
+    const store = new PostgresStore(
+      "fallbackNoCreate",
+      new PostgresParameters().load({ models: ["Webda/RegistryEntry"], table: "registry", autoCreateTable: false })
+    );
+    store.resolve();
+    const statements: string[] = [];
+    store.client = {
+      query: async (q: string) => {
+        statements.push(q);
+        return { rows: [], rowCount: 1 };
+      }
+    } as any;
+    await store.getRepository(useModel("Webda/Ident")).create({ _type: "google" } as any);
+    assert.strictEqual(statements.length, 1);
+    assert.ok(statements[0].startsWith("INSERT INTO webda_ident("));
+  }
+
+  @test
+  async tableCreationIsRetriedAfterFailureAndNotRepeatedAfterSuccess() {
+    const store = new PostgresStore(
+      "retryCreate",
+      new PostgresParameters().load({ models: ["Webda/RegistryEntry"], table: "registry" })
+    );
+    store.resolve();
+    const statements: string[] = [];
+    let failCreate = true;
+    store.client = {
+      query: async (q: string) => {
+        statements.push(q);
+        if (q.startsWith("CREATE TABLE") && failCreate) {
+          failCreate = false;
+          throw new Error("create failed");
+        }
+        return { rows: [], rowCount: 1 };
+      }
+    } as any;
+    const repo = store.getRepository(useModel("Webda/Ident"));
+    // First statement: CREATE fails and the statement itself is never sent
+    await assert.rejects(() => repo.create({ _type: "google" } as any), /create failed/);
+    assert.strictEqual(statements.length, 1);
+    // Second statement: CREATE is issued again (not memoized as failed), then the INSERT runs
+    await repo.create({ _type: "github" } as any);
+    assert.deepStrictEqual(
+      statements.map(q => q.split(/[ (]/).slice(0, 2).join(" ")),
+      ["CREATE TABLE", "CREATE TABLE", "INSERT INTO"]
+    );
+    // Third statement: the table is known to exist
+    await repo.create({ _type: "gitlab" } as any);
+    assert.strictEqual(statements.filter(q => q.startsWith("CREATE TABLE")).length, 2);
+    assert.strictEqual(statements.length, 4);
+  }
+
+  @test
+  async ensureTableIsNoopWhenAutoCreateDisabled() {
+    const store = new PostgresStore(
+      "noCreate",
+      new PostgresParameters().load({ models: ["Webda/Ident"], table: "idents", autoCreateTable: false })
+    );
+    store.resolve();
+    const statements: string[] = [];
+    store.client = {
+      query: async (q: string) => {
+        statements.push(q);
+        return { rows: [{ data: { _type: "google" } }], rowCount: 1 };
+      }
+    } as any;
+    const repo = store.getRepository(useModel("Webda/Ident"));
+    await store.ensureTable(new PostgresRepository(useModel("Webda/Ident"), ["uuid"], store.client as any, "idents"));
+    await repo.exists("x");
+    assert.deepStrictEqual(statements, ["SELECT uuid FROM idents WHERE uuid=$1"]);
   }
 
   @test

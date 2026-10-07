@@ -3,6 +3,134 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.1...core-v4.0.0-beta.3) (2026-10-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* **compiler:** the accessors, loadParameters and unserializer modules are removed. They wrote into the sources what webdac build now generates through @webda/content-mapper, or methods nothing calls. The unused webdac build --code flag is removed too.
+* @webda/ts-plugin and the `tsc-esm` binary are removed, and applications now build with TypeScript 7.1. Generated code changes where TypeScript 6 was wrong, each verified against the shipped output:
+    - AuditEntry.timestamp, declared `number`, is no longer coerced to Date;
+    - AbstractOwnerModel no longer emits `new ModelLink(T)`, a ReferenceError
+      on first raw-uuid assignment;
+    - sample-app's `User extends WebdaUser` is now treated as a model (TS6's
+      base-chain guard was keyed on class name), so its relations are
+      initialised and coerced;
+    - imports use the specifier the author wrote, not monorepo-relative paths
+      that only resolve inside this repository;
+    - the emitted .d.ts is valid (TS6 referenced PrimaryKeyType unimported and
+      wrote BelongTo without its type argument).
+    A build that cannot write its module now fails; under TS6 a strict
+    file-naming violation was logged and the build still reported success.
+* the `@webda/schema` package is removed, along with its `webda-schema-generator` CLI. Schema generation lives in `@webda/content-mapper` and is driven by `@webda/compiler`; nothing in the repo imported `@webda/schema` any more after the previous commit.
+* **compiler:** model relations are now `type: "string"` in Input, Output and Stored schemas instead of an object with no properties, and six services gain the `type` property they inherit from ServiceParameters. Anything generated from these schemas — API validation, client types — changes with them.
+* use AsyncLocalStorage for Context
+* remove node 18 support
+* remove expose for Store
+
+### Features
+
+* add @webda/debug package — introspection API + WebSocket live events ([#750](https://github.com/loopingz/webda.io/issues/750)) ([307b2f2](https://github.com/loopingz/webda.io/commit/307b2f2267f2eacd1be8ec4a44f47999e0c61931))
+* add AbstractRepository and Store2Repository concept ([241595d](https://github.com/loopingz/webda.io/commit/241595d42e41590b582f7ee2ac6340f3b767750b))
+* add Behavior and move Binary to Behavior ([ef05efb](https://github.com/loopingz/webda.io/commit/ef05efb3c7910d014336d3a3a0a102dfff38a1b6))
+* add build hooks ([97016bc](https://github.com/loopingz/webda.io/commit/97016bcb9a7becfa87793fa6cc408784487e7e07))
+* add codemod system ([bbc3086](https://github.com/loopingz/webda.io/commit/bbc3086c1bd4e5c9a7ec9a2ed14772cd8edbf477))
+* add formatting for context ([54dee1e](https://github.com/loopingz/webda.io/commit/54dee1e09da052c5daba778bc45bccff15d033f4))
+* add grpc module and sample-app webui ([#756](https://github.com/loopingz/webda.io/issues/756)) ([4a7df9a](https://github.com/loopingz/webda.io/commit/4a7df9aacff8ca5e16c57e5fa9f2e2f0dc786e2f))
+* add metadata plugins ([ffcd62c](https://github.com/loopingz/webda.io/commit/ffcd62caf2990e958682319166a684823609637e))
+* add openapi CLI command to export OpenAPI definition ([#748](https://github.com/loopingz/webda.io/issues/748)) ([a3a09bf](https://github.com/loopingz/webda.io/commit/a3a09bffd850cf7286354385c5f9c975a4cb5712))
+* add rest domain service ([bfc72e6](https://github.com/loopingz/webda.io/commit/bfc72e64728c3f1e1348322156f1b04835d6db37))
+* allow webda serve from @webda/core package ([69a6f01](https://github.com/loopingz/webda.io/commit/69a6f01cda754b68d3c8fb0694b47deaf8065159))
+* blog-system Binary/Binaries demo + e2e suite, with framework fixes ([#771](https://github.com/loopingz/webda.io/issues/771)) ([fe7e187](https://github.com/loopingz/webda.io/commit/fe7e18786744134fb29447a9f139689abbbd4950))
+* build on TypeScript 7.1; delete @webda/ts-plugin and ts-patch ([0008e97](https://github.com/loopingz/webda.io/commit/0008e97919524d44528a8e3e89ee27cfaa2ee93b))
+* capability-based auto-injection for CLI commands ([#749](https://github.com/loopingz/webda.io/issues/749)) ([027f098](https://github.com/loopingz/webda.io/commit/027f098afb83796afab28d59cc04339f29bfad60))
+* **compiler:** generate schemas with @webda/content-mapper ([af3b7c5](https://github.com/loopingz/webda.io/commit/af3b7c5daa3ba239210be2af490850cde3460d84))
+* **content-mapper:** TypeScript 7.1 content mapper package ([9b57565](https://github.com/loopingz/webda.io/commit/9b57565a467d83671559fa4e2411124a5ae51109))
+* **core:** add MCP operation hints, canCallOperation and the operationStreaming flag ([aebe2cc](https://github.com/loopingz/webda.io/commit/aebe2ccfcc875a49e51bdfc2d21459d2ffe0265b))
+* **core:** carry the operation subject in operation events ([5f960f7](https://github.com/loopingz/webda.io/commit/5f960f79b32cd492a649f99fc9dca5b62952af76))
+* **core:** flat models[] config + internal field migration (PR 1 of 3) ([#776](https://github.com/loopingz/webda.io/issues/776)) ([56d4b01](https://github.com/loopingz/webda.io/commit/56d4b01524be424508b80e2f1ed4f388174d73ad))
+* **core:** let operations declare their subject with setOperationSubject ([07c3bdf](https://github.com/loopingz/webda.io/commit/07c3bdfae5b7f38abdf9e251354adf24a3fdf42c))
+* **core:** read the audit log per subject, per actor or globally ([74783ae](https://github.com/loopingz/webda.io/commit/74783aebbc4d7e9f9908eeb283db45348e5e3069))
+* **core:** record the operation subject on audit entries ([feb62c8](https://github.com/loopingz/webda.io/commit/feb62c87892d78978aa541f28ae4725edaddb112))
+* **debug:** capture request/response details + 4xx error UX fixes ([#769](https://github.com/loopingz/webda.io/issues/769)) ([9709f47](https://github.com/loopingz/webda.io/commit/9709f47defe62b38788454734c88210641f5506a))
+* default REST routes for operations, bean service fixes ([#755](https://github.com/loopingz/webda.io/issues/755)) ([ccebecf](https://github.com/loopingz/webda.io/commit/ccebecfe37fe5417f36a689fe4973901e450c82a))
+* enhance debug panels ([#759](https://github.com/loopingz/webda.io/issues/759)) ([63e6e0c](https://github.com/loopingz/webda.io/commit/63e6e0c3bd7d72fb06b148c7344eb3021d186ae9))
+* improve caching module ([08b2db5](https://github.com/loopingz/webda.io/commit/08b2db5d96cc4553d5ff2919cbf00287192b4ff6))
+* model Behaviors v1 ([#765](https://github.com/loopingz/webda.io/issues/765)) ([5053245](https://github.com/loopingz/webda.io/commit/5053245440a60318f06fb9aecacf8113c31262a8))
+* move to node 22 ([21daf46](https://github.com/loopingz/webda.io/commit/21daf46c54d4e3912ad1b545e1ce89b9a6a84c35))
+* move to pnpm and disable many modules for now ([ea953b7](https://github.com/loopingz/webda.io/commit/ea953b7faaa47d70bc8136b39e9a3d3336655214))
+* move to ServiceName ([a545a03](https://github.com/loopingz/webda.io/commit/a545a03f166b3f27088ef2d8e3fc40c56f5813b8))
+* operation return values, HttpServer routing, and models fixes ([#754](https://github.com/loopingz/webda.io/issues/754)) ([0779301](https://github.com/loopingz/webda.io/commit/0779301fbcf066dcac1362396842b9aae65b6e59))
+* operations system — decouple operations from transport ([#753](https://github.com/loopingz/webda.io/issues/753)) ([54f3151](https://github.com/loopingz/webda.io/commit/54f3151686b9115221790e90c3ee723fb0b8c873))
+* **postgres:** pubsub + queue services and migrate Store to current core API ([#774](https://github.com/loopingz/webda.io/issues/774)) ([408e229](https://github.com/loopingz/webda.io/commit/408e22983861607dd1d3ef6918cd53e8e27915d1))
+* remove expose for Store ([c8a36b1](https://github.com/loopingz/webda.io/commit/c8a36b19c81b830e9c03195388b402e53f987e6e))
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+* Repository typed events, consumer migration + API positioning (PR 2+3 of 3) ([#777](https://github.com/loopingz/webda.io/issues/777)) ([70b0a75](https://github.com/loopingz/webda.io/commit/70b0a755fbeb430297cc161777a41acc2f8db14b))
+* **rest:** add 201 - Created http code for creation ([#680](https://github.com/loopingz/webda.io/issues/680)) ([5db4dda](https://github.com/loopingz/webda.io/commit/5db4ddab838a25dc49bddd1705357187e2049a6c))
+* router auto-instantiation, request routing, and --watch mode ([#747](https://github.com/loopingz/webda.io/issues/747)) ([5cc4a19](https://github.com/loopingz/webda.io/commit/5cc4a1913355a856362e6c58755f37e4d2d5229c))
+* service capabilities and CLI commands system ([#743](https://github.com/loopingz/webda.io/issues/743)) ([ae2897c](https://github.com/loopingz/webda.io/commit/ae2897c85894bfa3f28c20f8341e13ee95b82cbc))
+* test allow dynamic configuration in TestApplication ([3af8187](https://github.com/loopingz/webda.io/commit/3af8187ba6179e19c9db261f81075a86d09e0cc9))
+* update watchers on service parameter on update ([f3417d7](https://github.com/loopingz/webda.io/commit/f3417d7004babaa6718012a68383bf19301a85fa))
+* use AsyncLocalStorage for Context ([0df77c8](https://github.com/loopingz/webda.io/commit/0df77c86e366afedd92da51fea52d2f122cd69b8))
+* WebdaQLString&lt;T&gt; branded type + ts-plugin compile-time validator ([#772](https://github.com/loopingz/webda.io/issues/772)) ([f0c14c1](https://github.com/loopingz/webda.io/commit/f0c14c1d5511b6f5e4f52633a23b3d2fe07b86c1))
+* **workout,core:** keep piped CLI output clean ([e92bd22](https://github.com/loopingz/webda.io/commit/e92bd2251c52da0c8c3fb7bd670b074ff5a8ec95))
+
+
+### Bug Fixes
+
+* add cli in core ([814a599](https://github.com/loopingz/webda.io/commit/814a599ee263fa85e2b8c38a2c6cd5563a1fa995))
+* add index.ts for @webda/models ([a2ed938](https://github.com/loopingz/webda.io/commit/a2ed938e67beb841fa2a7e1a95b85f9d901bb374))
+* add missing types for Mailer service ([bcdb6fc](https://github.com/loopingz/webda.io/commit/bcdb6fc93a56c69e14cfd4d432e68d70cb503cdf))
+* auto generated uuid ([25a7a28](https://github.com/loopingz/webda.io/commit/25a7a2849ae381e4e7538a1d5b14b5e9d3397ffe))
+* buffer types ([1d4fb31](https://github.com/loopingz/webda.io/commit/1d4fb318ff491713cda15f3bf7d302602d16b5d9))
+* compiler metadata, CLI commands, cron/async hooks and long-running command lifecycle ([#785](https://github.com/loopingz/webda.io/issues/785)) ([0515715](https://github.com/loopingz/webda.io/commit/05157157c9f52af3c8df720f6630053cd2dc8b98))
+* **compiler:** make webdac code a working migration tool ([578ca7b](https://github.com/loopingz/webda.io/commit/578ca7b5243701a4ba1d9a9685c38b2f89ac27ed))
+* **core:** answer unmatched routes with a 404 error body; blog root opens the admin UI ([dfbb75a](https://github.com/loopingz/webda.io/commit/dfbb75a95c4d6b1f49c6672f3bb35d5b77405173))
+* **core:** call super() first and unconditionally in Binary ([65c7da0](https://github.com/loopingz/webda.io/commit/65c7da05fbfd727ad6694d973f3d60eb6c88e895))
+* **core:** don't JSON-parse multipart request bodies ([6d5f61f](https://github.com/loopingz/webda.io/commit/6d5f61fd4cd6cc4546c6adb55256c5498aeda2f0))
+* **core:** make audit read operations opt-in and record the saved key on Create ([f1b25f5](https://github.com/loopingz/webda.io/commit/f1b25f571e58ddf514c2ff0b2b67cdd347e52ec0))
+* **core:** per-application DomainService schemas and AuditService unsubscribe ([ddddfcb](https://github.com/loopingz/webda.io/commit/ddddfcbf9186447d969b3b3ac9bdccbcca2f863f))
+* **core:** redirect plain HTTP to https on a TLS port ([17f6262](https://github.com/loopingz/webda.io/commit/17f62620fd166c612a4b3cdb6101fc3811cfa82a))
+* **core:** resolve type error in setModelMetadata for Ancestors/Subclasses ([152d044](https://github.com/loopingz/webda.io/commit/152d0441a6bde2cbc4c6ef29b19c58a8a03bc54c))
+* **core:** route on the uri relative to the HttpContext prefix ([7da5ab9](https://github.com/loopingz/webda.io/commit/7da5ab9b474940fd983aaea5c422490d476bbb7f))
+* **core:** serve ResourceService folders under their trailing slash ([53b3dc3](https://github.com/loopingz/webda.io/commit/53b3dc38b6f8145b5e30cfcae2809c31c3621f2d))
+* **core:** stop subclasses inheriting a registered modda's configuration factories ([31780a0](https://github.com/loopingz/webda.io/commit/31780a069aa887e9c77c6674d072c48a5e9fce03))
+* enforce strict mode on @webda/models ([8a6f2c4](https://github.com/loopingz/webda.io/commit/8a6f2c40244c76829d0f277e05400a4b56792029))
+* interactive logger ([8c30ee9](https://github.com/loopingz/webda.io/commit/8c30ee9f9dd5c40fba149fa0cadba54e1239db81))
+* MemoryQueue wait if no message available ([57d4bd8](https://github.com/loopingz/webda.io/commit/57d4bd834a8dcaa6f33f052c5e315079a58ffcce))
+* move to nodenext module and update Inject annotation ([d7d85e4](https://github.com/loopingz/webda.io/commit/d7d85e4dc2a73fce5e63429c02663d980515b667))
+* non passing application ([7cd75e5](https://github.com/loopingz/webda.io/commit/7cd75e5a95824a4eab1f3ac73e5fe0f56778b0e3))
+* post-migration follow-ups (store create uuid, LambdaServer stage, drop workarounds) ([#784](https://github.com/loopingz/webda.io/issues/784)) ([7eead4d](https://github.com/loopingz/webda.io/commit/7eead4d71152c19abaa834817b8bf4a7f89818d1))
+* **ResourceService:** ensure we do not serve . files ([#678](https://github.com/loopingz/webda.io/issues/678)) ([8abbcda](https://github.com/loopingz/webda.io/commit/8abbcdae988f0ca3d6ecc1f70b4c6dee7f17002a))
+* **rest,debug:** give model PATCH its own OpenAPI operation and URL ([f3161b1](https://github.com/loopingz/webda.io/commit/f3161b1fc562e03408f7f93658fab99c9c3ec53f))
+* **rest:** give model action routes their operationId ([87fd523](https://github.com/loopingz/webda.io/commit/87fd523a14dbaec4f9dba896f7007e85f789ffe3))
+* **rest:** match routes without a query template on the path alone ([0f8c689](https://github.com/loopingz/webda.io/commit/0f8c6890987a1f1a22384f0b4d87be41eff291bd))
+* state and method override ([90b7725](https://github.com/loopingz/webda.io/commit/90b7725bf62d95b456e1ab850ca08069efd4c40e))
+* unit test models relations ([2d160f1](https://github.com/loopingz/webda.io/commit/2d160f18d2139b362e8a12f935e15eaad27a808a))
+* update Binary service ([282fcb1](https://github.com/loopingz/webda.io/commit/282fcb12d20428d1bca36b410ee78c6a6b6f2a80))
+* update repository to use StorableClass ([f79fc19](https://github.com/loopingz/webda.io/commit/f79fc198bf176ca5baa224ad1c3aab83b5cf9144))
+
+
+### Miscellaneous Chores
+
+* delete @webda/schema ([1fbd1a4](https://github.com/loopingz/webda.io/commit/1fbd1a4343cb24be639e35c776129e8fec78e379))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.3
+    * @webda/decorators bumped to 4.0.0-beta.3
+    * @webda/models bumped to 4.0.0-beta.3
+    * @webda/ql bumped to 4.0.0-beta.3
+    * @webda/utils bumped to 4.0.0-beta.3
+    * @webda/workout bumped to 4.0.0-beta.3
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.3
+    * @webda/test bumped to 4.0.0-beta.3
+    * @webda/tsc-esm bumped to 4.0.0-beta.3
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/core-v3.16.0...core-v4.0.0-beta.1) (2024-08-14)
 
 

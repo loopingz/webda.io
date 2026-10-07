@@ -91,13 +91,15 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
    * @param client - the pg client or pool
    * @param table - the table name
    * @param separator - composite key separator
+   * @param prepare - awaited before every statement (e.g. to ensure the table exists)
    */
   constructor(
     model: T,
     pks: string[],
     protected readonly client: SQLClient,
     protected readonly table: string,
-    separator?: string
+    separator?: string,
+    protected readonly prepare?: () => Promise<void>
   ) {
     // Pass an empty Map — we do NOT use in-memory storage
     super(model, pks, separator, new Map<string, string>() as any);
@@ -121,6 +123,17 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     await this.client.query(
       `CREATE TABLE IF NOT EXISTS ${this.table} (uuid VARCHAR(255) NOT NULL, data jsonb, CONSTRAINT ${this.table}_pkey PRIMARY KEY (uuid))`
     );
+  }
+
+  /**
+   * Run a statement against the client once {@link prepare} has resolved.
+   * @param q - the SQL statement
+   * @param values - the statement parameters
+   * @returns the raw pg query result
+   */
+  protected async execute(q: string, values?: any[]): Promise<{ rows: any[]; rowCount: number }> {
+    await this.prepare?.();
+    return this.client.query(q, values);
   }
 
   /**
@@ -155,7 +168,7 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     if (!q.startsWith("DELETE") && !q.startsWith("INSERT") && !q.startsWith("SELECT") && !q.startsWith("UPDATE")) {
       q = `SELECT * FROM ${this.table} WHERE ${q}`;
     }
-    return this.client.query(q, values);
+    return this.execute(q, values);
   }
 
   /**
@@ -189,7 +202,7 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     // must be the one stored in the row, not only the one used as key
     const item = this.buildItem(data);
     const key = this.getPrimaryKey(item).toString();
-    await this.client.query(`INSERT INTO ${this.table}(uuid,data) VALUES($1, $2)`, [key, JSON.stringify(item)]);
+    await this.execute(`INSERT INTO ${this.table}(uuid,data) VALUES($1, $2)`, [key, JSON.stringify(item)]);
     return item;
   }
 
@@ -201,7 +214,7 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     if (conditionField) {
       q += this.getQueryCondition(condition, conditionField as string, args);
     }
-    const res = await this.client.query(q, args);
+    const res = await this.execute(q, args);
     if (res.rowCount === 0) {
       throw new UpdateConditionFailError(key as any, conditionField as string, condition);
     }
@@ -215,7 +228,7 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     if (conditionField) {
       q += this.getQueryCondition(condition, conditionField as string, args);
     }
-    const res = await this.client.query(q, args);
+    const res = await this.execute(q, args);
     if (res.rowCount === 0) {
       throw new UpdateConditionFailError(key as any, conditionField as string, condition);
     }
@@ -228,19 +241,19 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     let q = `DELETE FROM ${this.table} WHERE uuid=$1`;
     if (conditionField) {
       q += this.getQueryCondition(condition, conditionField as string, args);
-      const res = await this.client.query(q, args);
+      const res = await this.execute(q, args);
       if (res.rowCount === 0) {
         throw new UpdateConditionFailError(key as any, conditionField as string, condition);
       }
     } else {
-      await this.client.query(q, args);
+      await this.execute(q, args);
     }
   }
 
   /** @override */
   async exists(primaryKey: any): Promise<boolean> {
     const key = this.getPrimaryKey(primaryKey).toString();
-    const res = await this.client.query(`SELECT uuid FROM ${this.table} WHERE uuid=$1`, [key]);
+    const res = await this.execute(`SELECT uuid FROM ${this.table} WHERE uuid=$1`, [key]);
     return res.rowCount === 1;
   }
 
@@ -252,7 +265,7 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     if (conditionField) {
       q += this.getQueryCondition(condition, conditionField as string, args);
     }
-    const res = await this.client.query(q, args);
+    const res = await this.execute(q, args);
     if (res.rowCount === 0) {
       if (conditionField) {
         throw new UpdateConditionFailError(key as any, conditionField as string, condition);
@@ -278,7 +291,7 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
       data = `jsonb_set(${data}, '{${p.property}}', (COALESCE(data->>'${p.property}','0')::int + $${index + 2})::text::jsonb)::jsonb`;
     });
     const q = `UPDATE ${this.table} SET data = jsonb_set(${data}, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid=$1`;
-    const res = await this.client.query(q, args);
+    const res = await this.execute(q, args);
     if (res.rowCount === 0) {
       throw new StoreNotFoundError(key as any, this.table);
     }
@@ -308,7 +321,7 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
       args.push(itemWriteCondition);
       q += ` AND (data#>>'{${attr}, ${index}}')::jsonb->>'${String(itemWriteConditionField)}'=$${args.length}`;
     }
-    const res = await this.client.query(q, args);
+    const res = await this.execute(q, args);
     if (res.rowCount === 0) {
       if (itemWriteCondition !== undefined) {
         throw new UpdateConditionFailError(key as any, String(itemWriteConditionField), itemWriteCondition);
@@ -337,7 +350,7 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
       args.push(itemWriteCondition);
       q += ` AND (data#>>'{${attr}, ${index}}')::jsonb->>'${String(itemWriteConditionField)}'=$2`;
     }
-    const res = await this.client.query(q, args);
+    const res = await this.execute(q, args);
     if (res.rowCount === 0) {
       if (itemWriteCondition !== undefined) {
         throw new UpdateConditionFailError(key as any, String(itemWriteConditionField), itemWriteCondition);
@@ -435,7 +448,7 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
    * Delete all rows from the table (used in tests).
    */
   async __clean(): Promise<void> {
-    await this.client.query(`DELETE FROM ${this.table}`, []);
+    await this.execute(`DELETE FROM ${this.table}`, []);
   }
 }
 

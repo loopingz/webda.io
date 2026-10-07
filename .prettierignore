@@ -2,3 +2,7 @@ node_modules
 lib
 reports
 coverage
+
+# Template tokens (__APP_NAME__) must survive formatting
+packages/create/templates/**/*.md
+packages/create/agent/AGENTS.md

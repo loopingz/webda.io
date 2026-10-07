@@ -81,6 +81,41 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/otel-v4.0.0-beta.1...otel-v4.0.0-beta.3) (2026-10-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove node 18 support
+
+### Features
+
+* add codemod system ([bbc3086](https://github.com/loopingz/webda.io/commit/bbc3086c1bd4e5c9a7ec9a2ed14772cd8edbf477))
+* add formatting for context ([54dee1e](https://github.com/loopingz/webda.io/commit/54dee1e09da052c5daba778bc45bccff15d033f4))
+* move to node 22 ([21daf46](https://github.com/loopingz/webda.io/commit/21daf46c54d4e3912ad1b545e1ce89b9a6a84c35))
+* move to pnpm and disable many modules for now ([ea953b7](https://github.com/loopingz/webda.io/commit/ea953b7faaa47d70bc8136b39e9a3d3336655214))
+* **otel:** re-enable module and migrate to current core API ([33a6aac](https://github.com/loopingz/webda.io/commit/33a6aac44d66713571d98299a3fc511e12a300fc))
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+
+
+### Bug Fixes
+
+* compiler metadata, CLI commands, cron/async hooks and long-running command lifecycle ([#785](https://github.com/loopingz/webda.io/issues/785)) ([0515715](https://github.com/loopingz/webda.io/commit/05157157c9f52af3c8df720f6630053cd2dc8b98))
+* otel allow sampling ([ca2f6ec](https://github.com/loopingz/webda.io/commit/ca2f6ec92666267117a1c91a425f486793cfc7bd))
+* unit test models relations ([2d160f1](https://github.com/loopingz/webda.io/commit/2d160f18d2139b362e8a12f935e15eaad27a808a))
+* update otel versions ([723a4cd](https://github.com/loopingz/webda.io/commit/723a4cd2d379f72f5e395724c8a4b904ea89d9ab))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.3
+    * @webda/workout bumped to 4.0.0-beta.3
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.3
+    * @webda/test bumped to 4.0.0-beta.3
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/otel-v3.3.2...otel-v4.0.0-beta.1) (2024-08-14)
 
 

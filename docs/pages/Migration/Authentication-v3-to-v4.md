@@ -24,12 +24,26 @@ service, `Webda/EmailPasswordProvider`.
 {
   "services": {
     "Authentication": { "type": "Webda/Authentication", "compatibility": { "v3": true } },
-    "emailAuth": { "type": "Webda/EmailPasswordProvider", "verification": "before" }
+    "emailAuth": {
+      "type": "Webda/EmailPasswordProvider",
+      "verification": "before",
+      // example values: pages of your front-end, required (no defaults)
+      "redirects": {
+        "verified": "https://app.example.com/email-verified",
+        "failure": "https://app.example.com/link-failed",
+        "register": "https://app.example.com/register",
+        "recover": "https://app.example.com/reset-password"
+      }
+    }
   }
 }
 ```
 
-New in v4: `redirects.confirm`, `linking`, `registration`, `allowedEmailDomains`, `trustEmailVerification`,
+`redirects.failure` and `redirects.recover` are required, `redirects.verified` and `redirects.register` too unless
+`verification` is `"none"`: the provider refuses to start without them. The recovery mail links to
+`GET <url>/recover?token=...`, redirected to `redirects.recover?token=...`.
+
+New in v4: `redirects.recover`, `redirects.confirm`, `linking`, `registration`, `allowedEmailDomains`, `trustEmailVerification`,
 `throttle.lockout`, `password.verifier`.
 
 ## Route map

@@ -14,7 +14,8 @@ class RecoveryTest extends EmailTest {
       verified: "https://app/ok",
       failure: "https://app/ko",
       register: "https://app/reg",
-      confirm: "https://app/confirm"
+      confirm: "https://app/confirm",
+      recover: "https://app/recover"
     };
   }
 
@@ -84,6 +85,46 @@ class RecoveryTest extends EmailTest {
     assert.ok(!(await this.reload(other)).isLogged());
     // The session that changed the password stays logged in
     assert.ok((await this.reload(ctx)).isLogged());
+  }
+
+  /** Call the GET recover route with a token, return the redirect */
+  async recoverRedirectOf(token: string): Promise<string> {
+    const c: any = Object.assign(await this.ctx(), { parameter: () => token });
+    await this.inContext(c, () => (this.email as any).recoverRedirect(c));
+    return c.getResponseHeaders().Location;
+  }
+
+  @test
+  async recoverLinkRedirects() {
+    await this.op("Auth.Email.Register", { email: "rl@x.com", password: "longenough" });
+    await this.op("Auth.Password.StartRecovery", { email: "rl@x.com" });
+    await this.flush();
+    const url = this.lastMailUrl();
+    assert.ok(url.includes("/recover?token="));
+    const token = this.tokenOf(url);
+    assert.strictEqual(await this.recoverRedirectOf(token), `https://app/recover?token=${encodeURIComponent(token)}`);
+    // The link is not consumed
+    assert.strictEqual(await this.recoverRedirectOf(token), `https://app/recover?token=${encodeURIComponent(token)}`);
+    await this.op("Auth.Password.Recover", { token, password: "brandnewpass" });
+    // Invalid tokens go to the failure page, never throw
+    assert.strictEqual(await this.recoverRedirectOf("bad"), "https://app/ko?reason=TOKEN_INVALID");
+    assert.strictEqual(await this.recoverRedirectOf(undefined), "https://app/ko?reason=TOKEN_INVALID");
+  }
+
+  @test
+  async redirectsAreRequired() {
+    const { EmailPasswordProvider, EmailPasswordParameters } = await import("./emailpassword.service.js");
+    const make = (params: any) =>
+      new EmailPasswordProvider("check", new EmailPasswordParameters().load({ mailer: "DefinedMailer", ...params }));
+    const all = { failure: "/ko", recover: "/rec", verified: "/ok", register: "/reg" };
+    await make({ redirects: all }).init();
+    await make({ verification: "none", redirects: { failure: "/ko", recover: "/rec" } }).init();
+    for (const key of Object.keys(all)) {
+      const redirects: any = { ...all };
+      delete redirects[key];
+      await assert.rejects(() => make({ redirects }).init(), new RegExp(`redirects\\.${key}`));
+    }
+    await assert.rejects(() => make({}).init(), /redirects\.failure/);
   }
 
   @test

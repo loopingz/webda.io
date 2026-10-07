@@ -44,10 +44,13 @@ export class EmailPasswordParameters extends ServiceParameters {
   /** Throttling */
   throttle: { resendDelay?: number; failedBeforeDelay?: number; lockout?: number };
   /**
-   * Browser redirects for emailed links. `confirm` (default `failure`) receives a verification link opened without
-   * the matching session, with `?reason=LOGIN_REQUIRED&token=...`: log in then call Auth.Email.Verify with the token
+   * Browser redirects for emailed links (no defaults: init() refuses a missing required one). `failure` and `recover`
+   * are always required, `verified` and `register` unless `verification` is "none". `recover` receives the recovery
+   * link as `?token=...` (the page then calls Auth.Password.Recover). `confirm` (default `failure`) receives a
+   * verification link opened without the matching session, with `?reason=LOGIN_REQUIRED&token=...`: log in then call
+   * Auth.Email.Verify with the token
    */
-  redirects: { verified?: string; failure?: string; register?: string; confirm?: string };
+  redirects: { verified?: string; failure?: string; register?: string; confirm?: string; recover?: string };
   /**
    * Base url for emailed links
    * @default "/auth/email"
@@ -154,6 +157,16 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     await super.init();
     if (this.parameters.verification !== "none" && !useDynamicService(this.parameters.mailer)) {
       throw new Error(`EmailPasswordProvider requires a Mailer service '${this.parameters.mailer}'`);
+    }
+    const required = [
+      "failure",
+      "recover",
+      ...(this.parameters.verification !== "none" ? ["verified", "register"] : [])
+    ];
+    for (const key of required) {
+      if (!this.parameters.redirects?.[key]) {
+        throw new Error(`EmailPasswordProvider '${this.getName()}' requires the 'redirects.${key}' parameter`);
+      }
     }
     return this;
   }
@@ -665,6 +678,25 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
       user,
       password: (user as any).password.__hash
     } as any);
+  }
+
+  /**
+   * Browser landing for recovery links: redirects a valid recover token to `redirects.recover` without consuming it,
+   * anything else to `redirects.failure`; never throws
+   * @param ctx - web context
+   */
+  @Route("./recover{?token}", ["GET"], { hidden: true })
+  async recoverRedirect(ctx: WebContext): Promise<void> {
+    const { recover, failure } = this.parameters.redirects;
+    const token = ctx.parameter("token");
+    try {
+      await verifyEmailToken(token, "recover");
+      ctx.writeHead(302, { Location: `${recover}?token=${encodeURIComponent(token)}` });
+    } catch (err) {
+      ctx.writeHead(302, {
+        Location: `${failure}?reason=${encodeURIComponent((err as any)?.code ?? "TOKEN_INVALID")}`
+      });
+    }
   }
 
   /**

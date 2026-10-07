@@ -113,12 +113,15 @@
           },
           "redirects": {
             "additionalProperties": false,
-            "description": "Browser redirects for emailed links. `confirm` (default `failure`) receives a verification link opened without\nthe matching session, with `?reason=LOGIN_REQUIRED&token=...`: log in then call Auth.Email.Verify with the token",
+            "description": "Browser redirects for emailed links (no defaults: init() refuses a missing required one). `failure` and `recover`\nare always required, `verified` and `register` unless `verification` is \"none\". `recover` receives the recovery\nlink as `?token=...` (the page then calls Auth.Password.Recover). `confirm` (default `failure`) receives a\nverification link opened without the matching session, with `?reason=LOGIN_REQUIRED&token=...`: log in then call\nAuth.Email.Verify with the token",
             "properties": {
               "confirm": {
                 "type": "string"
               },
               "failure": {
+                "type": "string"
+              },
+              "recover": {
                 "type": "string"
               },
               "register": {
@@ -167,7 +170,7 @@
           },
           "redirects": {
             "$ref": "#/definitions/redirects",
-            "description": "Browser redirects for emailed links. `confirm` (default `failure`) receives a verification link opened without\nthe matching session, with `?reason=LOGIN_REQUIRED&token=...`: log in then call Auth.Email.Verify with the token"
+            "description": "Browser redirects for emailed links (no defaults: init() refuses a missing required one). `failure` and `recover`\nare always required, `verified` and `register` unless `verification` is \"none\". `recover` receives the recovery\nlink as `?token=...` (the page then calls Auth.Password.Recover). `confirm` (default `failure`) receives a\nverification link opened without the matching session, with `?reason=LOGIN_REQUIRED&token=...`: log in then call\nAuth.Email.Verify with the token"
           },
           "throttle": {
             "$ref": "#/definitions/throttle",

@@ -54,13 +54,17 @@ pnpm add @webda/auth
         "failedBeforeDelay": 3, // failed logins before locking
         "lockout": 900000 // ms (15 min)
       },
+      // Pages of YOUR front-end (example values, there are no defaults). init() fails naming a missing key:
+      // failure and recover are always required, verified and register unless verification is "none"
       "redirects": {
-        "verified": "/verified", // GET verify link success
-        "failure": "/auth/failure", // GET verify link failure
-        "register": "/register", // GET register link
-        "confirm": "/login" // verify link opened without the matching session (default: failure)
+        "verified": "https://app.example.com/email-verified", // GET verify link success
+        "failure": "https://app.example.com/link-failed", // any GET link failure, receives ?reason=CODE
+        "register": "https://app.example.com/register", // GET register link, receives ?token=...&email=...
+        "recover": "https://app.example.com/reset-password", // GET recovery link, receives ?token=...
+        "confirm": "https://app.example.com/login" // optional: verify link without the matching session (default: failure)
       },
-      "url": "/auth/email", // base url of emailed links, default "/auth/email"
+      // base url of emailed links, default "/auth/email"; prefer an absolute url
+      "url": "https://api.example.com/auth/email",
       "allowedEmailDomains": ["example.com"], // optional
       "trustEmailVerification": true // optional, boolean | string[]
     }
@@ -108,22 +112,23 @@ There is no `LegacyIdent` model: v3 ident records stored under the `"<uid>_<prov
 
 All operations are exposed through the REST API with the path shown (relative to the API root) and as operations by id.
 
-| Operation id                   | REST                              | Inputs                                    | Result / notes                                                                              |
-| ------------------------------ | --------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `Auth.Providers`               | `GET auth/providers`              | -                                         | list of `{ name, type, startUrl? }`                                                         |
-| `Auth.Me`                      | `GET auth/me`                     | -                                         | public entry of the user, 404 when not logged in                                            |
-| `Auth.Logout`                  | `POST auth/logout`                | -                                         | revokes the refresh family of the session, clears the session; also abandons pending MFA    |
-| `Auth.Refresh`                 | `POST auth/refresh`               | `refreshToken`                            | `{ accessToken, refreshToken, expiresIn }`                                                  |
-| `Auth.Idents`                  | `GET auth/idents`                 | -                                         | `[{ provider, providerUid, email?, verifiedAt?, lastUsedAt? }]`; upgrades v3 idents first   |
-| `Auth.Unlink`                  | `POST auth/idents/unlink`         | `provider`, `providerUid`                 | 409 `LAST_LOGIN_METHOD` if no usable login method would remain (see below)                  |
-| `Auth.Email.Login`             | `POST auth/email/login`           | `email`, `password`                       | `{ status: "ok", user, accessToken, ... }` or `{ status: "mfa_required", methods }`         |
-| `Auth.Email.Register`          | `POST auth/email/register`        | `email`, `password`, `token?`, `profile?` | `{ status: "verification_sent" }` (mode `before`, no token) or the login result             |
-| `Auth.Email.StartVerification` | `POST auth/email/verification`    | `email`                                   | 204. Logged out: never reveals whether the email exists                                     |
-| `Auth.Email.Verify`            | `POST auth/email/verify`          | `token`                                   | `{ status: "verified" }`. Needs a session of the user named by the token                    |
-| (GET link)                     | `GET auth/email/verify?token=...` | `token`                                   | 302 redirect, see below                                                                     |
-| `Auth.Password.StartRecovery`  | `POST auth/password/recovery`     | `email`                                   | always 204 (never reveals accounts)                                                         |
-| `Auth.Password.Recover`        | `POST auth/password/recover`      | `token`, `password`                       | sets the password, marks the email verified, ends all sessions (see below); does not log in |
-| `Auth.Password.Change`         | `POST auth/password/change`       | `current`, `next`                         | requires login; ends the other sessions (see below); emits `Authentication.PasswordUpdate`  |
+| Operation id                   | REST                               | Inputs                                    | Result / notes                                                                                  |
+| ------------------------------ | ---------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `Auth.Providers`               | `GET auth/providers`               | -                                         | list of `{ name, type, startUrl? }`                                                             |
+| `Auth.Me`                      | `GET auth/me`                      | -                                         | public entry of the user, 404 when not logged in                                                |
+| `Auth.Logout`                  | `POST auth/logout`                 | -                                         | revokes the refresh family of the session, clears the session; also abandons pending MFA        |
+| `Auth.Refresh`                 | `POST auth/refresh`                | `refreshToken`                            | `{ accessToken, refreshToken, expiresIn }`                                                      |
+| `Auth.Idents`                  | `GET auth/idents`                  | -                                         | `[{ provider, providerUid, email?, verifiedAt?, lastUsedAt? }]`; upgrades v3 idents first       |
+| `Auth.Unlink`                  | `POST auth/idents/unlink`          | `provider`, `providerUid`                 | 409 `LAST_LOGIN_METHOD` if no usable login method would remain (see below)                      |
+| `Auth.Email.Login`             | `POST auth/email/login`            | `email`, `password`                       | `{ status: "ok", user, accessToken, ... }` or `{ status: "mfa_required", methods }`             |
+| `Auth.Email.Register`          | `POST auth/email/register`         | `email`, `password`, `token?`, `profile?` | `{ status: "verification_sent" }` (mode `before`, no token) or the login result                 |
+| `Auth.Email.StartVerification` | `POST auth/email/verification`     | `email`                                   | 204. Logged out: never reveals whether the email exists                                         |
+| `Auth.Email.Verify`            | `POST auth/email/verify`           | `token`                                   | `{ status: "verified" }`. Needs a session of the user named by the token                        |
+| (GET link)                     | `GET auth/email/verify?token=...`  | `token`                                   | 302 redirect, see below                                                                         |
+| (GET link)                     | `GET auth/email/recover?token=...` | `token`                                   | 302 to `redirects.recover?token=...` (token not consumed), invalid: `redirects.failure?reason=` |
+| `Auth.Password.StartRecovery`  | `POST auth/password/recovery`      | `email`                                   | always 204 (never reveals accounts)                                                             |
+| `Auth.Password.Recover`        | `POST auth/password/recover`       | `token`, `password`                       | sets the password, marks the email verified, ends all sessions (see below); does not log in     |
+| `Auth.Password.Change`         | `POST auth/password/change`        | `current`, `next`                         | requires login; ends the other sessions (see below); emits `Authentication.PasswordUpdate`      |
 
 `Auth.Unlink` only counts the **usable** remaining login methods: idents of other providers, plus email idents when
 the user has a password (without one an email ident allows neither login nor recovery). It also refuses to remove the
@@ -145,6 +150,15 @@ logged-out browser, cannot verify anything.
   `throttle.resendDelay` per address (further calls are silently ignored), never for an owned or verified email
 - `Auth.Email.StartVerification` while logged in emails a link for the current account; the ident only becomes yours
   when `Auth.Email.Verify` is called by that same session
+
+### Recovery link
+
+The recovery mail links to `GET <url>/recover?token=...`. A valid token is redirected, unconsumed, to
+`redirects.recover?token=...`: that page asks for the new password and calls `Auth.Password.Recover` with the token.
+An invalid or expired token is redirected to `redirects.failure?reason=TOKEN_INVALID` (or `TOKEN_EXPIRED`).
+
+Emailed links carry their token in the query string: serve the `confirm`, `register` and `recover` pages with
+`Referrer-Policy: no-referrer` (or `same-origin`) so the token does not leak to third-party resources they load.
 
 ### Login throttling
 
@@ -270,6 +284,8 @@ The provider sends through the configured `Mailer` with these templates and repl
 - `EMAIL_RECOVERY`: password recovery link
 
 `url` is the full link (`<url>/verify?token=...` or `<url>/recover?token=...`), `token` the raw token, `to` the address.
+A relative `url` parameter is made absolute from the request when one is available; configure an absolute `url` so
+links are correct whatever triggered the mail.
 Emailed tokens are purpose-scoped JWTs (audience `webda-email`): register and verify 24 h, recover 1 h.
 
 ## Known limitations

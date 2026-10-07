@@ -582,6 +582,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       // instead of both being registered under the same GraphQL type name.
       if (!this.app.isFinalModel(metadata.Identifier)) continue;
       if (!this.parameters.isIncluded(metadata.Identifier)) continue;
+      // Authentication state models (Ident, RefreshToken and subclasses) are internal unless explicitly listed
+      if (!this.isExposable(model, metadata.Identifier)) continue;
       const schema = this.app.getSchema(i);
       if (!schema) continue;
       const name = (metadata.ShortName || i.split("/").pop()).replace("/", "_");

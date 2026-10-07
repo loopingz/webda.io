@@ -55,6 +55,25 @@ export function stripPrivateFields<T = any>(input: T): T {
   return input;
 }
 
+/**
+ * Models that hold authentication state: never exposed by a DomainService (REST, GraphQL, operations), nor any of
+ * their subclasses, unless explicitly listed in its `models` parameter
+ */
+export const INTERNAL_MODELS: readonly string[] = ["Webda/Ident", "Webda/RefreshToken"];
+
+/**
+ * @param model - a model class
+ * @returns true when the model is, or descends from, one of {@link INTERNAL_MODELS}
+ */
+export function isInternalModel(model: any): boolean {
+  for (let clazz = model; clazz && clazz !== Function.prototype; clazz = Object.getPrototypeOf(clazz)) {
+    if (INTERNAL_MODELS.includes(clazz.Metadata?.Identifier)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Parameters for DomainService, controlling model exposure, URL naming, and query methods */
 export class DomainServiceParameters extends ServiceParameters {
   /**
@@ -117,6 +136,15 @@ export class DomainServiceParameters extends ServiceParameters {
    */
   isIncluded(model: string) {
     return !this.isExcluded(model) && (this.models.includes("*") || this.models.includes(model));
+  }
+
+  /**
+   * Is a model explicitly listed (not through the wildcard) in `models`
+   * @param model - the model identifier
+   * @returns the result
+   */
+  isExplicitlyIncluded(model: string) {
+    return !this.isExcluded(model) && this.models.includes(model);
   }
 
   /**
@@ -376,6 +404,17 @@ export class DomainService<
   }
 
   /**
+   * Whether a model may be exposed: models of {@link INTERNAL_MODELS} and their subclasses need an explicit listing
+   * in the `models` parameter
+   * @param model - model class
+   * @param identifier - model identifier
+   * @returns true when the model may be exposed
+   */
+  isExposable(model: any, identifier: string): boolean {
+    return !isInternalModel(model) || this.parameters.isExplicitlyIncluded(identifier);
+  }
+
+  /**
    * Add operations for all exposed models
    * @returns the result
    */
@@ -419,6 +458,10 @@ export class DomainService<
 
       // Overlap object are hidden by design
       if (!this.app.isFinalModel(Metadata.Identifier)) {
+        continue;
+      }
+      // Authentication state models (and subclasses) are internal unless explicitly listed
+      if (!this.isExposable(model, Metadata.Identifier)) {
         continue;
       }
       const shortId = Metadata.Identifier.split("/").pop();

@@ -11,6 +11,8 @@ import { MemoryRepository, registerRepository } from "@webda/models";
 import type { UuidModel } from "@webda/models";
 import { runWithContext } from "../contexts/execution.js";
 import { useDynamicService, useModelMetadata } from "../core/hooks.js";
+import { Ident } from "../models/ident.model.js";
+import { RefreshToken } from "../models/refreshtoken.model.js";
 
 /**
  * Fake operation context that allows setting custom input for testing
@@ -211,6 +213,46 @@ class DomainServiceTest extends WebdaApplicationTest {
     assert.ok(hwGlobal);
     assert.deepStrictEqual(hwGlobal.tags, ["Hardware"]);
     assert.ok(hwGlobal.rest);
+  }
+
+  @test
+  async authModelSubclassesAreInternal() {
+    const app: any = useApplication();
+    const models = app.getModels();
+    const created: string[] = [];
+    // Application subclasses of the auth models, final in the application namespace
+    for (const [name, parent] of [
+      ["CustomIdent", Ident],
+      ["CustomRefreshToken", RefreshToken]
+    ] as const) {
+      const Sub: any = class extends (parent as any) {};
+      Sub.Metadata = { ...((parent as any).Metadata ?? {}), Identifier: `WebdaDemo/${name}`, ShortName: name };
+      if (!(parent as any).Metadata) {
+        (parent as any).Metadata = { Identifier: `Webda/${name.replace("Custom", "")}` };
+        created.push(name);
+      }
+      Sub.Metadata.Actions ??= {};
+      Sub.Metadata.Plural = `${name}s`;
+      models[`WebdaDemo/${name}`] = Sub;
+    }
+    try {
+      assert.ok(app.isFinalModel("WebdaDemo/CustomIdent"));
+      this.registerService(new DomainService("internalCheck", new DomainServiceParameters().load({})), "internalCheck");
+      useDynamicService<DomainService>("internalCheck").initOperations();
+      let ops = Object.keys(listOperations());
+      assert.ok(!ops.some(o => o.startsWith("CustomIdent.") || o.startsWith("CustomRefreshToken.")), ops.join(","));
+      // An explicit listing opts in
+      this.registerService(
+        new DomainService("internalOptIn", new DomainServiceParameters().load({ models: ["WebdaDemo/CustomIdent"] })),
+        "internalOptIn"
+      );
+      useDynamicService<DomainService>("internalOptIn").initOperations();
+      ops = Object.keys(listOperations());
+      assert.ok(ops.includes("CustomIdent.Update"));
+    } finally {
+      delete models["WebdaDemo/CustomIdent"];
+      delete models["WebdaDemo/CustomRefreshToken"];
+    }
   }
 
   @test async deleteAsyncHttp() {

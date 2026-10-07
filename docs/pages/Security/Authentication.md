@@ -104,6 +104,11 @@ Users, idents and refresh tokens are regular models; map them to a store like an
 }
 ```
 
+`Webda/Ident` and `Webda/RefreshToken`, and any application subclass of them (for example a custom `identModel`), are
+never exposed by the `DomainService` (REST, GraphQL, model operations): their fields (`_user`, `verifiedAt`,
+`_loginAttempts`, ...) would allow an account takeover. Only an explicit listing in the DomainService `models` parameter
+exposes them; the `"*"` wildcard does not.
+
 There is no `LegacyIdent` model: v3 ident records stored under the `"<uid>_<provider>"` key are read through the
 `Webda/Ident` model (see [compatibility](../Migration/Authentication-v3-to-v4.md)). Ident keys are
 `"<providerUid>:<provider>"`; emails are normalised (trimmed, lowercased).

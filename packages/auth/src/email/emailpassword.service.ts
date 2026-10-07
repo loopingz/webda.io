@@ -421,7 +421,8 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
     const normalized = Ident.normalizeEmail(email);
     const userId: string | undefined = ctx.getSession()?.isLogged() ? ctx.getCurrentUserId() : undefined;
     if (!userId) {
-      return this.sendUnownedLink(normalized);
+      await this.sendUnownedLink(normalized);
+      return;
     }
     const token = await runAsSystem(() => this.prepareLink(normalized, userId));
     await this.sendMail("EMAIL_REGISTER", normalized, this.buildLink("/verify", token), token);

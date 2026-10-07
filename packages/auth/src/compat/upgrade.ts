@@ -100,26 +100,42 @@ function identIdentifiers(IdentModel: any): Set<string> {
  * or a concurrent one won) it is kept as is and only the v3 record is deleted. Field map: `_user` → owner,
  * `_validation` → `verifiedAt`, `_lastUsed` → `lastUsedAt`, `_failedLogin` → `_loginAttempts`,
  * `_lastValidationEmail` → `_throttle.lastSentAt`; `email`, `__profile`, `__tokens` are kept; provider is
- * `provider ?? _type ?? key suffix`, providerUid the key prefix. Callers run it as system.
- * @throws Error when `legacy` is not a v3 ident (see {@link isLegacyIdent})
+ * `provider ?? _type ?? key suffix`, providerUid the key prefix (normalised for the email provider: v3 kept the
+ * email case). Callers run it as system.
+ * @throws Error when `legacy` is not a v3 ident (see {@link isLegacyIdent}), or when the upgraded key already
+ * exists with another owner (the v3 record is kept)
  * @param legacy - a v3 ident (`legacy.getLegacyUID()` is set)
  * @param IdentModel - ident model of the application
+ * @param options - options
+ * @param options.dryRun - run the checks only: nothing is written, the returned ident is not saved
  * @returns the upgraded ident
  */
-export async function upgradeIdent(legacy: Ident, IdentModel: ModelClass<Ident> = Ident as any): Promise<Ident> {
+export async function upgradeIdent(
+  legacy: Ident,
+  IdentModel: ModelClass<Ident> = Ident as any,
+  options: { dryRun?: boolean } = {}
+): Promise<Ident> {
   const uid = isLegacyIdent(legacy, IdentModel) ? legacy.getLegacyUID() : undefined;
   const parts = uid ? splitLegacyKey(uid) : undefined;
   if (!parts) {
     throw new Error("Not a v3 ident");
   }
   const v3: any = legacy;
-  const key = Ident.key(parts.providerUid, v3.provider ?? v3._type ?? parts.provider);
+  const provider = v3.provider ?? v3._type ?? parts.provider;
+  // v3 did not normalise emails: an email key is upgraded under its normalised (lowercase) form
+  const providerUid = provider === "email" ? Ident.normalizeEmail(parts.providerUid) : parts.providerUid;
+  const key = Ident.key(providerUid, provider);
   const ref = IdentModel.ref(key);
+  const owner = v3._user?.toString();
   let ident: Ident | undefined = (await ref.exists()) ? await ref.get() : undefined;
+  if (ident && ident.getUser()?.toString() !== owner) {
+    // Another account already holds the upgraded key (e.g. two v3 keys differing only by case)
+    throw new Error("Upgraded ident key already belongs to another user");
+  }
   if (!ident) {
-    const created = new IdentModel({
+    const created: Ident = new IdentModel({
       ...key,
-      email: v3.email ?? (key.provider === "email" ? key.providerUid : undefined),
+      email: v3.email ?? (provider === "email" ? providerUid : undefined),
       verifiedAt: v3._validation ? (toDate(v3._validation) ?? new Date()) : undefined,
       lastUsedAt: toDate(v3._lastUsed),
       _throttle: { lastSentAt: toTimestamp(v3._lastValidationEmail) },
@@ -127,9 +143,11 @@ export async function upgradeIdent(legacy: Ident, IdentModel: ModelClass<Ident> 
       __profile: v3.__profile,
       __tokens: v3.__tokens
     } as any);
-    const owner = v3._user?.toString();
     if (owner) {
       created.setUser(owner);
+    }
+    if (options.dryRun) {
+      return created;
     }
     try {
       ident = await created.getRepository().create(created);
@@ -139,7 +157,9 @@ export async function upgradeIdent(legacy: Ident, IdentModel: ModelClass<Ident> 
       ident = await ref.get();
     }
   }
-  await IdentModel.ref(uid as any).delete();
+  if (!options.dryRun) {
+    await IdentModel.ref(uid as any).delete();
+  }
   return ident;
 }
 

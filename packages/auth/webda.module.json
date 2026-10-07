@@ -71,7 +71,24 @@
         "type": "object",
         "title": "Authentication"
       },
-      "Configuration": "lib/authentication.service:AuthenticationParameters"
+      "Configuration": "lib/authentication.service:AuthenticationParameters",
+      "commands": {
+        "auth migrate": {
+          "description": "Migrate v3 authentication data (idents, users) to v4",
+          "method": "migrate",
+          "args": {
+            "dryRun": {
+              "type": "boolean",
+              "default": false
+            },
+            "batch": {
+              "type": "number",
+              "default": 100
+            }
+          },
+          "phase": "initialized"
+        }
+      }
     },
     "Webda/EmailPasswordProvider": {
       "Import": "lib/email/emailpassword.service:EmailPasswordProvider",

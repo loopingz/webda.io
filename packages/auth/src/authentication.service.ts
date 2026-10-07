@@ -1,6 +1,7 @@
 import {
   type AuthenticationEvents,
   type AuthResult,
+  Command,
   Counter,
   Ident,
   type IAuthenticationService,
@@ -17,11 +18,12 @@ import {
   useModel,
   useService,
   type User,
+  V3_PASSWORD_MAPPED,
   WebdaError
 } from "@webda/core";
 import type { ModelClass } from "@webda/models";
 import { AccountExists, IdentLinkedElsewhere, LastLoginMethod, RegistrationDisabled } from "./errors.js";
-import { isLegacyIdent, legacyKey, upgradeIdent } from "./compat/upgrade.js";
+import { isLegacyIdent, legacyIdents, legacyKey, splitLegacyKey, upgradeIdent } from "./compat/upgrade.js";
 import { type AuthProvider, applyEmailPolicy, isAuthProvider, type ProviderEmailPolicy } from "./provider.js";
 
 /** Account linking policy for unauthenticated logins matching an existing email */
@@ -35,6 +37,31 @@ export interface AuthenticationCompatibility {
    */
   v3?: boolean;
 }
+
+/** Counts of one kind of migrated records */
+export interface MigrationCounts {
+  /** Records migrated (or that would be, in a dry run) */
+  migrated: number;
+  /** Records that look like v3 data but are not migrated (unrecognised key, foreign row) */
+  skipped: number;
+  /** Keys of the records whose migration failed */
+  failed: string[];
+}
+
+/** Result of `webda auth migrate` */
+export interface MigrationReport {
+  /** v3 ident records */
+  idents: MigrationCounts;
+  /** Users whose stored record still has the v3 `__password` */
+  users: MigrationCounts;
+  /** Nothing was written */
+  dryRun: boolean;
+  /** Set when the ident passes stopped at the pass limit with records still migrating: run the command again */
+  incomplete?: boolean;
+}
+
+/** Maximum ident passes of one migration */
+const MIGRATION_MAX_PASSES = 100;
 
 /** Authentication parameters */
 export class AuthenticationParameters extends ServiceParameters {
@@ -610,5 +637,134 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     }
     await runAsSystem(() => target.ref().delete());
     await this.emit("Authentication.Unlinked", { context: useContext(), user, ident: target } as any);
+  }
+
+  /**
+   * Migrate v3 authentication data to the v4 layout
+   *
+   * Idents: every v3 record (`"<providerUid>_<provider>"` key) is upgraded to its `"<providerUid>:<provider>"`
+   * record (emails normalised) then deleted; with a custom ident model, the v3 rows typed as the core
+   * `Webda/Ident` are found through its repository too. Upgrading shifts position-based paging, so passes run
+   * until one upgrades nothing. Users: a user whose stored record still has the v3 `__password` is saved again in
+   * the v4 `password` shape. Idempotent: a second run migrates nothing. Failures are reported by key and logged,
+   * the migration goes on.
+   * @param dryRun - only count, write nothing
+   * @param batch - page size of the scans
+   * @returns the report
+   */
+  @Command("auth migrate", {
+    description: "Migrate v3 authentication data (idents, users) to v4",
+    phase: "initialized"
+  })
+  async migrate(dryRun: boolean = false, batch: number = 100): Promise<MigrationReport> {
+    const pageSize = Math.max(1, Math.floor(Number(batch)) || 100);
+    const report: MigrationReport = {
+      dryRun: !!dryRun,
+      idents: { migrated: 0, skipped: 0, failed: [] },
+      users: { migrated: 0, skipped: 0, failed: [] }
+    };
+    await runAsSystem(async () => {
+      await this.migrateIdents(report, pageSize);
+      await this.migrateUsers(report, pageSize);
+    });
+    this.log("INFO", "Authentication migration", report);
+    return report;
+  }
+
+  /**
+   * Enumerate the v3 ident rows: through the ident model, and through the core `Ident` repository when the
+   * ident model is a subclass (its queries only see rows typed as itself or its subclasses)
+   * @param pageSize - page size
+   * @returns the v3 keys found, each once per pass
+   */
+  protected async *legacyIdentKeys(pageSize: number): AsyncGenerator<string> {
+    const IdentModel = this.getIdentModel();
+    const models: ModelClass<Ident>[] = [IdentModel];
+    if ((IdentModel as any) !== Ident) {
+      try {
+        if (Ident.getRepository()) models.push(Ident as any);
+      } catch {
+        // The core Ident model has no repository: no ancestor-typed rows to look for
+      }
+    }
+    const seen = new Set<string>();
+    for (const model of models) {
+      for await (const row of legacyIdents(model, `LIMIT ${pageSize}`)) {
+        const uid = row.getLegacyUID();
+        if (seen.has(uid)) continue;
+        seen.add(uid);
+        yield uid;
+      }
+    }
+  }
+
+  /**
+   * Upgrade the v3 idents
+   * @param report - report to fill
+   * @param pageSize - page size
+   */
+  protected async migrateIdents(report: MigrationReport, pageSize: number): Promise<void> {
+    const IdentModel = this.getIdentModel();
+    const status = new Map<string, "migrated" | "skipped" | "failed">();
+    let pass = 0;
+    let upgraded: number;
+    do {
+      upgraded = 0;
+      for await (const uid of this.legacyIdentKeys(pageSize)) {
+        if (status.get(uid) === "migrated" || status.get(uid) === "skipped") continue;
+        if (!splitLegacyKey(uid)) {
+          status.set(uid, "skipped");
+          continue;
+        }
+        // Load through the ident model: a row found via the core repository hydrates as the ident model, a row
+        // its store cannot reach or refuses (another model's row) is not this application's v3 ident
+        const ref = IdentModel.ref(uid as any);
+        const row = await ref
+          .get()
+          .catch(err => this.log("WARN", `v3 ident ${uid} not readable through the ident model: ${err?.message}`));
+        if (!isLegacyIdent(row, IdentModel)) {
+          status.set(uid, "skipped");
+          continue;
+        }
+        try {
+          await upgradeIdent(row, IdentModel, { dryRun: report.dryRun });
+          status.set(uid, "migrated");
+          upgraded++;
+        } catch (err) {
+          status.set(uid, "failed");
+          this.log("WARN", `v3 ident ${uid} not migrated: ${err?.message ?? err}`);
+        }
+      }
+      pass++;
+      // A dry run changes nothing: one pass sees every record
+    } while (!report.dryRun && upgraded > 0 && pass < MIGRATION_MAX_PASSES);
+    if (upgraded > 0 && pass >= MIGRATION_MAX_PASSES) {
+      report.incomplete = true;
+      this.log("WARN", `Ident migration stopped after ${pass} passes: run it again`);
+    }
+    for (const [uid, state] of status) {
+      if (state === "failed") report.idents.failed.push(uid);
+      else report.idents[state]++;
+    }
+  }
+
+  /**
+   * Save again the users whose stored record still has the v3 `__password`
+   * @param report - report to fill
+   * @param pageSize - page size
+   */
+  protected async migrateUsers(report: MigrationReport, pageSize: number): Promise<void> {
+    for await (const user of this.getUserModel().iterate(`LIMIT ${pageSize}`)) {
+      if (!(user as any)[V3_PASSWORD_MAPPED]) continue;
+      try {
+        if (!report.dryRun) {
+          await user.save();
+        }
+        report.users.migrated++;
+      } catch (err) {
+        report.users.failed.push(user.getUUID());
+        this.log("WARN", `v3 user ${user.getUUID()} not migrated: ${err?.message ?? err}`);
+      }
+    }
   }
 }

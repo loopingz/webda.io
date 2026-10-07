@@ -493,7 +493,7 @@ class RouterTest extends WebdaApplicationTest {
     router.addRouteToRouter("/test-options", {
       methods: ["GET"],
       executor: "TestRoute",
-      _method: async (ctx) => ctx.write("ok")
+      _method: async ctx => ctx.write("ok")
     });
     // OPTIONS without CORS filter should return 404
     const httpContext = new HttpContext("test.webda.io", "OPTIONS", "/test-options");
@@ -509,7 +509,7 @@ class RouterTest extends WebdaApplicationTest {
     router.addRouteToRouter("/test-cors-options", {
       methods: ["GET", "POST"],
       executor: "TestRoute",
-      _method: async (ctx) => ctx.write("ok")
+      _method: async ctx => ctx.write("ok")
     });
     // Register a CORS filter that allows everything
     router.registerCORSFilter({
@@ -534,7 +534,7 @@ class RouterTest extends WebdaApplicationTest {
     router.addRouteToRouter("/test-func", {
       methods: ["GET"],
       executor: "TestRoute",
-      _method: async (_ctx) => {
+      _method: async _ctx => {
         called = true;
       }
     });
@@ -567,7 +567,7 @@ class RouterTest extends WebdaApplicationTest {
     router.addRouteToRouter("/test-denied", {
       methods: ["GET"],
       executor: "TestRoute",
-      _method: async (ctx) => ctx.write("should not reach")
+      _method: async ctx => ctx.write("should not reach")
     });
     const httpContext = new HttpContext("test.webda.io", "GET", "/test-denied");
     const ctx = new WebContext(httpContext);

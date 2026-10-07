@@ -94,10 +94,7 @@ class SharedOpsTest extends AuthTest {
     const { ctx } = await this.login("u1");
     await this.op("Auth.Unlink", { provider: "email", providerUid: "u1@x.com" }, ctx);
     assert.ok(!(await Ident.ref(Ident.key("u1@x.com", "email")).exists()));
-    await rejectsWith(
-      () => this.op("Auth.Unlink", { provider: "google", providerUid: "u1" }, ctx),
-      LastLoginMethod
-    );
+    await rejectsWith(() => this.op("Auth.Unlink", { provider: "google", providerUid: "u1" }, ctx), LastLoginMethod);
     await rejectsWith(() => this.op("Auth.Unlink", { provider: "google", providerUid: "nope" }, ctx), {
       name: "NotFound"
     });

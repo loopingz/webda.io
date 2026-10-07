@@ -272,8 +272,7 @@ export class ModelRef<T extends Storable> {
  * Union of all relation property keys on a model (both ModelRelated and ModelLinker fields).
  */
 export type ModelRelations<T extends object> =
-  | FilterAttributes<T, ModelRelated<any, any, any>>
-  | FilterAttributes<T, ModelLinker>;
+  FilterAttributes<T, ModelRelated<any, any, any>> | FilterAttributes<T, ModelLinker>;
 
 /**
  * Model reference with create and upsert methods

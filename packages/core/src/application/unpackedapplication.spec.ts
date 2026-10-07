@@ -74,7 +74,9 @@ class UnpackedApplicationTest extends WebdaApplicationTest {
 
     // Second run — test cache
     start = Date.now();
-    const modules2 = await UnpackedApplication.findModulesFiles(join(__dirname, "..", "..", "..", "..", "node_modules"));
+    const modules2 = await UnpackedApplication.findModulesFiles(
+      join(__dirname, "..", "..", "..", "..", "node_modules")
+    );
     assert.deepStrictEqual(modules2, modules);
     const newDuration = Date.now() - start;
     assert.ok(duration < 100 || duration / 10 > newDuration, `Cache is not working ${duration} vs ${newDuration}`);

@@ -151,6 +151,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
    * @param collection - the collection name
    * @param indexes - compound indexes declared on the store
    * @param log - logger of the store
+   * @param separator - primary key separator
    */
   constructor(
     model: T,

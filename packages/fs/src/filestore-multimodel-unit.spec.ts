@@ -78,7 +78,10 @@ class FileStoreMultiModelTest extends WebdaApplicationTest {
     assert.strictEqual(user.password.__hash, "$2a$10$abc");
     // Ident queries see v3 records as legacy idents instead of throwing
     const results = (await Ident.query("_user = ?", ["v3user"])).results;
-    assert.deepStrictEqual(results.map(i => i.getLegacyUID() ?? i.getUUID()).sort(), ["123:google", "o_ld@x.com_email"]);
+    assert.deepStrictEqual(results.map(i => i.getLegacyUID() ?? i.getUUID()).sort(), [
+      "123:google",
+      "o_ld@x.com_email"
+    ]);
     assert.deepStrictEqual(
       (await User.query("")).results.map(u => u.getUUID()),
       ["v3user"]

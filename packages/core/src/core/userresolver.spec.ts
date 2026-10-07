@@ -1,4 +1,3 @@
-"use strict";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/application.js";

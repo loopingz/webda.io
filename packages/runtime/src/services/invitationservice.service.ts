@@ -667,15 +667,15 @@ export class InvitationService<
     if ((user[this.parameters.mapAttribute] || []).filter(p => p.model === model.getUUID()).length) {
       return;
     }
-    await (this.authenticationService
-      .getUserModel()
-      .ref(user.getUUID()) as any)
-      .upsertItemToCollection(this.parameters.mapAttribute, {
+    await (this.authenticationService.getUserModel().ref(user.getUUID()) as any).upsertItemToCollection(
+      this.parameters.mapAttribute,
+      {
         model: model.getUUID(),
         metadata,
         inviter: inviter.toPublicEntry(),
         pending: !this.parameters.autoAccept
-      });
+      }
+    );
     // Notify user
     await this.sendNotification(user, {
       model,

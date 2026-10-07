@@ -39,7 +39,9 @@ function classOf(session: Session, file: string, name: string): ClassDeclaration
 
 describe("module helpers", () => {
   it("pluralises like @webda/compiler", () => {
-    expect(["Key", "City", "Knife", "Leaf", "Criterion", "Analysis", "Woman", "Box", "Hero", "Bus", "User"].map(getPlural)).toEqual([
+    expect(
+      ["Key", "City", "Knife", "Leaf", "Criterion", "Analysis", "Woman", "Box", "Hero", "Bus", "User"].map(getPlural)
+    ).toEqual([
       "Keys",
       "Cities",
       "Knives",
@@ -173,7 +175,12 @@ describe("module metadata on a fixture", () => {
     expect(module.behaviors["Custom/Named"]).toEqual({
       Identifier: "Custom/Named",
       Import: "lib/behaviors:Named",
-      Actions: { own: {}, read: { description: "Read", summary: "S", rest: { route: "{id}", method: "GET" } }, write: {}, bare: {} }
+      Actions: {
+        own: {},
+        read: { description: "Read", summary: "S", rest: { route: "{id}", method: "GET" } },
+        write: {},
+        bare: {}
+      }
     });
     expect(errors).toHaveLength(2);
     // Nothing here extends @webda/core or @webda/models.

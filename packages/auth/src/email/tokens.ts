@@ -22,6 +22,9 @@ const AUDIENCE = "webda-email";
  * Sign a purpose-scoped emailed token
  * @param purpose - purpose
  * @param claims - email, user and password timestamp
+ * @param claims.email - email of the token
+ * @param claims.sub - user id
+ * @param claims.pwdAt - password change timestamp
  * @param ttl - lifetime in seconds
  * @returns signed token
  */

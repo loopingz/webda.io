@@ -9,13 +9,7 @@ import { WorkerOutput } from "@webda/workout";
 import { execSync } from "node:child_process";
 import path from "node:path";
 import { FileUtils } from "@webda/utils";
-import {
-  ModelEvents,
-  PrimaryKey,
-  ModelClass,
-  Repository,
-  MemoryRepository
-} from "@webda/models";
+import { ModelEvents, PrimaryKey, ModelClass, Repository, MemoryRepository } from "@webda/models";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { IOperationContext } from "../contexts/icontext.js";
 

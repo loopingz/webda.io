@@ -290,7 +290,10 @@ export function discoverWebdaObjects(ctx: AnalysisContext, options: DiscoveryOpt
         importTarget: `${outputTarget(sf.fileName, options)}:${exportName}`,
         fileName: sf.fileName,
         className: cls.name.text,
-        baseNames: chain.slice(1).map((type: any) => (type.getSymbol?.() ?? type.symbol)?.name).filter(Boolean),
+        baseNames: chain
+          .slice(1)
+          .map((type: any) => (type.getSymbol?.() ?? type.symbol)?.name)
+          .filter(Boolean),
         primaryKey: primaryKeyOfChain(ctx, sf, cls, chain),
         primaryKeySeparator: primaryKeySeparatorOfChain(ctx, sf, cls, chain)
       });
@@ -620,9 +623,7 @@ export function reflectAttributes(ctx: AnalysisContext, sf: any, cls: any): Reco
     }
 
     const text = ctx.textOf(owner, typeNode);
-    reflection[name] = text.endsWith("[]")
-      ? { type: "Array", typeParameters: [text.slice(0, -2)] }
-      : { type: text };
+    reflection[name] = text.endsWith("[]") ? { type: "Array", typeParameters: [text.slice(0, -2)] } : { type: text };
   }
 
   return reflection;

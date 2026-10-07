@@ -80,7 +80,13 @@ export interface ModuleRelations {
   parent?: { attribute: string; model?: string };
   links?: { attribute: string; model?: string; type: string }[];
   queries?: { attribute: string; model?: string; targetAttribute?: string }[];
-  maps?: { attribute: string; cascadeDelete: boolean; model?: string; targetLink: string; targetAttributes: string[] }[];
+  maps?: {
+    attribute: string;
+    cascadeDelete: boolean;
+    model?: string;
+    targetLink: string;
+    targetAttributes: string[];
+  }[];
   behaviors?: { attribute: string; behavior: string }[];
 }
 
@@ -499,7 +505,10 @@ function decoratedStaticMethods(ctx: AnalysisContext, cls: ClassDeclaration): Me
  * @param cls - the model class
  * @returns action name to metadata
  */
-export function buildModelActions(ctx: AnalysisContext, cls: ClassDeclaration): Record<string, Record<string, unknown>> {
+export function buildModelActions(
+  ctx: AnalysisContext,
+  cls: ClassDeclaration
+): Record<string, Record<string, unknown>> {
   let actions: Record<string, Record<string, unknown>> = {};
   // Source 1: the declarative `[WEBDA_ACTIONS]` member.
   const declared = propertiesOf(ctx, cls).find(p => propertyIsKeyedBySymbol(ctx, p, "@webda/models", "WEBDA_ACTIONS"));
@@ -830,7 +839,11 @@ export function buildBehaviorActions(
  * @param namespace - project namespace
  * @returns the identifier
  */
-function behaviorOfTypeReference(ctx: AnalysisContext, typeRef: any, namespace: string | undefined): string | undefined {
+function behaviorOfTypeReference(
+  ctx: AnalysisContext,
+  typeRef: any,
+  namespace: string | undefined
+): string | undefined {
   if (!typeRef?.typeName) return undefined;
   // `getTypeAtLocation(typeName)` answers with a symbol-less type on 7.1; the
   // type of the reference itself carries the class symbol.
@@ -841,9 +854,7 @@ function behaviorOfTypeReference(ctx: AnalysisContext, typeRef: any, namespace: 
     symbol = undefined;
   }
   symbol ??= resolveAlias(ctx, ctx.checker.getSymbolAtLocation(typeRef.typeName));
-  const declaration = declarationsOf(ctx, symbol).find(
-    d => is.isClassDeclaration(d) || is.isClassExpression(d)
-  );
+  const declaration = declarationsOf(ctx, symbol).find(d => is.isClassDeclaration(d) || is.isClassExpression(d));
   if (!declaration) return undefined;
   return behaviorIdentifier(declaration, namespace);
 }

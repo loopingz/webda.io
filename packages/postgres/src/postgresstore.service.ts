@@ -204,7 +204,13 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     const meta = useModelMetadata(model);
     const table = this.resolveTable(model);
-    const inner = new PostgresRepository<T>(model, meta.PrimaryKey, this.client as any, table, meta.PrimaryKeySeparator);
+    const inner = new PostgresRepository<T>(
+      model,
+      meta.PrimaryKey,
+      this.client as any,
+      table,
+      meta.PrimaryKeySeparator
+    );
     // Wrap in EventRepository so typed CRUD events fire; consumers reach them
     // via useRepository(model).on(...).
     return new EventRepository<T>(model, meta.PrimaryKey, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
@@ -254,7 +260,9 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
       if (!modelMatches(meta.Identifier)) continue;
 
       // Find the PostgresStore responsible for this model
-      const allServices = Object.values(useCore().getServices()).filter(s => s instanceof PostgresStore) as PostgresStore[];
+      const allServices = Object.values(useCore().getServices()).filter(
+        s => s instanceof PostgresStore
+      ) as PostgresStore[];
       const store = allServices.find(s => s.handleModel(model) >= 0);
       if (!store) continue;
 

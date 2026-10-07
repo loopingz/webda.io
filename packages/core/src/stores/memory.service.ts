@@ -220,7 +220,11 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
     const dest = createWriteStream(this.parameters.persistence.path);
     if (this.key) {
       const iv = crypto.randomBytes(16);
-      const cipher = crypto.createCipheriv(this.parameters.persistence.cipher, new Uint8Array(this.key), new Uint8Array(iv));
+      const cipher = crypto.createCipheriv(
+        this.parameters.persistence.cipher,
+        new Uint8Array(this.key),
+        new Uint8Array(iv)
+      );
       pipeline = pipeline.pipe(cipher);
       dest.write(iv);
     }
@@ -247,7 +251,11 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
       const ivBuf = Buffer.alloc(16);
       await fh.read(new Uint8Array(ivBuf.buffer, ivBuf.byteOffset, ivBuf.byteLength), 0, 16);
       const iv = new Uint8Array(ivBuf);
-      const decipher = crypto.createDecipheriv(this.parameters.persistence.cipher, new Uint8Array(this.key), new Uint8Array(iv));
+      const decipher = crypto.createDecipheriv(
+        this.parameters.persistence.cipher,
+        new Uint8Array(this.key),
+        new Uint8Array(iv)
+      );
       pipeline = fh.createReadStream({ start: 16 }).pipe(decipher);
     } else {
       pipeline = createReadStream(this.parameters.persistence.path);

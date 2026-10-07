@@ -500,6 +500,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
 
   /**
    * @param claims - verified token claims
+   * @param claims.sub - user id
    * @param ctx - context
    * @returns true when the session is logged as the user of the token
    */
@@ -510,6 +511,8 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
   /**
    * Complete a verification; nothing changes unless every check passes
    * @param claims - verified token claims
+   * @param claims.email - email of the token
+   * @param claims.sub - user id
    * @param ctx - context
    */
   protected async completeVerify(claims: { email: string; sub?: string }, ctx: any): Promise<void> {

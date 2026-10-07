@@ -183,6 +183,7 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
    * @param globalIndexes - global secondary indexes usable by queries
    * @param scanPage - scan page size used by __clean
    * @param storeName - store name used in errors
+   * @param separator - primary key separator
    */
   constructor(
     model: T,

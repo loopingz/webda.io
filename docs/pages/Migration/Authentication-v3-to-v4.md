@@ -79,7 +79,8 @@ New operations: `Auth.Refresh`, `Auth.Idents`, `Auth.Unlink`, `Auth.Password.Cha
   `Auth.Email.Register` without token, send at most one mail per `throttle.resendDelay` per address.
 - The user password is a `password` behavior (`user.password.set(...)`, `.verify(...)`), not methods of `User`.
 - Server-only fields: the REST/DomainService layer strips every `__`-prefixed key (any depth) and behavior attributes
-  from client input on create/update/patch, and an update keeps the stored behavior state.
+  from client input on create/update/patch, and an update keeps the stored behavior state. GraphQL create/update
+  mutations apply the same rules, and their generated input types omit `__` and behavior attributes.
 - `MemoryRepository` and `FileStore` return model instances for rows without an envelope.
 
 ## Data migration
@@ -110,7 +111,6 @@ Field map: `_failedLogin` -> `_loginAttempts`, `_lastFailedLogin` -> `_lastLogin
 
 ## Known issues
 
-- GraphQL create/update mutations do not yet sanitize behavior attributes.
 - Access tokens stay valid until expiry after logout (a password change does end them).
 - Google login is disabled until the OAuth providers are ported to `@webda/auth`.
 - `__`-prefixed fields are now server-only: an application that wrote them through REST must use an operation instead.

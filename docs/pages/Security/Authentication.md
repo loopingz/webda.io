@@ -290,7 +290,6 @@ Emailed tokens are purpose-scoped JWTs (audience `webda-email`): register and ve
 
 ## Known limitations
 
-- GraphQL create/update mutations do not yet strip behavior attributes (REST does).
 - Access tokens stay valid until expiry after logout or refresh-family revocation (default 15 minutes); a password
   change does end them (see above).
 - Google (OAuth) login is disabled until the OAuth providers are ported to `@webda/auth`.

@@ -43,14 +43,12 @@ export function stripPrivateFields<T = any>(input: T): T {
     return input.map(i => stripPrivateFields(i)) as any;
   }
   if (input && typeof input === "object" && Object.getPrototypeOf(input) === Object.prototype) {
-    const out: any = {};
-    for (const [k, v] of Object.entries(input)) {
-      if (k.startsWith("__") || k === "__proto__" || k === "constructor" || k === "prototype") {
-        continue;
-      }
-      out[k] = stripPrivateFields(v);
-    }
-    return out;
+    // Object.fromEntries defines own properties: no dynamic assignment can reach a prototype
+    return Object.fromEntries(
+      Object.entries(input)
+        .filter(([k]) => !k.startsWith("__") && k !== "constructor" && k !== "prototype")
+        .map(([k, v]) => [k, stripPrivateFields(v)])
+    ) as any;
   }
   return input;
 }

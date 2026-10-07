@@ -584,6 +584,9 @@ export class MemoryRepository<
     const updated: Record<string, number> = {};
     for (const [prop, inc] of entries) {
       const { holder, key } = this.resolvePath(item, prop);
+      if (key === "__proto__" || key === "constructor" || key === "prototype" || holder === Object.prototype) {
+        throw new Error(`Invalid path segment in '${prop}'`);
+      }
       holder[key] = (holder[key] || 0) + inc;
       updated[prop] = holder[key];
     }

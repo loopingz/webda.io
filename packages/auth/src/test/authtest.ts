@@ -1,4 +1,4 @@
-import { callOperation, runWithContext, WebContext } from "@webda/core";
+import { callOperation, HttpContext, runWithContext, WebContext } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import { DebugMailer } from "@webda/core/lib/services/debugmailer.service.js";
 
@@ -46,11 +46,19 @@ export abstract class AuthTest extends WebdaApplicationTest {
    * @param operationId - e.g. "Auth.Email.Login"
    * @param input - operation input (request body)
    * @param ctx - context to reuse (keeps the session between calls)
+   * @param headers - request headers, a JSON request by default
    * @returns parsed output
    */
-  async op<T = any>(operationId: string, input: any = {}, ctx?: WebContext): Promise<T> {
+  async op<T = any>(
+    operationId: string,
+    input: any = {},
+    ctx?: WebContext,
+    headers: Record<string, string> = { "content-type": "application/json" }
+  ): Promise<T> {
     ctx ??= await this.ctx();
-    const call = await this.newContext<WebContext>(input);
+    const http = new HttpContext("test.webda.io", "POST", "/", "http", 80, headers);
+    http.setBody(input);
+    const call = await this.newWebContext<WebContext>(http);
     call.setSession(ctx.getSession());
     try {
       await runWithContext(call, () => callOperation(call, operationId));

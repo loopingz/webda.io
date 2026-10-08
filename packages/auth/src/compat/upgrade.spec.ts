@@ -72,7 +72,10 @@ class V3UpgradeTest extends EmailTest {
     assert.strictEqual(ident.getUser().toString(), "owner1");
     assert.strictEqual(ident.email, "g@x.com");
     assert.deepStrictEqual(ident.__profile, { name: "G" });
-    assert.deepStrictEqual(ident.__tokens, { access: "a", refresh: "r" });
+    // v3 plaintext tokens are encrypted on upgrade
+    assert.deepStrictEqual(await ident.tokens.get(), { access: "a", refresh: "r" });
+    assert.strictEqual((ident as any).__tokens, undefined);
+    assert.strictEqual(((await Ident.ref(Ident.key("g_1", "google")).get()) as any).__tokens, undefined);
     assert.strictEqual(ident.lastUsedAt.toISOString(), "2021-02-03T00:00:00.000Z");
     assert.strictEqual(ident._loginAttempts, 2);
     assert.strictEqual(ident._throttle.lastSentAt, Date.parse("2021-01-01T00:00:00.000Z"));

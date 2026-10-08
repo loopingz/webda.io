@@ -467,7 +467,11 @@ export class UnpackedApplication extends Application {
         return currentModule;
       })
       .reduce((prev, val) => {
-        return deepmerge(prev, val);
+        const merged = deepmerge(prev, val);
+        // A schema is a complete document re-emitted by the modules depending on the one declaring it (any
+        // `@WebdaSchema` type): replace it whole, deepmerge would concatenate its arrays (`required`, `enum`...)
+        merged.schemas = { ...(prev.schemas ?? {}), ...(val.schemas ?? {}) };
+        return merged;
       }, module);
     Object.keys(SectionEnum)
       .filter(k => Number.isNaN(+k))

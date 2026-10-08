@@ -1,12 +1,16 @@
 {
-  "version": 2,
-  "parameters": {
-    "sessionSecret": "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN"
-  },
+  "version": 3,
+  "parameters": { "ignoreBeans": true },
   "services": {
-    "MemoryLogger": {
-      "type": "Webda/MemoryLogger",
-      "logLevel": "TRACE"
+    "AuthStore": { "type": "Webda/MemoryStore", "models": ["Webda/User", "Webda/Ident", "Webda/RefreshToken"] },
+    "Authentication": { "type": "Webda/Authentication" },
+    "google": {
+      "type": "GoogleAuthentication",
+      "client_id": "web-client.apps.googleusercontent.com",
+      "client_secret": "web-secret",
+      "audiences": ["ios-client.apps.googleusercontent.com"],
+      "authorized_uris": ["https://app.example.com/"],
+      "redirects": { "success": "https://app.example.com/ok", "failure": "https://app.example.com/ko" }
     }
   }
 }

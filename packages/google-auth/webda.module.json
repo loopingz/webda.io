@@ -4,112 +4,125 @@
   "deployers": {},
   "moddas": {
     "Webda/GoogleAuthentication": {
-      "Import": "lib/google-auth.service:default",
+      "Import": "lib/google-auth.service:GoogleAuthentication",
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "definitions": {
-          "redirects": {
+          "OAuthRedirects": {
             "additionalProperties": false,
+            "description": "Browser redirects of the OAuth callback",
             "properties": {
-              "defaults": {
-                "$ref": "#/definitions/redirects%24defaults"
+              "failure": {
+                "description": "Where a failed login or callback lands, with `?reason=<CODE>` (required)",
+                "type": "string"
               },
-              "use_referer": {
-                "default": false,
-                "type": "boolean"
-              },
-              "whitelist": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
+              "success": {
+                "default": "/",
+                "description": "Where a successful login lands when the login did not carry an allowed `redirect` parameter",
+                "type": "string"
               }
             },
-            "required": [
-              "defaults",
-              "whitelist"
-            ],
             "type": "object"
           },
-          "redirects$defaults": {
-            "additionalProperties": {
-              "type": "string"
-            },
+          "Record<string, any>": {
+            "additionalProperties": {},
+            "description": "Construct a type with a set of properties K of type T",
             "type": "object"
           }
         },
-        "description": "Credentials to manage Google Auth\nhttps://developers.google.com/identity/protocols/oauth2",
+        "description": "Google login parameters\nhttps://developers.google.com/identity/protocols/oauth2/openid-connect",
         "properties": {
           "access_type": {
-            "description": "Type of access for Google token\n\nonline by default",
+            "default": "online",
+            "description": "Type of access: \"offline\" also returns a refresh token (stored encrypted in the ident tokens)",
             "enum": [
               "online",
               "offline"
             ],
             "type": "string"
           },
-          "auth_options": {},
-          "authenticationService": {
-            "default": "Authentication",
-            "description": "Name of the authentication service to use if exist",
-            "type": "string"
+          "allowedEmailDomains": {
+            "description": "Only these email domains may use this provider (see ProviderEmailPolicy)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "audiences": {
+            "default": [],
+            "description": "Other client ids whose ID tokens `Auth.Google.Token` accepts (for example Android/iOS client ids)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "auth_options": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
+            "description": "Additional authorization url parameters (for example `prompt`, `login_hint`); cannot override `state`,\n`redirect_uri`, `scope`, `access_type`, `response_type`, `code_challenge*`, `nonce` nor `hd`\nSee https://developers.google.com/identity/protocols/oauth2/openid-connect#authenticationuriparameters"
           },
           "authorized_uris": {
             "default": [],
-            "description": "List of URIs authorized for redirect post authorization",
+            "description": "Allowed post-login targets for the `redirect` query parameter of the login route: absolute http(s) urls, a\ntarget matches when it has the same origin and its path is the listed path or below it",
             "items": {
               "type": "string"
             },
             "type": "array"
           },
           "client_id": {
-            "description": "Google Auth Client id",
+            "description": "Google OAuth client id (web application)",
             "type": "string"
           },
           "client_secret": {
-            "description": "Google Auth Client secret",
+            "description": "Google OAuth client secret",
             "type": "string"
           },
-          "exposeScope": {
-            "default": false,
-            "description": "If set to true it will add a ${url}/scope\nSo client can anticipate the requested scope\n\nThis is useful when using the client api to generate\ntoken. This way the service can request the wanted scope",
-            "type": "boolean"
-          },
-          "no_referer": {
-            "default": false,
-            "description": "Allow direct connection without a referer",
-            "type": "boolean"
-          },
-          "project_id": {
-            "description": "Google Project ID",
+          "hostedDomain": {
+            "description": "Only accept Google Workspace accounts of this domain (the `hd` claim of the ID token); also sent as a hint to\nthe account chooser",
             "type": "string"
           },
           "redirect_uri": {
-            "default": "${url}/callback",
-            "description": "Default redirect_uri",
+            "default": "\"<absolute url of the request>/callback\"; set it explicitly behind a proxy",
+            "description": "Callback url registered at the provider",
             "type": "string"
           },
           "redirects": {
-            "$ref": "#/definitions/redirects"
+            "$ref": "#/definitions/OAuthRedirects",
+            "description": "Browser redirects of the callback"
           },
           "scope": {
-            "defaut": [
-              "email"
+            "default": [
+              "openid",
+              "email",
+              "profile"
             ],
-            "description": "Scope to request on OAuth flow",
+            "description": "Scopes requested from Google",
             "items": {
               "type": "string"
             },
             "type": "array"
+          },
+          "trustEmailVerification": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "boolean"
+              }
+            ],
+            "description": "Whether the verification of the email is believed (see ProviderEmailPolicy)"
           },
           "type": {
             "description": "Type of the service",
             "type": "string"
           },
           "url": {
-            "SchemaOptional": true,
-            "description": "URL to use for expose\n\nThe default value varying based on implementation\nIt should by default be the provider name in lowercase",
+            "default": "/auth/<providerName>",
+            "description": "Route prefix of the login (`<url>`) and callback (`<url>/callback`) routes",
             "type": "string"
           },
           "openapi": {
@@ -120,16 +133,12 @@
         "required": [
           "client_id",
           "client_secret",
-          "scope",
           "type"
         ],
         "type": "object",
         "title": "GoogleAuthentication"
       },
-      "Configuration": "lib/google-auth.service:GoogleParameters",
-      "capabilities": [
-        "request-filter"
-      ]
+      "Configuration": "lib/google-auth.service:GoogleParameters"
     }
   },
   "models": {},
@@ -175,6 +184,31 @@
       ],
       "type": "object",
       "title": "BinaryFile"
+    },
+    "Webda/OAuthTokenRequest": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "definitions": {
+        "OAuthTokens": {
+          "additionalProperties": {},
+          "description": "Credentials as returned by an OAuth token endpoint (google-auth-library `Credentials` shape): `id_token`,\n`access_token`, `refresh_token`, `expiry_date`, `token_type`, `scope`... Values are not typed by the schema\n(providers send nulls); providers check what they use.",
+          "type": "object"
+        }
+      },
+      "description": "Input of the `Auth.<Provider>.Token` operations: `token`, or the provider credentials `tokens`",
+      "properties": {
+        "token": {
+          "description": "Token issued by the provider to the client (an ID token for OpenID Connect providers)",
+          "type": "string"
+        },
+        "tokens": {
+          "$ref": "#/definitions/OAuthTokens",
+          "description": "Credentials obtained by the client from the provider (v3 body; its `id_token` is verified)"
+        }
+      },
+      "type": "object",
+      "title": "OAuthTokenRequest"
     }
   },
   "behaviors": {}

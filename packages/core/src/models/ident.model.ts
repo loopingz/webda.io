@@ -2,13 +2,16 @@ import { Model, ModelLink, WEBDA_PRIMARY_KEY, WEBDA_PRIMARY_KEY_SEPARATOR, type 
 import * as WebdaError from "../errors/errors.js";
 import type { IOperationContext } from "../contexts/icontext.js";
 import { User } from "./user.model.js";
+import { EncryptedField } from "./encrypted.model.js";
 
-/** OAuth tokens associated with an identity provider */
+/** Tokens (credentials) of an identity provider, as the provider returns them */
 export interface IdentTokens {
   /** Access token */
-  access?: string;
+  access_token?: string;
   /** Refresh token */
-  refresh?: string;
+  refresh_token?: string;
+  /** Any other provider field */
+  [key: string]: any;
 }
 
 /** Email sending throttle state of an ident (login failures are top-level `Ident` attributes) */
@@ -60,13 +63,17 @@ export class Ident extends Model {
   _lastLoginAttemptAt?: number;
   /** Provider profile */
   __profile?: any;
-  /** Provider tokens */
-  __tokens?: IdentTokens;
+  /** Provider tokens, encrypted at rest (`await ident.tokens.get()`) */
+  tokens: EncryptedField<IdentTokens>;
 
   /** @param data - initial data */
   constructor(data?: Settable<Ident>) {
     super();
     Object.assign(this, data);
+    // Raw stored data (or none) must become an EncryptedField behavior
+    if (!(this.tokens instanceof EncryptedField)) {
+      (this as any).__hydrateBehaviors?.({ tokens: (data as any)?.tokens ?? {} });
+    }
   }
 
   /**

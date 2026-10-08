@@ -15,91 +15,94 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 # @webda/google-auth
 
-> Google OAuth 2.0 authentication provider for Webda — adds `GET /auth/google` and callback handling to your application so users can sign in with their Google account.
+> "Sign in with Google" (OpenID Connect) provider for [`@webda/auth`](../auth): adds `GET /auth/google`, its callback
+> and the `Auth.Google.Token` operation; logins go through the `Authentication` service (linking, registration,
+> sessions, tokens).
 
 ## When to use it
 
-- You want to add "Sign in with Google" to a Webda application without hand-rolling OAuth flows.
-- You need an offline access token (e.g. for server-side Google API calls on behalf of the user).
-- You are building a multi-provider auth system alongside other `@webda/oauth` providers.
+- You want users to sign in with their Google account, in the browser or from a mobile/desktop client holding a
+  Google ID token.
+- You want to restrict logins to a Google Workspace domain (`hostedDomain`).
+- You need an offline Google refresh token (`access_type: "offline"`; stored in the ident tokens).
 
 ## Install
 
 ```bash
-pnpm add @webda/google-auth
+pnpm add @webda/auth @webda/google-auth
 ```
 
 ## Configuration
 
-```json
+`GoogleAuthentication` is a provider service next to `Authentication` (see the
+[Authentication guide](https://docs.webda.io/Security/Authentication)):
+
+```jsonc
 {
   "services": {
-    "Authentication": {
-      "type": "Authentication",
-      "providers": {
-        "google": {
-          "type": "GoogleAuthentication",
-          "client_id": "${GOOGLE_CLIENT_ID}",
-          "client_secret": "${GOOGLE_CLIENT_SECRET}",
-          "access_type": "online",
-          "redirect_uri": "https://myapp.example.com/auth/google/callback"
-        }
-      }
+    "Authentication": { "type": "Webda/Authentication" },
+    "google": {
+      "type": "Webda/GoogleAuthentication",
+      "client_id": "${GOOGLE_CLIENT_ID}",
+      "client_secret": "${GOOGLE_CLIENT_SECRET}",
+      // Register exactly this url in the Google Cloud console; set it explicitly behind a proxy
+      "redirect_uri": "https://api.example.com/auth/google/callback",
+      "redirects": {
+        "success": "https://app.example.com/", // default "/"
+        "failure": "https://app.example.com/login" // required, receives ?reason=CODE
+      },
+      // Allowed targets of GET /auth/google?redirect=... (same origin, this path or below)
+      "authorized_uris": ["https://app.example.com/"],
+      "audiences": ["1234-ios.apps.googleusercontent.com"], // other client ids accepted by Auth.Google.Token
+      "hostedDomain": "example.com" // optional: Google Workspace accounts of this domain only
     }
   }
 }
 ```
 
-| Parameter | Type | Default | Required | Description |
-|---|---|---|---|---|
-| `client_id` | string | — | Yes | Google OAuth 2.0 Client ID from Google Cloud Console |
-| `client_secret` | string | — | Yes | Google OAuth 2.0 Client Secret |
-| `access_type` | `"online"` \| `"offline"` | `"online"` | No | `"offline"` returns a refresh token for server-side API access |
-| `project_id` | string | — | No | Google Cloud Project ID (informational) |
-| `auth_options` | object | — | No | Additional parameters forwarded to the Google authorization URL |
-| `redirects.use_referer` | boolean | — | No | Redirect to the HTTP Referer after successful login |
-| `redirects.whitelist` | string[] | — | No | Allowed redirect URLs (regexp strings) |
+| Parameter                                       | Default                          | Description                                                                                     |
+| ----------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `client_id`, `client_secret`                    | required                         | OAuth client of type "Web application"                                                          |
+| `url`                                           | `/auth/google`                   | Prefix of the login and callback routes                                                         |
+| `redirect_uri`                                  | request url + `/callback`        | Callback url sent to Google                                                                     |
+| `redirects.success` / `redirects.failure`       | `/` / required                   | Where the callback redirects                                                                    |
+| `authorized_uris`                               | `[]`                             | Allowed `redirect` parameters (absolute urls)                                                   |
+| `scope`                                         | `["openid", "email", "profile"]` | Requested scopes (`openid` is needed for the ID token)                                          |
+| `access_type`                                   | `"online"`                       | `"offline"` also returns a refresh token                                                        |
+| `audiences`                                     | `[]`                             | Extra client ids accepted by `Auth.Google.Token`                                                |
+| `hostedDomain`                                  | -                                | Required `hd` claim; refused with `EMAIL_DOMAIN_NOT_ALLOWED`                                    |
+| `auth_options`                                  | -                                | Extra authorization url parameters (`prompt`, `login_hint`...); cannot override the flow fields |
+| `allowedEmailDomains`, `trustEmailVerification` | -                                | Per-provider email policy of `@webda/auth`                                                      |
 
 ## Usage
 
+- Browser: link to `GET /auth/google?redirect=https://app.example.com/after`. The flow uses PKCE and an OpenID nonce,
+  kept in a short-lived encrypted `webda_oauth_google` cookie (so it also works with a `SameSite=Strict` session
+  cookie). After the Google consent the callback logs the user in and redirects to `redirect` (or
+  `redirects.success`), adding `?mfa=required` when the user still has to pass MFA. Failures redirect to
+  `redirects.failure?reason=CODE` (`STATE_MISMATCH`, `PROVIDER_ERROR`, `TOKEN_INVALID`, `ACCOUNT_EXISTS`,
+  `EMAIL_DOMAIN_NOT_ALLOWED`, ...).
+- Other clients: `POST /auth/google/token` (`Auth.Google.Token`) with a JSON body `{ "token": "<Google ID token>" }`
+  or the v3 body `{ "tokens": { "id_token": "...", "access_token": "...", ... } }` returns the `@webda/auth` result
+  (`{ status: "ok", accessToken, refreshToken, ... }`). Only ID tokens are verified; access tokens alone are refused.
+  This operation never links the identity to an already logged-in user.
+
+The Google identity is the ID token `sub`; the email is only treated as verified when `email_verified` is `true`.
+Google credentials are stored encrypted on the ident (`await ident.tokens.get()`) and published after each login:
+
 ```typescript
-// 1. Register your OAuth credentials in Google Cloud Console:
-//    APIs & Services > Credentials > Create OAuth 2.0 Client ID
-//    Authorized redirect URI: https://myapp.example.com/auth/google/callback
-
-// 2. Configure (see above). The framework auto-registers these routes:
-//    GET  /auth/google           → redirects to Google consent screen
-//    GET  /auth/google/callback  → handles the OAuth callback, creates a session
-
-// 3. Listen to the auth event to customize post-login behaviour:
-import { GoogleAuthentication } from "@webda/google-auth";
-import { Bean, Inject } from "@webda/core";
-
-@Bean
-export class ProfileSync extends Service {
-  @Inject("Authentication")
-  auth: any;
-
-  async resolve(): Promise<this> {
-    await super.resolve();
-    // Fired after a successful Google login
-    this.auth.on("GoogleAuth.Tokens", async ({ tokens, context }) => {
-      // tokens.access_token, tokens.refresh_token (if access_type=offline)
-      const user = context.getCurrentUser();
-      // ... sync Google profile data to your User model
-    });
-    return this;
-  }
-}
+useService("google").on("GoogleAuth.Tokens", async ({ tokens, context }) => {
+  // tokens.access_token, tokens.refresh_token (access_type "offline")
+});
 ```
 
 ## Reference
 
-- API reference: see the auto-generated typedoc at `docs/pages/Modules/google-auth/`.
 - Source: [`packages/google-auth`](https://github.com/loopingz/webda.io/tree/main/packages/google-auth)
-- Related: [`@webda/core`](../core) Authentication service; [`@webda/gcp`](../gcp) for Cloud-side GCP integrations.
+- Related: [`@webda/auth`](../auth) (`OAuthProvider` base class, `Authentication` service).
 
 <!-- README_FOOTER -->
+
 ## Sponsors
 
 <!--

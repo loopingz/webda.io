@@ -101,7 +101,7 @@ function identIdentifiers(IdentModel: any): Set<string> {
  * or a concurrent one won) it is kept as is and only the v3 record is deleted. Field map: `_user` → owner,
  * `_validation` → `verifiedAt`, `_lastUsed` → `lastUsedAt`, `_failedLogin` → `_loginAttempts`,
  * `_lastFailedLogin` → `_lastLoginAttemptAt` (number or date; absent, the count is treated as an expired lock),
- * `_lastValidationEmail` → `_throttle.lastSentAt`; `email`, `__profile`, `__tokens` are kept; provider is
+ * `_lastValidationEmail` → `_throttle.lastSentAt`; `email`, `__profile` are kept, `__tokens` is encrypted into `tokens`; provider is
  * `provider ?? _type ?? key suffix`, providerUid the key prefix (normalised for the email provider: v3 kept the
  * email case). Callers run it as system.
  * @throws Error when `legacy` is not a v3 ident (see {@link isLegacyIdent})
@@ -145,11 +145,14 @@ export async function upgradeIdent(
       _throttle: { lastSentAt: toTimestamp(v3._lastValidationEmail) },
       _loginAttempts: typeof v3._failedLogin === "number" ? v3._failedLogin : 0,
       _lastLoginAttemptAt: toTimestamp(v3._lastFailedLogin),
-      __profile: v3.__profile,
-      __tokens: v3.__tokens
+      __profile: v3.__profile
     } as any);
     if (owner) {
       created.setUser(owner);
+    }
+    // v3 kept plaintext tokens: they are only stored encrypted
+    if (v3.__tokens && !options.dryRun) {
+      await created.tokens.set(v3.__tokens);
     }
     if (options.dryRun) {
       return created;

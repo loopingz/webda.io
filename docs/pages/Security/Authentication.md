@@ -10,8 +10,9 @@ proves an identity and hands a `ResolvedIdentity` to `Authentication.complete`:
 
 ```
  EmailPasswordProvider ─┐
- (future OAuth providers)├─> ResolvedIdentity ──> Authentication.complete()
- your own provider ─────┘                          │
+ GoogleAuthentication ───┤ (OAuthProvider)
+ your own provider ──────┴─> ResolvedIdentity ──> Authentication.complete()
+                                                   │
                                                    ├─ apply provider email policy (allowedEmailDomains, trustEmailVerification)
                                                    ├─ find the Ident (provider, providerUid)
                                                    ├─ link / adopt / register the User (linking policy)
@@ -123,23 +124,26 @@ There is no `LegacyIdent` model: v3 ident records stored under the `"<uid>_<prov
 
 All operations are exposed through the REST API with the path shown (relative to the API root) and as operations by id.
 
-| Operation id                   | REST                               | Inputs                                    | Result / notes                                                                                  |
-| ------------------------------ | ---------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `Auth.Providers`               | `GET auth/providers`               | -                                         | list of `{ name, type, startUrl? }`                                                             |
-| `Auth.Me`                      | `GET auth/me`                      | -                                         | public entry of the user, 404 when not logged in                                                |
-| `Auth.Logout`                  | `POST auth/logout`                 | -                                         | revokes the refresh family of the session, clears the session; also abandons pending MFA        |
-| `Auth.Refresh`                 | `POST auth/refresh`                | `refreshToken`                            | `{ accessToken, refreshToken, expiresIn }`                                                      |
-| `Auth.Idents`                  | `GET auth/idents`                  | -                                         | `[{ provider, providerUid, email?, verifiedAt?, lastUsedAt? }]`; upgrades v3 idents first       |
-| `Auth.Unlink`                  | `POST auth/idents/unlink`          | `provider`, `providerUid`                 | 409 `LAST_LOGIN_METHOD` if no usable login method would remain (see below)                      |
-| `Auth.Email.Login`             | `POST auth/email/login`            | `email`, `password`                       | `{ status: "ok", user, accessToken, ... }` or `{ status: "mfa_required", methods }`             |
-| `Auth.Email.Register`          | `POST auth/email/register`         | `email`, `password`, `token?`, `profile?` | `{ status: "verification_sent" }` (mode `before`, no token) or the login result                 |
-| `Auth.Email.StartVerification` | `POST auth/email/verification`     | `email`                                   | 204. Logged out: never reveals whether the email exists                                         |
-| `Auth.Email.Verify`            | `POST auth/email/verify`           | `token`                                   | `{ status: "verified" }`. Needs a session of the user named by the token                        |
-| (GET link)                     | `GET auth/email/verify?token=...`  | `token`                                   | 302 redirect, see below                                                                         |
-| (GET link)                     | `GET auth/email/recover?token=...` | `token`                                   | 302 to `redirects.recover?token=...` (token not consumed), invalid: `redirects.failure?reason=` |
-| `Auth.Password.StartRecovery`  | `POST auth/password/recovery`      | `email`                                   | always 204 (never reveals accounts)                                                             |
-| `Auth.Password.Recover`        | `POST auth/password/recover`       | `token`, `password`                       | sets the password, marks the email verified, ends all sessions (see below); does not log in     |
-| `Auth.Password.Change`         | `POST auth/password/change`        | `current`, `next`                         | requires login; ends the other sessions (see below); emits `Authentication.PasswordUpdate`      |
+| Operation id                   | REST                               | Inputs                                    | Result / notes                                                                                        |
+| ------------------------------ | ---------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `Auth.Providers`               | `GET auth/providers`               | -                                         | list of `{ name, type, startUrl? }`                                                                   |
+| `Auth.Me`                      | `GET auth/me`                      | -                                         | public entry of the user, 404 when not logged in                                                      |
+| `Auth.Logout`                  | `POST auth/logout`                 | -                                         | revokes the refresh family of the session, clears the session; also abandons pending MFA              |
+| `Auth.Refresh`                 | `POST auth/refresh`                | `refreshToken`                            | `{ accessToken, refreshToken, expiresIn }`                                                            |
+| `Auth.Idents`                  | `GET auth/idents`                  | -                                         | `[{ provider, providerUid, email?, verifiedAt?, lastUsedAt? }]`; upgrades v3 idents first             |
+| `Auth.Unlink`                  | `POST auth/idents/unlink`          | `provider`, `providerUid`                 | 409 `LAST_LOGIN_METHOD` if no usable login method would remain (see below)                            |
+| `Auth.Email.Login`             | `POST auth/email/login`            | `email`, `password`                       | `{ status: "ok", user, accessToken, ... }` or `{ status: "mfa_required", methods }`                   |
+| `Auth.Email.Register`          | `POST auth/email/register`         | `email`, `password`, `token?`, `profile?` | `{ status: "verification_sent" }` (mode `before`, no token) or the login result                       |
+| `Auth.Email.StartVerification` | `POST auth/email/verification`     | `email`                                   | 204. Logged out: never reveals whether the email exists                                               |
+| `Auth.Email.Verify`            | `POST auth/email/verify`           | `token`                                   | `{ status: "verified" }`. Needs a session of the user named by the token                              |
+| (GET link)                     | `GET auth/email/verify?token=...`  | `token`                                   | 302 redirect, see below                                                                               |
+| (GET link)                     | `GET auth/email/recover?token=...` | `token`                                   | 302 to `redirects.recover?token=...` (token not consumed), invalid: `redirects.failure?reason=`       |
+| `Auth.Password.StartRecovery`  | `POST auth/password/recovery`      | `email`                                   | always 204 (never reveals accounts)                                                                   |
+| `Auth.Password.Recover`        | `POST auth/password/recover`       | `token`, `password`                       | sets the password, marks the email verified, ends all sessions (see below); does not log in           |
+| `Auth.Password.Change`         | `POST auth/password/change`        | `current`, `next`                         | requires login; ends the other sessions (see below); emits `Authentication.PasswordUpdate`            |
+| `Auth.<Provider>.Token`        | `POST auth/<provider>/token`       | `token`                                   | OAuth providers, e.g. `Auth.Google.Token`: the login result (see [OAuth providers](#oauth-providers)) |
+| (GET link)                     | `GET <url>?redirect=...`           | `redirect?`                               | OAuth providers: 302 to the provider, see [OAuth providers](#oauth-providers)                         |
+| (GET link)                     | `GET <url>/callback`               | `code`, `state`                           | OAuth providers: 302 to the login target or `redirects.failure?reason=`                               |
 
 `Auth.Unlink` only counts the **usable** remaining login methods: idents of other providers, plus email idents when
 the user has a password (without one an email ident allows neither login nor recovery). It also refuses to remove the
@@ -178,6 +182,121 @@ Failed logins are counted **before** the password is checked, with atomic increm
 `failedBeforeDelay` attempts the ident is locked for `lockout` ms (`THROTTLED`, 429). A success, or a successful
 `Auth.Password.Recover`, resets the counter. A count without `_lastLoginAttemptAt` (upgraded v3 data) is an expired lock.
 `Auth.Email.Register` refuses any email already owned (`ACCOUNT_EXISTS`).
+
+## OAuth providers
+
+`OAuthProvider` (exported by `@webda/auth`) is the base of the OAuth 2.0 / OpenID Connect providers;
+[`@webda/google-auth`](../Modules/google-auth/README.md) provides `GoogleAuthentication` (provider name `google`). A
+provider is a service of its own next to `Authentication`:
+
+```jsonc
+{
+  "services": {
+    "Authentication": { "type": "Webda/Authentication" },
+    "google": {
+      "type": "Webda/GoogleAuthentication",
+      "client_id": "${GOOGLE_CLIENT_ID}",
+      "client_secret": "${GOOGLE_CLIENT_SECRET}",
+      "url": "/auth/google", // default "/auth/<provider>"
+      "redirect_uri": "https://api.example.com/auth/google/callback", // default: request url + "/callback"
+      "redirects": {
+        "success": "https://app.example.com/", // default "/"
+        "failure": "https://app.example.com/login" // required, receives ?reason=CODE
+      },
+      "authorized_uris": ["https://app.example.com/"], // allowed ?redirect= targets, default []
+      "scope": ["openid", "email", "profile"], // Google default
+      "access_type": "online", // Google: "offline" also returns a refresh token
+      "audiences": ["1234-ios.apps.googleusercontent.com"], // Google: extra client ids for Auth.Google.Token
+      "hostedDomain": "example.com", // Google: only Workspace accounts of this domain
+      "allowedEmailDomains": ["example.com"], // optional per-provider email policy
+      "trustEmailVerification": true
+    }
+  }
+}
+```
+
+`init()` refuses to start without `client_id`, `client_secret` (unless the provider is a public client),
+`redirects.failure` or an `Authentication` service, and with a relative `authorized_uris` entry. Set `redirect_uri`
+explicitly behind a proxy: the default is built from the request host.
+
+**Browser flow**
+
+1. `GET <url>?redirect=<target>` creates a random `state` (256 bits), a PKCE code verifier (the S256 challenge goes to
+   the provider) and an OpenID `nonce`, and keeps them with the target and the `redirect_uri` in a dedicated cookie
+   `webda_oauth_<provider>`: encrypted with the CryptoService, `HttpOnly`, `SameSite=Lax`, `Secure` when the request
+   or the `redirect_uri` is https, valid 10 minutes, with `Path` set to the path of the `redirect_uri` (so it includes
+   any deployment prefix, such as an API Gateway stage or a path-stripping proxy; the callback must be served by the
+   same host as the login). Nothing is written in the session, so the flow works whatever the session cookie
+   `sameSite` (including `strict`). `redirect` is optional; when present it must be an absolute http(s) url with the
+   **same origin** as an `authorized_uris` entry and a path equal to or below that entry's path
+   (`https://app.example.com/after` allows `/after` and `/after/x`, not `/afterwards`); a path containing an encoded
+   slash or backslash (`%2f`, `%5c`) or longer than 1024 characters is refused. Anything else redirects to `redirects.failure?reason=REDIRECT_NOT_ALLOWED`
+   without starting a login.
+2. `GET <url>/callback?code=...&state=...` reads and clears that cookie (single use), compares the state in constant
+   time, exchanges the code with the PKCE verifier and the `redirect_uri` of step 1 (an OpenID provider also checks
+   the ID token `nonce`), and hands the identity to `Authentication.complete()`. It never answers an error: it
+   redirects to the stored target (or `redirects.success`), with `mfa=required` added when the user must still pass
+   MFA, or to `redirects.failure?reason=<CODE>`. Both routes answer `Cache-Control: no-store`.
+
+| Reason                                            | Cause                                                                      |
+| ------------------------------------------------- | -------------------------------------------------------------------------- |
+| `REDIRECT_NOT_ALLOWED`                            | the login `redirect` does not match `authorized_uris`                      |
+| `STATE_MISMATCH`                                  | no pending login cookie, or a wrong, missing, expired, tampered state      |
+| `PROVIDER_ERROR`                                  | the provider answered with `error` or without code                         |
+| `TOKEN_INVALID`                                   | the code exchange or the ID token verification (audience, nonce...) failed |
+| `ACCOUNT_EXISTS`, `EMAIL_DOMAIN_NOT_ALLOWED`, ... | refused by `Authentication.complete()` (linking, email policy, ...)        |
+| `OAUTH_ERROR`                                     | unexpected failure (logged as a reason code, no detail in the url)         |
+
+A browser whose session cookie reaches the callback (`lax`) while logged in links the provider identity to the current
+account (or gets `IDENT_LINKED_ELSEWHERE`): linking is a browser-flow action, protected by the state and PKCE.
+
+**Token operation**: `Auth.<Provider>.Token` (`POST auth/<provider>/token`) is for clients that obtained a token from
+the provider themselves (mobile, desktop, Google One Tap). The body is JSON, `{ "token": "..." }` or the v3 form
+`{ "tokens": { "id_token": "...", "access_token": "...", ... } }` (only `id_token`, `access_token`, `refresh_token`,
+`expiry_date`, `token_type` and `scope`, as strings or numbers of at most 4096 characters, are kept); any other `Content-Type` is refused with
+`UNSUPPORTED_MEDIA_TYPE` (415), so a cross-site form or `text/plain` POST cannot use a victim's cookies. It returns
+the login result like `Auth.Email.Login`; an unverifiable token is `TOKEN_INVALID`. It **never links**: when the
+request carries a logged-in session, an identity owned by another user is refused with `IDENT_LINKED_ELSEWHERE`, and a
+new or unowned identity starts a fresh session (the cookie user is logged out) instead of being attached to it.
+`Auth.Google.Token` only accepts **Google ID tokens** (`token`, or `tokens.id_token`) whose audience is `client_id`
+or one of `audiences` (never access tokens, whose audience cannot be checked).
+
+**Provider tokens** are stored on the ident as `ident.tokens`, an `EncryptedField` (see below): only a ciphertext is
+written, read them with `await ident.tokens.get()`. They are not part of the `Authentication.Login` /
+`Authentication.Register` events; a provider publishes them with its own event.
+
+**Google identities**: the ident is `<sub>:google`; the email is verified only when the ID token claim
+`email_verified` is `true` (so an unverified Google email never claims the email ident nor links an existing account
+under the `verified` policy); the profile keeps `name`, `picture`, `locale`, `hd`. With `hostedDomain`, an ID token
+without that `hd` claim is refused with `EMAIL_DOMAIN_NOT_ALLOWED`. ID tokens are verified by one `OAuth2Client` per
+service, so Google's certificates are fetched once and cached. After a successful login the service emits
+`GoogleAuth.Tokens` with `{ tokens, context }`: the credentials of the code exchange, or the `tokens` (`{ id_token }`
+for a bare token) sent to `Auth.Google.Token`, where only the ID token is verified.
+
+```typescript
+useService("google").on("GoogleAuth.Tokens", async ({ tokens, context }) => {
+  // tokens.access_token, tokens.refresh_token (access_type "offline")
+});
+```
+
+**Writing a provider**: extend `OAuthProvider` and implement `providerName`,
+`getAuthorizationUrl({ state, redirectUri, scope, codeChallenge, codeChallengeMethod, nonce })`,
+`handleCallback({ code, redirectUri, codeVerifier, nonce })` (an OpenID provider must check the ID token `nonce`) and
+`handleToken({ token, tokens })`, both returning a `ResolvedIdentity`. The base class forces `identity.provider` to
+`providerName` (a provider cannot assert another provider's identity) and defaults `amr` to `["oauth"]`; override
+`requiresClientSecret()` for public clients and `onAuthenticated()` to react to a login. Errors that are not
+`HttpError`s become `TOKEN_INVALID` for the operation and `OAUTH_ERROR` for the callback; log errors with
+`safeErrorReason(err)`, never their message (libraries put tokens in them).
+
+### Encrypted fields
+
+`EncryptedField<T>` (`@webda/core`, behavior `Webda/Encrypted`) stores a value encrypted at rest with the
+CryptoService: `await field.set(value)`, `await field.get()`, `field.clear()`, `field.isSet()`. Only `__ciphertext`
+is stored (server-only, never in an API output): the JSON value encrypted with the current symmetric key (random IV)
+inside a JWT signed with that key, so tampering is detected. Values encrypted before a key rotation still decrypt
+while the old key is in the CryptoService registry. Declare it like any behavior: `secret: EncryptedField<MyType>;`.
+**Every instance must share the CryptoService keys** (the `Registry` store): an instance without the key cannot
+decrypt.
 
 ## Tokens
 
@@ -250,7 +369,9 @@ Listen on the `Authentication` service. All payloads include `context`.
 | `Authentication.Linked`         | `user`, `ident`                                                                                                                                |
 | `Authentication.Unlinked`       | `user`, `ident` (projection: `uuid`, `provider`, `providerUid`, `email`, `verifiedAt`, `lastUsedAt`, `userId`; no provider tokens nor profile) |
 
-`Authentication.Register` is emitted before the new user is saved: it can still change it. `Authentication.LoginFailed`
+The `identity` of `Authentication.Register` and `Authentication.Login` never carries the provider `tokens` (see
+[OAuth providers](#oauth-providers)). `Authentication.Register` is emitted before the new user is saved: it can still
+change it. `Authentication.LoginFailed`
 carries `{ context, user }` only (`user` is undefined for an unknown email).
 
 ## Errors
@@ -269,6 +390,7 @@ carries `{ context, user }` only (`user` is undefined for an unknown email).
 | `THROTTLED`                | 429  | Too many attempts, or a mail was sent too recently               |
 | `PASSWORD_POLICY`          | 400  | The password does not satisfy the policy                         |
 | `INVALID_IDENT`            | 400  | Malformed ident                                                  |
+| `UNSUPPORTED_MEDIA_TYPE`   | 415  | `Auth.<Provider>.Token` called without a JSON body               |
 | `BAD_REQUEST`              | 400  | `complete()` called for a provider name that is not registered   |
 
 Importable from `@webda/auth` (`AccountExists`, `Throttled`, ...).
@@ -305,5 +427,6 @@ Emailed tokens are purpose-scoped JWTs (audience `webda-email`): register and ve
 
 - Access tokens stay valid until expiry after logout or refresh-family revocation (default 15 minutes); a password
   change does end them (see above).
-- Google (OAuth) login is disabled until the OAuth providers are ported to `@webda/auth`.
+- `Auth.<Provider>.Token` accepts a valid provider token until it expires: a client must protect the tokens it
+  obtains (there is no server nonce on this operation).
 - `Auth.Email.Register` answers `ACCOUNT_EXISTS` for a registered email, so it can be used to enumerate accounts.

@@ -1,311 +1,274 @@
+import { timingSafeEqual } from "node:crypto";
+import { type AuthResult, type EventWithContext, type ResolvedIdentity, useContext, WebdaError } from "@webda/core";
 import {
-  EventWithContext,
-  OAuthEvents,
-  OAuthService,
-  OAuthServiceParameters,
-  OAuthSession,
-  RequestFilter,
-  WebContext,
-  WebdaError
-} from "@webda/core";
-import { Credentials, OAuth2Client } from "google-auth-library";
-import * as http from "node:http";
+  EmailDomainNotAllowed,
+  type OAuthAuthorizationRequest,
+  type OAuthCallbackRequest,
+  OAuthProvider,
+  OAuthProviderParameters,
+  type OAuthTokenRequest,
+  safeErrorReason,
+  TokenInvalid
+} from "@webda/auth";
+import { CodeChallengeMethod, type Credentials, OAuth2Client, type TokenPayload } from "google-auth-library";
 
-export interface EventGoogleOAuthToken extends EventWithContext<WebContext> {
+/** Emitted with the Google credentials of a successful login */
+export interface EventGoogleOAuthToken extends EventWithContext {
   /**
-   * Tokens retrieved from Google
+   * Credentials: from the code exchange (browser flow), or as sent to `Auth.Google.Token` (`tokens`, or
+   * `{ id_token }` for a bare token). Only the ID token is verified: treat the other values as client-provided on
+   * the token operation
    */
   tokens: Credentials;
 }
 
-/**
- * Credentials to manage Google Auth
- * https://developers.google.com/identity/protocols/oauth2
- */
-export class GoogleParameters extends OAuthServiceParameters {
-  /**
-   * Google Auth Client id
-   */
-  client_id: string;
-  /**
-   * Google Auth Client secret
-   */
-  client_secret: string;
-  /**
-   * Google Project ID
-   */
-  project_id?: string;
+/** Events of GoogleAuthentication */
+export type GoogleAuthEvents = {
+  "GoogleAuth.Tokens": EventGoogleOAuthToken;
+};
 
+/**
+ * Google login parameters
+ * https://developers.google.com/identity/protocols/oauth2/openid-connect
+ */
+export class GoogleParameters extends OAuthProviderParameters {
   /**
-   * Type of access for Google token
-   *
-   * online by default
+   * Google OAuth client id (web application)
+   */
+  declare client_id: string;
+  /**
+   * Google OAuth client secret
+   */
+  declare client_secret: string;
+  /**
+   * Scopes requested from Google
+   * @default ["openid", "email", "profile"]
+   */
+  declare scope?: string[];
+  /**
+   * Type of access: "offline" also returns a refresh token (stored encrypted in the ident tokens)
+   * @default "online"
    */
   access_type?: "online" | "offline";
-  // See: https://developers.google.com/identity/protocols/oauth2/openid-connect#authenticationuriparameters
-  auth_options?: any;
-  redirects?: {
-    // Use redirect
-    use_referer: boolean;
-    // Whitelist authorized url with regexp
-    whitelist: string[];
-    // Set default redirect per referer
-    defaults: { [key: string]: string };
-  };
+  /**
+   * Other client ids whose ID tokens `Auth.Google.Token` accepts (for example Android/iOS client ids)
+   * @default []
+   */
+  audiences?: string[];
+  /**
+   * Only accept Google Workspace accounts of this domain (the `hd` claim of the ID token); also sent as a hint to
+   * the account chooser
+   */
+  hostedDomain?: string;
+  /**
+   * Additional authorization url parameters (for example `prompt`, `login_hint`); cannot override `state`,
+   * `redirect_uri`, `scope`, `access_type`, `response_type`, `code_challenge*`, `nonce` nor `hd`
+   * See https://developers.google.com/identity/protocols/oauth2/openid-connect#authenticationuriparameters
+   */
+  auth_options?: Record<string, any>;
 
   /**
-   * Load parameters with Google defaults
-   * @param params - the service parameters
+   * @param params - raw parameters
    * @returns this
    */
   load(params: any = {}): this {
     super.load(params);
     this.access_type ??= "online";
+    this.scope ??= ["openid", "email", "profile"];
+    this.audiences ??= [];
     return this;
   }
 }
 
-type GoogleAuthEvents = OAuthEvents & {
-  "GoogleAuth.Tokens": EventGoogleOAuthToken;
-};
 /**
- * Manage Google Authentication
+ * Sign in with Google (OpenID Connect)
  *
- * @WebdaModda
+ * The browser flow (`GET /auth/google`, `GET /auth/google/callback`) uses PKCE and a nonce, exchanges the code and
+ * verifies the returned ID token for `client_id`. `Auth.Google.Token` accepts a Google ID token, as `token` or as
+ * the `id_token` of `tokens` (v3 body), whose audience is `client_id` or one of `audiences` (never an access
+ * token). Credentials are stored encrypted on the ident and emitted with `GoogleAuth.Tokens` after the login.
+ * @WebdaModda GoogleAuthentication
  */
-export default class GoogleAuthentication<T extends GoogleParameters = GoogleParameters>
-  extends OAuthService<T, GoogleAuthEvents>
-  implements RequestFilter<WebContext>
-{
-  protected _client: OAuth2Client;
+export class GoogleAuthentication<T extends GoogleParameters = GoogleParameters> extends OAuthProvider<
+  T,
+  GoogleAuthEvents
+> {
+  static Parameters = GoogleParameters;
 
-  /**
-   * Return provider name
-   * @returns the provider name
-   */
-  getName() {
-    return "google";
+  readonly providerName = "google";
+
+  /** Client verifying ID tokens: one per service so the Google certificates cache is reused */
+  protected verifier: OAuth2Client;
+
+  /** @override */
+  async init(): Promise<this> {
+    await super.init();
+    this.verifier = new OAuth2Client({ clientId: this.parameters.client_id });
+    return this;
   }
 
   /**
-   * Allow every accounts.google.
-   * @returns the referer patterns allowed to call back
+   * @param redirectUri - callback url
+   * @returns a Google OAuth client for the authorization url and the code exchange
    */
-  getCallbackReferer(): RegExp[] {
-    return [/accounts\.google\.[a-z]+$/];
+  protected getClient(redirectUri?: string): OAuth2Client {
+    return new OAuth2Client({
+      clientId: this.parameters.client_id,
+      clientSecret: this.parameters.client_secret,
+      redirectUri
+    });
   }
 
   /**
-   * Get OAuth callback query parameters
-   * @returns the callback query parameters
+   * @param request - authorization request
+   * @returns the Google authorization url
    */
-  getCallbackQueryParams(): { name: string; required: boolean }[] {
-    return [
-      {
-        name: "code",
-        required: true
-      },
-      {
-        name: "scope",
-        required: true
-      },
-      {
-        name: "state",
-        required: true
-      },
-      {
-        name: "authuser",
-        required: false
-      },
-      {
-        name: "hd",
-        required: false
-      },
-      {
-        name: "prompt",
-        required: false
-      }
-    ];
-  }
-
-  /**
-   * Expose on /google by default
-   * @returns the default url
-   */
-  getDefaultUrl() {
-    return "/google";
-  }
-
-  /**
-   * We manage Google Auth Token
-   * @returns true
-   */
-  hasToken() {
-    return true;
-  }
-
-  /**
-   * Generate the Google authorization url
-   * @param redirect_uri - the url Google will redirect to
-   * @param state - the random state to verify on callback
-   * @param _ctx - the request context
-   * @returns the authorization url
-   */
-  generateAuthUrl(redirect_uri: string, state: string, _ctx: WebContext) {
-    const oauthClient = this.getOAuthClient(redirect_uri);
-    return oauthClient.generateAuthUrl({
-      access_type: this.parameters.access_type,
-      scope: this.parameters.scope,
-      redirect_uri,
+  getAuthorizationUrl(request: OAuthAuthorizationRequest): string {
+    const { auth_options, access_type, hostedDomain } = this.parameters;
+    return this.getClient(request.redirectUri).generateAuthUrl({
+      ...(auth_options ?? {}),
+      access_type,
+      scope: request.scope,
+      state: request.state,
+      redirect_uri: request.redirectUri,
       response_type: "code",
-      state,
-      ...this.parameters.auth_options
-    });
+      code_challenge_method: CodeChallengeMethod.S256,
+      code_challenge: request.codeChallenge,
+      nonce: request.nonce,
+      ...(hostedDomain ? { hd: hostedDomain } : {})
+    } as any);
   }
 
   /**
-   * Return a google oauth client
-   * @param redirect_uri - the redirect url to use
-   * @returns a new OAuth2 client
+   * Exchange the code with the PKCE verifier, verify the returned ID token for `client_id` and its nonce
+   * @param request - code exchange
+   * @returns the identity, with the credentials of the exchange
    */
-  getOAuthClient(redirect_uri?: string): OAuth2Client {
-    return new OAuth2Client(this.parameters.client_id, this.parameters.client_secret, redirect_uri);
-  }
-
-  /**
-   * @inheritdoc
-   * @param ctx - the request context
-   * @returns the identity and profile
-   */
-  async handleCallback(ctx: WebContext) {
-    // Verify state are equal
-    if (ctx.getParameters().state !== ctx.getSession<OAuthSession>().oauth?.state) {
-      this.log("WARN", `Bad State ${ctx.getParameters().state} !== ${ctx.getSession<OAuthSession>().oauth?.state}`);
-      throw new WebdaError.Forbidden("Bad State");
-    }
-    const code: string = ctx.getParameters().code;
-    const redirect_uri = ctx.getHttpContext().getAbsoluteUrl(`${this.parameters.url}/callback`);
-    const oauthClient = this.getOAuthClient(redirect_uri);
-    let profile, identId;
-    // Now that we have the code, use that to acquire tokens.
+  async handleCallback(request: OAuthCallbackRequest): Promise<ResolvedIdentity> {
+    let tokens: Credentials;
     try {
-      const r = await oauthClient.getToken(code);
-      await this.emit("GoogleAuth.Tokens", { tokens: r.tokens, context: ctx });
-      profile = await this.getUserInfo(r.tokens.id_token);
-      identId = profile.sub;
+      ({ tokens } = await this.getClient(request.redirectUri).getToken({
+        code: request.code,
+        codeVerifier: request.codeVerifier,
+        redirect_uri: request.redirectUri
+      }));
     } catch (err) {
-      this.log("ERROR", err);
-      throw new WebdaError.Forbidden("OAuth Error");
+      this.log("WARN", "Google code exchange failed:", safeErrorReason(err));
+      throw new TokenInvalid("Code exchange failed");
     }
+    if (!tokens?.id_token) {
+      throw new TokenInvalid("Google returned no ID token: the 'openid' scope is required");
+    }
+    const payload = await this.verifyIdToken(tokens.id_token, [this.parameters.client_id]);
+    if (typeof payload.nonce !== "string" || !sameSecret(payload.nonce, request.nonce)) {
+      throw new TokenInvalid("ID token nonce mismatch");
+    }
+    return this.toIdentity(payload, tokens);
+  }
+
+  /**
+   * Verify a Google ID token sent by a client, as `token` or `tokens.id_token`
+   * @param request - token request
+   * @returns the identity, with the credentials sent in `tokens`
+   */
+  async handleToken(request: OAuthTokenRequest): Promise<ResolvedIdentity> {
+    const fromTokens = request.tokens?.id_token;
+    if (request.token && fromTokens !== undefined && fromTokens !== request.token) {
+      throw new WebdaError.BadRequest("token and tokens.id_token differ");
+    }
+    const idToken = request.token ?? fromTokens;
+    if (typeof idToken !== "string" || !idToken) {
+      throw new TokenInvalid("A Google ID token is required");
+    }
+    const payload = await this.verifyIdToken(idToken, [
+      this.parameters.client_id,
+      ...(this.parameters.audiences ?? [])
+    ]);
+    return this.toIdentity(payload, request.tokens as Credentials);
+  }
+
+  /**
+   * Emit `GoogleAuth.Tokens` once the login succeeded
+   * @param identity - the identity
+   * @param _result - the result
+   * @param source - browser callback or token operation
+   * @param request - the token operation request
+   */
+  protected async onAuthenticated(
+    identity: ResolvedIdentity,
+    _result: AuthResult,
+    source: "callback" | "token",
+    request?: OAuthTokenRequest
+  ): Promise<void> {
+    const tokens = source === "token" ? (request?.tokens ?? { id_token: request?.token }) : identity.tokens;
+    await this.emit("GoogleAuth.Tokens", { tokens, context: useContext() } as EventGoogleOAuthToken);
+  }
+
+  /**
+   * Verify an ID token: signature, expiry, issuer (google-auth-library), audience and hosted domain
+   * @param idToken - ID token
+   * @param audiences - accepted audiences
+   * @returns the payload
+   * @throws TokenInvalid when the token does not verify
+   * @throws EmailDomainNotAllowed when `hostedDomain` is set and the token is not from that domain
+   */
+  protected async verifyIdToken(idToken: string, audiences: string[]): Promise<TokenPayload> {
+    const audience = audiences.filter(a => typeof a === "string" && a);
+    // Without audience the library would skip the check: never verify without one
+    if (!audience.length) {
+      throw new TokenInvalid("No audience configured");
+    }
+    this.verifier ??= new OAuth2Client({ clientId: this.parameters.client_id });
+    let payload: TokenPayload | undefined;
+    try {
+      const ticket = await this.verifier.verifyIdToken({
+        idToken,
+        audience: audience.length === 1 ? audience[0] : audience
+      });
+      payload = ticket.getPayload();
+    } catch (err) {
+      // The library messages contain the token or its payload: only the error class is logged
+      this.log("WARN", "Google ID token verification failed:", safeErrorReason(err));
+      throw new TokenInvalid();
+    }
+    if (!payload?.sub) {
+      throw new TokenInvalid("ID token has no subject");
+    }
+    const hostedDomain = this.parameters.hostedDomain?.trim().toLowerCase();
+    if (hostedDomain && payload.hd?.toLowerCase() !== hostedDomain) {
+      throw new EmailDomainNotAllowed("Google account is not from the hosted domain");
+    }
+    return payload;
+  }
+
+  /**
+   * @param payload - verified ID token payload
+   * @param tokens - credentials to store
+   * @returns the identity
+   */
+  protected toIdentity(payload: TokenPayload, tokens?: Credentials): ResolvedIdentity {
     return {
-      identId,
-      profile
+      provider: this.providerName,
+      providerUid: payload.sub,
+      email: payload.email,
+      emailVerified: payload.email_verified === true,
+      profile: { name: payload.name, picture: payload.picture, locale: payload.locale, hd: payload.hd },
+      tokens,
+      amr: ["oauth"]
     };
-  }
-
-  /**
-   * Retrieve the user profile based on the token
-   * @param token - the Google id token
-   * @returns the token payload
-   */
-  async getUserInfo(token: string) {
-    const oauthClient = this.getOAuthClient();
-    const ticket = await oauthClient.verifyIdToken({
-      idToken: token,
-      audience: this.parameters.client_id
-    });
-    return ticket.getPayload();
-  }
-
-  /**
-   * Verify a Google Auth Token
-   * @param context - the request context
-   * @returns the identity and profile
-   */
-  async handleToken(context: WebContext) {
-    const tokens = (await context.getRequestBody()).tokens;
-    if (!tokens) {
-      throw new WebdaError.BadRequest("No tokens provided");
-    }
-    const profile = await this.getUserInfo(tokens.id_token);
-    return {
-      identId: profile.sub,
-      profile
-    };
-  }
-
-  /**
-   * Retrieve Google Client
-   *
-   * Redirecting to the webbrowser for the OAuth validation
-   * Store the token in user store afterwards
-   * @param token - existing credentials to reuse, if any
-   * @param open - callback to open the authorization url in a browser
-   * @param storeToken - callback to persist the retrieved credentials
-   * @returns the authenticated OAuth2 client
-   */
-  async getLocalClient(
-    token: Credentials,
-    open: (url: string) => void,
-    storeToken: (token: Credentials) => Promise<void>
-  ): Promise<OAuth2Client> {
-    if (this._client) {
-      return this._client;
-    }
-
-    const oAuth2Client = this.getOAuthClient();
-
-    if (token) {
-      oAuth2Client.setCredentials(token);
-      this._client = oAuth2Client;
-      return oAuth2Client;
-    }
-    // Generate the url that will be used for the consent dialog.
-    const authorizeUrl = oAuth2Client.generateAuthUrl({
-      access_type: "offline",
-      scope: this.parameters.scope,
-      redirect_uri: "http://localhost:3000/oauth2callback"
-    });
-
-    // Open an http server to accept the oauth callback. In this simple example, the
-    // only request to our webserver is to /oauth2callback?code=<code>
-    return new Promise((resolve, reject) => {
-      const server = http
-        .createServer(async (req, res) => {
-          if (req.url.indexOf("/oauth2callback") > -1) {
-            try {
-              // acquire the code from the querystring, and close the web server.
-              const code = new URL(req.url, `http://localhost:3000`).searchParams.get("code");
-              if (code) {
-                res.end("Authentication successful! Please return to the console.");
-              } else {
-                res.end("Authentication unsuccessful! Please return to the console.");
-                return reject("Failed");
-              }
-
-              // Now that we have the code, use that to acquire tokens.
-              const r = await oAuth2Client.getToken(code);
-              // Make sure to set the credentials on the OAuth2 client.
-              storeToken(r.tokens);
-              oAuth2Client.setCredentials(r.tokens);
-              this._client = oAuth2Client;
-              this.log("INFO", "Google Authentication finished.");
-              return resolve(this._client);
-            } catch (err) {
-              this.log("ERROR", err);
-              reject(err);
-            } finally {
-              server.close();
-            }
-          }
-        })
-        .listen(3000, () => {
-          // open the browser to the authorize url to start the workflow
-          this.log("INFO", "Launching your browser for Google API Permission");
-          open(authorizeUrl);
-        });
-    });
   }
 }
 
-export { GoogleAuthentication };
+/**
+ * Constant-time comparison
+ * @param a - received value
+ * @param b - expected value
+ * @returns true when equal
+ */
+function sameSecret(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
+export default GoogleAuthentication;

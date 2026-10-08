@@ -270,6 +270,31 @@
       "type": "object",
       "title": "BinaryFile"
     },
+    "Webda/OAuthTokenRequest": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "definitions": {
+        "OAuthTokens": {
+          "additionalProperties": {},
+          "description": "Credentials as returned by an OAuth token endpoint (google-auth-library `Credentials` shape): `id_token`,\n`access_token`, `refresh_token`, `expiry_date`, `token_type`, `scope`... Values are not typed by the schema\n(providers send nulls); providers check what they use.",
+          "type": "object"
+        }
+      },
+      "description": "Input of the `Auth.<Provider>.Token` operations: `token`, or the provider credentials `tokens`",
+      "properties": {
+        "token": {
+          "description": "Token issued by the provider to the client (an ID token for OpenID Connect providers)",
+          "type": "string"
+        },
+        "tokens": {
+          "$ref": "#/definitions/OAuthTokens",
+          "description": "Credentials obtained by the client from the provider (v3 body; its `id_token` is verified)"
+        }
+      },
+      "type": "object",
+      "title": "OAuthTokenRequest"
+    },
     "Authentication.providers.input": {
       "type": "object",
       "properties": {}

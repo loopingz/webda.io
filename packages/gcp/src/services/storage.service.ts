@@ -373,7 +373,8 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     try {
       const res = await this.getStorageBucket().file(params.key).getMetadata();
       exists = true;
-      challenge = res[0].metadata?.challenge;
+      const stored = res[0].metadata?.challenge;
+      challenge = stored === undefined || stored === null ? undefined : `${stored}`;
     } catch {
       // The data does not exist yet
     }

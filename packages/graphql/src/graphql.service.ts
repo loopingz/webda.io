@@ -11,7 +11,11 @@ import {
   useCore,
   useCoreEvents,
   useModelMetadata,
-  useRepository
+  useRepository,
+  isModelActionAllowed,
+  queryModelWithPermissions,
+  getClientWritableAttributes,
+  assertNoPrivateFields
 } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
 import * as WebdaQL from "@webda/ql";
@@ -40,7 +44,7 @@ import { WebSocketServer } from "ws";
 import { AnyScalarType } from "./types/any.js";
 import { DateScalar } from "./types/date.js";
 import { GraphQLLong } from "./types/long.js";
-import { createFromInput, isInputAttribute, updateFromInput } from "./mutations.js";
+import { createFromInput, isInputAttribute, loadForAction, updateFromInput } from "./mutations.js";
 
 const GraphIQL = `
 <!doctype html>
@@ -263,6 +267,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         return { type: AnyScalarType, description: "Map" };
       }
       for (const i in schema.properties) {
+        // Private (`__`) fields are server-only, at any depth
+        if (i.startsWith("__")) {
+          continue;
+        }
         const res = this.getGraphQLSchemaFromSchema(
           this.getJsonSchemaDefinition(<JSONSchema7>schema.properties[i], schema.definitions),
           `${schema.title || defaultName}_${i}`,
@@ -305,19 +313,21 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   * `__` (server-only) fields already warned about, so each is logged once
-   */
-  private privateWarned = new Set<string>();
-
-  /**
    * Build GraphQL field definitions from a JSON Schema, enriching with relation resolvers from the model graph
    * @param schema - JSON Schema describing the model properties
    * @param defaultName - fallback name for generated types
    * @param webdaGraph - model relation graph (links, maps, queries, parent)
    * @param input - if true, generate input types (skip readonly fields, skip relation resolvers)
+   * @param writable - `_`-prefixed attributes the model accepts from clients (input types only)
    * @returns map of field names to GraphQL field configs
    */
-  getGraphQLFieldsFromSchema(schema: JSONSchema7, defaultName: string, webdaGraph?: ModelGraph, input?: boolean): any {
+  getGraphQLFieldsFromSchema(
+    schema: JSONSchema7,
+    defaultName: string,
+    webdaGraph?: ModelGraph,
+    input?: boolean,
+    writable: string[] = []
+  ): any {
     const fields: ThunkObjMap<GraphQLFieldConfig<any, any, any>> = {};
     const skipFields = [];
     const attributeFilter =
@@ -371,15 +381,16 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             },
             resolve: async (source, args, context, info) => {
               const src = link.type === "LINKS_MAP" ? Object.values(source[link.attribute]) : source[link.attribute];
+              const filter = this.parseFilter(args.filter);
               return (
                 await Promise.all(
-                  src.map(i =>
-                    this.loadModelInstance(
+                  (src || []).map(i =>
+                    this.loadListedInstance(
                       i,
                       this.app.getModel(link.model),
                       context,
                       info.fieldNodes.find(node => node.name.value === link.attribute),
-                      args.filter ? new WebdaQL.PartialValidator(WebdaQL.unsanitize(args.filter)) : undefined
+                      filter
                     )
                   )
                 )
@@ -398,15 +409,16 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           },
           resolve: async (source, args, context, info) => {
             const modelDefinition = this.app.getModel(map.model);
+            const filter = this.parseFilter(args.filter);
             return (
               await Promise.all(
-                source[map.attribute].map(i =>
-                  this.loadModelInstance(
+                (source[map.attribute] || []).map(i =>
+                  this.loadListedInstance(
                     i,
                     modelDefinition,
                     context,
                     info.fieldNodes.find(node => node.name.value === map.attribute),
-                    args.filter ? new WebdaQL.PartialValidator(WebdaQL.unsanitize(args.filter)) : undefined
+                    filter
                   )
                 )
               )
@@ -423,7 +435,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }
           },
           resolve: async (source, args, context, info) => {
-            const res = await source[query.attribute].query(WebdaQL.unsanitize(args.query || ""), context);
+            const res = await this.queryRelated(
+              source[query.attribute],
+              this.app.getModel(query.model),
+              WebdaQL.unsanitize(args.query || ""),
+              context
+            );
             this.countOperation(context, res.results.length);
             return res;
           }
@@ -431,15 +448,15 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       });
     }
     for (const i in schema.properties) {
-      if (i.startsWith("__") && !input && !this.privateWarned.has(`${defaultName}.${i}`)) {
-        this.privateWarned.add(`${defaultName}.${i}`);
-        this.log("WARN", `GraphQL may expose __ field ${i} of ${defaultName}; use toDTO()`);
+      // Private (`__`) fields are server-only: never part of an output or input type
+      if (i.startsWith("__")) {
+        continue;
       }
       // Was initiated by the known graph; inputs never carry private or behavior attributes
       if (
         fields[i] ||
         skipFields.includes(i) ||
-        (input && ((<JSONSchema7>schema.properties[i]).readOnly || !isInputAttribute(i, webdaGraph)))
+        (input && ((<JSONSchema7>schema.properties[i]).readOnly || !isInputAttribute(i, webdaGraph, writable)))
       ) {
         continue;
       }
@@ -455,6 +472,55 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       fields[i] = prop;
     }
     return fields;
+  }
+
+  /**
+   * Parse the `filter` argument of a links or maps field: WebdaQL evaluated on the linked objects, which may not read
+   * private (`__`) fields
+   * @param filter - the client filter
+   * @returns the validator, undefined without filter
+   * @throws GraphQLError BAD_USER_INPUT for an invalid filter or one reading private fields
+   */
+  parseFilter(filter?: string): WebdaQL.PartialValidator | undefined {
+    if (!filter) {
+      return undefined;
+    }
+    try {
+      const validator = new WebdaQL.PartialValidator(WebdaQL.unsanitize(filter));
+      assertNoPrivateFields(validator);
+      return validator;
+    } catch (err) {
+      throw new GraphQLError(err instanceof WebdaError.BadRequest ? err.message : "Invalid filter", {
+        extensions: { code: "BAD_USER_INPUT" }
+      });
+    }
+  }
+
+  /**
+   * {@link loadModelInstance} for an element of a list (links, maps): an element the caller may not read, or that
+   * no longer exists, is dropped (null) instead of failing the whole list, like a filtered query
+   * @param knownFieldsOrId - UUID string or object with known field values
+   * @param model - model class to load from
+   * @param context - web context for permission checks
+   * @param info - GraphQL field node describing the selection set
+   * @param filter - optional WebdaQL filter to apply to the result
+   * @returns the model instance, or null
+   */
+  async loadListedInstance(
+    knownFieldsOrId: string | { uuid: string; [key: string]: any },
+    model: ModelDefinition<any>,
+    context: WebContext,
+    info?: FieldNode,
+    filter?: WebdaQL.PartialValidator
+  ): Promise<any> {
+    try {
+      return await this.loadModelInstance(knownFieldsOrId, model, context, info, filter);
+    } catch (err) {
+      if (err instanceof GraphQLError && err.extensions?.code === "NOT_FOUND") {
+        return null;
+      }
+      throw err;
+    }
   }
 
   /**
@@ -497,21 +563,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     }
     // Count the operation then and retrieve the model
     this.countOperation(context);
-    const modelInstance = await model.ref(res.uuid || "").get();
-    if (!modelInstance) {
-      throw new GraphQLError("Object not found", {
-        extensions: {
-          code: "NOT_FOUND"
-        }
-      });
-    }
-    if ((await (modelInstance as any)?.canAct?.(context, "get")) !== true) {
-      throw new GraphQLError("Permission denied", {
-        extensions: {
-          code: "PERMISSION_DENIED"
-        }
-      });
-    }
+    // A missing object and an object the caller may not read answer the same NOT_FOUND
+    const modelInstance = await loadForAction(model, res.uuid || "", context, "get");
     if (filter && !filter.eval(modelInstance, false)) {
       return null;
     }
@@ -594,7 +647,13 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         name
       });
       const input = new GraphQLInputObjectType({
-        fields: this.getGraphQLFieldsFromSchema(schema, name + "Input", modelGraph, true),
+        fields: this.getGraphQLFieldsFromSchema(
+          schema,
+          name + "Input",
+          modelGraph,
+          true,
+          getClientWritableAttributes(model)
+        ),
         name: name + "Input"
       });
       const actionsName = Object.keys(metadata.Actions);
@@ -632,14 +691,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }
           },
           resolve: async (_, args, context) => {
-            const object = await model.ref(args.uuid).get();
-            if ((await object?.canAct?.(context, "delete")) !== true) {
-              throw new GraphQLError("Permission denied", {
-                extensions: {
-                  code: "PERMISSION_DENIED"
-                }
-              });
-            }
+            const object = await loadForAction(model, args.uuid, context, "delete");
             await object.delete();
             return {
               success: true
@@ -658,7 +710,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           }
         },
         resolve: async (_, args, context) => {
-          return await model.query(WebdaQL.unsanitize(args.query || ""));
+          // Same permission filtering as the DomainService query operation
+          return await queryModelWithPermissions(model, WebdaQL.unsanitize(args.query || ""), context);
         },
         subscribe: async (_source, args, context) => {
           this.log("DEBUG", "Subscription called on", args);
@@ -901,6 +954,25 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
+   * Query a 1:n relation (ModelRelated) as the caller: the relation condition is merged into the client query, then
+   * filtered like any model query (permission query, canAct "get")
+   * @param related - the ModelRelated attribute of the source object
+   * @param related.getQuery - merges the relation condition into a query
+   * @param model - the target model class
+   * @param query - the client query
+   * @param context - the caller context
+   * @returns the readable related objects
+   */
+  async queryRelated(
+    related: { getQuery(query: string): string },
+    model: any,
+    query: string,
+    context: any
+  ): Promise<{ results: any[]; continuationToken?: string }> {
+    return queryModelWithPermissions(model, related.getQuery(query), context);
+  }
+
+  /**
    * Create an async iterator that streams query results, updating when store events occur
    * @param model - model class to query
    * @param plural - plural name used as the iterator prefix key
@@ -914,7 +986,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     query: string,
     context: any
   ): Promise<AsyncIterator<any>> {
-    let result = await model.query(query);
+    // Results are always filtered with the subscriber permissions (permission query and canAct "get")
+    const runQuery = () => queryModelWithPermissions(model, query, context);
+    let result = await runQuery();
     const queryInfo = new WebdaQL.QueryValidator(query);
     const updatedCallback = async evt => {
       this.log("TRACE", "Event from", evt.emitterId, evt.object_id);
@@ -925,6 +999,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       result.results = await Promise.all(
         result.results.map(r => (r.getUUID() === evt.object_id ? model.ref(evt.object_id).get() : r))
       );
+      // The update may have removed the subscriber's access to the object
+      const allowed = await Promise.all(result.results.map(r => isModelActionAllowed(r, context, "get", model)));
+      result.results = result.results.filter((_r, i) => allowed[i]);
       return {
         continuationToken: result.continuationToken,
         results: result.results
@@ -935,14 +1012,18 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       // Deleted is different as we need to return null
       Deleted: async evt => {
         if (!result.results.find(e => evt.object_id === e.getUUID())) return;
-        result = await model.query(query);
+        result = await runQuery();
         return result;
       },
       Created: async evt => {
         // If object match the query and is not in the result and can be read by the user
-        if (queryInfo.eval(evt.object) && !queryInfo.getOffset() && evt.object.canAct(context, "get")) {
+        if (
+          queryInfo.eval(evt.object) &&
+          !queryInfo.getOffset() &&
+          (await isModelActionAllowed(evt.object, context, "get", model))
+        ) {
           // Should check with the order by of the query to see if we need to recompute
-          result = await model.query(query);
+          result = await runQuery();
           return result;
         }
         return;
@@ -975,7 +1056,14 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       // We rely on the cache of the store to get the full object
       // We let the other listeners finish before returning the object
       await new Promise(resolve => nextTick(resolve));
-      return model.ref(evt.object_id).get();
+      let updated: any;
+      try {
+        updated = await model.ref(evt.object_id).get();
+      } catch {
+        // Gone between the event and the read
+      }
+      // The update may have removed the subscriber's access: report it like a deletion (a throwing canAct refuses)
+      return updated && (await isModelActionAllowed(updated, context, "get", model)) ? updated : null;
     };
     const events = {
       Updated: updatedCallback,
@@ -987,15 +1075,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       Patched: updatedCallback,
       PartialUpdated: updatedCallback
     };
-    const modelInstance = await model.ref(uuid).get();
-    // Ensure we have the permission to get the object
-    if ((await (modelInstance as any)?.canAct?.(context, "get")) !== true) {
-      throw new GraphQLError("Permission denied", {
-        extensions: {
-          code: "PERMISSION_DENIED"
-        }
-      });
-    }
+    // Ensure we have the permission to get the object: a refused read answers like a missing object
+    const modelInstance = await loadForAction(model, uuid, context, "get");
     // Listen on the model's repository typed events instead of legacy Store.* events.
     return new EventIterator(
       useRepository(model as any) as any,
@@ -1028,7 +1109,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       return { latestEventTime: Date.now(), [eventName]: evt };
     };
     const eventsMap = {};
-    const modelInstance = uuid !== null ? await model.ref(uuid).get() : undefined;
+    if (uuid !== null) {
+      // Listening to an object requires reading it: a refused read answers like a missing object
+      await loadForAction(model, uuid, context, "get");
+    }
     events
       .filter(e => (useCore().getModelStore(model as any) as any)?.authorizeClientEvent?.(e, context) !== false)
       .forEach(e => (eventsMap[e] = updatedCallback(e)));

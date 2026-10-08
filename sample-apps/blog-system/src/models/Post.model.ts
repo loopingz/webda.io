@@ -3,7 +3,12 @@ import type { User } from "./User.model.js";
 import type { Comment } from "./Comment.model.js";
 import type { Tag } from "./Tag.model.js";
 import { Binaries, Binary, Operation } from "@webda/core";
+import type { IOperationContext } from "@webda/core";
+import { bind } from "@webda/ql";
 
+/**
+ * Events emitted by posts, on top of the model events
+ */
 export class PostEvents<T extends Post> {
   Publish: {
     post: T;
@@ -11,6 +16,11 @@ export class PostEvents<T extends Post> {
 }
 /**
  * Post model representing blog posts
+ *
+ * Permission model (see `canAct` below): anyone reads a published post, drafts and archived posts are the
+ * author's; logged-in users create; the author edits, deletes and publishes. The author is always the caller: it is
+ * set on create and never taken from client input. `getPermissionQuery` applies the read rule in the store, so lists
+ * never scan the other authors' drafts.
  */
 export class Post extends Model {
   [WEBDA_PRIMARY_KEY] = ["slug"] as const;
@@ -54,14 +64,12 @@ export class Post extends Model {
   /**
    * Main image for the post, stored as binary data with width and height metadata. This demonstrates how to use binary data in a model, which can be useful for storing images or files directly in the database.
    */
-  mainImage: Binary<{width: number; height: number}>;
+  mainImage: Binary<{ width: number; height: number }>;
 
   /**
    * Additional images for the post, stored as an array of binaries with width and height metadata. This shows how to manage multiple related binary files in a model.
    */
-  images: Binaries<{width: number; height: number}>;
-
-  
+  images: Binaries<{ width: number; height: number }>;
 
   /**
    * Publication status
@@ -115,13 +123,76 @@ export class Post extends Model {
    */
   tags!: ManyToMany<Tag>;
 
+  /**
+   * The author is server-managed: never taken from client input (create, update, patch, GraphQL)
+   * @returns the protected attributes
+   */
+  static getProtectedAttributes(): string[] {
+    return ["author"];
+  }
+
+  /**
+   * Called on a new post built from client input, before the "create" check: the caller is the author
+   * @param context - the caller context
+   */
+  prepareCreate(context: IOperationContext): void {
+    (this as any).author = context.getCurrentUserId();
+    this.createdAt ??= new Date();
+    this.updatedAt ??= this.createdAt;
+  }
+
+  /**
+   * Store filter matching the read rule of `canAct`: published posts, plus the caller's own
+   * @param context - the caller context
+   * @returns the permission query
+   */
+  static getPermissionQuery(context?: IOperationContext): null | { partial: boolean; query: string } {
+    if (!context) {
+      return null;
+    }
+    const userId = context.getCurrentUserId();
+    return {
+      query: userId ? bind("status = 'published' OR author = ?", [userId]) : "status = 'published'",
+      partial: false
+    };
+  }
+
+  /**
+   * Permission rule (instance form: the decision depends on the post)
+   * - "get" and the binary reads: anyone for a published post, the author otherwise (drafts, archived);
+   * - "create": any logged-in user (the author is the caller, see `prepareCreate`);
+   * - "update", "delete", "publish" and the other binary actions: the author.
+   * @param context - the caller context
+   * @param action - the action
+   * @returns true or the refusal reason
+   */
+  async canAct(context: IOperationContext, action: string): Promise<boolean | string> {
+    const userId = context.getCurrentUserId();
+    const isAuthor = !!userId && this.author?.toString() === userId;
+    if (
+      action === "get" ||
+      action.endsWith(".download") ||
+      action.endsWith(".downloadUrl") ||
+      action.endsWith(".get")
+    ) {
+      return this.status === "published" || isAuthor ? true : "Only the author can read an unpublished post";
+    }
+    if (!userId) {
+      return "Login required";
+    }
+    if (action === "create") {
+      return true;
+    }
+    return isAuthor ? true : "Only the author";
+  }
+
+  /**
+   * Publish the post somewhere: the author only (instance rule)
+   * @param destination - where to publish
+   * @returns the publication id
+   */
   @Operation()
   async publish(destination: "linkedin" | "twitter"): Promise<string> {
     return `${destination}_${this.slug}_${Date.now()}`;
-  }
-
-  /** Public sample — permissive for all actions. */
-  async canAct(_context: any, _action: string): Promise<boolean> {
-    return true;
   }
 }

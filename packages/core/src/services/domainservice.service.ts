@@ -3,7 +3,7 @@ import { Service } from "./service.js";
 import { Application } from "../application/application.js";
 import type { ModelAction } from "../models/types.js";
 import { OperationContext } from "../contexts/operationcontext.js";
-import type { Model, ModelClass } from "@webda/models";
+import { UuidModel, type Model, type ModelClass } from "@webda/models";
 import { runWithContext, useContext } from "../contexts/execution.js";
 
 import * as WebdaError from "../errors/errors.js";
@@ -14,22 +14,118 @@ import { useModelMetadata } from "../core/hooks.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
 import { registerOperation } from "../core/operations.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
+import {
+  checkModelParent,
+  checkModelPermission,
+  checkStaticModelPermission,
+  createModel,
+  getParentRelation,
+  hasModelPermissionCheck,
+  hasStaticPermissionCheck,
+  NOT_FOUND_MESSAGE,
+  queryModelWithPermissions
+} from "../models/permissions.js";
 
 /**
- * Remove Behavior-typed attributes (Metadata.Relations.behaviors) and private fields from client input.
- * Behavior state can only be changed through the behavior's own actions.
+ * Sanitize client input before it reaches a model (REST, gRPC, MCP and GraphQL):
+ * - `__`-prefixed (private) keys are removed at any depth;
+ * - `_`-prefixed attributes are removed, unless the model lists them in its static `getClientWritableAttributes()`:
+ *   by convention they are server-managed (`_user`, `_roles`, `_groups`, `_creationDate`...);
+ * - Behavior-typed attributes (Metadata.Relations.behaviors) are removed: behavior state can only be changed through
+ *   the behavior's own actions;
+ * - the attributes of the model's static `getProtectedAttributes()` are removed, even when listed as writable;
+ * - the attributes the model schemas mark `readOnly` (`@readOnly` on the property) are removed: they are server-managed.
  * @param model - the model class
  * @param input - the client input
  * @returns the sanitized input
  */
 export function sanitizeModelInput<T = any>(model: ModelClass<any>, input: T): T {
   const out: any = stripPrivateFields(input);
-  if (out && typeof out === "object" && !Array.isArray(out)) {
-    for (const rel of useModelMetadata(model)?.Relations?.behaviors ?? []) {
-      delete out[rel.attribute];
-    }
+  if (!out || typeof out !== "object" || Array.isArray(out)) {
+    return out;
+  }
+  const writable = getClientWritableAttributes(model);
+  const removed = new Set<string>([
+    ...getReadOnlyAttributes(model),
+    ...(useModelMetadata(model)?.Relations?.behaviors ?? []).map(rel => rel.attribute),
+    // Server-managed attributes (e.g. the owner of an OwnerModel) are never taken from client input
+    ...getProtectedAttributes(model)
+  ]);
+  // Object.fromEntries defines own properties: no client-chosen key is ever written or deleted dynamically
+  return Object.fromEntries(
+    Object.entries(out).filter(([key]) => !removed.has(key) && (!key.startsWith("_") || writable.includes(key)))
+  ) as T;
+}
+
+/**
+ * `_`-prefixed attributes a model accepts from client input, declared by its optional static
+ * `getClientWritableAttributes()`
+ * @param model - the model class
+ * @returns the attribute names
+ */
+export function getClientWritableAttributes(model: any): string[] {
+  return typeof model?.getClientWritableAttributes === "function" ? (model.getClientWritableAttributes() ?? []) : [];
+}
+
+/**
+ * Client input of a create (REST, gRPC, MCP and GraphQL): {@link sanitizeModelInput}, plus
+ * - the parent link (`ModelParent` attribute, from the nested URL or the input) is kept even when `_`-prefixed, unless
+ *   protected: the caller must then check the parent ({@link checkModelParent});
+ * - a client `uuid` is dropped for `UuidModel`s: the key is always generated, so a create can neither target an
+ *   existing object nor reveal that a uuid exists. Natural-key models keep the client key (an existing key is a 409).
+ * @param model - the model class
+ * @param input - the raw client input
+ * @returns the input to load in the new object
+ */
+export function prepareCreateInput<T = any>(model: ModelClass<any>, input: T): T {
+  const parent = getParentRelation(model);
+  const parentId =
+    parent && !getProtectedAttributes(model).includes(parent.attribute)
+      ? (input as any)?.[parent.attribute]
+      : undefined;
+  const out: any = sanitizeModelInput(model, input);
+  if (!out || typeof out !== "object" || Array.isArray(out)) {
+    return out;
+  }
+  if (parentId !== undefined && parentId !== null && parentId !== "") {
+    out[parent.attribute] = parentId;
+  }
+  if ((model as any)?.prototype instanceof UuidModel) {
+    delete out.uuid;
   }
   return out;
+}
+
+/**
+ * Attributes the model schemas (Input, Output, Stored) mark `readOnly`: server-managed, never taken from client input
+ * @param model - the model class
+ * @returns the attribute names
+ */
+export function getReadOnlyAttributes(model: any): string[] {
+  let schemas: Record<string, any> | undefined;
+  try {
+    schemas = useModelMetadata(model)?.Schemas;
+  } catch {
+    return [];
+  }
+  const names = new Set<string>();
+  for (const schema of Object.values(schemas ?? {})) {
+    for (const [name, property] of Object.entries((schema as any)?.properties ?? {})) {
+      if ((property as any)?.readOnly === true || (property as any)?.readonly === true) {
+        names.add(name);
+      }
+    }
+  }
+  return [...names];
+}
+
+/**
+ * Attributes a model refuses from client input, declared by its optional static `getProtectedAttributes()`
+ * @param model - the model class
+ * @returns the attribute names
+ */
+export function getProtectedAttributes(model: any): string[] {
+  return typeof model?.getProtectedAttributes === "function" ? (model.getProtectedAttributes() ?? []) : [];
 }
 
 /**
@@ -225,9 +321,37 @@ export class DomainService<
         context,
         uuid: typeof uuid === "string" ? uuid : JSON.stringify(uuid)
       });
-      throw new WebdaError.NotFound("Object not found");
+      throw new WebdaError.NotFound(NOT_FOUND_MESSAGE);
     }
     return object;
+  }
+
+  /**
+   * {@link checkModelPermission}, emitting `Store.WebNotFound` when the refusal looks like a missing object, exactly
+   * like {@link loadModel} does for a missing key
+   * @param object - the model instance
+   * @param context - the caller context
+   * @param action - the action
+   * @param model - the model class (the static `canAct` asked)
+   */
+  protected async checkPermission(
+    object: Model,
+    context: OperationContext,
+    action: string,
+    model?: ModelClass<Model>
+  ): Promise<void> {
+    try {
+      await checkModelPermission(object, context, action, model);
+    } catch (err) {
+      if (err instanceof WebdaError.NotFound) {
+        const uuid: any = object.getPrimaryKey?.();
+        await this.emit("Store.WebNotFound", {
+          context,
+          uuid: typeof uuid === "string" ? uuid : JSON.stringify(uuid)
+        });
+      }
+      throw err;
+    }
   }
 
   /**
@@ -245,14 +369,83 @@ export class DomainService<
     if (typeof input !== "object" || input === null || input instanceof OperationContext) {
       input = await context.getInput();
     }
-    input = sanitizeModelInput(model, input);
+    input = prepareCreateInput(model, input);
     return runWithContext(context, async () => {
       // Instantiate the model from raw input, load data, then save
       const object = new (model as any)() as Model;
       (object as any).load(input);
-      await object.save();
+      // The parent link (nested URL or input) must point to a parent the caller may read
+      await this.checkParent(model, input?.[getParentRelation(model)?.attribute ?? ""], context);
+      // Let the model set its server-managed fields (e.g. the owner) from the caller
+      await (object as any).prepareCreate?.(context);
+      await this.checkPermission(object, context, "create", model);
+      // Create, never upsert: an existing key is a 409, not an overwrite
+      await createModel(object);
       return object;
     });
+  }
+
+  /**
+   * {@link checkModelParent}, emitting `Store.WebNotFound` when the parent is missing or unreadable, like any missing
+   * object
+   * @param model - the child model class
+   * @param parentId - the parent primary key
+   * @param context - the caller context
+   */
+  protected async checkParent(model: ModelClass<Model>, parentId: any, context: OperationContext): Promise<void> {
+    try {
+      await checkModelParent(model, parentId, context);
+    } catch (err) {
+      if (err instanceof WebdaError.NotFound) {
+        await this.emit("Store.WebNotFound", {
+          context,
+          uuid: typeof parentId === "string" ? parentId : JSON.stringify(parentId)
+        });
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Resolve the primary key of an update or patch: the URL parameters win over the body, and a body carrying another
+   * key is refused, so an update can never be redirected to another object
+   * @param input - the sanitized input, its primary-key fields are removed
+   * @param pkFields - the primary-key fields
+   * @param params - the URL parameters
+   * @returns the primary key
+   * @throws BadRequest when the body key differs from the URL key
+   */
+  protected resolveUpdateKey(input: any, pkFields: string[] | undefined, params: Record<string, any>): any {
+    const fields = pkFields?.length ? pkFields : ["uuid"];
+    const key: Record<string, unknown> = {};
+    for (const f of fields) {
+      const fromUrl = params[f];
+      const fromBody = input?.[f];
+      if (fromUrl !== undefined && fromBody !== undefined && String(fromUrl) !== String(fromBody)) {
+        throw new WebdaError.BadRequest("Primary key mismatch");
+      }
+      key[f] = fromUrl ?? fromBody;
+      if (input && typeof input === "object") {
+        delete input[f];
+      }
+    }
+    return fields.length === 1 ? key[fields[0]] : key;
+  }
+
+  /**
+   * When an update moves an object to another parent, the caller must be able to read the new parent
+   * @param model - the model class
+   * @param object - the stored object
+   * @param input - the sanitized input
+   * @param context - the caller context
+   */
+  protected async checkReparent(model: ModelClass<Model>, object: Model, input: any, context: OperationContext) {
+    const parent = getParentRelation(model);
+    const value = parent ? input?.[parent.attribute] : undefined;
+    if (value === undefined || value === null || String(value) === String(object[parent.attribute] ?? "")) {
+      return;
+    }
+    await this.checkParent(model, value, context);
   }
 
   /**
@@ -274,22 +467,15 @@ export class DomainService<
       input = await context.getInput();
     }
     input = sanitizeModelInput(model, input);
-    // Resolve the PK from body or URL params using the model's actual PK fields;
+    // Resolve the PK from the URL params (or the body) using the model's actual PK fields;
     // fall back to "uuid" for legacy operations without pkFields in the context.
-    const params = context.getParameters() ?? {};
-    const fields = pkFields?.length ? pkFields : ["uuid"];
-    const pk: any =
-      fields.length === 1
-        ? (input?.[fields[0]] ?? params[fields[0]])
-        : fields.reduce(
-            (acc, f) => {
-              acc[f] = input?.[f] ?? params[f];
-              return acc;
-            },
-            {} as Record<string, unknown>
-          );
+    const pk = this.resolveUpdateKey(input, pkFields, context.getParameters() ?? {});
     const object = await this.loadModel(model, pk);
+    // Check on the stored object, before any client input is applied
+    await this.checkPermission(object, context, "update", model);
+    await this.checkReparent(model, object, input, context);
     object["load"](input);
+    await object.save();
     return object;
   }
 
@@ -302,7 +488,7 @@ export class DomainService<
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
     const object = await this.loadModel(model, uuid);
-    //await object.checkAct(context, "get");
+    await this.checkPermission(object, context, "get", model);
     return object;
   }
 
@@ -314,7 +500,7 @@ export class DomainService<
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
     const object = await this.loadModel(model, uuid);
-    //await object.checkAct(context, "delete");
+    await this.checkPermission(object, context, "delete", model);
     // Object can decide to not delete but mark as deleted
     await object.delete();
   }
@@ -327,9 +513,12 @@ export class DomainService<
   async modelQuery(query: string): Promise<any> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass }>("operationContext");
+    if (query !== undefined && query !== null && typeof query !== "string") {
+      throw new WebdaError.BadRequest("Query must be a string");
+    }
     return runWithContext(context, async () => {
       try {
-        return await model.query(query);
+        return await queryModelWithPermissions(model, query, context);
       } catch (err) {
         if (err instanceof SyntaxError) {
           this.log("INFO", "Query syntax error");
@@ -357,19 +546,11 @@ export class DomainService<
     }
     input = sanitizeModelInput(model, input);
     // Build the PK from the model's real primary-key fields (same logic as modelUpdate).
-    const params = context.getParameters() ?? {};
-    const fields = pkFields?.length ? pkFields : ["uuid"];
-    const pk: any =
-      fields.length === 1
-        ? (input?.[fields[0]] ?? params[fields[0]])
-        : fields.reduce(
-            (acc, f) => {
-              acc[f] = input?.[f] ?? params[f];
-              return acc;
-            },
-            {} as Record<string, unknown>
-          );
+    const pk = this.resolveUpdateKey(input, pkFields, context.getParameters() ?? {});
     const object = await this.loadModel(model, pk);
+    // Check on the stored object, before any client input is applied
+    await this.checkPermission(object, context, "update", model);
+    await this.checkReparent(model, object, input, context);
     await object.patch(input);
     return object;
   }
@@ -390,14 +571,23 @@ export class DomainService<
     if (!action.global) {
       // First arg is uuid when the action is instance-level
       const uuid = args[0];
-      const object = await model.ref(uuid).get();
-      if (!object || object.isDeleted()) {
-        throw new WebdaError.NotFound("Object not found");
-      }
-      //await object.checkAct(context, action.name as ActionsEnum<Model>);
+      // A missing object and an object the caller cannot read answer the same NotFound
+      const object = await this.loadModel(model, uuid);
+      await this.checkPermission(object, context, action.name, model);
       return object[handler](context);
     } else {
-      return model[handler](context);
+      // Static action: the model's static canAct is asked without object
+      await checkStaticModelPermission(model, context, action.name);
+      // With an input schema the arguments are resolved from it (`callOperation`); without one the body is passed,
+      // sanitized like model input (`__`, `_`, protected and read-only attributes removed); no body: the context
+      const resolved = args.length > 0 && !(args[0] instanceof OperationContext);
+      const hasSchema = !!useApplication().getSchema(`${useModelMetadata(model)?.Identifier}.${action.name}.input`);
+      const callArgs = resolved
+        ? hasSchema
+          ? args
+          : [sanitizeModelInput(model, args[0]), ...args.slice(1)]
+        : [context];
+      return model[handler](...callArgs);
     }
   }
 
@@ -461,6 +651,21 @@ export class DomainService<
       // Authentication state models (and subclasses) are internal unless explicitly listed
       if (!this.isExposable(model, Metadata.Identifier)) {
         continue;
+      }
+      if (!hasModelPermissionCheck(model)) {
+        this.log(
+          "WARN",
+          `${Metadata.Identifier} is exposed but denies every request: define static canAct (or the instance canAct)`
+        );
+      } else if (!hasStaticPermissionCheck(model)) {
+        // Instance form only: static actions are asked without object, so the base static refuses them all
+        const statics = Object.keys(Metadata.Actions ?? {}).filter(name => Metadata.Actions[name]?.global);
+        if (statics.length) {
+          this.log(
+            "WARN",
+            `${Metadata.Identifier} defines only the instance canAct: its static actions (${statics.join(", ")}) are always refused, define static canAct`
+          );
+        }
       }
       const shortId = Metadata.Identifier.split("/").pop();
       const plural = Metadata.Plural;
@@ -695,30 +900,6 @@ export class DomainService<
       action: string;
     }>("operationContext");
 
-    // Parent uuid comes from the URL (`/posts/{uuid}/mainImage/...`); read it
-    // straight off the context so we don't depend on its position in `args`.
-    const uuid = (context.getParameters() || {}).uuid;
-    let instance: any;
-    try {
-      instance = await model.ref(uuid).get();
-    } catch {
-      // Repositories (e.g. MemoryRepository) throw a plain Error when the
-      // primary key isn't in storage. Treat that the same as a "soft" miss.
-    }
-    if (!instance || instance.isDeleted?.()) {
-      throw new WebdaError.NotFound("Object not found");
-    }
-
-    const allowed = await instance.canAct(context, `${attribute}.${action}`);
-    if (allowed !== true && allowed !== instance) {
-      throw new WebdaError.Forbidden(`Action ${attribute}.${action} not allowed`);
-    }
-
-    const behaviorInstance = instance[attribute];
-    if (!behaviorInstance || typeof behaviorInstance[action] !== "function") {
-      throw new WebdaError.NotFound(`Behavior method ${attribute}.${action} not found`);
-    }
-
     // `args` was built by `resolveArguments` from the operation's input
     // schema. Two schema shapes coexist:
     //   1. Auto-generated from the method signature (`exploreBehaviorsAction`
@@ -735,6 +916,22 @@ export class DomainService<
     const inputSchema = typeof opInput === "string" ? useApplication().getSchema(opInput) : undefined;
     const propNames = inputSchema?.properties ? Object.keys(inputSchema.properties) : [];
     const passArgs = propNames[0] === "uuid" ? args.slice(1) : args;
+
+    // Parent uuid comes from the URL (`/posts/{uuid}/mainImage/...`) on REST; transports without URL parameters
+    // (gRPC, MCP) carry it in the input, as the uuidRequest schema declares
+    let uuid = (context.getParameters() || {}).uuid;
+    if (uuid === undefined) {
+      uuid = propNames[0] === "uuid" ? args[0] : (await context.getInput().catch(() => undefined))?.uuid;
+    }
+    // A missing parent and a parent the caller cannot read answer the same NotFound
+    const instance: any = await this.loadModel(model, uuid);
+
+    await this.checkPermission(instance, context, `${attribute}.${action}`, model);
+
+    const behaviorInstance = instance[attribute];
+    if (!behaviorInstance || typeof behaviorInstance[action] !== "function") {
+      throw new WebdaError.NotFound(`Behavior method ${attribute}.${action} not found`);
+    }
 
     void behavior; // tagged in operationContext for future use
     return behaviorInstance[action](...passArgs);

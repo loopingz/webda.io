@@ -202,7 +202,15 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     // must be the one stored in the row, not only the one used as key
     const item = this.buildItem(data);
     const key = this.getPrimaryKey(item).toString();
-    await this.execute(`INSERT INTO ${this.table}(uuid,data) VALUES($1, $2)`, [key, JSON.stringify(item)]);
+    try {
+      await this.execute(`INSERT INTO ${this.table}(uuid,data) VALUES($1, $2)`, [key, JSON.stringify(item)]);
+    } catch (err) {
+      // unique_violation on the primary key: the object exists, never overwrite it
+      if (err?.code === "23505") {
+        throw new Error(`Already exists: ${key}`);
+      }
+      throw err;
+    }
     return item;
   }
 

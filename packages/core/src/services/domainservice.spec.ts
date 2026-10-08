@@ -451,7 +451,9 @@ class DomainServiceTest extends WebdaApplicationTest {
       );
       assert.strictEqual(created.displayName, "New");
       assert.strictEqual(created.password?.__hash, undefined);
-      const stored: any = await User.ref("created-1").get();
+      // UuidModel: the client uuid is ignored, the key is generated
+      assert.notStrictEqual(created.uuid, "created-1");
+      const stored: any = await User.ref(created.uuid).get();
       assert.strictEqual(stored.password?.__hash, undefined);
     });
   }
@@ -550,8 +552,13 @@ class DomainServiceTest extends WebdaApplicationTest {
     const savedInput = op.input;
     op.input = "void";
     try {
+      // Hardware only lets the "test" user act, static actions included
+      const anonymous = new FakeOpContext();
+      await anonymous.init();
+      await assert.rejects(() => callOperation(anonymous, "Hardware.GlobalAction"), WebdaError.Forbidden);
       const ctx = new FakeOpContext();
       await ctx.init();
+      ctx.newSession().login("test", "test");
       await callOperation(ctx, "Hardware.GlobalAction");
       // The globalAction writes {} to context
       const output = ctx.getOutput();
@@ -568,8 +575,15 @@ class DomainServiceTest extends WebdaApplicationTest {
     const uuid = "550e8400-e29b-41d4-a716-446655440001";
     await Classroom.create({ uuid, name: "Room101" } as any);
 
+    // Classroom only lets the "test" user act on it
+    const anonymous = new FakeOpContext();
+    await anonymous.init();
+    anonymous.setParameters({ uuid });
+    await assert.rejects(() => callOperation(anonymous, "Classroom.Test"), WebdaError.NotFound);
+
     const ctx = new FakeOpContext();
     await ctx.init();
+    ctx.newSession().login("test", "test");
     ctx.setParameters({ uuid });
     await callOperation(ctx, "Classroom.Test");
     const output = ctx.getOutput();
@@ -594,6 +608,7 @@ class DomainServiceTest extends WebdaApplicationTest {
       await Classroom.create({ uuid, name: "Room102" } as any);
       const ctx = new FakeOpContext();
       await ctx.init();
+      ctx.newSession().login("test", "test");
       ctx.setParameters({ uuid });
       await callOperation(ctx, "Classroom.ExposedTest");
       // `test` writes {} to the context

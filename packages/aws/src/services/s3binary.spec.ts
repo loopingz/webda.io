@@ -113,6 +113,13 @@ class S3BinaryTest extends WebdaAwsTest {
     assert.strictEqual((user2 as any).images.hash, file.hash);
     // Marker and data exist
     assert.strictEqual(await this.binary.putRedirectUrl(user2, "images", info), undefined);
+    // Data exists but the challenge does not match (a reader copying the hash): nothing is attached
+    const user3 = await User.ref("s3redirect3").create({} as any);
+    res = await this.binary.putRedirectUrl(user3, "images", { ...info, challenge: "not-the-challenge" });
+    assert.strictEqual(res?.method, "PUT");
+    assert.strictEqual((user3 as any).images, undefined, "nothing attached without the proof");
+    assert.strictEqual(((await User.ref("s3redirect3").get()) as any).images, undefined);
+    assert.strictEqual(await this.binary.getUsageCount(file.hash), 2);
   }
 
   @test

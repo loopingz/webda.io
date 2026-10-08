@@ -1,4 +1,6 @@
 import {
+  isModelActionAllowed,
+  loadModelForAction,
   EventWithContext,
   WebdaError,
   CoreModel,
@@ -528,27 +530,59 @@ export class InvitationService<
   }
 
   /**
+   * Whether the current user (or one of its idents) has a pending invitation on the model
+   * @param ctx - the caller context
+   * @param model - the model
+   * @returns true when invited
+   */
+  protected async hasPendingInvitation(ctx: WebContext, model: any): Promise<boolean> {
+    const pendings = model?.[this.parameters.pendingAttribute] ?? {};
+    const user: any = await ctx.getCurrentUser<User>();
+    if (!user) {
+      return false;
+    }
+    return (
+      pendings[`user_${user.getUUID()}`] !== undefined ||
+      (user.getIdents?.() || []).some((i: any) => pendings[`ident_${i.uuid}`] !== undefined)
+    );
+  }
+
+  /**
    * Route handler dispatching GET/POST/PUT/DELETE invitation requests
    *
    * @param ctx - incoming web context
    * @returns promise resolving when the request is handled
    */
   async invite(ctx: WebContext) {
-    const model = <any>await this.model.ref(ctx.getParameters().uuid).get();
-    if (ctx.getHttpContext().getMethod() === "PUT") {
-      return this.answerInvitation(ctx, model);
+    const method = ctx.getHttpContext().getMethod();
+    if (method === "PUT") {
+      // The invited user may not read the model yet: a model that is missing, or that the caller can neither read
+      // nor has a pending invitation on, answers the same "gone" invitation
+      let target: any;
+      try {
+        target = await this.model.ref(ctx.getParameters().uuid).get();
+      } catch {
+        // Repositories throw when the object does not exist
+      }
+      if (
+        target &&
+        !(await this.hasPendingInvitation(ctx, target)) &&
+        !(await isModelActionAllowed(target, ctx, "get", this.model))
+      ) {
+        target = undefined;
+      }
+      return this.answerInvitation(ctx, target);
     }
+    // A missing model and a model the caller cannot read answer the same NotFound
+    const model = <any>(
+      await loadModelForAction(this.model, ctx.getParameters().uuid, ctx, method === "DELETE" ? "uninvite" : "invite")
+    );
     const inviter = await ctx.getCurrentUser<User>();
-    if (!model) {
-      throw new WebdaError.NotFound("Model not found");
-    }
     model[this.parameters.attribute] ??= {};
     model[this.parameters.pendingAttribute] ??= {};
-    if (ctx.getHttpContext().getMethod() === "DELETE") {
-      await model.checkAct("uninvite", ctx);
+    if (method === "DELETE") {
       return this.uninvite(ctx, model);
     }
-    await model.checkAct("invite", ctx);
     // Retrieve invitation useful when invitation are hidden with a __
     if (ctx.getHttpContext().getMethod() === "GET") {
       ctx.write(model[this.parameters.pendingAttribute] || {});

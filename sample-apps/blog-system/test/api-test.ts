@@ -201,8 +201,9 @@ class BlogSystemAppTest extends WebdaApplicationTest {
     assert.strictEqual(props.username.maxLength, 30, "Username maxLength should be 30");
     assert.strictEqual(props.username.pattern, "^[a-zA-Z0-9_]+$", "Username should have pattern constraint");
 
-    assert.ok(props.email, "User schema should have email");
-    assert.strictEqual(props.email.format, "email", "Email should have email format");
+    // The email and the password hash are private fields (`__`): clients never send them (register does)
+    assert.strictEqual(props.email, undefined, "the email is private");
+    assert.strictEqual(props.password, undefined, "the password is set by register");
 
     assert.ok(props.name, "User schema should have name");
     assert.strictEqual(props.name.minLength, 2, "Name minLength should be 2");
@@ -261,19 +262,40 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
     return core;
   }
 
+  /**
+   * Run a request through the router
+   * @param options - the request
+   * @param options.method - the HTTP method
+   * @param options.url - the URL
+   * @param options.body - the body
+   * @param options.headers - the headers
+   * @param options.user - logs the session in as that user id (the way `login` does)
+   * @returns the status, body and the context
+   */
   async routerHttp<T = any>(options: {
     method: "GET" | "PUT" | "POST" | "PATCH" | "DELETE";
     url: string;
     body?: any;
     headers?: { [key: string]: string };
-  }): Promise<{ statusCode: number; body: string | undefined; parsed?: T }> {
-    const httpContext = new HttpContext("test.webda.io", options.method, options.url, "http", 80, options.headers || {});
+    user?: string;
+  }): Promise<{ statusCode: number; body: string | undefined; parsed?: T; ctx: WebContext }> {
+    const httpContext = new HttpContext(
+      "test.webda.io",
+      options.method,
+      options.url,
+      "http",
+      80,
+      options.headers || {}
+    );
     if (options.body !== undefined) {
       httpContext.setBody(options.body);
     }
     httpContext.setClientIp("127.0.0.1");
     const ctx = new WebContext(httpContext);
     ctx.newSession();
+    if (options.user) {
+      ctx.getSession().login(options.user, "email");
+    }
     let routeError: Error | undefined;
     await runWithContext(ctx, async () => {
       try {
@@ -284,9 +306,9 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
     });
     if (routeError) {
       if (routeError instanceof WebdaError.HttpError) {
-        return { statusCode: routeError.statusCode || 500, body: routeError.message };
+        return { statusCode: routeError.statusCode || 500, body: routeError.message, ctx };
       }
-      return { statusCode: 500, body: routeError.message };
+      return { statusCode: 500, body: routeError.message, ctx };
     }
     const body = ctx.getResponseBody() as string;
     let parsed: T | undefined;
@@ -297,34 +319,71 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
         // Not JSON
       }
     }
-    return { statusCode: ctx.statusCode || 200, body, parsed };
+    return { statusCode: ctx.statusCode || 200, body, parsed, ctx };
   }
 
-  @test
-  async auditRecordsPostHistory() {
-    const slug = `audit-post-${Date.now()}`;
-    const created = await this.routerHttp({
+  /**
+   * Register a user through the API
+   * @param username - the username
+   * @returns the user id and its email/password
+   */
+  async register(name: string): Promise<{ uuid: string; email: string; password: string }> {
+    // Usernames and emails are unique: one of each per registration
+    const username = `${name}_${Date.now()}_${registered++}`;
+    const email = `${username}@example.com`;
+    const password = `${name}-secret-1`;
+    const res = await this.routerHttp<{ uuid: string }>({
+      method: "PUT",
+      url: "/users/register",
+      body: { username, email, name: `${name} name`, password }
+    });
+    assert.strictEqual(res.statusCode, 200, res.body);
+    return { uuid: res.parsed!.uuid, email, password };
+  }
+
+  /**
+   * Create a post as a user
+   * @param user - the author id
+   * @param slug - the slug
+   * @returns the response
+   */
+  async createPost(user: string, slug: string) {
+    return this.routerHttp({
       method: "POST",
       url: "/posts",
+      user,
       body: {
-        title: "Audited Post",
+        title: "A post title",
         slug,
         content: "Content long enough for the post validation.",
         status: "draft",
         viewCount: 0
       }
     });
+  }
+
+  @test
+  async auditRecordsPostHistory() {
+    const slug = `audit-post-${Date.now()}`;
+    const { uuid: alice } = await this.register("alice");
+    const created = await this.createPost(alice, slug);
     assert.strictEqual(created.statusCode, 200, created.body);
     const patched = await this.routerHttp({
       method: "PATCH",
       url: `/posts/${slug}`,
+      user: alice,
       body: { title: "Audited Post 2" }
     });
     assert.strictEqual(patched.statusCode, 200, patched.body);
     // Title shorter than @minLength 5: rejected and recorded as a failure
-    const rejected = await this.routerHttp({ method: "PATCH", url: `/posts/${slug}`, body: { title: "x" } });
+    const rejected = await this.routerHttp({
+      method: "PATCH",
+      url: `/posts/${slug}`,
+      user: alice,
+      body: { title: "x" }
+    });
     assert.strictEqual(rejected.statusCode, 400, rejected.body);
-    const deleted = await this.routerHttp({ method: "DELETE", url: `/posts/${slug}` });
+    const deleted = await this.routerHttp({ method: "DELETE", url: `/posts/${slug}`, user: alice });
     assert.ok(deleted.statusCode < 300, deleted.body);
 
     // Deleted subject: readable through the sample's permissive readPermission
@@ -348,18 +407,23 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
   @test
   async auditRecordsPublisherSubject() {
     const slug = `audit-publish-${Date.now()}`;
-    const created = await this.routerHttp({
-      method: "POST",
-      url: "/posts",
-      body: { title: "Published Post", slug, content: "Content long enough for the post validation.", status: "draft", viewCount: 0 }
-    });
+    const { uuid: alice } = await this.register("alice");
+    const created = await this.createPost(alice, slug);
     assert.strictEqual(created.statusCode, 200, created.body);
     // A service operation: it declares the post it acts on
     const published = await this.routerHttp({ method: "PUT", url: "/publisher/publishpost", body: { postId: slug } });
     assert.strictEqual(published.statusCode, 200, published.body);
+    // The history of an existing post is its author's (`Post.canAct(ctx, "audit")`): anyone else gets 403
+    const other = await this.routerHttp({
+      method: "PUT",
+      url: "/audit/subject",
+      body: { model: "WebdaSample/Post", key: slug }
+    });
+    assert.strictEqual(other.statusCode, 403, other.body);
     const res = await this.routerHttp<{ results: any[] }>({
       method: "PUT",
       url: "/audit/subject",
+      user: alice,
       body: { model: "WebdaSample/Post", key: slug }
     });
     assert.strictEqual(res.statusCode, 200, res.body);
@@ -399,11 +463,7 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
     const res = await this.routerHttp({ method: "GET", url: "/version" });
     assert.ok(res.body, "GET /version should return a body");
     const expected = "@webda/sample-blog-system";
-    assert.strictEqual(
-      res.body,
-      expected,
-      `GET /version should return "${expected}" exactly once, got: "${res.body}"`
-    );
+    assert.strictEqual(res.body, expected, `GET /version should return "${expected}" exactly once, got: "${res.body}"`);
   }
 
   @test
@@ -420,9 +480,11 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
   @test
   async postPostsCreateNoSchemaReject() {
     // Issue 3: POST /posts with valid data should NOT return 400
+    const { uuid: alice } = await this.register("alice");
     const res = await this.routerHttp({
       method: "POST",
       url: "/posts",
+      user: alice,
       body: {
         title: "Hello World Post",
         slug: "hello-world-post",
@@ -433,12 +495,348 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
     });
     // The operation should not fail with schema validation (400)
     // It may fail with 500 if no repository exists, but not with 400 (BadRequest)
-    assert.ok(
-      res.statusCode !== 400,
-      `POST /posts should not return 400, got ${res.statusCode}: ${res.body}`
+    assert.ok(res.statusCode !== 400, `POST /posts should not return 400, got ${res.statusCode}: ${res.body}`);
+  }
+
+  // ---- Permission model of the sample ----
+
+  /** Accounts: register (logged in at once), login with the password, no direct create */
+  @test
+  async registerAndLoginOpenTheSession() {
+    const { uuid, email, password } = await this.register("carol");
+    const carol = (await this.routerHttp<any>({ method: "GET", url: `/users/${uuid}` })).parsed.username;
+    // Registration logs the new account in
+    const other = await this.routerHttp({ method: "GET", url: `/users/${uuid}` });
+    assert.strictEqual(other.statusCode, 200);
+    // Login verifies the password and opens the session; the email is escaped in the lookup
+    const login = await this.routerHttp({ method: "PUT", url: "/users/login", body: { email, password } });
+    assert.strictEqual(login.statusCode, 200, login.body);
+    assert.strictEqual(login.ctx.getCurrentUserId(), uuid);
+    for (const bad of [
+      { email, password: "wrong-password" },
+      { email: `${email}' OR __email != '`, password }
+    ]) {
+      const refused = await this.routerHttp({ method: "PUT", url: "/users/login", body: bad });
+      assert.strictEqual(refused.statusCode, 403, JSON.stringify(bad));
+      assert.strictEqual(refused.ctx.getCurrentUserId(), undefined);
+    }
+    // Usernames are unique
+    const dup = await this.routerHttp({
+      method: "PUT",
+      url: "/users/register",
+      body: { username: carol, email: `other-${Date.now()}@example.com`, name: "Carol Two", password: "carol-secret-2" }
+    });
+    assert.strictEqual(dup.statusCode, 409, dup.body);
+    // Accounts are created with register only
+    const direct = await this.routerHttp({
+      method: "POST",
+      url: "/users",
+      body: { username: "direct", name: "Direct User" }
+    });
+    assert.strictEqual(direct.statusCode, 403, direct.body);
+  }
+
+  /** Users: public profile, private email and hash, owner-only changes */
+  @test
+  async usersAreReadableByAllAndEditableByTheirOwnerOnly() {
+    const alice = await this.register("alice");
+    const bob = await this.register("bob");
+    // Profiles are public; the email is shown to its owner only; the password hash never
+    const asBob = await this.routerHttp<any>({ method: "GET", url: `/users/${alice.uuid}`, user: bob.uuid });
+    assert.strictEqual(asBob.statusCode, 200);
+    assert.ok(asBob.parsed.username.startsWith("alice_"));
+    assert.strictEqual(asBob.parsed.email, undefined);
+    assert.ok(!asBob.body!.includes("__password") && !asBob.body!.includes("__email"), asBob.body);
+    const asAlice = await this.routerHttp<any>({ method: "GET", url: `/users/${alice.uuid}`, user: alice.uuid });
+    assert.strictEqual(asAlice.parsed.email, alice.email);
+    assert.ok(!asAlice.body!.includes("__password"));
+    const list = await this.routerHttp<any>({ method: "PUT", url: "/users", user: bob.uuid, body: { q: "" } });
+    assert.ok(!list.body!.includes("__password") && !list.body!.includes(alice.email));
+    // Bob cannot change or delete Alice (readable, so 403), nor set her private fields
+    for (const attempt of [
+      { method: "PATCH" as const, body: { name: "pwned" } },
+      { method: "PATCH" as const, body: { __password: "x", __email: "bob@evil.io" } },
+      { method: "PUT" as const, body: { uuid: alice.uuid, username: "alice", name: "pwned" } },
+      { method: "DELETE" as const, body: undefined }
+    ]) {
+      const res = await this.routerHttp({
+        method: attempt.method,
+        url: `/users/${alice.uuid}`,
+        user: bob.uuid,
+        body: attempt.body
+      });
+      assert.strictEqual(res.statusCode, 403, `${attempt.method} ${res.body}`);
+    }
+    assert.strictEqual((await this.routerHttp({ method: "DELETE", url: `/users/${alice.uuid}` })).statusCode, 403);
+    // Alice still logs in with her password and keeps her name
+    const login = await this.routerHttp({
+      method: "PUT",
+      url: "/users/login",
+      body: { email: alice.email, password: alice.password }
+    });
+    assert.strictEqual(login.statusCode, 200);
+    assert.strictEqual(
+      (await this.routerHttp<any>({ method: "GET", url: `/users/${alice.uuid}` })).parsed.name,
+      "alice name"
+    );
+    // Alice edits herself; a `__` field in her own input is ignored
+    const own = await this.routerHttp<any>({
+      method: "PATCH",
+      url: `/users/${alice.uuid}`,
+      user: alice.uuid,
+      body: { name: "Alice Renamed", __password: "x" }
+    });
+    assert.strictEqual(own.statusCode, 200, own.body);
+    assert.strictEqual(own.parsed.name, "Alice Renamed");
+    assert.strictEqual(
+      (
+        await this.routerHttp({
+          method: "PUT",
+          url: "/users/login",
+          body: { email: alice.email, password: alice.password }
+        })
+      ).statusCode,
+      200,
+      "the hash was not changed"
+    );
+    // The password changes through its own operation, with the current password
+    const change = await this.routerHttp({
+      method: "PUT",
+      url: `/users/${alice.uuid}/changePassword`,
+      user: alice.uuid,
+      body: { current: alice.password, next: "alice-new-secret" }
+    });
+    assert.strictEqual(change.statusCode, 204, change.body);
+    assert.strictEqual(
+      (
+        await this.routerHttp({
+          method: "PUT",
+          url: "/users/login",
+          body: { email: alice.email, password: "alice-new-secret" }
+        })
+      ).statusCode,
+      200
+    );
+    assert.strictEqual(
+      (
+        await this.routerHttp({
+          method: "PUT",
+          url: `/users/${alice.uuid}/changePassword`,
+          user: bob.uuid,
+          body: { current: "x", next: "yyyyyyyy" }
+        })
+      ).statusCode,
+      403
+    );
+  }
+
+  /** Posts, comments and tags: anyone reads, the author (or a logged-in user) writes */
+  @test
+  async postsAndCommentsBelongToTheirAuthor() {
+    const alice = await this.register("alice");
+    const bob = await this.register("bob");
+    const slug = `perm-post-${Date.now()}`;
+    // Anonymous cannot create; the author is the caller whatever the input says
+    assert.strictEqual(
+      (
+        await this.routerHttp({
+          method: "POST",
+          url: "/posts",
+          body: {
+            title: "A post title",
+            slug,
+            content: "Content long enough for the post validation.",
+            status: "draft",
+            viewCount: 0
+          }
+        })
+      ).statusCode,
+      403
+    );
+    const created = await this.routerHttp<any>({
+      method: "POST",
+      url: "/posts",
+      user: alice.uuid,
+      body: {
+        title: "A post title",
+        slug,
+        content: "Content long enough for the post validation.",
+        status: "published",
+        viewCount: 0,
+        author: bob.uuid
+      }
+    });
+    assert.strictEqual(created.statusCode, 200, created.body);
+    assert.strictEqual(created.parsed.author, alice.uuid);
+    // Anyone reads a published post, only Alice changes it
+    assert.strictEqual((await this.routerHttp({ method: "GET", url: `/posts/${slug}` })).statusCode, 200);
+    assert.strictEqual(
+      (await this.routerHttp({ method: "GET", url: `/posts/${slug}`, user: bob.uuid })).statusCode,
+      200
+    );
+    assert.strictEqual(
+      (
+        await this.routerHttp({
+          method: "PATCH",
+          url: `/posts/${slug}`,
+          user: bob.uuid,
+          body: { title: "Bob was here" }
+        })
+      ).statusCode,
+      403
+    );
+    assert.strictEqual(
+      (await this.routerHttp({ method: "PATCH", url: `/posts/${slug}`, user: bob.uuid, body: { author: bob.uuid } }))
+        .statusCode,
+      403
+    );
+    assert.strictEqual(
+      (await this.routerHttp({ method: "DELETE", url: `/posts/${slug}`, user: bob.uuid })).statusCode,
+      403
+    );
+    assert.strictEqual(
+      (
+        await this.routerHttp({
+          method: "PUT",
+          url: `/posts/${slug}/publish`,
+          user: bob.uuid,
+          body: { destination: "twitter" }
+        })
+      ).statusCode,
+      403
+    );
+    const read = await this.routerHttp<any>({ method: "GET", url: `/posts/${slug}` });
+    assert.strictEqual(read.parsed.title, "A post title");
+    assert.strictEqual(read.parsed.author, alice.uuid);
+    assert.strictEqual(
+      (
+        await this.routerHttp({
+          method: "PATCH",
+          url: `/posts/${slug}`,
+          user: alice.uuid,
+          body: { title: "Alice edited" }
+        })
+      ).statusCode,
+      200
+    );
+    // Comments: the same rule
+    assert.strictEqual(
+      (await this.routerHttp({ method: "POST", url: "/comments", body: { content: "anon", post: slug } })).statusCode,
+      403
+    );
+    const comment = await this.routerHttp<any>({
+      method: "POST",
+      url: "/comments",
+      user: bob.uuid,
+      body: { content: "Nice post", post: slug, author: alice.uuid }
+    });
+    assert.strictEqual(comment.statusCode, 200, comment.body);
+    assert.strictEqual(comment.parsed.author, bob.uuid);
+    const id = comment.parsed.uuid;
+    assert.strictEqual((await this.routerHttp({ method: "GET", url: `/comments/${id}` })).statusCode, 200);
+    assert.strictEqual(
+      (
+        await this.routerHttp({
+          method: "PATCH",
+          url: `/comments/${id}`,
+          user: alice.uuid,
+          body: { content: "edited by alice" }
+        })
+      ).statusCode,
+      403
+    );
+    assert.strictEqual(
+      (await this.routerHttp({ method: "DELETE", url: `/comments/${id}`, user: alice.uuid })).statusCode,
+      403
+    );
+    assert.strictEqual(
+      (
+        await this.routerHttp({
+          method: "PATCH",
+          url: `/comments/${id}`,
+          user: bob.uuid,
+          body: { content: "edited by bob" }
+        })
+      ).statusCode,
+      200
+    );
+    assert.strictEqual(
+      (await this.routerHttp({ method: "DELETE", url: `/comments/${id}`, user: bob.uuid })).statusCode,
+      204
+    );
+    // Drafts and archived posts are the author's: hidden from others (single reads and lists)
+    const draft = `draft-${Date.now()}`;
+    assert.strictEqual((await this.createPost(alice.uuid, draft)).statusCode, 200);
+    assert.strictEqual(
+      (await this.routerHttp({ method: "GET", url: `/posts/${draft}`, user: bob.uuid })).statusCode,
+      404
+    );
+    assert.strictEqual((await this.routerHttp({ method: "GET", url: `/posts/${draft}` })).statusCode, 404);
+    assert.strictEqual(
+      (await this.routerHttp({ method: "GET", url: `/posts/${draft}`, user: alice.uuid })).statusCode,
+      200
+    );
+    const slugsFor = async (user?: string) =>
+      (await this.routerHttp<any>({ method: "PUT", url: "/posts", user, body: { q: "" } })).parsed.results.map(
+        (p: any) => p.slug
+      );
+    assert.ok(!(await slugsFor(bob.uuid)).includes(draft));
+    assert.ok(!(await slugsFor()).includes(draft));
+    assert.ok((await slugsFor(alice.uuid)).includes(draft));
+    assert.strictEqual(
+      (
+        await this.routerHttp({
+          method: "PATCH",
+          url: `/posts/${draft}`,
+          user: alice.uuid,
+          body: { status: "published" }
+        })
+      ).statusCode,
+      200
+    );
+    assert.ok((await slugsFor(bob.uuid)).includes(draft));
+    assert.strictEqual((await this.routerHttp({ method: "GET", url: `/posts/${draft}` })).statusCode, 200);
+    // Read-only dates are server-managed
+    const before = (await this.routerHttp<any>({ method: "GET", url: `/posts/${slug}` })).parsed.createdAt;
+    assert.ok(before);
+    const dated = await this.routerHttp({
+      method: "PATCH",
+      url: `/posts/${slug}`,
+      user: alice.uuid,
+      body: { createdAt: "2000-01-01T00:00:00.000Z" }
+    });
+    assert.ok(dated.statusCode === 200 || dated.statusCode === 400, dated.body);
+    assert.strictEqual((await this.routerHttp<any>({ method: "GET", url: `/posts/${slug}` })).parsed.createdAt, before);
+    // Tags: readable by all, created by logged-in users, not editable
+    assert.strictEqual(
+      (await this.routerHttp({ method: "POST", url: "/tags", body: { name: "anon", slug: "anon-tag" } })).statusCode,
+      403
+    );
+    assert.strictEqual(
+      (
+        await this.routerHttp({
+          method: "POST",
+          url: "/tags",
+          user: bob.uuid,
+          body: { name: "news", slug: `news-${Date.now()}` }
+        })
+      ).statusCode,
+      200
+    );
+    const tags = await this.routerHttp<any>({ method: "PUT", url: "/tags", body: { q: "" } });
+    assert.ok(tags.parsed.results.length >= 1);
+    assert.strictEqual(
+      (await this.routerHttp({ method: "DELETE", url: `/tags/${tags.parsed.results[0].slug}`, user: bob.uuid }))
+        .statusCode,
+      403
     );
   }
 }
+
+/**
+ * Registrations so far: usernames are unique
+ */
+let registered = 0;
 
 /**
  * Application class that loads the blog-system

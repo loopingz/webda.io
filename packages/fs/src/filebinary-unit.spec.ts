@@ -154,7 +154,7 @@ class FileBinaryUnitTest {
     const challenge = "testchallenge";
     const hashDir = path.join(this.binary.getParameters().folder, hash);
     fs.mkdirSync(hashDir);
-    fs.writeFileSync(path.join(hashDir, `_${challenge}`), "");
+    fs.writeFileSync(path.join(hashDir, `proof_${challenge}`), "");
     const result = this.binary.challenge(hash, challenge);
     assert.strictEqual(result, true);
   }
@@ -188,7 +188,7 @@ class FileBinaryUnitTest {
     fs.mkdirSync(hashDir);
     const count = await this.binary.getUsageCount(hash);
     // 0 files - 2 = -2
-    assert.strictEqual(count, -2);
+    assert.strictEqual(count, 0);
   }
 
   @test
@@ -263,10 +263,7 @@ class FileBinaryUnitTest {
 
   @test
   async getThrowsBinaryNotFoundForMissing() {
-    await assert.rejects(
-      () => this.binary._get({ hash: "nonexistent" } as any),
-      BinaryNotFoundError
-    );
+    await assert.rejects(() => this.binary._get({ hash: "nonexistent" } as any), BinaryNotFoundError);
   }
 
   @test

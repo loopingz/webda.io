@@ -1162,10 +1162,6 @@
       "additionalProperties": false,
       "description": "Represent a file to store",
       "properties": {
-        "challenge": {
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-          "type": "string"
-        },
         "hash": {
           "description": "Will be computed by the service\n\nhash of the content",
           "type": "string"

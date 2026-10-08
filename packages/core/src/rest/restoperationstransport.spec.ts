@@ -9,6 +9,8 @@ import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { Router, RouterParameters } from "./router.service.js";
 import { runWithContext } from "../contexts/execution.js";
+import { useModel } from "../application/hooks.js";
+import { MemoryRepository, registerRepository } from "@webda/models";
 
 // Minimal Swagger HTML for testing
 const SWAGGER_HTML_TEST = `<html><div id="swagger-ui"></div><script>SwaggerUIBundle({})</script></html>`;
@@ -48,7 +50,14 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     body?: any;
     headers?: { [key: string]: string };
   }): Promise<T> {
-    const httpContext = new HttpContext("test.webda.io", options.method, options.url, "http", 80, options.headers || {});
+    const httpContext = new HttpContext(
+      "test.webda.io",
+      options.method,
+      options.url,
+      "http",
+      80,
+      options.headers || {}
+    );
     if (options.body !== undefined) {
       httpContext.setBody(options.body);
     }
@@ -428,6 +437,33 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
   }
 
   @test
+  async nestedQueryParentIdIsEscaped() {
+    const transport = new RESTOperationsTransport(
+      "TestRESTTransportNestedEscape",
+      new RESTOperationsTransportParameters().load({ url: "/ne/", exposeOpenAPI: false })
+    );
+    this.registerService(transport);
+    transport.resolve();
+    await transport.init();
+    const User = useModel<any>("User");
+    registerRepository(User, new MemoryRepository(User, ["uuid"]));
+    // sample-app User.canAct allows everything: only the parent filter applies
+    await User.create({ uuid: "u-c1", name: "in c1", company: "c1" });
+    await User.create({ uuid: "u-c2", name: "in c2", company: "c2" });
+    const query = async (parent: string) =>
+      (
+        await this.routerHttp<{ results: any[] }>({
+          method: "PUT",
+          url: `/ne/companies/${encodeURIComponent(parent)}/users`,
+          body: { q: "" }
+        })
+      ).results.map(r => r.uuid);
+    assert.deepStrictEqual(await query("c1"), ["u-c1"]);
+    // A parent id carrying WebdaQL stays a value: it cannot widen the filter to other companies
+    assert.deepStrictEqual(await query("c1' OR company != 'none"), []);
+  }
+
+  @test
   async queryInvalidQueryHTTP() {
     const transport = new RESTOperationsTransport(
       "TestRESTTransportInvalidQ",
@@ -534,14 +570,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
 
     // Instance action on a nonexistent object should throw NotFound
     // But the action route closure code runs (setting up parameters, calling callOperation)
-    const httpCtx = new HttpContext(
-      "test.webda.io",
-      "PUT",
-      "/ta/classroom/nonexistent-uuid/test",
-      "http",
-      80,
-      {}
-    );
+    const httpCtx = new HttpContext("test.webda.io", "PUT", "/ta/classroom/nonexistent-uuid/test", "http", 80, {});
     httpCtx.setBody({ test: "123", id: "123" });
     httpCtx.setClientIp("127.0.0.1");
     const ctx = new WebContext(httpCtx);

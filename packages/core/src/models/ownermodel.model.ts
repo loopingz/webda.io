@@ -2,12 +2,13 @@
 import { type ModelClass, ModelLink, type PrimaryKeyType, UuidModel } from "@webda/models";
 import { User } from "./user.model.js";
 import { IOperationContext } from "../contexts/icontext.js";
+import { bind } from "@webda/ql";
 
 /**
  * Abstract class to define an object with an owner
  *
- * The owner is the user that created the object
- * The owner can be changed by the owner
+ * The owner is the user that created the object, set from the caller on create.
+ * The owner is never taken from client input.
  */
 export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
   /**
@@ -25,6 +26,29 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
    * @returns
    */
   abstract getOwnerModel(): ModelClass<T>;
+
+  /**
+   * Attributes never taken from client input by the DomainService (REST, gRPC, MCP) or GraphQL
+   * @returns the attribute names
+   */
+  static getProtectedAttributes(): string[] {
+    return ["_user"];
+  }
+
+  /**
+   * Called by the DomainService (and GraphQL) on a new object built from client input, before the
+   * `canAct(context, "create")` check and the save: the caller becomes the owner
+   * @param context - the caller context
+   */
+  prepareCreate(context: IOperationContext): void {
+    const userId = context?.getCurrentUserId();
+    if (userId) {
+      this.setOwner(userId as any);
+    } else {
+      // Never keep an owner the caller did not prove
+      this._user = undefined;
+    }
+  }
 
   /**
    * Set object owner
@@ -52,22 +76,34 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
    * @returns the result
    */
   async canAct(context: IOperationContext, action: string): Promise<string | boolean> {
-    // Object is public
-    if (this.public && (action === "get" || action === "get_binary")) {
+    // Object is public: readable, binaries included (`<attribute>.download`, `.downloadUrl`, `.get`, `.getUrl`)
+    if (this.public && (action === "get" || AbstractOwnerModel.isBinaryRead(action))) {
       return true;
     } else if (!context.getCurrentUserId()) {
       return "You need to be logged in to access this object";
     } else if (!this.getOwner() && action !== "create") {
       return "Object does not have an owner";
     }
-    if (action === "create") {
-      //this.setOwner(Uuid.parse(ctx.getCurrentUserId(), this.getOwnerModel()));
-    }
+    // On create, the owner was set from the caller by prepareCreate: only the owner may create its objects
     return context.getCurrentUserId() === this.getOwner()?.toString();
   }
 
   /**
-   * Return a query to filter OwnerModel
+   * Whether an action is a binary read (a behavior action of Binary/Binaries): `avatar.download`, `photos.get`...
+   * @param action - the action name
+   * @returns true for the read actions of binary attributes
+   */
+  static isBinaryRead(action: string): boolean {
+    return /^[^.]+\.(download|downloadUrl|get|getUrl)$/.test(action);
+  }
+
+  /**
+   * Return a query to filter OwnerModel: the objects of the caller and the public ones
+   *
+   * The user id is bound as an escaped WebdaQL value, it can never change the query structure.
+   *
+   * Subclasses inherit this filter even when they override `canAct` (it fails closed: it can only hide rows). A
+   * subclass whose `canAct` is more permissive overrides this method (returning `null` disables the store filter).
    *
    * @param context - the execution context
    * @returns the result
@@ -76,8 +112,9 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
     if (!context) {
       return null;
     }
+    const userId = context.getCurrentUserId();
     return {
-      query: `_user = '${context.getCurrentUserId()}' OR public = TRUE`,
+      query: userId ? bind("_user = ? OR public = TRUE", [userId]) : "public = TRUE",
       partial: false
     };
   }

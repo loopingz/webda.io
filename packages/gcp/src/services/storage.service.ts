@@ -307,7 +307,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     if (!exists) {
       await this.putObject(this._getKey(file.hash), await file.get(), {
         ...file.metadata,
-        challenge: file.challenge
+        proof: file.challenge
       });
     }
     await this.putMarker(file.hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));
@@ -364,32 +364,42 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       contentType: "application/octet-stream",
       contentMd5: base64String,
       extensionHeaders: {
-        "x-goog-meta-challenge": body.challenge
+        "x-goog-meta-proof": body.challenge
       }
     };
-    // List bucket to check if the file already exist
-    let challenge;
+    // Check whether the data already exists, and the proof its uploader stored with it (`proof` metadata; the
+    // legacy `challenge` metadata, whose value every reader of the owner could see, is no proof)
+    let exists = false;
+    let challenge: string | undefined;
     try {
       const res = await this.getStorageBucket().file(params.key).getMetadata();
-      challenge = res[0].metadata.challenge;
+      exists = true;
+      const stored = res[0].metadata?.proof;
+      challenge = stored === undefined || stored === null ? undefined : `${stored}`;
     } catch {
-      // Ignore error: the data does not exist yet
+      // The data does not exist yet
     }
-    await this.uploadSuccess(<any>object, property, body);
-    await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor));
-    // If the challenge is the same, no need to upload
-    if (challenge && challenge === body.challenge) {
-      return;
+    if (exists) {
+      // Attaching existing data needs the proof of possession: the matching challenge
+      if (challenge !== undefined && challenge === body.challenge) {
+        await this.uploadSuccess(<any>object, property, body);
+        await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor));
+        return;
+      }
+      // A hash alone never attaches: the client has to upload the content it claims to hold
+    } else {
+      // New content: the signed PUT binds the bytes to the announced hash (Content-MD5)
+      await this.uploadSuccess(<any>object, property, body);
+      await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor));
     }
     const url = await this.getSignedUrl(params);
-    // Re-upload, we should probably queue for recheck
     return {
       url,
       method: "PUT",
       headers: {
         "Content-MD5": base64String,
         "Content-Type": "application/octet-stream",
-        "x-goog-meta-challenge": body.challenge,
+        "x-goog-meta-proof": body.challenge,
         Host: new URL(url).host
       }
     };

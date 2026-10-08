@@ -45,6 +45,10 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
    * @returns the model instance
    */
   protected buildItem(data: Helpers<InstanceType<T>>): InstanceType<T> {
+    // An instance of the model is stored as is: copying it would drop the fields held in accessors
+    if (data instanceof this.model) {
+      return data as InstanceType<T>;
+    }
     let input: any = data;
     if (input && this.pks.some(k => k in input && (input[k] === undefined || input[k] === null))) {
       input = { ...input };

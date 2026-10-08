@@ -15,6 +15,7 @@ import type { OperationDefinition } from "../index.js";
 import { WebdaApplicationTest } from "../test/index.js";
 import { TestApplication } from "../test/objects.js";
 import { OperationContext } from "../contexts/operationcontext.js";
+import * as WebdaError from "../errors/errors.js";
 import { Service } from "../services/service.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { useApplication } from "../application/hooks.js";
@@ -1044,7 +1045,12 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     const ctx = new FakeOpContext();
     await ctx.init();
     ctx.setInput(JSON.stringify({ firstName: "John", lastName: "Doe", age: 25 }));
-    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.MultiProp", output: "void" });
+    const args = await resolveArguments(ctx, {
+      id: "Test.Op",
+      method: "test",
+      input: "Test.MultiProp",
+      output: "void"
+    });
     // Should return values in schema property order
     assert.deepStrictEqual(args, ["John", "Doe", 25]);
   }
@@ -1062,7 +1068,12 @@ class ResolveArgumentsTest extends WebdaApplicationTest {
     const ctx = new FakeOpContext();
     await ctx.init();
     ctx.setInput(JSON.stringify({ data: { nested: true } }));
-    const args = await resolveArguments(ctx, { id: "Test.Op", method: "test", input: "Test.SingleProp", output: "void" });
+    const args = await resolveArguments(ctx, {
+      id: "Test.Op",
+      method: "test",
+      input: "Test.SingleProp",
+      output: "void"
+    });
     // Single property: extract the value directly
     assert.deepStrictEqual(args, [{ nested: true }]);
   }
@@ -1480,6 +1491,57 @@ class CallOperationModelPathTest extends WebdaApplicationTest {
       assert.ok(!found, "Object should be deleted after instance method call");
     } finally {
       delete getStorage().operations["Brand.InstanceDelete"];
+    }
+  }
+
+  @test
+  async callOperationModelOperationsAreGated() {
+    // Model-registered operations go through the model's static canAct too
+    const { useInstanceStorage: getStorage } = await import("../core/instancestorage.js");
+    const { MemoryRepository, registerRepository } = await import("@webda/models");
+    const { useModel } = await import("../application/hooks.js");
+    const Brand: any = useModel("Brand");
+    const repo = new MemoryRepository(Brand, ["uuid"]);
+    registerRepository(Brand, repo);
+    const uuid = "gated-instance";
+    await Brand.create({ uuid, name: "Gated" } as any);
+    getStorage().operations["Brand.GatedDelete"] = {
+      id: "Brand.GatedDelete",
+      model: "Brand",
+      method: "delete",
+      static: false,
+      input: "uuidRequest",
+      output: "void"
+    } as any;
+    getStorage().operations["Brand.GatedQuery"] = {
+      id: "Brand.GatedQuery",
+      model: "Brand",
+      method: "query",
+      input: "searchRequest",
+      output: "void"
+    } as any;
+    const open = Brand.canAct;
+    // Only user "owner" may act, nobody may run static methods
+    Brand.canAct = (ctx: any, _action: string, object?: any) =>
+      object !== undefined && ctx.getCurrentUserId() === "owner";
+    try {
+      const anonymous = new FakeOpContext();
+      await anonymous.init();
+      anonymous.setParameters({ uuid });
+      await assert.rejects(() => callOperation(anonymous, "Brand.GatedDelete"), WebdaError.NotFound);
+      assert.ok(await repo.get(uuid), "the refused delete did not run");
+      const owner = new FakeOpContext();
+      await owner.init();
+      owner.newSession().login("owner", "owner");
+      owner.setParameters({ uuid });
+      await callOperation(owner, "Brand.GatedDelete");
+      await assert.rejects(() => repo.get(uuid));
+      owner.setParameters({ query: "" });
+      await assert.rejects(() => callOperation(owner, "Brand.GatedQuery"), WebdaError.Forbidden);
+    } finally {
+      Brand.canAct = open;
+      delete getStorage().operations["Brand.GatedDelete"];
+      delete getStorage().operations["Brand.GatedQuery"];
     }
   }
 

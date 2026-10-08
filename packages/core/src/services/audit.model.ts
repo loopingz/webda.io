@@ -5,6 +5,7 @@ import { CoreModel } from "../models/coremodel.model.js";
 import type { JSONSchema7 } from "json-schema";
 import { escape, parse, QueryValidator } from "@webda/ql";
 import * as WebdaError from "../errors/errors.js";
+import { checkModelPermission } from "../models/permissions.js";
 import { useApplication, useModel } from "../application/hooks.js";
 import { useModelMetadata } from "../core/hooks.js";
 import { useContext } from "../contexts/execution.js";
@@ -360,8 +361,8 @@ export class AuditService extends Service<AuditServiceParameters> {
   /**
    * Audit entries of one object (`Audit.Subject`)
    *
-   * Allowed when `subject.canAct(context, "audit")` is true. When the object does not
-   * exist (deleted or never created), `readPermission` is required, otherwise 404.
+   * Allowed when the model's `canAct(context, "audit", subject)` is true. When the object
+   * does not exist (deleted or never created), `readPermission` is required, otherwise 404.
    * @param model - model identifier, e.g. `WebdaSample/Post`
    * @param key - primary key: scalar, object of key fields, or canonical JSON array
    * @param limit - page size
@@ -392,9 +393,16 @@ export class AuditService extends Service<AuditServiceParameters> {
       // Repositories throw when the object does not exist
     }
     if (instance && !instance.isDeleted?.()) {
-      const allowed = typeof instance.canAct === "function" ? await instance.canAct(context, "audit") : false;
-      if (allowed !== true) {
-        throw new WebdaError.Forbidden(typeof allowed === "string" ? allowed : "Audit not allowed");
+      try {
+        // Same rule as every model operation: unreadable answers like a missing object, readable but refused is 403,
+        // and a model without canAct is unreadable
+        await checkModelPermission(instance, context, "audit", modelClass);
+      } catch (err) {
+        if (err instanceof WebdaError.NotFound && this.hasReadPermission(context)) {
+          // readPermission may see that the object exists
+          throw new WebdaError.Forbidden("Action audit not allowed");
+        }
+        throw err;
       }
     } else if (!this.hasReadPermission(context)) {
       throw new WebdaError.NotFound("Object not found");

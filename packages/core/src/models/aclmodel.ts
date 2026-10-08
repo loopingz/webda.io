@@ -1,6 +1,25 @@
+import type { IOperationContext } from "../contexts/icontext.js";
+
+/**
+ * Access control entry
+ */
 export type Ace = {
+  /**
+   * Action the entry applies to ("get", "update", "delete", an action name...)
+   */
   action: string;
+  /**
+   * Kind of principal: a user id or a group name
+   */
   type: "GROUP" | "USER";
+  /**
+   * The user id (type USER) or group name (type GROUP) the entry applies to.
+   * An entry without principal matches nobody.
+   */
+  principal?: string;
+  /**
+   * Allow or deny: a matching deny wins over any allow
+   */
   allow: boolean;
 };
 
@@ -8,8 +27,13 @@ export type Ace = {
  * Allow to define ACLs for the object
  *
  * It is used as an attribute in the model so
- * you can add it later on to existing models
+ * you can add it later on to existing models; the model delegates its permissions to it:
  *
+ * ```ts
+ * async canAct(context: IOperationContext, action: string) {
+ *   return ResourceAcl.from(this.acl ?? []).canAct(context, action);
+ * }
+ * ```
  */
 export class ResourceAcl extends Array<Ace> {
   /**
@@ -32,19 +56,39 @@ export class ResourceAcl extends Array<Ace> {
   }
 
   /**
-   * ACLs for the object
+   * Check the ACL for the current caller, with the same signature as a model `canAct`
+   *
+   * An entry matches when its action is `action` and its principal is the caller id (USER) or one of the caller
+   * groups (GROUP). A matching deny wins, then a matching allow; with no matching entry the action is refused.
+   * Anonymous callers match no entry.
+   * @param context - the caller context
    * @param action - the action to check
-   * @param user - the user object
-   * @returns the result
+   * @returns true or the refusal reason
    */
-  async canAct(action: string, user?: any): Promise<string | boolean> {
-    for (const ace of this.filter(a => !a.allow)) {
-      if (ace.action === action) {
+  async canAct(context: IOperationContext, action: string): Promise<string | boolean> {
+    const userId = context?.getCurrentUserId();
+    if (!userId) {
+      return "no matching ACE in resource ACL";
+    }
+    const entries = this.filter(a => a.action === action && a.principal);
+    let groups: string[] | undefined;
+    const matches = async (ace: Ace): Promise<boolean> => {
+      if (ace.type === "USER") {
+        return ace.principal === userId;
+      }
+      if (ace.type === "GROUP") {
+        groups ??= (await context.getCurrentUser())?.getGroups?.() ?? [];
+        return groups.includes(ace.principal);
+      }
+      return false;
+    };
+    for (const ace of entries.filter(a => !a.allow)) {
+      if (await matches(ace)) {
         return "explicitly denied by resource ACL";
       }
     }
-    for (const ace of this.filter(a => a.allow)) {
-      if (ace.action === action) {
+    for (const ace of entries.filter(a => a.allow)) {
+      if (await matches(ace)) {
         return true;
       }
     }

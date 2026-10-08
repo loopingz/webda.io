@@ -1,5 +1,6 @@
 import { Model, WEBDA_PRIMARY_KEY, BelongTo } from "@webda/models";
 import type { User } from "./User.model.js";
+import type { IOperationContext } from "@webda/core";
 
 /**
  * UserFollow represents a follower relationship between users
@@ -8,6 +9,9 @@ import type { User } from "./User.model.js";
  * 1. Self-referential relationships (User -> User)
  * 2. Composite primary keys with type inference
  * 3. Join table pattern
+ *
+ * Permission model (see `canAct` below): anyone reads who follows whom; a user creates and deletes its own
+ * follow relationships only (the `follower` side is part of the key and must be the caller).
  */
 export class UserFollow extends Model {
   /**
@@ -25,8 +29,20 @@ export class UserFollow extends Model {
   follower!: BelongTo<User>; // The user doing the following
   following!: BelongTo<User>; // The user being followed
 
-  /** Public sample — permissive for all actions. */
-  async canAct(_context: any, _action: string): Promise<boolean> {
-    return true;
+  /**
+   * Permission rule: "get" for anyone, "create" and "delete" for the follower
+   * @param context - the caller context
+   * @param action - the action
+   * @returns true or the refusal reason
+   */
+  async canAct(context: IOperationContext, action: string): Promise<boolean | string> {
+    if (action === "get") {
+      return true;
+    }
+    const userId = context.getCurrentUserId();
+    if (!userId) {
+      return "Login required";
+    }
+    return this.follower?.toString() === userId ? true : "Only the follower";
   }
 }

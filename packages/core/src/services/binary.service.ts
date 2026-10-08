@@ -87,6 +87,33 @@ export interface BinaryFileInfo<T extends object = {}> {
 export type BinaryFiles<T extends object = {}> = BinaryFileInfo<T>[];
 
 /**
+ * The file information of a binary attached to a model, as stored and as sent to clients: without the `challenge`
+ * (the proof of possession, see {@link BinaryFileInfo})
+ */
+export interface StoredBinaryInfo<T extends object = {}> {
+  /**
+   * Hash of the binary
+   */
+  hash?: string;
+  /**
+   * Size of the file
+   */
+  size: number;
+  /**
+   * Name of the file
+   */
+  name: string;
+  /**
+   * Mimetype
+   */
+  mimetype: string;
+  /**
+   * Metadatas stored along with the binary
+   */
+  metadata?: T;
+}
+
+/**
  * Represent a file to store
  * @WebdaSchema
  */
@@ -108,9 +135,10 @@ export abstract class BinaryFile<T extends object = {}> implements BinaryFileInf
    */
   mimetype: string;
   /**
-   * Will be computed by the service
-   *
-   * hash of the content prefixed by 'WEBDA'
+   * Proof of possession of the content: hash of the content prefixed by 'WEBDA', computed by the client of the
+   * challenge and by the service on upload. Never persisted on a model nor sent to clients: it is not part of the
+   * schema of a binary attribute
+   * @SchemaIgnore
    */
   challenge?: string;
   /**
@@ -287,6 +315,25 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
    */
   get(): Promise<Readable> {
     return this[WEBDA_STORAGE].service.get(this);
+  }
+
+  /**
+   * A map never holds the challenge: maps persisted before it was hidden carry one, it is not loaded
+   * @param info - the information object
+   */
+  set(info: BinaryFileInfo<T>): void {
+    super.set(info);
+    this.challenge = undefined;
+  }
+
+  /**
+   * Client representation: the file information without the `challenge`, which is the proof of possession of the
+   * content (md5 of "WEBDA" + content) and must never reach a reader of the object
+   * @returns the file information
+   */
+  toJSON(): StoredBinaryInfo<T> {
+    const { challenge: _challenge, ...info } = this.toBinaryFileInfo();
+    return info;
   }
 
   /**
@@ -651,11 +698,11 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
    * `BinaryFileInfo<T>` for the Output/Stored schemas.
    * @returns the result
    */
-  toJSON(): BinaryFileInfo<T> {
+  toJSON(): StoredBinaryInfo<T> {
     if (!this.hash) {
-      return undefined as unknown as BinaryFileInfo<T>;
+      return undefined as unknown as StoredBinaryInfo<T>;
     }
-    return this;
+    return super.toJSON();
   }
 }
 
@@ -1380,16 +1427,18 @@ export abstract class BinaryService<
           additionalAttr.join(",")
       );
     }
+    // The challenge is the proof of possession of the content: it is never persisted on the object (readers of the
+    // object would learn it and could attach the binary to their own objects)
+    const { challenge: _challenge, ...stored } = file;
+    file = stored;
     // Persist the BinaryFileInfo on the parent model. After the
     // Binary→Behavior migration the cardinality lives on
     // `Metadata.Relations.behaviors[]` (no more `Relations.binaries[]`).
     // `Webda/BinariesImpl` ⇒ MANY (append), anything else (`Webda/Binary`)
     // ⇒ ONE (replace).
-    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined =
-      (object as any)?.constructor?.Metadata?.Relations?.behaviors;
-    const beh = Array.isArray(behaviorRels)
-      ? behaviorRels.find(b => b.attribute === property)
-      : undefined;
+    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined = (object as any)?.constructor
+      ?.Metadata?.Relations?.behaviors;
+    const beh = Array.isArray(behaviorRels) ? behaviorRels.find(b => b.attribute === property) : undefined;
     const isCollection = beh?.behavior === "Webda/BinariesImpl";
 
     if (isCollection) {
@@ -1429,15 +1478,13 @@ export abstract class BinaryService<
     // Binary→Behavior migration. `Webda/BinariesImpl` ⇒ MANY (splice),
     // anything else (`Webda/Binary`) ⇒ ONE (clear). Mirrors the lookup in
     // `uploadSuccess`.
-    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined =
-      (object as any)?.constructor?.Metadata?.Relations?.behaviors;
-    const beh = Array.isArray(behaviorRels)
-      ? behaviorRels.find(b => b.attribute === property)
-      : undefined;
+    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined = (object as any)?.constructor
+      ?.Metadata?.Relations?.behaviors;
+    const beh = Array.isArray(behaviorRels) ? behaviorRels.find(b => b.attribute === property) : undefined;
     const isCollection = beh?.behavior === "Webda/BinariesImpl";
 
     const info: BinaryMap = <BinaryMap>(
-      isCollection && index !== undefined ? object[property][index] : object[property]
+      (isCollection && index !== undefined ? object[property][index] : object[property])
     );
 
     if (isCollection) {

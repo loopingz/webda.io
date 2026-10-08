@@ -250,6 +250,24 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
   }
 
   @test
+  async createOverAnExistingKeyIsRefused() {
+    const store = new PostgresStore(
+      "duplicateCreate",
+      new PostgresParameters().load({ models: ["Webda/RegistryEntry"], table: "registry", autoCreateTable: false })
+    );
+    store.resolve();
+    store.client = {
+      query: async () => {
+        throw Object.assign(new Error("duplicate key value violates unique constraint"), { code: "23505" });
+      }
+    } as any;
+    await assert.rejects(
+      () => store.getRepository(useModel("Webda/OwnerModel")).create({ uuid: "dup" } as any),
+      /^Error: Already exists: dup/
+    );
+  }
+
+  @test
   async fallbackRepositorySkipsCreateWhenAutoCreateDisabled() {
     const store = new PostgresStore(
       "fallbackNoCreate",
@@ -318,7 +336,9 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
       }
     } as any;
     const repo = store.getRepository(useModel("Webda/OwnerModel"));
-    await store.ensureTable(new PostgresRepository(useModel("Webda/OwnerModel"), ["uuid"], store.client as any, "idents"));
+    await store.ensureTable(
+      new PostgresRepository(useModel("Webda/OwnerModel"), ["uuid"], store.client as any, "idents")
+    );
     await repo.exists("x");
     assert.deepStrictEqual(statements, ["SELECT uuid FROM idents WHERE uuid=$1"]);
   }

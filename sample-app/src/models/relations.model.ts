@@ -10,13 +10,14 @@ import { CoreModel, OperationContext, Operation as Action } from "@webda/core";
  */
 class DefaultTestModel extends UuidModel {
   /**
-   * Only allow the "test" user to perform actions.
+   * Only allow the "test" user to perform actions, on objects and static actions alike (static form)
    *
    * @param ctx - the operation context
    * @param _action - the action to check
+   * @param _object - the object, undefined for a static action
    * @returns true or an error message
    */
-  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
+  static canAct(ctx: OperationContext<any, any>, _action: string, _object?: DefaultTestModel): string | boolean {
     if (ctx.getCurrentUserId() !== "test") {
       return "Only test user can access";
     }
@@ -179,10 +180,17 @@ export class ComputerScreen extends Hardware {
 }
 
 /**
- * Model not exposed on purpose
+ * Open model: the explicit opt-in, everyone may do everything
  */
 export class Brand extends UuidModel {
   name: string;
+
+  /**
+   * @returns true: open to everyone
+   */
+  static canAct(): boolean {
+    return true;
+  }
 }
 
 export { Classroom, Course, Hardware, Student, Teacher };

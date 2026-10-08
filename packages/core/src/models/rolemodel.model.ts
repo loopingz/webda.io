@@ -1,7 +1,6 @@
 import { Model } from "@webda/models";
 import type { IOperationContext } from "../contexts/icontext.js";
 import * as WebdaError from "../errors/errors.js";
-import { useContext } from "../contexts/execution.js";
 
 /** Model with role-based access control, mapping actions to required roles */
 abstract class RoleModel extends Model {
@@ -48,7 +47,7 @@ abstract class RoleModel extends Model {
       }
       return "No permission for this action defined";
     }
-    const roles = await this.getRoles(useContext());
+    const roles = await this.getRoles(context);
     if (roles.indexOf(this.getRolesMap()[action]) >= 0) {
       return true;
     }

@@ -23,11 +23,11 @@ abstract class CoreModel extends Model {
   /**
    * Check whether the given action is permitted (always returns true).
    *
-   * @param action - the action to check
-   * @param context - optional context
+   * @param _context - the operation context
+   * @param _action - the action to check
    * @returns true
    */
-  async canAct(action: string, context?: any): Promise<boolean> {
+  async canAct(_context: OperationContext<any, any>, _action: string): Promise<boolean> {
     return true;
   }
 }

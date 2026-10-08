@@ -1642,7 +1642,7 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "Abstract class to define an object with an owner\n\nThe owner is the user that created the object\nThe owner can be changed by the owner",
+          "description": "Abstract class to define an object with an owner\n\nThe owner is the user that created the object, set from the caller on create.\nThe owner is never taken from client input.",
           "properties": {
             "_user": {
               "allOf": [
@@ -1678,7 +1678,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "Abstract class to define an object with an owner\n\nThe owner is the user that created the object\nThe owner can be changed by the owner",
+          "description": "Abstract class to define an object with an owner\n\nThe owner is the user that created the object, set from the caller on create.\nThe owner is never taken from client input.",
           "properties": {
             "_user": {
               "allOf": [
@@ -1714,7 +1714,7 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "Abstract class to define an object with an owner\n\nThe owner is the user that created the object\nThe owner can be changed by the owner",
+          "description": "Abstract class to define an object with an owner\n\nThe owner is the user that created the object, set from the caller on create.\nThe owner is never taken from client input.",
           "properties": {
             "_user": {
               "allOf": [
@@ -3563,10 +3563,6 @@
       "additionalProperties": false,
       "description": "Represent a file to store",
       "properties": {
-        "challenge": {
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-          "type": "string"
-        },
         "hash": {
           "description": "Will be computed by the service\n\nhash of the content",
           "type": "string"
@@ -3725,10 +3721,6 @@
           "class": "BinaryMap",
           "description": "This is a map used to retrieve binary",
           "properties": {
-            "challenge": {
-              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-              "type": "string"
-            },
             "hash": {
               "description": "Will be computed by the service\n\nhash of the content",
               "type": "string"
@@ -3885,10 +3877,6 @@
           "class": "BinaryMap",
           "description": "This is a map used to retrieve binary",
           "properties": {
-            "challenge": {
-              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-              "type": "string"
-            },
             "hash": {
               "description": "Will be computed by the service\n\nhash of the content",
               "type": "string"

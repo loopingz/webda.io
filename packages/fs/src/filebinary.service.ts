@@ -17,7 +17,30 @@ import {
   WebContext,
   WebdaError
 } from "@webda/core";
-import { useModelId } from "@webda/core";
+import { useModel, useModelId } from "@webda/core";
+
+/**
+ * What an upload token attaches once the content is stored and verified: the object, its binary attribute and the
+ * file information the client announced
+ */
+export interface UploadTarget {
+  /**
+   * Model identifier
+   */
+  model: string;
+  /**
+   * Object primary key
+   */
+  uuid: string;
+  /**
+   * Binary attribute
+   */
+  attribute: string;
+  /**
+   * File information announced by the challenge (name, size, mimetype, metadata)
+   */
+  info: Omit<BinaryFileInfo, "hash" | "challenge">;
+}
 
 /** Configuration parameters for the filesystem-backed binary storage service. */
 export class FileBinaryParameters extends CloudBinaryParameters {
@@ -154,16 +177,17 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
-   * Download a binary with a challenge
+   * Download a binary with a signed download token (issued by the `download` behavior action, after the model's
+   * permission check)
    *
    * @param ctx - the web context
    */
   async downloadBinaryLink(ctx: WebContext<any, any, { hash: string }>) {
     const { hash } = ctx.getParameters();
-    // Verify token
+    // Verify token: it must be a download token for this hash (an upload token does not download)
     try {
       const dt = await this.cryptoService.jwtVerify(ctx.parameter("token"));
-      if (dt.hash !== hash) {
+      if (dt.hash !== hash || dt.method !== "GET") {
         throw new WebdaError.Forbidden("Wrong hash");
       }
     } catch (err) {
@@ -246,40 +270,76 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param hash - the content hash
    * @param method - HTTP method (PUT or GET)
    * @param expiresIn - token TTL in seconds
+   * @param target - for an upload token, what to attach once the content is stored and verified
    * @returns the signed JWT token
    */
-  async getToken(hash: string, method: "PUT" | "GET", expiresIn: number = 60): Promise<string> {
-    return this.cryptoService.jwtSign(
-      { hash, method },
-      {
-        expiresIn
-      }
-    );
+  async getToken(hash: string, method: "PUT" | "GET", expiresIn: number = 60, target?: UploadTarget): Promise<string> {
+    return this.cryptoService.jwtSign(target ? { hash, method, target } : { hash, method }, { expiresIn });
   }
 
   /**
    * Get put URL
    *
    * @param ctx - the operation context
+   * @param hash - the content hash (read from the input when not given)
+   * @param target - what the upload attaches once the content is stored and verified
    * @returns the upload URL
    */
-  async getPutUrl(ctx: OperationContext<BinaryFile>) {
-    const body = await ctx.getInput();
-    const token = await this.getToken(body.hash, "PUT");
+  async getPutUrl(ctx: OperationContext<BinaryFile>, hash?: string, target?: UploadTarget) {
+    hash ??= (await ctx.getInput()).hash;
+    const token = await this.getToken(hash, "PUT", 60, target);
     if (ctx instanceof WebContext) {
-      return ctx.getHttpContext().getAbsoluteUrl(this.parameters.url + "/upload/data/" + body.hash + `?token=${token}`);
+      return ctx.getHttpContext().getAbsoluteUrl(this.parameters.url + "/upload/data/" + hash + `?token=${token}`);
     }
-    return this.parameters.url + "/upload/data/" + body.hash + `?token=${token}`;
+    return this.parameters.url + "/upload/data/" + hash + `?token=${token}`;
   }
 
   /**
-   * Will give you the redirect url
+   * Usage marker of an object attribute in a hash folder: `<model>_<attribute>_<uuid>`, with the `/` of the model
+   * identifier replaced (it is a file name)
+   * @param target - the object attribute
+   * @returns the marker file name
+   */
+  protected usageMarker(target: Pick<UploadTarget, "model" | "attribute" | "uuid">): string {
+    return `${target.model.replace(/\//g, "-")}_${target.attribute}_${target.uuid}`;
+  }
+
+  /**
+   * Attach a stored binary to an object: usage marker, then the object's binary attribute
+   * @param object - the model instance
+   * @param target - the object attribute and the announced file information
+   * @param hashes - the stored content
+   * @param hashes.hash - its hash
+   * @param hashes.challenge - its challenge
+   */
+  protected async attach(
+    object: CoreModel,
+    target: UploadTarget,
+    hashes: { hash: string; challenge: string }
+  ): Promise<void> {
+    this._touch(this._getPath(hashes.hash, this.usageMarker(target)));
+    await this.uploadSuccess(<any>object, target.attribute, {
+      name: target.info.name,
+      size: target.info.size,
+      mimetype: target.info.mimetype,
+      metadata: target.info.metadata,
+      hash: hashes.hash,
+      challenge: hashes.challenge
+    });
+  }
+
+  /**
+   * Challenge: the client announces `{hash, challenge, ...}`; the challenge is the md5 of "WEBDA" + the content,
+   * so a matching one proves possession of an already stored binary, which is then attached without upload
+   * (`undefined`). Otherwise the upload URL is returned and **nothing is attached yet**: the upload stores the
+   * content, verifies it against the announced hash and attaches it then ({@link storeBinary}). A visible hash
+   * alone therefore never gives access to another object's binary.
    *
    * @param object - the model instance
    * @param attribute - the binary attribute name
    * @param info - optional binary file info
    * @param context - the operation context
-   * @returns the redirect URL and method, or undefined if already stored
+   * @returns the upload URL and method, or undefined when the binary is attached
    */
   async putRedirectUrl(
     object: CoreModel,
@@ -288,30 +348,25 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     context?: OperationContext<BinaryFile>
   ): Promise<{ url: string; method: string }> {
     info ??= await context.getInput();
-    const result = { url: await this.getPutUrl(context), method: "PUT" };
-    const marker = `${useModelId(object.constructor)}_${object.getUUID()}_${attribute}`;
-
-    // Get the target object to add the mapping
-    await this.uploadSuccess(<any>object, attribute, info);
-
-    if (fs.existsSync(this._getPath(info.hash, marker))) {
-      if (!fs.existsSync(this._getPath(info.hash, "data"))) {
-        return result;
-      }
+    const target: UploadTarget = {
+      model: useModelId(object.constructor),
+      uuid: object.getUUID(),
+      attribute,
+      info: { name: info.name, size: info.size, mimetype: info.mimetype, metadata: info.metadata }
+    };
+    if (fs.existsSync(this._getPath(info.hash, "data")) && this.challenge(info.hash, info.challenge)) {
+      // Proof of possession: attach the stored binary
+      await this.attach(object, target, { hash: info.hash, challenge: info.challenge });
       return;
     }
     if (!fs.existsSync(this._getPath(info.hash))) {
       fs.mkdirSync(this._getPath(info.hash));
     }
-    this._touch(this._getPath(info.hash, marker));
-    if (this.challenge(info.hash, info.challenge)) {
-      return;
-    }
-    return result;
+    return { url: await this.getPutUrl(context, info.hash, target), method: "PUT" };
   }
 
   /**
-   * Store the binary sent
+   * Store the binary sent with an upload token, then attach it to the object the token names
    *
    * @param ctx - the web context
    */
@@ -326,9 +381,11 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
       this.log("WARN", "Request hash differ", ctx.parameter("hash"), "!==", result.hash);
       throw new WebdaError.BadRequest("Request hash differ");
     }
+    let dt: { hash: string; method?: string; target?: UploadTarget };
     try {
-      const dt = await this.cryptoService.jwtVerify(ctx.parameter("token"));
-      if (dt.hash !== result.hash) {
+      dt = await this.cryptoService.jwtVerify(ctx.parameter("token"));
+      // An upload token for this content only (a download token does not upload)
+      if (dt.hash !== result.hash || dt.method !== "PUT") {
         this.log("WARN", "JWT hash differ", ctx.parameter("hash"), "!==", result.hash);
         throw new WebdaError.Forbidden("JWT hash differ");
       }
@@ -344,6 +401,18 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
       fs.writeFileSync(path, body as any);
     }
     this._touch(this._getPath(result.hash, "_" + result.challenge));
+    if (dt.target) {
+      // The content is stored and matches the announced hash: attach it to the object the challenge was made for
+      let object: any;
+      try {
+        object = await useModel(dt.target.model).ref(dt.target.uuid).get();
+      } catch {
+        // Gone since the challenge
+      }
+      if (object && !object.isDeleted?.()) {
+        await this.attach(object, dt.target, result);
+      }
+    }
   }
 
   /**
@@ -394,7 +463,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @override
    */
   async delete(object: CoreModelWithBinary, property: string, index?: number): Promise<void> {
-    const hash = (index !== undefined ? object[property][index] : object[property] as any).hash;
+    const hash = (index !== undefined ? object[property][index] : (object[property] as any)).hash;
     await this.deleteSuccess(<any>object, property, index);
     await this._cleanUsage(hash, object.getUUID(), property);
   }
@@ -436,7 +505,12 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     });
 
     this._touch(this._getPath(file.hash, "_" + file.challenge));
-    this._touch(this._getPath(file.hash, `${useModelId(object.constructor)}_${attribute}_${object.getUUID()}`));
+    this._touch(
+      this._getPath(
+        file.hash,
+        this.usageMarker({ model: useModelId(object.constructor), attribute, uuid: object.getUUID() })
+      )
+    );
   }
 
   /**
@@ -448,7 +522,9 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     const fileInfo = file.toBinaryFileInfo();
     this.checkMap(<any>object, property);
     if (fs.existsSync(this._getPath(file.hash))) {
-      this._touch(this._getPath(file.hash, `${storeName}_${property}_${object.getUUID()}`));
+      this._touch(
+        this._getPath(file.hash, this.usageMarker({ model: storeName, attribute: property, uuid: object.getUUID() }))
+      );
       await this.uploadSuccess(<any>object, property, fileInfo);
       return;
     }

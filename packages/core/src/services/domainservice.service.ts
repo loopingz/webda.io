@@ -33,7 +33,8 @@ import {
  *   by convention they are server-managed (`_user`, `_roles`, `_groups`, `_creationDate`...);
  * - Behavior-typed attributes (Metadata.Relations.behaviors) are removed: behavior state can only be changed through
  *   the behavior's own actions;
- * - the attributes of the model's static `getProtectedAttributes()` are removed, even when listed as writable.
+ * - the attributes of the model's static `getProtectedAttributes()` are removed, even when listed as writable;
+ * - the attributes the model schemas mark `readOnly` (`@readOnly` on the property) are removed: they are server-managed.
  * @param model - the model class
  * @param input - the client input
  * @returns the sanitized input
@@ -46,6 +47,9 @@ export function sanitizeModelInput<T = any>(model: ModelClass<any>, input: T): T
       if (key.startsWith("_") && !writable.includes(key)) {
         delete out[key];
       }
+    }
+    for (const attribute of getReadOnlyAttributes(model)) {
+      delete out[attribute];
     }
     for (const rel of useModelMetadata(model)?.Relations?.behaviors ?? []) {
       delete out[rel.attribute];
@@ -95,6 +99,29 @@ export function prepareCreateInput<T = any>(model: ModelClass<any>, input: T): T
     delete out.uuid;
   }
   return out;
+}
+
+/**
+ * Attributes the model schemas (Input, Output, Stored) mark `readOnly`: server-managed, never taken from client input
+ * @param model - the model class
+ * @returns the attribute names
+ */
+export function getReadOnlyAttributes(model: any): string[] {
+  let schemas: Record<string, any> | undefined;
+  try {
+    schemas = useModelMetadata(model)?.Schemas;
+  } catch {
+    return [];
+  }
+  const names = new Set<string>();
+  for (const schema of Object.values(schemas ?? {})) {
+    for (const [name, property] of Object.entries((schema as any)?.properties ?? {})) {
+      if ((property as any)?.readOnly === true || (property as any)?.readonly === true) {
+        names.add(name);
+      }
+    }
+  }
+  return [...names];
 }
 
 /**
@@ -556,9 +583,16 @@ export class DomainService<
     } else {
       // Static action: the model's static canAct is asked without object
       await checkStaticModelPermission(model, context, action.name);
-      // With an input schema the arguments are resolved from it (`callOperation`); without one the context is passed
+      // With an input schema the arguments are resolved from it (`callOperation`); without one the body is passed,
+      // sanitized like model input (`__`, `_`, protected and read-only attributes removed); no body: the context
       const resolved = args.length > 0 && !(args[0] instanceof OperationContext);
-      return model[handler](...(resolved ? args : [context]));
+      const hasSchema = !!useApplication().getSchema(`${useModelMetadata(model)?.Identifier}.${action.name}.input`);
+      const callArgs = resolved
+        ? hasSchema
+          ? args
+          : [sanitizeModelInput(model, args[0]), ...args.slice(1)]
+        : [context];
+      return model[handler](...callArgs);
     }
   }
 

@@ -108,9 +108,10 @@ export abstract class BinaryFile<T extends object = {}> implements BinaryFileInf
    */
   mimetype: string;
   /**
-   * Will be computed by the service
-   *
-   * hash of the content prefixed by 'WEBDA'
+   * Proof of possession of the content: hash of the content prefixed by 'WEBDA', computed by the client of the
+   * challenge and by the service on upload. Never persisted on a model nor sent to clients: it is not part of the
+   * schema of a binary attribute
+   * @SchemaIgnore
    */
   challenge?: string;
   /**
@@ -287,6 +288,15 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
    */
   get(): Promise<Readable> {
     return this[WEBDA_STORAGE].service.get(this);
+  }
+
+  /**
+   * A map never holds the challenge: maps persisted before it was hidden carry one, it is not loaded
+   * @param info - the information object
+   */
+  set(info: BinaryFileInfo<T>): void {
+    super.set(info);
+    this.challenge = undefined;
   }
 
   /**

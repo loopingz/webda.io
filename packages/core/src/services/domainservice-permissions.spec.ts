@@ -64,9 +64,22 @@ class OpenNote extends UuidModel {
  */
 class PublicNote extends UuidModel {
   text: string;
+  /**
+   * Server-managed (`@readOnly` in the schema)
+   */
+  stamp?: string;
 
   static canAct(): boolean {
     return true;
+  }
+
+  /**
+   * Static action without an input schema: receives the body
+   * @param body - the request body
+   * @returns it, as received
+   */
+  static async echoAll(body: any) {
+    return { keys: Object.keys(body ?? {}), proto: Object.getPrototypeOf(body) === Object.prototype };
   }
 }
 
@@ -286,7 +299,10 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     const app = useApplication<Application>();
     app.addModel("WebdaDemo/PermTask", PermTask, metadata("WebdaDemo/PermTask", { publish: { method: "PUT" } }));
     app.addModel("WebdaDemo/OpenNote", OpenNote, metadata("WebdaDemo/OpenNote"));
-    app.addModel("WebdaDemo/PublicNote", PublicNote, metadata("WebdaDemo/PublicNote"));
+    app.addModel("WebdaDemo/PublicNote", PublicNote, {
+      ...metadata("WebdaDemo/PublicNote", { echoAll: { global: true, method: "PUT" } }),
+      Schemas: { Output: { properties: { stamp: { type: "string", readOnly: true } } } }
+    });
     app.addModel("WebdaDemo/SecretChild", SecretChild, metadata("WebdaDemo/SecretChild"));
     app.addModel("WebdaDemo/PubChild", PubChild, metadata("WebdaDemo/PubChild"));
     app.addModel("WebdaDemo/PubBase", PubBase, {
@@ -761,6 +777,36 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     await assert.rejects(() => checkModelPermission(new OpenChild(), ctxA, "get", DenyBase), WebdaError.NotFound);
     await checkModelPermission(new OpenChild(), ctxA, "get", OpenChild);
     await checkModelPermission(new PubChild(), ctxA, "get", PubBase);
+  }
+
+  @test
+  async readOnlyAttributesAreNeverTakenFromClients() {
+    const created = await this.request(USER_A, "POST", "/perm/publicNotes", { text: "t", stamp: "client" });
+    assert.strictEqual(created.status, 200);
+    const uuid = created.body.uuid;
+    assert.strictEqual((await PublicNote.ref(uuid).get()).stamp, undefined);
+    await PublicNote.ref(uuid).patch({ stamp: "server" } as any);
+    assert.strictEqual((await this.request(USER_A, "PATCH", `/perm/publicNotes/${uuid}`, { stamp: "x" })).status, 200);
+    assert.strictEqual(
+      (await this.request(USER_A, "PUT", `/perm/publicNotes/${uuid}`, { text: "u", stamp: "y" })).status,
+      200
+    );
+    assert.strictEqual((await PublicNote.ref(uuid).get()).stamp, "server");
+    assert.deepStrictEqual(sanitizeModelInput(PublicNote as any, { text: "a", stamp: "b" }), { text: "a" });
+  }
+
+  @test
+  async staticActionsWithoutSchemaGetASanitizedBody() {
+    const res = await this.request(USER_A, "PUT", "/perm/publicNotes/echoAll", {
+      value: 1,
+      _roles: ["admin"],
+      __secret: "x",
+      __proto__: { polluted: true },
+      stamp: "s"
+    });
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(res.body, { keys: ["value"], proto: true });
+    assert.strictEqual(({} as any).polluted, undefined);
   }
 
   @test

@@ -117,6 +117,27 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.4](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.3...gcp-v4.0.0-beta.4) (2026-10-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **auth:** redesign authentication with @webda/auth ([#800](https://github.com/loopingz/webda.io/issues/800))
+
+### Features
+
+* **auth:** redesign authentication with @webda/auth ([#800](https://github.com/loopingz/webda.io/issues/800)) ([74dc5df](https://github.com/loopingz/webda.io/commit/74dc5df103bdf93cdab92b02ef966598e44e2735))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.4
+    * @webda/utils bumped to 4.0.0-beta.4
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.4
+
 ## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.1...gcp-v4.0.0-beta.3) (2026-10-05)
 
 

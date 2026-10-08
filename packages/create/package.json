@@ -1,6 +1,6 @@
 {
   "name": "@webda/create",
-  "version": "4.0.0-beta.3",
+  "version": "4.0.0-beta.4",
   "description": "Create a Webda application with guidance for coding agents",
   "type": "module",
   "bin": {

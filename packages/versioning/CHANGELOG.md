@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.0.0-beta.4](https://github.com/loopingz/webda.io/compare/versioning-v4.0.0-beta.3...versioning-v4.0.0-beta.4) (2026-10-08)
+
+
+### Bug Fixes
+
+* **versioning:** support documents with a `_t` key ([#797](https://github.com/loopingz/webda.io/issues/797)) ([ff2d55e](https://github.com/loopingz/webda.io/commit/ff2d55e05c7e42f7fec3c3258a0189486554cee6))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.4
+    * @webda/models bumped to 4.0.0-beta.4
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.4
+    * @webda/models bumped to 4.0.0-beta.4
+
 ## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/versioning-v4.0.0-beta.1...versioning-v4.0.0-beta.3) (2026-10-05)
 
 

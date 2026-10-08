@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0-beta.4](https://github.com/loopingz/webda.io/compare/serialize-v4.0.0-beta.3...serialize-v4.0.0-beta.4) (2026-10-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **auth:** redesign authentication with @webda/auth ([#800](https://github.com/loopingz/webda.io/issues/800))
+
+### Features
+
+* **auth:** redesign authentication with @webda/auth ([#800](https://github.com/loopingz/webda.io/issues/800)) ([74dc5df](https://github.com/loopingz/webda.io/commit/74dc5df103bdf93cdab92b02ef966598e44e2735))
+
 ## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/serialize-v4.0.0-beta.1...serialize-v4.0.0-beta.3) (2026-10-05)
 
 

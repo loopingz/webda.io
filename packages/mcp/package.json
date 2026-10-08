@@ -1,6 +1,6 @@
 {
   "name": "@webda/mcp",
-  "version": "4.0.0-beta.3",
+  "version": "4.0.0-beta.4",
   "description": "MCP transport for Webda.io — exposes operations as Model Context Protocol tools and resources",
   "type": "module",
   "main": "lib/index.js",

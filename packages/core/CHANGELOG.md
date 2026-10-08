@@ -3,6 +3,37 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.4](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.3...core-v4.0.0-beta.4) (2026-10-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **google-auth:** configure the provider as its own service next to Authentication (redirects.success/failure, authorized_uris); the referer whitelist, no_referer, exposeScope, project_id, the GoogleAuth.Tokens event and getLocalClient are removed.
+* **auth:** redesign authentication with @webda/auth ([#800](https://github.com/loopingz/webda.io/issues/800))
+
+### Features
+
+* **auth:** redesign authentication with @webda/auth ([#800](https://github.com/loopingz/webda.io/issues/800)) ([74dc5df](https://github.com/loopingz/webda.io/commit/74dc5df103bdf93cdab92b02ef966598e44e2735))
+* deployers as commands (deployment units, CloudFormation/Lambda, daemonless OCI images) ([#796](https://github.com/loopingz/webda.io/issues/796)) ([2539cc9](https://github.com/loopingz/webda.io/commit/2539cc991c29e65a76659a379d72ce7a51ebb1e7))
+* **google-auth:** port Google login onto @webda/auth with hardened OAuth flow ([#804](https://github.com/loopingz/webda.io/issues/804)) ([e4c4b57](https://github.com/loopingz/webda.io/commit/e4c4b570e4db6018b9891480fcac3e718e01f144))
+
+
+### Bug Fixes
+
+* release blockers for 4.0.0-beta.4 (create sinon, npm 10 install, google-auth) ([#801](https://github.com/loopingz/webda.io/issues/801)) ([bda2c97](https://github.com/loopingz/webda.io/commit/bda2c97e3fa16140f2969afe3c10c48bd7c72f66))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.4
+    * @webda/models bumped to 4.0.0-beta.4
+    * @webda/utils bumped to 4.0.0-beta.4
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.4
+    * @webda/content-mapper bumped to 4.0.0-beta.4
+
 ## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.1...core-v4.0.0-beta.3) (2026-10-05)
 
 

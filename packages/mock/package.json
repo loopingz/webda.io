@@ -1,6 +1,6 @@
 {
   "name": "@webda/mock",
-  "version": "4.0.0-beta.3",
+  "version": "4.0.0-beta.4",
   "description": "Coherent mock-data generation for @webda/models classes",
   "keywords": [
     "webda",

@@ -81,6 +81,17 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.4](https://github.com/loopingz/webda.io/compare/otel-v4.0.0-beta.3...otel-v4.0.0-beta.4) (2026-10-08)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.4
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.4
+
 ## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/otel-v4.0.0-beta.1...otel-v4.0.0-beta.3) (2026-10-05)
 
 

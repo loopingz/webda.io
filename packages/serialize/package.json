@@ -1,6 +1,6 @@
 {
   "name": "@webda/serialize",
-  "version": "4.0.0-beta.4",
+  "version": "4.0.0-beta.5",
   "description": "Serializer for JS",
   "main": "lib/serializer.js",
   "scripts": {

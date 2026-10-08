@@ -1,6 +1,6 @@
 {
   "name": "@webda/gcp",
-  "version": "4.0.0-beta.4",
+  "version": "4.0.0-beta.5",
   "description": "Webda GCP Services implementation",
   "main": "lib/index.js",
   "scripts": {

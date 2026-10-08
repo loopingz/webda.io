@@ -1,5 +1,21 @@
 # Changelog
 
+## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/tsc-esm-v4.0.0-beta.3...tsc-esm-v4.0.0-beta.5) (2026-10-08)
+
+
+### Bug Fixes
+
+* **packaging:** point every package's repository at its monorepo folder ([#812](https://github.com/loopingz/webda.io/issues/812)) ([3717b73](https://github.com/loopingz/webda.io/commit/3717b73c7a7b91348057d84c8e64ecf840c75cb1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/decorators bumped to 4.0.0-beta.5
+  * devDependencies
+    * @webda/test bumped to 4.0.0-beta.5
+
 ## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/tsc-esm-v4.0.0-beta.1...tsc-esm-v4.0.0-beta.3) (2026-10-05)
 
 

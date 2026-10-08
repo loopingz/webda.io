@@ -464,15 +464,23 @@
           "definitions": {
             "Ace": {
               "additionalProperties": false,
+              "description": "Access control entry",
               "properties": {
                 "action": {
+                  "description": "Action the entry applies to (\"get\", \"update\", \"delete\", an action name...)",
                   "type": "string"
                 },
                 "allow": {
                   "default": false,
+                  "description": "Allow or deny: a matching deny wins over any allow",
                   "type": "boolean"
                 },
+                "principal": {
+                  "description": "The user id (type USER) or group name (type GROUP) the entry applies to.\nAn entry without principal matches nobody.",
+                  "type": "string"
+                },
                 "type": {
+                  "description": "Kind of principal: a user id or a group name",
                   "enum": [
                     "GROUP",
                     "USER"
@@ -490,7 +498,7 @@
           "description": "This file contains several empty methods to test our auto docs\n\nAbstract class should not be exported as model",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
@@ -509,15 +517,23 @@
           "definitions": {
             "Ace": {
               "additionalProperties": false,
+              "description": "Access control entry",
               "properties": {
                 "action": {
+                  "description": "Action the entry applies to (\"get\", \"update\", \"delete\", an action name...)",
                   "type": "string"
                 },
                 "allow": {
                   "default": false,
+                  "description": "Allow or deny: a matching deny wins over any allow",
                   "type": "boolean"
                 },
+                "principal": {
+                  "description": "The user id (type USER) or group name (type GROUP) the entry applies to.\nAn entry without principal matches nobody.",
+                  "type": "string"
+                },
                 "type": {
+                  "description": "Kind of principal: a user id or a group name",
                   "enum": [
                     "GROUP",
                     "USER"
@@ -535,7 +551,7 @@
           "description": "This file contains several empty methods to test our auto docs\n\nAbstract class should not be exported as model",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
@@ -554,7 +570,7 @@
           "definitions": {
             "ResourceAcl": {
               "additionalProperties": false,
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "properties": {
                 "length": {
                   "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
@@ -653,15 +669,23 @@
           "definitions": {
             "Ace": {
               "additionalProperties": false,
+              "description": "Access control entry",
               "properties": {
                 "action": {
+                  "description": "Action the entry applies to (\"get\", \"update\", \"delete\", an action name...)",
                   "type": "string"
                 },
                 "allow": {
                   "default": false,
+                  "description": "Allow or deny: a matching deny wins over any allow",
                   "type": "boolean"
                 },
+                "principal": {
+                  "description": "The user id (type USER) or group name (type GROUP) the entry applies to.\nAn entry without principal matches nobody.",
+                  "type": "string"
+                },
                 "type": {
+                  "description": "Kind of principal: a user id or a group name",
                   "enum": [
                     "GROUP",
                     "USER"
@@ -679,7 +703,7 @@
           "description": "Test of TypeParams",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
@@ -729,15 +753,23 @@
           "definitions": {
             "Ace": {
               "additionalProperties": false,
+              "description": "Access control entry",
               "properties": {
                 "action": {
+                  "description": "Action the entry applies to (\"get\", \"update\", \"delete\", an action name...)",
                   "type": "string"
                 },
                 "allow": {
                   "default": false,
+                  "description": "Allow or deny: a matching deny wins over any allow",
                   "type": "boolean"
                 },
+                "principal": {
+                  "description": "The user id (type USER) or group name (type GROUP) the entry applies to.\nAn entry without principal matches nobody.",
+                  "type": "string"
+                },
                 "type": {
+                  "description": "Kind of principal: a user id or a group name",
                   "enum": [
                     "GROUP",
                     "USER"
@@ -755,7 +787,7 @@
           "description": "Test of TypeParams",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
@@ -805,7 +837,7 @@
           "definitions": {
             "ResourceAcl": {
               "additionalProperties": false,
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "properties": {
                 "length": {
                   "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
@@ -2802,15 +2834,23 @@
           "definitions": {
             "Ace": {
               "additionalProperties": false,
+              "description": "Access control entry",
               "properties": {
                 "action": {
+                  "description": "Action the entry applies to (\"get\", \"update\", \"delete\", an action name...)",
                   "type": "string"
                 },
                 "allow": {
                   "default": false,
+                  "description": "Allow or deny: a matching deny wins over any allow",
                   "type": "boolean"
                 },
+                "principal": {
+                  "description": "The user id (type USER) or group name (type GROUP) the entry applies to.\nAn entry without principal matches nobody.",
+                  "type": "string"
+                },
                 "type": {
+                  "description": "Kind of principal: a user id or a group name",
                   "enum": [
                     "GROUP",
                     "USER"
@@ -2827,7 +2867,7 @@
           },
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
@@ -2878,15 +2918,23 @@
           "definitions": {
             "Ace": {
               "additionalProperties": false,
+              "description": "Access control entry",
               "properties": {
                 "action": {
+                  "description": "Action the entry applies to (\"get\", \"update\", \"delete\", an action name...)",
                   "type": "string"
                 },
                 "allow": {
                   "default": false,
+                  "description": "Allow or deny: a matching deny wins over any allow",
                   "type": "boolean"
                 },
+                "principal": {
+                  "description": "The user id (type USER) or group name (type GROUP) the entry applies to.\nAn entry without principal matches nobody.",
+                  "type": "string"
+                },
                 "type": {
+                  "description": "Kind of principal: a user id or a group name",
                   "enum": [
                     "GROUP",
                     "USER"
@@ -2903,7 +2951,7 @@
           },
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
@@ -2954,7 +3002,7 @@
           "definitions": {
             "ResourceAcl": {
               "additionalProperties": false,
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "properties": {
                 "length": {
                   "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
@@ -3424,15 +3472,23 @@
           "definitions": {
             "Ace": {
               "additionalProperties": false,
+              "description": "Access control entry",
               "properties": {
                 "action": {
+                  "description": "Action the entry applies to (\"get\", \"update\", \"delete\", an action name...)",
                   "type": "string"
                 },
                 "allow": {
                   "default": false,
+                  "description": "Allow or deny: a matching deny wins over any allow",
                   "type": "boolean"
                 },
+                "principal": {
+                  "description": "The user id (type USER) or group name (type GROUP) the entry applies to.\nAn entry without principal matches nobody.",
+                  "type": "string"
+                },
                 "type": {
+                  "description": "Kind of principal: a user id or a group name",
                   "enum": [
                     "GROUP",
                     "USER"
@@ -3450,7 +3506,7 @@
           "description": "Subclass of Project with no additional fields, used for inheritance testing.",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
@@ -3500,15 +3556,23 @@
           "definitions": {
             "Ace": {
               "additionalProperties": false,
+              "description": "Access control entry",
               "properties": {
                 "action": {
+                  "description": "Action the entry applies to (\"get\", \"update\", \"delete\", an action name...)",
                   "type": "string"
                 },
                 "allow": {
                   "default": false,
+                  "description": "Allow or deny: a matching deny wins over any allow",
                   "type": "boolean"
                 },
+                "principal": {
+                  "description": "The user id (type USER) or group name (type GROUP) the entry applies to.\nAn entry without principal matches nobody.",
+                  "type": "string"
+                },
                 "type": {
+                  "description": "Kind of principal: a user id or a group name",
                   "enum": [
                     "GROUP",
                     "USER"
@@ -3526,7 +3590,7 @@
           "description": "Subclass of Project with no additional fields, used for inheritance testing.",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
@@ -3576,7 +3640,7 @@
           "definitions": {
             "ResourceAcl": {
               "additionalProperties": false,
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "properties": {
                 "length": {
                   "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
@@ -3710,15 +3774,23 @@
           "definitions": {
             "Ace": {
               "additionalProperties": false,
+              "description": "Access control entry",
               "properties": {
                 "action": {
+                  "description": "Action the entry applies to (\"get\", \"update\", \"delete\", an action name...)",
                   "type": "string"
                 },
                 "allow": {
                   "default": false,
+                  "description": "Allow or deny: a matching deny wins over any allow",
                   "type": "boolean"
                 },
+                "principal": {
+                  "description": "The user id (type USER) or group name (type GROUP) the entry applies to.\nAn entry without principal matches nobody.",
+                  "type": "string"
+                },
                 "type": {
+                  "description": "Kind of principal: a user id or a group name",
                   "enum": [
                     "GROUP",
                     "USER"
@@ -3736,7 +3808,7 @@
           "description": "Concrete sub-sub-project with custom actions for testing action exposure.",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
@@ -3790,15 +3862,23 @@
           "definitions": {
             "Ace": {
               "additionalProperties": false,
+              "description": "Access control entry",
               "properties": {
                 "action": {
+                  "description": "Action the entry applies to (\"get\", \"update\", \"delete\", an action name...)",
                   "type": "string"
                 },
                 "allow": {
                   "default": false,
+                  "description": "Allow or deny: a matching deny wins over any allow",
                   "type": "boolean"
                 },
+                "principal": {
+                  "description": "The user id (type USER) or group name (type GROUP) the entry applies to.\nAn entry without principal matches nobody.",
+                  "type": "string"
+                },
                 "type": {
+                  "description": "Kind of principal: a user id or a group name",
                   "enum": [
                     "GROUP",
                     "USER"
@@ -3816,7 +3896,7 @@
           "description": "Concrete sub-sub-project with custom actions for testing action exposure.",
           "properties": {
             "acls": {
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "items": {
                 "$ref": "#/definitions/Ace"
               },
@@ -3870,7 +3950,7 @@
           "definitions": {
             "ResourceAcl": {
               "additionalProperties": false,
-              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+              "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
               "properties": {
                 "length": {
                   "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
@@ -4998,7 +5078,7 @@
       "definitions": {
         "ResourceAcl": {
           "additionalProperties": false,
-          "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+          "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
           "properties": {
             "length": {
               "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
@@ -5070,7 +5150,7 @@
       "definitions": {
         "ResourceAcl": {
           "additionalProperties": false,
-          "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models",
+          "description": "Allow to define ACLs for the object\n\nIt is used as an attribute in the model so\nyou can add it later on to existing models; the model delegates its permissions to it:\n\n```ts\nasync canAct(context: IOperationContext, action: string) {\n  return ResourceAcl.from(this.acl ?? []).canAct(context, action);\n}\n```",
           "properties": {
             "length": {
               "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",

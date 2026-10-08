@@ -93,14 +93,14 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
    *
    * The user id is bound as an escaped WebdaQL value, it can never change the query structure.
    *
-   * A subclass that overrides `canAct` gets no permission query (only the `canAct` filter) unless it also overrides
-   * this method, so the store filter never hides objects its `canAct` allows.
+   * Subclasses inherit this filter even when they override `canAct` (it fails closed: it can only hide rows). A
+   * subclass whose `canAct` is more permissive overrides this method (returning `null` disables the store filter).
    *
    * @param context - the execution context
    * @returns the result
    */
   static getPermissionQuery(context?: IOperationContext): null | { partial: boolean; query: string } {
-    if (!context || this.prototype.canAct !== AbstractOwnerModel.prototype.canAct) {
+    if (!context) {
       return null;
     }
     const userId = context.getCurrentUserId();

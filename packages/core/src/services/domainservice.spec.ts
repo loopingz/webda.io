@@ -451,7 +451,9 @@ class DomainServiceTest extends WebdaApplicationTest {
       );
       assert.strictEqual(created.displayName, "New");
       assert.strictEqual(created.password?.__hash, undefined);
-      const stored: any = await User.ref("created-1").get();
+      // UuidModel: the client uuid is ignored, the key is generated
+      assert.notStrictEqual(created.uuid, "created-1");
+      const stored: any = await User.ref(created.uuid).get();
       assert.strictEqual(stored.password?.__hash, undefined);
     });
   }

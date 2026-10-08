@@ -46,6 +46,15 @@ export class User extends WebdaUser {
   async canAct(_ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
     return true;
   }
+
+  /**
+   * This sample allows every action on every user: opt out of the self-only store filter inherited from the core User
+   *
+   * @returns null (no store filter)
+   */
+  static getPermissionQuery(): null {
+    return null;
+  }
 }
 
 /**

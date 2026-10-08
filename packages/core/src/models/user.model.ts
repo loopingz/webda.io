@@ -140,13 +140,13 @@ export class User extends UuidModel {
   /**
    * Store filter matching {@link User.canAct}: a caller only finds its own user, so users cannot be enumerated
    *
-   * A subclass that overrides `canAct` gets no permission query (only the `canAct` filter) unless it also overrides
-   * this method, so the store filter never hides objects its `canAct` allows.
+   * Subclasses inherit this filter even when they override `canAct` (it fails closed: it can only hide rows). A
+   * subclass whose `canAct` is more permissive overrides this method (returning `null` disables the store filter).
    * @param context - the caller context
    * @returns the permission query
    */
   static getPermissionQuery(context?: IOperationContext): null | { partial: boolean; query: string } {
-    if (!context || this.prototype.canAct !== User.prototype.canAct) {
+    if (!context) {
       return null;
     }
     const userId = context.getCurrentUserId();

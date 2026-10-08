@@ -5,7 +5,7 @@ import { CoreModel } from "../models/coremodel.model.js";
 import type { JSONSchema7 } from "json-schema";
 import { escape, parse, QueryValidator } from "@webda/ql";
 import * as WebdaError from "../errors/errors.js";
-import { isModelActionAllowed } from "../models/permissions.js";
+import { checkModelPermission } from "../models/permissions.js";
 import { useApplication, useModel } from "../application/hooks.js";
 import { useModelMetadata } from "../core/hooks.js";
 import { useContext } from "../contexts/execution.js";
@@ -393,16 +393,19 @@ export class AuditService extends Service<AuditServiceParameters> {
       // Repositories throw when the object does not exist
     }
     if (instance && !instance.isDeleted?.()) {
-      const allowed = typeof instance.canAct === "function" ? await instance.canAct(context, "audit") : false;
-      if (allowed !== true) {
-        // An object the caller cannot read answers like a missing one
-        if (
-          !this.hasReadPermission(context) &&
-          !(await isModelActionAllowed(instance, context, "get").catch(() => false))
-        ) {
-          throw new WebdaError.NotFound("Object not found");
+      if (typeof instance.canAct !== "function") {
+        // Auditing needs an explicit canAct("audit")
+        throw new WebdaError.Forbidden("Action audit not allowed");
+      }
+      try {
+        // Same rule as every model operation: unreadable answers like a missing object, readable but refused is 403
+        await checkModelPermission(instance, context, "audit");
+      } catch (err) {
+        if (err instanceof WebdaError.NotFound && this.hasReadPermission(context)) {
+          // readPermission may see that the object exists
+          throw new WebdaError.Forbidden("Action audit not allowed");
         }
-        throw new WebdaError.Forbidden(typeof allowed === "string" ? allowed : "Audit not allowed");
+        throw err;
       }
     } else if (!this.hasReadPermission(context)) {
       throw new WebdaError.NotFound("Object not found");

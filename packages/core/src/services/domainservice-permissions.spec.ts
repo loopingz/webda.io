@@ -1,6 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { MemoryRepository, registerRepository, UuidModel } from "@webda/models";
+import { MemoryRepository, Model, registerRepository, UuidModel, WEBDA_PRIMARY_KEY } from "@webda/models";
+import { QueryValidator } from "@webda/ql";
 import { WebdaApplicationTest } from "../test/index.js";
 import { RESTOperationsTransport, RESTOperationsTransportParameters } from "../rest/restoperationstransport.service.js";
 import { Router, RouterParameters } from "../rest/router.service.js";
@@ -78,6 +79,49 @@ class PermSubTask extends UuidModel {
  */
 class PermUser extends SimpleUser {}
 
+/**
+ * Natural-key model (slug): the client chooses the key; only its owner can read it
+ */
+class Slugged extends Model {
+  [WEBDA_PRIMARY_KEY] = ["slug"] as const;
+  slug: string;
+  owner: string;
+  text: string;
+
+  static getProtectedAttributes(): string[] {
+    return ["owner"];
+  }
+
+  prepareCreate(context: IOperationContext): void {
+    this.owner = context.getCurrentUserId();
+  }
+
+  async canAct(context: IOperationContext): Promise<string | boolean> {
+    return !!context.getCurrentUserId() && context.getCurrentUserId() === this.owner;
+  }
+}
+
+/**
+ * Repository paging like Postgres or Firestore: the token is `offset + limit`, counted over the matching rows
+ */
+class OffsetRepository extends MemoryRepository<any> {
+  /** @override */
+  async query(q: string): Promise<any> {
+    const validator = new QueryValidator(q);
+    const all: any[] = [];
+    for (const key of (this as any).storage.keys()) {
+      const item = await this.get(key);
+      if (validator.eval(item)) all.push(item);
+    }
+    all.sort((a, b) => (a.uuid < b.uuid ? -1 : 1));
+    const offset = parseInt(validator.getOffset() || "0");
+    const limit = validator.getLimit();
+    const results = all.slice(offset, offset + limit);
+    return { results, continuationToken: results.length >= limit ? `${offset + limit}` : undefined };
+  }
+}
+
+Slugged.registerSerializer();
 PermSubTask.registerSerializer();
 PermUser.registerSerializer();
 PermTask.registerSerializer();
@@ -132,6 +176,11 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
       Relations: { parent: { attribute: "task", model: "WebdaDemo/PermTask" } }
     });
     app.addModel("WebdaDemo/PermUser", PermUser, metadata("WebdaDemo/PermUser"));
+    app.addModel("WebdaDemo/Slugged", Slugged, {
+      ...metadata("WebdaDemo/Slugged"),
+      PrimaryKey: ["slug"],
+      Plural: "Slugged"
+    });
     const router = new Router("Router", new RouterParameters().load({}));
     this.registerService(router);
     router.resolve();
@@ -156,6 +205,7 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     registerRepository(OpenNote, new MemoryRepository(OpenNote, ["uuid"]));
     registerRepository(AclDoc, new MemoryRepository(AclDoc, ["uuid"]));
     registerRepository(PermSubTask, new MemoryRepository(PermSubTask, ["uuid"]));
+    registerRepository(Slugged as any, new MemoryRepository(Slugged as any, ["slug"]) as any);
     registerRepository(PermUser as any, new MemoryRepository(PermUser as any, ["uuid"]) as any);
     await PermTask.create({ uuid: "task-a", title: "A private", _user: USER_A } as any);
     await PermTask.create({ uuid: "task-b", title: "B private", _user: USER_B } as any);
@@ -369,20 +419,18 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
 
   @test
   async modelWithoutCanActAllowsEverything() {
-    const created = await this.request(undefined, "POST", "/perm/openNotes", { uuid: "n1", text: "hello" });
+    const created = await this.request(undefined, "POST", "/perm/openNotes", { text: "hello" });
     assert.strictEqual(created.status, 200);
-    assert.strictEqual((await this.request(USER_B, "GET", "/perm/openNotes/n1")).status, 200);
-    assert.strictEqual((await this.request(USER_B, "PATCH", "/perm/openNotes/n1", { text: "p" })).status, 200);
-    assert.strictEqual(
-      (await this.request(undefined, "PUT", "/perm/openNotes/n1", { uuid: "n1", text: "u" })).status,
-      200
-    );
+    const n1 = created.body.uuid;
+    assert.strictEqual((await this.request(USER_B, "GET", `/perm/openNotes/${n1}`)).status, 200);
+    assert.strictEqual((await this.request(USER_B, "PATCH", `/perm/openNotes/${n1}`, { text: "p" })).status, 200);
+    assert.strictEqual((await this.request(undefined, "PUT", `/perm/openNotes/${n1}`, { text: "u" })).status, 200);
     const query = await this.request(USER_A, "PUT", "/perm/openNotes", { q: "" });
     assert.deepStrictEqual(
       query.body.results.map((r: any) => r.uuid),
-      ["n1"]
+      [n1]
     );
-    const del = await this.request(USER_A, "DELETE", "/perm/openNotes/n1");
+    const del = await this.request(USER_A, "DELETE", `/perm/openNotes/${n1}`);
     assert.ok(del.status < 300);
   }
 
@@ -551,24 +599,133 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
 
   @test
   async createOverAnExistingKeyIsAConflict() {
-    const before = await this.stored("task-a");
-    // B tries to take over A's object by creating over its key
-    const takeover = await this.request(USER_B, "POST", "/perm/permTasks", { uuid: "task-a", title: "pwned" });
+    // Natural keys are chosen by the client: an existing key is a 409, never an overwrite
+    assert.strictEqual((await this.request(USER_A, "POST", "/perm/slugged", { slug: "a-1", text: "A" })).status, 200);
+    assert.strictEqual((await this.request(USER_B, "POST", "/perm/slugged", { slug: "b-1", text: "B" })).status, 200);
+    const before = JSON.stringify(await Slugged.ref("a-1").get());
+    const takeover = await this.request(USER_B, "POST", "/perm/slugged", { slug: "a-1", text: "pwned" });
     assert.strictEqual(takeover.status, 409);
-    assert.deepStrictEqual(await this.stored("task-a"), before, "the existing object is unchanged");
+    assert.strictEqual(JSON.stringify(await Slugged.ref("a-1").get()), before, "the existing object is unchanged");
     // The conflict on an unreadable key looks exactly like the one on a readable key
-    const readable = await this.request(USER_B, "POST", "/perm/permTasks", { uuid: "task-b", title: "pwned" });
+    const readable = await this.request(USER_B, "POST", "/perm/slugged", { slug: "b-1", text: "again" });
     assert.deepStrictEqual(takeover, readable);
-    // Even the owner cannot create over its own object
-    assert.strictEqual(
-      (await this.request(USER_A, "POST", "/perm/permTasks", { uuid: "task-a", title: "again" })).status,
-      409
-    );
+  }
+
+  @test
+  async uuidModelsIgnoreTheClientUuid() {
+    // A client uuid is ignored on create: no overwrite, and no existence oracle through a 409
+    const before = await this.stored("task-a");
+    const res = await this.request(USER_B, "POST", "/perm/permTasks", { uuid: "task-a", title: "pwned" });
+    assert.strictEqual(res.status, 200);
+    assert.notStrictEqual(res.body.uuid, "task-a");
     assert.deepStrictEqual(await this.stored("task-a"), before);
-    // Models without canAct too
-    assert.strictEqual((await this.request(USER_A, "POST", "/perm/openNotes", { uuid: "n1", text: "1" })).status, 200);
-    assert.strictEqual((await this.request(USER_B, "POST", "/perm/openNotes", { uuid: "n1", text: "2" })).status, 409);
-    assert.strictEqual((await OpenNote.ref("n1").get()).text, "1");
+    const fresh = await this.request(USER_B, "POST", "/perm/permTasks", { uuid: "no-such-task", title: "x" });
+    assert.strictEqual(fresh.status, 200);
+    assert.notStrictEqual(fresh.body.uuid, "no-such-task");
+    assert.strictEqual(await this.stored("no-such-task"), undefined);
+  }
+
+  @test
+  async privateFieldsCannotBeQueried() {
+    await OpenNote.create({ uuid: "sn1", text: "t", __secret: "hunter2", inner: { __h: "abcdef" } } as any);
+    for (const q of [
+      "__secret = 'hunter2'",
+      "__secret LIKE 'hun%'",
+      "inner.__h LIKE 'abc%'",
+      "text = 't' OR (uuid = 'x' AND inner.__h = 'abcdef')",
+      "text = 't' ORDER BY __secret DESC"
+    ]) {
+      const res = await this.request(USER_B, "PUT", "/perm/openNotes", { q });
+      assert.strictEqual(res.status, 400, q);
+      // The post-filtered path too
+      assert.strictEqual((await this.request(USER_B, "PUT", "/perm/aclDocs", { q })).status, 400, q);
+    }
+    // `_` (server-managed, not private) fields stay queryable
+    assert.strictEqual((await this.request(USER_A, "PUT", "/perm/permTasks", { q: "_user = 'user-a'" })).status, 200);
+  }
+
+  @test
+  async continuationTokensAreOpaque() {
+    registerRepository(AclDoc, new OffsetRepository(AclDoc, ["uuid"]) as any);
+    const acl = (user: string) => [{ action: "get", type: "USER", principal: user, allow: true }];
+    await AclDoc.create({ uuid: "secret1", title: "secret", acl: acl(USER_A) } as any);
+    await AclDoc.create({ uuid: "zmine", title: "mine", acl: acl(USER_B) } as any);
+    // Anchored on B's own row: the raw offset token would be "2" on a hit (hidden row scanned) and "1" on a miss
+    const hit = await this.request(USER_B, "PUT", "/perm/aclDocs", {
+      q: "title LIKE 'secret%' OR uuid = 'zmine' LIMIT 1"
+    });
+    const miss = await this.request(USER_B, "PUT", "/perm/aclDocs", {
+      q: "title LIKE 'nope%' OR uuid = 'zmine' LIMIT 1"
+    });
+    assert.strictEqual(hit.status, 200);
+    assert.deepStrictEqual(hit.body.results, miss.body.results);
+    assert.ok(hit.body.continuationToken && miss.body.continuationToken);
+    assert.ok(!["1", "2"].includes(hit.body.continuationToken));
+    assert.strictEqual(hit.body.continuationToken.length, miss.body.continuationToken.length);
+    assert.notStrictEqual(hit.body.continuationToken, miss.body.continuationToken, "tokens are not deterministic");
+    // The opaque token pages on
+    const next = await this.request(USER_B, "PUT", "/perm/aclDocs", {
+      q: `title LIKE 'secret%' OR uuid = 'zmine' LIMIT 1 OFFSET "${hit.body.continuationToken}"`
+    });
+    assert.strictEqual(next.status, 200);
+    assert.deepStrictEqual(next.body.results, []);
+    // A raw or forged token is refused
+    for (const token of ["1", "2", "garbage"]) {
+      const forged = await this.request(USER_B, "PUT", "/perm/aclDocs", { q: `uuid = 'zmine' OFFSET "${token}"` });
+      assert.strictEqual(forged.status, 400, token);
+    }
+  }
+
+  @test
+  async inheritedStoreFiltersAreKept() {
+    const ctxB: any = { getCurrentUserId: () => USER_B };
+    /**
+     * Adds a restriction and calls super: keeps the OwnerModel store filter
+     */
+    class Restricted extends PermTask {
+      async canAct(context: IOperationContext, action: string): Promise<string | boolean> {
+        if (action === "delete") return "never";
+        return super.canAct(context, action);
+      }
+    }
+    /**
+     * Same for users
+     */
+    class RestrictedUser extends SimpleUser {
+      async canAct(context: IOperationContext, action: string): Promise<string | boolean> {
+        return super.canAct(context, action);
+      }
+    }
+    assert.ok(Restricted.getPermissionQuery(ctxB)?.query.includes(USER_B));
+    assert.ok(RestrictedUser.getPermissionQuery(ctxB)?.query.includes(USER_B));
+    // A more permissive subclass opts out explicitly (sample-app User)
+    const { useModel } = await import("../application/hooks.js");
+    assert.strictEqual((useModel("User") as any).getPermissionQuery(ctxB), null);
+  }
+
+  @test
+  async limitIsCappedAndRefillIsBounded() {
+    const queries: string[] = [];
+    let scanned = 0;
+    const hidden = (uuid: string) => ({ uuid, canAct: async () => false });
+    const model: any = {
+      prototype: { canAct: () => true },
+      query: async (q: string) => {
+        queries.push(q);
+        const limit = new QueryValidator(q).getLimit();
+        scanned += limit;
+        return { results: Array.from({ length: limit }, (_, i) => hidden(`h${scanned}-${i}`)), continuationToken: "t" };
+      }
+    };
+    const res = await queryModelWithPermissions(model, "LIMIT 5000", { getCurrentUserId: () => "u" } as any);
+    assert.match(queries[0], /LIMIT 1000\b/);
+    assert.deepStrictEqual(res.results, []);
+    assert.strictEqual(res.continuationToken, undefined);
+    assert.ok(scanned <= 10000, `scanned ${scanned}`);
+    // Without filtering (no canAct) the cap applies too
+    const plain: any = { query: async (q: string) => (queries.push(q), { results: [] }) };
+    await queryModelWithPermissions(plain, "LIMIT 99999", { getCurrentUserId: () => "u" } as any);
+    assert.match(queries[queries.length - 1], /LIMIT 1000\b/);
   }
 
   @test
@@ -614,16 +771,16 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     });
     assert.strictEqual(put.status, 200);
     assert.deepStrictEqual(await roles(), { roles: [], groups: [], name: "A3" });
-    // Create: user-c creates itself with roles
-    const created = await this.request("user-c", "POST", "/perm/permUsers", {
-      uuid: "user-c",
+    // Create: `_` attributes are dropped from any model input
+    const created = await this.request(USER_A, "POST", "/perm/permTasks", {
+      title: "t",
       _roles: ["admin"],
       _groups: ["admins"]
     });
     assert.strictEqual(created.status, 200);
-    const c: any = await PermUser.ref("user-c").get();
-    assert.deepStrictEqual([...(c._roles ?? [])], []);
-    assert.deepStrictEqual([...(c._groups ?? [])], []);
+    const c: any = await PermTask.ref(created.body.uuid).get();
+    assert.strictEqual(c._roles, undefined);
+    assert.strictEqual(c._groups, undefined);
   }
 
   @test
@@ -671,18 +828,17 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     await assert.rejects(() => callOperation(ctx, "PermSubTask.Create"), WebdaError.NotFound);
     assert.strictEqual((await PermSubTask.query("")).results.length, 0, "nothing created");
     // The parent owner can
-    const ok = await this.request(USER_A, "POST", "/perm/permTasks/task-a/permSubTasks", { uuid: "sub-a", label: "a" });
+    const ok = await this.request(USER_A, "POST", "/perm/permTasks/task-a/permSubTasks", { label: "a" });
     assert.strictEqual(ok.status, 200);
-    assert.strictEqual((await PermSubTask.ref("sub-a").get()).task, "task-a");
+    assert.strictEqual((await PermSubTask.ref(ok.body.uuid).get()).task, "task-a");
     // Re-parenting to a parent the caller cannot read is refused too
-    assert.strictEqual(
-      (await this.request(USER_B, "POST", "/perm/permTasks/task-b/permSubTasks", { uuid: "sub-b3", label: "b" }))
-        .status,
-      200
-    );
-    const move = await this.request(USER_B, "PATCH", "/perm/permTasks/task-b/permSubTasks/sub-b3", { task: "task-a" });
-    assert.ok(move.status === 403 || move.status === 404, `status ${move.status}`);
-    assert.strictEqual((await PermSubTask.ref("sub-b3").get()).task, "task-b");
+    const b3 = await this.request(USER_B, "POST", "/perm/permTasks/task-b/permSubTasks", { label: "b" });
+    assert.strictEqual(b3.status, 200);
+    const move = await this.request(USER_B, "PATCH", `/perm/permTasks/task-b/permSubTasks/${b3.body.uuid}`, {
+      task: "task-a"
+    });
+    assert.strictEqual(move.status, 404);
+    assert.strictEqual((await PermSubTask.ref(b3.body.uuid).get()).task, "task-b");
   }
 
   @test

@@ -1,7 +1,10 @@
-import { QueryValidator } from "@webda/ql";
+import { ComparisonExpression, LogicalExpression, QueryValidator, type Expression } from "@webda/ql";
 import { useLog } from "@webda/workout";
 import type { IOperationContext } from "../contexts/icontext.js";
 import * as WebdaError from "../errors/errors.js";
+import { useModel } from "../application/hooks.js";
+import { useModelMetadata } from "../core/hooks.js";
+import { useCrypto } from "../services/cryptoservice.service.js";
 
 /**
  * Result of a model's static `getPermissionQuery(context)`
@@ -57,7 +60,8 @@ export async function isModelActionAllowed(object: any, context: IOperationConte
 export const NOT_FOUND_MESSAGE = "Object not found";
 
 /**
- * Ask canAct, treating a 401/403 thrown by it (e.g. RoleModel without user) as a refusal
+ * Ask canAct; a canAct that throws (e.g. RoleModel without user, or a failing lookup) refuses: an error must not
+ * answer differently from a refusal, or it would reveal that the object exists
  * @param object - the model instance
  * @param context - the caller context
  * @param action - the action
@@ -67,11 +71,92 @@ async function askPermission(object: any, context: IOperationContext, action: st
   try {
     return await getModelPermission(object, context, action);
   } catch (err) {
-    if (err instanceof WebdaError.HttpError && [401, 403].includes(err.getResponseCode())) {
-      return err.message;
+    if (!(err instanceof WebdaError.HttpError)) {
+      useLog("WARN", `canAct('${action}') failed on ${object?.constructor?.name ?? "object"}`, err);
     }
-    throw err;
+    return err?.message ?? false;
   }
+}
+
+/**
+ * Load an object for an action as the caller: a missing object and an object the caller may not read throw the same
+ * `NotFound("Object not found")`; a readable object whose action is refused throws `Forbidden`
+ * @param model - the model class
+ * @param key - the primary key
+ * @param context - the caller context
+ * @param action - the action ("get" to only read)
+ * @returns the object
+ */
+export async function loadModelForAction<T = any>(
+  model: any,
+  key: any,
+  context: IOperationContext,
+  action: string
+): Promise<T> {
+  let object: any;
+  try {
+    object = await model.ref(key).get();
+  } catch {
+    // Repositories throw when the object does not exist
+  }
+  if (!object || object.isDeleted?.()) {
+    throw new WebdaError.NotFound(NOT_FOUND_MESSAGE);
+  }
+  await checkModelPermission(object, context, action);
+  return object;
+}
+
+/**
+ * The parent relation (`ModelParent`) of a model, if any
+ * @param model - the model class
+ * @returns the parent attribute and model identifier
+ */
+export function getParentRelation(model: any): { attribute: string; model: string } | undefined {
+  try {
+    return useModelMetadata(model)?.Relations?.parent;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * A child can only be attached to a parent the caller may read: a missing parent and an unreadable one throw the same
+ * `NotFound("Object not found")`
+ * @param model - the child model class
+ * @param parentId - the parent primary key
+ * @param context - the caller context
+ */
+export async function checkModelParent(model: any, parentId: any, context: IOperationContext): Promise<void> {
+  const parent = getParentRelation(model);
+  if (!parent || parentId === undefined || parentId === null || parentId === "") {
+    return;
+  }
+  let parentModel: any;
+  try {
+    parentModel = useModel(parent.model);
+  } catch {
+    // Unknown parent model: treated as a missing parent
+  }
+  if (!parentModel) {
+    throw new WebdaError.NotFound(NOT_FOUND_MESSAGE);
+  }
+  await loadModelForAction(parentModel, parentId, context, "get");
+}
+
+/**
+ * When an update moves an object to another parent, the caller must be able to read the new parent
+ * @param model - the model class
+ * @param object - the stored object
+ * @param input - the sanitized update input
+ * @param context - the caller context
+ */
+export async function checkModelReparent(model: any, object: any, input: any, context: IOperationContext) {
+  const parent = getParentRelation(model);
+  const value = parent ? input?.[parent.attribute] : undefined;
+  if (value === undefined || value === null || String(value) === String(object?.[parent.attribute] ?? "")) {
+    return;
+  }
+  await checkModelParent(model, value, context);
 }
 
 /**
@@ -145,14 +230,22 @@ export function mergePermissionQuery(query: string, permission?: PermissionQuery
 }
 
 /**
- * Maximum number of rows a permission-filtered query scans to fill one page: ten times the page LIMIT, at least
- * {@link MIN_SCANNED_ROWS}
+ * Highest LIMIT a client query can ask for: larger LIMITs are lowered to it
+ */
+export const MAX_QUERY_LIMIT = 1000;
+/**
+ * Rows a permission-filtered query scans to fill one page: ten times the page LIMIT, at least
+ * {@link MIN_SCANNED_ROWS}, at most {@link MAX_SCANNED_ROWS}
  */
 export const SCAN_FACTOR = 10;
 /**
  * Lower bound of the scan budget of a permission-filtered page
  */
 export const MIN_SCANNED_ROWS = 100;
+/**
+ * Absolute bound of the scan budget of a permission-filtered page
+ */
+export const MAX_SCANNED_ROWS = 10000;
 
 /**
  * Whether the caller may read a query result: a `canAct` that throws refuses that row only
@@ -170,13 +263,67 @@ async function isReadable(object: any, context: IOperationContext): Promise<bool
 }
 
 /**
- * Query a model as the caller: the model's static `getPermissionQuery(context)` is ANDed into the query, then, when
- * the model defines `canAct`, every result is checked with `canAct(context, "get")` and refused ones are dropped
+ * Refuse a client query that reads private (`__`-prefixed) fields, at any depth, in its filter or ORDER BY: a filter
+ * on a private field (a password hash...) would reveal its value through which rows match
+ * @param query - the parsed client query
+ * @throws WebdaError.BadRequest when a field path has a `__`-prefixed segment
+ */
+export function assertNoPrivateFields(query: QueryValidator): void {
+  const isPrivate = (path: string[]) => path.some(segment => segment.startsWith("__"));
+  const visit = (expression: Expression): void => {
+    if (expression instanceof LogicalExpression) {
+      expression.children.forEach(visit);
+    } else if (expression instanceof ComparisonExpression && isPrivate(expression.attribute)) {
+      throw new WebdaError.BadRequest("Private fields cannot be queried");
+    }
+  };
+  visit(query.getExpression());
+  if ((query.getQuery().orderBy ?? []).some(o => isPrivate(o.field.split(".")))) {
+    throw new WebdaError.BadRequest("Private fields cannot be queried");
+  }
+}
+
+/**
+ * Seal a store continuation token: encrypted with the CryptoService (random IV, padded to 64 bytes) so its value
+ * cannot be read, compared or forged by the client
+ * @param token - the store token
+ * @returns the opaque token
+ */
+export async function sealContinuationToken(token: string): Promise<string> {
+  const base = JSON.stringify({ t: token, p: "" }).length;
+  return useCrypto().encrypt({ t: token, p: "=".repeat((64 - (base % 64)) % 64) });
+}
+
+/**
+ * Open a token produced by {@link sealContinuationToken}
+ * @param token - the opaque token
+ * @returns the store token
+ * @throws WebdaError.BadRequest when the token was not produced by this application
+ */
+export async function unsealContinuationToken(token: string): Promise<string> {
+  try {
+    const data = await useCrypto().decrypt(token);
+    if (typeof data?.t === "string") {
+      return data.t;
+    }
+  } catch {
+    // Invalid, forged or expired key
+  }
+  throw new WebdaError.BadRequest("Invalid continuation token");
+}
+
+/**
+ * Query a model as the caller
  *
- * Refused rows are replaced by continuing the scan in the store (next pages, with the remaining LIMIT), so a page is
- * full unless the store has no more matches or the scan budget (`SCAN_FACTOR` x LIMIT rows, at least
- * `MIN_SCANNED_ROWS`) is spent. When the budget is spent the continuation token is returned only if the page holds
- * visible results: an empty page never carries a token, so a token never reveals that only hidden rows matched.
+ * - the client query may not read private (`__`) fields (400), and its LIMIT is lowered to {@link MAX_QUERY_LIMIT};
+ * - the model's static `getPermissionQuery(context)` is ANDed into the query;
+ * - when the model defines `canAct`, every result is checked with `canAct(context, "get")` and refused ones are
+ *   dropped. Refused rows are replaced by continuing the scan (next store pages, asking only for the missing rows),
+ *   within a budget of `SCAN_FACTOR` x LIMIT rows (between `MIN_SCANNED_ROWS` and `MAX_SCANNED_ROWS`). When the
+ *   budget is spent, an empty page carries no token;
+ * - for those models the continuation token is sealed ({@link sealContinuationToken}): a store token counting or
+ *   naming rows (Postgres/Firestore offsets, Dynamo keys) would otherwise reveal hidden matches. The client sends it
+ *   back as is in `OFFSET`; any other value is a 400.
  *
  * @param model - the model class
  * @param query - the client query
@@ -188,36 +335,49 @@ export async function queryModelWithPermissions<T = any>(
   query: string,
   context: IOperationContext
 ): Promise<{ results: T[]; continuationToken?: string }> {
+  const client = new QueryValidator(query ?? "");
+  assertNoPrivateFields(client);
+  const limit = Math.min(client.getLimit(), MAX_QUERY_LIMIT);
+  const filtered = typeof model.prototype?.canAct === "function";
+  let offset = client.getOffset();
+  if (filtered && offset) {
+    offset = await unsealContinuationToken(offset);
+  }
   const permission: PermissionQuery | null | undefined =
     typeof model.getPermissionQuery === "function" ? model.getPermissionQuery(context) : undefined;
   const merged = mergePermissionQuery(query ?? "", permission);
-  // Even with a non partial permission query, canAct stays the reference: a subclass overriding canAct while
-  // inheriting getPermissionQuery must not leak objects its canAct refuses
-  if (typeof model.prototype?.canAct !== "function") {
-    return model.query(merged);
+  /**
+   * @param count - the LIMIT
+   * @param token - the store OFFSET
+   * @returns the query to send to the store
+   */
+  const page = (count: number, token?: string) =>
+    new QueryValidator(merged).merge(`LIMIT ${count}${token ? ` OFFSET ${JSON.stringify(token)}` : ""}`).toString();
+  if (!filtered) {
+    return model.query(page(limit, offset));
   }
-  const limit = new QueryValidator(merged).getLimit();
-  const budget = Math.max(limit * SCAN_FACTOR, MIN_SCANNED_ROWS);
+  const budget = Math.min(Math.max(limit * SCAN_FACTOR, MIN_SCANNED_ROWS), MAX_SCANNED_ROWS);
   const results: T[] = [];
   let scanned = 0;
-  let res = await model.query(merged);
+  let res = await model.query(page(limit, offset));
+  let token: string | undefined;
   while (true) {
     const rows = res.results ?? [];
     scanned += rows.length;
     const readable = await Promise.all(rows.map(r => isReadable(r, context)));
     results.push(...rows.filter((_r, i) => readable[i]));
-    if (!res.continuationToken || results.length >= limit) {
-      // Store exhausted, or page full: the store token is exact
-      return { ...res, results };
+    token = res.continuationToken;
+    if (!token || results.length >= limit) {
+      // Store exhausted, or page full
+      break;
     }
     if (scanned >= budget) {
       // Budget spent: a token on an empty page would only reveal hidden matches
-      return results.length ? { ...res, results } : { ...res, results, continuationToken: undefined };
+      token = results.length ? token : undefined;
+      break;
     }
     // Refill: continue after the last scanned row, asking only for the rows still missing
-    const next = new QueryValidator(merged).merge(
-      `LIMIT ${limit - results.length} OFFSET ${JSON.stringify(String(res.continuationToken))}`
-    );
-    res = await model.query(next.toString());
+    res = await model.query(page(Math.min(limit - results.length, budget - scanned), token));
   }
+  return { ...res, results, continuationToken: token ? await sealContinuationToken(String(token)) : undefined };
 }

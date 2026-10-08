@@ -263,6 +263,37 @@ class AuditReadTest extends WebdaApplicationTest {
   }
 
   @test
+  async subjectRefusalFollowsTheNotFoundRule() {
+    await this.setupAudit({ level: "write" });
+    const alice = await this.user();
+    const User = useModel<any>("Webda/User");
+    const original = User.prototype.canAct;
+    try {
+      // Readable, audit refused with a reason: Forbidden without the reason
+      User.prototype.canAct = async (_ctx: any, action: string) => (action === "get" ? true : "secret reason");
+      await assert.rejects(
+        () => this.call("Audit.Subject", { model: "Webda/User", key: alice }, { id: "bob" }),
+        (err: any) => err instanceof WebdaError.Forbidden && !err.message.includes("secret reason")
+      );
+      // A canAct that throws is a refusal: unreadable answers like a missing object
+      User.prototype.canAct = async () => {
+        throw new Error("backend down");
+      };
+      const missing = await this.call("Audit.Subject", { model: "Webda/User", key: "ghost-user" }, { id: "bob" }).catch(
+        err => err
+      );
+      const refused = await this.call("Audit.Subject", { model: "Webda/User", key: alice }, { id: "bob" }).catch(
+        err => err
+      );
+      assert.ok(refused instanceof WebdaError.NotFound, String(refused));
+      assert.strictEqual(refused.constructor, missing.constructor);
+      assert.strictEqual(refused.message, missing.message);
+    } finally {
+      User.prototype.canAct = original;
+    }
+  }
+
+  @test
   async subjectWithoutCanActIsDenied() {
     await this.setupAudit({ level: "write" });
     // AuditEntry (a CoreModel) defines no canAct

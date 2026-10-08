@@ -3,7 +3,7 @@ import { Service } from "./service.js";
 import { Application } from "../application/application.js";
 import type { ModelAction } from "../models/types.js";
 import { OperationContext } from "../contexts/operationcontext.js";
-import type { Model, ModelClass } from "@webda/models";
+import { UuidModel, type Model, type ModelClass } from "@webda/models";
 import { runWithContext, useContext } from "../contexts/execution.js";
 
 import * as WebdaError from "../errors/errors.js";
@@ -15,12 +15,13 @@ import { useInstanceStorage } from "../core/instancestorage.js";
 import { registerOperation } from "../core/operations.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
 import {
+  checkModelParent,
   checkModelPermission,
   createModel,
+  getParentRelation,
   NOT_FOUND_MESSAGE,
   queryModelWithPermissions
 } from "../models/permissions.js";
-import { useModel } from "../application/hooks.js";
 
 /**
  * Sanitize client input before it reaches a model (REST, gRPC, MCP and GraphQL):
@@ -62,6 +63,35 @@ export function sanitizeModelInput<T = any>(model: ModelClass<any>, input: T): T
  */
 export function getClientWritableAttributes(model: any): string[] {
   return typeof model?.getClientWritableAttributes === "function" ? (model.getClientWritableAttributes() ?? []) : [];
+}
+
+/**
+ * Client input of a create (REST, gRPC, MCP and GraphQL): {@link sanitizeModelInput}, plus
+ * - the parent link (`ModelParent` attribute, from the nested URL or the input) is kept even when `_`-prefixed, unless
+ *   protected: the caller must then check the parent ({@link checkModelParent});
+ * - a client `uuid` is dropped for `UuidModel`s: the key is always generated, so a create can neither target an
+ *   existing object nor reveal that a uuid exists. Natural-key models keep the client key (an existing key is a 409).
+ * @param model - the model class
+ * @param input - the raw client input
+ * @returns the input to load in the new object
+ */
+export function prepareCreateInput<T = any>(model: ModelClass<any>, input: T): T {
+  const parent = getParentRelation(model);
+  const parentId =
+    parent && !getProtectedAttributes(model).includes(parent.attribute)
+      ? (input as any)?.[parent.attribute]
+      : undefined;
+  const out: any = sanitizeModelInput(model, input);
+  if (!out || typeof out !== "object" || Array.isArray(out)) {
+    return out;
+  }
+  if (parentId !== undefined && parentId !== null && parentId !== "") {
+    out[parent.attribute] = parentId;
+  }
+  if ((model as any)?.prototype instanceof UuidModel) {
+    delete out.uuid;
+  }
+  return out;
 }
 
 /**
@@ -308,22 +338,13 @@ export class DomainService<
     if (typeof input !== "object" || input === null || input instanceof OperationContext) {
       input = await context.getInput();
     }
-    // The parent link (from the nested URL, or the input over other transports) is kept even when `_`-prefixed:
-    // it is checked against the parent below
-    const parent = useModelMetadata(model)?.Relations?.parent;
-    const parentId =
-      parent && !getProtectedAttributes(model).includes(parent.attribute) ? input?.[parent.attribute] : undefined;
-    input = sanitizeModelInput(model, input);
-    if (parentId !== undefined && parentId !== null && parentId !== "") {
-      input[parent.attribute] = parentId;
-    }
+    input = prepareCreateInput(model, input);
     return runWithContext(context, async () => {
       // Instantiate the model from raw input, load data, then save
       const object = new (model as any)() as Model;
       (object as any).load(input);
-      if (parentId !== undefined && parentId !== null && parentId !== "") {
-        await this.checkParent(parent.model, parentId, context);
-      }
+      // The parent link (nested URL or input) must point to a parent the caller may read
+      await this.checkParent(model, input?.[getParentRelation(model)?.attribute ?? ""], context);
       // Let the model set its server-managed fields (e.g. the owner) from the caller
       await (object as any).prepareCreate?.(context);
       await this.checkPermission(object, context, "create");
@@ -334,24 +355,24 @@ export class DomainService<
   }
 
   /**
-   * A child can only be attached to a parent the caller may read
-   * @param parentModel - the parent model identifier
+   * {@link checkModelParent}, emitting `Store.WebNotFound` when the parent is missing or unreadable, like any missing
+   * object
+   * @param model - the child model class
    * @param parentId - the parent primary key
    * @param context - the caller context
-   * @throws NotFound when the parent does not exist, Forbidden when the caller cannot read it
    */
-  protected async checkParent(parentModel: string, parentId: any, context: OperationContext): Promise<void> {
-    let parent: Model | undefined;
+  protected async checkParent(model: ModelClass<Model>, parentId: any, context: OperationContext): Promise<void> {
     try {
-      parent = await useModel<Model>(parentModel).ref(parentId).get();
-    } catch {
-      // Repositories throw when the object does not exist
+      await checkModelParent(model, parentId, context);
+    } catch (err) {
+      if (err instanceof WebdaError.NotFound) {
+        await this.emit("Store.WebNotFound", {
+          context,
+          uuid: typeof parentId === "string" ? parentId : JSON.stringify(parentId)
+        });
+      }
+      throw err;
     }
-    if (!parent || parent.isDeleted?.()) {
-      throw new WebdaError.NotFound(NOT_FOUND_MESSAGE);
-    }
-    // An unreadable parent looks missing
-    await this.checkPermission(parent, context, "get");
   }
 
   /**
@@ -388,12 +409,12 @@ export class DomainService<
    * @param context - the caller context
    */
   protected async checkReparent(model: ModelClass<Model>, object: Model, input: any, context: OperationContext) {
-    const parent = useModelMetadata(model)?.Relations?.parent;
+    const parent = getParentRelation(model);
     const value = parent ? input?.[parent.attribute] : undefined;
     if (value === undefined || value === null || String(value) === String(object[parent.attribute] ?? "")) {
       return;
     }
-    await this.checkParent(parent.model, value, context);
+    await this.checkParent(model, value, context);
   }
 
   /**

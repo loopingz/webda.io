@@ -442,7 +442,7 @@
               "type": "object"
             }
           },
-          "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads, logged-in users create, the author edits, deletes and\npublishes. The author is always the caller: it is set on create and never taken from client input.",
+          "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads a published post, drafts and archived posts are the\nauthor's; logged-in users create; the author edits, deletes and publishes. The author is always the caller: it is\nset on create and never taken from client input. `getPermissionQuery` applies the read rule in the store, so lists\nnever scan the other authors' drafts.",
           "properties": {
             "author": {
               "ModelLink": "but implies a Cascade delete",
@@ -585,7 +585,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads, logged-in users create, the author edits, deletes and\npublishes. The author is always the caller: it is set on create and never taken from client input.",
+          "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads a published post, drafts and archived posts are the\nauthor's; logged-in users create; the author edits, deletes and publishes. The author is always the caller: it is\nset on create and never taken from client input. `getPermissionQuery` applies the read rule in the store, so lists\nnever scan the other authors' drafts.",
           "properties": {
             "author": {
               "ModelLink": "but implies a Cascade delete",
@@ -763,7 +763,7 @@
               "type": "object"
             }
           },
-          "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads, logged-in users create, the author edits, deletes and\npublishes. The author is always the caller: it is set on create and never taken from client input.",
+          "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads a published post, drafts and archived posts are the\nauthor's; logged-in users create; the author edits, deletes and publishes. The author is always the caller: it is\nset on create and never taken from client input. `getPermissionQuery` applies the read rule in the store, so lists\nnever scan the other authors' drafts.",
           "properties": {
             "author": {
               "ModelLink": "but implies a Cascade delete",
@@ -1591,10 +1591,6 @@
       "additionalProperties": false,
       "description": "Represent a file to store",
       "properties": {
-        "challenge": {
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-          "type": "string"
-        },
         "hash": {
           "description": "Will be computed by the service\n\nhash of the content",
           "type": "string"

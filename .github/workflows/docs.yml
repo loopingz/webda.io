@@ -55,6 +55,8 @@ jobs:
         timeout-minutes: 45
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
+          # GA4 usage analytics (Consent Mode v2); leave the repository variable unset to build without analytics
+          GA_MEASUREMENT_ID: ${{ vars.GA_MEASUREMENT_ID }}
         run: pnpm run docs
 
       - name: Deploy

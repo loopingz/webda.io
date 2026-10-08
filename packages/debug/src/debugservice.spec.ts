@@ -227,8 +227,15 @@ class DebugServiceHandleRequestTest {
     const res = await fetch(`http://localhost:${this.port}/api/info`, { headers: auth(this.service) });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
-    assert.deepStrictEqual(body, { ...mockAppInfo, debugApiVersion: 1, debugVersion: body.debugVersion });
+    assert.deepStrictEqual(body, {
+      ...mockAppInfo,
+      debugApiVersion: 1,
+      debugVersion: body.debugVersion,
+      frameworkVersion: body.frameworkVersion
+    });
     assert.strictEqual(typeof body.debugVersion, "string");
+    // Resolved from the @webda/core package.json since the mocked application has no getWebdaVersion
+    assert.strictEqual(typeof body.frameworkVersion, "string");
   }
 
   @test

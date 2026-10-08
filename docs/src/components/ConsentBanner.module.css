@@ -1,0 +1,32 @@
+.banner {
+  position: fixed;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 200;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  background: var(--ifm-background-surface-color);
+  color: var(--ifm-font-color-base);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: var(--ifm-global-radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  font-size: 0.875rem;
+}
+
+.text {
+  flex: 1;
+  min-width: 240px;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}

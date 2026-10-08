@@ -47,7 +47,9 @@ fs.readdirSync("../packages")
     i =>
       !i.startsWith(".") &&
       fs.existsSync(`../packages/${i}/src/index.ts`) &&
-      fs.existsSync(`../packages/${i}/node_modules`)
+      fs.existsSync(`../packages/${i}/node_modules`) &&
+      // private packages (the shared debug UI) are not published, so they have no API page
+      !JSON.parse(fs.readFileSync(`../packages/${i}/package.json`, "utf8")).private
   )
   .map(packageName => {
     cleanDir(`typedoc/${packageName}`);

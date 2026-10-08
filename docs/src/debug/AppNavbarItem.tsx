@@ -1,17 +1,15 @@
-"use strict";
-
 /**
  * Custom navbar item for the "My Application" entry.
  *
- * Renders a standard Docusaurus navbar link to /configuration/welcome.
- * When the debug daemon is connected the link shows a small green dot and
- * is fully opaque. When no daemon is reachable the link fades to 50%
- * opacity — it remains clickable so users can still navigate to the page.
+ * A standard Docusaurus navbar link to the debug dashboard (/debug/) carrying
+ * the shared connection indicator: a green dot when `webda debug --web` is
+ * connected, amber while connecting or when the token was refused, and a
+ * faded link when no application is detected. The link always works.
  */
 
 import React from "react";
 import Link from "@docusaurus/Link";
-import { useDebugConnection } from "./useDebugConnection";
+import { ConnectionStatus, describeConnection, useDebugConnection } from "@webda/debug-ui";
 
 /** Props that Docusaurus passes to all custom navbar items. */
 export interface AppNavbarItemProps {
@@ -19,49 +17,35 @@ export interface AppNavbarItemProps {
   position?: "left" | "right";
   /** Any additional class name forwarded by Docusaurus. */
   className?: string;
+  /** Mobile sidebar rendering flag forwarded by Docusaurus. */
+  mobile?: boolean;
 }
 
 /**
- * Renders the "My Application" navbar link.
+ * Renders the "My Application" navbar link with the connection indicator.
  *
- * Opacity reflects the live daemon connection state:
- * - Connected → opacity 1 + a small green indicator dot
- * - Disconnected → opacity 0.5 (still fully clickable)
+ * @param props - navbar item props
+ * @returns the link element
  */
-export function AppNavbarItem({ className }: AppNavbarItemProps): JSX.Element {
-  const { connected } = useDebugConnection();
-
+export function AppNavbarItem({ className }: AppNavbarItemProps): React.JSX.Element {
+  const state = useDebugConnection();
+  const { label } = describeConnection(state);
+  const connected = state.status === "connected";
   return (
     <Link
-      to="/configuration/welcome"
+      to="/debug/"
       className={`navbar__item navbar__link${className ? ` ${className}` : ""}`}
       style={{
-        opacity: connected ? 1 : 0.5,
+        opacity: connected || state.status === "connecting" ? 1 : 0.6,
         transition: "opacity 200ms ease",
         display: "inline-flex",
         alignItems: "center",
         gap: 6
       }}
-      title={
-        connected
-          ? "My Application — daemon connected"
-          : "My Application — no daemon connected (link still works)"
-      }
+      title={`My Application — ${label}`}
     >
       My Application
-      {connected && (
-        <span
-          aria-label="connected"
-          style={{
-            display: "inline-block",
-            width: 8,
-            height: 8,
-            borderRadius: "50%",
-            backgroundColor: "#22c55e",
-            flexShrink: 0
-          }}
-        />
-      )}
+      {state.status !== "idle" && <ConnectionStatus />}
     </Link>
   );
 }

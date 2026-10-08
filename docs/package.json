@@ -18,6 +18,7 @@
   "dependencies": {
     "@docusaurus/core": "^3.9.2",
     "@docusaurus/module-type-aliases": "^3.9.2",
+    "@docusaurus/plugin-google-gtag": "^3.9.2",
     "@docusaurus/preset-classic": "^3.9.2",
     "@docusaurus/theme-mermaid": "^3.9.2",
     "@docusaurus/tsconfig": "^3.9.2",
@@ -27,6 +28,7 @@
     "@mdx-js/react": "^3.1.1",
     "@mui/material": "^7.3.9",
     "@types/react": "^19.2.14",
+    "@webda/debug-ui": "workspace:*",
     "@webda/versioning": "link:../packages/versioning",
     "clsx": "^2.1.1",
     "docusaurus-plugin-typedoc": "^1.4.2",

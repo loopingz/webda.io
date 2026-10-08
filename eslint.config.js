@@ -13,6 +13,7 @@ export default [
       "**/reports/**",
       "**/coverage/**",
       "**/vendor/**",
+      "packages/debug/webui/**",
       "packages/compiler/test/**",
       "packages/content-mapper/test/**",
       "packages/compiler/other.ts",

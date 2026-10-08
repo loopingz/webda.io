@@ -4,6 +4,7 @@ import { createServer, IncomingMessage, ServerResponse, Server } from "node:http
 import type { Duplex } from "node:stream";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { dirname, join, extname } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
 import {
@@ -48,11 +49,21 @@ const DEBUG_VERSION = readDebugVersion();
 
 /**
  * Version of the framework the application runs on.
+ *
+ * Asks the application first, then reads the package.json of the `@webda/core`
+ * this package resolves (the application's one in a normal install).
  * @returns the `@webda/core` version, or `undefined` when unavailable
  */
 function frameworkVersion(): string | undefined {
   try {
-    return useApplication().getWebdaVersion();
+    const version = useApplication().getWebdaVersion();
+    if (version) return version;
+  } catch {
+    // application context unavailable, or getWebdaVersion failed
+  }
+  try {
+    const pkg = createRequire(import.meta.url).resolve("@webda/core/package.json");
+    return JSON.parse(readFileSync(pkg, "utf8")).version || undefined;
   } catch {
     return undefined;
   }
@@ -129,6 +140,8 @@ export class DebugService extends Service<DebugServiceParameters> {
   private listeningPort: number = 0;
   /** URL opened by the last `debug --web` run */
   private dashboardUrl?: string;
+  /** Version of @webda/core, captured while the application context is available */
+  private frameworkVersion?: string;
 
   /**
    * Session token required on every `/api/*` request and websocket connection.
@@ -161,6 +174,9 @@ export class DebugService extends Service<DebugServiceParameters> {
    */
   resolve() {
     super.resolve();
+    // The HTTP handler runs outside the application's async context, so the
+    // framework version is read here, where useApplication() is available.
+    this.frameworkVersion = frameworkVersion();
     this.subscribeToEvents();
     return this;
   }
@@ -584,7 +600,7 @@ export class DebugService extends Service<DebugServiceParameters> {
           ...getAppInfo(),
           debugApiVersion: DEBUG_API_VERSION,
           debugVersion: DEBUG_VERSION,
-          frameworkVersion: frameworkVersion()
+          frameworkVersion: this.frameworkVersion
         });
       } else if (pathname === "/api/models") {
         this.sendJson(res, getModels());

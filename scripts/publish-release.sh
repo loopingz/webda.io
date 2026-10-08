@@ -15,7 +15,7 @@ HEAD_SHA=$(git rev-parse HEAD)
 # Tags created through the GitHub API are not in a shallow checkout, so ask the remote
 TAGS=$(git ls-remote --tags origin | awk -v sha="$HEAD_SHA" '$1 == sha { sub("refs/tags/", "", $2); sub("\\^\\{\\}$", "", $2); print $2 }')
 
-declare -A FILTERS
+declare -A FILTERS=()
 MISSING=()
 for dir in $(jq -r 'keys[]' .release-please-manifest.json); do
   NAME=$(jq -r .name "$dir/package.json")

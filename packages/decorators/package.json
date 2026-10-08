@@ -4,7 +4,11 @@
   "description": "Decorators utils",
   "keywords": [],
   "author": "Remi Cattiau <remi@cattiau.com>",
-  "repository": "git://github.com/loopingz/webda.io.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/decorators"
+  },
   "main": "lib/decorator.js",
   "exports": {
     "default": "./lib/decorator.js"

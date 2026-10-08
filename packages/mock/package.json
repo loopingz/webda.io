@@ -10,7 +10,11 @@
     "seed"
   ],
   "author": "Remi Cattiau <remi@cattiau.com>",
-  "repository": "git://github.com/loopingz/webda.io.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/mock"
+  },
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "exports": {

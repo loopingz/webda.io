@@ -4,7 +4,11 @@
   "description": "Utils function for NodeJS projects",
   "keywords": [],
   "author": "Remi Cattiau <remi@cattiau.com>",
-  "repository": "git://github.com/loopingz/webda.io.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/utils"
+  },
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "exports": {

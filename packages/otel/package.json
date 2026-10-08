@@ -61,7 +61,11 @@
     "url": "https://github.com/loopingz/webda.io/issues"
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
-  "repository": "git://github.com/loopingz/webda.io.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/otel"
+  },
   "license": "LGPL-3.0-only",
   "engines": {
     "node": ">=22.0.0"

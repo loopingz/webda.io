@@ -36,7 +36,7 @@
   "license": "LGPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://github.com/loopingz/webda.io.git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
     "directory": "packages/grpc"
   }
 }

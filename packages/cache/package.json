@@ -6,7 +6,11 @@
     "webda"
   ],
   "author": "Remi Cattiau <remi@cattiau.com>",
-  "repository": "git://github.com/loopingz/webda.io.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/cache"
+  },
   "main": "lib/cache.js",
   "typings": "lib/cache.d.ts",
   "scripts": {

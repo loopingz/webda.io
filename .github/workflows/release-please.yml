@@ -17,6 +17,8 @@ name: release-please
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
     steps:
       # In a monorepo `release_created` only covers the root package; `releases_created` covers all
       - uses: googleapis/release-please-action@v4
@@ -59,25 +61,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Install docs dependencies
-        if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
-        run: cd docs && pnpm install
-
-      - name: Build docs
-        if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
-        timeout-minutes: 45
-        env:
-          NODE_OPTIONS: "--max-old-space-size=8192"
-        run: pnpm run docs
-
-      - name: Deploy docs
-        if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
-        uses: JamesIves/github-pages-deploy-action@4.1.4
-        with:
-          branch: gh-pages
-          # docusaurus build output (the docs script writes the CNAME there)
-          folder: docs/build
-
       # A one-shot `release-as` (set by `pnpm release-as`) is removed inside the release PR,
       # so merging the release clears it from the base branch. release-please rewrites its
       # branch whenever the base branch moves, so this is re-applied on every update.
@@ -101,3 +84,11 @@ jobs:
             git commit -am "chore: clear release-as $RELEASE_AS"
             git push
           fi
+
+  # Docs are built from this workflow's commit, so a publish_ref recovery still gets current docs
+  docs:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.releases_created == 'true' || inputs.publish_ref }}
+    uses: ./.github/workflows/docs.yml
+    with:
+      ref: ${{ github.sha }}

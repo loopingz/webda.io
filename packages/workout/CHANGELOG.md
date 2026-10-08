@@ -24,6 +24,13 @@
   * devDependencies
     * @webda/tsc-esm bumped from ^1.2.0 to ^1.3.0
 
+## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/workout-v4.0.0-beta.3...workout-v4.0.0-beta.5) (2026-10-08)
+
+
+### Bug Fixes
+
+* **packaging:** point every package's repository at its monorepo folder ([#812](https://github.com/loopingz/webda.io/issues/812)) ([3717b73](https://github.com/loopingz/webda.io/commit/3717b73c7a7b91348057d84c8e64ecf840c75cb1))
+
 ## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/workout-v4.0.0-beta.1...workout-v4.0.0-beta.3) (2026-10-05)
 
 

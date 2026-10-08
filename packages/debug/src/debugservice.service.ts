@@ -806,7 +806,8 @@ export class DebugService extends Service<DebugServiceParameters> {
    * The code is printed in the local URL fragment; the page sends it once and
    * keeps the token in memory. Accepted only from the debug origin itself (or
    * without Origin, for non-browser clients); 404 in hosted mode so the route
-   * reveals nothing there.
+   * reveals nothing there. The code is consumed on a successful match only, and a
+   * reuse after it was spent is logged (the link was used by another client).
    * @param req - the request
    * @param res - the response
    */
@@ -841,12 +842,25 @@ export class DebugService extends Service<DebugServiceParameters> {
         return;
       }
       const pending = this.bootstrap;
-      // Single use: the code is consumed by the first attempt, right or wrong
-      this.bootstrap = undefined;
-      if (!pending || pending.expires < Date.now() || !safeEqual(code, pending.code)) {
+      if (!pending) {
+        // Either never issued, or already exchanged: a second correct-format attempt
+        // after the exchange means another client used the link first
+        this.log("WARN", "Debug session link refused: it was already used by another client or has expired");
         this.sendJson(res, { error: "Invalid or expired code" }, 403);
         return;
       }
+      if (pending.expires < Date.now()) {
+        this.bootstrap = undefined;
+        this.sendJson(res, { error: "Invalid or expired code" }, 403);
+        return;
+      }
+      if (!safeEqual(code, pending.code)) {
+        // A wrong guess (256-bit code: brute force is infeasible) must not burn the real one
+        this.sendJson(res, { error: "Invalid or expired code" }, 403);
+        return;
+      }
+      // Single use: consumed only on a successful match
+      this.bootstrap = undefined;
       this.sendJson(res, { token: this.token, debugApiVersion: DEBUG_API_VERSION });
     });
   }

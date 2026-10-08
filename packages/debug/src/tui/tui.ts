@@ -35,7 +35,7 @@ export class DebugTui {
    * @param token - Session token of the debug server
    */
   constructor(port: number = 18181, token?: string) {
-    this.client = new DebugClient(`http://localhost:${port}`, token);
+    this.client = new DebugClient(`http://127.0.0.1:${port}`, token);
     this.logsPanel = new LogsPanel(this.client);
     this.panels = [
       this.logsPanel,

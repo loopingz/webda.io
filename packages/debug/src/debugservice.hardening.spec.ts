@@ -269,6 +269,56 @@ class LocalSessionExchangeTest {
   }
 
   @test
+  async wrongGuessesDoNotBurnTheCode() {
+    const code = this.service.issueBootstrapCode();
+    for (let i = 0; i < 3; i++) {
+      const wrong = await rawRequest(
+        this.port,
+        "/api/session",
+        { "Content-Type": "application/json" },
+        "POST",
+        JSON.stringify({ code: "0".repeat(64) })
+      );
+      assert.strictEqual(wrong.status, 403);
+    }
+    const right = await rawRequest(
+      this.port,
+      "/api/session",
+      { "Content-Type": "application/json" },
+      "POST",
+      JSON.stringify({ code })
+    );
+    assert.strictEqual(right.status, 200, "the real code still works after wrong guesses");
+  }
+
+  @test
+  async reusingASpentCodeIsLoggedAsAWarning() {
+    const code = this.service.issueBootstrapCode();
+    const log = vi.fn();
+    (this.service as any).log = log;
+    await rawRequest(
+      this.port,
+      "/api/session",
+      { "Content-Type": "application/json" },
+      "POST",
+      JSON.stringify({ code })
+    );
+    const again = await rawRequest(
+      this.port,
+      "/api/session",
+      { "Content-Type": "application/json" },
+      "POST",
+      JSON.stringify({ code })
+    );
+    assert.strictEqual(again.status, 403);
+    const warning = log.mock.calls.find(
+      c => c[0] === "WARN" && /used by another client|already used/i.test(String(c[1]))
+    );
+    assert.ok(warning, `a WARN about the spent code is expected, got ${JSON.stringify(log.mock.calls)}`);
+    assert.ok(!JSON.stringify(log.mock.calls).includes(code), "the code is not logged");
+  }
+
+  @test
   async exchangeOnlyAcceptsTheDebugOrigin() {
     const code = this.service.issueBootstrapCode();
     const foreign = await rawRequest(

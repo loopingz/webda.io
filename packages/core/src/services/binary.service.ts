@@ -87,6 +87,33 @@ export interface BinaryFileInfo<T extends object = {}> {
 export type BinaryFiles<T extends object = {}> = BinaryFileInfo<T>[];
 
 /**
+ * The file information of a binary attached to a model, as stored and as sent to clients: without the `challenge`
+ * (the proof of possession, see {@link BinaryFileInfo})
+ */
+export interface StoredBinaryInfo<T extends object = {}> {
+  /**
+   * Hash of the binary
+   */
+  hash?: string;
+  /**
+   * Size of the file
+   */
+  size: number;
+  /**
+   * Name of the file
+   */
+  name: string;
+  /**
+   * Mimetype
+   */
+  mimetype: string;
+  /**
+   * Metadatas stored along with the binary
+   */
+  metadata?: T;
+}
+
+/**
  * Represent a file to store
  * @WebdaSchema
  */
@@ -304,7 +331,7 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
    * content (md5 of "WEBDA" + content) and must never reach a reader of the object
    * @returns the file information
    */
-  toJSON(): BinaryFileInfo<T> {
+  toJSON(): StoredBinaryInfo<T> {
     const { challenge: _challenge, ...info } = this.toBinaryFileInfo();
     return info;
   }
@@ -671,9 +698,9 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
    * `BinaryFileInfo<T>` for the Output/Stored schemas.
    * @returns the result
    */
-  toJSON(): BinaryFileInfo<T> {
+  toJSON(): StoredBinaryInfo<T> {
     if (!this.hash) {
-      return undefined as unknown as BinaryFileInfo<T>;
+      return undefined as unknown as StoredBinaryInfo<T>;
     }
     return super.toJSON();
   }

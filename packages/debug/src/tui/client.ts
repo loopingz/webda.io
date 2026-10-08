@@ -1,4 +1,5 @@
 import { WebSocket } from "ws";
+import { WS_PROTOCOL, WS_TOKEN_PREFIX } from "../security.js";
 
 /**
  * Event types received over the WebSocket connection.
@@ -25,6 +26,8 @@ export type WsEventCallback = (event: WsEvent) => void;
 export class DebugClient {
   /** Base URL for HTTP requests (no trailing slash) */
   private baseUrl: string;
+  /** Session token sent on every request */
+  private token?: string;
   /** Active WebSocket connection */
   private ws?: WebSocket;
   /** Whether the client should try to reconnect */
@@ -44,9 +47,11 @@ export class DebugClient {
    * Creates a new DebugClient.
    *
    * @param baseUrl - Base URL of the debug server, e.g. "http://localhost:18181"
+   * @param token - Session token printed by `webda debug` (required by the server)
    */
-  constructor(baseUrl: string = "http://localhost:18181") {
+  constructor(baseUrl: string = "http://localhost:18181", token?: string) {
     this.baseUrl = baseUrl.replace(/\/$/, "");
+    this.token = token;
   }
 
   /**
@@ -64,7 +69,9 @@ export class DebugClient {
    * @returns Parsed JSON response
    */
   private async fetchJson<T>(path: string): Promise<T> {
-    const res = await fetch(`${this.baseUrl}${path}`);
+    const headers: Record<string, string> = {};
+    if (this.token) headers.Authorization = `Bearer ${this.token}`;
+    const res = await fetch(`${this.baseUrl}${path}`, { headers });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     }
@@ -199,8 +206,9 @@ export class DebugClient {
    */
   private doConnect(): void {
     const wsUrl = this.baseUrl.replace(/^http/, "ws") + "/ws";
+    const protocols = this.token ? [WS_PROTOCOL, `${WS_TOKEN_PREFIX}${this.token}`] : [WS_PROTOCOL];
     try {
-      this.ws = new WebSocket(wsUrl);
+      this.ws = new WebSocket(wsUrl, protocols);
     } catch {
       this.scheduleReconnect();
       return;

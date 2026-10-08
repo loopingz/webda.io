@@ -92,11 +92,49 @@ export class ModelSerializer extends ObjectSerializer {
 }
 
 /**
+ * What a permission check answers: `true` allows, anything else refuses (a string is the refusal reason)
+ */
+export type CanActResult = Promise<boolean | string> | boolean | string;
+
+/**
+ * Minimal view of the caller the permission checks receive (`@webda/core` passes its operation context)
+ */
+export interface CanActContext {
+  getCurrentUserId(): string | undefined;
+  [key: string]: any;
+}
+
+/**
  * Model object definition
  *
  * This is the core of many application
  */
 export abstract class Model extends RepositoryStorageClassMixIn(Object) implements Storable {
+  /**
+   * The one permission entry point the framework asks before running an operation a client sent
+   *
+   * `object` is the loaded object for an operation on an object (get, update, patch, delete, actions, behavior
+   * actions, each query row), the new unsaved object for a create, and `undefined` for a static (class-level)
+   * action.
+   *
+   * This base implementation delegates to the instance method `canAct(context, action)` when `object` defines
+   * one (a subclass overrode it), and **denies in every other case**: no instance method, or no object. A model is
+   * therefore refused on every transport until it defines one of the two forms. Override the static method to
+   * control static actions, creation rules or class-level policy; it may call `super.canAct(context, action,
+   * object)` to keep the instance check for objects. Opt into open access with `static canAct() { return true; }`.
+   *
+   * @param context - the caller context
+   * @param action - the action name ("get", "create", "update", "delete", an action name, "attribute.action")
+   * @param object - the object the action targets, if any
+   * @returns `true` when allowed, otherwise a refusal (a reason string or `false`)
+   */
+  static canAct(context: CanActContext, action: string, object?: any): CanActResult {
+    if (object !== undefined && object !== null && typeof object.canAct === "function") {
+      return object.canAct(context, action);
+    }
+    return false;
+  }
+
   /**
    * Model events
    */

@@ -387,4 +387,54 @@ class ModelTest {
     assert.strictEqual(raw.value.uuid, "u1");
     unregisterSerializer("@webda/models/Tests/Identified");
   }
+
+  /**
+   * The framework asks the static `canAct(context, action, object?)`: the base implementation delegates to an
+   * instance `canAct(context, action)` when the object defines one, and denies in every other case
+   */
+  @test
+  async staticCanActDeniesByDefaultAndDelegatesToTheInstance() {
+    const ctx: any = { getCurrentUserId: () => "u1" };
+    class Closed extends UuidModel {}
+    // No override at all: denied, with and without object
+    assert.strictEqual(await Closed.canAct(ctx, "get", new Closed()), false);
+    assert.strictEqual(await Closed.canAct(ctx, "rebuild"), false);
+    // An instance override is reached through the static form
+    class Owned extends UuidModel {
+      owner: string;
+      async canAct(context: any, action: string): Promise<boolean | string> {
+        return context.getCurrentUserId() === this.owner ? true : `refused ${action}`;
+      }
+    }
+    const mine = new Owned();
+    mine.owner = "u1";
+    const theirs = new Owned();
+    theirs.owner = "u2";
+    assert.strictEqual(await Owned.canAct(ctx, "get", mine), true);
+    assert.strictEqual(await Owned.canAct(ctx, "update", theirs), "refused update");
+    // Without an object (a static action) the instance override cannot answer: denied
+    assert.strictEqual(await Owned.canAct(ctx, "rebuild"), false);
+    // A static override controls static actions and may call super for objects
+    class Both extends Owned {
+      static canAct(context: any, action: string, object?: Both): Promise<boolean | string> | boolean | string {
+        if (object === undefined) {
+          return action === "rebuild";
+        }
+        return super.canAct(context, action, object);
+      }
+    }
+    assert.strictEqual(await Both.canAct(ctx, "rebuild"), true);
+    assert.strictEqual(await Both.canAct(ctx, "other"), false);
+    const both = new Both();
+    both.owner = "u1";
+    assert.strictEqual(await Both.canAct(ctx, "get", both), true);
+    // The explicit opt-in
+    class Open extends UuidModel {
+      static canAct(): boolean {
+        return true;
+      }
+    }
+    assert.strictEqual(await Open.canAct(ctx, "get", new Open()), true);
+    assert.strictEqual(await Open.canAct(ctx, "anything"), true);
+  }
 }

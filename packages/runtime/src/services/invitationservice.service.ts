@@ -1,4 +1,5 @@
 import {
+  checkModelPermission,
   EventWithContext,
   WebdaError,
   CoreModel,
@@ -545,10 +546,10 @@ export class InvitationService<
     model[this.parameters.attribute] ??= {};
     model[this.parameters.pendingAttribute] ??= {};
     if (ctx.getHttpContext().getMethod() === "DELETE") {
-      await model.checkAct("uninvite", ctx);
+      await checkModelPermission(model, ctx, "uninvite");
       return this.uninvite(ctx, model);
     }
-    await model.checkAct("invite", ctx);
+    await checkModelPermission(model, ctx, "invite");
     // Retrieve invitation useful when invitation are hidden with a __
     if (ctx.getHttpContext().getMethod() === "GET") {
       ctx.write(model[this.parameters.pendingAttribute] || {});

@@ -160,6 +160,12 @@ interface PendingLogin {
 const PENDING_TTL = 600;
 
 /**
+ * Maximum length of a login `redirect`: the pending login cookie must stay a single cookie (SecureCookie splits
+ * values above ~4 KB, and the encrypted cookie is about 1.8 times the size of its content)
+ */
+const REDIRECT_MAX = 1024;
+
+/**
  * @param err - any error
  * @returns the code of a WebdaError.HttpError, undefined for anything else
  */
@@ -178,11 +184,38 @@ function httpErrorCode(err: any): string | undefined {
  * @returns a reason without any part of the message
  */
 export function safeErrorReason(err: any): string {
+  const safe = (value: unknown) => typeof value === "string" && /^[A-Za-z0-9_.-]{1,40}$/.test(value);
+  const name = safe(err?.name) ? err.name : "Error";
   const code = err?.code;
-  if ((typeof code === "string" && /^[A-Za-z0-9_.-]{1,40}$/.test(code)) || typeof code === "number") {
-    return `${err?.name ?? "Error"}(${code})`;
+  if (safe(code) || (typeof code === "number" && Number.isFinite(code))) {
+    return `${name}(${code})`;
   }
-  return typeof err?.name === "string" && /^[A-Za-z0-9_]{1,40}$/.test(err.name) ? err.name : "Error";
+  return name;
+}
+
+/** Credentials keys kept from a client `tokens` body */
+const TOKEN_KEYS = ["id_token", "access_token", "refresh_token", "expiry_date", "token_type", "scope"];
+
+/** Maximum length of a kept credentials value */
+const TOKEN_VALUE_MAX = 4096;
+
+/**
+ * Keep only the known credentials keys, as bounded strings or finite numbers
+ * @param tokens - client provided credentials
+ * @returns the sanitised credentials
+ */
+export function sanitizeTokens(tokens: OAuthTokens): OAuthTokens {
+  const out: OAuthTokens = {};
+  for (const key of TOKEN_KEYS) {
+    const value = tokens?.[key];
+    if (
+      (typeof value === "string" && value.length <= TOKEN_VALUE_MAX) ||
+      (typeof value === "number" && Number.isFinite(value))
+    ) {
+      out[key] = value;
+    }
+  }
+  return out;
 }
 
 /**
@@ -394,6 +427,8 @@ export abstract class OAuthProvider<
     if (!token && !tokens) {
       throw new WebdaError.BadRequest("token or tokens is required");
     }
+    // Only known credentials keys are verified, stored or published
+    tokens = tokens ? sanitizeTokens(tokens) : undefined;
     let identity: ResolvedIdentity;
     try {
       identity = this.ownIdentity(this.checkIdentity(await this.handleToken({ token, tokens })));
@@ -476,7 +511,9 @@ export abstract class OAuthProvider<
    * @returns the normalised url, undefined when not allowed
    */
   protected allowedRedirect(redirect: unknown): string | undefined {
-    if (typeof redirect !== "string" || /%2f|%5c/i.test(redirect.split(/[?#]/)[0])) return undefined;
+    if (typeof redirect !== "string" || redirect.length > REDIRECT_MAX || /%2f|%5c/i.test(redirect.split(/[?#]/)[0])) {
+      return undefined;
+    }
     const target = parseHttpUrl(redirect);
     if (!target) return undefined;
     for (const uri of this.parameters.authorized_uris ?? []) {
@@ -499,21 +536,26 @@ export abstract class OAuthProvider<
   }
 
   /**
-   * Set (or clear, without value) the pending login cookie
+   * Set (or clear, without value) the pending login cookie, scoped to the callback path: the path of the effective
+   * redirect_uri, which includes any deployment prefix (API Gateway stage, path-stripping proxy) the routes do not see
    * @param ctx - web context
+   * @param redirectUri - callback url
    * @param value - encrypted pending login
    */
-  protected sendPendingCookie(ctx: WebContext, value?: string): void {
+  protected sendPendingCookie(ctx: WebContext, redirectUri: string, value?: string): void {
+    const callback = parseHttpUrl(redirectUri);
     const options = new CookieOptions(
       {
         name: this.getCookieName(),
-        path: this.parameters.url ?? "/",
+        path: callback?.pathname || "/",
         maxAge: value ? PENDING_TTL : 0,
         sameSite: "lax",
         httpOnly: true
       },
       ctx.getHttpContext()
     );
+    // Secure when the request or the callback is https
+    options.secure = options.secure || callback?.protocol === "https:";
     if (value) {
       SecureCookie.sendCookie(ctx, this.getCookieName(), value, options);
     } else {
@@ -528,8 +570,8 @@ export abstract class OAuthProvider<
    */
   protected async consumePending(ctx: WebContext): Promise<PendingLogin | undefined> {
     const raw = ctx.getHttpContext()?.getCookies?.()?.[this.getCookieName()];
-    // Always cleared: single use
-    this.sendPendingCookie(ctx);
+    // Always cleared, on the path it was set on (the callback): single use
+    this.sendPendingCookie(ctx, this.getRedirectUri(ctx));
     if (typeof raw !== "string" || !raw) return undefined;
     let pending: PendingLogin;
     try {
@@ -607,7 +649,7 @@ export abstract class OAuthProvider<
         codeChallengeMethod: "S256",
         nonce: pending.nonce
       });
-      this.sendPendingCookie(ctx, await useCrypto().encrypt(pending));
+      this.sendPendingCookie(ctx, pending.redirectUri, await useCrypto().encrypt(pending));
       this.redirect(ctx, url);
     } catch (err) {
       this.log("ERROR", `Cannot start ${this.providerName} login:`, safeErrorReason(err));

@@ -290,11 +290,15 @@ class GoogleAuthTest extends AuthTest {
       access_token: "at-13",
       refresh_token: "rt-13",
       expiry_date: 1700000000000,
-      token_type: "Bearer",
-      scope: null
+      token_type: "Bearer"
     };
     const ctx = await this.ctx();
-    const res: any = await this.op("Auth.Google.Token", { tokens: credentials }, ctx);
+    // Unknown keys, nulls and non-scalar values are dropped before storing or emitting
+    const res: any = await this.op(
+      "Auth.Google.Token",
+      { tokens: { ...credentials, scope: null, extra: "dropped", nested: { a: 1 } } },
+      ctx
+    );
     assert.strictEqual(res.status, "ok");
     assert.deepStrictEqual(this.verifyIdToken.mock.calls[0][0], { idToken: "idt-u13", audience: [WEB, IOS] });
     const ident: any = await Ident.ref(Ident.key("u13", "google")).get();

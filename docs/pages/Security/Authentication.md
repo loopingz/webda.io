@@ -223,12 +223,14 @@ explicitly behind a proxy: the default is built from the request host.
 
 1. `GET <url>?redirect=<target>` creates a random `state` (256 bits), a PKCE code verifier (the S256 challenge goes to
    the provider) and an OpenID `nonce`, and keeps them with the target and the `redirect_uri` in a dedicated cookie
-   `webda_oauth_<provider>`: encrypted with the CryptoService, `HttpOnly`, `SameSite=Lax`, `Secure` on https,
-   `Path=<url>`, valid 10 minutes. Nothing is written in the session, so the flow works whatever the session cookie
+   `webda_oauth_<provider>`: encrypted with the CryptoService, `HttpOnly`, `SameSite=Lax`, `Secure` when the request
+   or the `redirect_uri` is https, valid 10 minutes, with `Path` set to the path of the `redirect_uri` (so it includes
+   any deployment prefix, such as an API Gateway stage or a path-stripping proxy; the callback must be served by the
+   same host as the login). Nothing is written in the session, so the flow works whatever the session cookie
    `sameSite` (including `strict`). `redirect` is optional; when present it must be an absolute http(s) url with the
    **same origin** as an `authorized_uris` entry and a path equal to or below that entry's path
    (`https://app.example.com/after` allows `/after` and `/after/x`, not `/afterwards`); a path containing an encoded
-   slash or backslash (`%2f`, `%5c`) is refused. Anything else redirects to `redirects.failure?reason=REDIRECT_NOT_ALLOWED`
+   slash or backslash (`%2f`, `%5c`) or longer than 1024 characters is refused. Anything else redirects to `redirects.failure?reason=REDIRECT_NOT_ALLOWED`
    without starting a login.
 2. `GET <url>/callback?code=...&state=...` reads and clears that cookie (single use), compares the state in constant
    time, exchanges the code with the PKCE verifier and the `redirect_uri` of step 1 (an OpenID provider also checks
@@ -250,7 +252,8 @@ account (or gets `IDENT_LINKED_ELSEWHERE`): linking is a browser-flow action, pr
 
 **Token operation**: `Auth.<Provider>.Token` (`POST auth/<provider>/token`) is for clients that obtained a token from
 the provider themselves (mobile, desktop, Google One Tap). The body is JSON, `{ "token": "..." }` or the v3 form
-`{ "tokens": { "id_token": "...", "access_token": "...", ... } }`; any other `Content-Type` is refused with
+`{ "tokens": { "id_token": "...", "access_token": "...", ... } }` (only `id_token`, `access_token`, `refresh_token`,
+`expiry_date`, `token_type` and `scope`, as strings or numbers of at most 4096 characters, are kept); any other `Content-Type` is refused with
 `UNSUPPORTED_MEDIA_TYPE` (415), so a cross-site form or `text/plain` POST cannot use a victim's cookies. It returns
 the login result like `Auth.Email.Login`; an unverifiable token is `TOKEN_INVALID`. It **never links**: when the
 request carries a logged-in session, an identity owned by another user is refused with `IDENT_LINKED_ELSEWHERE`, and a

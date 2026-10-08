@@ -8,7 +8,7 @@ import { AuthTest } from "../test/authtest.js";
 import { FakeOAuthProvider } from "../test/fakeoauth.service.js";
 import { addStubProviders, stubProvidersConfig } from "../test/stubprovider.js";
 import type { Authentication } from "../authentication.service.js";
-import { OAuthProvider, OAuthProviderParameters } from "./oauth.service.js";
+import { OAuthProvider, OAuthProviderParameters, safeErrorReason } from "./oauth.service.js";
 
 const OK = "https://app.example.com/ok";
 const KO = "https://app.example.com/ko";
@@ -26,6 +26,8 @@ interface Browser {
   ctx: WebContext;
   /** Cookies sent with each request */
   jar: Record<string, string>;
+  /** Path attribute of each cookie: a cookie is only sent below its path */
+  paths?: Record<string, string>;
 }
 
 /** Result of a GET route */
@@ -98,25 +100,31 @@ class OAuthProviderTest extends AuthTest {
    * @param method - route
    * @param params - query parameters
    * @param https - https request
+   * @param prefix - path prefix of the deployment (API Gateway stage, path-stripping proxy)
    * @returns the redirect
    */
   async route(
     browser: Browser,
     method: "login" | "callback",
     params: any = {},
-    https: boolean = false
+    https: boolean = false,
+    prefix: string = ""
   ): Promise<RouteResult> {
+    const path = `${prefix}${method === "login" ? "/auth/fake" : "/auth/fake/callback"}`;
+    browser.paths ??= {};
     const cookie = Object.entries(browser.jar)
+      .filter(([k]) => path.startsWith(browser.paths[k] ?? "/"))
       .map(([k, v]) => `${k}=${v}`)
       .join("; ");
     const http = new HttpContext(
       "test.webda.io",
       "GET",
-      method === "login" ? "/auth/fake" : "/auth/fake/callback",
+      path,
       https ? "https" : "http",
       https ? 443 : 80,
       cookie ? { cookie } : {}
     );
+    if (prefix) http.setPrefix(prefix);
     const call = await this.newWebContext<WebContext>(http);
     call.setSession(browser.ctx.getSession());
     call.setParameters(params);
@@ -125,8 +133,13 @@ class OAuthProviderTest extends AuthTest {
     assert.strictEqual(call.statusCode, 302, `${method} must redirect`);
     const set = (call.getResponseCookies() as any)?.[COOKIE];
     if (set) {
-      if (set.value && set.options.maxAge > 0) browser.jar[COOKIE] = set.value;
-      else delete browser.jar[COOKIE];
+      if (set.value && set.options.maxAge > 0) {
+        browser.jar[COOKIE] = set.value;
+        browser.paths[COOKIE] = set.options.path;
+      } else if (set.options.path === browser.paths[COOKIE]) {
+        // A clearing cookie only replaces the cookie of the same path
+        delete browser.jar[COOKIE];
+      }
     }
     const headers = call.getResponseHeaders();
     return { location: headers.Location as string, headers, cookie: set };
@@ -178,7 +191,8 @@ class OAuthProviderTest extends AuthTest {
     assert.strictEqual(res.cookie.options.httpOnly, true);
     assert.strictEqual(res.cookie.options.secure, true);
     assert.strictEqual(res.cookie.options.sameSite, "lax");
-    assert.strictEqual(res.cookie.options.path, "/auth/fake");
+    // Scoped to the callback path
+    assert.strictEqual(res.cookie.options.path, "/auth/fake/callback");
     assert.strictEqual(res.cookie.options.maxAge, 600);
     for (const secret of [q.state, q.nonce, "app.example.com"]) {
       assert.ok(!res.cookie.value.includes(secret), "the cookie is encrypted");
@@ -186,8 +200,10 @@ class OAuthProviderTest extends AuthTest {
     // Nothing goes in the session
     assert.ok(!JSON.stringify(browser.ctx.getSession()).includes(q.state));
     assert.ok(!browser.ctx.getSession().isLogged());
-    // Plain http: not Secure
+    // Plain http: not Secure, unless the callback url is https
     assert.strictEqual((await this.route(await this.browser(), "login")).cookie.options.secure, false);
+    this.fake.getParameters().redirect_uri = "https://test.webda.io/auth/fake/callback";
+    assert.strictEqual((await this.route(await this.browser(), "login")).cookie.options.secure, true);
     // Another login gets other secrets
     const other = await this.start(await this.browser());
     assert.notStrictEqual(other.state, q.state);
@@ -239,6 +255,16 @@ class OAuthProviderTest extends AuthTest {
       const back = await this.route(browser, "callback", { code: "1,a@x.com,1", state: "anything" });
       assert.strictEqual(back.location, `${KO}?reason=STATE_MISMATCH`);
     }
+    // Overlong redirect: the pending cookie must stay a single cookie
+    const long = `https://app.example.com/after/${"a".repeat(1024)}`;
+    const refused = await this.route(await this.browser(), "login", { redirect: long });
+    assert.strictEqual(refused.location, `${KO}?reason=REDIRECT_NOT_ALLOWED`);
+    assert.strictEqual(refused.cookie, undefined);
+    const longest = `https://app.example.com/after/${"a".repeat(1024 - 30)}`;
+    assert.strictEqual(longest.length, 1024);
+    const accepted = await this.route(await this.browser(), "login", { redirect: longest });
+    // Value plus attributes under the 4096 split threshold of SecureCookie: never split into a second cookie
+    assert.ok(accepted.cookie.value.length < 3500, `${accepted.cookie.value.length}`);
     // An encoded slash in the query is not a path
     assert.ok(await this.start(await this.browser(), "https://app.example.com/after?next=%2Fhome"));
     assert.strictEqual(this.fake.calls.length, 0);
@@ -340,6 +366,24 @@ class OAuthProviderTest extends AuthTest {
     assert.strictEqual(request.redirectUri, q.redirect_uri);
     assert.strictEqual(request.nonce, q.nonce);
     assert.strictEqual(createHash("sha256").update(request.codeVerifier).digest("base64url"), q.code_challenge);
+  }
+
+  @test
+  async prefixedDeployment() {
+    // API Gateway stage / path-stripping proxy: the public paths carry a prefix the routes do not see
+    for (const redirectUri of [undefined, "https://api.example.com/prod/auth/fake/callback"]) {
+      if (redirectUri) this.fake.getParameters().redirect_uri = redirectUri;
+      const browser = await this.browser();
+      const res = await this.route(browser, "login", { redirect: "https://app.example.com/after" }, true, "/prod");
+      const q = query(res.location);
+      assert.strictEqual(new URL(q.redirect_uri).pathname, "/prod/auth/fake/callback");
+      assert.strictEqual(res.cookie.options.path, "/prod/auth/fake/callback");
+      const back = await this.route(browser, "callback", { code: "sub30,,0", state: q.state }, true, "/prod");
+      assert.strictEqual(back.location, "https://app.example.com/after", redirectUri);
+      assert.strictEqual(back.cookie.options.path, "/prod/auth/fake/callback", "cleared on the same path");
+      assert.strictEqual(browser.jar[COOKIE], undefined);
+      assert.ok(browser.ctx.getSession().isLogged());
+    }
   }
 
   @test
@@ -477,14 +521,26 @@ class OAuthProviderTest extends AuthTest {
 
   @test
   async tokenOperationAcceptsTheTokensBody() {
-    // google-auth-library Credentials may hold nulls
-    const tokens = { id_token: "sub11,,0", access_token: "at-11", refresh_token: "rt-11", expiry_date: 5, scope: null };
-    const res: any = await this.op("Auth.Fake.Token", { tokens });
+    const tokens = { id_token: "sub11,,0", access_token: "at-11", refresh_token: "rt-11", expiry_date: 5 };
+    // Only the known Credentials keys, as bounded strings or numbers, are kept (nulls, objects, extras dropped)
+    const res: any = await this.op("Auth.Fake.Token", {
+      tokens: {
+        ...tokens,
+        scope: null,
+        token_type: { nested: true },
+        extra: "dropped",
+        __proto_like: "x",
+        refresh_token_2: "y"
+      }
+    });
     assert.strictEqual(res.status, "ok");
     assert.deepStrictEqual(this.fake.calls[0].request, { token: undefined, tokens });
     // The received credentials are stored (encrypted) on the ident
     const ident = await Ident.ref(Ident.key("sub11", "fake")).get();
     assert.deepStrictEqual(await ident.tokens.get(), tokens);
+    // Oversized values are dropped
+    await this.op("Auth.Fake.Token", { tokens: { id_token: "sub11,,0", access_token: "x".repeat(10000) } });
+    assert.deepStrictEqual(this.fake.calls[1].request.tokens, { id_token: "sub11,,0" });
   }
 
   @test
@@ -567,6 +623,19 @@ class OAuthProviderTest extends AuthTest {
     assert.strictEqual((await Ident.ref(Ident.key("d1", "fake")).get()).getUser().toString(), d.user.uuid);
     const idents = (await Ident.query("_user = ?", [userA])).results.map(i => i.getUUID());
     assert.deepStrictEqual(idents, ["a1:fake"]);
+  }
+
+  @test
+  safeErrorReasonNeverLeaksMessages() {
+    const err: any = new Error("Wrong number of segments in token: eyJsecret");
+    assert.strictEqual(safeErrorReason(err), "Error");
+    err.code = "ERR_X";
+    assert.strictEqual(safeErrorReason(err), "Error(ERR_X)");
+    err.name = "Bad: eyJsecret";
+    assert.strictEqual(safeErrorReason(err), "Error(ERR_X)");
+    err.code = "eyJsecret.with spaces";
+    assert.strictEqual(safeErrorReason(err), "Error");
+    assert.strictEqual(safeErrorReason(undefined), "Error");
   }
 
   @test

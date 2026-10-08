@@ -1,5 +1,6 @@
 import { describe, it } from "vitest";
 import * as assert from "assert";
+import { runWithInstanceStorage } from "@webda/core";
 import { createFromInput, isInputAttribute, loadForAction, updateFromInput } from "./mutations.js";
 
 /**
@@ -180,5 +181,56 @@ describe("GraphQL mutations", () => {
     });
     FakeModel.allow = true;
     assert.strictEqual(FakeModel.stored.get("hidden").name, "H");
+  });
+
+  it("create and move check the parent: an unreadable parent answers like a missing one", async () => {
+    /**
+     * Parent readable only by alice
+     */
+    class FakeParent {
+      static stored = new Map<string, any>();
+      static ref(uuid: string) {
+        return { get: async () => FakeParent.stored.get(uuid) };
+      }
+    }
+    const parent = (uuid: string, owner: string) => ({
+      uuid,
+      canAct: async (ctx: any) => ctx.getCurrentUserId() === owner
+    });
+    FakeParent.stored.set("p-alice", parent("p-alice", "alice"));
+    FakeParent.stored.set("p-bob", parent("p-bob", "bob"));
+    /**
+     * Child linked to FakeParent through `parent`
+     */
+    class FakeChild extends FakeModel {
+      static Metadata: any = {
+        PrimaryKey: ["uuid"],
+        Relations: { parent: { attribute: "parent", model: "Fake/Parent" } }
+      };
+    }
+    const application: any = { getModel: (name: string) => (name === "Fake/Parent" ? FakeParent : undefined) };
+    const bob: any = { getCurrentUserId: () => "bob" };
+    const error = async (fn: () => Promise<any>) => {
+      try {
+        await fn();
+      } catch (err) {
+        return { message: err.message, code: err.extensions?.code };
+      }
+      return undefined;
+    };
+    await runWithInstanceStorage({ application }, async () => {
+      FakeModel.allow = true;
+      const refused = await error(() => createFromInput(FakeChild, { uuid: "k1", parent: "p-alice" }, bob));
+      const missing = await error(() => createFromInput(FakeChild, { uuid: "k2", parent: "p-none" }, bob));
+      assert.deepStrictEqual(refused, { message: "Object not found", code: "NOT_FOUND" });
+      assert.deepStrictEqual(refused, missing);
+      assert.ok(!FakeModel.stored.has("k1") && !FakeModel.stored.has("k2"), "nothing created");
+      // Under a readable parent it works, then moving it under the unreadable one is refused like a missing parent
+      await createFromInput(FakeChild, { uuid: "k3", parent: "p-bob" }, bob);
+      assert.strictEqual(FakeModel.stored.get("k3").parent, "p-bob");
+      const move = await error(() => updateFromInput(FakeChild, "k3", { parent: "p-alice" }, bob));
+      assert.deepStrictEqual(move, refused);
+      assert.strictEqual(FakeModel.stored.get("k3").parent, "p-bob");
+    });
   });
 });

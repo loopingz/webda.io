@@ -1053,7 +1053,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       return { latestEventTime: Date.now(), [eventName]: evt };
     };
     const eventsMap = {};
-    const modelInstance = uuid !== null ? await model.ref(uuid).get() : undefined;
+    if (uuid !== null) {
+      // Listening to an object requires reading it: a refused read answers like a missing object
+      await loadForAction(model, uuid, context, "get");
+    }
     events
       .filter(e => (useCore().getModelStore(model as any) as any)?.authorizeClientEvent?.(e, context) !== false)
       .forEach(e => (eventsMap[e] = updatedCallback(e)));

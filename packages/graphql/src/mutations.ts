@@ -1,4 +1,12 @@
-import { createModel, sanitizeModelInput, WebdaError } from "@webda/core";
+import {
+  checkModelParent,
+  checkModelReparent,
+  createModel,
+  getParentRelation,
+  prepareCreateInput,
+  sanitizeModelInput,
+  WebdaError
+} from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
 import { GraphQLError } from "graphql";
 
@@ -22,6 +30,24 @@ export function notFound(): GraphQLError {
       code: "NOT_FOUND"
     }
   });
+}
+
+/**
+ * Run a core permission check, turning its WebdaErrors into the GraphQL errors of this module
+ * @param check - the core check
+ */
+async function asGraphQL(check: () => Promise<void>): Promise<void> {
+  try {
+    await check();
+  } catch (err) {
+    if (err instanceof WebdaError.NotFound) {
+      throw notFound();
+    }
+    if (err instanceof WebdaError.Forbidden || err instanceof WebdaError.Unauthorized) {
+      throw permissionDenied();
+    }
+    throw err;
+  }
 }
 
 /**
@@ -92,8 +118,12 @@ export function isInputAttribute(attribute: string, graph?: ModelGraph, writable
  * @throws GraphQLError PERMISSION_DENIED when the object refuses the create
  */
 export async function createFromInput(model: any, input: any, context: any): Promise<any> {
+  // Same input rules as the REST create: sanitized, parent link kept, client uuid ignored for UuidModels
+  const data: any = prepareCreateInput(model, input ?? {});
   const object = new model();
-  object.load(sanitizeModelInput(model, input ?? {}));
+  object.load(data);
+  // The parent must exist and be readable: an unreadable parent answers like a missing one
+  await asGraphQL(() => checkModelParent(model, data?.[getParentRelation(model)?.attribute ?? ""], context));
   // Let the model set its server-managed fields (e.g. the owner) from the caller, like the REST create
   await object.prepareCreate?.(context);
   if ((await object.canAct?.(context, "create")) !== true) {
@@ -131,5 +161,7 @@ export async function updateFromInput(model: any, uuid: string, input: any, cont
     delete input[field];
   }
   const object = await loadForAction(model, uuid, context, "update");
+  // Moving the object to another parent requires reading the new parent
+  await asGraphQL(() => checkModelReparent(model, object, input, context));
   return object.load(input).save();
 }

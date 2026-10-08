@@ -114,7 +114,7 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "Comment model for post comments",
+          "description": "Comment model for post comments\n\nPermission model (see `canAct` below): anyone reads, logged-in users comment, the author edits and deletes.\nThe author is always the caller: set on create, never taken from client input.",
           "properties": {
             "author": {
               "ModelLink": "but implies a Cascade delete",
@@ -171,7 +171,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "Comment model for post comments",
+          "description": "Comment model for post comments\n\nPermission model (see `canAct` below): anyone reads, logged-in users comment, the author edits and deletes.\nThe author is always the caller: set on create, never taken from client input.",
           "properties": {
             "author": {
               "ModelLink": "but implies a Cascade delete",
@@ -214,7 +214,7 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "Comment model for post comments",
+          "description": "Comment model for post comments\n\nPermission model (see `canAct` below): anyone reads, logged-in users comment, the author edits and deletes.\nThe author is always the caller: set on create, never taken from client input.",
           "properties": {
             "author": {
               "ModelLink": "but implies a Cascade delete",
@@ -373,50 +373,9 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
           "definitions": {
-            "BinariesItem<{ width: number; height: number; }>": {
+            "BinaryFileInfo<{ width: number; height: number; }>": {
               "additionalProperties": false,
               "description": "Define a Binary map stored in a Binaries collection",
-              "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
-                "hash": {
-                  "description": "Will be computed by the service\n\nhash of the content",
-                  "type": "string"
-                },
-                "metadata": {
-                  "$ref": "#/definitions/images%5B%5D%24metadata",
-                  "description": "Metadatas stored along with the binary"
-                },
-                "mimetype": {
-                  "description": "Mimetype of the binary",
-                  "type": "string"
-                },
-                "name": {
-                  "description": "Current name",
-                  "type": "string"
-                },
-                "originalname": {
-                  "description": "Original name",
-                  "type": "string"
-                },
-                "size": {
-                  "description": "Size of the binary",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "mimetype",
-                "name",
-                "size"
-              ],
-              "type": "object"
-            },
-            "BinaryFileInfo<{ width: number; height: number; }>": {
-              "WebdaBehavior": "Webda/Binary",
-              "additionalProperties": false,
-              "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
               "properties": {
                 "challenge": {
                   "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
@@ -427,7 +386,7 @@
                   "type": "string"
                 },
                 "metadata": {
-                  "$ref": "#/definitions/mainImage%24metadata",
+                  "$ref": "#/definitions/images%5B%5D%24metadata",
                   "description": "Metadatas stored along with the binary"
                 },
                 "mimetype": {
@@ -443,7 +402,6 @@
                   "type": "number"
                 }
               },
-              "readOnly": true,
               "required": [
                 "mimetype",
                 "name",
@@ -484,7 +442,7 @@
               "type": "object"
             }
           },
-          "description": "Post model representing blog posts",
+          "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads, logged-in users create, the author edits, deletes and\npublishes. The author is always the caller: it is set on create and never taken from client input.",
           "properties": {
             "author": {
               "ModelLink": "but implies a Cascade delete",
@@ -537,7 +495,7 @@
               "WebdaBehavior": "Webda/BinariesImpl",
               "description": "Additional images for the post, stored as an array of binaries with width and height metadata. This shows how to manage multiple related binary files in a model.",
               "items": {
-                "$ref": "#/definitions/BinariesItem%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
+                "$ref": "#/definitions/BinaryFileInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
               },
               "readOnly": true,
               "type": "array"
@@ -627,7 +585,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "Post model representing blog posts",
+          "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads, logged-in users create, the author edits, deletes and\npublishes. The author is always the caller: it is set on create and never taken from client input.",
           "properties": {
             "author": {
               "ModelLink": "but implies a Cascade delete",
@@ -736,50 +694,9 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
           "definitions": {
-            "BinariesItem<{ width: number; height: number; }>": {
+            "BinaryFileInfo<{ width: number; height: number; }>": {
               "additionalProperties": false,
               "description": "Define a Binary map stored in a Binaries collection",
-              "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
-                "hash": {
-                  "description": "Will be computed by the service\n\nhash of the content",
-                  "type": "string"
-                },
-                "metadata": {
-                  "$ref": "#/definitions/images%5B%5D%24metadata",
-                  "description": "Metadatas stored along with the binary"
-                },
-                "mimetype": {
-                  "description": "Mimetype of the binary",
-                  "type": "string"
-                },
-                "name": {
-                  "description": "Current name",
-                  "type": "string"
-                },
-                "originalname": {
-                  "description": "Original name",
-                  "type": "string"
-                },
-                "size": {
-                  "description": "Size of the binary",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "mimetype",
-                "name",
-                "size"
-              ],
-              "type": "object"
-            },
-            "BinaryFileInfo<{ width: number; height: number; }>": {
-              "WebdaBehavior": "Webda/Binary",
-              "additionalProperties": false,
-              "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
               "properties": {
                 "challenge": {
                   "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
@@ -790,7 +707,7 @@
                   "type": "string"
                 },
                 "metadata": {
-                  "$ref": "#/definitions/mainImage%24metadata",
+                  "$ref": "#/definitions/images%5B%5D%24metadata",
                   "description": "Metadatas stored along with the binary"
                 },
                 "mimetype": {
@@ -806,7 +723,6 @@
                   "type": "number"
                 }
               },
-              "readOnly": true,
               "required": [
                 "mimetype",
                 "name",
@@ -847,7 +763,7 @@
               "type": "object"
             }
           },
-          "description": "Post model representing blog posts",
+          "description": "Post model representing blog posts\n\nPermission model (see `canAct` below): anyone reads, logged-in users create, the author edits, deletes and\npublishes. The author is always the caller: it is set on create and never taken from client input.",
           "properties": {
             "author": {
               "ModelLink": "but implies a Cascade delete",
@@ -900,7 +816,7 @@
               "WebdaBehavior": "Webda/BinariesImpl",
               "description": "Additional images for the post, stored as an array of binaries with width and height metadata. This shows how to manage multiple related binary files in a model.",
               "items": {
-                "$ref": "#/definitions/BinariesItem%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
+                "$ref": "#/definitions/BinaryFileInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
               },
               "readOnly": true,
               "type": "array"
@@ -1038,7 +954,7 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "PostTag join table demonstrating composite primary keys\n\nThis is a classic many-to-many join table that shows the power\nof composite keys with full type inference.",
+          "description": "PostTag join table demonstrating composite primary keys\n\nThis is a classic many-to-many join table that shows the power\nof composite keys with full type inference.\n\nPermission model (see `canAct` below): anyone reads; tagging and untagging a post is the post author's.",
           "properties": {
             "createdAt": {
               "description": "When this relationship was created",
@@ -1067,7 +983,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "PostTag join table demonstrating composite primary keys\n\nThis is a classic many-to-many join table that shows the power\nof composite keys with full type inference.",
+          "description": "PostTag join table demonstrating composite primary keys\n\nThis is a classic many-to-many join table that shows the power\nof composite keys with full type inference.\n\nPermission model (see `canAct` below): anyone reads; tagging and untagging a post is the post author's.",
           "properties": {
             "createdAt": {
               "description": "When this relationship was created",
@@ -1096,7 +1012,7 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "PostTag join table demonstrating composite primary keys\n\nThis is a classic many-to-many join table that shows the power\nof composite keys with full type inference.",
+          "description": "PostTag join table demonstrating composite primary keys\n\nThis is a classic many-to-many join table that shows the power\nof composite keys with full type inference.\n\nPermission model (see `canAct` below): anyone reads; tagging and untagging a post is the post author's.",
           "properties": {
             "createdAt": {
               "description": "When this relationship was created",
@@ -1176,7 +1092,7 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "Tag model for categorizing posts",
+          "description": "Tag model for categorizing posts\n\nPermission model (static form, the rule does not depend on the tag): anyone reads, logged-in users create,\nnobody edits or deletes (this sample has no administrator role; a real application would check one here).",
           "properties": {
             "color": {
               "description": "Tag color (hex)",
@@ -1212,7 +1128,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "Tag model for categorizing posts",
+          "description": "Tag model for categorizing posts\n\nPermission model (static form, the rule does not depend on the tag): anyone reads, logged-in users create,\nnobody edits or deletes (this sample has no administrator role; a real application would check one here).",
           "properties": {
             "color": {
               "description": "Tag color (hex)",
@@ -1248,7 +1164,7 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "Tag model for categorizing posts",
+          "description": "Tag model for categorizing posts\n\nPermission model (static form, the rule does not depend on the tag): anyone reads, logged-in users create,\nnobody edits or deletes (this sample has no administrator role; a real application would check one here).",
           "properties": {
             "color": {
               "description": "Tag color (hex)",
@@ -1312,10 +1228,10 @@
         "username": {
           "type": "string"
         },
-        "password": {
-          "type": "Password"
+        "__password": {
+          "type": "string"
         },
-        "email": {
+        "__email": {
           "type": "string"
         },
         "name": {
@@ -1373,8 +1289,17 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "User model representing blog authors and readers",
+          "description": "User model representing blog authors and readers\n\nPermission model (see `canAct` below):\n- anyone may read a profile (username, name, bio, website); the email is shown to its owner only;\n- accounts are created with the `register` operation, which hashes the password; `POST /users` is refused;\n- a user may update, delete, follow and unfollow with its own account only;\n- the password hash (`__password`) and the email (`__email`) are private fields: never sent to clients, never\n  taken from client input (`__` attributes are stripped from every input).",
           "properties": {
+            "__email": {
+              "description": "Email address: private, used to log in; shown to the owner only (see `toJSON`)",
+              "format": "email",
+              "type": "string"
+            },
+            "__password": {
+              "description": "Password hash (bcrypt): private, see `register` and `changePassword`",
+              "type": "string"
+            },
             "bio": {
               "description": "User biography",
               "maxLength": 500,
@@ -1384,13 +1309,6 @@
               "description": "Account creation date",
               "format": "date-time",
               "readonly": true,
-              "type": "string"
-            },
-            "email": {
-              "description": "User's email address",
-              "format": "email",
-              "maxLength": 100,
-              "minLength": 5,
               "type": "string"
             },
             "name": {
@@ -1425,7 +1343,6 @@
           },
           "required": [
             "createdAt",
-            "email",
             "name",
             "updatedAt",
             "username",
@@ -1437,28 +1354,26 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "User model representing blog authors and readers",
+          "description": "User model representing blog authors and readers\n\nPermission model (see `canAct` below):\n- anyone may read a profile (username, name, bio, website); the email is shown to its owner only;\n- accounts are created with the `register` operation, which hashes the password; `POST /users` is refused;\n- a user may update, delete, follow and unfollow with its own account only;\n- the password hash (`__password`) and the email (`__email`) are private fields: never sent to clients, never\n  taken from client input (`__` attributes are stripped from every input).",
           "properties": {
+            "__email": {
+              "description": "Email address: private, used to log in; shown to the owner only (see `toJSON`)",
+              "format": "email",
+              "type": "string"
+            },
+            "__password": {
+              "description": "Password hash (bcrypt): private, see `register` and `changePassword`",
+              "type": "string"
+            },
             "bio": {
               "description": "User biography",
               "maxLength": 500,
-              "type": "string"
-            },
-            "email": {
-              "description": "User's email address",
-              "format": "email",
-              "maxLength": 100,
-              "minLength": 5,
               "type": "string"
             },
             "name": {
               "description": "User's full name",
               "maxLength": 50,
               "minLength": 2,
-              "type": "string"
-            },
-            "password": {
-              "description": "User password",
               "type": "string"
             },
             "username": {
@@ -1480,9 +1395,7 @@
             }
           },
           "required": [
-            "email",
             "name",
-            "password",
             "username",
             "uuid"
           ],
@@ -1491,77 +1404,16 @@
         },
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
-          "additionalProperties": false,
-          "description": "User model representing blog authors and readers",
-          "properties": {
-            "bio": {
-              "description": "User biography",
-              "maxLength": 500,
-              "type": "string"
-            },
-            "createdAt": {
-              "description": "Account creation date",
-              "format": "date-time",
-              "readonly": true,
-              "type": "string"
-            },
-            "email": {
-              "description": "User's email address",
-              "format": "email",
-              "maxLength": 100,
-              "minLength": 5,
-              "type": "string"
-            },
-            "name": {
-              "description": "User's full name",
-              "maxLength": 50,
-              "minLength": 2,
-              "type": "string"
-            },
-            "password": {
-              "description": "User password",
-              "type": "string"
-            },
-            "updatedAt": {
-              "description": "Last update date",
-              "format": "date-time",
-              "readonly": true,
-              "type": "string"
-            },
-            "username": {
-              "description": "Unique username",
-              "maxLength": 30,
-              "minLength": 3,
-              "pattern": "^[a-zA-Z0-9_]+$",
-              "type": "string"
-            },
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
-              "type": "string"
-            },
-            "website": {
-              "description": "User's website",
-              "format": "uri",
-              "type": "string"
-            }
-          },
-          "required": [
-            "createdAt",
-            "email",
-            "name",
-            "password",
-            "updatedAt",
-            "username",
-            "uuid"
-          ],
-          "type": "object",
           "$webda": "toJSON$return"
         }
       },
       "Actions": {
+        "changePassword": {},
         "follow": {},
         "unfollow": {},
+        "register": {
+          "global": true
+        },
         "login": {
           "global": true
         },
@@ -1619,7 +1471,7 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "UserFollow represents a follower relationship between users\n\nThis demonstrates:\n1. Self-referential relationships (User -> User)\n2. Composite primary keys with type inference\n3. Join table pattern",
+          "description": "UserFollow represents a follower relationship between users\n\nThis demonstrates:\n1. Self-referential relationships (User -> User)\n2. Composite primary keys with type inference\n3. Join table pattern\n\nPermission model (see `canAct` below): anyone reads who follows whom; a user creates and deletes its own\nfollow relationships only (the `follower` side is part of the key and must be the caller).",
           "properties": {
             "createdAt": {
               "description": "When the follow relationship was created",
@@ -1650,7 +1502,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "UserFollow represents a follower relationship between users\n\nThis demonstrates:\n1. Self-referential relationships (User -> User)\n2. Composite primary keys with type inference\n3. Join table pattern",
+          "description": "UserFollow represents a follower relationship between users\n\nThis demonstrates:\n1. Self-referential relationships (User -> User)\n2. Composite primary keys with type inference\n3. Join table pattern\n\nPermission model (see `canAct` below): anyone reads who follows whom; a user creates and deletes its own\nfollow relationships only (the `follower` side is part of the key and must be the caller).",
           "properties": {
             "createdAt": {
               "description": "When the follow relationship was created",
@@ -1681,7 +1533,7 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "UserFollow represents a follower relationship between users\n\nThis demonstrates:\n1. Self-referential relationships (User -> User)\n2. Composite primary keys with type inference\n3. Join table pattern",
+          "description": "UserFollow represents a follower relationship between users\n\nThis demonstrates:\n1. Self-referential relationships (User -> User)\n2. Composite primary keys with type inference\n3. Join table pattern\n\nPermission model (see `canAct` below): anyone reads who follows whom; a user creates and deletes its own\nfollow relationships only (the `follower` side is part of the key and must be the caller).",
           "properties": {
             "createdAt": {
               "description": "When the follow relationship was created",
@@ -1794,66 +1646,17 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "string"
     },
+    "WebdaSample/User.changePassword.input": {
+      "type": "object",
+      "properties": {}
+    },
+    "WebdaSample/User.changePassword.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
     "WebdaSample/User.follow.input": {
       "type": "object",
-      "properties": {
-        "target": {
-          "additionalProperties": false,
-          "description": "User model representing blog authors and readers",
-          "properties": {
-            "bio": {
-              "description": "User biography",
-              "maxLength": 500,
-              "type": "string"
-            },
-            "email": {
-              "description": "User's email address",
-              "format": "email",
-              "maxLength": 100,
-              "minLength": 5,
-              "type": "string"
-            },
-            "name": {
-              "description": "User's full name",
-              "maxLength": 50,
-              "minLength": 2,
-              "type": "string"
-            },
-            "password": {
-              "description": "User password",
-              "type": "string"
-            },
-            "username": {
-              "description": "Unique username",
-              "maxLength": 30,
-              "minLength": 3,
-              "pattern": "^[a-zA-Z0-9_]+$",
-              "type": "string"
-            },
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
-              "type": "string"
-            },
-            "website": {
-              "description": "User's website",
-              "format": "uri",
-              "type": "string"
-            }
-          },
-          "required": [
-            "email",
-            "name",
-            "password",
-            "username",
-            "uuid"
-          ],
-          "type": "object"
-        }
-      },
-      "required": [
-        "target"
-      ]
+      "properties": {}
     },
     "WebdaSample/User.follow.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1862,68 +1665,98 @@
     },
     "WebdaSample/User.unfollow.input": {
       "type": "object",
-      "properties": {
-        "target": {
-          "additionalProperties": false,
-          "description": "User model representing blog authors and readers",
-          "properties": {
-            "bio": {
-              "description": "User biography",
-              "maxLength": 500,
-              "type": "string"
-            },
-            "email": {
-              "description": "User's email address",
-              "format": "email",
-              "maxLength": 100,
-              "minLength": 5,
-              "type": "string"
-            },
-            "name": {
-              "description": "User's full name",
-              "maxLength": 50,
-              "minLength": 2,
-              "type": "string"
-            },
-            "password": {
-              "description": "User password",
-              "type": "string"
-            },
-            "username": {
-              "description": "Unique username",
-              "maxLength": 30,
-              "minLength": 3,
-              "pattern": "^[a-zA-Z0-9_]+$",
-              "type": "string"
-            },
-            "uuid": {
-              "description": "UUID of the model",
-              "format": "uuid",
-              "type": "string"
-            },
-            "website": {
-              "description": "User's website",
-              "format": "uri",
-              "type": "string"
-            }
-          },
-          "required": [
-            "email",
-            "name",
-            "password",
-            "username",
-            "uuid"
-          ],
-          "type": "object"
-        }
-      },
-      "required": [
-        "target"
-      ]
+      "properties": {}
     },
     "WebdaSample/User.unfollow.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "not": {}
+    },
+    "WebdaSample/User.register.input": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "username",
+        "email",
+        "name",
+        "password"
+      ]
+    },
+    "WebdaSample/User.register.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "description": "User model representing blog authors and readers\n\nPermission model (see `canAct` below):\n- anyone may read a profile (username, name, bio, website); the email is shown to its owner only;\n- accounts are created with the `register` operation, which hashes the password; `POST /users` is refused;\n- a user may update, delete, follow and unfollow with its own account only;\n- the password hash (`__password`) and the email (`__email`) are private fields: never sent to clients, never\n  taken from client input (`__` attributes are stripped from every input).",
+      "properties": {
+        "__email": {
+          "description": "Email address: private, used to log in; shown to the owner only (see `toJSON`)",
+          "format": "email",
+          "type": "string"
+        },
+        "__password": {
+          "description": "Password hash (bcrypt): private, see `register` and `changePassword`",
+          "type": "string"
+        },
+        "bio": {
+          "description": "User biography",
+          "maxLength": 500,
+          "type": "string"
+        },
+        "createdAt": {
+          "description": "Account creation date",
+          "format": "date-time",
+          "readonly": true,
+          "type": "string"
+        },
+        "name": {
+          "description": "User's full name",
+          "maxLength": 50,
+          "minLength": 2,
+          "type": "string"
+        },
+        "updatedAt": {
+          "description": "Last update date",
+          "format": "date-time",
+          "readonly": true,
+          "type": "string"
+        },
+        "username": {
+          "description": "Unique username",
+          "maxLength": 30,
+          "minLength": 3,
+          "pattern": "^[a-zA-Z0-9_]+$",
+          "type": "string"
+        },
+        "uuid": {
+          "description": "UUID of the model",
+          "format": "uuid",
+          "type": "string"
+        },
+        "website": {
+          "description": "User's website",
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "createdAt",
+        "name",
+        "updatedAt",
+        "username",
+        "uuid"
+      ],
+      "type": "object"
     },
     "WebdaSample/User.login.input": {
       "type": "object",

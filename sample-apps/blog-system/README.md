@@ -120,6 +120,21 @@ async publishPost(postId: string) {
 
 Known limitation: history is matched by model and key. If a key is reused after a delete, whoever can read the new object also sees the previous object's history.
 
+## Permissions
+
+Every model decides who may do what, through the static `canAct(context, action, object?)` the framework asks before any client operation (models deny everything by default). The sample keeps the rules short and readable in each model:
+
+| Model        | Read                                                                   | Create                                                     | Update / delete                                                |
+| ------------ | ---------------------------------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------- |
+| `User`       | anyone (the email is shown to its owner only; the password hash never) | `PUT /users/register` only (`POST /users` is refused)      | the account owner (`changePassword`, `follow`, `unfollow` too) |
+| `Post`       | anyone                                                                 | logged-in users; the author is the caller, never the input | the author (`publish` too)                                     |
+| `Comment`    | anyone                                                                 | logged-in users; the author is the caller                  | the author                                                     |
+| `Tag`        | anyone                                                                 | logged-in users                                            | nobody (no administrator role in this sample)                  |
+| `UserFollow` | anyone                                                                 | the follower                                               | the follower                                                   |
+| `PostTag`    | anyone                                                                 | the post's author                                          | the post's author                                              |
+
+There is no authentication service in this sample: `PUT /users/register {username, email, name, password}` creates the account and opens the session, `PUT /users/login {email, password}` opens it, `PUT /users/logout` closes it. The password is stored as a bcrypt hash in the private `__password` field and the email in `__email`: private (`__`) fields are never sent to clients and never taken from client input. `User.register`/`User.login` are static operations (allowed by the static `canAct`); `changePassword`, `follow` and `unfollow` are instance operations reading their input from the context.
+
 ## Domain Model
 
 ```

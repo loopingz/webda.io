@@ -1,12 +1,15 @@
-import { Model, WEBDA_PRIMARY_KEY, BelongTo, ModelClass, RelateTo } from "@webda/models";
+import { Model, WEBDA_PRIMARY_KEY, BelongTo, RelateTo } from "@webda/models";
 import type { Post } from "./Post.model.js";
 import type { Tag } from "./Tag.model.js";
+import type { IOperationContext } from "@webda/core";
 
 /**
  * PostTag join table demonstrating composite primary keys
  *
  * This is a classic many-to-many join table that shows the power
  * of composite keys with full type inference.
+ *
+ * Permission model (see `canAct` below): anyone reads; tagging and untagging a post is the post author's.
  */
 export class PostTag extends Model {
   /**
@@ -25,10 +28,26 @@ export class PostTag extends Model {
   tag!: RelateTo<Tag>;
 
   /**
-   * Public sample — the join table is as open as the posts and tags it links (static form: no object logic needed)
-   * @returns true
+   * Permission rule: "get" for anyone; "create" and "delete" for the author of the post
+   * @param context - the caller context
+   * @param action - the action
+   * @returns true or the refusal reason
    */
-  static canAct(): boolean {
-    return true;
+  async canAct(context: IOperationContext, action: string): Promise<boolean | string> {
+    if (action === "get") {
+      return true;
+    }
+    const userId = context.getCurrentUserId();
+    if (!userId) {
+      return "Login required";
+    }
+    try {
+      // The post decides: its author may tag it (the same rule as editing it)
+      const { Post } = await import("./Post.model.js");
+      const post = await Post.ref(this.post?.toString()).get();
+      return (await post.canAct(context, "update")) === true ? true : "Only the post author";
+    } catch {
+      return "Unknown post";
+    }
   }
 }

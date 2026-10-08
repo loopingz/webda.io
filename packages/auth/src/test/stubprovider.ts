@@ -2,19 +2,26 @@ import { Service } from "@webda/core";
 import type { TestApplication } from "@webda/core/lib/test/objects.js";
 
 /**
- * @param name - provider name
- * @returns a minimal AuthProvider service class named `name` (specs call complete() on its behalf)
+ * Minimal AuthProvider service: specs call `complete()` on its behalf
  */
-export function stubProvider(name: string) {
-  return class StubProvider extends Service {
-    readonly providerName = name;
+export class StubProvider extends Service {
+  readonly providerName: string = "";
 
-    /**
-     * @returns public info
-     */
-    getPublicInfo() {
-      return { name, type: "oauth" as const, startUrl: `/auth/${name}` };
-    }
+  /**
+   * @returns public info
+   */
+  getPublicInfo(): { name: string; type: "oauth"; startUrl: string } {
+    return { name: this.providerName, type: "oauth", startUrl: `/auth/${this.providerName}` };
+  }
+}
+
+/**
+ * @param name - provider name
+ * @returns a StubProvider class whose provider is `name`
+ */
+export function stubProvider(name: string): typeof StubProvider {
+  return class extends StubProvider {
+    readonly providerName = name;
   };
 }
 

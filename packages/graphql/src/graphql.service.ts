@@ -11,7 +11,9 @@ import {
   useCore,
   useCoreEvents,
   useModelMetadata,
-  useRepository
+  useRepository,
+  isModelActionAllowed,
+  queryModelWithPermissions
 } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
 import * as WebdaQL from "@webda/ql";
@@ -658,7 +660,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           }
         },
         resolve: async (_, args, context) => {
-          return await model.query(WebdaQL.unsanitize(args.query || ""));
+          // Same permission filtering as the DomainService query operation
+          return await queryModelWithPermissions(model, WebdaQL.unsanitize(args.query || ""), context);
         },
         subscribe: async (_source, args, context) => {
           this.log("DEBUG", "Subscription called on", args);
@@ -914,7 +917,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     query: string,
     context: any
   ): Promise<AsyncIterator<any>> {
-    let result = await model.query(query);
+    // Results are always filtered with the subscriber permissions (permission query and canAct "get")
+    const runQuery = () => queryModelWithPermissions(model, query, context);
+    let result = await runQuery();
     const queryInfo = new WebdaQL.QueryValidator(query);
     const updatedCallback = async evt => {
       this.log("TRACE", "Event from", evt.emitterId, evt.object_id);
@@ -925,6 +930,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       result.results = await Promise.all(
         result.results.map(r => (r.getUUID() === evt.object_id ? model.ref(evt.object_id).get() : r))
       );
+      // The update may have removed the subscriber's access to the object
+      const allowed = await Promise.all(result.results.map(r => isModelActionAllowed(r, context, "get")));
+      result.results = result.results.filter((_r, i) => allowed[i]);
       return {
         continuationToken: result.continuationToken,
         results: result.results
@@ -935,14 +943,18 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       // Deleted is different as we need to return null
       Deleted: async evt => {
         if (!result.results.find(e => evt.object_id === e.getUUID())) return;
-        result = await model.query(query);
+        result = await runQuery();
         return result;
       },
       Created: async evt => {
         // If object match the query and is not in the result and can be read by the user
-        if (queryInfo.eval(evt.object) && !queryInfo.getOffset() && evt.object.canAct(context, "get")) {
+        if (
+          queryInfo.eval(evt.object) &&
+          !queryInfo.getOffset() &&
+          (await isModelActionAllowed(evt.object, context, "get"))
+        ) {
           // Should check with the order by of the query to see if we need to recompute
-          result = await model.query(query);
+          result = await runQuery();
           return result;
         }
         return;

@@ -38,6 +38,8 @@ export function isInputAttribute(attribute: string, graph?: ModelGraph): boolean
 export async function createFromInput(model: any, input: any, context: any): Promise<any> {
   const object = new model();
   object.load(sanitizeModelInput(model, input ?? {}));
+  // Let the model set its server-managed fields (e.g. the owner) from the caller, like the REST create
+  await object.prepareCreate?.(context);
   if ((await object.canAct?.(context, "create")) !== true) {
     throw permissionDenied();
   }

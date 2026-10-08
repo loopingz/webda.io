@@ -183,7 +183,12 @@ export class User extends UuidModel {
     return super.canAct(context, action, object);
   }
 
-  /** Public sample — permissive for all actions on users. Real apps restrict update/delete to the user itself. */
+  /**
+   * Public sample — permissive for all actions on users. Real apps restrict update/delete to the user itself.
+   * @param _context - the caller context
+   * @param _action - the action
+   * @returns true
+   */
   async canAct(_context: any, _action: string): Promise<boolean> {
     return true;
   }

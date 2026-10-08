@@ -267,6 +267,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         return { type: AnyScalarType, description: "Map" };
       }
       for (const i in schema.properties) {
+        // Private (`__`) fields are server-only, at any depth
+        if (i.startsWith("__")) {
+          continue;
+        }
         const res = this.getGraphQLSchemaFromSchema(
           this.getJsonSchemaDefinition(<JSONSchema7>schema.properties[i], schema.definitions),
           `${schema.title || defaultName}_${i}`,

@@ -165,13 +165,21 @@ describe("GraphQL permissions go through the core helper", () => {
     });
   });
 
-  it("output types leave private fields out", () => {
+  it("output types leave private fields out, at any depth", () => {
     const svc = service();
     const fields = svc.getGraphQLFieldsFromSchema(
-      { type: "object", properties: { name: { type: "string" }, __secret: { type: "string" } } },
+      {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          __secret: { type: "string" },
+          password: { type: "object", properties: { __hash: { type: "string" }, changedAt: { type: "number" } } }
+        }
+      },
       "Thing"
     );
-    assert.deepStrictEqual(Object.keys(fields), ["name"]);
+    assert.deepStrictEqual(Object.keys(fields), ["name", "password"]);
+    assert.deepStrictEqual(Object.keys((fields.password.type as GraphQLObjectType).getFields()), ["changedAt"]);
   });
 
   it("a canAct throwing during a subscription update hides the object instead of failing", async () => {

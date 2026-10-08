@@ -23,15 +23,16 @@ async canAct(context: IOperationContext, action: string): Promise<boolean | stri
 | `true` (or the object itself)       | Allowed |
 | `false`, a string, or anything else | Refused |
 
-`canAct` may also throw: a `401`/`403` `WebdaError` (for example `RoleModel` throws `Forbidden` when there is no user) counts as a refusal; any other error propagates.
+`canAct` may also throw (for example `RoleModel` throws `Forbidden` when there is no user): any error thrown by `canAct` counts as a refusal (non-HTTP errors are logged at `WARN`), so a failure can never answer differently from a refusal.
 
 ### Refused reads are 404
 
 A refusal never reveals that an object exists:
 
-- when the caller **may not read** the object (`canAct(ctx, "get")` refused), every operation on it (get, update, patch, delete, actions, behavior actions and downloads, audit, nested create under it) answers **exactly like a missing key**: `404 Not Found`, message `Object not found`, same body, and the same `Store.WebNotFound` event;
+- when the caller **may not read** the object (`canAct(ctx, "get")` refused), the operations addressing it by key answer **exactly like a missing key**: `404 Not Found`, message `Object not found`, same body, and the same `Store.WebNotFound` event. This covers the DomainService get, update, patch, delete, instance actions and behavior actions (binary downloads included) on REST, gRPC and MCP; a create under that parent (nested route, or the parent link in the input, on every transport including GraphQL); GraphQL single-object get, link loads, update, delete and object subscriptions (`NOT_FOUND`); the audit trail of the object (unless the caller has the audit `readPermission`); and the InvitationService routes (`PUT`, answering an invitation, answers "Invitation is gone" (410) for a missing object and for an unreadable one without a pending invitation);
 - only when the caller **may read** the object but not perform the action does it get `403 Forbidden` (`Action <action> not allowed`), e.g. updating a public object owned by someone else;
-- a refused `"create"` is a `403`: there is no object yet.
+- a refused `"create"` is a `403`: there is no object yet;
+- static (global) actions, list queries and creates with a natural key are outside this rule: see their sections.
 
 The reason returned by `canAct` is logged (at `DEBUG` level) and is **never sent to the client**. There is no separate 401 for "not logged in".
 
@@ -100,7 +101,7 @@ There is no `"query"` or `"patch"` action: a query is filtered with `"get"` (see
 Before input reaches a model, the DomainService (and GraphQL) removes:
 
 - `__`-prefixed (private) attributes, at any depth;
-- `_`-prefixed (server-managed) attributes: `_user`, `_roles`, `_groups`, `_creationDate`... A model that genuinely accepts one from clients lists it in its static `getClientWritableAttributes()`; the parent link of a nested create is kept (and checked against the parent);
+- `_`-prefixed (server-managed) **top-level** attributes: `_user`, `_roles`, `_groups`, `_creationDate`... (nested objects keep their `_` keys). A model that genuinely accepts one from clients lists it in its static `getClientWritableAttributes()`; the parent link of a create is kept (and checked against the parent);
 - behavior attributes (changed only through the behavior's actions);
 - the attributes returned by the model's optional static `getProtectedAttributes()`, even when listed as writable. `OwnerModel` protects `_user`, so the owner can never be set or changed by a client.
 
@@ -114,9 +115,15 @@ export class Theme extends UuidModel {
 }
 ```
 
+The rules above apply to create, update, patch and the GraphQL mutations. The input of an instance action or a behavior action is handed to the action as is: validating and filtering it is the action author's responsibility.
+
+On update and patch the key comes from the URL (or the GraphQL `uuid` argument): primary-key fields in the input that differ from it are a `400` (`BAD_USER_INPUT`), equal ones are dropped.
+
 ### Existing keys
 
-Clients may choose the key of a new object (`POST {"uuid": "..."}`). Creating over an existing key is a `409 Conflict`, whether the caller can read the existing object or not, and the existing object is left unchanged. This 409 is the one remaining way to learn that a key exists: it is inherent to client-chosen keys. Use generated keys (`UuidModel`) for objects whose existence is sensitive.
+For a `UuidModel` (`uuid` primary key) a client `uuid` is **ignored on create**: the key is always generated, so a create can neither target an existing object nor reveal that a uuid exists. This also means a `User` record cannot be created through REST/GraphQL with a chosen uuid (users are created by the authentication services).
+
+Models with a natural key (e.g. a `slug`) keep the client key. Creating over an existing key is a `409 Conflict` (GraphQL `CONFLICT`), whether the caller can read the existing object or not, and the existing object is left unchanged. This 409 is the one remaining way to learn that a key exists: it is inherent to client-chosen keys. Use generated keys for objects whose existence is sensitive.
 
 ### Server-managed fields on create
 
@@ -144,14 +151,32 @@ export class Draft extends UuidModel {
 
 ### Query filtering
 
-A query (`<Plural>.Query`, the GraphQL list query and its subscription) is filtered in two steps:
+A query (`<Plural>.Query`, the GraphQL list query, relation sub-queries and query subscriptions) is checked, then filtered in two steps:
+
+- a client query that reads a **private (`__`) field** at any depth, in its filter or its `ORDER BY` (`__hash = '...'`, `profile.__secret LIKE 'a%'`), is a `400`: matching rows would reveal the field value;
+- its `LIMIT` is capped at `MAX_QUERY_LIMIT` (1000).
 
 1. When the model class has a static `getPermissionQuery(context)` returning `{ query, partial }`, that filter is ANDed into the client query. Both sides are parsed and combined as expressions, so a client `OR` cannot escape the filter. The client `ORDER BY`, `LIMIT` and `OFFSET` are kept.
 2. When the model defines `canAct`, every result is checked with `canAct(ctx, "get")` and the refused ones are dropped. This also applies when the permission query is not `partial`, so a subclass that overrides `canAct` while inheriting `getPermissionQuery` never leaks objects.
 
-Rows dropped by step 2 are replaced by continuing the scan in the store (next pages, asking only for the missing rows), so a page is full unless the store has no more matches or the scan budget is spent: `SCAN_FACTOR` (10) times the page `LIMIT` rows, at least `MIN_SCANNED_ROWS` (100). When the budget is spent the page can be shorter than its `LIMIT`; it carries a `continuationToken` only if it holds visible results, so an empty page never carries one and a token never reveals that only hidden rows matched. Page on the token, not on the page size. A precise `getPermissionQuery` filters in the store and avoids the extra scans.
+Rows dropped by step 2 are replaced by continuing the scan in the store (next pages, asking only for the missing rows), so a page is full unless the store has no more matches or the scan budget is spent: `SCAN_FACTOR` (10) times the page `LIMIT` rows, between `MIN_SCANNED_ROWS` (100) and `MAX_SCANNED_ROWS` (10000). When the budget is spent the page can be shorter than its `LIMIT`; it carries a `continuationToken` only if it holds visible results, so an empty page never carries one. Page on the token, not on the page size. A precise `getPermissionQuery` filters in the store and avoids the extra scans.
 
-An inherited `getPermissionQuery` (`OwnerModel`, `User`) only applies while the subclass keeps the built-in `canAct`: a subclass overriding `canAct` gets the `canAct` filter alone unless it also overrides `getPermissionQuery`.
+For models defining `canAct`, **continuation tokens are opaque**: the store token is encrypted with the `CryptoService` (random IV, fixed-size padding), because store tokens count or name rows (Postgres/Firestore offsets, Dynamo keys) and would reveal hidden matches. Send it back unchanged in `OFFSET "<token>"`; any other value is a `400`. Tokens follow the CryptoService key rotation.
+
+`getPermissionQuery` is **inherited**, also by subclasses that override `canAct` (typically to add restrictions and call `super`): a store filter fails closed, it can only hide rows. A subclass whose `canAct` is more permissive than its parent's overrides `getPermissionQuery` too (returning `null` disables the store filter, leaving only the `canAct` filter):
+
+```typescript
+export class User extends WebdaUser {
+  // Everyone may read every profile in this application
+  async canAct() {
+    return true;
+  }
+
+  static getPermissionQuery() {
+    return null;
+  }
+}
+```
 
 Build permission queries with `bind()` (or the escaping template) from `@webda/ql`, never by concatenating user ids:
 
@@ -175,7 +200,7 @@ A subclass that wants ownership transfer overrides `getProtectedAttributes()` an
 
 ### `User`
 
-`canAct` allows a user to act on its own object only, and `getPermissionQuery` (`uuid = <caller>`, escaped; nothing for anonymous callers) keeps users from being enumerated. `_roles` and `_groups` are server-managed: a user cannot grant itself roles or groups.
+`canAct` allows a user to act on its own object only, and `getPermissionQuery` (`uuid = <caller>`, escaped; nothing for anonymous callers) keeps users from being enumerated, also in subclasses. `_roles` and `_groups` are server-managed: a user cannot grant itself roles or groups.
 
 ### `RoleModel`
 

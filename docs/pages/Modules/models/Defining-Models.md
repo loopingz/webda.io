@@ -156,7 +156,7 @@ export class Comment extends UuidModel {
 }
 ```
 
-Anything but `true` (`false`, a reason string) makes the framework return HTTP 403. A model without `canAct` allows every operation, so define it on any model holding private data. See [Permissions](./Permissions.md).
+Anything but `true` (`false`, a reason string) is a refusal: HTTP 404, exactly like a missing object, when the caller may not read the object, HTTP 403 when it may read it but not perform the action. A model without `canAct` allows every operation, so define it on any model holding private data. See [Permissions](./Permissions.md).
 
 ## Full example — Post model (blog-system)
 

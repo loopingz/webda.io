@@ -1,29 +1,77 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import {
+  type AsyncEventUnknown,
   type AuthResult,
+  CookieOptions,
   type ProviderInfo,
   type ResolvedIdentity,
   registerOperation,
   Route,
+  runAsSystem,
   runWithContext,
+  SecureCookie,
   Service,
   ServiceParameters,
+  useContext,
+  useCrypto,
   useDynamicService,
   type WebContext,
   WebdaError
 } from "@webda/core";
 import { type AuthProvider, useAuthentication } from "../provider.js";
-import { TokenInvalid } from "../errors.js";
+import { IdentLinkedElsewhere, TokenInvalid, UnsupportedMediaType } from "../errors.js";
 
 /**
- * Input of the `Auth.<Provider>.Token` operations
+ * Credentials as returned by an OAuth token endpoint (google-auth-library `Credentials` shape): `id_token`,
+ * `access_token`, `refresh_token`, `expiry_date`, `token_type`, `scope`... Values are not typed by the schema
+ * (providers send nulls); providers check what they use.
+ */
+export interface OAuthTokens {
+  /** Any provider field */
+  [key: string]: any;
+}
+
+/**
+ * Input of the `Auth.<Provider>.Token` operations: `token`, or the provider credentials `tokens`
  * @WebdaSchema
  */
 export interface OAuthTokenRequest {
   /**
    * Token issued by the provider to the client (an ID token for OpenID Connect providers)
    */
-  token: string;
+  token?: string;
+  /**
+   * Credentials obtained by the client from the provider (v3 body; its `id_token` is verified)
+   */
+  tokens?: OAuthTokens;
+}
+
+/** Parameters of an authorization request */
+export interface OAuthAuthorizationRequest {
+  /** Random state to send back on the callback */
+  state: string;
+  /** Callback url */
+  redirectUri: string;
+  /** Scopes to request */
+  scope: string[];
+  /** PKCE code challenge (base64url SHA-256 of the verifier) */
+  codeChallenge: string;
+  /** PKCE method */
+  codeChallengeMethod: "S256";
+  /** OpenID Connect nonce: the ID token of the callback must carry it */
+  nonce: string;
+}
+
+/** Parameters of a code exchange */
+export interface OAuthCallbackRequest {
+  /** Authorization code */
+  code: string;
+  /** redirect_uri of the authorization request */
+  redirectUri: string;
+  /** PKCE code verifier */
+  codeVerifier: string;
+  /** Nonce of the authorization request: providers returning an ID token must check it */
+  nonce: string;
 }
 
 /** Browser redirects of the OAuth callback */
@@ -90,10 +138,16 @@ export class OAuthProviderParameters extends ServiceParameters {
   }
 }
 
-/** Pending login stored in the session, per provider */
+/** Pending login, kept in an encrypted cookie between the login and the callback */
 interface PendingLogin {
+  /** Provider that started it */
+  provider: string;
   /** Random state sent to the provider */
   state: string;
+  /** PKCE code verifier */
+  verifier: string;
+  /** OpenID Connect nonce */
+  nonce: string;
   /** Post-login target, already checked against authorized_uris */
   redirect?: string;
   /** redirect_uri sent to the provider: the code exchange must use the same */
@@ -102,8 +156,8 @@ interface PendingLogin {
   expires: number;
 }
 
-/** Validity of a pending login */
-const STATE_TTL = 10 * 60 * 1000;
+/** Validity of a pending login, in seconds */
+const PENDING_TTL = 600;
 
 /**
  * @param err - any error
@@ -115,6 +169,20 @@ function httpErrorCode(err: any): string | undefined {
     /^[A-Z][A-Z0-9_]*$/.test(err.code)
     ? err.code
     : undefined;
+}
+
+/**
+ * Loggable reason of an error: library messages may contain tokens or their payload, so only a short code or the
+ * error class name is kept
+ * @param err - any error
+ * @returns a reason without any part of the message
+ */
+export function safeErrorReason(err: any): string {
+  const code = err?.code;
+  if ((typeof code === "string" && /^[A-Za-z0-9_.-]{1,40}$/.test(code)) || typeof code === "number") {
+    return `${err?.name ?? "Error"}(${code})`;
+  }
+  return typeof err?.name === "string" && /^[A-Za-z0-9_]{1,40}$/.test(err.name) ? err.name : "Error";
 }
 
 /**
@@ -145,20 +213,45 @@ function parseHttpUrl(url: unknown): URL | undefined {
 }
 
 /**
+ * Constant-time comparison of two secrets
+ * @param a - received value
+ * @param b - expected value
+ * @returns true when equal
+ */
+function sameSecret(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
+/**
+ * @param bytes - entropy
+ * @returns a random base64url string
+ */
+function randomSecret(bytes: number): string {
+  return randomBytes(bytes).toString("base64url");
+}
+
+/**
  * Base of the OAuth 2.0 / OpenID Connect login providers
  *
  * Exposes, under `url` (default `/auth/<providerName>`):
- * - `GET <url>{?redirect}`: starts a login, stores a random single-use `state` (10 min) in the session and redirects
- *   to the provider; `redirect` must match `authorized_uris`
- * - `GET <url>/callback`: checks the state, exchanges the code (`handleCallback`), hands the identity to
- *   `Authentication.complete()` then redirects; never throws, failures go to `redirects.failure?reason=<CODE>`
- * - operation `Auth.<Provider>.Token` (`POST auth/<providerName>/token`, body `{ token }`) for non-browser clients
+ * - `GET <url>{?redirect}`: starts a login with a random `state`, a PKCE (S256) verifier and an OpenID `nonce`, kept
+ *   in a dedicated encrypted cookie (10 min, HttpOnly, SameSite=Lax, path `url`), then redirects to the provider;
+ *   `redirect` must match `authorized_uris`
+ * - `GET <url>/callback`: consumes that cookie, checks the state, exchanges the code (`handleCallback`) and hands
+ *   the identity to `Authentication.complete()`; never throws, failures go to `redirects.failure?reason=<CODE>`
+ * - operation `Auth.<Provider>.Token` (`POST auth/<providerName>/token`, JSON body `{ token }` or `{ tokens }`) for
+ *   non-browser clients; it never links an identity to the session user
  *
  * Subclasses implement `providerName`, `getAuthorizationUrl`, `handleCallback` and `handleToken`; the provider of the
  * returned identities is always forced to `providerName`.
  */
-export abstract class OAuthProvider<T extends OAuthProviderParameters = OAuthProviderParameters>
-  extends Service<T>
+export abstract class OAuthProvider<
+  T extends OAuthProviderParameters = OAuthProviderParameters,
+  E extends AsyncEventUnknown = {}
+>
+  extends Service<T, E>
   implements AuthProvider
 {
   static Parameters = OAuthProviderParameters;
@@ -167,36 +260,57 @@ export abstract class OAuthProvider<T extends OAuthProviderParameters = OAuthPro
   abstract readonly providerName: string;
 
   /**
-   * Build the authorization url of the provider
-   * @param state - random state to send back on the callback
-   * @param redirectUri - callback url
-   * @param scope - scopes to request
+   * Build the authorization url of the provider, sending the PKCE challenge and the nonce
+   * @param request - authorization request
    * @returns the url to redirect the browser to
    */
-  abstract getAuthorizationUrl(state: string, redirectUri: string, scope: string[]): string | Promise<string>;
+  abstract getAuthorizationUrl(request: OAuthAuthorizationRequest): string | Promise<string>;
 
   /**
-   * Exchange an authorization code and verify the result
-   * @param code - authorization code from the callback
-   * @param redirectUri - redirect_uri used for the authorization request
+   * Exchange an authorization code (with the PKCE verifier) and verify the result, including the nonce of an ID
+   * token
+   * @param request - code exchange
    * @returns the identity proven by the provider
    * @throws an HttpError (for example TokenInvalid) whose code is used as the failure reason
    */
-  abstract handleCallback(code: string, redirectUri: string): Promise<ResolvedIdentity>;
+  abstract handleCallback(request: OAuthCallbackRequest): Promise<ResolvedIdentity>;
 
   /**
    * Verify a token presented by a non-browser client
-   * @param token - token
+   * @param request - `token` and/or `tokens` (at least one is present)
    * @returns the identity proven by the provider
    * @throws TokenInvalid when the token cannot be verified
    */
-  abstract handleToken(token: string): Promise<ResolvedIdentity>;
+  abstract handleToken(request: OAuthTokenRequest): Promise<ResolvedIdentity>;
+
+  /**
+   * Called after a successful `Authentication.complete()` (status ok or mfa_required)
+   * @param _identity - the identity
+   * @param _result - the result
+   * @param _source - browser callback or token operation
+   * @param _request - the token operation request (token operation only)
+   */
+  protected async onAuthenticated(
+    _identity: ResolvedIdentity,
+    _result: AuthResult,
+    _source: "callback" | "token",
+    _request?: OAuthTokenRequest
+  ): Promise<void> {
+    // Hook for providers
+  }
 
   /**
    * @returns false when the provider works without client secret (public clients)
    */
   protected requiresClientSecret(): boolean {
     return true;
+  }
+
+  /**
+   * @returns the name of the pending login cookie
+   */
+  protected getCookieName(): string {
+    return `webda_oauth_${this.providerName}`;
   }
 
   /** @override */
@@ -260,23 +374,75 @@ export abstract class OAuthProvider<T extends OAuthProviderParameters = OAuthPro
 
   /**
    * Log in with a token obtained by the client from the provider
-   * @param token - token
+   *
+   * Requires a JSON request (a cross-site form or `text/plain` POST is refused). A request carrying a logged-in
+   * session never links the identity to that user: an identity owned by another user is refused
+   * (IDENT_LINKED_ELSEWHERE), a new or unowned one gets a fresh session.
+   * @param token - token (an ID token for OpenID Connect providers)
+   * @param tokens - credentials obtained from the provider (v3 body)
    * @returns the auth result
    */
-  async token(token: string): Promise<AuthResult> {
-    if (typeof token !== "string" || !token) {
-      throw new WebdaError.BadRequest("token is required");
+  async token(token?: string, tokens?: OAuthTokens): Promise<AuthResult> {
+    const ctx = useContext<any>();
+    this.requireJson(ctx);
+    if (token !== undefined && (typeof token !== "string" || !token)) {
+      throw new WebdaError.BadRequest("token must be a non-empty string");
+    }
+    if (tokens !== undefined && (tokens === null || typeof tokens !== "object" || Array.isArray(tokens))) {
+      throw new WebdaError.BadRequest("tokens must be an object");
+    }
+    if (!token && !tokens) {
+      throw new WebdaError.BadRequest("token or tokens is required");
     }
     let identity: ResolvedIdentity;
     try {
-      identity = this.ownIdentity(this.checkIdentity(await this.handleToken(token)));
+      identity = this.ownIdentity(this.checkIdentity(await this.handleToken({ token, tokens })));
     } catch (err) {
       if (httpErrorCode(err)) throw err;
       // Fail closed: an unexpected verification failure is an invalid token
-      this.log("WARN", `${this.providerName} token verification failed`, (err as any)?.message);
+      this.log("WARN", `${this.providerName} token verification failed:`, safeErrorReason(err));
       throw new TokenInvalid();
     }
-    return useAuthentication().complete(identity);
+    await this.leaveForeignSession(ctx, identity);
+    const result = await useAuthentication().complete(identity);
+    await this.onAuthenticated(identity, result, "token", { token, tokens });
+    return result;
+  }
+
+  /**
+   * Refuse a request that is not JSON: cross-site requests can only send form or `text/plain` bodies without a
+   * preflight
+   * @param ctx - operation context
+   * @throws UnsupportedMediaType when the HTTP request is not `application/json`
+   */
+  protected requireJson(ctx: any): void {
+    const http = ctx?.getHttpContext?.();
+    if (!http) return;
+    const type = `${http.getUniqueHeader?.("content-type", "") ?? ""}`;
+    if (!/^application\/json\s*(;|$)/i.test(type.trim())) {
+      throw new UnsupportedMediaType();
+    }
+  }
+
+  /**
+   * The token operation never links: with a logged-in session, an identity owned by another user is refused and a
+   * new or unowned one starts a fresh session
+   * @param ctx - operation context
+   * @param identity - verified identity
+   * @throws IdentLinkedElsewhere when the identity belongs to another user than the session one
+   */
+  protected async leaveForeignSession(ctx: any, identity: ResolvedIdentity): Promise<void> {
+    if (!ctx?.getSession?.()?.isLogged()) return;
+    const current = ctx.getCurrentUserId();
+    const ident = await runAsSystem(() =>
+      (useAuthentication() as any).findIdent(identity.provider, identity.providerUid)
+    );
+    const owner = ident?.getUser()?.toString();
+    if (owner === current) return;
+    if (owner) {
+      throw new IdentLinkedElsewhere();
+    }
+    ctx.newSession();
   }
 
   /**
@@ -304,11 +470,13 @@ export abstract class OAuthProvider<T extends OAuthProviderParameters = OAuthPro
   }
 
   /**
-   * Check a post-login target against `authorized_uris`: same origin, and the listed path or below it
+   * Check a post-login target against `authorized_uris`: same origin, and the listed path or below it; an encoded
+   * slash or backslash in the path is refused
    * @param redirect - candidate
    * @returns the normalised url, undefined when not allowed
    */
   protected allowedRedirect(redirect: unknown): string | undefined {
+    if (typeof redirect !== "string" || /%2f|%5c/i.test(redirect.split(/[?#]/)[0])) return undefined;
     const target = parseHttpUrl(redirect);
     if (!target) return undefined;
     for (const uri of this.parameters.authorized_uris ?? []) {
@@ -331,29 +499,65 @@ export abstract class OAuthProvider<T extends OAuthProviderParameters = OAuthPro
   }
 
   /**
+   * Set (or clear, without value) the pending login cookie
    * @param ctx - web context
-   * @returns the session, created when missing
+   * @param value - encrypted pending login
    */
-  protected sessionOf(ctx: WebContext): any {
-    return ctx.getSession<any>() ?? ctx.newSession();
+  protected sendPendingCookie(ctx: WebContext, value?: string): void {
+    const options = new CookieOptions(
+      {
+        name: this.getCookieName(),
+        path: this.parameters.url ?? "/",
+        maxAge: value ? PENDING_TTL : 0,
+        sameSite: "lax",
+        httpOnly: true
+      },
+      ctx.getHttpContext()
+    );
+    if (value) {
+      SecureCookie.sendCookie(ctx, this.getCookieName(), value, options);
+    } else {
+      ctx.cookie(this.getCookieName(), "", options);
+    }
   }
 
   /**
-   * Remove and return the pending login of this provider
+   * Read and clear the pending login cookie
    * @param ctx - web context
-   * @returns the pending login, if any
+   * @returns the pending login, undefined when absent, invalid, expired or of another provider
    */
-  protected consumePending(ctx: WebContext): PendingLogin | undefined {
-    const session = this.sessionOf(ctx);
-    const all = session.oauth;
-    const pending: PendingLogin | undefined = all?.[this.providerName];
-    if (pending) {
-      const rest = { ...all };
-      delete rest[this.providerName];
-      // Assigned (not deleted) so the session is marked dirty and saved
-      session.oauth = Object.keys(rest).length ? rest : undefined;
+  protected async consumePending(ctx: WebContext): Promise<PendingLogin | undefined> {
+    const raw = ctx.getHttpContext()?.getCookies?.()?.[this.getCookieName()];
+    // Always cleared: single use
+    this.sendPendingCookie(ctx);
+    if (typeof raw !== "string" || !raw) return undefined;
+    let pending: PendingLogin;
+    try {
+      pending = await useCrypto().decrypt(raw);
+    } catch {
+      return undefined;
+    }
+    if (
+      !pending ||
+      pending.provider !== this.providerName ||
+      typeof pending.state !== "string" ||
+      typeof pending.verifier !== "string" ||
+      typeof pending.nonce !== "string" ||
+      !(Date.now() <= pending.expires)
+    ) {
+      return undefined;
     }
     return pending;
+  }
+
+  /**
+   * Redirect without caching
+   * @param ctx - web context
+   * @param url - target
+   */
+  protected redirect(ctx: WebContext, url: string): void {
+    ctx.setHeader("Cache-Control", "no-store");
+    ctx.redirect(url);
   }
 
   /**
@@ -361,7 +565,7 @@ export abstract class OAuthProvider<T extends OAuthProviderParameters = OAuthPro
    * @param reason - failure code
    */
   protected fail(ctx: WebContext, reason: string): void {
-    ctx.redirect(withQuery(this.parameters.redirects.failure, { reason }));
+    this.redirect(ctx, withQuery(this.parameters.redirects.failure, { reason }));
   }
 
   /**
@@ -386,15 +590,27 @@ export abstract class OAuthProvider<T extends OAuthProviderParameters = OAuthPro
           return;
         }
       }
-      const state = randomBytes(32).toString("base64url");
-      const redirectUri = this.getRedirectUri(ctx);
-      const url = await this.getAuthorizationUrl(state, redirectUri, this.parameters.scope ?? []);
-      const session = this.sessionOf(ctx);
-      const pending: PendingLogin = { state, redirect, redirectUri, expires: Date.now() + STATE_TTL };
-      session.oauth = { ...(session.oauth ?? {}), [this.providerName]: pending };
-      ctx.redirect(url);
+      const pending: PendingLogin = {
+        provider: this.providerName,
+        state: randomSecret(32),
+        verifier: randomSecret(32),
+        nonce: randomSecret(24),
+        redirect,
+        redirectUri: this.getRedirectUri(ctx),
+        expires: Date.now() + PENDING_TTL * 1000
+      };
+      const url = await this.getAuthorizationUrl({
+        state: pending.state,
+        redirectUri: pending.redirectUri,
+        scope: this.parameters.scope ?? [],
+        codeChallenge: createHash("sha256").update(pending.verifier).digest("base64url"),
+        codeChallengeMethod: "S256",
+        nonce: pending.nonce
+      });
+      this.sendPendingCookie(ctx, await useCrypto().encrypt(pending));
+      this.redirect(ctx, url);
     } catch (err) {
-      this.log("ERROR", `Cannot start ${this.providerName} login`, (err as any)?.message);
+      this.log("ERROR", `Cannot start ${this.providerName} login:`, safeErrorReason(err));
       this.fail(ctx, "OAUTH_ERROR");
     }
   }
@@ -412,9 +628,9 @@ export abstract class OAuthProvider<T extends OAuthProviderParameters = OAuthPro
   })
   async callback(ctx: WebContext): Promise<void> {
     try {
-      const pending = this.consumePending(ctx);
+      const pending = await this.consumePending(ctx);
       const state = ctx.parameter("state");
-      if (!pending || typeof state !== "string" || Date.now() > pending.expires || !sameSecret(state, pending.state)) {
+      if (!pending || typeof state !== "string" || !sameSecret(state, pending.state)) {
         this.fail(ctx, "STATE_MISMATCH");
         return;
       }
@@ -424,29 +640,28 @@ export abstract class OAuthProvider<T extends OAuthProviderParameters = OAuthPro
         return;
       }
       const result = await runWithContext(ctx, async () => {
-        const identity = this.ownIdentity(this.checkIdentity(await this.handleCallback(code, pending.redirectUri)));
-        return useAuthentication().complete(identity);
+        const identity = this.ownIdentity(
+          this.checkIdentity(
+            await this.handleCallback({
+              code,
+              redirectUri: pending.redirectUri,
+              codeVerifier: pending.verifier,
+              nonce: pending.nonce
+            })
+          )
+        );
+        const res = await useAuthentication().complete(identity);
+        await this.onAuthenticated(identity, res, "callback");
+        return res;
       });
       const target = pending.redirect ?? this.parameters.redirects.success ?? "/";
-      ctx.redirect(result.status === "mfa_required" ? withQuery(target, { mfa: "required" }) : target);
+      this.redirect(ctx, result.status === "mfa_required" ? withQuery(target, { mfa: "required" }) : target);
     } catch (err) {
       const code = httpErrorCode(err);
       if (!code) {
-        this.log("ERROR", `${this.providerName} callback failed`, (err as any)?.message);
+        this.log("ERROR", `${this.providerName} callback failed:`, safeErrorReason(err));
       }
       this.fail(ctx, code ?? "OAUTH_ERROR");
     }
   }
-}
-
-/**
- * Constant-time comparison of two secrets
- * @param a - received value
- * @param b - expected value
- * @returns true when equal
- */
-function sameSecret(a: string, b: string): boolean {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-  return left.length === right.length && timingSafeEqual(left, right);
 }

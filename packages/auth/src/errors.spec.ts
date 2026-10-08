@@ -15,7 +15,8 @@ class ErrorsTest {
       [Errors.TokenExpired, "TOKEN_EXPIRED", 410],
       [Errors.Throttled, "THROTTLED", 429],
       [Errors.TokenInvalid, "TOKEN_INVALID", 403],
-      [Errors.InvalidIdent, "INVALID_IDENT", 400]
+      [Errors.InvalidIdent, "INVALID_IDENT", 400],
+      [Errors.UnsupportedMediaType, "UNSUPPORTED_MEDIA_TYPE", 415]
     ];
     for (const [Cls, code, status] of cases) {
       const err = new Cls();

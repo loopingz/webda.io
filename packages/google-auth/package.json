@@ -48,6 +48,7 @@
     "@webda/compiler": "workspace:^",
     "@webda/content-mapper": "workspace:^",
     "@webda/test": "workspace:*",
+    "@webda/workout": "workspace:*",
     "jscodeshift": "^17.3.0",
     "skott": "^0.35.8",
     "tsx": "^4.21.0",

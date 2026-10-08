@@ -35,7 +35,7 @@
         "properties": {
           "access_type": {
             "default": "online",
-            "description": "Type of access: \"offline\" also returns a refresh token (stored in the ident tokens)",
+            "description": "Type of access: \"offline\" also returns a refresh token (stored encrypted in the ident tokens)",
             "enum": [
               "online",
               "offline"
@@ -59,7 +59,7 @@
           },
           "auth_options": {
             "$ref": "#/definitions/Record%3Cstring%2C%20any%3E",
-            "description": "Additional authorization url parameters (for example `prompt`, `login_hint`); cannot override `state`,\n`redirect_uri`, `scope`, `access_type`, `response_type` nor `hd`\nSee https://developers.google.com/identity/protocols/oauth2/openid-connect#authenticationuriparameters"
+            "description": "Additional authorization url parameters (for example `prompt`, `login_hint`); cannot override `state`,\n`redirect_uri`, `scope`, `access_type`, `response_type`, `code_challenge*`, `nonce` nor `hd`\nSee https://developers.google.com/identity/protocols/oauth2/openid-connect#authenticationuriparameters"
           },
           "authorized_uris": {
             "default": [],
@@ -189,16 +189,24 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "WebdaSchema": true,
       "additionalProperties": false,
-      "description": "Input of the `Auth.<Provider>.Token` operations",
+      "definitions": {
+        "OAuthTokens": {
+          "additionalProperties": {},
+          "description": "Credentials as returned by an OAuth token endpoint (google-auth-library `Credentials` shape): `id_token`,\n`access_token`, `refresh_token`, `expiry_date`, `token_type`, `scope`... Values are not typed by the schema\n(providers send nulls); providers check what they use.",
+          "type": "object"
+        }
+      },
+      "description": "Input of the `Auth.<Provider>.Token` operations: `token`, or the provider credentials `tokens`",
       "properties": {
         "token": {
           "description": "Token issued by the provider to the client (an ID token for OpenID Connect providers)",
           "type": "string"
+        },
+        "tokens": {
+          "$ref": "#/definitions/OAuthTokens",
+          "description": "Credentials obtained by the client from the provider (v3 body; its `id_token` is verified)"
         }
       },
-      "required": [
-        "token"
-      ],
       "type": "object",
       "title": "OAuthTokenRequest"
     }

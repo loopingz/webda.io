@@ -1,7 +1,9 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Ident, useRouter, useService, type WebContext } from "@webda/core";
+import { createHash } from "node:crypto";
+import { HttpContext, Ident, useRouter, useService, type WebContext } from "@webda/core";
 import { TestApplication } from "@webda/core/lib/test/objects.js";
+import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import { AuthTest } from "../test/authtest.js";
 import { FakeOAuthProvider } from "../test/fakeoauth.service.js";
 import { addStubProviders, stubProvidersConfig } from "../test/stubprovider.js";
@@ -10,12 +12,31 @@ import { OAuthProvider, OAuthProviderParameters } from "./oauth.service.js";
 
 const OK = "https://app.example.com/ok";
 const KO = "https://app.example.com/ko";
+const COOKIE = "webda_oauth_fake";
 
 /**
  * @param location - a redirect
  * @returns its query parameters
  */
 const query = (location: string) => Object.fromEntries(new URL(location).searchParams.entries());
+
+/** A browser: a session (cookie session) and the other cookies it holds */
+interface Browser {
+  /** Context holding the session */
+  ctx: WebContext;
+  /** Cookies sent with each request */
+  jar: Record<string, string>;
+}
+
+/** Result of a GET route */
+interface RouteResult {
+  /** Location header */
+  location: string;
+  /** Response headers */
+  headers: any;
+  /** Pending login cookie set by the response, if any */
+  cookie?: { name: string; value: string; options: any };
+}
 
 @suite
 class OAuthProviderTest extends AuthTest {
@@ -64,48 +85,129 @@ class OAuthProviderTest extends AuthTest {
   }
 
   /**
-   * Call a GET route of the provider with the session of ctx
-   * @param ctx - context holding the session (updated afterwards)
-   * @param method - route method
-   * @param params - query parameters
-   * @returns the Location of the redirect
+   * @returns a new browser with an empty session
    */
-  async route(ctx: WebContext, method: "login" | "callback", params: any = {}): Promise<string> {
-    const call = await this.newContext<WebContext>();
-    call.setSession(ctx.getSession());
+  async browser(): Promise<Browser> {
+    return { ctx: await this.ctx(), jar: {} };
+  }
+
+  /**
+   * Call a GET route of the provider like a browser: its session and cookies go with the request, the cookies of
+   * the response update the jar
+   * @param browser - browser
+   * @param method - route
+   * @param params - query parameters
+   * @param https - https request
+   * @returns the redirect
+   */
+  async route(
+    browser: Browser,
+    method: "login" | "callback",
+    params: any = {},
+    https: boolean = false
+  ): Promise<RouteResult> {
+    const cookie = Object.entries(browser.jar)
+      .map(([k, v]) => `${k}=${v}`)
+      .join("; ");
+    const http = new HttpContext(
+      "test.webda.io",
+      "GET",
+      method === "login" ? "/auth/fake" : "/auth/fake/callback",
+      https ? "https" : "http",
+      https ? 443 : 80,
+      cookie ? { cookie } : {}
+    );
+    const call = await this.newWebContext<WebContext>(http);
+    call.setSession(browser.ctx.getSession());
     call.setParameters(params);
     await this.inContext(call, () => (this.fake as any)[method](call));
-    ctx.setSession(call.getSession());
+    browser.ctx.setSession(call.getSession());
     assert.strictEqual(call.statusCode, 302, `${method} must redirect`);
-    return call.getResponseHeaders().Location as string;
+    const set = (call.getResponseCookies() as any)?.[COOKIE];
+    if (set) {
+      if (set.value && set.options.maxAge > 0) browser.jar[COOKIE] = set.value;
+      else delete browser.jar[COOKIE];
+    }
+    const headers = call.getResponseHeaders();
+    return { location: headers.Location as string, headers, cookie: set };
   }
 
   /**
    * Start a login
-   * @param ctx - context
+   * @param browser - browser
    * @param redirect - optional redirect parameter
-   * @returns the state sent to the provider
+   * @returns the authorization url parameters
    */
-  async start(ctx: WebContext, redirect?: string): Promise<string> {
-    const location = await this.route(ctx, "login", redirect ? { redirect } : {});
+  async start(browser: Browser, redirect?: string): Promise<Record<string, string>> {
+    const { location } = await this.route(browser, "login", redirect ? { redirect } : {});
     assert.ok(location.startsWith("https://idp.example/authorize?"), location);
-    return query(location).state;
+    return query(location);
+  }
+
+  /**
+   * Capture the logs of fn
+   * @param fn - code
+   * @returns every log line, as text
+   */
+  async logsOf(fn: () => Promise<unknown>): Promise<string> {
+    const logger = new MemoryLogger(useWorkerOutput(), "TRACE");
+    try {
+      await fn();
+    } finally {
+      logger.close?.();
+    }
+    return JSON.stringify(logger.getLogs());
   }
 
   @test
-  async loginRedirectsWithState() {
-    const ctx = await this.ctx();
-    const location = await this.route(ctx, "login", { redirect: "https://app.example.com/after/page?x=1" });
-    const q = query(location);
+  async loginSetsAPendingLoginCookie() {
+    const browser = await this.browser();
+    const res = await this.route(browser, "login", { redirect: "https://app.example.com/after/page?x=1" }, true);
+    const q = query(res.location);
     assert.ok(q.state && q.state.length >= 32, "random state");
     assert.ok(q.redirect_uri.endsWith("/auth/fake/callback"), q.redirect_uri);
     assert.strictEqual(q.scope, "openid email");
     assert.strictEqual(q.client_id, "cid");
-    // A second login gets another state
-    const other = await this.start(await this.ctx());
-    assert.notStrictEqual(other, q.state);
-    // The session is not logged in by starting a login
-    assert.ok(!ctx.getSession().isLogged());
+    // PKCE and nonce
+    assert.strictEqual(q.code_challenge_method, "S256");
+    assert.match(q.code_challenge, /^[A-Za-z0-9_-]{43}$/);
+    assert.ok(q.nonce && q.nonce.length >= 16);
+    assert.strictEqual(res.headers["Cache-Control"], "no-store");
+    // Dedicated short-lived cookie, encrypted
+    assert.strictEqual(res.cookie.name, COOKIE);
+    assert.strictEqual(res.cookie.options.httpOnly, true);
+    assert.strictEqual(res.cookie.options.secure, true);
+    assert.strictEqual(res.cookie.options.sameSite, "lax");
+    assert.strictEqual(res.cookie.options.path, "/auth/fake");
+    assert.strictEqual(res.cookie.options.maxAge, 600);
+    for (const secret of [q.state, q.nonce, "app.example.com"]) {
+      assert.ok(!res.cookie.value.includes(secret), "the cookie is encrypted");
+    }
+    // Nothing goes in the session
+    assert.ok(!JSON.stringify(browser.ctx.getSession()).includes(q.state));
+    assert.ok(!browser.ctx.getSession().isLogged());
+    // Plain http: not Secure
+    assert.strictEqual((await this.route(await this.browser(), "login")).cookie.options.secure, false);
+    // Another login gets other secrets
+    const other = await this.start(await this.browser());
+    assert.notStrictEqual(other.state, q.state);
+    assert.notStrictEqual(other.nonce, q.nonce);
+    assert.notStrictEqual(other.code_challenge, q.code_challenge);
+  }
+
+  @test
+  async stateCookieIgnoresTheSessionCookieSameSite() {
+    const sessions: any = useService("SessionManager" as any);
+    const cookie = sessions.getParameters().cookie;
+    const previous = cookie.sameSite;
+    cookie.sameSite = "strict";
+    try {
+      const browser = await this.browser();
+      const res = await this.route(browser, "login");
+      assert.strictEqual(res.cookie.options.sameSite, "lax");
+    } finally {
+      cookie.sameSite = previous;
+    }
   }
 
   @test
@@ -120,139 +222,161 @@ class OAuthProviderTest extends AuthTest {
       "https://app.example.com:8443/after",
       "https://app.example.com/after/../admin",
       "https://app.example.com/after/%2e%2e/admin",
+      "https://app.example.com/after/%2F%2Fevil.com",
+      "https://app.example.com/after/%2fx",
+      "https://app.example.com/after/%5Cevil",
+      "https://app.example.com/after/%5cx",
       "//evil.com/after",
       "/after",
       "javascript:alert(1)",
       "not a url"
     ]) {
-      const ctx = await this.ctx();
-      const location = await this.route(ctx, "login", { redirect });
-      assert.strictEqual(location, `${KO}?reason=REDIRECT_NOT_ALLOWED`, redirect);
-      // Nothing is pending: a callback cannot succeed
-      const back = await this.route(ctx, "callback", { code: "1,a@x.com,1", state: "anything" });
-      assert.strictEqual(back, `${KO}?reason=STATE_MISMATCH`);
+      const browser = await this.browser();
+      const res = await this.route(browser, "login", { redirect });
+      assert.strictEqual(res.location, `${KO}?reason=REDIRECT_NOT_ALLOWED`, redirect);
+      assert.strictEqual(res.headers["Cache-Control"], "no-store");
+      assert.strictEqual(res.cookie, undefined, "no pending login");
+      const back = await this.route(browser, "callback", { code: "1,a@x.com,1", state: "anything" });
+      assert.strictEqual(back.location, `${KO}?reason=STATE_MISMATCH`);
     }
+    // An encoded slash in the query is not a path
+    assert.ok(await this.start(await this.browser(), "https://app.example.com/after?next=%2Fhome"));
     assert.strictEqual(this.fake.calls.length, 0);
   }
 
   @test
   async loginWithoutAllowList() {
     this.fake.getParameters().authorized_uris = [];
-    const ctx = await this.ctx();
+    const browser = await this.browser();
     assert.strictEqual(
-      await this.route(ctx, "login", { redirect: "https://app.example.com/after" }),
+      (await this.route(browser, "login", { redirect: "https://app.example.com/after" })).location,
       `${KO}?reason=REDIRECT_NOT_ALLOWED`
     );
-    // Without redirect parameter the flow starts
-    assert.ok(await this.start(ctx));
+    assert.ok(await this.start(browser));
   }
 
   @test
   async callbackStateMismatch() {
-    const ctx = await this.ctx();
+    const code = "1,a@x.com,1";
     // No pending login
-    assert.strictEqual(
-      await this.route(ctx, "callback", { code: "1,a@x.com,1", state: "x" }),
-      `${KO}?reason=STATE_MISMATCH`
-    );
-    // Wrong state
-    await this.start(ctx);
-    assert.strictEqual(
-      await this.route(ctx, "callback", { code: "1,a@x.com,1", state: "wrong" }),
-      `${KO}?reason=STATE_MISMATCH`
-    );
+    const browser = await this.browser();
+    let res = await this.route(browser, "callback", { code, state: "x" });
+    assert.strictEqual(res.location, `${KO}?reason=STATE_MISMATCH`);
+    assert.strictEqual(res.headers["Cache-Control"], "no-store");
+    // Wrong state: the pending login is cleared
+    await this.start(browser);
+    res = await this.route(browser, "callback", { code, state: "wrong" });
+    assert.strictEqual(res.location, `${KO}?reason=STATE_MISMATCH`);
+    assert.strictEqual(res.cookie.options.maxAge, 0, "the pending login cookie is cleared");
+    assert.strictEqual(browser.jar[COOKIE], undefined);
     // Missing state
-    const state = await this.start(ctx);
-    assert.strictEqual(await this.route(ctx, "callback", { code: "1,a@x.com,1" }), `${KO}?reason=STATE_MISMATCH`);
-    // The state was consumed by the failed attempt
+    const { state } = await this.start(browser);
+    assert.strictEqual((await this.route(browser, "callback", { code })).location, `${KO}?reason=STATE_MISMATCH`);
+    // Consumed by the failed attempt
     assert.strictEqual(
-      await this.route(ctx, "callback", { code: "1,a@x.com,1", state }),
+      (await this.route(browser, "callback", { code, state })).location,
       `${KO}?reason=STATE_MISMATCH`
     );
-    // State of another session
-    const other = await this.ctx();
-    const otherState = await this.start(other);
-    const mine = await this.ctx();
+    // Tampered cookie
+    const t = await this.start(browser);
+    const [h, p, s] = browser.jar[COOKIE].split(".");
+    browser.jar[COOKIE] = `${h}.${p.substring(0, p.length - 4)}AAAA.${s}`;
+    assert.strictEqual(
+      (await this.route(browser, "callback", { code, state: t.state })).location,
+      `${KO}?reason=STATE_MISMATCH`
+    );
+    // State of another browser
+    const other = await this.browser();
+    const otherState = (await this.start(other)).state;
+    const mine = await this.browser();
     await this.start(mine);
     assert.strictEqual(
-      await this.route(mine, "callback", { code: "1,a@x.com,1", state: otherState }),
+      (await this.route(mine, "callback", { code, state: otherState })).location,
       `${KO}?reason=STATE_MISMATCH`
     );
     assert.strictEqual(this.fake.calls.length, 0, "the code is never exchanged");
-    for (const c of [ctx, mine]) {
-      assert.ok(!c.getSession().isLogged());
-      assert.ok(!c.getSession().userId);
+    for (const b of [browser, mine]) {
+      assert.ok(!b.ctx.getSession().isLogged());
+      assert.ok(!b.ctx.getSession().userId);
     }
   }
 
   @test
   async callbackExpiredState() {
-    const ctx = await this.ctx();
+    const browser = await this.browser();
     const now = Date.now();
-    const state = await this.start(ctx);
+    const { state } = await this.start(browser);
     const realNow = Date.now;
     try {
       Date.now = () => now + 10 * 60 * 1000 + 1000;
       assert.strictEqual(
-        await this.route(ctx, "callback", { code: "1,a@x.com,1", state }),
+        (await this.route(browser, "callback", { code: "1,a@x.com,1", state })).location,
         `${KO}?reason=STATE_MISMATCH`
       );
     } finally {
       Date.now = realNow;
     }
-    assert.ok(!ctx.getSession().isLogged());
+    assert.ok(!browser.ctx.getSession().isLogged());
   }
 
   @test
-  async callbackLogsInAndRedirects() {
-    const ctx = await this.ctx();
-    const state = await this.start(ctx, "https://app.example.com/after/page?x=1");
-    const location = await this.route(ctx, "callback", { code: "sub1,Sub1@X.com,1", state, scope: "openid" });
-    assert.strictEqual(location, "https://app.example.com/after/page?x=1");
-    assert.ok(ctx.getSession().isLogged());
-    assert.strictEqual(ctx.getSession().provider, "fake");
-    assert.deepStrictEqual(ctx.getSession().amr, ["oauth"]);
+  async callbackLogsInWithPkceAndNonce() {
+    const browser = await this.browser();
+    const q = await this.start(browser, "https://app.example.com/after/page?x=1");
+    const res = await this.route(browser, "callback", { code: "sub1,Sub1@X.com,1", state: q.state, scope: "openid" });
+    assert.strictEqual(res.location, "https://app.example.com/after/page?x=1");
+    assert.strictEqual(res.headers["Cache-Control"], "no-store");
+    assert.strictEqual(res.cookie.options.maxAge, 0, "the pending login cookie is cleared");
+    const session = browser.ctx.getSession();
+    assert.ok(session.isLogged());
+    assert.strictEqual(session.provider, "fake");
+    assert.deepStrictEqual(session.amr, ["oauth"]);
     const ident = await Ident.ref(Ident.key("sub1", "fake")).get();
-    assert.strictEqual(ident.getUser().toString(), ctx.getSession().userId);
-    assert.strictEqual(ident.getUUID(), "sub1:fake");
-    // The callback received the redirect_uri sent to the provider
+    assert.strictEqual(ident.getUser().toString(), session.userId);
+    // The exchange gets the redirect_uri, the PKCE verifier and the nonce of the login
     assert.strictEqual(this.fake.calls.length, 1);
-    assert.ok(this.fake.calls[0].redirectUri.endsWith("/auth/fake/callback"));
-    // Replaying the same callback fails: the state is single-use
-    const replay = await this.ctx();
-    replay.setSession(ctx.getSession());
-    assert.strictEqual(
-      await this.route(replay, "callback", { code: "sub1,Sub1@X.com,1", state }),
-      `${KO}?reason=STATE_MISMATCH`
-    );
+    const request = this.fake.calls[0].request;
+    assert.strictEqual(request.code, "sub1,Sub1@X.com,1");
+    assert.strictEqual(request.redirectUri, q.redirect_uri);
+    assert.strictEqual(request.nonce, q.nonce);
+    assert.strictEqual(createHash("sha256").update(request.codeVerifier).digest("base64url"), q.code_challenge);
+  }
+
+  @test
+  async callbackWorksWithoutTheSessionCookie() {
+    // A SameSite=Strict session cookie is not sent on the cross-site callback: only the pending login cookie is
+    const browser = await this.browser();
+    const q = await this.start(browser, "https://app.example.com/after");
+    const strict: Browser = { ctx: await this.ctx(), jar: browser.jar };
+    const res = await this.route(strict, "callback", { code: "sub10,,0", state: q.state });
+    assert.strictEqual(res.location, "https://app.example.com/after");
+    assert.ok(strict.ctx.getSession().isLogged());
   }
 
   @test
   async callbackDefaultsToSuccessAndConfiguredRedirectUri() {
     this.fake.getParameters().redirect_uri = "https://api.example.com/auth/fake/callback";
-    const ctx = await this.ctx();
-    const location = await this.route(ctx, "login");
-    assert.strictEqual(query(location).redirect_uri, "https://api.example.com/auth/fake/callback");
-    assert.strictEqual(await this.route(ctx, "callback", { code: "sub2,,0", state: query(location).state }), OK);
-    assert.strictEqual(this.fake.calls[0].redirectUri, "https://api.example.com/auth/fake/callback");
-    assert.ok(ctx.getSession().isLogged());
+    const browser = await this.browser();
+    const q = await this.start(browser);
+    assert.strictEqual(q.redirect_uri, "https://api.example.com/auth/fake/callback");
+    assert.strictEqual((await this.route(browser, "callback", { code: "sub2,,0", state: q.state })).location, OK);
+    assert.strictEqual(this.fake.calls[0].request.redirectUri, "https://api.example.com/auth/fake/callback");
+    assert.ok(browser.ctx.getSession().isLogged());
   }
 
   @test
   async callbackRefusedByAuthentication() {
-    // Email domain policy of the provider
     this.fake.getParameters().allowedEmailDomains = ["corp.com"];
-    let ctx = await this.ctx();
-    let state = await this.start(ctx);
+    let browser = await this.browser();
+    let q = await this.start(browser);
     assert.strictEqual(
-      await this.route(ctx, "callback", { code: "sub3,a@other.com,1", state }),
+      (await this.route(browser, "callback", { code: "sub3,a@other.com,1", state: q.state })).location,
       `${KO}?reason=EMAIL_DOMAIN_NOT_ALLOWED`
     );
-    assert.ok(!ctx.getSession().isLogged());
+    assert.ok(!browser.ctx.getSession().isLogged());
     assert.ok(!(await Ident.ref(Ident.key("sub3", "fake")).exists()));
     delete this.fake.getParameters().allowedEmailDomains;
 
-    // An account owns the verified email and the provider does not assert verification
     const owner = await this.auth.getUserModel().create({ email: "owner@x.com" } as any);
     const emailIdent = new Ident({
       ...Ident.key("owner@x.com", "email"),
@@ -261,63 +385,74 @@ class OAuthProviderTest extends AuthTest {
     } as any);
     emailIdent.setUser(owner.getUUID());
     await Ident.getRepository().create(emailIdent);
-    ctx = await this.ctx();
-    state = await this.start(ctx, "https://app.example.com/after");
+    browser = await this.browser();
+    q = await this.start(browser, "https://app.example.com/after");
     assert.strictEqual(
-      await this.route(ctx, "callback", { code: "sub4,owner@x.com,0", state }),
+      (await this.route(browser, "callback", { code: "sub4,owner@x.com,0", state: q.state })).location,
       `${KO}?reason=ACCOUNT_EXISTS`
     );
-    assert.ok(!ctx.getSession().isLogged());
+    assert.ok(!browser.ctx.getSession().isLogged());
   }
 
   @test
   async callbackProviderFailures() {
-    const ctx = await this.ctx();
-    // The provider answered with an error instead of a code
-    let state = await this.start(ctx);
+    const browser = await this.browser();
+    let q = await this.start(browser);
     assert.strictEqual(
-      await this.route(ctx, "callback", { error: "access_denied", state }),
+      (await this.route(browser, "callback", { error: "access_denied", state: q.state })).location,
       `${KO}?reason=PROVIDER_ERROR`
     );
-    // The exchange refuses the code
-    state = await this.start(ctx);
-    assert.strictEqual(await this.route(ctx, "callback", { code: "bad", state }), `${KO}?reason=TOKEN_INVALID`);
-    // Unexpected failure: generic reason, no internal message
-    state = await this.start(ctx);
-    const location = await this.route(ctx, "callback", { code: "boom", state });
+    q = await this.start(browser);
+    assert.strictEqual(
+      (await this.route(browser, "callback", { code: "bad", state: q.state })).location,
+      `${KO}?reason=TOKEN_INVALID`
+    );
+    // Unexpected failure: generic reason, nothing of the error message in the url nor in the logs
+    q = await this.start(browser);
+    let location: string;
+    const logs = await this.logsOf(async () => {
+      location = (await this.route(browser, "callback", { code: "boom-secret-code-value", state: q.state })).location;
+    });
     assert.strictEqual(location, `${KO}?reason=OAUTH_ERROR`);
-    // No subject
-    state = await this.start(ctx);
-    assert.strictEqual(await this.route(ctx, "callback", { code: ",a@x.com,1", state }), `${KO}?reason=TOKEN_INVALID`);
-    assert.ok(!ctx.getSession().isLogged());
+    assert.ok(!logs.includes("boom-secret-code-value"), logs);
+    assert.ok(!logs.includes("secret internal failure"), logs);
+    q = await this.start(browser);
+    assert.strictEqual(
+      (await this.route(browser, "callback", { code: ",a@x.com,1", state: q.state })).location,
+      `${KO}?reason=TOKEN_INVALID`
+    );
+    assert.ok(!browser.ctx.getSession().isLogged());
   }
 
   @test
   async callbackCannotImpersonateAnotherProvider() {
-    const ctx = await this.ctx();
-    const state = await this.start(ctx);
-    // The subclass claims the "email" provider: the base class forces its own name
-    assert.strictEqual(await this.route(ctx, "callback", { code: "uid9,victim@x.com,0,email", state }), OK);
+    const browser = await this.browser();
+    const q = await this.start(browser);
+    assert.strictEqual(
+      (await this.route(browser, "callback", { code: "uid9,victim@x.com,0,email", state: q.state })).location,
+      OK
+    );
     assert.ok(await Ident.ref(Ident.key("uid9", "fake")).exists());
     assert.ok(!(await Ident.ref(Ident.key("uid9", "email")).exists()));
-    assert.strictEqual(ctx.getSession().provider, "fake");
+    assert.strictEqual(browser.ctx.getSession().provider, "fake");
   }
 
   @test
   async callbackMfaRequired() {
     (this.auth as any).mfaMethods = () => ["totp"];
-    const ctx = await this.ctx();
-    let state = await this.start(ctx, "https://app.example.com/after?x=1");
+    const browser = await this.browser();
+    let q = await this.start(browser, "https://app.example.com/after?x=1");
     assert.strictEqual(
-      await this.route(ctx, "callback", { code: "sub5,,0", state }),
+      (await this.route(browser, "callback", { code: "sub5,,0", state: q.state })).location,
       "https://app.example.com/after?x=1&mfa=required"
     );
-    assert.ok(ctx.getSession().isPending());
-    assert.ok(!ctx.getSession().isLogged());
-    // Default success target
-    const other = await this.ctx();
-    state = await this.start(other);
-    assert.strictEqual(await this.route(other, "callback", { code: "sub6,,0", state }), `${OK}?mfa=required`);
+    assert.ok(browser.ctx.getSession().isPending());
+    const other = await this.browser();
+    q = await this.start(other);
+    assert.strictEqual(
+      (await this.route(other, "callback", { code: "sub6,,0", state: q.state })).location,
+      `${OK}?mfa=required`
+    );
   }
 
   @test
@@ -329,7 +464,10 @@ class OAuthProviderTest extends AuthTest {
     assert.ok(res.refreshToken);
     assert.ok(ctx.getSession().isLogged());
     assert.ok(await Ident.ref(Ident.key("sub7", "fake")).exists());
-    assert.deepStrictEqual(this.fake.calls, [{ method: "token", value: "sub7,t@x.com,1" }]);
+    assert.deepStrictEqual(
+      this.fake.calls.map(c => c.request),
+      [{ token: "sub7,t@x.com,1", tokens: undefined }]
+    );
     (this.auth as any).mfaMethods = () => ["totp"];
     assert.deepStrictEqual(await this.op("Auth.Fake.Token", { token: "sub7,t@x.com,1" }), {
       status: "mfa_required",
@@ -338,20 +476,97 @@ class OAuthProviderTest extends AuthTest {
   }
 
   @test
+  async tokenOperationAcceptsTheTokensBody() {
+    // google-auth-library Credentials may hold nulls
+    const tokens = { id_token: "sub11,,0", access_token: "at-11", refresh_token: "rt-11", expiry_date: 5, scope: null };
+    const res: any = await this.op("Auth.Fake.Token", { tokens });
+    assert.strictEqual(res.status, "ok");
+    assert.deepStrictEqual(this.fake.calls[0].request, { token: undefined, tokens });
+    // The received credentials are stored (encrypted) on the ident
+    const ident = await Ident.ref(Ident.key("sub11", "fake")).get();
+    assert.deepStrictEqual(await ident.tokens.get(), tokens);
+  }
+
+  @test
   async tokenOperationFailures() {
     await assert.rejects(() => this.op("Auth.Fake.Token", { token: "bad" }), { code: "TOKEN_INVALID" });
-    // Unexpected verification failure and missing subject fail closed
-    await assert.rejects(() => this.op("Auth.Fake.Token", { token: "boom" }), { code: "TOKEN_INVALID" });
     await assert.rejects(() => this.op("Auth.Fake.Token", { token: ",a@x.com,1" }), { code: "TOKEN_INVALID" });
-    // Missing or malformed token is refused by the input schema
+    // Unexpected verification failure: fails closed, and the token never reaches the logs
+    const logs = await this.logsOf(() =>
+      assert.rejects(() => this.op("Auth.Fake.Token", { token: "boom-secret-token-value" }), { code: "TOKEN_INVALID" })
+    );
+    assert.ok(!logs.includes("boom-secret-token-value"), logs);
+    assert.ok(!logs.includes("secret internal failure"), logs);
+    // Missing or malformed body
     await assert.rejects(() => this.op("Auth.Fake.Token", {}), { code: "BAD_REQUEST" });
     await assert.rejects(() => this.op("Auth.Fake.Token", { token: 12 }), { code: "BAD_REQUEST" });
+    await assert.rejects(() => this.op("Auth.Fake.Token", { tokens: "x" }), { code: "BAD_REQUEST" });
+    await assert.rejects(() => this.op("Auth.Fake.Token", { token: "" }), { code: "BAD_REQUEST" });
     this.fake.getParameters().allowedEmailDomains = ["corp.com"];
     const ctx = await this.ctx();
     await assert.rejects(() => this.op("Auth.Fake.Token", { token: "sub8,a@other.com,1" }, ctx), {
       code: "EMAIL_DOMAIN_NOT_ALLOWED"
     });
     assert.ok(!ctx.getSession().isLogged());
+  }
+
+  @test
+  async tokenOperationRequiresJson() {
+    for (const headers of [
+      { "content-type": "text/plain" },
+      { "content-type": "application/x-www-form-urlencoded" },
+      { "content-type": "multipart/form-data; boundary=x" },
+      { "content-type": "application/jsonp" },
+      {}
+    ]) {
+      const ctx = await this.ctx();
+      await assert.rejects(
+        () => this.op("Auth.Fake.Token", { token: "sub12,,0" }, ctx, headers as any),
+        { code: "UNSUPPORTED_MEDIA_TYPE" },
+        JSON.stringify(headers)
+      );
+      assert.ok(!ctx.getSession().isLogged());
+    }
+    assert.strictEqual(this.fake.calls.length, 0);
+    const res: any = await this.op("Auth.Fake.Token", { token: "sub12,,0" }, undefined, {
+      "content-type": "Application/JSON; charset=utf-8"
+    });
+    assert.strictEqual(res.status, "ok");
+  }
+
+  @test
+  async tokenOperationNeverLinksImplicitly() {
+    // Logged in as A
+    const ctx = await this.ctx();
+    const a: any = await this.op("Auth.Fake.Token", { token: "a1,,0" }, ctx);
+    const userA = a.user.uuid;
+    assert.strictEqual(ctx.getCurrentUserId(), userA);
+    // B's identity owned by another user: refused, the session stays A's
+    const b: any = await this.op("Auth.Fake.Token", { token: "b1,,0" });
+    await assert.rejects(() => this.op("Auth.Fake.Token", { token: "b1,,0" }, ctx), {
+      code: "IDENT_LINKED_ELSEWHERE"
+    });
+    assert.strictEqual(ctx.getCurrentUserId(), userA);
+    // A new identity while logged in as A: a fresh session for a new user, never linked to A
+    const c: any = await this.op("Auth.Fake.Token", { token: "c1,,0" }, ctx);
+    assert.notStrictEqual(c.user.uuid, userA);
+    assert.notStrictEqual(c.user.uuid, b.user.uuid);
+    assert.strictEqual(ctx.getCurrentUserId(), c.user.uuid);
+    assert.strictEqual((await Ident.ref(Ident.key("c1", "fake")).get()).getUser().toString(), c.user.uuid);
+    // The owner of the identity logs in again in its own session
+    const ctxA = await this.ctx();
+    await this.op("Auth.Fake.Token", { token: "a1,,0" }, ctxA);
+    const again: any = await this.op("Auth.Fake.Token", { token: "a1,,0" }, ctxA);
+    assert.strictEqual(again.user.uuid, userA);
+    // An unowned ident is not adopted by the cookie user either
+    const orphan = new Ident({ ...Ident.key("d1", "fake") } as any);
+    await Ident.getRepository().create(orphan);
+    const d: any = await this.op("Auth.Fake.Token", { token: "d1,,0" }, ctxA);
+    assert.notStrictEqual(d.user.uuid, userA);
+    assert.strictEqual(ctxA.getCurrentUserId(), d.user.uuid);
+    assert.strictEqual((await Ident.ref(Ident.key("d1", "fake")).get()).getUser().toString(), d.user.uuid);
+    const idents = (await Ident.query("_user = ?", [userA])).results.map(i => i.getUUID());
+    assert.deepStrictEqual(idents, ["a1:fake"]);
   }
 
   @test

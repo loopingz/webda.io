@@ -72,3 +72,11 @@ export class EmailDomainNotAllowed extends WebdaError.HttpError {
     super(message, 403);
   }
 }
+
+/** The request body must be JSON (415) */
+export class UnsupportedMediaType extends WebdaError.HttpError {
+  /** @param message - error message */
+  constructor(message: string = "Content-Type must be application/json") {
+    super(message, 415);
+  }
+}

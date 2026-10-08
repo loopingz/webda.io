@@ -1,0 +1,1132 @@
+<!doctype html>
+<html lang="en" dir="ltr" class="docs-wrapper plugin-docs plugin-id-typedoc docs-version-current docs-doc-page docs-doc-id-auth/classes/EmailPasswordProvider" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.10.2">
+<title data-rh="true">EmailPasswordProvider | Webda.io</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" property="og:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://webda.io/typedoc/auth/classes/EmailPasswordProvider"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="keywords" content="webda, typescript, framework"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-typedoc-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-typedoc-current"><meta data-rh="true" property="og:title" content="EmailPasswordProvider | Webda.io"><meta data-rh="true" name="description" content="@webda/auth"><meta data-rh="true" property="og:description" content="@webda/auth"><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://webda.io/typedoc/auth/classes/EmailPasswordProvider"><link data-rh="true" rel="alternate" href="https://webda.io/typedoc/auth/classes/EmailPasswordProvider" hreflang="en"><link data-rh="true" rel="alternate" href="https://webda.io/typedoc/auth/classes/EmailPasswordProvider" hreflang="x-default"><link data-rh="true" rel="preconnect" href="https://UJ1RRJDCSY-dsn.algolia.net" crossorigin="anonymous"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"@webda/auth","item":"https://webda.io/typedoc/auth/"},{"@type":"ListItem","position":2,"name":"EmailPasswordProvider","item":"https://webda.io/typedoc/auth/classes/EmailPasswordProvider"}]}</script><link rel="search" type="application/opensearchdescription+xml" title="Webda.io" href="/opensearch.xml"><link rel="stylesheet" href="/assets/css/styles.fd0048db.css">
+<script src="/assets/js/runtime~main.dc0a81d6.js" defer="defer"></script>
+<script src="/assets/js/main.cbd83144.js" defer="defer"></script>
+</head>
+<body>
+<svg style="display: none;"><defs>
+<symbol id="theme-svg-external-link" viewBox="0 0 24 24"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
+</defs></svg>
+<script>!function(){var t=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",t||"light"),document.documentElement.setAttribute("data-theme-choice",t||"light")}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><link rel="preload" as="image" href="/img/webda.svg"><div role="region" aria-label="Skip to main content"><a class="skipToContent_JWeg" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="theme-layout-navbar navbar navbar--fixed-top"><div class="navbar__inner"><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/"><div class="navbar__logo"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_LTLz themedComponent--light_u6Uj"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_LTLz themedComponent--dark_vFQX"></div><b class="navbar__title text--truncate">Webda.io</b></a><a class="navbar__item navbar__link" href="/docs/QuickStart">Quick Start</a><a class="navbar__item navbar__link" href="/docs/Concepts">Concepts</a><a aria-current="page" class="navbar__item navbar__link navbar__link--active" href="/typedoc/core/">Typedoc</a></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><a class="navbar__item navbar__link" style="opacity:0.5;transition:opacity 200ms ease;display:inline-flex;align-items:center;gap:6px" title="My Application — no daemon connected (link still works)" href="/configuration/welcome">My Application</a><a class="navbar__item navbar__link" href="/contribute/Contribute">Contribute</a><a href="https://github.com/loopingz/webda.io" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">GitHub<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_ny9m"><use href="#theme-svg-external-link"></use></svg></a><div class="toggle_Lxsn colorModeToggle_wCyq"><button class="clean-btn toggleButton_BEJb toggleButtonDisabled_wzmd" type="button" disabled="" title="system mode" aria-label="Switch between dark and light mode (currently system mode)"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m lightToggleIcon_ViIh"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m darkToggleIcon_Xnlu"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m systemToggleIcon_LOzk"><path fill="currentColor" d="m12 21c4.971 0 9-4.029 9-9s-4.029-9-9-9-9 4.029-9 9 4.029 9 9 9zm4.95-13.95c1.313 1.313 2.05 3.093 2.05 4.95s-0.738 3.637-2.05 4.95c-1.313 1.313-3.093 2.05-4.95 2.05v-14c1.857 0 3.637 0.737 4.95 2.05z"></path></svg></button></div><div class="navbarSearchContainer_agmU"><button type="button" class="DocSearch DocSearch-Button" aria-label="Search (Meta+k)" aria-keyshortcuts="Meta+k"><span class="DocSearch-Button-Container"><svg width="20" height="20" class="DocSearch-Search-Icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8" stroke="currentColor" fill="none" stroke-width="1.4"></circle><path d="m21 21-4.3-4.3" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="DocSearch-Button-Placeholder">Search</span></span><span class="DocSearch-Button-Keys"></span></button></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="theme-layout-main main-wrapper mainWrapper_ra6T"><div class="docsWrapper_ylEi"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_t5dj" type="button"></button><div class="docRoot_V1J5"><aside class="theme-doc-sidebar-container docSidebarContainer_DBGv"><div class="sidebarViewport_YVHm"><div class="sidebar_tgig"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_JjJ7"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/amqp/"><span class="categoryLinkLabel_Aqc2">@webda/amqp</span></a><button aria-label="Expand sidebar category &#x27;@webda/amqp&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/async/"><span class="categoryLinkLabel_Aqc2">@webda/async</span></a><button aria-label="Expand sidebar category &#x27;@webda/async&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--active" href="/typedoc/auth/"><span class="categoryLinkLabel_Aqc2">@webda/auth</span></a><button aria-label="Collapse sidebar category &#x27;@webda/auth&#x27;" aria-expanded="true" type="button" class="clean-btn menu__caret"></button></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/CHANGELOG"><span class="linkLabel_pzku">Changelog</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role="button" aria-expanded="true" tabindex="0" href="/typedoc/auth/classes/AccountExists"><span class="categoryLinkLabel_Aqc2">classes</span></a></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/AccountExists"><span class="linkLabel_pzku">AccountExists</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/Authentication"><span class="linkLabel_pzku">Authentication</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/AuthenticationParameters"><span class="linkLabel_pzku">AuthenticationParameters</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/EmailDomainNotAllowed"><span class="linkLabel_pzku">EmailDomainNotAllowed</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/EmailPasswordParameters"><span class="linkLabel_pzku">EmailPasswordParameters</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/typedoc/auth/classes/EmailPasswordProvider"><span class="linkLabel_pzku">EmailPasswordProvider</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/IdentConflict"><span class="linkLabel_pzku">IdentConflict</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/IdentLinkedElsewhere"><span class="linkLabel_pzku">IdentLinkedElsewhere</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/InvalidCredentials"><span class="linkLabel_pzku">InvalidCredentials</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/InvalidIdent"><span class="linkLabel_pzku">InvalidIdent</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/LastLoginMethod"><span class="linkLabel_pzku">LastLoginMethod</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/OAuthProvider"><span class="linkLabel_pzku">OAuthProvider</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/OAuthProviderParameters"><span class="linkLabel_pzku">OAuthProviderParameters</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/PasswordPolicyError"><span class="linkLabel_pzku">PasswordPolicyError</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/RegistrationDisabled"><span class="linkLabel_pzku">RegistrationDisabled</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/Throttled"><span class="linkLabel_pzku">Throttled</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/TokenExpired"><span class="linkLabel_pzku">TokenExpired</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/TokenInvalid"><span class="linkLabel_pzku">TokenInvalid</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/classes/UnsupportedMediaType"><span class="linkLabel_pzku">UnsupportedMediaType</span></a></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/typedoc/auth/functions/applyEmailPolicy"><span class="categoryLinkLabel_Aqc2">functions</span></a></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/auth/globals"><span class="linkLabel_pzku">globals</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/typedoc/auth/interfaces/AuthProvider"><span class="categoryLinkLabel_Aqc2">interfaces</span></a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/typedoc/auth/type-aliases/EmailTokenPurpose"><span class="categoryLinkLabel_Aqc2">type-aliases</span></a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/typedoc/auth/variables/EMAIL_TOKEN_TTL"><span class="categoryLinkLabel_Aqc2">variables</span></a></div></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/aws/"><span class="categoryLinkLabel_Aqc2">@webda/aws</span></a><button aria-label="Expand sidebar category &#x27;@webda/aws&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/cache/"><span class="categoryLinkLabel_Aqc2">@webda/cache</span></a><button aria-label="Expand sidebar category &#x27;@webda/cache&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/cloudevents/"><span class="categoryLinkLabel_Aqc2">@webda/cloudevents</span></a><button aria-label="Expand sidebar category &#x27;@webda/cloudevents&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/compiler/"><span class="categoryLinkLabel_Aqc2">@webda/compiler</span></a><button aria-label="Expand sidebar category &#x27;@webda/compiler&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/content-mapper/"><span class="categoryLinkLabel_Aqc2">@webda/content-mapper</span></a><button aria-label="Expand sidebar category &#x27;@webda/content-mapper&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/core/"><span class="categoryLinkLabel_Aqc2">@webda/core</span></a><button aria-label="Expand sidebar category &#x27;@webda/core&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/create/"><span class="categoryLinkLabel_Aqc2">@webda/create</span></a><button aria-label="Expand sidebar category &#x27;@webda/create&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/debug/"><span class="categoryLinkLabel_Aqc2">@webda/debug</span></a><button aria-label="Expand sidebar category &#x27;@webda/debug&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/decorators/"><span class="categoryLinkLabel_Aqc2">@webda/decorators</span></a><button aria-label="Expand sidebar category &#x27;@webda/decorators&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/elasticsearch/"><span class="categoryLinkLabel_Aqc2">@webda/elasticsearch</span></a><button aria-label="Expand sidebar category &#x27;@webda/elasticsearch&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/fs/"><span class="categoryLinkLabel_Aqc2">@webda/fs</span></a><button aria-label="Expand sidebar category &#x27;@webda/fs&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/gcp/"><span class="categoryLinkLabel_Aqc2">@webda/gcp</span></a><button aria-label="Expand sidebar category &#x27;@webda/gcp&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/google-auth/"><span class="categoryLinkLabel_Aqc2">@webda/google-auth</span></a><button aria-label="Expand sidebar category &#x27;@webda/google-auth&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/graphql/"><span class="categoryLinkLabel_Aqc2">@webda/graphql</span></a><button aria-label="Expand sidebar category &#x27;@webda/graphql&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/grpc/"><span class="categoryLinkLabel_Aqc2">@webda/grpc</span></a><button aria-label="Expand sidebar category &#x27;@webda/grpc&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/hawk/"><span class="categoryLinkLabel_Aqc2">@webda/hawk</span></a><button aria-label="Expand sidebar category &#x27;@webda/hawk&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/kubernetes/"><span class="categoryLinkLabel_Aqc2">@webda/kubernetes</span></a><button aria-label="Expand sidebar category &#x27;@webda/kubernetes&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/mcp/"><span class="categoryLinkLabel_Aqc2">@webda/mcp</span></a><button aria-label="Expand sidebar category &#x27;@webda/mcp&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/mock/"><span class="categoryLinkLabel_Aqc2">@webda/mock</span></a><button aria-label="Expand sidebar category &#x27;@webda/mock&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/models/"><span class="categoryLinkLabel_Aqc2">@webda/models</span></a><button aria-label="Expand sidebar category &#x27;@webda/models&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/mongodb/"><span class="categoryLinkLabel_Aqc2">@webda/mongodb</span></a><button aria-label="Expand sidebar category &#x27;@webda/mongodb&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/oci/"><span class="categoryLinkLabel_Aqc2">@webda/oci</span></a><button aria-label="Expand sidebar category &#x27;@webda/oci&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/otel/"><span class="categoryLinkLabel_Aqc2">@webda/otel</span></a><button aria-label="Expand sidebar category &#x27;@webda/otel&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/postgres/"><span class="categoryLinkLabel_Aqc2">@webda/postgres</span></a><button aria-label="Expand sidebar category &#x27;@webda/postgres&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/ql/"><span class="categoryLinkLabel_Aqc2">@webda/ql</span></a><button aria-label="Expand sidebar category &#x27;@webda/ql&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/runtime/"><span class="categoryLinkLabel_Aqc2">@webda/runtime</span></a><button aria-label="Expand sidebar category &#x27;@webda/runtime&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/test/"><span class="categoryLinkLabel_Aqc2">@webda/test</span></a><button aria-label="Expand sidebar category &#x27;@webda/test&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/utils/"><span class="categoryLinkLabel_Aqc2">@webda/utils</span></a><button aria-label="Expand sidebar category &#x27;@webda/utils&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/versioning/"><span class="categoryLinkLabel_Aqc2">@webda/versioning</span></a><button aria-label="Expand sidebar category &#x27;@webda/versioning&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/workout/"><span class="categoryLinkLabel_Aqc2">@webda/workout</span></a><button aria-label="Expand sidebar category &#x27;@webda/workout&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li></ul></nav></div></div></aside><main class="docMainContainer_t64q"><div class="container padding-top--md padding-bottom--lg"><div class="row"><div class="col docItemCol_PNm0"><div class="docItemContainer_fty0"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_TsV8" aria-label="Breadcrumbs"><ul class="breadcrumbs"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_ZRLn"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li class="breadcrumbs__item"><a class="breadcrumbs__link" href="/typedoc/auth/"><span>@webda/auth</span></a></li><li class="breadcrumbs__item"><span class="breadcrumbs__link">classes</span></li><li class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link">EmailPasswordProvider</span></li></ul></nav><div class="tocCollapsible_OUT1 theme-doc-toc-mobile tocMobile_MVBj"><button type="button" class="clean-btn tocCollapsibleButton_jdOG">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>EmailPasswordProvider</h1></header><p><a class="" href="/typedoc/auth/"><strong>@webda/auth</strong></a></p>
+<hr>
+<h1>Class: EmailPasswordProvider&lt;T&gt;</h1>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L134" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:134</a></p>
+<p>Email + password login method</p>
+<p>The password policy is process-wide: resolve() registers the one of this provider and stop() restores the
+default. With several instances the last one resolved wins.</p>
+<p>Known residual exposure: Auth.Email.Register answers AccountExists for a registered email (enumeration), and
+login timing differs slightly for known emails. An unverified squatter owning an email blocks its registration
+until the real owner goes through account recovery.</p>
+<p>Under <code>allowedEmailDomains</code> an email must be verified: with <code>verification</code> &quot;after&quot; or &quot;none&quot; a new registration is
+unverified and therefore refused (EMAIL_DOMAIN_NOT_ALLOWED); use &quot;before&quot;.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="webda-modda">Webda Modda<a href="#webda-modda" class="hash-link" aria-label="Direct link to Webda Modda" title="Direct link to Webda Modda" translate="no">​</a></h2>
+<p>EmailPasswordProvider</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="extends">Extends<a href="#extends" class="hash-link" aria-label="Direct link to Extends" title="Direct link to Extends" translate="no">​</a></h2>
+<ul>
+<li class=""><code>Service</code>&lt;<code>T</code>&gt;</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters">Type Parameters<a href="#type-parameters" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="t">T<a href="#t" class="hash-link" aria-label="Direct link to T" title="Direct link to T" translate="no">​</a></h3>
+<p><code>T</code> <em>extends</em> <a class="" href="/typedoc/auth/classes/EmailPasswordParameters"><code>EmailPasswordParameters</code></a> = <a class="" href="/typedoc/auth/classes/EmailPasswordParameters"><code>EmailPasswordParameters</code></a></p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="implements">Implements<a href="#implements" class="hash-link" aria-label="Direct link to Implements" title="Direct link to Implements" translate="no">​</a></h2>
+<ul>
+<li class=""><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a></li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="constructors">Constructors<a href="#constructors" class="hash-link" aria-label="Direct link to Constructors" title="Direct link to Constructors" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="constructor">Constructor<a href="#constructor" class="hash-link" aria-label="Direct link to Constructor" title="Direct link to Constructor" translate="no">​</a></h3>
+<blockquote>
+<p><strong>new EmailPasswordProvider</strong>&lt;<code>T</code>&gt;(<code>name</code>, <code>params</code>): <code>EmailPasswordProvider</code>&lt;<code>T</code>&gt;</p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:72</p>
+<p>Service</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters">Parameters<a href="#parameters" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="name">name<a href="#name" class="hash-link" aria-label="Direct link to name" title="Direct link to name" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>The name of the service</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="params">params<a href="#params" class="hash-link" aria-label="Direct link to params" title="Direct link to params" translate="no">​</a></h5>
+<p><code>T</code></p>
+<p>The parameters block define in the configuration file</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns">Returns<a href="#returns" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>EmailPasswordProvider</code>&lt;<code>T</code>&gt;</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from">Inherited from<a href="#inherited-from" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service&lt;T&gt;.constructor</code></p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="properties">Properties<a href="#properties" class="hash-link" aria-label="Direct link to Properties" title="Direct link to Properties" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="_compiledcapabilities">_compiledCapabilities<a href="#_compiledcapabilities" class="hash-link" aria-label="Direct link to _compiledCapabilities" title="Direct link to _compiledCapabilities" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>_compiledCapabilities</strong>: <code>Record</code>&lt;<code>string</code>, <code>any</code>&gt;</p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/iservice.d.ts:39</p>
+<p>Capabilities detected at compile-time from <code>@WebdaCapability</code>-tagged interfaces.</p>
+<p>Populated during Service.resolve by reading the service&#x27;s entry in
+<code>webda.module.json</code>. Each key is a capability name (e.g., <code>&quot;request-filter&quot;</code>),
+and the value is an empty object <code>{}</code> by default. Override <a href="#getcapabilities" class="">getCapabilities</a>
+to provide capability-specific configuration or to conditionally disable capabilities.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see">See<a href="#see" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>getCapabilities</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of">Implementation of<a href="#implementation-of" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#_compiledcapabilities"><code>_compiledCapabilities</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-1">Inherited from<a href="#inherited-from-1" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service._compiledCapabilities</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="webda_events">[WEBDA_EVENTS]<a href="#webda_events" class="hash-link" aria-label="Direct link to [WEBDA_EVENTS]" title="Direct link to [WEBDA_EVENTS]" translate="no">​</a></h3>
+<blockquote>
+<p><strong>[WEBDA_EVENTS]</strong>: <code>object</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:50</p>
+<p>Set the Webda events here</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-1">Implementation of<a href="#implementation-of-1" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#webda_events"><code>[WEBDA_EVENTS]</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-2">Inherited from<a href="#inherited-from-2" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.[WEBDA_EVENTS]</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="logger">logger<a href="#logger" class="hash-link" aria-label="Direct link to logger" title="Direct link to logger" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>logger</strong>: <code>Logger</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:59</p>
+<p>Logger with class context</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-2">Implementation of<a href="#implementation-of-2" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#logger"><code>logger</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-3">Inherited from<a href="#inherited-from-3" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.logger</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="metrics">metrics?<a href="#metrics" class="hash-link" aria-label="Direct link to metrics?" title="Direct link to metrics?" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>optional</code> <strong>metrics?</strong>: <code>object</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:63</p>
+<p>Get metrics</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-3">Implementation of<a href="#implementation-of-3" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#metrics"><code>metrics</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-4">Inherited from<a href="#inherited-from-4" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.metrics</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="name-1">name<a href="#name-1" class="hash-link" aria-label="Direct link to name" title="Direct link to name" translate="no">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>name</strong>: <code>string</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/iservice.d.ts:19</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-4">Implementation of<a href="#implementation-of-4" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#name"><code>name</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-5">Inherited from<a href="#inherited-from-5" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.name</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-1">parameters<a href="#parameters-1" class="hash-link" aria-label="Direct link to parameters" title="Direct link to parameters" translate="no">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>parameters</strong>: <code>T</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/iservice.d.ts:20</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-5">Implementation of<a href="#implementation-of-5" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#parameters"><code>parameters</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-6">Inherited from<a href="#inherited-from-6" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.parameters</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="pendingmails">pendingMails<a href="#pendingmails" class="hash-link" aria-label="Direct link to pendingMails" title="Direct link to pendingMails" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>pendingMails</strong>: <code>Set</code>&lt;<code>Promise</code>&lt;<code>void</code>&gt;&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L502" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:502</a></p>
+<p>Mails sent without being awaited</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="providername">providerName<a href="#providername" class="hash-link" aria-label="Direct link to providerName" title="Direct link to providerName" translate="no">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>providerName</strong>: <code>&quot;email&quot;</code> = <code>&quot;email&quot;</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L140" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:140</a></p>
+<p>Unique provider name, used in ident keys (&quot;email&quot;, &quot;google&quot;)</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-6">Implementation of<a href="#implementation-of-6" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#providername"><code>providerName</code></a></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="createconfiguration">createConfiguration?<a href="#createconfiguration" class="hash-link" aria-label="Direct link to createConfiguration?" title="Direct link to createConfiguration?" translate="no">​</a></h3>
+<blockquote>
+<p><code>static</code> <code>optional</code> <strong>createConfiguration?</strong>: (<code>params</code>) =&gt; <code>any</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/iservice.d.ts:24</p>
+<p>Create configuration set by the application on load</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-2">Parameters<a href="#parameters-2" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="params-1">params<a href="#params-1" class="hash-link" aria-label="Direct link to params" title="Direct link to params" translate="no">​</a></h5>
+<p><code>any</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-1">Returns<a href="#returns-1" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-7">Inherited from<a href="#inherited-from-7" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.createConfiguration</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="filterconfiguration">filterConfiguration?<a href="#filterconfiguration" class="hash-link" aria-label="Direct link to filterConfiguration?" title="Direct link to filterConfiguration?" translate="no">​</a></h3>
+<blockquote>
+<p><code>static</code> <code>optional</code> <strong>filterConfiguration?</strong>: (<code>params</code>) =&gt; <code>any</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/iservice.d.ts:28</p>
+<p>Create configuration set by the application on load</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-3">Parameters<a href="#parameters-3" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="params-2">params<a href="#params-2" class="hash-link" aria-label="Direct link to params" title="Direct link to params" translate="no">​</a></h5>
+<p><code>any</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-2">Returns<a href="#returns-2" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-8">Inherited from<a href="#inherited-from-8" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.filterConfiguration</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-4">Parameters<a href="#parameters-4" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>Parameters</strong>: <em>typeof</em> <a class="" href="/typedoc/auth/classes/EmailPasswordParameters"><code>EmailPasswordParameters</code></a> = <code>EmailPasswordParameters</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L138" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:138</a></p>
+<p>Service parameters</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="overrides">Overrides<a href="#overrides" class="hash-link" aria-label="Direct link to Overrides" title="Direct link to Overrides" translate="no">​</a></h4>
+<p><code>Service.Parameters</code></p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="methods">Methods<a href="#methods" class="hash-link" aria-label="Direct link to Methods" title="Direct link to Methods" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="__clean">__clean()<a href="#__clean" class="hash-link" aria-label="Direct link to __clean()" title="Direct link to __clean()" translate="no">​</a></h3>
+<blockquote>
+<p><code>abstract</code> <strong>__clean</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:215</p>
+<p>Clean the service data, can only be used in test mode</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-3">Returns<a href="#returns-3" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-7">Implementation of<a href="#implementation-of-7" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#__clean"><code>__clean</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-9">Inherited from<a href="#inherited-from-9" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.__clean</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="addlistener">addListener()<a href="#addlistener" class="hash-link" aria-label="Direct link to addListener()" title="Direct link to addListener()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>addListener</strong>&lt;<code>Key</code>&gt;(<code>eventName</code>, <code>listener</code>): <code>this</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/events/asynceventemitter.d.ts:80</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-1">Type Parameters<a href="#type-parameters-1" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key">Key<a href="#key" class="hash-link" aria-label="Direct link to Key" title="Direct link to Key" translate="no">​</a></h5>
+<p><code>Key</code> <em>extends</em> <code>never</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-5">Parameters<a href="#parameters-5" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="eventname">eventName<a href="#eventname" class="hash-link" aria-label="Direct link to eventName" title="Direct link to eventName" translate="no">​</a></h5>
+<p><code>Key</code></p>
+<p>the event name</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="listener">listener<a href="#listener" class="hash-link" aria-label="Direct link to listener" title="Direct link to listener" translate="no">​</a></h5>
+<p>(<code>event</code>) =&gt; <code>void</code> | <code>Promise</code>&lt;<code>void</code>&gt;</p>
+<p>the event listener</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-4">Returns<a href="#returns-4" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<p>this for chaining</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see-1">See<a href="#see-1" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>EventEmitter.addListener</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-8">Implementation of<a href="#implementation-of-8" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#addlistener"><code>addListener</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-10">Inherited from<a href="#inherited-from-10" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.addListener</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="addroute">addRoute()<a href="#addroute" class="hash-link" aria-label="Direct link to addRoute()" title="Direct link to addRoute()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>addRoute</strong>(<code>url</code>, <code>methods</code>, <code>executer</code>, <code>openapi?</code>, <code>override?</code>): <code>void</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:177</p>
+<p>Add a route dynamicaly</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-6">Parameters<a href="#parameters-6" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="url">url<a href="#url" class="hash-link" aria-label="Direct link to url" title="Direct link to url" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>of the route can contains dynamic part like {uuid}</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="methods-1">methods<a href="#methods-1" class="hash-link" aria-label="Direct link to methods" title="Direct link to methods" translate="no">​</a></h5>
+<p><code>HttpMethodType</code>[]</p>
+<p>the HTTP methods</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="executer">executer<a href="#executer" class="hash-link" aria-label="Direct link to executer" title="Direct link to executer" translate="no">​</a></h5>
+<p><code>Function</code></p>
+<p>Method to execute for this route</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="openapi">openapi?<a href="#openapi" class="hash-link" aria-label="Direct link to openapi?" title="Direct link to openapi?" translate="no">​</a></h5>
+<p><code>OpenAPIWebdaDefinition</code></p>
+<p>the OpenAPI specification</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="override">override?<a href="#override" class="hash-link" aria-label="Direct link to override?" title="Direct link to override?" translate="no">​</a></h5>
+<p><code>boolean</code></p>
+<p>whether to override existing</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-5">Returns<a href="#returns-5" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-9">Implementation of<a href="#implementation-of-9" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#addroute"><code>addRoute</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-11">Inherited from<a href="#inherited-from-11" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.addRoute</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="authorizeclientevent">authorizeClientEvent()<a href="#authorizeclientevent" class="hash-link" aria-label="Direct link to authorizeClientEvent()" title="Direct link to authorizeClientEvent()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>authorizeClientEvent</strong>(<code>_event</code>, <code>_context</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:153</p>
+<p>Authorize a public event subscription</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-7">Parameters<a href="#parameters-7" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="_event">_event<a href="#_event" class="hash-link" aria-label="Direct link to _event" title="Direct link to _event" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the event name</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="_context">_context<a href="#_context" class="hash-link" aria-label="Direct link to _context" title="Direct link to _context" translate="no">​</a></h5>
+<p><code>OperationContext</code></p>
+<p>the execution context</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-6">Returns<a href="#returns-6" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>boolean</code></p>
+<p>true if the condition is met</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-10">Implementation of<a href="#implementation-of-10" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#authorizeclientevent"><code>authorizeClientEvent</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-12">Inherited from<a href="#inherited-from-12" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.authorizeClientEvent</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="buildlink">buildLink()<a href="#buildlink" class="hash-link" aria-label="Direct link to buildLink()" title="Direct link to buildLink()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>buildLink</strong>(<code>path</code>, <code>token</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L201" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:201</a></p>
+<p>Absolute link for an emailed token</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-8">Parameters<a href="#parameters-8" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="path">path<a href="#path" class="hash-link" aria-label="Direct link to path" title="Direct link to path" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>path under the provider url</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="token">token<a href="#token" class="hash-link" aria-label="Direct link to token" title="Direct link to token" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>token</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-7">Returns<a href="#returns-7" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>url</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="changepassword">changePassword()<a href="#changepassword" class="hash-link" aria-label="Direct link to changePassword()" title="Direct link to changePassword()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>changePassword</strong>(<code>current</code>, <code>next</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L669" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:669</a></p>
+<p>Change the current user&#x27;s password: revokes the refresh tokens and ends the other sessions of the user, the
+calling cookie session is re-stamped and stays logged in</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-9">Parameters<a href="#parameters-9" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="current">current<a href="#current" class="hash-link" aria-label="Direct link to current" title="Direct link to current" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>current password</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="next">next<a href="#next" class="hash-link" aria-label="Direct link to next" title="Direct link to next" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>new password</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-8">Returns<a href="#returns-8" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="completeverify">completeVerify()<a href="#completeverify" class="hash-link" aria-label="Direct link to completeVerify()" title="Direct link to completeVerify()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>completeVerify</strong>(<code>claims</code>, <code>ctx</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L557" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:557</a></p>
+<p>Complete a verification; nothing changes unless every check passes</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-10">Parameters<a href="#parameters-10" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="claims">claims<a href="#claims" class="hash-link" aria-label="Direct link to claims" title="Direct link to claims" translate="no">​</a></h5>
+<p>verified token claims</p>
+<h6 class="anchor anchorTargetStickyNavbar_FE5u" id="email">email<a href="#email" class="hash-link" aria-label="Direct link to email" title="Direct link to email" translate="no">​</a></h6>
+<p><code>string</code></p>
+<p>email of the token</p>
+<h6 class="anchor anchorTargetStickyNavbar_FE5u" id="sub">sub?<a href="#sub" class="hash-link" aria-label="Direct link to sub?" title="Direct link to sub?" translate="no">​</a></h6>
+<p><code>string</code></p>
+<p>user id</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="ctx">ctx<a href="#ctx" class="hash-link" aria-label="Direct link to ctx" title="Direct link to ctx" translate="no">​</a></h5>
+<p><code>any</code></p>
+<p>context</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-9">Returns<a href="#returns-9" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="computeparameters"><del>computeParameters()</del><a href="#computeparameters" class="hash-link" aria-label="Direct link to computeparameters" title="Direct link to computeparameters" translate="no">​</a></h3>
+<blockquote>
+<p><strong>computeParameters</strong>(): <code>void</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:77</p>
+<p>Used to compute or derivate input parameter to attribute</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-10">Returns<a href="#returns-10" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="deprecated">Deprecated<a href="#deprecated" class="hash-link" aria-label="Direct link to Deprecated" title="Direct link to Deprecated" translate="no">​</a></h4>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-11">Implementation of<a href="#implementation-of-11" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#computeparameters"><code>computeParameters</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-13">Inherited from<a href="#inherited-from-13" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.computeParameters</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="countattempt">countAttempt()<a href="#countattempt" class="hash-link" aria-label="Direct link to countAttempt()" title="Direct link to countAttempt()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>countAttempt</strong>(<code>ident</code>): <code>Promise</code>&lt;<code>boolean</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L244" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:244</a></p>
+<p>Count a login attempt before verifying it and decide whether the ident is locked</p>
+<p>Rule, equivalent to <code>isLocked(ident, failedBeforeDelay, lockout)</code> on the state before this attempt:
+<code>_loginAttempts</code> is incremented first (atomically; the new value is returned by the memory repository and
+re-read otherwise), so this attempt is locked when the count of PREVIOUS attempts (<code>_loginAttempts - 1</code>) is at
+least <code>failedBeforeDelay</code>, unless that lock has expired, ie <code>_lastLoginAttemptAt</code> as read when this call started
+is older than <code>lockout</code>. <code>_lastLoginAttemptAt</code> is only refreshed by attempts that are not refused, so hammering
+a locked ident does not extend the lock; a count reaching the threshold without timestamp is an expired lock.
+Both are top-level attributes: stores implement atomic increment and
+single attribute set on them (nested-path atomic operations are not portable across stores). The timestamp
+is a plain set (last writer wins); the counter is never written back from a snapshot. A burst starting exactly
+when an expired lock is read is verified as a whole: it is bounded to one burst per lock window.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-11">Parameters<a href="#parameters-11" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="ident">ident<a href="#ident" class="hash-link" aria-label="Direct link to ident" title="Direct link to ident" translate="no">​</a></h5>
+<p><code>Ident</code></p>
+<p>the ident</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-11">Returns<a href="#returns-11" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>boolean</code>&gt;</p>
+<p>true when this attempt must be refused without checking the password</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="emit">emit()<a href="#emit" class="hash-link" aria-label="Direct link to emit()" title="Direct link to emit()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>emit</strong>&lt;<code>Key</code>&gt;(<code>event</code>, <code>data</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:204</p>
+<p>Emit the event with data and wait for Promise to finish if listener returned a Promise</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-2">Type Parameters<a href="#type-parameters-2" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-1">Key<a href="#key-1" class="hash-link" aria-label="Direct link to Key" title="Direct link to Key" translate="no">​</a></h5>
+<p><code>Key</code> <em>extends</em> <code>never</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-12">Parameters<a href="#parameters-12" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="event">event<a href="#event" class="hash-link" aria-label="Direct link to event" title="Direct link to event" translate="no">​</a></h5>
+<p><code>Key</code></p>
+<p>the event name</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="data">data<a href="#data" class="hash-link" aria-label="Direct link to data" title="Direct link to data" translate="no">​</a></h5>
+<p><code>object</code>[<code>Key</code>]</p>
+<p>the data to process</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-12">Returns<a href="#returns-12" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-12">Implementation of<a href="#implementation-of-12" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#emit"><code>emit</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-14">Inherited from<a href="#inherited-from-14" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.emit</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="flushmails">flushMails()<a href="#flushmails" class="hash-link" aria-label="Direct link to flushMails()" title="Direct link to flushMails()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>flushMails</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L507" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:507</a></p>
+<p>Wait for the mails sent without being awaited (logged out verification, recovery)</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-13">Returns<a href="#returns-13" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getcapabilities">getCapabilities()<a href="#getcapabilities" class="hash-link" aria-label="Direct link to getCapabilities()" title="Direct link to getCapabilities()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getCapabilities</strong>(): <code>Record</code>&lt;<code>string</code>, <code>any</code>&gt;</p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/iservice.d.ts:61</p>
+<p>Return the capabilities of this service.</p>
+<p>By default returns capabilities detected at compile-time from</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-14">Returns<a href="#returns-14" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Record</code>&lt;<code>string</code>, <code>any</code>&gt;</p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="webda-capability-tagged">Webda Capability-tagged<a href="#webda-capability-tagged" class="hash-link" aria-label="Direct link to Webda Capability-tagged" title="Direct link to Webda Capability-tagged" translate="no">​</a></h4>
+<p>interfaces in webda.module.json.</p>
+<p>Override to disable capabilities based on configuration:</p>
+<div class="language-typescript codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-typescript codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token function" style="color:#d73a49">getCapabilities</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token keyword" style="color:#00009f">const</span><span class="token plain"> caps </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">super</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">getCapabilities</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token keyword" style="color:#00009f">if</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">(</span><span class="token operator" style="color:#393A34">!</span><span class="token keyword" style="color:#00009f">this</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">parameters</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">enabled</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">delete</span><span class="token plain"> caps</span><span class="token punctuation" style="color:#393A34">[</span><span class="token string" style="color:#e3116c">&quot;request-filter&quot;</span><span class="token punctuation" style="color:#393A34">]</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token keyword" style="color:#00009f">return</span><span class="token plain"> caps</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-13">Implementation of<a href="#implementation-of-13" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#getcapabilities"><code>getCapabilities</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-15">Inherited from<a href="#inherited-from-15" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getCapabilities</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getclientevents">getClientEvents()<a href="#getclientevents" class="hash-link" aria-label="Direct link to getClientEvents()" title="Direct link to getClientEvents()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getClientEvents</strong>(): <code>string</code>[]</p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:144</p>
+<p>Return the events that an external system can subscribe to</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-15">Returns<a href="#returns-15" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code>[]</p>
+<p>the list of results</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-14">Implementation of<a href="#implementation-of-14" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#getclientevents"><code>getClientEvents</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-16">Inherited from<a href="#inherited-from-16" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getClientEvents</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getident">getIdent()<a href="#getident" class="hash-link" aria-label="Direct link to getIdent()" title="Direct link to getIdent()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>getIdent</strong>(<code>email</code>): <code>Promise</code>&lt;<code>Ident</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L191" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:191</a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-13">Parameters<a href="#parameters-13" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="email-1">email<a href="#email-1" class="hash-link" aria-label="Direct link to email" title="Direct link to email" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>normalised email</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-16">Returns<a href="#returns-16" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>Ident</code>&gt;</p>
+<p>the email ident</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getmaxlisteners">getMaxListeners()<a href="#getmaxlisteners" class="hash-link" aria-label="Direct link to getMaxListeners()" title="Direct link to getMaxListeners()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getMaxListeners</strong>(): <code>number</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/events/asynceventemitter.d.ts:84</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-17">Returns<a href="#returns-17" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>number</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-15">Implementation of<a href="#implementation-of-15" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#getmaxlisteners"><code>getMaxListeners</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-17">Inherited from<a href="#inherited-from-17" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getMaxListeners</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getmetric">getMetric()<a href="#getmetric" class="hash-link" aria-label="Direct link to getMetric()" title="Direct link to getMetric()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getMetric</strong>&lt;<code>T</code>&gt;(<code>type</code>, <code>configuration</code>): <code>T</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:138</p>
+<p>Add service name label</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-3">Type Parameters<a href="#type-parameters-3" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="t-1">T<a href="#t-1" class="hash-link" aria-label="Direct link to T" title="Direct link to T" translate="no">​</a></h5>
+<p><code>T</code> = <code>Gauge</code>&lt;<code>string</code>&gt; | <code>Counter</code>&lt;<code>string</code>&gt; | <code>Histogram</code>&lt;<code>string</code>&gt;</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-14">Parameters<a href="#parameters-14" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="type">type<a href="#type" class="hash-link" aria-label="Direct link to type" title="Direct link to type" translate="no">​</a></h5>
+<p><code>CustomConstructor</code>&lt;<code>T</code>, [<code>MetricConfiguration</code>&lt;<code>T</code>&gt;]&gt;</p>
+<p>the type to look up</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="configuration">configuration<a href="#configuration" class="hash-link" aria-label="Direct link to configuration" title="Direct link to configuration" translate="no">​</a></h5>
+<p><code>MetricConfiguration</code>&lt;<code>T</code>&gt;</p>
+<p>the configuration</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-18">Returns<a href="#returns-18" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>T</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-16">Implementation of<a href="#implementation-of-16" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#getmetric"><code>getMetric</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-18">Inherited from<a href="#inherited-from-18" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getMetric</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getname">getName()<a href="#getname" class="hash-link" aria-label="Direct link to getName()" title="Direct link to getName()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getName</strong>(): <code>string</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:209</p>
+<p>Get service name</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-19">Returns<a href="#returns-19" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the result string</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-17">Implementation of<a href="#implementation-of-17" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#getname"><code>getName</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-19">Inherited from<a href="#inherited-from-19" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getName</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getopenapireplacements">getOpenApiReplacements()<a href="#getopenapireplacements" class="hash-link" aria-label="Direct link to getOpenApiReplacements()" title="Direct link to getOpenApiReplacements()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getOpenApiReplacements</strong>(): <code>any</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:182</p>
+<p>Return variables for replacement in openapi</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-20">Returns<a href="#returns-20" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>any</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-18">Implementation of<a href="#implementation-of-18" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#getopenapireplacements"><code>getOpenApiReplacements</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-20">Inherited from<a href="#inherited-from-20" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getOpenApiReplacements</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getoperationid">getOperationId()<a href="#getoperationid" class="hash-link" aria-label="Direct link to getOperationId()" title="Direct link to getOperationId()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getOperationId</strong>(<code>id</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:167</p>
+<p>If undefined is returned it cancel the operation registration</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-15">Parameters<a href="#parameters-15" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="id">id<a href="#id" class="hash-link" aria-label="Direct link to id" title="Direct link to id" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the identifier</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-21">Returns<a href="#returns-21" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-19">Implementation of<a href="#implementation-of-19" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#getoperationid"><code>getOperationId</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-21">Inherited from<a href="#inherited-from-21" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getOperationId</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getparameters">getParameters()<a href="#getparameters" class="hash-link" aria-label="Direct link to getParameters()" title="Direct link to getParameters()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getParameters</strong>(): <code>T</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:82</p>
+<p>Get the service parameters</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-22">Returns<a href="#returns-22" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>T</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-20">Implementation of<a href="#implementation-of-20" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#getparameters"><code>getParameters</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-22">Inherited from<a href="#inherited-from-22" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getParameters</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getpublicinfo">getPublicInfo()<a href="#getpublicinfo" class="hash-link" aria-label="Direct link to getPublicInfo()" title="Direct link to getPublicInfo()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getPublicInfo</strong>(): <code>ProviderInfo</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L183" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:183</a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-23">Returns<a href="#returns-23" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>ProviderInfo</code></p>
+<p>public info</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-21">Implementation of<a href="#implementation-of-21" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#getpublicinfo"><code>getPublicInfo</code></a></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getservice"><del>getService()</del><a href="#getservice" class="hash-link" aria-label="Direct link to getservice" title="Direct link to getservice" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getService</strong>&lt;<code>T</code>&gt;(<code>name</code>): <code>ServicesMap</code>[<code>T</code>]</p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:131</p>
+<p>Get a service by name</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-4">Type Parameters<a href="#type-parameters-4" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="t-2">T<a href="#t-2" class="hash-link" aria-label="Direct link to T" title="Direct link to T" translate="no">​</a></h5>
+<p><code>T</code> <em>extends</em> keyof <code>ServicesMap</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-16">Parameters<a href="#parameters-16" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="name-2">name<a href="#name-2" class="hash-link" aria-label="Direct link to name" title="Direct link to name" translate="no">​</a></h5>
+<p><code>T</code></p>
+<p>the name to use</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-24">Returns<a href="#returns-24" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>ServicesMap</code>[<code>T</code>]</p>
+<p>the result map</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="deprecated-1">Deprecated<a href="#deprecated-1" class="hash-link" aria-label="Direct link to Deprecated" title="Direct link to Deprecated" translate="no">​</a></h4>
+<p>Use useService, might reconsider</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-22">Implementation of<a href="#implementation-of-22" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#getservice"><code>getService</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-23">Inherited from<a href="#inherited-from-23" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getService</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getstate">getState()<a href="#getstate" class="hash-link" aria-label="Direct link to getState()" title="Direct link to getState()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getState</strong>(): <code>ServiceStates</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:55</p>
+<p>Get the current state</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-25">Returns<a href="#returns-25" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>ServiceStates</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-23">Implementation of<a href="#implementation-of-23" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#getstate"><code>getState</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-24">Inherited from<a href="#inherited-from-24" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getState</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="geturl">getUrl()<a href="#geturl" class="hash-link" aria-label="Direct link to getUrl()" title="Direct link to getUrl()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getUrl</strong>(<code>url</code>, <code>_methods</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:161</p>
+<p>Return the full path url based on parameters</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-17">Parameters<a href="#parameters-17" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="url-1">url<a href="#url-1" class="hash-link" aria-label="Direct link to url" title="Direct link to url" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>relative url to service</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="_methods">_methods<a href="#_methods" class="hash-link" aria-label="Direct link to _methods" title="Direct link to _methods" translate="no">​</a></h5>
+<p><code>HttpMethodType</code>[]</p>
+<p>in case we need filtering (like Store)</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-26">Returns<a href="#returns-26" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>absolute url or undefined if need to skip the Route</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-24">Implementation of<a href="#implementation-of-24" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#geturl"><code>getUrl</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-25">Inherited from<a href="#inherited-from-25" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getUrl</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="init">init()<a href="#init" class="hash-link" aria-label="Direct link to init()" title="Direct link to init()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>init</strong>(): <code>Promise</code>&lt;<code>EmailPasswordProvider</code>&lt;<code>T</code>&gt;&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L156" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:156</a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-27">Returns<a href="#returns-27" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>EmailPasswordProvider</code>&lt;<code>T</code>&gt;&gt;</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-25">Implementation of<a href="#implementation-of-25" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#init"><code>init</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="overrides-1">Overrides<a href="#overrides-1" class="hash-link" aria-label="Direct link to Overrides" title="Direct link to Overrides" translate="no">​</a></h4>
+<p><code>Service.init</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="initmetrics">initMetrics()<a href="#initmetrics" class="hash-link" aria-label="Direct link to initMetrics()" title="Direct link to initMetrics()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>initMetrics</strong>(): <code>void</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:124</p>
+<p>Init the metrics</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-28">Returns<a href="#returns-28" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-26">Implementation of<a href="#implementation-of-26" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#initmetrics"><code>initMetrics</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-26">Inherited from<a href="#inherited-from-26" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.initMetrics</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="initoperations">initOperations()<a href="#initoperations" class="hash-link" aria-label="Direct link to initOperations()" title="Direct link to initOperations()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>initOperations</strong>(): <code>void</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:186</p>
+<p>Init the operations from</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-29">Returns<a href="#returns-29" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="operation">Operation<a href="#operation" class="hash-link" aria-label="Direct link to Operation" title="Direct link to Operation" translate="no">​</a></h4>
+<p>decorators on this service</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-27">Implementation of<a href="#implementation-of-27" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#initoperations"><code>initOperations</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-27">Inherited from<a href="#inherited-from-27" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.initOperations</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="listeners">listeners()<a href="#listeners" class="hash-link" aria-label="Direct link to listeners()" title="Direct link to listeners()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>listeners</strong>(<code>eventName</code>): <code>Function</code>[]</p>
+</blockquote>
+<p>Defined in: packages/core/lib/events/asynceventemitter.d.ts:139</p>
+<p>Get all listeners for an event</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-18">Parameters<a href="#parameters-18" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="eventname-1">eventName<a href="#eventname-1" class="hash-link" aria-label="Direct link to eventName" title="Direct link to eventName" translate="no">​</a></h5>
+<p><code>never</code></p>
+<p>the event name</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-30">Returns<a href="#returns-30" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Function</code>[]</p>
+<p>the list of results</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-28">Implementation of<a href="#implementation-of-28" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#listeners"><code>listeners</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-28">Inherited from<a href="#inherited-from-28" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.listeners</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="loadcapabilities">loadCapabilities()<a href="#loadcapabilities" class="hash-link" aria-label="Direct link to loadCapabilities()" title="Direct link to loadCapabilities()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>loadCapabilities</strong>(): <code>void</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:120</p>
+<p>Load capabilities from webda.module.json metadata into <a href="#_compiledcapabilities" class="">_compiledCapabilities</a>.</p>
+<p>Called during <a href="#resolve" class="">resolve</a> after dependency injection. Reads the service&#x27;s
+type name from parameters, looks it up in the application&#x27;s module metadata
+(moddas or beans section), and populates <code>_compiledCapabilities</code> with an
+empty object for each declared capability name.</p>
+<p>Fails silently if the application is not available (e.g., in unit tests
+where services are instantiated without a full application context).</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-31">Returns<a href="#returns-31" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="example">Example<a href="#example" class="hash-link" aria-label="Direct link to Example" title="Direct link to Example" translate="no">​</a></h4>
+<div class="language-typescript codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-typescript codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token comment" style="color:#999988;font-style:italic">// If webda.module.json contains:</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token comment" style="color:#999988;font-style:italic">// { &quot;moddas&quot;: { &quot;MyApp/HawkService&quot;: { &quot;capabilities&quot;: [&quot;request-filter&quot;, &quot;cors-filter&quot;] } } }</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token comment" style="color:#999988;font-style:italic">// Then after resolve(), this.getCapabilities() returns:</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token comment" style="color:#999988;font-style:italic">// { &quot;request-filter&quot;: {}, &quot;cors-filter&quot;: {} }</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#7EBF6A"></path></svg></div>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see-2">See<a href="#see-2" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>getCapabilities</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-29">Implementation of<a href="#implementation-of-29" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#loadcapabilities"><code>loadCapabilities</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-29">Inherited from<a href="#inherited-from-29" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.loadCapabilities</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="log">log()<a href="#log" class="hash-link" aria-label="Direct link to log()" title="Direct link to log()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>log</strong>(<code>level</code>, ...<code>args</code>): <code>void</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:226</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-19">Parameters<a href="#parameters-19" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="level">level<a href="#level" class="hash-link" aria-label="Direct link to level" title="Direct link to level" translate="no">​</a></h5>
+<p><code>WorkerLogLevel</code></p>
+<p>to log</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="args">args<a href="#args" class="hash-link" aria-label="Direct link to args" title="Direct link to args" translate="no">​</a></h5>
+<p>...<code>any</code>[]</p>
+<p>additional arguments</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-32">Returns<a href="#returns-32" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-30">Implementation of<a href="#implementation-of-30" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#log"><code>log</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-30">Inherited from<a href="#inherited-from-30" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.log</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="login">login()<a href="#login" class="hash-link" aria-label="Direct link to login()" title="Direct link to login()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>login</strong>(<code>email</code>, <code>password</code>): <code>Promise</code>&lt;<code>AuthResult</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L276" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:276</a></p>
+<p>Login with email and password</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-20">Parameters<a href="#parameters-20" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="email-2">email<a href="#email-2" class="hash-link" aria-label="Direct link to email" title="Direct link to email" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>email</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="password">password<a href="#password" class="hash-link" aria-label="Direct link to password" title="Direct link to password" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>password</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-33">Returns<a href="#returns-33" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>AuthResult</code>&gt;</p>
+<p>the auth result</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="off">off()<a href="#off" class="hash-link" aria-label="Direct link to off()" title="Direct link to off()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>off</strong>&lt;<code>Key</code>&gt;(<code>eventName</code>, <code>listener</code>): <code>this</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/events/asynceventemitter.d.ts:116</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-5">Type Parameters<a href="#type-parameters-5" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-2">Key<a href="#key-2" class="hash-link" aria-label="Direct link to Key" title="Direct link to Key" translate="no">​</a></h5>
+<p><code>Key</code> <em>extends</em> <code>never</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-21">Parameters<a href="#parameters-21" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="eventname-2">eventName<a href="#eventname-2" class="hash-link" aria-label="Direct link to eventName" title="Direct link to eventName" translate="no">​</a></h5>
+<p><code>Key</code></p>
+<p>the event name</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="listener-1">listener<a href="#listener-1" class="hash-link" aria-label="Direct link to listener" title="Direct link to listener" translate="no">​</a></h5>
+<p>(<code>event</code>) =&gt; <code>void</code></p>
+<p>the event listener</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-34">Returns<a href="#returns-34" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<p>this for chaining</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see-3">See<a href="#see-3" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>EventEmitter.off</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-31">Implementation of<a href="#implementation-of-31" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#off"><code>off</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-31">Inherited from<a href="#inherited-from-31" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.off</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="on">on()<a href="#on" class="hash-link" aria-label="Direct link to on()" title="Direct link to on()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>on</strong>&lt;<code>Key</code>&gt;(<code>eventName</code>, <code>listener</code>): <code>this</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/events/asynceventemitter.d.ts:102</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-6">Type Parameters<a href="#type-parameters-6" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-3">Key<a href="#key-3" class="hash-link" aria-label="Direct link to Key" title="Direct link to Key" translate="no">​</a></h5>
+<p><code>Key</code> <em>extends</em> <code>never</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-22">Parameters<a href="#parameters-22" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="eventname-3">eventName<a href="#eventname-3" class="hash-link" aria-label="Direct link to eventName" title="Direct link to eventName" translate="no">​</a></h5>
+<p><code>Key</code></p>
+<p>the event name</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="listener-2">listener<a href="#listener-2" class="hash-link" aria-label="Direct link to listener" title="Direct link to listener" translate="no">​</a></h5>
+<p>(<code>event</code>) =&gt; <code>void</code></p>
+<p>the event listener</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-35">Returns<a href="#returns-35" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<p>this for chaining</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see-4">See<a href="#see-4" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>EventEmitter.once</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-32">Implementation of<a href="#implementation-of-32" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#on"><code>on</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-32">Inherited from<a href="#inherited-from-32" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.on</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="once">once()<a href="#once" class="hash-link" aria-label="Direct link to once()" title="Direct link to once()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>once</strong>&lt;<code>Key</code>&gt;(<code>eventName</code>, <code>listener</code>): <code>this</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/events/asynceventemitter.d.ts:95</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-7">Type Parameters<a href="#type-parameters-7" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-4">Key<a href="#key-4" class="hash-link" aria-label="Direct link to Key" title="Direct link to Key" translate="no">​</a></h5>
+<p><code>Key</code> <em>extends</em> <code>never</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-23">Parameters<a href="#parameters-23" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="eventname-4">eventName<a href="#eventname-4" class="hash-link" aria-label="Direct link to eventName" title="Direct link to eventName" translate="no">​</a></h5>
+<p><code>Key</code></p>
+<p>the event name</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="listener-3">listener<a href="#listener-3" class="hash-link" aria-label="Direct link to listener" title="Direct link to listener" translate="no">​</a></h5>
+<p>(<code>event</code>) =&gt; <code>void</code></p>
+<p>the event listener</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-36">Returns<a href="#returns-36" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<p>this for chaining</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see-5">See<a href="#see-5" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>EventEmitter.once</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-33">Implementation of<a href="#implementation-of-33" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#once"><code>once</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-33">Inherited from<a href="#inherited-from-33" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.once</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="preparelink">prepareLink()<a href="#preparelink" class="hash-link" aria-label="Direct link to prepareLink()" title="Direct link to prepareLink()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>prepareLink</strong>(<code>normalized</code>, <code>userId</code>): <code>Promise</code>&lt;<code>string</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L450" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:450</a></p>
+<p>Check and mark the send throttle of an email ident, then sign the token to email; runs as system</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-24">Parameters<a href="#parameters-24" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="normalized">normalized<a href="#normalized" class="hash-link" aria-label="Direct link to normalized" title="Direct link to normalized" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>normalised email</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="userid">userId<a href="#userid" class="hash-link" aria-label="Direct link to userId" title="Direct link to userId" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>logged user (verify token), undefined for a logged-out register token</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-37">Returns<a href="#returns-37" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>string</code>&gt;</p>
+<p>the token to send, undefined when nothing must be sent (logged out only)</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="throws">Throws<a href="#throws" class="hash-link" aria-label="Direct link to Throws" title="Direct link to Throws" translate="no">​</a></h4>
+<p>IdentLinkedElsewhere / PreconditionFailed / Throttled (logged in only)</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="recover">recover()<a href="#recover" class="hash-link" aria-label="Direct link to recover()" title="Direct link to recover()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>recover</strong>(<code>token</code>, <code>password</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L624" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:624</a></p>
+<p>Set a new password from a recovery link (does not log in): revokes the refresh tokens and ends every session of
+the user (see <code>Session.authAt</code>), resets the login attempts of the email ident</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-25">Parameters<a href="#parameters-25" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="token-1">token<a href="#token-1" class="hash-link" aria-label="Direct link to token" title="Direct link to token" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>recover token</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="password-1">password<a href="#password-1" class="hash-link" aria-label="Direct link to password" title="Direct link to password" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>new password</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-38">Returns<a href="#returns-38" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="recoverredirect">recoverRedirect()<a href="#recoverredirect" class="hash-link" aria-label="Direct link to recoverRedirect()" title="Direct link to recoverRedirect()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>recoverRedirect</strong>(<code>ctx</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L691" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:691</a></p>
+<p>Browser landing for recovery links: redirects a valid recover token to <code>redirects.recover</code> without consuming it,
+anything else to <code>redirects.failure</code>; never throws</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-26">Parameters<a href="#parameters-26" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="ctx-1">ctx<a href="#ctx-1" class="hash-link" aria-label="Direct link to ctx" title="Direct link to ctx" translate="no">​</a></h5>
+<p><code>WebContext</code></p>
+<p>web context</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-39">Returns<a href="#returns-39" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="register">register()<a href="#register" class="hash-link" aria-label="Direct link to register()" title="Direct link to register()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>register</strong>(<code>email</code>, <code>password</code>, <code>token?</code>, <code>profile?</code>): <code>Promise</code>&lt;<code>any</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L330" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:330</a></p>
+<p>Register with email and password</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-27">Parameters<a href="#parameters-27" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="email-3">email<a href="#email-3" class="hash-link" aria-label="Direct link to email" title="Direct link to email" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>email</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="password-2">password<a href="#password-2" class="hash-link" aria-label="Direct link to password" title="Direct link to password" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>password</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="token-2">token?<a href="#token-2" class="hash-link" aria-label="Direct link to token?" title="Direct link to token?" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>register token from the emailed link (verification &quot;before&quot;)</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="profile">profile?<a href="#profile" class="hash-link" aria-label="Direct link to profile?" title="Direct link to profile?" translate="no">​</a></h5>
+<p><code>any</code></p>
+<p>extra user fields</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-40">Returns<a href="#returns-40" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>any</code>&gt;</p>
+<p>the auth result, or verification_sent</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="removealllisteners">removeAllListeners()<a href="#removealllisteners" class="hash-link" aria-label="Direct link to removeAllListeners()" title="Direct link to removeAllListeners()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>removeAllListeners</strong>&lt;<code>Key</code>&gt;(<code>eventName?</code>): <code>this</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/events/asynceventemitter.d.ts:122</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-8">Type Parameters<a href="#type-parameters-8" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-5">Key<a href="#key-5" class="hash-link" aria-label="Direct link to Key" title="Direct link to Key" translate="no">​</a></h5>
+<p><code>Key</code> <em>extends</em> <code>never</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-28">Parameters<a href="#parameters-28" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="eventname-5">eventName?<a href="#eventname-5" class="hash-link" aria-label="Direct link to eventName?" title="Direct link to eventName?" translate="no">​</a></h5>
+<p><code>Key</code></p>
+<p>the event name</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-41">Returns<a href="#returns-41" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<p>this for chaining</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see-6">See<a href="#see-6" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>EventEmitter.removeAllListeners</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-34">Implementation of<a href="#implementation-of-34" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#removealllisteners"><code>removeAllListeners</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-34">Inherited from<a href="#inherited-from-34" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.removeAllListeners</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="removelistener">removeListener()<a href="#removelistener" class="hash-link" aria-label="Direct link to removeListener()" title="Direct link to removeListener()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>removeListener</strong>&lt;<code>Key</code>&gt;(<code>eventName</code>, <code>listener</code>): <code>this</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/events/asynceventemitter.d.ts:109</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-9">Type Parameters<a href="#type-parameters-9" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-6">Key<a href="#key-6" class="hash-link" aria-label="Direct link to Key" title="Direct link to Key" translate="no">​</a></h5>
+<p><code>Key</code> <em>extends</em> <code>never</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-29">Parameters<a href="#parameters-29" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="eventname-6">eventName<a href="#eventname-6" class="hash-link" aria-label="Direct link to eventName" title="Direct link to eventName" translate="no">​</a></h5>
+<p><code>Key</code></p>
+<p>the event name</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="listener-4">listener<a href="#listener-4" class="hash-link" aria-label="Direct link to listener" title="Direct link to listener" translate="no">​</a></h5>
+<p>(<code>event</code>) =&gt; <code>void</code></p>
+<p>the event listener</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-42">Returns<a href="#returns-42" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<p>this for chaining</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see-7">See<a href="#see-7" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>EventEmitter.removeListener</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-35">Implementation of<a href="#implementation-of-35" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#removelistener"><code>removeListener</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-35">Inherited from<a href="#inherited-from-35" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.removeListener</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="resolve">resolve()<a href="#resolve" class="hash-link" aria-label="Direct link to resolve()" title="Direct link to resolve()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>resolve</strong>(): <code>this</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L143" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:143</a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-43">Returns<a href="#returns-43" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-36">Implementation of<a href="#implementation-of-36" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#resolve"><code>resolve</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="overrides-2">Overrides<a href="#overrides-2" class="hash-link" aria-label="Direct link to Overrides" title="Direct link to Overrides" translate="no">​</a></h4>
+<p><code>Service.resolve</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="sendmail">sendMail()<a href="#sendmail" class="hash-link" aria-label="Direct link to sendMail()" title="Direct link to sendMail()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>sendMail</strong>(<code>template</code>, <code>to</code>, <code>url</code>, <code>token</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L213" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:213</a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-30">Parameters<a href="#parameters-30" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="template">template<a href="#template" class="hash-link" aria-label="Direct link to template" title="Direct link to template" translate="no">​</a></h5>
+<p><code>&quot;EMAIL_REGISTER&quot;</code> | <code>&quot;EMAIL_RECOVERY&quot;</code></p>
+<p>mail template</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="to">to<a href="#to" class="hash-link" aria-label="Direct link to to" title="Direct link to to" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>recipient</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="url-2">url<a href="#url-2" class="hash-link" aria-label="Direct link to url" title="Direct link to url" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>link</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="token-3">token<a href="#token-3" class="hash-link" aria-label="Direct link to token" title="Direct link to token" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>token</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-44">Returns<a href="#returns-44" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="sendmaildetached">sendMailDetached()<a href="#sendmaildetached" class="hash-link" aria-label="Direct link to sendMailDetached()" title="Direct link to sendMailDetached()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>sendMailDetached</strong>(<code>template</code>, <code>to</code>, <code>url</code>, <code>token</code>): <code>void</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L494" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:494</a></p>
+<p>Send a mail without awaiting it; failures are logged without any secret</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-31">Parameters<a href="#parameters-31" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="template-1">template<a href="#template-1" class="hash-link" aria-label="Direct link to template" title="Direct link to template" translate="no">​</a></h5>
+<p><code>&quot;EMAIL_REGISTER&quot;</code> | <code>&quot;EMAIL_RECOVERY&quot;</code></p>
+<p>mail template</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="to-1">to<a href="#to-1" class="hash-link" aria-label="Direct link to to" title="Direct link to to" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>recipient</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="url-3">url<a href="#url-3" class="hash-link" aria-label="Direct link to url" title="Direct link to url" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>link</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="token-4">token<a href="#token-4" class="hash-link" aria-label="Direct link to token" title="Direct link to token" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>token</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-45">Returns<a href="#returns-45" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>void</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="sendunownedlink">sendUnownedLink()<a href="#sendunownedlink" class="hash-link" aria-label="Direct link to sendUnownedLink()" title="Direct link to sendUnownedLink()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>sendUnownedLink</strong>(<code>normalized</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L436" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:436</a></p>
+<p>Logged-out link: a register link is emailed, without awaiting the mail, only for an unknown or unowned and
+unverified email whose send throttle allows it; anything else is silently ignored</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-32">Parameters<a href="#parameters-32" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="normalized-1">normalized<a href="#normalized-1" class="hash-link" aria-label="Direct link to normalized" title="Direct link to normalized" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>normalised email</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-46">Returns<a href="#returns-46" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="sessionmatches">sessionMatches()<a href="#sessionmatches" class="hash-link" aria-label="Direct link to sessionMatches()" title="Direct link to sessionMatches()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>sessionMatches</strong>(<code>claims</code>, <code>ctx</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L546" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:546</a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-33">Parameters<a href="#parameters-33" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="claims-1">claims<a href="#claims-1" class="hash-link" aria-label="Direct link to claims" title="Direct link to claims" translate="no">​</a></h5>
+<p>verified token claims</p>
+<h6 class="anchor anchorTargetStickyNavbar_FE5u" id="sub-1">sub?<a href="#sub-1" class="hash-link" aria-label="Direct link to sub?" title="Direct link to sub?" translate="no">​</a></h6>
+<p><code>string</code></p>
+<p>user id</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="ctx-2">ctx<a href="#ctx-2" class="hash-link" aria-label="Direct link to ctx" title="Direct link to ctx" translate="no">​</a></h5>
+<p><code>any</code></p>
+<p>context</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-47">Returns<a href="#returns-47" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>boolean</code></p>
+<p>true when the session is logged as the user of the token</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="setmaxlisteners">setMaxListeners()<a href="#setmaxlisteners" class="hash-link" aria-label="Direct link to setMaxListeners()" title="Direct link to setMaxListeners()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>setMaxListeners</strong>(<code>n</code>): <code>this</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/events/asynceventemitter.d.ts:88</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-34">Parameters<a href="#parameters-34" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="n">n<a href="#n" class="hash-link" aria-label="Direct link to n" title="Direct link to n" translate="no">​</a></h5>
+<p><code>number</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-48">Returns<a href="#returns-48" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-37">Implementation of<a href="#implementation-of-37" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#setmaxlisteners"><code>setMaxListeners</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-36">Inherited from<a href="#inherited-from-36" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.setMaxListeners</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="startrecovery">startRecovery()<a href="#startrecovery" class="hash-link" aria-label="Direct link to startRecovery()" title="Direct link to startRecovery()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>startRecovery</strong>(<code>email</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L592" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:592</a></p>
+<p>Start password recovery; always succeeds to avoid revealing accounts</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-35">Parameters<a href="#parameters-35" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="email-4">email<a href="#email-4" class="hash-link" aria-label="Direct link to email" title="Direct link to email" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>email</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-49">Returns<a href="#returns-49" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="startverification">startVerification()<a href="#startverification" class="hash-link" aria-label="Direct link to startVerification()" title="Direct link to startVerification()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>startVerification</strong>(<code>email</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L419" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:419</a></p>
+<p>Send (or resend) a verification link</p>
+<p>Logged in: the link proves the email for the current account (<code>sub</code> is only in the token, the ident stays
+unowned until Auth.Email.Verify is called by the same session). Logged out: always answers with no content and
+never reveals anything; a link is only sent for an unowned or unknown email.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-36">Parameters<a href="#parameters-36" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="email-5">email<a href="#email-5" class="hash-link" aria-label="Direct link to email" title="Direct link to email" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>email</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-50">Returns<a href="#returns-50" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="stop">stop()<a href="#stop" class="hash-link" aria-label="Direct link to stop()" title="Direct link to stop()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>stop</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L175" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:175</a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-51">Returns<a href="#returns-51" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-38">Implementation of<a href="#implementation-of-38" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#stop"><code>stop</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="overrides-3">Overrides<a href="#overrides-3" class="hash-link" aria-label="Direct link to Overrides" title="Direct link to Overrides" translate="no">​</a></h4>
+<p><code>Service.stop</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="tojson">toJSON()<a href="#tojson" class="hash-link" aria-label="Direct link to toJSON()" title="Direct link to toJSON()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>toJSON</strong>(): <code>string</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:191</p>
+<p>Prevent service to be serialized</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-52">Returns<a href="#returns-52" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-39">Implementation of<a href="#implementation-of-39" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#tojson"><code>toJSON</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-37">Inherited from<a href="#inherited-from-37" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.toJSON</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="tostring">toString()<a href="#tostring" class="hash-link" aria-label="Direct link to toString()" title="Direct link to toString()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>toString</strong>(): <code>string</code></p>
+</blockquote>
+<p>Defined in: packages/core/lib/services/service.d.ts:91</p>
+<p>Return service representation</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-53">Returns<a href="#returns-53" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="implementation-of-40">Implementation of<a href="#implementation-of-40" class="hash-link" aria-label="Direct link to Implementation of" title="Direct link to Implementation of" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/auth/interfaces/AuthProvider"><code>AuthProvider</code></a>.<a class="" href="/typedoc/auth/interfaces/AuthProvider#tostring"><code>toString</code></a></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-38">Inherited from<a href="#inherited-from-38" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.toString</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="verify">verify()<a href="#verify" class="hash-link" aria-label="Direct link to verify()" title="Direct link to verify()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>verify</strong>(<code>token</code>): <code>Promise</code>&lt;{ <code>status</code>: <code>&quot;verified&quot;</code>; }&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L524" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:524</a></p>
+<p>Mark an email as verified: only the session of the user named by the token can complete it</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-37">Parameters<a href="#parameters-37" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="token-5">token<a href="#token-5" class="hash-link" aria-label="Direct link to token" title="Direct link to token" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>verify token</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-54">Returns<a href="#returns-54" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;{ <code>status</code>: <code>&quot;verified&quot;</code>; }&gt;</p>
+<p>status</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="verifyredirect">verifyRedirect()<a href="#verifyredirect" class="hash-link" aria-label="Direct link to verifyRedirect()" title="Direct link to verifyRedirect()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>verifyRedirect</strong>(<code>ctx</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L709" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:709</a></p>
+<p>Browser landing for emailed links: verifies then redirects, never throws</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-38">Parameters<a href="#parameters-38" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="ctx-3">ctx<a href="#ctx-3" class="hash-link" aria-label="Direct link to ctx" title="Direct link to ctx" translate="no">​</a></h5>
+<p><code>WebContext</code></p>
+<p>web context</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-55">Returns<a href="#returns-55" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="verifywith">verifyWith()<a href="#verifywith" class="hash-link" aria-label="Direct link to verifyWith()" title="Direct link to verifyWith()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>verifyWith</strong>(<code>token</code>, <code>ctx</code>): <code>Promise</code>&lt;{ <code>status</code>: <code>&quot;verified&quot;</code>; }&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a858447053670c867dcd474968608270ef0a22b1/packages/auth/src/email/emailpassword.service.ts#L534" target="_blank" rel="noopener noreferrer" class="">packages/auth/src/email/emailpassword.service.ts:534</a></p>
+<p>Verify with an explicit context</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-39">Parameters<a href="#parameters-39" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="token-6">token<a href="#token-6" class="hash-link" aria-label="Direct link to token" title="Direct link to token" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>verify token</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="ctx-4">ctx<a href="#ctx-4" class="hash-link" aria-label="Direct link to ctx" title="Direct link to ctx" translate="no">​</a></h5>
+<p><code>any</code></p>
+<p>context whose session must match the token</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-56">Returns<a href="#returns-56" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;{ <code>status</code>: <code>&quot;verified&quot;</code>; }&gt;</p>
+<p>status</p></div></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/typedoc/auth/classes/EmailPasswordParameters"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">EmailPasswordParameters</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/typedoc/auth/classes/IdentConflict"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">IdentConflict</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_kFBU thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#webda-modda" class="table-of-contents__link toc-highlight">Webda Modda</a></li><li><a href="#extends" class="table-of-contents__link toc-highlight">Extends</a></li><li><a href="#type-parameters" class="table-of-contents__link toc-highlight">Type Parameters</a><ul><li><a href="#t" class="table-of-contents__link toc-highlight">T</a></li></ul></li><li><a href="#implements" class="table-of-contents__link toc-highlight">Implements</a></li><li><a href="#constructors" class="table-of-contents__link toc-highlight">Constructors</a><ul><li><a href="#constructor" class="table-of-contents__link toc-highlight">Constructor</a></li></ul></li><li><a href="#properties" class="table-of-contents__link toc-highlight">Properties</a><ul><li><a href="#_compiledcapabilities" class="table-of-contents__link toc-highlight">_compiledCapabilities</a></li><li><a href="#webda_events" class="table-of-contents__link toc-highlight">[WEBDA_EVENTS]</a></li><li><a href="#logger" class="table-of-contents__link toc-highlight">logger</a></li><li><a href="#metrics" class="table-of-contents__link toc-highlight">metrics?</a></li><li><a href="#name-1" class="table-of-contents__link toc-highlight">name</a></li><li><a href="#parameters-1" class="table-of-contents__link toc-highlight">parameters</a></li><li><a href="#pendingmails" class="table-of-contents__link toc-highlight">pendingMails</a></li><li><a href="#providername" class="table-of-contents__link toc-highlight">providerName</a></li><li><a href="#createconfiguration" class="table-of-contents__link toc-highlight">createConfiguration?</a></li><li><a href="#filterconfiguration" class="table-of-contents__link toc-highlight">filterConfiguration?</a></li><li><a href="#parameters-4" class="table-of-contents__link toc-highlight">Parameters</a></li></ul></li><li><a href="#methods" class="table-of-contents__link toc-highlight">Methods</a><ul><li><a href="#__clean" class="table-of-contents__link toc-highlight">__clean()</a></li><li><a href="#addlistener" class="table-of-contents__link toc-highlight">addListener()</a></li><li><a href="#addroute" class="table-of-contents__link toc-highlight">addRoute()</a></li><li><a href="#authorizeclientevent" class="table-of-contents__link toc-highlight">authorizeClientEvent()</a></li><li><a href="#buildlink" class="table-of-contents__link toc-highlight">buildLink()</a></li><li><a href="#changepassword" class="table-of-contents__link toc-highlight">changePassword()</a></li><li><a href="#completeverify" class="table-of-contents__link toc-highlight">completeVerify()</a></li><li><a href="#computeparameters" class="table-of-contents__link toc-highlight"><del>computeParameters()</del></a></li><li><a href="#countattempt" class="table-of-contents__link toc-highlight">countAttempt()</a></li><li><a href="#emit" class="table-of-contents__link toc-highlight">emit()</a></li><li><a href="#flushmails" class="table-of-contents__link toc-highlight">flushMails()</a></li><li><a href="#getcapabilities" class="table-of-contents__link toc-highlight">getCapabilities()</a></li><li><a href="#getclientevents" class="table-of-contents__link toc-highlight">getClientEvents()</a></li><li><a href="#getident" class="table-of-contents__link toc-highlight">getIdent()</a></li><li><a href="#getmaxlisteners" class="table-of-contents__link toc-highlight">getMaxListeners()</a></li><li><a href="#getmetric" class="table-of-contents__link toc-highlight">getMetric()</a></li><li><a href="#getname" class="table-of-contents__link toc-highlight">getName()</a></li><li><a href="#getopenapireplacements" class="table-of-contents__link toc-highlight">getOpenApiReplacements()</a></li><li><a href="#getoperationid" class="table-of-contents__link toc-highlight">getOperationId()</a></li><li><a href="#getparameters" class="table-of-contents__link toc-highlight">getParameters()</a></li><li><a href="#getpublicinfo" class="table-of-contents__link toc-highlight">getPublicInfo()</a></li><li><a href="#getservice" class="table-of-contents__link toc-highlight"><del>getService()</del></a></li><li><a href="#getstate" class="table-of-contents__link toc-highlight">getState()</a></li><li><a href="#geturl" class="table-of-contents__link toc-highlight">getUrl()</a></li><li><a href="#init" class="table-of-contents__link toc-highlight">init()</a></li><li><a href="#initmetrics" class="table-of-contents__link toc-highlight">initMetrics()</a></li><li><a href="#initoperations" class="table-of-contents__link toc-highlight">initOperations()</a></li><li><a href="#listeners" class="table-of-contents__link toc-highlight">listeners()</a></li><li><a href="#loadcapabilities" class="table-of-contents__link toc-highlight">loadCapabilities()</a></li><li><a href="#log" class="table-of-contents__link toc-highlight">log()</a></li><li><a href="#login" class="table-of-contents__link toc-highlight">login()</a></li><li><a href="#off" class="table-of-contents__link toc-highlight">off()</a></li><li><a href="#on" class="table-of-contents__link toc-highlight">on()</a></li><li><a href="#once" class="table-of-contents__link toc-highlight">once()</a></li><li><a href="#preparelink" class="table-of-contents__link toc-highlight">prepareLink()</a></li><li><a href="#recover" class="table-of-contents__link toc-highlight">recover()</a></li><li><a href="#recoverredirect" class="table-of-contents__link toc-highlight">recoverRedirect()</a></li><li><a href="#register" class="table-of-contents__link toc-highlight">register()</a></li><li><a href="#removealllisteners" class="table-of-contents__link toc-highlight">removeAllListeners()</a></li><li><a href="#removelistener" class="table-of-contents__link toc-highlight">removeListener()</a></li><li><a href="#resolve" class="table-of-contents__link toc-highlight">resolve()</a></li><li><a href="#sendmail" class="table-of-contents__link toc-highlight">sendMail()</a></li><li><a href="#sendmaildetached" class="table-of-contents__link toc-highlight">sendMailDetached()</a></li><li><a href="#sendunownedlink" class="table-of-contents__link toc-highlight">sendUnownedLink()</a></li><li><a href="#sessionmatches" class="table-of-contents__link toc-highlight">sessionMatches()</a></li><li><a href="#setmaxlisteners" class="table-of-contents__link toc-highlight">setMaxListeners()</a></li><li><a href="#startrecovery" class="table-of-contents__link toc-highlight">startRecovery()</a></li><li><a href="#startverification" class="table-of-contents__link toc-highlight">startVerification()</a></li><li><a href="#stop" class="table-of-contents__link toc-highlight">stop()</a></li><li><a href="#tojson" class="table-of-contents__link toc-highlight">toJSON()</a></li><li><a href="#tostring" class="table-of-contents__link toc-highlight">toString()</a></li><li><a href="#verify" class="table-of-contents__link toc-highlight">verify()</a></li><li><a href="#verifyredirect" class="table-of-contents__link toc-highlight">verifyRedirect()</a></li><li><a href="#verifywith" class="table-of-contents__link toc-highlight">verifyWith()</a></li></ul></li></ul></div></div></div></div></main></div></div></div><div style="background-color:#afcedb;height:48px"></div></div>
+</body>
+</html>

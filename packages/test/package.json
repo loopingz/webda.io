@@ -4,7 +4,11 @@
   "description": "Test for NodeJS projects",
   "keywords": [],
   "author": "Remi Cattiau <remi@cattiau.com>",
-  "repository": "git://github.com/loopingz/webda.io.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/test"
+  },
   "main": "lib/index.js",
   "exports": {
     "default": "./lib/index.js"

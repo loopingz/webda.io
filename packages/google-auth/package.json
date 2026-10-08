@@ -17,7 +17,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/loopingz/webda.io.git"
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/google-auth"
   },
   "keywords": [
     "webda",

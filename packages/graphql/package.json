@@ -54,7 +54,11 @@
     "url": "https://github.com/loopingz/webda.io/issues"
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
-  "repository": "git://github.com/loopingz/webda.io.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/graphql"
+  },
   "license": "LGPL-3.0-only",
   "nx": {
     "implicitDependencies": [

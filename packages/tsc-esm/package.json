@@ -22,7 +22,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/loopingz/webda.io.git"
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/tsc-esm"
   },
   "scripts": {
     "build": "tsc",

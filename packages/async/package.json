@@ -51,7 +51,8 @@
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/loopingz/webda.io.git"
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/async"
   },
   "publishConfig": {
     "access": "public"

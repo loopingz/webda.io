@@ -10,6 +10,8 @@ import {
   WebdaError
 } from "@webda/core";
 import { GraphQLObjectType } from "graphql";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { GraphQLService } from "./graphql.service.js";
 import { createFromInput, updateFromInput } from "./mutations.js";
 
@@ -222,6 +224,26 @@ describe("GraphQL permissions go through the core helper", () => {
     );
     assert.deepStrictEqual(Object.keys(fields), ["name", "password"]);
     assert.deepStrictEqual(Object.keys((fields.password.type as GraphQLObjectType).getFields()), ["changedAt"]);
+  });
+
+  it("binary attributes expose no challenge", () => {
+    // The generated schema of the core binary information, as the compiler emits it
+    const modulePath = createRequire(import.meta.url).resolve("@webda/core/webda.module.json");
+    const core = JSON.parse(readFileSync(modulePath, "utf-8"));
+    const binaryFile = core.schemas["Webda/BinaryFile"];
+    assert.ok(binaryFile);
+    const svc = service();
+    const fields = svc.getGraphQLFieldsFromSchema(
+      {
+        type: "object",
+        properties: { avatar: { $ref: "#/definitions/BinaryFile" } },
+        definitions: { BinaryFile: binaryFile }
+      },
+      "Thing"
+    );
+    const avatar = Object.keys((fields.avatar.type as GraphQLObjectType).getFields());
+    assert.ok(avatar.includes("hash"));
+    assert.ok(!avatar.includes("challenge"), avatar.join(","));
   });
 
   it("a canAct throwing during a subscription update hides the object instead of failing", async () => {

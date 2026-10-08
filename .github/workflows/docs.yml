@@ -58,7 +58,7 @@ jobs:
         run: pnpm run docs
 
       - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@c15a2b0ec4f14477a295a7eda11b8f1dbdeceead # 4.8.0
+        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
         with:
           branch: gh-pages
           # docusaurus build output (the docs script writes the CNAME there)

@@ -54,8 +54,10 @@ fs.readdirSync("../packages")
     console.log(`Building typedoc for ${packageName}`);
     try {
       const readme = linkSafeReadme(packageName);
+      // The packages build with TypeScript 7, which typedoc does not support yet: it compiles with its own
+      // TypeScript 5, whose diagnostics can differ. Type checking is the build's job, not the docs'.
       execSync(
-        `pnpm exec typedoc  --plugin typedoc-plugin-markdown --out typedoc/${packageName} --exclude "**/*+(index|.spec|.e2e).ts" --excludePrivate --hideBreadcrumbs${readme ? ` --readme ${readme}` : ""} --tsconfig ../packages/${packageName}/tsconfig.json ../packages/${packageName}/src/index.ts`,
+        `pnpm exec typedoc  --plugin typedoc-plugin-markdown --out typedoc/${packageName} --exclude "**/*+(index|.spec|.e2e).ts" --excludePrivate --hideBreadcrumbs --skipErrorChecking${readme ? ` --readme ${readme}` : ""} --tsconfig ../packages/${packageName}/tsconfig.json ../packages/${packageName}/src/index.ts`,
         { stdio: "inherit" }
       );
     } catch (e) {

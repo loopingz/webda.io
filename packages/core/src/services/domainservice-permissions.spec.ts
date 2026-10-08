@@ -12,12 +12,15 @@ import { SimpleOperationContext } from "../contexts/simplecontext.js";
 import { callOperation } from "../core/operations.js";
 import { Session } from "../session/session.js";
 import { useApplication } from "../application/hooks.js";
+import { useDynamicService } from "../core/hooks.js";
 import type { Application } from "../application/application.js";
 import { OwnerModel } from "../models/ownermodel.model.js";
 import { Ace, ResourceAcl } from "../models/aclmodel.js";
 import type { IOperationContext } from "../contexts/icontext.js";
 import * as WebdaError from "../errors/errors.js";
-import { checkModelPermission, mergePermissionQuery } from "../models/permissions.js";
+import { checkModelPermission, mergePermissionQuery, queryModelWithPermissions } from "../models/permissions.js";
+import { SimpleUser } from "../models/simpleuser.model.js";
+import { sanitizeModelInput } from "./domainservice.service.js";
 
 /**
  * OwnerModel subclass exposed through the DomainService
@@ -62,6 +65,21 @@ class AclDoc extends UuidModel {
   }
 }
 
+/**
+ * Child of PermTask (nested under /permTasks/{pid}/permSubTasks); no canAct of its own
+ */
+class PermSubTask extends UuidModel {
+  task: string;
+  label: string;
+}
+
+/**
+ * A user model exposed through the DomainService: self-only canAct, `_roles`/`_groups` attributes
+ */
+class PermUser extends SimpleUser {}
+
+PermSubTask.registerSerializer();
+PermUser.registerSerializer();
 PermTask.registerSerializer();
 OpenNote.registerSerializer();
 AclDoc.registerSerializer();
@@ -109,6 +127,11 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     app.addModel("WebdaDemo/PermTask", PermTask, metadata("WebdaDemo/PermTask", { publish: { method: "PUT" } }));
     app.addModel("WebdaDemo/OpenNote", OpenNote, metadata("WebdaDemo/OpenNote"));
     app.addModel("WebdaDemo/AclDoc", AclDoc, metadata("WebdaDemo/AclDoc"));
+    app.addModel("WebdaDemo/PermSubTask", PermSubTask, {
+      ...metadata("WebdaDemo/PermSubTask"),
+      Relations: { parent: { attribute: "task", model: "WebdaDemo/PermTask" } }
+    });
+    app.addModel("WebdaDemo/PermUser", PermUser, metadata("WebdaDemo/PermUser"));
     const router = new Router("Router", new RouterParameters().load({}));
     this.registerService(router);
     router.resolve();
@@ -132,6 +155,8 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     registerRepository(PermTask, new MemoryRepository(PermTask, ["uuid"]));
     registerRepository(OpenNote, new MemoryRepository(OpenNote, ["uuid"]));
     registerRepository(AclDoc, new MemoryRepository(AclDoc, ["uuid"]));
+    registerRepository(PermSubTask, new MemoryRepository(PermSubTask, ["uuid"]));
+    registerRepository(PermUser as any, new MemoryRepository(PermUser as any, ["uuid"]) as any);
     await PermTask.create({ uuid: "task-a", title: "A private", _user: USER_A } as any);
     await PermTask.create({ uuid: "task-b", title: "B private", _user: USER_B } as any);
     await PermTask.create({ uuid: "task-public", title: "A public", _user: USER_A, public: true } as any);
@@ -198,8 +223,8 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
 
   @test
   async getIsChecked() {
-    assert.strictEqual((await this.request(USER_B, "GET", "/perm/permTasks/task-a")).status, 403);
-    assert.strictEqual((await this.request(undefined, "GET", "/perm/permTasks/task-a")).status, 403);
+    assert.strictEqual((await this.request(USER_B, "GET", "/perm/permTasks/task-a")).status, 404);
+    assert.strictEqual((await this.request(undefined, "GET", "/perm/permTasks/task-a")).status, 404);
     const own = await this.request(USER_A, "GET", "/perm/permTasks/task-a");
     assert.strictEqual(own.status, 200);
     assert.strictEqual(own.body.title, "A private");
@@ -211,7 +236,7 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
   @test
   async refusalDoesNotLeakTheModelReason() {
     const res = await this.request(USER_B, "GET", "/perm/permTasks/task-a");
-    assert.strictEqual(res.status, 403);
+    assert.strictEqual(res.status, 404);
     assert.ok(!JSON.stringify(res.body ?? "").includes("logged"), "the canAct reason is not sent to the client");
   }
 
@@ -219,10 +244,10 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
   async updateIsChecked() {
     const before = await this.stored("task-a");
     const put = await this.request(USER_B, "PUT", "/perm/permTasks/task-a", { uuid: "task-a", title: "hacked" });
-    assert.strictEqual(put.status, 403);
+    assert.strictEqual(put.status, 404);
     const patch = await this.request(USER_B, "PATCH", "/perm/permTasks/task-a", { title: "hacked" });
-    assert.strictEqual(patch.status, 403);
-    assert.strictEqual((await this.request(undefined, "PATCH", "/perm/permTasks/task-a", { title: "x" })).status, 403);
+    assert.strictEqual(patch.status, 404);
+    assert.strictEqual((await this.request(undefined, "PATCH", "/perm/permTasks/task-a", { title: "x" })).status, 404);
     assert.deepStrictEqual(await this.stored("task-a"), before, "the refused update/patch did not change the object");
 
     const ownPut = await this.request(USER_A, "PUT", "/perm/permTasks/task-a", { uuid: "task-a", title: "updated" });
@@ -240,12 +265,12 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     await this.request(USER_A, "PATCH", "/perm/permTasks/task-a", { _user: USER_B });
     assert.strictEqual((await this.stored("task-a"))._user, USER_A);
     // B still cannot read it
-    assert.strictEqual((await this.request(USER_B, "GET", "/perm/permTasks/task-a")).status, 403);
+    assert.strictEqual((await this.request(USER_B, "GET", "/perm/permTasks/task-a")).status, 404);
   }
 
   @test
   async deleteIsChecked() {
-    assert.strictEqual((await this.request(USER_B, "DELETE", "/perm/permTasks/task-a")).status, 403);
+    assert.strictEqual((await this.request(USER_B, "DELETE", "/perm/permTasks/task-a")).status, 404);
     assert.strictEqual((await this.request(undefined, "DELETE", "/perm/permTasks/task-public")).status, 403);
     assert.ok(await this.stored("task-a"), "the object still exists");
     assert.ok(await this.stored("task-public"), "the public object still exists");
@@ -256,7 +281,7 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
 
   @test
   async actionIsChecked() {
-    assert.strictEqual((await this.request(USER_B, "PUT", "/perm/permTasks/task-a/publish", {})).status, 403);
+    assert.strictEqual((await this.request(USER_B, "PUT", "/perm/permTasks/task-a/publish", {})).status, 404);
     assert.ok(!(await this.stored("task-a")).published, "the refused action did not run");
     const own = await this.request(USER_A, "PUT", "/perm/permTasks/task-a/publish", {});
     assert.strictEqual(own.status, 200);
@@ -269,7 +294,7 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     assert.strictEqual(res.status, 200);
     const created = await this.stored(res.body.uuid);
     assert.strictEqual(created._user, USER_A, "the client supplied _user is ignored");
-    assert.strictEqual((await this.request(USER_B, "GET", `/perm/permTasks/${res.body.uuid}`)).status, 403);
+    assert.strictEqual((await this.request(USER_B, "GET", `/perm/permTasks/${res.body.uuid}`)).status, 404);
     assert.strictEqual((await this.request(USER_A, "GET", `/perm/permTasks/${res.body.uuid}`)).status, 200);
   }
 
@@ -373,9 +398,9 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
       ]
     } as any);
     assert.strictEqual((await this.request(USER_A, "GET", "/perm/aclDocs/doc1")).status, 200);
-    assert.strictEqual((await this.request(USER_B, "GET", "/perm/aclDocs/doc1")).status, 403);
-    assert.strictEqual((await this.request("user-c", "GET", "/perm/aclDocs/doc1")).status, 403);
-    assert.strictEqual((await this.request(undefined, "GET", "/perm/aclDocs/doc1")).status, 403);
+    assert.strictEqual((await this.request(USER_B, "GET", "/perm/aclDocs/doc1")).status, 404);
+    assert.strictEqual((await this.request("user-c", "GET", "/perm/aclDocs/doc1")).status, 404);
+    assert.strictEqual((await this.request(undefined, "GET", "/perm/aclDocs/doc1")).status, 404);
     assert.strictEqual((await this.request(USER_A, "PATCH", "/perm/aclDocs/doc1", { title: "t" })).status, 200);
     assert.strictEqual((await this.request(USER_A, "DELETE", "/perm/aclDocs/doc1")).status, 403);
     // Query post-filters with canAct(get)
@@ -414,12 +439,90 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     const self: any = { canAct: async () => self };
     await checkModelPermission(self, ctx, "get");
     for (const refusal of [false, "reason", undefined, null, 1, {}]) {
+      // Not readable: looks missing, whatever the action
+      for (const action of ["get", "update", "delete", "publish"]) {
+        await assert.rejects(
+          () => checkModelPermission({ canAct: async () => refusal }, ctx, action),
+          (err: any) => err instanceof WebdaError.NotFound && err.message === "Object not found",
+          `refusal ${JSON.stringify(refusal)} on ${action}`
+        );
+      }
+      // Readable but refused: Forbidden, without the model reason
       await assert.rejects(
-        () => checkModelPermission({ canAct: async () => refusal }, ctx, "get"),
+        () => checkModelPermission({ canAct: async (_c, a) => a === "get" || refusal }, ctx, "update"),
         (err: any) => err instanceof WebdaError.Forbidden && !String(err.message).includes("reason"),
         `refusal ${JSON.stringify(refusal)}`
       );
+      // Create: the object does not exist yet
+      await assert.rejects(
+        () => checkModelPermission({ canAct: async () => refusal }, ctx, "create"),
+        WebdaError.Forbidden
+      );
     }
+    // A 403 thrown by canAct (RoleModel without user) is a refusal too
+    await assert.rejects(
+      () =>
+        checkModelPermission(
+          {
+            canAct: async () => {
+              throw new WebdaError.Forbidden("No user");
+            }
+          },
+          ctx,
+          "update"
+        ),
+      WebdaError.NotFound
+    );
+  }
+
+  @test
+  async refusedReadsLookLikeMissingObjects() {
+    // Every operation of B on A's private object answers exactly like a missing key
+    const same = async (method: HttpMethodType, suffix: string, body?: any) => {
+      const refused = await this.request(USER_B, method, `/perm/permTasks/task-a${suffix}`, body);
+      const missing = await this.request(USER_B, method, `/perm/permTasks/no-such-task${suffix}`, body);
+      assert.strictEqual(refused.status, 404, `${method} ${suffix}`);
+      assert.deepStrictEqual(refused, missing, `${method} ${suffix}`);
+    };
+    await same("GET", "");
+    await same("PUT", "", { title: "x" });
+    await same("PATCH", "", { title: "x" });
+    await same("DELETE", "");
+    await same("PUT", "/publish", {});
+    // Nested create under a parent the caller cannot read
+    const refused = await this.request(USER_B, "POST", "/perm/permTasks/task-a/permSubTasks", { label: "x" });
+    const missing = await this.request(USER_B, "POST", "/perm/permTasks/no-such-task/permSubTasks", { label: "x" });
+    assert.strictEqual(refused.status, 404);
+    assert.deepStrictEqual(refused, missing);
+    // Both emit Store.WebNotFound
+    const seen: string[] = [];
+    const service: any = useDynamicService("DomainService");
+    const listener = (evt: any) => seen.push(evt.uuid);
+    service.on("Store.WebNotFound", listener);
+    try {
+      await this.request(USER_B, "GET", "/perm/permTasks/task-a");
+      await this.request(USER_B, "GET", "/perm/permTasks/no-such-task");
+    } finally {
+      service.removeListener?.("Store.WebNotFound", listener);
+    }
+    assert.deepStrictEqual(seen, ["task-a", "no-such-task"]);
+  }
+
+  @test
+  async readableButRefusedIsForbidden() {
+    // B can read A's public task, not change it
+    assert.strictEqual((await this.request(USER_B, "GET", "/perm/permTasks/task-public")).status, 200);
+    assert.strictEqual(
+      (await this.request(USER_B, "PATCH", "/perm/permTasks/task-public", { title: "x" })).status,
+      403
+    );
+    assert.strictEqual(
+      (await this.request(USER_B, "PUT", "/perm/permTasks/task-public", { uuid: "task-public", title: "x" })).status,
+      403
+    );
+    assert.strictEqual((await this.request(USER_B, "DELETE", "/perm/permTasks/task-public")).status, 403);
+    assert.strictEqual((await this.request(USER_B, "PUT", "/perm/permTasks/task-public/publish", {})).status, 403);
+    assert.strictEqual((await this.stored("task-public")).title, "A public");
   }
 
   @test
@@ -436,11 +539,242 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
       await callOperation(ctx, operation);
       return ctx.getOutput();
     };
-    await assert.rejects(() => call(USER_B, "PermTask.Get", { uuid: "task-a" }), WebdaError.Forbidden);
-    await assert.rejects(() => call(USER_B, "PermTask.Delete", { uuid: "task-a" }), WebdaError.Forbidden);
+    await assert.rejects(() => call(USER_B, "PermTask.Get", { uuid: "task-a" }), WebdaError.NotFound);
+    await assert.rejects(() => call(USER_B, "PermTask.Delete", { uuid: "task-a" }), WebdaError.NotFound);
     const own = JSON.parse(<string>await call(USER_A, "PermTask.Get", { uuid: "task-a" }));
     assert.strictEqual(own.uuid, "task-a");
     const query = JSON.parse(<string>await call(USER_B, "PermTasks.Query", { query: "" }));
     assert.deepStrictEqual(query.results.map((r: any) => r.uuid).sort(), ["task-b", "task-public"]);
+  }
+
+  // ---- Round 2 ----
+
+  @test
+  async createOverAnExistingKeyIsAConflict() {
+    const before = await this.stored("task-a");
+    // B tries to take over A's object by creating over its key
+    const takeover = await this.request(USER_B, "POST", "/perm/permTasks", { uuid: "task-a", title: "pwned" });
+    assert.strictEqual(takeover.status, 409);
+    assert.deepStrictEqual(await this.stored("task-a"), before, "the existing object is unchanged");
+    // The conflict on an unreadable key looks exactly like the one on a readable key
+    const readable = await this.request(USER_B, "POST", "/perm/permTasks", { uuid: "task-b", title: "pwned" });
+    assert.deepStrictEqual(takeover, readable);
+    // Even the owner cannot create over its own object
+    assert.strictEqual(
+      (await this.request(USER_A, "POST", "/perm/permTasks", { uuid: "task-a", title: "again" })).status,
+      409
+    );
+    assert.deepStrictEqual(await this.stored("task-a"), before);
+    // Models without canAct too
+    assert.strictEqual((await this.request(USER_A, "POST", "/perm/openNotes", { uuid: "n1", text: "1" })).status, 200);
+    assert.strictEqual((await this.request(USER_B, "POST", "/perm/openNotes", { uuid: "n1", text: "2" })).status, 409);
+    assert.strictEqual((await OpenNote.ref("n1").get()).text, "1");
+  }
+
+  @test
+  async updateCannotSwapThePrimaryKey() {
+    const a = await this.stored("task-a");
+    const b = await this.stored("task-b");
+    // B updates its own URL with A's key in the body
+    const put = await this.request(USER_B, "PUT", "/perm/permTasks/task-b", { uuid: "task-a", title: "x" });
+    assert.strictEqual(put.status, 400);
+    const patch = await this.request(USER_B, "PATCH", "/perm/permTasks/task-b", { uuid: "task-a", title: "x" });
+    assert.strictEqual(patch.status, 400);
+    // A's URL with B's key in the body: the URL key wins, and B may not touch it
+    const patch2 = await this.request(USER_B, "PATCH", "/perm/permTasks/task-a", { uuid: "task-b", title: "x2" });
+    assert.ok(patch2.status >= 400, `status ${patch2.status}`);
+    assert.deepStrictEqual(await this.stored("task-a"), a);
+    assert.deepStrictEqual(await this.stored("task-b"), b);
+    // The same key in the body is accepted
+    const same = await this.request(USER_B, "PATCH", "/perm/permTasks/task-b", { uuid: "task-b", title: "ok" });
+    assert.strictEqual(same.status, 200);
+    assert.strictEqual((await this.stored("task-b")).title, "ok");
+  }
+
+  @test
+  async underscoreAttributesCannotBeSetByClients() {
+    await PermUser.create({ uuid: USER_A, displayName: "A" } as any);
+    const roles = async () => {
+      const u: any = await PermUser.ref(USER_A).get();
+      return { roles: [...(u._roles ?? [])], groups: [...(u._groups ?? [])], name: u.displayName };
+    };
+    // A can update itself, but not grant itself roles or groups
+    const patch = await this.request(USER_A, "PATCH", `/perm/permUsers/${USER_A}`, {
+      displayName: "A2",
+      _roles: ["admin"],
+      _groups: ["admins"]
+    });
+    assert.strictEqual(patch.status, 200);
+    assert.deepStrictEqual(await roles(), { roles: [], groups: [], name: "A2" });
+    const put = await this.request(USER_A, "PUT", `/perm/permUsers/${USER_A}`, {
+      uuid: USER_A,
+      displayName: "A3",
+      _roles: ["admin"],
+      _groups: ["admins"]
+    });
+    assert.strictEqual(put.status, 200);
+    assert.deepStrictEqual(await roles(), { roles: [], groups: [], name: "A3" });
+    // Create: user-c creates itself with roles
+    const created = await this.request("user-c", "POST", "/perm/permUsers", {
+      uuid: "user-c",
+      _roles: ["admin"],
+      _groups: ["admins"]
+    });
+    assert.strictEqual(created.status, 200);
+    const c: any = await PermUser.ref("user-c").get();
+    assert.deepStrictEqual([...(c._roles ?? [])], []);
+    assert.deepStrictEqual([...(c._groups ?? [])], []);
+  }
+
+  @test
+  async underscoreAttributesOptIn() {
+    /**
+     * Model accepting one `_` attribute from clients
+     */
+    class OptIn {
+      static Metadata = { Relations: {} };
+      static getClientWritableAttributes() {
+        return ["_color"];
+      }
+    }
+    assert.deepStrictEqual(
+      sanitizeModelInput(OptIn as any, { _color: "red", _secret: 1, name: "n", nested: { _k: 1 } }),
+      {
+        _color: "red",
+        name: "n",
+        nested: { _k: 1 }
+      }
+    );
+    // OwnerModel protects _user even when listed: protection wins
+    assert.deepStrictEqual(sanitizeModelInput(PermTask as any, { _user: USER_B, title: "t" }), { title: "t" });
+  }
+
+  @test
+  async nestedCreateChecksTheParent() {
+    // B creates a child under A's private task
+    const refused = await this.request(USER_B, "POST", "/perm/permTasks/task-a/permSubTasks", {
+      uuid: "sub-b",
+      label: "x"
+    });
+    assert.strictEqual(refused.status, 404);
+    assert.strictEqual((await PermSubTask.query("")).results.length, 0, "nothing created");
+    // Unknown parent
+    const missing = await this.request(USER_A, "POST", "/perm/permTasks/nope/permSubTasks", { uuid: "sub-x" });
+    assert.strictEqual(missing.status, 404);
+    // Over a non-HTTP transport, the parent comes from the input
+    const ctx = new SimpleOperationContext();
+    await ctx.init();
+    const session = new Session();
+    session.login(USER_B, USER_B);
+    ctx.setSession(session);
+    ctx.setInput(Buffer.from(JSON.stringify({ uuid: "sub-b2", task: "task-a", label: "x" })));
+    await assert.rejects(() => callOperation(ctx, "PermSubTask.Create"), WebdaError.NotFound);
+    assert.strictEqual((await PermSubTask.query("")).results.length, 0, "nothing created");
+    // The parent owner can
+    const ok = await this.request(USER_A, "POST", "/perm/permTasks/task-a/permSubTasks", { uuid: "sub-a", label: "a" });
+    assert.strictEqual(ok.status, 200);
+    assert.strictEqual((await PermSubTask.ref("sub-a").get()).task, "task-a");
+    // Re-parenting to a parent the caller cannot read is refused too
+    assert.strictEqual(
+      (await this.request(USER_B, "POST", "/perm/permTasks/task-b/permSubTasks", { uuid: "sub-b3", label: "b" }))
+        .status,
+      200
+    );
+    const move = await this.request(USER_B, "PATCH", "/perm/permTasks/task-b/permSubTasks/sub-b3", { task: "task-a" });
+    assert.ok(move.status === 403 || move.status === 404, `status ${move.status}`);
+    assert.strictEqual((await PermSubTask.ref("sub-b3").get()).task, "task-b");
+  }
+
+  @test
+  async filteredPagesDoNotLeakHiddenMatches() {
+    await AclDoc.create({
+      uuid: "doc1",
+      title: "secret-title",
+      acl: [{ action: "get", type: "USER", principal: USER_A, allow: true }]
+    } as any);
+    await AclDoc.create({
+      uuid: "doc2",
+      title: "other",
+      acl: [{ action: "get", type: "USER", principal: USER_A, allow: true }]
+    } as any);
+    const hit = await this.request(USER_B, "PUT", "/perm/aclDocs", { q: "title LIKE 'secret%' LIMIT 1" });
+    const miss = await this.request(USER_B, "PUT", "/perm/aclDocs", { q: "title LIKE 'nope%' LIMIT 1" });
+    assert.deepStrictEqual(hit.body, miss.body, "a query matching only hidden rows looks like one matching nothing");
+    assert.strictEqual(hit.body.continuationToken, undefined);
+  }
+
+  @test
+  async filteredPagesAreRefilled() {
+    // Interleave rows B cannot read with rows B can read
+    const ids: string[] = [];
+    for (let i = 0; i < 6; i++) {
+      await AclDoc.create({
+        uuid: `r${i}`,
+        title: `t${i}`,
+        acl: [{ action: "get", type: "USER", principal: i % 2 ? USER_B : USER_A, allow: true }]
+      } as any);
+      if (i % 2) ids.push(`r${i}`);
+    }
+    const seen: string[] = [];
+    let token: string | undefined;
+    let pages = 0;
+    do {
+      const q = token ? `LIMIT 2 OFFSET "${token}"` : "LIMIT 2";
+      const res = await this.request(USER_B, "PUT", "/perm/aclDocs", { q });
+      assert.strictEqual(res.status, 200);
+      assert.ok(res.body.results.length <= 2);
+      if (res.body.continuationToken) {
+        assert.ok(res.body.results.length > 0, "no token on an empty page");
+      }
+      seen.push(...res.body.results.map((r: any) => r.uuid));
+      token = res.body.continuationToken;
+    } while (token && ++pages < 10);
+    assert.deepStrictEqual(seen.sort(), ids);
+    // The first page is full despite the hidden rows
+    const first = await this.request(USER_B, "PUT", "/perm/aclDocs", { q: "LIMIT 2" });
+    assert.strictEqual(first.body.results.length, 2);
+  }
+
+  @test
+  async usersCannotBeEnumerated() {
+    await PermUser.create({ uuid: USER_A, displayName: "A" } as any);
+    await PermUser.create({ uuid: USER_B, displayName: "B" } as any);
+    const res = await this.request(USER_A, "PUT", "/perm/permUsers", { q: "" });
+    assert.deepStrictEqual(
+      res.body.results.map((r: any) => r.uuid),
+      [USER_A]
+    );
+    assert.deepStrictEqual((await this.request(undefined, "PUT", "/perm/permUsers", { q: "" })).body.results, []);
+    // Filtered in the store, with the id escaped
+    const perm = PermUser.getPermissionQuery({ getCurrentUserId: () => "x' OR uuid != 'y" } as any);
+    assert.ok(perm);
+    assert.deepStrictEqual((await PermUser.query(perm.query)).results, []);
+    assert.deepStrictEqual(
+      (await PermUser.query(PermUser.getPermissionQuery({ getCurrentUserId: () => USER_B } as any).query)).results.map(
+        r => r.uuid
+      ),
+      [USER_B]
+    );
+  }
+
+  @test
+  async throwingCanActRefusesOnlyItsRow() {
+    const row = (uuid: string, canAct: any) => ({ uuid, canAct });
+    const model: any = {
+      prototype: { canAct: () => true },
+      query: async () => ({
+        results: [
+          row("ok", async () => true),
+          row("boom", async () => {
+            throw new Error("db down");
+          })
+        ]
+      })
+    };
+    const res = await queryModelWithPermissions(model, "", { getCurrentUserId: () => "u" } as any);
+    assert.deepStrictEqual(
+      res.results.map((r: any) => r.uuid),
+      ["ok"]
+    );
   }
 }

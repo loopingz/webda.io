@@ -1,4 +1,5 @@
 import { IOperationContext } from "../contexts/icontext.js";
+import { bind } from "@webda/ql";
 import { Password, V3_PASSWORD_MAPPED } from "./password.model.js";
 import { type ModelClass, type ModelEvents, type Settable, UuidModel, WEBDA_EVENTS } from "@webda/models";
 
@@ -134,6 +135,22 @@ export class User extends UuidModel {
    */
   getDisplayName(): string {
     return this.displayName;
+  }
+
+  /**
+   * Store filter matching {@link User.canAct}: a caller only finds its own user, so users cannot be enumerated
+   *
+   * A subclass that overrides `canAct` gets no permission query (only the `canAct` filter) unless it also overrides
+   * this method, so the store filter never hides objects its `canAct` allows.
+   * @param context - the caller context
+   * @returns the permission query
+   */
+  static getPermissionQuery(context?: IOperationContext): null | { partial: boolean; query: string } {
+    if (!context || this.prototype.canAct !== User.prototype.canAct) {
+      return null;
+    }
+    const userId = context.getCurrentUserId();
+    return { query: userId ? bind("uuid = ?", [userId]) : "FALSE", partial: false };
   }
 
   /**

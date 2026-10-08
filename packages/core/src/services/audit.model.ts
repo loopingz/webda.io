@@ -5,6 +5,7 @@ import { CoreModel } from "../models/coremodel.model.js";
 import type { JSONSchema7 } from "json-schema";
 import { escape, parse, QueryValidator } from "@webda/ql";
 import * as WebdaError from "../errors/errors.js";
+import { isModelActionAllowed } from "../models/permissions.js";
 import { useApplication, useModel } from "../application/hooks.js";
 import { useModelMetadata } from "../core/hooks.js";
 import { useContext } from "../contexts/execution.js";
@@ -394,6 +395,13 @@ export class AuditService extends Service<AuditServiceParameters> {
     if (instance && !instance.isDeleted?.()) {
       const allowed = typeof instance.canAct === "function" ? await instance.canAct(context, "audit") : false;
       if (allowed !== true) {
+        // An object the caller cannot read answers like a missing one
+        if (
+          !this.hasReadPermission(context) &&
+          !(await isModelActionAllowed(instance, context, "get").catch(() => false))
+        ) {
+          throw new WebdaError.NotFound("Object not found");
+        }
         throw new WebdaError.Forbidden(typeof allowed === "string" ? allowed : "Audit not allowed");
       }
     } else if (!this.hasReadPermission(context)) {

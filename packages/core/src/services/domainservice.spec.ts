@@ -572,7 +572,7 @@ class DomainServiceTest extends WebdaApplicationTest {
     const anonymous = new FakeOpContext();
     await anonymous.init();
     anonymous.setParameters({ uuid });
-    await assert.rejects(() => callOperation(anonymous, "Classroom.Test"), WebdaError.Forbidden);
+    await assert.rejects(() => callOperation(anonymous, "Classroom.Test"), WebdaError.NotFound);
 
     const ctx = new FakeOpContext();
     await ctx.init();

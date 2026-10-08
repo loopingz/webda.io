@@ -295,7 +295,8 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
         isDeleted: () => false,
         // Canonical "string-as-denial" canAct return — anything but `true`
         // (or the instance itself) must be treated as a refusal.
-        canAct: async (_ctx: any, action: string) => (action === "mfa.verify" ? true : "denied"),
+        // The parent is readable ("get"), so the refusal is a Forbidden (an unreadable parent answers NotFound)
+        canAct: async (_ctx: any, action: string) => (action === "mfa.verify" || action === "get" ? true : "denied"),
         mfa: new FakeMFA()
       };
       refStub = this.stubModelRef(User, fakeUser);

@@ -52,18 +52,47 @@ export async function isModelActionAllowed(object: any, context: IOperationConte
 }
 
 /**
+ * Message of the NotFound error for a missing object, also used for an object the caller may not read
+ */
+export const NOT_FOUND_MESSAGE = "Object not found";
+
+/**
+ * Ask canAct, treating a 401/403 thrown by it (e.g. RoleModel without user) as a refusal
+ * @param object - the model instance
+ * @param context - the caller context
+ * @param action - the action
+ * @returns true when allowed, otherwise the refusal
+ */
+async function askPermission(object: any, context: IOperationContext, action: string): Promise<any> {
+  try {
+    return await getModelPermission(object, context, action);
+  } catch (err) {
+    if (err instanceof WebdaError.HttpError && [401, 403].includes(err.getResponseCode())) {
+      return err.message;
+    }
+    throw err;
+  }
+}
+
+/**
  * Enforce a model's permission for an action: the single check used by every DomainService operation (REST, gRPC,
  * MCP and any transport dispatching operations)
+ *
+ * A caller who may not read the object (`canAct(ctx, "get")` refused) gets exactly the error of a missing object
+ * (`NotFound("Object not found")`), whatever the action, so a refusal never reveals that the key exists. A caller who
+ * may read the object but not perform the action gets a `Forbidden`. On `"create"` the object does not exist yet: a
+ * refusal is always a `Forbidden`.
  *
  * The refusal reason returned by `canAct` is logged, never sent to the client.
  *
  * @param object - the model instance
  * @param context - the caller context
  * @param action - the action name
- * @throws WebdaError.Forbidden when `canAct` refuses
+ * @throws WebdaError.NotFound when the caller may not read the object
+ * @throws WebdaError.Forbidden when the caller may read the object but not perform the action
  */
 export async function checkModelPermission(object: any, context: IOperationContext, action: string): Promise<void> {
-  const allowed = await getModelPermission(object, context, action);
+  const allowed = await askPermission(object, context, action);
   if (allowed === true) {
     return;
   }
@@ -72,7 +101,29 @@ export async function checkModelPermission(object: any, context: IOperationConte
     `Permission refused for '${action}' on ${object?.constructor?.name ?? "object"}`,
     typeof allowed === "string" ? allowed : ""
   );
+  if (action !== "create" && (action === "get" || (await askPermission(object, context, "get")) !== true)) {
+    throw new WebdaError.NotFound(NOT_FOUND_MESSAGE);
+  }
   throw new WebdaError.Forbidden(`Action ${action} not allowed`);
+}
+
+/**
+ * Persist a new object with the repository `create`, which refuses an existing key (atomically in every bundled
+ * repository), instead of `save()`, which upserts
+ * @param object - the new model instance
+ * @returns the object
+ * @throws WebdaError.Conflict when an object with the same primary key exists
+ */
+export async function createModel<T = any>(object: T): Promise<T> {
+  try {
+    await (object as any).getRepository().create(object);
+  } catch (err) {
+    if (/^Already exists/.test(`${err?.message}`)) {
+      throw new WebdaError.Conflict("Object already exists");
+    }
+    throw err;
+  }
+  return object;
 }
 
 /**
@@ -94,11 +145,38 @@ export function mergePermissionQuery(query: string, permission?: PermissionQuery
 }
 
 /**
+ * Maximum number of rows a permission-filtered query scans to fill one page: ten times the page LIMIT, at least
+ * {@link MIN_SCANNED_ROWS}
+ */
+export const SCAN_FACTOR = 10;
+/**
+ * Lower bound of the scan budget of a permission-filtered page
+ */
+export const MIN_SCANNED_ROWS = 100;
+
+/**
+ * Whether the caller may read a query result: a `canAct` that throws refuses that row only
+ * @param object - the result
+ * @param context - the caller context
+ * @returns true when readable
+ */
+async function isReadable(object: any, context: IOperationContext): Promise<boolean> {
+  try {
+    return await isModelActionAllowed(object, context, "get");
+  } catch (err) {
+    useLog("WARN", `canAct failed on a query result of ${object?.constructor?.name ?? "object"}`, err);
+    return false;
+  }
+}
+
+/**
  * Query a model as the caller: the model's static `getPermissionQuery(context)` is ANDed into the query, then, when
  * the model defines `canAct`, every result is checked with `canAct(context, "get")` and refused ones are dropped
  *
- * A page can therefore come back shorter than its LIMIT (even empty) while a `continuationToken` is still returned:
- * clients must page on the token, not on the page size.
+ * Refused rows are replaced by continuing the scan in the store (next pages, with the remaining LIMIT), so a page is
+ * full unless the store has no more matches or the scan budget (`SCAN_FACTOR` x LIMIT rows, at least
+ * `MIN_SCANNED_ROWS`) is spent. When the budget is spent the continuation token is returned only if the page holds
+ * visible results: an empty page never carries a token, so a token never reveals that only hidden rows matched.
  *
  * @param model - the model class
  * @param query - the client query
@@ -112,12 +190,34 @@ export async function queryModelWithPermissions<T = any>(
 ): Promise<{ results: T[]; continuationToken?: string }> {
   const permission: PermissionQuery | null | undefined =
     typeof model.getPermissionQuery === "function" ? model.getPermissionQuery(context) : undefined;
-  const res = await model.query(mergePermissionQuery(query ?? "", permission));
+  const merged = mergePermissionQuery(query ?? "", permission);
   // Even with a non partial permission query, canAct stays the reference: a subclass overriding canAct while
   // inheriting getPermissionQuery must not leak objects its canAct refuses
-  if (typeof model.prototype?.canAct === "function") {
-    const allowed = await Promise.all((res.results ?? []).map(r => isModelActionAllowed(r, context, "get")));
-    res.results = res.results.filter((_r, i) => allowed[i]);
+  if (typeof model.prototype?.canAct !== "function") {
+    return model.query(merged);
   }
-  return res;
+  const limit = new QueryValidator(merged).getLimit();
+  const budget = Math.max(limit * SCAN_FACTOR, MIN_SCANNED_ROWS);
+  const results: T[] = [];
+  let scanned = 0;
+  let res = await model.query(merged);
+  while (true) {
+    const rows = res.results ?? [];
+    scanned += rows.length;
+    const readable = await Promise.all(rows.map(r => isReadable(r, context)));
+    results.push(...rows.filter((_r, i) => readable[i]));
+    if (!res.continuationToken || results.length >= limit) {
+      // Store exhausted, or page full: the store token is exact
+      return { ...res, results };
+    }
+    if (scanned >= budget) {
+      // Budget spent: a token on an empty page would only reveal hidden matches
+      return results.length ? { ...res, results } : { ...res, results, continuationToken: undefined };
+    }
+    // Refill: continue after the last scanned row, asking only for the rows still missing
+    const next = new QueryValidator(merged).merge(
+      `LIMIT ${limit - results.length} OFFSET ${JSON.stringify(String(res.continuationToken))}`
+    );
+    res = await model.query(next.toString());
+  }
 }

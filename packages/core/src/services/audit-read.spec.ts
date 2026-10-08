@@ -257,7 +257,8 @@ class AuditReadTest extends WebdaApplicationTest {
     const bob = await this.user();
     await assert.rejects(
       () => this.call("Audit.Subject", { model: "Webda/User", key: alice }, { id: bob }),
-      this.isError(WebdaError.Forbidden)
+      // Bob cannot read Alice: her audit answers like a missing object
+      this.isError(WebdaError.NotFound)
     );
   }
 

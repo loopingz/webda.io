@@ -61,6 +61,27 @@ New in v4: `redirects.recover`, `redirects.confirm`, `linking`, `registration`, 
 
 New operations: `Auth.Refresh`, `Auth.Idents`, `Auth.Unlink`, `Auth.Password.Change`.
 
+### Google (`@webda/google-auth`)
+
+`GoogleAuthentication` is now an `@webda/auth` provider (`OAuthProvider`), configured as its own service next to
+`Authentication` (it was a provider of the v3 `Authentication` / an `OAuthService`). The modda name is unchanged.
+
+| v3                                                                 | v4                                                                              |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `url` default `/google`                                            | `url` default `/auth/google`                                                    |
+| `authorized_uris` (regexps)                                        | `authorized_uris`: absolute urls, same origin + path prefix match               |
+| referer used as post-login target                                  | `?redirect=` only (checked against `authorized_uris`), else `redirects.success` |
+| `redirects.use_referer/whitelist/defaults`                         | `redirects.success`, `redirects.failure` (required)                             |
+| `no_referer`, `exposeScope`, `authenticationService`, `project_id` | removed                                                                         |
+| `scope` default `["email"]`                                        | `["openid", "email", "profile"]`                                                |
+| `POST <url>/token` with `{ tokens: { id_token } }`                 | `Auth.Google.Token` (`POST auth/google/token`) with `{ token: "<id token>" }`   |
+| `GoogleAuth.Tokens` / `OAuth.Callback` events                      | `Authentication.Login` (tokens are stored on the ident `__tokens`)              |
+| `getLocalClient()` (local callback server)                         | removed                                                                         |
+
+New: `audiences`, `hostedDomain`, `allowedEmailDomains`, `trustEmailVerification`. v3 Google idents
+(`<sub>_google`) are upgraded like the others (lazily, or with `webda auth migrate`). Register
+`<url>/callback` (or your `redirect_uri`) as an authorized redirect URI in the Google Cloud console.
+
 ## Behaviour changes
 
 - Sessions are complemented by an access JWT (15 min) and rotating refresh tokens; clients should send
@@ -112,5 +133,4 @@ Field map: `_failedLogin` -> `_loginAttempts`, `_lastFailedLogin` -> `_lastLogin
 ## Known issues
 
 - Access tokens stay valid until expiry after logout (a password change does end them).
-- Google login is disabled until the OAuth providers are ported to `@webda/auth`.
 - `__`-prefixed fields are now server-only: an application that wrote them through REST must use an operation instead.

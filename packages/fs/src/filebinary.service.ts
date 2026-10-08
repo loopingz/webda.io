@@ -296,13 +296,22 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
-   * Usage marker of an object attribute in a hash folder: `<model>_<attribute>_<uuid>`, with the `/` of the model
-   * identifier replaced (it is a file name)
+   * Make a marker name part file-safe: the model identifier carries a `/`, and a natural key is client-chosen, so
+   * anything but letters, digits, `_`, `.`, `:`, `@` and `-` is replaced (a marker is a file inside the hash folder)
+   * @param part - the raw value
+   * @returns the safe name part
+   */
+  protected safeName(part: string): string {
+    return `${part}`.replace(/[^A-Za-z0-9_.:@-]/g, "-");
+  }
+
+  /**
+   * Usage marker of an object attribute in a hash folder: `<model>_<attribute>_<uuid>`, every part file-safe
    * @param target - the object attribute
    * @returns the marker file name
    */
   protected usageMarker(target: Pick<UploadTarget, "model" | "attribute" | "uuid">): string {
-    return `${target.model.replace(/\//g, "-")}_${target.attribute}_${target.uuid}`;
+    return `${this.safeName(target.model)}_${this.safeName(target.attribute)}_${this.safeName(target.uuid)}`;
   }
 
   /**
@@ -449,10 +458,11 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   async _cleanUsage(hash: string, uuid: string, attribute?: string): Promise<void> {
     const p = this._getPath(hash);
     if (!fs.existsSync(p)) return;
+    uuid = this.safeName(uuid);
     uuid = uuid.startsWith("_") ? uuid : `_${uuid}`;
     const files = fs.readdirSync(p);
     files
-      .filter(f => f.endsWith(attribute ? `_${attribute}${uuid}` : `${uuid}`))
+      .filter(f => f.endsWith(attribute ? `_${this.safeName(attribute)}${uuid}` : `${uuid}`))
       .forEach(f => fs.unlinkSync(this._getPath(hash, f)));
 
     if (files.length == 3) {

@@ -14,6 +14,7 @@ import {
   WebdaError
 } from "@webda/core";
 import { TestApplication, WebdaApplicationTest } from "@webda/core/lib/test";
+import { JSONUtils } from "@webda/utils";
 import { FileBinary } from "./filebinary.service.js";
 
 /**
@@ -136,6 +137,54 @@ class FileBinaryChallengeTest extends WebdaApplicationTest {
     assert.strictEqual(images[0].hash, hash);
     assert.strictEqual(images[0].name, "mine.txt");
     assert.strictEqual(await this.binary.getUsageCount(hash), 2);
+  }
+
+  /**
+   * The challenge is the proof of possession: it is never sent to clients nor persisted on the object, so a reader
+   * of the owner's object cannot copy `{hash, challenge}` to attach the binary
+   */
+  @test
+  async challengeIsNeverVisibleToReaders() {
+    const { user, hash } = await this.storedFor("the victim's private file");
+    const stored: any = await ImageUser.ref(user.getUUID()).get();
+    assert.strictEqual(stored.images[0].challenge, undefined, "not persisted");
+    for (const output of [
+      JSON.parse(JSON.stringify(stored)),
+      JSON.parse(JSONUtils.stringify(stored, undefined, 0, true))
+    ]) {
+      assert.strictEqual(output.images[0].hash, hash);
+      assert.strictEqual(output.images[0].challenge, undefined, "not output");
+      assert.ok(!JSON.stringify(output).includes("challenge"));
+    }
+    // Copying what a reader sees does not attach
+    const attacker = await ImageUser.create({ displayName: "attacker" } as any);
+    const copied: any = JSON.parse(JSONUtils.stringify(stored, undefined, 0, true)).images[0];
+    const res = await this.binary.putRedirectUrl(attacker, "images", copied, await this.newContext());
+    assert.ok(res?.url);
+    assert.deepStrictEqual(await this.images(attacker.getUUID()), []);
+  }
+
+  /**
+   * Usage marker names come from the model id, attribute and key: a key with path segments stays in the hash folder
+   */
+  @test
+  async usageMarkersStayInTheHashFolder() {
+    const user = await ImageUser.create({ uuid: "../../escape", displayName: "evil" } as any);
+    const content = "marker content";
+    await this.binary.store(user, "images", new MemoryBinaryFile(Buffer.from(content), { name: "m.txt" }));
+    const { hash } = await this.hashes(content);
+    const folder = this.binary._getPath(hash);
+    const files = fs.readdirSync(folder);
+    assert.strictEqual(files.length, 3, files.join(","));
+    assert.ok(
+      files.every(f => !f.includes("/")),
+      files.join(",")
+    );
+    assert.ok(!fs.existsSync(path.join(FOLDER, "escape")) && !fs.existsSync(path.join(FOLDER, "..", "escape")));
+    assert.strictEqual(await this.binary.getUsageCount(hash), 1);
+    // And cleanup finds them
+    await this.binary.delete(user as any, "images", 0);
+    assert.strictEqual(await this.binary.getUsageCount(hash), 0);
   }
 
   @test

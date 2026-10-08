@@ -155,25 +155,26 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         headers
       };
     }
-    if (foundData) {
-      if (challenge) {
-        // challenge and data prove it exists
-        if (challenge === body.challenge) {
-          await this.uploadSuccess(<any>object, property, body);
-          return;
-        }
-      }
-      // Need to do something?
-    } else {
-      await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
-    }
-    await this.uploadSuccess(<any>object, property, body);
-    await this.putMarker(body.hash, `${property}_${uuid}`, store);
-    return {
+    const upload = async () => ({
       url: await this.getSignedUrl(params.Key, "putObject", params),
       method: "PUT",
       headers
-    };
+    });
+    if (foundData) {
+      // The data exists: attaching it needs the proof of possession, the challenge its uploader stored
+      if (challenge !== undefined && challenge === body.challenge) {
+        await this.uploadSuccess(<any>object, property, body);
+        await this.putMarker(body.hash, `${property}_${uuid}`, store);
+        return;
+      }
+      // A hash alone never attaches: the client has to upload the content it claims to hold
+      return upload();
+    }
+    // New content: the signed PUT binds the bytes to the announced hash (Content-MD5)
+    await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
+    await this.uploadSuccess(<any>object, property, body);
+    await this.putMarker(body.hash, `${property}_${uuid}`, store);
+    return upload();
   }
 
   /**

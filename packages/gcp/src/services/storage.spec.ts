@@ -157,6 +157,13 @@ class StorageTest extends WebdaApplicationTest {
     const user2 = await User.create({ uuid: randomUUID(), displayName: "plop2" });
     assert.strictEqual(await this.binary.putRedirectUrl(user2, "images", info), undefined);
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 2);
+    // Data exists but the challenge does not match (a reader copying the hash): nothing is attached
+    const user3 = await User.create({ uuid: randomUUID(), displayName: "plop3" });
+    const mismatch = await this.binary.putRedirectUrl(user3, "images", { ...info, challenge: "not-the-challenge" });
+    assert.strictEqual(mismatch?.method, "PUT");
+    assert.strictEqual((user3 as any).images, undefined, "nothing attached without the proof");
+    assert.strictEqual((await User.ref(user3.getUUID()).get()).images, undefined);
+    assert.strictEqual(await this.binary.getUsageCount(file.hash), 2);
   }
 
   @test

@@ -367,22 +367,30 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
         "x-goog-meta-challenge": body.challenge
       }
     };
-    // List bucket to check if the file already exist
-    let challenge;
+    // Check whether the data already exists, and the challenge its uploader stored with it
+    let exists = false;
+    let challenge: string | undefined;
     try {
       const res = await this.getStorageBucket().file(params.key).getMetadata();
-      challenge = res[0].metadata.challenge;
+      exists = true;
+      challenge = res[0].metadata?.challenge;
     } catch {
-      // Ignore error: the data does not exist yet
+      // The data does not exist yet
     }
-    await this.uploadSuccess(<any>object, property, body);
-    await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor));
-    // If the challenge is the same, no need to upload
-    if (challenge && challenge === body.challenge) {
-      return;
+    if (exists) {
+      // Attaching existing data needs the proof of possession: the matching challenge
+      if (challenge !== undefined && challenge === body.challenge) {
+        await this.uploadSuccess(<any>object, property, body);
+        await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor));
+        return;
+      }
+      // A hash alone never attaches: the client has to upload the content it claims to hold
+    } else {
+      // New content: the signed PUT binds the bytes to the announced hash (Content-MD5)
+      await this.uploadSuccess(<any>object, property, body);
+      await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor));
     }
     const url = await this.getSignedUrl(params);
-    // Re-upload, we should probably queue for recheck
     return {
       url,
       method: "PUT",

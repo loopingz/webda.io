@@ -1,10 +1,13 @@
 import {
   checkModelParent,
+  checkModelPermission,
   checkModelReparent,
   createModel,
   getParentRelation,
+  loadModelForAction,
   prepareCreateInput,
   sanitizeModelInput,
+  useModelMetadata,
   WebdaError
 } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
@@ -35,10 +38,11 @@ export function notFound(): GraphQLError {
 /**
  * Run a core permission check, turning its WebdaErrors into the GraphQL errors of this module
  * @param check - the core check
+ * @returns what the check returns
  */
-async function asGraphQL(check: () => Promise<void>): Promise<void> {
+export async function asGraphQL<T>(check: () => Promise<T>): Promise<T> {
   try {
-    await check();
+    return await check();
   } catch (err) {
     if (err instanceof WebdaError.NotFound) {
       throw notFound();
@@ -51,27 +55,9 @@ async function asGraphQL(check: () => Promise<void>): Promise<void> {
 }
 
 /**
- * Whether `canAct` allows the action; GraphQL is strict: a model without canAct is refused, and a 401/403 thrown by
- * canAct is a refusal
- * @param object - model instance
- * @param context - request context
- * @param action - action name
- * @returns true when allowed
- */
-async function allows(object: any, context: any, action: string): Promise<boolean> {
-  try {
-    return (await object?.canAct?.(context, action)) === true;
-  } catch (err) {
-    if (err instanceof WebdaError.HttpError && [401, 403].includes(err.getResponseCode())) {
-      return false;
-    }
-    throw err;
-  }
-}
-
-/**
- * Load an object for an action: a missing object and an object the caller may not read answer the same NOT_FOUND
- * error; an object the caller may read but not act on answers PERMISSION_DENIED
+ * Load an object for an action as the caller, with the core rules (the model's static `canAct`, deny by default): a
+ * missing object and an object the caller may not read answer the same NOT_FOUND error; an object the caller may
+ * read but not act on answers PERMISSION_DENIED
  * @param model - model class
  * @param uuid - primary key
  * @param context - request context
@@ -79,19 +65,7 @@ async function allows(object: any, context: any, action: string): Promise<boolea
  * @returns the object
  */
 export async function loadForAction(model: any, uuid: any, context: any, action: string): Promise<any> {
-  let object: any;
-  try {
-    object = await model.ref(uuid).get();
-  } catch {
-    // Repositories throw when the object does not exist
-  }
-  if (!object || object.isDeleted?.() || !(await allows(object, context, "get"))) {
-    throw notFound();
-  }
-  if (action !== "get" && !(await allows(object, context, action))) {
-    throw permissionDenied();
-  }
-  return object;
+  return asGraphQL(() => loadModelForAction(model, uuid, context, action));
 }
 
 /**
@@ -126,9 +100,8 @@ export async function createFromInput(model: any, input: any, context: any): Pro
   await asGraphQL(() => checkModelParent(model, data?.[getParentRelation(model)?.attribute ?? ""], context));
   // Let the model set its server-managed fields (e.g. the owner) from the caller, like the REST create
   await object.prepareCreate?.(context);
-  if ((await object.canAct?.(context, "create")) !== true) {
-    throw permissionDenied();
-  }
+  // The same check as the REST create: the model's static canAct, a throwing canAct refuses
+  await asGraphQL(() => checkModelPermission(object, context, "create", model));
   try {
     // Create, never upsert: an existing key must not be overwritten
     await createModel(object);
@@ -139,6 +112,19 @@ export async function createFromInput(model: any, input: any, context: any): Pro
     throw err;
   }
   return object;
+}
+
+/**
+ * @param model - model class
+ * @returns its primary key fields (from the application metadata), `["uuid"]` when unknown
+ */
+function primaryKeyFields(model: any): string[] {
+  try {
+    const fields = useModelMetadata(model)?.PrimaryKey;
+    return fields?.length ? fields : ["uuid"];
+  } catch {
+    return ["uuid"];
+  }
 }
 
 /**
@@ -154,7 +140,7 @@ export async function createFromInput(model: any, input: any, context: any): Pro
 export async function updateFromInput(model: any, uuid: string, input: any, context: any): Promise<any> {
   input = sanitizeModelInput(model, input ?? {});
   // The key comes from the arguments: a body carrying another key would write over that other object
-  for (const field of model.Metadata?.PrimaryKey ?? ["uuid"]) {
+  for (const field of primaryKeyFields(model)) {
     if (input[field] !== undefined && String(input[field]) !== String(uuid)) {
       throw new GraphQLError("Primary key mismatch", { extensions: { code: "BAD_USER_INPUT" } });
     }

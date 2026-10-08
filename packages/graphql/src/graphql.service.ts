@@ -13,7 +13,8 @@ import {
   useModelMetadata,
   useRepository,
   isModelActionAllowed,
-  queryModelWithPermissions
+  queryModelWithPermissions,
+  getClientWritableAttributes
 } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
 import * as WebdaQL from "@webda/ql";
@@ -42,7 +43,7 @@ import { WebSocketServer } from "ws";
 import { AnyScalarType } from "./types/any.js";
 import { DateScalar } from "./types/date.js";
 import { GraphQLLong } from "./types/long.js";
-import { createFromInput, isInputAttribute, updateFromInput } from "./mutations.js";
+import { createFromInput, isInputAttribute, loadForAction, updateFromInput } from "./mutations.js";
 
 const GraphIQL = `
 <!doctype html>
@@ -317,9 +318,16 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * @param defaultName - fallback name for generated types
    * @param webdaGraph - model relation graph (links, maps, queries, parent)
    * @param input - if true, generate input types (skip readonly fields, skip relation resolvers)
+   * @param writable - `_`-prefixed attributes the model accepts from clients (input types only)
    * @returns map of field names to GraphQL field configs
    */
-  getGraphQLFieldsFromSchema(schema: JSONSchema7, defaultName: string, webdaGraph?: ModelGraph, input?: boolean): any {
+  getGraphQLFieldsFromSchema(
+    schema: JSONSchema7,
+    defaultName: string,
+    webdaGraph?: ModelGraph,
+    input?: boolean,
+    writable: string[] = []
+  ): any {
     const fields: ThunkObjMap<GraphQLFieldConfig<any, any, any>> = {};
     const skipFields = [];
     const attributeFilter =
@@ -425,7 +433,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }
           },
           resolve: async (source, args, context, info) => {
-            const res = await source[query.attribute].query(WebdaQL.unsanitize(args.query || ""), context);
+            const res = await this.queryRelated(
+              source[query.attribute],
+              this.app.getModel(query.model),
+              WebdaQL.unsanitize(args.query || ""),
+              context
+            );
             this.countOperation(context, res.results.length);
             return res;
           }
@@ -441,7 +454,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       if (
         fields[i] ||
         skipFields.includes(i) ||
-        (input && ((<JSONSchema7>schema.properties[i]).readOnly || !isInputAttribute(i, webdaGraph)))
+        (input && ((<JSONSchema7>schema.properties[i]).readOnly || !isInputAttribute(i, webdaGraph, writable)))
       ) {
         continue;
       }
@@ -499,21 +512,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     }
     // Count the operation then and retrieve the model
     this.countOperation(context);
-    const modelInstance = await model.ref(res.uuid || "").get();
-    if (!modelInstance) {
-      throw new GraphQLError("Object not found", {
-        extensions: {
-          code: "NOT_FOUND"
-        }
-      });
-    }
-    if ((await (modelInstance as any)?.canAct?.(context, "get")) !== true) {
-      throw new GraphQLError("Permission denied", {
-        extensions: {
-          code: "PERMISSION_DENIED"
-        }
-      });
-    }
+    // A missing object and an object the caller may not read answer the same NOT_FOUND
+    const modelInstance = await loadForAction(model, res.uuid || "", context, "get");
     if (filter && !filter.eval(modelInstance, false)) {
       return null;
     }
@@ -596,7 +596,13 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         name
       });
       const input = new GraphQLInputObjectType({
-        fields: this.getGraphQLFieldsFromSchema(schema, name + "Input", modelGraph, true),
+        fields: this.getGraphQLFieldsFromSchema(
+          schema,
+          name + "Input",
+          modelGraph,
+          true,
+          getClientWritableAttributes(model)
+        ),
         name: name + "Input"
       });
       const actionsName = Object.keys(metadata.Actions);
@@ -634,14 +640,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }
           },
           resolve: async (_, args, context) => {
-            const object = await model.ref(args.uuid).get();
-            if ((await object?.canAct?.(context, "delete")) !== true) {
-              throw new GraphQLError("Permission denied", {
-                extensions: {
-                  code: "PERMISSION_DENIED"
-                }
-              });
-            }
+            const object = await loadForAction(model, args.uuid, context, "delete");
             await object.delete();
             return {
               success: true
@@ -904,6 +903,25 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
+   * Query a 1:n relation (ModelRelated) as the caller: the relation condition is merged into the client query, then
+   * filtered like any model query (permission query, canAct "get")
+   * @param related - the ModelRelated attribute of the source object
+   * @param related.getQuery - merges the relation condition into a query
+   * @param model - the target model class
+   * @param query - the client query
+   * @param context - the caller context
+   * @returns the readable related objects
+   */
+  async queryRelated(
+    related: { getQuery(query: string): string },
+    model: any,
+    query: string,
+    context: any
+  ): Promise<{ results: any[]; continuationToken?: string }> {
+    return queryModelWithPermissions(model, related.getQuery(query), context);
+  }
+
+  /**
    * Create an async iterator that streams query results, updating when store events occur
    * @param model - model class to query
    * @param plural - plural name used as the iterator prefix key
@@ -987,7 +1005,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       // We rely on the cache of the store to get the full object
       // We let the other listeners finish before returning the object
       await new Promise(resolve => nextTick(resolve));
-      return model.ref(evt.object_id).get();
+      const updated = await model.ref(evt.object_id).get();
+      // The update may have removed the subscriber's access: report it like a deletion
+      return (await (updated as any)?.canAct?.(context, "get")) === true ? updated : null;
     };
     const events = {
       Updated: updatedCallback,
@@ -999,15 +1019,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       Patched: updatedCallback,
       PartialUpdated: updatedCallback
     };
-    const modelInstance = await model.ref(uuid).get();
-    // Ensure we have the permission to get the object
-    if ((await (modelInstance as any)?.canAct?.(context, "get")) !== true) {
-      throw new GraphQLError("Permission denied", {
-        extensions: {
-          code: "PERMISSION_DENIED"
-        }
-      });
-    }
+    // Ensure we have the permission to get the object: a refused read answers like a missing object
+    const modelInstance = await loadForAction(model, uuid, context, "get");
     // Listen on the model's repository typed events instead of legacy Store.* events.
     return new EventIterator(
       useRepository(model as any) as any,

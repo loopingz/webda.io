@@ -1,5 +1,32 @@
 const { execSync } = require("child_process");
 const fs = require("fs");
+const os = require("os");
+const path = require("path");
+
+const repoUrl = "https://github.com/loopingz/webda.io/tree/main";
+const readmeDir = fs.mkdtempSync(path.join(os.tmpdir(), "webda-typedoc-"));
+
+/**
+ * Copy a package README with its relative links turned into GitHub URLs.
+ *
+ * typedoc copies every relatively linked file into `_media`, and a link to a directory
+ * (`](../core)`) copies the whole directory, node_modules included: hundreds of thousands
+ * of files per package, which made the docs build run for hours.
+ * @param {string} packageName - folder under ../packages
+ * @returns {string|undefined} the rewritten README path, or undefined when the package has none
+ */
+function linkSafeReadme(packageName) {
+  const source = `../packages/${packageName}/README.md`;
+  if (!fs.existsSync(source)) return undefined;
+  const base = `packages/${packageName}/`;
+  const content = fs.readFileSync(source, "utf8").replace(/\]\((\.{1,2}\/[^)\s]*)\)/g, (_match, target) => {
+    const resolved = path.posix.normalize(base + target);
+    return `](${repoUrl}/${resolved})`;
+  });
+  const target = path.join(readmeDir, `${packageName}.md`);
+  fs.writeFileSync(target, content);
+  return target;
+}
 
 const headerMarkup = "\n<!-- README_HEADER -->\n";
 const footerMarkup = "\n<!-- README_FOOTER -->\n";
@@ -26,8 +53,9 @@ fs.readdirSync("../packages")
     cleanDir(`typedoc/${packageName}`);
     console.log(`Building typedoc for ${packageName}`);
     try {
+      const readme = linkSafeReadme(packageName);
       execSync(
-        `pnpm exec typedoc  --plugin typedoc-plugin-markdown --out typedoc/${packageName} --exclude "**/*+(index|.spec|.e2e).ts" --excludePrivate --hideBreadcrumbs --tsconfig ../packages/${packageName}/tsconfig.json ../packages/${packageName}/src/index.ts`,
+        `pnpm exec typedoc  --plugin typedoc-plugin-markdown --out typedoc/${packageName} --exclude "**/*+(index|.spec|.e2e).ts" --excludePrivate --hideBreadcrumbs${readme ? ` --readme ${readme}` : ""} --tsconfig ../packages/${packageName}/tsconfig.json ../packages/${packageName}/src/index.ts`,
         { stdio: "inherit" }
       );
     } catch (e) {
@@ -53,7 +81,13 @@ fs.readdirSync("../packages")
     newReadme = `---\nsidebar_label: "@webda/${packageName}"\n---\n# ${packageName}\n${newReadme}`;
 
     fs.mkdirSync(`pages/Modules/${packageName}`, { recursive: true });
-    fs.writeFileSync(`pages/Modules/${packageName}/README.md`, newReadme);
+    // Without a package README, typedoc's README is its index, whose links are relative to the typedoc
+    // section: point them at the typedoc routes so the copy in pages/Modules does not break the build
+    const pageReadme = newReadme.replace(
+      /\]\((?![a-z]+:|#|\/)([^)\s]+?)\.md(#[^)\s]*)?\)/g,
+      (_match, target, anchor) => `](/typedoc/${packageName}/${target}${anchor ?? ""})`
+    );
+    fs.writeFileSync(`pages/Modules/${packageName}/README.md`, pageReadme);
     // Add globals to the README
     if (fs.existsSync(`typedoc/${packageName}/globals.md`)) {
       const globals = fs.readFileSync(`typedoc/${packageName}/globals.md`, "utf8").toString();

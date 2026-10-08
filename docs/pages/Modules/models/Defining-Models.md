@@ -111,7 +111,7 @@ export class User extends UuidModel {
 }
 ```
 
-Supported JSDoc tags: `@minLength`, `@maxLength`, `@pattern`, `@format`, `@minimum`, `@maximum`, `@readonly`, `@enum`, `@default`. See [@webda/content-mapper Validation](../schema/Validation.md).
+Supported JSDoc tags: `@minLength`, `@maxLength`, `@pattern`, `@format`, `@minimum`, `@maximum`, `@readonly`, `@enum`, `@default`. See [@webda/content-mapper Validation](../content-mapper/README.md).
 
 ## Plural form
 
@@ -231,4 +231,4 @@ pnpm test
 - [Lifecycle](./Lifecycle.md) — save/update/delete hooks and events
 - [Actions](./Actions.md) — `@Operation` decorator
 - [Permissions](./Permissions.md) — `canAct` and access control
-- [@webda/content-mapper Validation](../schema/Validation.md) — JSDoc constraint tags
+- [@webda/content-mapper Validation](../content-mapper/README.md) — JSDoc constraint tags

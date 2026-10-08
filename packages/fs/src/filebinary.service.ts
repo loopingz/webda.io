@@ -3,6 +3,7 @@ import { join } from "path";
 import { Readable } from "stream";
 import {
   BinaryFile,
+  BinaryFileInfo,
   BinaryMap,
   BinaryNotFoundError,
   BinaryService,

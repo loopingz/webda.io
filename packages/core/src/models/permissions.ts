@@ -1,10 +1,20 @@
 import { ComparisonExpression, LogicalExpression, QueryValidator, type Expression } from "@webda/ql";
+import { Model } from "@webda/models";
 import { useLog } from "@webda/workout";
+import { createHash } from "node:crypto";
 import type { IOperationContext } from "../contexts/icontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { useModel } from "../application/hooks.js";
-import { useModelMetadata } from "../core/hooks.js";
-import { useCrypto } from "../services/cryptoservice.service.js";
+import { useDynamicService, useModelMetadata } from "../core/hooks.js";
+import type { CryptoService } from "../services/cryptoservice.service.js";
+
+/**
+ * The CryptoService, resolved at call time (a static import would make a cycle through the operations module)
+ * @returns the CryptoService
+ */
+function useCrypto(): CryptoService {
+  return useDynamicService<CryptoService>("CryptoService");
+}
 
 /**
  * Result of a model's static `getPermissionQuery(context)`
@@ -21,62 +31,114 @@ export type PermissionQuery = {
 };
 
 /**
- * Ask a model instance whether the current caller may perform `action` on it
- *
- * - an object without `canAct` is allowed: the framework default for models that do not define permissions
- * - `canAct` returning `true`, or the object itself, allows the action
- * - anything else (`false`, a refusal reason string, `undefined`...) refuses it
- *
- * @param object - the model instance
- * @param context - the caller context
- * @param action - the action name ("get", "create", "update", "delete", an action name or "attribute.action")
- * @returns true when allowed, otherwise the refusal (a reason string or the value canAct returned)
+ * A permission check: the static `canAct(context, action, object?)` of a model class, bound to it
  */
-export async function getModelPermission(object: any, context: IOperationContext, action: string): Promise<any> {
-  if (typeof object?.canAct !== "function") {
-    return true;
+type PermissionCheck = (context: IOperationContext, action: string, object?: any) => any;
+
+/**
+ * The static `canAct(context, action, object?)` of a model class: the one framework entry point
+ *
+ * When the class defines none (a plain object in a unit test, a class built without `@webda/models`), the base
+ * {@link Model.canAct} semantics apply: delegate to the instance `canAct(context, action)`, otherwise deny.
+ * @param model - the model class, when known
+ * @param object - the object, to find the class when `model` is not given
+ * @returns the static check, bound to its class
+ */
+function staticCanAct(model: any, object?: any): PermissionCheck {
+  const clazz = model ?? object?.constructor;
+  if (typeof clazz?.canAct === "function") {
+    return (context, action, target) => clazz.canAct(context, action, target);
   }
-  const allowed = await object.canAct(context, action);
-  if (allowed === true || allowed === object) {
-    return true;
-  }
-  return allowed === false || allowed === undefined || allowed === null ? false : allowed;
+  return (context, action, target) => Model.canAct(context, action, target);
 }
 
 /**
- * Whether the current caller may perform `action` on a model instance (see {@link checkModelPermission})
+ * Whether a model class defines a permission check at all: a static `canAct` of its own (not the base one), or an
+ * instance `canAct`. A model with neither is refused on every transport
+ * @param model - the model class
+ * @returns true when the model defines one of the two forms
+ */
+export function hasModelPermissionCheck(model: any): boolean {
+  return (
+    (typeof model?.canAct === "function" && model.canAct !== Model.canAct) ||
+    typeof model?.prototype?.canAct === "function"
+  );
+}
+
+/**
+ * Run a check, turning a thrown error into a refusal: an error must not answer differently from a refusal, or it
+ * would reveal that the object exists (non-HTTP errors are logged at WARN)
+ * @param check - the static canAct
+ * @param context - the caller context
+ * @param action - the action
+ * @param object - the object, if any
+ * @returns true when allowed, otherwise the refusal (a reason string or false)
+ */
+async function askPermission(
+  check: PermissionCheck,
+  context: IOperationContext,
+  action: string,
+  object?: any
+): Promise<any> {
+  try {
+    const allowed = await check(context, action, object);
+    if (allowed === true) {
+      return true;
+    }
+    return allowed === false || allowed === undefined || allowed === null ? false : allowed;
+  } catch (err) {
+    if (!(err instanceof WebdaError.HttpError)) {
+      useLog("WARN", `canAct('${action}') failed on ${object?.constructor?.name ?? "model"}`, err);
+    }
+    return err?.message ?? false;
+  }
+}
+
+/**
+ * Ask the model whether the current caller may perform `action` on an object
+ *
+ * The question goes through the static `canAct(context, action, object)` of the model class (see
+ * {@link Model.canAct}): the base implementation delegates to the object's instance `canAct`, and denies when there
+ * is none. `true` allows; anything else (`false`, a refusal reason string, `undefined`...) refuses, and so does a
+ * `canAct` that throws.
+ *
+ * @param object - the model instance (the new, unsaved object on create)
+ * @param context - the caller context
+ * @param action - the action name ("get", "create", "update", "delete", an action name or "attribute.action")
+ * @param model - the model class (defaults to the object's class)
+ * @returns true when allowed, otherwise the refusal (a reason string or false)
+ */
+export async function getModelPermission(
+  object: any,
+  context: IOperationContext,
+  action: string,
+  model?: any
+): Promise<any> {
+  return askPermission(staticCanAct(model, object), context, action, object);
+}
+
+/**
+ * Whether the current caller may perform `action` on a model instance (see {@link checkModelPermission}); it never
+ * throws
  * @param object - the model instance
  * @param context - the caller context
  * @param action - the action name
+ * @param model - the model class (defaults to the object's class)
  * @returns true when allowed
  */
-export async function isModelActionAllowed(object: any, context: IOperationContext, action: string): Promise<boolean> {
-  return (await getModelPermission(object, context, action)) === true;
+export async function isModelActionAllowed(
+  object: any,
+  context: IOperationContext,
+  action: string,
+  model?: any
+): Promise<boolean> {
+  return (await getModelPermission(object, context, action, model)) === true;
 }
 
 /**
  * Message of the NotFound error for a missing object, also used for an object the caller may not read
  */
 export const NOT_FOUND_MESSAGE = "Object not found";
-
-/**
- * Ask canAct; a canAct that throws (e.g. RoleModel without user, or a failing lookup) refuses: an error must not
- * answer differently from a refusal, or it would reveal that the object exists
- * @param object - the model instance
- * @param context - the caller context
- * @param action - the action
- * @returns true when allowed, otherwise the refusal
- */
-async function askPermission(object: any, context: IOperationContext, action: string): Promise<any> {
-  try {
-    return await getModelPermission(object, context, action);
-  } catch (err) {
-    if (!(err instanceof WebdaError.HttpError)) {
-      useLog("WARN", `canAct('${action}') failed on ${object?.constructor?.name ?? "object"}`, err);
-    }
-    return err?.message ?? false;
-  }
-}
 
 /**
  * Load an object for an action as the caller: a missing object and an object the caller may not read throw the same
@@ -102,7 +164,7 @@ export async function loadModelForAction<T = any>(
   if (!object || object.isDeleted?.()) {
     throw new WebdaError.NotFound(NOT_FOUND_MESSAGE);
   }
-  await checkModelPermission(object, context, action);
+  await checkModelPermission(object, context, action, model);
   return object;
 }
 
@@ -160,24 +222,31 @@ export async function checkModelReparent(model: any, object: any, input: any, co
 }
 
 /**
- * Enforce a model's permission for an action: the single check used by every DomainService operation (REST, gRPC,
- * MCP and any transport dispatching operations)
+ * Enforce a model's permission for an action on an object: the single check used by every client path (REST, gRPC,
+ * MCP, GraphQL and any transport dispatching operations)
  *
- * A caller who may not read the object (`canAct(ctx, "get")` refused) gets exactly the error of a missing object
- * (`NotFound("Object not found")`), whatever the action, so a refusal never reveals that the key exists. A caller who
- * may read the object but not perform the action gets a `Forbidden`. On `"create"` the object does not exist yet: a
- * refusal is always a `Forbidden`.
+ * A caller who may not read the object (`canAct(ctx, "get", object)` refused) gets exactly the error of a missing
+ * object (`NotFound("Object not found")`), whatever the action, so a refusal never reveals that the key exists. A
+ * caller who may read the object but not perform the action gets a `Forbidden`. On `"create"` the object does not
+ * exist yet: a refusal is always a `Forbidden`.
  *
  * The refusal reason returned by `canAct` is logged, never sent to the client.
  *
  * @param object - the model instance
  * @param context - the caller context
  * @param action - the action name
+ * @param model - the model class (defaults to the object's class)
  * @throws WebdaError.NotFound when the caller may not read the object
  * @throws WebdaError.Forbidden when the caller may read the object but not perform the action
  */
-export async function checkModelPermission(object: any, context: IOperationContext, action: string): Promise<void> {
-  const allowed = await askPermission(object, context, action);
+export async function checkModelPermission(
+  object: any,
+  context: IOperationContext,
+  action: string,
+  model?: any
+): Promise<void> {
+  const check = staticCanAct(model, object);
+  const allowed = await askPermission(check, context, action, object);
   if (allowed === true) {
     return;
   }
@@ -186,9 +255,31 @@ export async function checkModelPermission(object: any, context: IOperationConte
     `Permission refused for '${action}' on ${object?.constructor?.name ?? "object"}`,
     typeof allowed === "string" ? allowed : ""
   );
-  if (action !== "create" && (action === "get" || (await askPermission(object, context, "get")) !== true)) {
+  if (action !== "create" && (action === "get" || (await askPermission(check, context, "get", object)) !== true)) {
     throw new WebdaError.NotFound(NOT_FOUND_MESSAGE);
   }
+  throw new WebdaError.Forbidden(`Action ${action} not allowed`);
+}
+
+/**
+ * Enforce a model's permission for a static (class-level) action: `canAct(context, action)` without object
+ *
+ * There is no object to hide, so a refusal is always a `Forbidden`.
+ * @param model - the model class
+ * @param context - the caller context
+ * @param action - the action name
+ * @throws WebdaError.Forbidden when refused
+ */
+export async function checkStaticModelPermission(model: any, context: IOperationContext, action: string) {
+  const allowed = await askPermission(staticCanAct(model), context, action, undefined);
+  if (allowed === true) {
+    return;
+  }
+  useLog(
+    "DEBUG",
+    `Permission refused for static '${action}' on ${model?.name ?? "model"}`,
+    typeof allowed === "string" ? allowed : ""
+  );
   throw new WebdaError.Forbidden(`Action ${action} not allowed`);
 }
 
@@ -246,21 +337,14 @@ export const MIN_SCANNED_ROWS = 100;
  * Absolute bound of the scan budget of a permission-filtered page
  */
 export const MAX_SCANNED_ROWS = 10000;
-
 /**
- * Whether the caller may read a query result: a `canAct` that throws refuses that row only
- * @param object - the result
- * @param context - the caller context
- * @returns true when readable
+ * Most store pages read to fill one page, whatever their size
  */
-async function isReadable(object: any, context: IOperationContext): Promise<boolean> {
-  try {
-    return await isModelActionAllowed(object, context, "get");
-  } catch (err) {
-    useLog("WARN", `canAct failed on a query result of ${object?.constructor?.name ?? "object"}`, err);
-    return false;
-  }
-}
+export const MAX_REFILL_PAGES = 100;
+/**
+ * Lifetime of a continuation token (one hour): paging has to resume within it
+ */
+export const CONTINUATION_TOKEN_TTL_MS = 60 * 60 * 1000;
 
 /**
  * Refuse a client query that reads private (`__`-prefixed) fields, at any depth, in its filter or ORDER BY: a filter
@@ -284,46 +368,119 @@ export function assertNoPrivateFields(query: QueryValidator): void {
 }
 
 /**
+ * What a continuation token is bound to: it is only accepted back for the same model, the same query (filter and
+ * ORDER BY) and the same caller
+ */
+export type ContinuationTokenBinding = {
+  /**
+   * Model identifier
+   */
+  model: string;
+  /**
+   * The query the token continues: filter and ORDER BY, without LIMIT and OFFSET
+   */
+  query: string;
+  /**
+   * Caller id, "anonymous" when not logged in
+   */
+  user: string;
+};
+
+/**
+ * Type tag of a sealed continuation token, so no other ciphertext of the application can be sent as one
+ */
+const TOKEN_TYPE = "webda-query-token";
+
+/**
+ * @param binding - the token binding
+ * @returns the short hash of the query
+ */
+function queryHash(binding: ContinuationTokenBinding): string {
+  return createHash("sha256").update(binding.query).digest("base64url").substring(0, 32);
+}
+
+/**
  * Seal a store continuation token: encrypted with the CryptoService (random IV, padded to 64 bytes) so its value
- * cannot be read, compared or forged by the client
+ * cannot be read, compared or forged by the client; bound to the model, the query and the caller; and expiring
+ * after `ttl` ({@link CONTINUATION_TOKEN_TTL_MS})
  * @param token - the store token
+ * @param binding - what the token is bound to
+ * @param ttl - lifetime in milliseconds
  * @returns the opaque token
  */
-export async function sealContinuationToken(token: string): Promise<string> {
-  const base = JSON.stringify({ t: token, p: "" }).length;
-  return useCrypto().encrypt({ t: token, p: "=".repeat((64 - (base % 64)) % 64) });
+export async function sealContinuationToken(
+  token: string,
+  binding: ContinuationTokenBinding,
+  ttl: number = CONTINUATION_TOKEN_TTL_MS
+): Promise<string> {
+  const payload = {
+    typ: TOKEN_TYPE,
+    t: token,
+    m: binding.model,
+    q: queryHash(binding),
+    u: binding.user,
+    exp: Date.now() + ttl,
+    p: ""
+  };
+  const base = JSON.stringify(payload).length;
+  return useCrypto().encrypt({ ...payload, p: "=".repeat((64 - (base % 64)) % 64) });
 }
 
 /**
  * Open a token produced by {@link sealContinuationToken}
  * @param token - the opaque token
+ * @param binding - what the token must be bound to
  * @returns the store token
- * @throws WebdaError.BadRequest when the token was not produced by this application
+ * @throws WebdaError.BadRequest when the token was not produced by this application for this model, query and
+ * caller, or has expired
  */
-export async function unsealContinuationToken(token: string): Promise<string> {
+export async function unsealContinuationToken(token: string, binding: ContinuationTokenBinding): Promise<string> {
+  let data: any;
   try {
-    const data = await useCrypto().decrypt(token);
-    if (typeof data?.t === "string") {
-      return data.t;
-    }
+    data = await useCrypto().decrypt(token);
   } catch {
     // Invalid, forged or expired key
   }
+  if (
+    data?.typ === TOKEN_TYPE &&
+    typeof data.t === "string" &&
+    data.m === binding.model &&
+    data.q === queryHash(binding) &&
+    data.u === binding.user &&
+    typeof data.exp === "number" &&
+    data.exp > Date.now()
+  ) {
+    return data.t;
+  }
   throw new WebdaError.BadRequest("Invalid continuation token");
+}
+
+/**
+ * @param model - the model class
+ * @returns its identifier, or its class name for classes registered without metadata
+ */
+function modelIdentifier(model: any): string {
+  try {
+    return useModelMetadata(model)?.Identifier ?? model?.name ?? "model";
+  } catch {
+    return model?.name ?? "model";
+  }
 }
 
 /**
  * Query a model as the caller
  *
  * - the client query may not read private (`__`) fields (400), and its LIMIT is lowered to {@link MAX_QUERY_LIMIT};
+ * - a model defining neither `canAct` form refuses every row: the store is not asked;
  * - the model's static `getPermissionQuery(context)` is ANDed into the query;
- * - when the model defines `canAct`, every result is checked with `canAct(context, "get")` and refused ones are
- *   dropped. Refused rows are replaced by continuing the scan (next store pages, asking only for the missing rows),
- *   within a budget of `SCAN_FACTOR` x LIMIT rows (between `MIN_SCANNED_ROWS` and `MAX_SCANNED_ROWS`). When the
- *   budget is spent, an empty page carries no token;
- * - for those models the continuation token is sealed ({@link sealContinuationToken}): a store token counting or
- *   naming rows (Postgres/Firestore offsets, Dynamo keys) would otherwise reveal hidden matches. The client sends it
- *   back as is in `OFFSET`; any other value is a 400.
+ * - every result is checked with the static `canAct(context, "get", row)` and refused ones are dropped. Refused rows
+ *   are replaced by continuing the scan (next store pages, asking only for the missing rows), within a budget of
+ *   `SCAN_FACTOR` x LIMIT rows (between `MIN_SCANNED_ROWS` and `MAX_SCANNED_ROWS`) and {@link MAX_REFILL_PAGES}
+ *   store pages. When the budget is spent, an empty page carries no token;
+ * - the continuation token is sealed ({@link sealContinuationToken}): a store token counting or naming rows
+ *   (Postgres/Firestore offsets, Dynamo keys, memory offsets) would otherwise reveal hidden matches. It is bound to
+ *   the model, the query and the caller, expires after {@link CONTINUATION_TOKEN_TTL_MS}, and is sent back as is in
+ *   `OFFSET`; any other value is a 400.
  *
  * @param model - the model class
  * @param query - the client query
@@ -337,47 +494,61 @@ export async function queryModelWithPermissions<T = any>(
 ): Promise<{ results: T[]; continuationToken?: string }> {
   const client = new QueryValidator(query ?? "");
   assertNoPrivateFields(client);
-  const limit = Math.min(client.getLimit(), MAX_QUERY_LIMIT);
-  const filtered = typeof model.prototype?.canAct === "function";
-  let offset = client.getOffset();
-  if (filtered && offset) {
-    offset = await unsealContinuationToken(offset);
+  if (!hasModelPermissionCheck(model)) {
+    // Deny by default: no row can be read, the store is not even asked
+    return { results: [], continuationToken: undefined };
   }
+  const limit = Math.min(client.getLimit(), MAX_QUERY_LIMIT);
   const permission: PermissionQuery | null | undefined =
     typeof model.getPermissionQuery === "function" ? model.getPermissionQuery(context) : undefined;
-  const merged = mergePermissionQuery(query ?? "", permission);
+  const merged = new QueryValidator(mergePermissionQuery(query ?? "", permission));
+  // The query without its LIMIT and OFFSET: filter and ORDER BY
+  const orderBy = (merged.getQuery().orderBy ?? []).map(o => `${o.field} ${o.direction}`).join(", ");
+  const base = `${merged.getExpression().toString()}${orderBy ? ` ORDER BY ${orderBy}` : ""}`.trim();
+  const binding: ContinuationTokenBinding = {
+    model: modelIdentifier(model),
+    query: base,
+    user: context.getCurrentUserId() || "anonymous"
+  };
+  let offset = client.getOffset();
+  if (offset) {
+    offset = await unsealContinuationToken(offset, binding);
+  }
   /**
    * @param count - the LIMIT
    * @param token - the store OFFSET
    * @returns the query to send to the store
    */
   const page = (count: number, token?: string) =>
-    new QueryValidator(merged).merge(`LIMIT ${count}${token ? ` OFFSET ${JSON.stringify(token)}` : ""}`).toString();
-  if (!filtered) {
-    return model.query(page(limit, offset));
-  }
+    new QueryValidator(base).merge(`LIMIT ${count}${token ? ` OFFSET ${JSON.stringify(token)}` : ""}`).toString();
+  const check = staticCanAct(model);
   const budget = Math.min(Math.max(limit * SCAN_FACTOR, MIN_SCANNED_ROWS), MAX_SCANNED_ROWS);
   const results: T[] = [];
   let scanned = 0;
+  let pages = 1;
   let res = await model.query(page(limit, offset));
   let token: string | undefined;
   while (true) {
     const rows = res.results ?? [];
     scanned += rows.length;
-    const readable = await Promise.all(rows.map(r => isReadable(r, context)));
+    const readable = await Promise.all(rows.map(async r => (await askPermission(check, context, "get", r)) === true));
     results.push(...rows.filter((_r, i) => readable[i]));
     token = res.continuationToken;
     if (!token || results.length >= limit) {
       // Store exhausted, or page full
       break;
     }
-    if (scanned >= budget) {
-      // Budget spent: a token on an empty page would only reveal hidden matches
+    if (scanned >= budget || pages >= MAX_REFILL_PAGES || rows.length === 0) {
+      // Budget spent, or a store that does not progress: a token on an empty page would only reveal hidden matches
       token = results.length ? token : undefined;
       break;
     }
     // Refill: continue after the last scanned row, asking only for the rows still missing
+    pages++;
     res = await model.query(page(Math.min(limit - results.length, budget - scanned), token));
   }
-  return { ...res, results, continuationToken: token ? await sealContinuationToken(String(token)) : undefined };
+  return {
+    results,
+    continuationToken: token ? await sealContinuationToken(String(token), binding) : undefined
+  };
 }

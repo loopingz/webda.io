@@ -65,4 +65,26 @@ export class Computer extends CoreModel {
   _user: ModelParent<User>;
   _loanTo: ModelLink<User>;
   name: string;
+
+  /**
+   * The user owning the computer may do everything with it; the user it is loaned to may read it
+   *
+   * @param ctx - the operation context
+   * @param action - the action to check
+   * @param object - the computer, undefined for a static action (none here)
+   * @returns true or the refusal reason
+   */
+  static canAct(ctx: OperationContext<any, any>, action: string, object?: Computer): string | boolean {
+    const userId = ctx.getCurrentUserId();
+    if (!userId || !object) {
+      return "Login required";
+    }
+    if (object._user?.toString() === userId) {
+      return true;
+    }
+    if (action === "get" && object._loanTo?.toString() === userId) {
+      return true;
+    }
+    return "Not your computer";
+  }
 }

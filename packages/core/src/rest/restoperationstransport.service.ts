@@ -396,6 +396,9 @@ export class RESTOperationsTransport<
         } else {
           queryString = context.parameter("q", "");
         }
+        if (typeof queryString !== "string") {
+          throw new WebdaError.BadRequest("Query must be a string");
+        }
         let query: QueryValidator;
         try {
           query = new QueryValidator(queryString);

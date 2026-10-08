@@ -12,6 +12,7 @@ import { AnyMethod } from "@webda/decorators";
 import type { Service } from "../services/service.js";
 import type { Model } from "@webda/models";
 import { runWithContext, useContext } from "../contexts/execution.js";
+import { checkStaticModelPermission, loadModelForAction } from "../models/permissions.js";
 
 type OperationTarget = Service | Model | typeof Service | typeof Model;
 import { useLog } from "@webda/workout";
@@ -331,9 +332,9 @@ async function checkOperation(context: OperationContext, operationId: string) {
       // to fields without parsing the string.
       const summary = err.errors
         .map(e => {
-          const path = e.instancePath || (e.params && (e.params as any).missingProperty
-            ? `/${(e.params as any).missingProperty}`
-            : "/");
+          const path =
+            e.instancePath ||
+            (e.params && (e.params as any).missingProperty ? `/${(e.params as any).missingProperty}` : "/");
           return `${path} ${e.message}`;
         })
         .join("; ");
@@ -431,22 +432,22 @@ export async function callOperation(context: OperationContext, operationId: stri
       );
     } else if (operations[operationId].model) {
       const modelClass = useModel(operations[operationId].model);
+      const method = operations[operationId].method;
       if (operations[operationId].static === false) {
-        // Instance method — load the model instance and call the method on it
+        // Instance method — load the model instance as the caller (a missing object and an object the caller may
+        // not read answer the same NotFound; a refused method is Forbidden) and call the method on it
         // The first argument should be the primary key (uuid)
         const uuid = callArgs[0];
         result = await runWithContext(context, async () => {
-          const instance = await modelClass.ref(uuid).get();
-          if (!instance || (instance as any).isDeleted?.()) {
-            throw new WebdaError.NotFound("Object not found");
-          }
-          return instance[operations[operationId].method](...callArgs.slice(1));
+          const instance = await loadModelForAction(modelClass, uuid, context, method);
+          return instance[method](...callArgs.slice(1));
         });
       } else {
-        // Static/class method — call on the model class directly
-        result = await runWithContext(context, () =>
-          modelClass[operations[operationId].method](...callArgs)
-        );
+        // Static/class method — the model's static canAct is asked without object
+        result = await runWithContext(context, async () => {
+          await checkStaticModelPermission(modelClass, context, method);
+          return modelClass[method](...callArgs);
+        });
       }
     } else {
       throw new Error(`${operationId} NoServiceOrModel`);
@@ -525,7 +526,10 @@ export function listFullOperations(): { [key: string]: OperationDefinition } {
  * @param operationId - the operation identifier
  * @param definition - the definition object
  */
-export function registerOperation(operationId: string, definition: Omit<OperationDefinition, "id" | "input" | "output"> & { input?: string; output?: string }) {
+export function registerOperation(
+  operationId: string,
+  definition: Omit<OperationDefinition, "id" | "input" | "output"> & { input?: string; output?: string }
+) {
   // Check operation naming convention
   if (!operationId.match(/^([A-Z][A-Za-z0-9]*\.)*([A-Z][a-zA-Z0-9]*)$/)) {
     throw new Error(`OperationId ${operationId} must match ^([A-Z][A-Za-z0-9]*.)*([A-Z][a-zA-Z0-9]*)$`);
@@ -561,7 +565,6 @@ export function registerOperation(operationId: string, definition: Omit<Operatio
       }
     });
 }
-
 
 /**
  * Wrapper concept for an operation
@@ -627,21 +630,14 @@ interface OperationParameters {
 function Operation<T = {}>(
   options?: T & OperationParameters
 ): (target: (this: OperationTarget, ...args: any) => any, context: ClassMethodDecoratorContext) => void;
-function Operation(
-  target: (this: OperationTarget, ...args: any) => any,
-  context: ClassMethodDecoratorContext
-): void;
+function Operation(target: (this: OperationTarget, ...args: any) => any, context: ClassMethodDecoratorContext): void;
 /**
  * Decorator that registers a class method as an operation with optional configuration
  * @param args - additional arguments
  * @returns the result
  */
 function Operation(...args: any[]) {
-  const annotate = (
-    target: AnyMethod,
-    context: ClassMethodDecoratorContext,
-    options: any = {}
-  ) => {
+  const annotate = (target: AnyMethod, context: ClassMethodDecoratorContext, options: any = {}) => {
     context.metadata!["webda.operations"] ??= [];
     (context.metadata!["webda.operations"] as any[]).push({
       id: context.name,

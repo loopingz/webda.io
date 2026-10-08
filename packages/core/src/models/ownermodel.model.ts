@@ -76,8 +76,8 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
    * @returns the result
    */
   async canAct(context: IOperationContext, action: string): Promise<string | boolean> {
-    // Object is public
-    if (this.public && (action === "get" || action === "get_binary")) {
+    // Object is public: readable, binaries included (`<attribute>.download`, `.downloadUrl`, `.get`, `.getUrl`)
+    if (this.public && (action === "get" || AbstractOwnerModel.isBinaryRead(action))) {
       return true;
     } else if (!context.getCurrentUserId()) {
       return "You need to be logged in to access this object";
@@ -86,6 +86,15 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
     }
     // On create, the owner was set from the caller by prepareCreate: only the owner may create its objects
     return context.getCurrentUserId() === this.getOwner()?.toString();
+  }
+
+  /**
+   * Whether an action is a binary read (a behavior action of Binary/Binaries): `avatar.download`, `photos.get`...
+   * @param action - the action name
+   * @returns true for the read actions of binary attributes
+   */
+  static isBinaryRead(action: string): boolean {
+    return /^[^.]+\.(download|downloadUrl|get|getUrl)$/.test(action);
   }
 
   /**

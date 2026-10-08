@@ -552,8 +552,13 @@ class DomainServiceTest extends WebdaApplicationTest {
     const savedInput = op.input;
     op.input = "void";
     try {
+      // Hardware only lets the "test" user act, static actions included
+      const anonymous = new FakeOpContext();
+      await anonymous.init();
+      await assert.rejects(() => callOperation(anonymous, "Hardware.GlobalAction"), WebdaError.Forbidden);
       const ctx = new FakeOpContext();
       await ctx.init();
+      ctx.newSession().login("test", "test");
       await callOperation(ctx, "Hardware.GlobalAction");
       // The globalAction writes {} to context
       const output = ctx.getOutput();

@@ -932,7 +932,7 @@
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "Model not exposed on purpose",
+          "description": "Open model: the explicit opt-in, everyone may do everything",
           "properties": {
             "name": {
               "type": "string"
@@ -953,7 +953,7 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "Model not exposed on purpose",
+          "description": "Open model: the explicit opt-in, everyone may do everything",
           "properties": {
             "name": {
               "type": "string"
@@ -974,7 +974,7 @@
         "Stored": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "description": "Model not exposed on purpose",
+          "description": "Open model: the explicit opt-in, everyone may do everything",
           "properties": {
             "name": {
               "type": "string"

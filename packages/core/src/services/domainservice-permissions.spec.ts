@@ -19,7 +19,18 @@ import { OwnerModel } from "../models/ownermodel.model.js";
 import { Ace, ResourceAcl } from "../models/aclmodel.js";
 import type { IOperationContext } from "../contexts/icontext.js";
 import * as WebdaError from "../errors/errors.js";
-import { checkModelPermission, mergePermissionQuery, queryModelWithPermissions } from "../models/permissions.js";
+import {
+  checkModelPermission,
+  checkStaticModelPermission,
+  mergePermissionQuery,
+  queryModelWithPermissions,
+  sealContinuationToken,
+  unsealContinuationToken,
+  MAX_REFILL_PAGES
+} from "../models/permissions.js";
+import { useCrypto } from "./cryptoservice.service.js";
+import { DomainService, DomainServiceParameters } from "./domainservice.service.js";
+import * as sinon from "sinon";
 import { SimpleUser } from "../models/simpleuser.model.js";
 import { sanitizeModelInput } from "./domainservice.service.js";
 
@@ -42,10 +53,46 @@ class PermTask extends OwnerModel {
 }
 
 /**
- * Model without canAct: the framework default allows everything
+ * Model without any canAct: the framework denies every request on it
  */
 class OpenNote extends UuidModel {
   text: string;
+}
+
+/**
+ * The explicit opt-in: a model open to everyone
+ */
+class PublicNote extends UuidModel {
+  text: string;
+
+  static canAct(): boolean {
+    return true;
+  }
+}
+
+/**
+ * Model controlled by the static form only: logged-in callers may act on objects, user "admin" may run the static
+ * action; every call is recorded with the object it received
+ */
+class Report extends UuidModel {
+  title: string;
+  static calls: { action: string; object: any }[] = [];
+
+  static canAct(context: IOperationContext, action: string, object?: Report): boolean | string {
+    Report.calls.push({ action, object });
+    if (object === undefined) {
+      return context.getCurrentUserId() === "admin" ? true : "admin only";
+    }
+    return context.getCurrentUserId() ? true : "login required";
+  }
+
+  /**
+   * Static action: `PUT /reports/rebuild`
+   * @returns the action result
+   */
+  static async rebuild() {
+    return { rebuilt: true };
+  }
 }
 
 /**
@@ -67,11 +114,16 @@ class AclDoc extends UuidModel {
 }
 
 /**
- * Child of PermTask (nested under /permTasks/{pid}/permSubTasks); no canAct of its own
+ * Child of PermTask (nested under /permTasks/{pid}/permSubTasks): any logged-in caller, the framework checks the
+ * parent
  */
 class PermSubTask extends UuidModel {
   task: string;
   label: string;
+
+  static canAct(context: IOperationContext): boolean | string {
+    return context.getCurrentUserId() ? true : "login required";
+  }
 }
 
 /**
@@ -122,6 +174,8 @@ class OffsetRepository extends MemoryRepository<any> {
 }
 
 Slugged.registerSerializer();
+PublicNote.registerSerializer();
+Report.registerSerializer();
 PermSubTask.registerSerializer();
 PermUser.registerSerializer();
 PermTask.registerSerializer();
@@ -170,6 +224,12 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     const app = useApplication<Application>();
     app.addModel("WebdaDemo/PermTask", PermTask, metadata("WebdaDemo/PermTask", { publish: { method: "PUT" } }));
     app.addModel("WebdaDemo/OpenNote", OpenNote, metadata("WebdaDemo/OpenNote"));
+    app.addModel("WebdaDemo/PublicNote", PublicNote, metadata("WebdaDemo/PublicNote"));
+    app.addModel(
+      "WebdaDemo/Report",
+      Report,
+      metadata("WebdaDemo/Report", { rebuild: { global: true, method: "PUT" } })
+    );
     app.addModel("WebdaDemo/AclDoc", AclDoc, metadata("WebdaDemo/AclDoc"));
     app.addModel("WebdaDemo/PermSubTask", PermSubTask, {
       ...metadata("WebdaDemo/PermSubTask"),
@@ -203,6 +263,9 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     await super.beforeEach();
     registerRepository(PermTask, new MemoryRepository(PermTask, ["uuid"]));
     registerRepository(OpenNote, new MemoryRepository(OpenNote, ["uuid"]));
+    registerRepository(PublicNote, new MemoryRepository(PublicNote, ["uuid"]));
+    registerRepository(Report, new MemoryRepository(Report, ["uuid"]));
+    Report.calls = [];
     registerRepository(AclDoc, new MemoryRepository(AclDoc, ["uuid"]));
     registerRepository(PermSubTask, new MemoryRepository(PermSubTask, ["uuid"]));
     registerRepository(Slugged as any, new MemoryRepository(Slugged as any, ["slug"]) as any);
@@ -418,20 +481,153 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
   }
 
   @test
-  async modelWithoutCanActAllowsEverything() {
-    const created = await this.request(undefined, "POST", "/perm/openNotes", { text: "hello" });
+  async modelsDenyByDefault() {
+    // OpenNote defines neither the static nor the instance canAct: refused everywhere
+    await OpenNote.create({ uuid: "n1", text: "server side" } as any);
+    assert.strictEqual((await this.request(USER_A, "POST", "/perm/openNotes", { text: "hello" })).status, 403);
+    assert.strictEqual((await OpenNote.query("")).results.length, 1, "nothing created");
+    for (const user of [USER_A, undefined]) {
+      assert.strictEqual((await this.request(user, "GET", "/perm/openNotes/n1")).status, 404);
+      assert.strictEqual((await this.request(user, "PATCH", "/perm/openNotes/n1", { text: "p" })).status, 404);
+      assert.strictEqual((await this.request(user, "PUT", "/perm/openNotes/n1", { text: "u" })).status, 404);
+      assert.strictEqual((await this.request(user, "DELETE", "/perm/openNotes/n1")).status, 404);
+      const query = await this.request(user, "PUT", "/perm/openNotes", { q: "" });
+      assert.strictEqual(query.status, 200);
+      assert.deepStrictEqual(query.body.results, []);
+    }
+    assert.strictEqual((await OpenNote.ref("n1").get()).text, "server side", "nothing changed");
+  }
+
+  @test
+  async explicitOptInAllowsEverything() {
+    // `static canAct() { return true; }` is the opt-in
+    const created = await this.request(undefined, "POST", "/perm/publicNotes", { text: "hello" });
     assert.strictEqual(created.status, 200);
     const n1 = created.body.uuid;
-    assert.strictEqual((await this.request(USER_B, "GET", `/perm/openNotes/${n1}`)).status, 200);
-    assert.strictEqual((await this.request(USER_B, "PATCH", `/perm/openNotes/${n1}`, { text: "p" })).status, 200);
-    assert.strictEqual((await this.request(undefined, "PUT", `/perm/openNotes/${n1}`, { text: "u" })).status, 200);
-    const query = await this.request(USER_A, "PUT", "/perm/openNotes", { q: "" });
+    assert.strictEqual((await this.request(USER_B, "GET", `/perm/publicNotes/${n1}`)).status, 200);
+    assert.strictEqual((await this.request(USER_B, "PATCH", `/perm/publicNotes/${n1}`, { text: "p" })).status, 200);
+    assert.strictEqual((await this.request(undefined, "PUT", `/perm/publicNotes/${n1}`, { text: "u" })).status, 200);
+    const query = await this.request(USER_A, "PUT", "/perm/publicNotes", { q: "" });
     assert.deepStrictEqual(
       query.body.results.map((r: any) => r.uuid),
       [n1]
     );
-    const del = await this.request(USER_A, "DELETE", `/perm/openNotes/${n1}`);
+    // The response carries the results and the token only: no store internals
+    assert.deepStrictEqual(Object.keys(query.body), ["results"]);
+    const del = await this.request(USER_A, "DELETE", `/perm/publicNotes/${n1}`);
     assert.ok(del.status < 300);
+  }
+
+  @test
+  async staticCanActGatesStaticActions() {
+    assert.strictEqual((await this.request(undefined, "PUT", "/perm/reports/rebuild", {})).status, 403);
+    assert.strictEqual((await this.request(USER_A, "PUT", "/perm/reports/rebuild", {})).status, 403);
+    const admin = await this.request("admin", "PUT", "/perm/reports/rebuild", {});
+    assert.strictEqual(admin.status, 200);
+    assert.deepStrictEqual(admin.body, { rebuilt: true });
+    // The static action was asked without an object
+    const statics = Report.calls.filter(c => c.action === "rebuild");
+    assert.strictEqual(statics.length, 3);
+    assert.ok(statics.every(c => c.object === undefined));
+  }
+
+  @test
+  async staticCanActReceivesTheObjectOfEachOperation() {
+    // Create: the new, unsaved object
+    const created = await this.request(USER_A, "POST", "/perm/reports", { title: "t1" });
+    assert.strictEqual(created.status, 200);
+    const create = Report.calls.find(c => c.action === "create");
+    assert.ok(create.object instanceof Report);
+    assert.strictEqual(create.object.title, "t1");
+    assert.strictEqual((await this.request(undefined, "POST", "/perm/reports", { title: "anon" })).status, 403);
+    // Get, update, patch, delete, query rows: the loaded object
+    const uuid = created.body.uuid;
+    Report.calls = [];
+    assert.strictEqual((await this.request(USER_B, "GET", `/perm/reports/${uuid}`)).status, 200);
+    assert.strictEqual((await this.request(USER_B, "PATCH", `/perm/reports/${uuid}`, { title: "t2" })).status, 200);
+    assert.strictEqual((await this.request(USER_B, "PUT", `/perm/reports/${uuid}`, { uuid, title: "t3" })).status, 200);
+    const query = await this.request(USER_B, "PUT", "/perm/reports", { q: "" });
+    assert.deepStrictEqual(
+      query.body.results.map((r: any) => r.uuid),
+      [uuid]
+    );
+    assert.strictEqual((await this.request(USER_B, "DELETE", `/perm/reports/${uuid}`)).status, 204);
+    for (const action of ["get", "update", "delete"]) {
+      const calls = Report.calls.filter(c => c.action === action);
+      assert.ok(calls.length >= 1, action);
+      assert.ok(
+        calls.every(c => c.object instanceof Report && c.object.uuid === uuid),
+        `${action} received the loaded object`
+      );
+    }
+    // Anonymous: the static form refuses the object, so it looks missing
+    await Report.create({ uuid: "r2", title: "x" } as any);
+    assert.strictEqual((await this.request(undefined, "GET", "/perm/reports/r2")).status, 404);
+    assert.deepStrictEqual((await this.request(undefined, "PUT", "/perm/reports", { q: "" })).body.results, []);
+  }
+
+  @test
+  async staticOverrideKeepsTheInstanceCheckThroughSuper() {
+    /**
+     * Static actions for the owner of the "admin" id, objects through the inherited OwnerModel instance check
+     */
+    class GatedTask extends PermTask {
+      static canAct(context: IOperationContext, action: string, object?: GatedTask) {
+        if (object === undefined) {
+          return context.getCurrentUserId() === "admin";
+        }
+        return super.canAct(context, action, object);
+      }
+    }
+    const ctxA: any = { getCurrentUserId: () => USER_A };
+    const ctxAdmin: any = { getCurrentUserId: () => "admin" };
+    const mine = new GatedTask();
+    mine.setOwner(USER_A as any);
+    await checkModelPermission(mine, ctxA, "get", GatedTask);
+    await assert.rejects(() => checkModelPermission(mine, ctxAdmin, "get", GatedTask), WebdaError.NotFound);
+    await assert.rejects(() => checkStaticModelPermission(GatedTask, ctxA, "stats"), WebdaError.Forbidden);
+    await checkStaticModelPermission(GatedTask, ctxAdmin, "stats");
+    // The parent class (instance form only) refuses every static action
+    await assert.rejects(() => checkStaticModelPermission(PermTask, ctxAdmin, "stats"), WebdaError.Forbidden);
+  }
+
+  @test
+  async startupWarnsForExposedModelsWithoutCanAct() {
+    const service = new DomainService("PermWarnService", new DomainServiceParameters().load({}));
+    const spy = sinon.spy(service, "log");
+    const { useInstanceStorage } = await import("../core/instancestorage.js");
+    const operations = useInstanceStorage().operations;
+    const snapshot = { ...operations };
+    const services = useInstanceStorage().core.getServices();
+    services["PermWarnService"] = service;
+    try {
+      service.initOperations();
+    } finally {
+      spy.restore();
+      delete services["PermWarnService"];
+      for (const id of Object.keys(operations)) delete operations[id];
+      Object.assign(operations, snapshot);
+    }
+    const warnings = spy
+      .getCalls()
+      .filter(c => c.args[0] === "WARN")
+      .map(c => c.args.slice(1).join(" "));
+    assert.ok(
+      warnings.some(w => w.includes("WebdaDemo/OpenNote") && w.includes("static canAct")),
+      JSON.stringify(warnings)
+    );
+    for (const covered of ["WebdaDemo/PermTask", "WebdaDemo/PublicNote", "WebdaDemo/Report", "WebdaDemo/AclDoc"]) {
+      assert.ok(!warnings.some(w => w.includes(covered)), covered);
+    }
+  }
+
+  @test
+  async queryInputMustBeAString() {
+    for (const q of [{ a: 1 }, 5, true, ["uuid = 'x'"]]) {
+      const res = await this.request(USER_A, "PUT", "/perm/publicNotes", { q });
+      assert.strictEqual(res.status, 400, JSON.stringify(q));
+    }
+    assert.strictEqual((await this.request(USER_A, "PUT", "/perm/publicNotes", {})).status, 200);
   }
 
   @test
@@ -480,12 +676,16 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
   @test
   async checkModelPermissionHelper() {
     const ctx = { getCurrentUserId: () => "u" } as any;
-    // No canAct: allowed
-    await checkModelPermission({}, ctx, "get");
+    // No canAct at all: denied, and unreadable looks missing
+    await assert.rejects(() => checkModelPermission({}, ctx, "get"), WebdaError.NotFound);
+    await assert.rejects(() => checkModelPermission(new OpenNote(), ctx, "get", OpenNote), WebdaError.NotFound);
     await checkModelPermission({ canAct: async () => true }, ctx, "get");
-    // Returning the instance itself is the "allowed on this object" convention
+    // The static form wins when the class defines it
+    await checkModelPermission(new PublicNote(), ctx, "get", PublicNote);
+    await checkModelPermission(new PublicNote(), ctx, "get");
+    // Returning the instance itself is no longer an allowance
     const self: any = { canAct: async () => self };
-    await checkModelPermission(self, ctx, "get");
+    await assert.rejects(() => checkModelPermission(self, ctx, "get"), WebdaError.NotFound);
     for (const refusal of [false, "reason", undefined, null, 1, {}]) {
       // Not readable: looks missing, whatever the action
       for (const action of ["get", "update", "delete", "publish"]) {
@@ -521,6 +721,9 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
         ),
       WebdaError.NotFound
     );
+    // Static actions: a refusal is a 403 (there is no object to hide)
+    await assert.rejects(() => checkStaticModelPermission(OpenNote, ctx, "rebuild"), WebdaError.Forbidden);
+    await checkStaticModelPermission(PublicNote, ctx, "rebuild");
   }
 
   @test
@@ -722,10 +925,125 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     assert.deepStrictEqual(res.results, []);
     assert.strictEqual(res.continuationToken, undefined);
     assert.ok(scanned <= 10000, `scanned ${scanned}`);
-    // Without filtering (no canAct) the cap applies too
-    const plain: any = { query: async (q: string) => (queries.push(q), { results: [] }) };
-    await queryModelWithPermissions(plain, "LIMIT 99999", { getCurrentUserId: () => "u" } as any);
-    assert.match(queries[queries.length - 1], /LIMIT 1000\b/);
+    // A model with neither canAct form denies every row: the store is not even asked
+    let asked = 0;
+    const plain: any = { query: async () => (asked++, { results: [{ uuid: "x" }] }) };
+    const none = await queryModelWithPermissions(plain, "LIMIT 99999", { getCurrentUserId: () => "u" } as any);
+    assert.deepStrictEqual(none, { results: [], continuationToken: undefined });
+    assert.strictEqual(asked, 0);
+  }
+
+  @test
+  async refillStopsOnEmptyPagesAndBoundsItsIterations() {
+    const ctx: any = { getCurrentUserId: () => "u" };
+    // A store answering empty pages with a token forever
+    let empties = 0;
+    const empty: any = {
+      prototype: { canAct: () => true },
+      query: async () => {
+        if (++empties > 2000) throw new Error("LOOP");
+        return { results: [], continuationToken: "t" };
+      }
+    };
+    const res = await queryModelWithPermissions(empty, "LIMIT 10", ctx);
+    assert.deepStrictEqual(res.results, []);
+    assert.strictEqual(res.continuationToken, undefined);
+    assert.ok(empties <= 2, `${empties} store calls`);
+    // A store answering one hidden row per page: the number of store pages is capped too
+    let pages = 0;
+    const slow: any = {
+      prototype: { canAct: () => true },
+      query: async () => {
+        if (++pages > 2000) throw new Error("LOOP");
+        return { results: [{ uuid: `h${pages}`, canAct: async () => false }], continuationToken: "t" };
+      }
+    };
+    const capped = await queryModelWithPermissions(slow, "LIMIT 1000", ctx);
+    assert.deepStrictEqual(capped.results, []);
+    assert.strictEqual(capped.continuationToken, undefined);
+    assert.ok(pages <= MAX_REFILL_PAGES, `${pages} store pages`);
+  }
+
+  @test
+  async continuationTokensAreBoundToTheQueryModelAndCaller() {
+    registerRepository(AclDoc, new OffsetRepository(AclDoc, ["uuid"]) as any);
+    const acl = (user: string) => [{ action: "get", type: "USER", principal: user, allow: true }];
+    for (const i of [1, 2, 3]) {
+      await AclDoc.create({ uuid: `secret${i}`, title: "secret", acl: acl(USER_A) } as any);
+    }
+    await AclDoc.create({ uuid: "zmine", title: "mine", acl: acl(USER_B) } as any);
+    for (const i of [1, 2, 3, 4, 5]) {
+      await AclDoc.create({ uuid: `b${i}`, title: "ruler", acl: acl(USER_B) } as any);
+    }
+    // The "ruler" attack: the offset hidden in the token would show as the row returned by a fully readable query
+    const hit = await this.request(USER_B, "PUT", "/perm/aclDocs", {
+      q: "title LIKE 'secret%' OR uuid = 'zmine' LIMIT 1"
+    });
+    const miss = await this.request(USER_B, "PUT", "/perm/aclDocs", {
+      q: "title LIKE 'nope%' OR uuid = 'zmine' LIMIT 1"
+    });
+    assert.ok(hit.body.continuationToken && miss.body.continuationToken);
+    for (const token of [hit.body.continuationToken, miss.body.continuationToken]) {
+      // Another query, same model and caller
+      const replay = await this.request(USER_B, "PUT", "/perm/aclDocs", {
+        q: `title = 'ruler' LIMIT 1 OFFSET "${token}"`
+      });
+      assert.strictEqual(replay.status, 400);
+      // Another model
+      assert.strictEqual(
+        (await this.request(USER_B, "PUT", "/perm/permTasks", { q: `LIMIT 1 OFFSET "${token}"` })).status,
+        400
+      );
+      // Another caller, same query
+      assert.strictEqual(
+        (
+          await this.request(USER_A, "PUT", "/perm/aclDocs", {
+            q: `title LIKE 'secret%' OR uuid = 'zmine' LIMIT 1 OFFSET "${token}"`
+          })
+        ).status,
+        400
+      );
+      assert.strictEqual(
+        (
+          await this.request(undefined, "PUT", "/perm/aclDocs", {
+            q: `title LIKE 'secret%' OR uuid = 'zmine' LIMIT 1 OFFSET "${token}"`
+          })
+        ).status,
+        400
+      );
+    }
+    // The same query by the same caller pages on
+    const next = await this.request(USER_B, "PUT", "/perm/aclDocs", {
+      q: `title LIKE 'secret%' OR uuid = 'zmine' LIMIT 1 OFFSET "${hit.body.continuationToken}"`
+    });
+    assert.strictEqual(next.status, 200);
+    assert.deepStrictEqual(next.body.results, []);
+    // Models whose query is only filtered in the store get sealed tokens as well (a raw memory token counts hidden rows)
+    await PermTask.create({ uuid: "task-c", title: "C private", _user: "user-c" } as any);
+    const page = await this.request(USER_B, "PUT", "/perm/permTasks", { q: "LIMIT 1" });
+    assert.strictEqual(page.status, 200);
+    assert.ok(page.body.continuationToken);
+    assert.ok(!/^[0-9]+$/.test(page.body.continuationToken), page.body.continuationToken);
+  }
+
+  @test
+  async continuationTokensExpireAndCarryATypeTag() {
+    const binding = { model: "WebdaDemo/AclDoc", query: "title = 'x'", user: USER_B };
+    const fresh = await sealContinuationToken("3", binding);
+    assert.strictEqual(await unsealContinuationToken(fresh, binding), "3");
+    for (const other of [
+      { ...binding, model: "WebdaDemo/PermTask" },
+      { ...binding, query: "title = 'y'" },
+      { ...binding, user: USER_A },
+      { ...binding, user: "anonymous" }
+    ]) {
+      await assert.rejects(() => unsealContinuationToken(fresh, other), WebdaError.BadRequest);
+    }
+    const expired = await sealContinuationToken("3", binding, -1);
+    await assert.rejects(() => unsealContinuationToken(expired, binding), WebdaError.BadRequest);
+    // Any other ciphertext of the application is refused, even with the same fields
+    const untagged = await useCrypto().encrypt({ t: "3", m: binding.model, q: binding.query, u: binding.user });
+    await assert.rejects(() => unsealContinuationToken(untagged, binding), WebdaError.BadRequest);
   }
 
   @test

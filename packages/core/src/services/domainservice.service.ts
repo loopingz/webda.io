@@ -17,8 +17,10 @@ import { hasSchema, registerSchema } from "../schemas/hooks.js";
 import {
   checkModelParent,
   checkModelPermission,
+  checkStaticModelPermission,
   createModel,
   getParentRelation,
+  hasModelPermissionCheck,
   NOT_FOUND_MESSAGE,
   queryModelWithPermissions
 } from "../models/permissions.js";
@@ -307,10 +309,16 @@ export class DomainService<
    * @param object - the model instance
    * @param context - the caller context
    * @param action - the action
+   * @param model - the model class (the static `canAct` asked)
    */
-  protected async checkPermission(object: Model, context: OperationContext, action: string): Promise<void> {
+  protected async checkPermission(
+    object: Model,
+    context: OperationContext,
+    action: string,
+    model?: ModelClass<Model>
+  ): Promise<void> {
     try {
-      await checkModelPermission(object, context, action);
+      await checkModelPermission(object, context, action, model);
     } catch (err) {
       if (err instanceof WebdaError.NotFound) {
         const uuid: any = object.getPrimaryKey?.();
@@ -347,7 +355,7 @@ export class DomainService<
       await this.checkParent(model, input?.[getParentRelation(model)?.attribute ?? ""], context);
       // Let the model set its server-managed fields (e.g. the owner) from the caller
       await (object as any).prepareCreate?.(context);
-      await this.checkPermission(object, context, "create");
+      await this.checkPermission(object, context, "create", model);
       // Create, never upsert: an existing key is a 409, not an overwrite
       await createModel(object);
       return object;
@@ -441,7 +449,7 @@ export class DomainService<
     const pk = this.resolveUpdateKey(input, pkFields, context.getParameters() ?? {});
     const object = await this.loadModel(model, pk);
     // Check on the stored object, before any client input is applied
-    await this.checkPermission(object, context, "update");
+    await this.checkPermission(object, context, "update", model);
     await this.checkReparent(model, object, input, context);
     object["load"](input);
     await object.save();
@@ -457,7 +465,7 @@ export class DomainService<
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
     const object = await this.loadModel(model, uuid);
-    await this.checkPermission(object, context, "get");
+    await this.checkPermission(object, context, "get", model);
     return object;
   }
 
@@ -469,7 +477,7 @@ export class DomainService<
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
     const object = await this.loadModel(model, uuid);
-    await this.checkPermission(object, context, "delete");
+    await this.checkPermission(object, context, "delete", model);
     // Object can decide to not delete but mark as deleted
     await object.delete();
   }
@@ -482,6 +490,9 @@ export class DomainService<
   async modelQuery(query: string): Promise<any> {
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass }>("operationContext");
+    if (query !== undefined && query !== null && typeof query !== "string") {
+      throw new WebdaError.BadRequest("Query must be a string");
+    }
     return runWithContext(context, async () => {
       try {
         return await queryModelWithPermissions(model, query, context);
@@ -515,7 +526,7 @@ export class DomainService<
     const pk = this.resolveUpdateKey(input, pkFields, context.getParameters() ?? {});
     const object = await this.loadModel(model, pk);
     // Check on the stored object, before any client input is applied
-    await this.checkPermission(object, context, "update");
+    await this.checkPermission(object, context, "update", model);
     await this.checkReparent(model, object, input, context);
     await object.patch(input);
     return object;
@@ -539,9 +550,11 @@ export class DomainService<
       const uuid = args[0];
       // A missing object and an object the caller cannot read answer the same NotFound
       const object = await this.loadModel(model, uuid);
-      await this.checkPermission(object, context, action.name);
+      await this.checkPermission(object, context, action.name, model);
       return object[handler](context);
     } else {
+      // Static action: the model's static canAct is asked without object
+      await checkStaticModelPermission(model, context, action.name);
       return model[handler](context);
     }
   }
@@ -606,6 +619,12 @@ export class DomainService<
       // Authentication state models (and subclasses) are internal unless explicitly listed
       if (!this.isExposable(model, Metadata.Identifier)) {
         continue;
+      }
+      if (!hasModelPermissionCheck(model)) {
+        this.log(
+          "WARN",
+          `${Metadata.Identifier} is exposed but denies every request: define static canAct (or the instance canAct)`
+        );
       }
       const shortId = Metadata.Identifier.split("/").pop();
       const plural = Metadata.Plural;
@@ -840,19 +859,6 @@ export class DomainService<
       action: string;
     }>("operationContext");
 
-    // Parent uuid comes from the URL (`/posts/{uuid}/mainImage/...`); read it
-    // straight off the context so we don't depend on its position in `args`.
-    const uuid = (context.getParameters() || {}).uuid;
-    // A missing parent and a parent the caller cannot read answer the same NotFound
-    const instance: any = await this.loadModel(model, uuid);
-
-    await this.checkPermission(instance, context, `${attribute}.${action}`);
-
-    const behaviorInstance = instance[attribute];
-    if (!behaviorInstance || typeof behaviorInstance[action] !== "function") {
-      throw new WebdaError.NotFound(`Behavior method ${attribute}.${action} not found`);
-    }
-
     // `args` was built by `resolveArguments` from the operation's input
     // schema. Two schema shapes coexist:
     //   1. Auto-generated from the method signature (`exploreBehaviorsAction`
@@ -869,6 +875,22 @@ export class DomainService<
     const inputSchema = typeof opInput === "string" ? useApplication().getSchema(opInput) : undefined;
     const propNames = inputSchema?.properties ? Object.keys(inputSchema.properties) : [];
     const passArgs = propNames[0] === "uuid" ? args.slice(1) : args;
+
+    // Parent uuid comes from the URL (`/posts/{uuid}/mainImage/...`) on REST; transports without URL parameters
+    // (gRPC, MCP) carry it in the input, as the uuidRequest schema declares
+    let uuid = (context.getParameters() || {}).uuid;
+    if (uuid === undefined) {
+      uuid = propNames[0] === "uuid" ? args[0] : (await context.getInput().catch(() => undefined))?.uuid;
+    }
+    // A missing parent and a parent the caller cannot read answer the same NotFound
+    const instance: any = await this.loadModel(model, uuid);
+
+    await this.checkPermission(instance, context, `${attribute}.${action}`, model);
+
+    const behaviorInstance = instance[attribute];
+    if (!behaviorInstance || typeof behaviorInstance[action] !== "function") {
+      throw new WebdaError.NotFound(`Behavior method ${attribute}.${action} not found`);
+    }
 
     void behavior; // tagged in operationContext for future use
     return behaviorInstance[action](...passArgs);

@@ -295,11 +295,29 @@ class AuditReadTest extends WebdaApplicationTest {
 
   @test
   async subjectWithoutCanActIsDenied() {
-    await this.setupAudit({ level: "write" });
-    // AuditEntry (a CoreModel) defines no canAct
+    await this.setupAudit({ level: "write", readPermission: "roles CONTAINS 'admin'" });
+    // AuditEntry (a CoreModel) defines no canAct: denied by default, so it answers like a missing object
     const target = await this.seed({ operationId: "Some.Op" });
+    const refused = await this.call(
+      "Audit.Subject",
+      { model: "Webda/AuditEntry", key: target.getUUID() },
+      { id: "anyone" }
+    ).catch(err => err);
+    const missing = await this.call(
+      "Audit.Subject",
+      { model: "Webda/AuditEntry", key: this.unique("ghost") },
+      { id: "anyone" }
+    ).catch(err => err);
+    assert.ok(refused instanceof WebdaError.NotFound);
+    assert.strictEqual(refused.message, missing.message);
+    // readPermission may see that the object exists, not its history through canAct
     await assert.rejects(
-      () => this.call("Audit.Subject", { model: "Webda/AuditEntry", key: target.getUUID() }, { id: "anyone" }),
+      () =>
+        this.call(
+          "Audit.Subject",
+          { model: "Webda/AuditEntry", key: target.getUUID() },
+          { id: "admin", roles: ["admin"] }
+        ),
       this.isError(WebdaError.Forbidden)
     );
   }

@@ -8,6 +8,7 @@ import { useApplication, useModel } from "../application/hooks.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
 import type { Application } from "../application/application.js";
 import { OperationContext } from "../contexts/operationcontext.js";
+import { SimpleOperationContext } from "../contexts/simplecontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
 
@@ -314,7 +315,43 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
   }
 
   /**
-   * A model without `canAct` is allowed (framework default), the dispatcher must not crash with a TypeError
+   * The uuid comes from the input when the transport has no URL parameters (gRPC, MCP)
+   */
+  @test
+  async modelBehaviorActionTakesTheUuidFromTheInput() {
+    const calls: any[] = [];
+    class FakeMFA {
+      async verify(totp: string) {
+        calls.push(["verify", totp]);
+        return "ok";
+      }
+      async set() {}
+    }
+    const restore = this.patchUserWithMfaBehavior(FakeMFA);
+    let refStub: sinon.SinonStub | undefined;
+    try {
+      const { User } = this.setupBehaviorDispatcher();
+      const fakeUser: any = {
+        isDeleted: () => false,
+        canAct: async (_ctx: any, action: string) => action === "mfa.verify",
+        mfa: new FakeMFA()
+      };
+      refStub = this.stubModelRef(User, fakeUser);
+      const ctx = new SimpleOperationContext();
+      await ctx.init();
+      ctx.setInput(Buffer.from(JSON.stringify({ uuid: "user-from-input", totp: "654321" })));
+      await callOperation(ctx, "User.Mfa.Verify");
+      assert.strictEqual(calls.length, 1);
+      assert.strictEqual(calls[0][0], "verify");
+      assert.ok(refStub.calledWith("user-from-input"));
+    } finally {
+      refStub?.restore();
+      restore();
+    }
+  }
+
+  /**
+   * A model without `canAct` is refused (deny by default): the dispatcher answers like a missing object
    */
   @test
   async modelBehaviorActionWithoutCanAct() {
@@ -337,8 +374,8 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
       await ctx.init();
       ctx.setParameters({ uuid: "user-mfa-nocanact" });
 
-      await callOperation(ctx, "User.Mfa.Verify");
-      assert.deepStrictEqual(calls, ["verify"]);
+      await assert.rejects(() => callOperation(ctx, "User.Mfa.Verify"), WebdaError.NotFound);
+      assert.deepStrictEqual(calls, []);
     } finally {
       refStub?.restore();
       restore();
@@ -346,12 +383,10 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
   }
 
   /**
-   * Allowance via the "instance-as-truthy" canAct convention — a few model
-   * subclasses return `this` when allowed instead of literal `true`. The
-   * dispatcher must accept that form too.
+   * A canAct returning the instance (a v3 convention) is not an allowance: only `true` is
    */
   @test
-  async modelBehaviorActionAcceptsInstanceTruthyCanAct() {
+  async modelBehaviorActionRefusesInstanceTruthyCanAct() {
     const calls: any[] = [];
     class FakeMFA {
       async verify() {
@@ -365,7 +400,7 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
     try {
       const { User } = this.setupBehaviorDispatcher();
       const fakeUser: any = { isDeleted: () => false, mfa: new FakeMFA() };
-      // canAct returns the instance — equivalent to allowed.
+      // canAct returns the instance: not `true`, so refused
       fakeUser.canAct = async function canAct() {
         return fakeUser;
       };
@@ -375,8 +410,8 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
       await ctx.init();
       ctx.setParameters({ uuid: "user-mfa-instance" });
 
-      await callOperation(ctx, "User.Mfa.Verify");
-      assert.deepStrictEqual(calls, ["verify"]);
+      await assert.rejects(() => callOperation(ctx, "User.Mfa.Verify"), WebdaError.NotFound);
+      assert.deepStrictEqual(calls, []);
     } finally {
       refStub?.restore();
       restore();

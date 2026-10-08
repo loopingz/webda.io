@@ -41,25 +41,20 @@ import {
  */
 export function sanitizeModelInput<T = any>(model: ModelClass<any>, input: T): T {
   const out: any = stripPrivateFields(input);
-  if (out && typeof out === "object" && !Array.isArray(out)) {
-    const writable = getClientWritableAttributes(model);
-    for (const key of Object.keys(out)) {
-      if (key.startsWith("_") && !writable.includes(key)) {
-        delete out[key];
-      }
-    }
-    for (const attribute of getReadOnlyAttributes(model)) {
-      delete out[attribute];
-    }
-    for (const rel of useModelMetadata(model)?.Relations?.behaviors ?? []) {
-      delete out[rel.attribute];
-    }
-    // Server-managed attributes (e.g. the owner of an OwnerModel) are never taken from client input
-    for (const attribute of getProtectedAttributes(model)) {
-      delete out[attribute];
-    }
+  if (!out || typeof out !== "object" || Array.isArray(out)) {
+    return out;
   }
-  return out;
+  const writable = getClientWritableAttributes(model);
+  const removed = new Set<string>([
+    ...getReadOnlyAttributes(model),
+    ...(useModelMetadata(model)?.Relations?.behaviors ?? []).map(rel => rel.attribute),
+    // Server-managed attributes (e.g. the owner of an OwnerModel) are never taken from client input
+    ...getProtectedAttributes(model)
+  ]);
+  // Object.fromEntries defines own properties: no client-chosen key is ever written or deleted dynamically
+  return Object.fromEntries(
+    Object.entries(out).filter(([key]) => !removed.has(key) && (!key.startsWith("_") || writable.includes(key)))
+  ) as T;
 }
 
 /**

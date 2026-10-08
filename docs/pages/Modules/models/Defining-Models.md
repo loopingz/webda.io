@@ -136,27 +136,35 @@ export class Category extends Model {
 
 ## Permission guard — `canAct`
 
-Every model should implement `canAct(context, action)` to control access:
+**Models deny every request by default.** The framework asks the static `canAct(context, action, object?)` of the model class before running an operation a client sent; the base implementation forwards to an instance `canAct(context, action)` when the model defines one, and refuses otherwise. Every exposed model must define one of the two forms:
 
 ```typescript
 import { UuidModel } from "@webda/models";
-import type { WebContext } from "@webda/core";
+import type { IOperationContext } from "@webda/core";
 
 export class Comment extends UuidModel {
   content!: string;
+  authorId!: string;
 
-  async canAct(context: WebContext, action: string): Promise<boolean> {
-    if (action === "create") return context.isAuthenticated();
-    if (action === "update" || action === "delete") {
-      const userId = context.getCurrentUserId();
-      return userId === this.authorId;
-    }
-    return false; // deny everything else
+  // Instance form: the decision depends on the object
+  async canAct(context: IOperationContext, action: string): Promise<boolean | string> {
+    if (action === "create") return context.getCurrentUserId() ? true : "Login required";
+    if (action === "get") return true;
+    return context.getCurrentUserId() === this.authorId ? true : "Author only";
+  }
+}
+
+export class Tag extends UuidModel {
+  name!: string;
+
+  // Static form: the explicit opt-in for an open model (it also gates static actions)
+  static canAct(): boolean {
+    return true;
   }
 }
 ```
 
-Anything but `true` (`false`, a reason string) is a refusal: HTTP 404, exactly like a missing object, when the caller may not read the object, HTTP 403 when it may read it but not perform the action. A model without `canAct` allows every operation, so define it on any model holding private data. See [Permissions](./Permissions.md).
+Anything but `true` (`false`, a reason string, an error) is a refusal: HTTP 404, exactly like a missing object, when the caller may not read the object, HTTP 403 when it may read it but not perform the action (or for a create and a static action). Static (class-level) actions are asked without object, so an instance-only model refuses them until it overrides the static method. See [Permissions](./Permissions.md).
 
 ## Full example — Post model (blog-system)
 
@@ -213,6 +221,8 @@ export class Post extends Model {
   }
 }
 ```
+
+The blog-system `User` also overrides the static `canAct` so its static operations (`login`, `logout`) are reachable; see [Permissions](./Permissions.md#instance-and-static-together).
 
 ## Verify
 

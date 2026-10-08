@@ -148,7 +148,7 @@ This is used internally by stores to emit partial update events and to optimize 
 
 ## User-defined lifecycle hooks (prepareCreate, canAct)
 
-`canAct` is a permission check: keep it free of side effects. On update and patch it runs on the **stored** object, before the client input is applied, so it cannot see or transform the new values.
+`canAct` is a permission check: keep it free of side effects. The framework asks the static `canAct(context, action, object?)` of the model class (which forwards to the instance `canAct(context, action)` when the model defines one, and refuses otherwise). On update and patch it runs on the **stored** object, before the client input is applied, so it cannot see or transform the new values; on create it runs on the new, unsaved object; for a static action it runs without object.
 
 To set fields on a new object, define `prepareCreate(context)`: the DomainService (and GraphQL) call it after loading the client input and before the `"create"` check:
 
@@ -180,7 +180,7 @@ sequenceDiagram
     Client->>RESTService: POST /posts (body)
     RESTService->>Model: new Post().load(sanitized body)
     RESTService->>Model: prepareCreate(context)
-    RESTService->>Model: canAct(context, "create")
+    RESTService->>Model: static canAct(context, "create", post)
     Model-->>RESTService: true
     RESTService->>Store: save(post)
     Store->>Listeners: emit("Create", { object_id, object })

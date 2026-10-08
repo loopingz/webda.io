@@ -15,6 +15,32 @@ class UnpackedApplicationTest extends WebdaApplicationTest {
   }
 
   @test
+  async mergeModulesKeepsSchemasWhole() {
+    const { __dirname } = getCommonJS(import.meta.url);
+    const app: any = new UnpackedApplication(join(__dirname, "..", "..", "test/config.json"));
+    // The same @WebdaSchema type is re-emitted by every module depending on the one declaring it
+    const shared = () => ({
+      type: "object",
+      properties: { token: { type: "string" } },
+      required: ["token"]
+    });
+    const modules = {
+      a: {
+        schemas: { "Webda/Shared": shared(), "Webda/A": { type: "string" } },
+        moddas: { "Webda/A": { Import: "a" } }
+      },
+      b: { schemas: { "Webda/Shared": shared() }, moddas: { "Webda/B": { Import: "b" } } }
+    };
+    app.findModules = async () => ["a", "b"];
+    app.loadWebdaModule = (f: string) => structuredClone(modules[f]);
+    app.loadModule = async () => {};
+    const merged = await app.mergeModules({ cachedModules: { schemas: {}, moddas: {}, models: {}, beans: {} } });
+    assert.deepStrictEqual(merged.schemas["Webda/Shared"].required, ["token"]);
+    assert.deepStrictEqual(Object.keys(merged.schemas).sort(), ["Webda/A", "Webda/Shared"]);
+    assert.deepStrictEqual(Object.keys(merged.moddas).sort(), ["Webda/A", "Webda/B"]);
+  }
+
+  @test
   defaultConfiguration() {
     assert.strictEqual(
       useApplication()!.getCurrentConfiguration().services["SampleService"]?.type,

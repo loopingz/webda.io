@@ -9,10 +9,10 @@ A Webda model is a TypeScript class that extends `Model` or `UuidModel`. Models 
 
 ## Base classes
 
-| Class | Primary key | Use when |
-|-------|-------------|----------|
-| `Model` | User-defined via `[WEBDA_PRIMARY_KEY]` | You want a natural key (slug, composite key) |
-| `UuidModel` | `uuid` (auto UUID v4) | Default for most user-created entities |
+| Class       | Primary key                            | Use when                                     |
+| ----------- | -------------------------------------- | -------------------------------------------- |
+| `Model`     | User-defined via `[WEBDA_PRIMARY_KEY]` | You want a natural key (slug, composite key) |
+| `UuidModel` | `uuid` (auto UUID v4)                  | Default for most user-created entities       |
 
 ## Minimal model
 
@@ -25,6 +25,7 @@ export class Tag extends UuidModel {
 ```
 
 This alone gives you:
+
 - `GET /tags` — list all tags
 - `POST /tags` — create a tag
 - `GET /tags/:uuid` — get one tag
@@ -155,7 +156,7 @@ export class Comment extends UuidModel {
 }
 ```
 
-If `canAct` returns `false`, the framework returns HTTP 403.
+Anything but `true` (`false`, a reason string) makes the framework return HTTP 403. A model without `canAct` allows every operation, so define it on any model holding private data. See [Permissions](./Permissions.md).
 
 ## Full example — Post model (blog-system)
 

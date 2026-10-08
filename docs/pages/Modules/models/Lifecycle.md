@@ -9,36 +9,36 @@ Every Webda model emits typed events before and after each store operation. You 
 
 ## Lifecycle event phases
 
-For each mutation operation, two events fire — one *before* (allows interception) and one *after* (notifications only):
+For each mutation operation, two events fire — one _before_ (allows interception) and one _after_ (notifications only):
 
-| Operation | Before event | After event |
-|-----------|-------------|-------------|
-| Create | `Create` | `Created` |
-| Update (full) | `Update` | `Updated` |
+| Operation      | Before event    | After event      |
+| -------------- | --------------- | ---------------- |
+| Create         | `Create`        | `Created`        |
+| Update (full)  | `Update`        | `Updated`        |
 | Partial update | `PartialUpdate` | `PartialUpdated` |
-| Delete | `Delete` | `Deleted` |
-| Patch | `Patch` | `Patched` |
-| Query | `Query` | `Queried` |
+| Delete         | `Delete`        | `Deleted`        |
+| Patch          | `Patch`         | `Patched`        |
+| Query          | `Query`         | `Queried`        |
 
 ## Event type definitions
 
 ```typescript
 // From packages/models/src/model.ts
 export type ModelEvents<T = any> = {
-  Create:         { object_id: string; object: T };
-  PartialUpdate:  any;
-  Delete:         { object_id: string };
-  Update:         { object_id: string; object: T; previous: T };
-  Patch:          { object_id: string; object: T; previous: T };
-  Query:          { query: string };
+  Create: { object_id: string; object: T };
+  PartialUpdate: any;
+  Delete: { object_id: string };
+  Update: { object_id: string; object: T; previous: T };
+  Patch: { object_id: string; object: T; previous: T };
+  Query: { query: string };
 
   // After-events
-  Created:        { object_id: string; object: T };
+  Created: { object_id: string; object: T };
   PartialUpdated: any;
-  Deleted:        { object_id: string };
-  Patched:        { object_id: string; object: T; previous: T };
-  Updated:        { object_id: string; object: T; previous: T };
-  Queried:        { query: string; results: T[]; continuationToken?: string };
+  Deleted: { object_id: string };
+  Patched: { object_id: string; object: T; previous: T };
+  Updated: { object_id: string; object: T; previous: T };
+  Queried: { query: string; results: T[]; continuationToken?: string };
 };
 ```
 
@@ -146,25 +146,26 @@ console.log(post[WEBDA_DIRTY]); // Set {} — clean again
 
 This is used internally by stores to emit partial update events and to optimize database writes.
 
-## User-defined lifecycle hooks (canAct)
+## User-defined lifecycle hooks (prepareCreate, canAct)
 
-While `canAct` is primarily a permission check, it runs in the request lifecycle before the store operation, so it can also be used to implement pre-save validation or transformation:
+`canAct` is a permission check: keep it free of side effects. On update and patch it runs on the **stored** object, before the client input is applied, so it cannot see or transform the new values.
+
+To set fields on a new object, define `prepareCreate(context)`: the DomainService (and GraphQL) call it after loading the client input and before the `"create"` check:
 
 ```typescript
 export class Post extends Model {
   // ...
 
-  async canAct(context: any, action: string): Promise<boolean> {
-    if (action === "create" || action === "update") {
-      // Auto-populate slug from title if not provided
-      if (!this.slug && this.title) {
-        this.slug = this.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      }
+  prepareCreate(context: IOperationContext): void {
+    // Auto-populate slug from title if not provided
+    if (!this.slug && this.title) {
+      this.slug = this.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     }
-    return true;
   }
 }
 ```
+
+See [Permissions](./Permissions.md) for the checks each operation runs.
 
 ## Sequence diagram
 
@@ -177,7 +178,8 @@ sequenceDiagram
     participant Listeners
 
     Client->>RESTService: POST /posts (body)
-    RESTService->>Model: new Post().load(body)
+    RESTService->>Model: new Post().load(sanitized body)
+    RESTService->>Model: prepareCreate(context)
     RESTService->>Model: canAct(context, "create")
     Model-->>RESTService: true
     RESTService->>Store: save(post)

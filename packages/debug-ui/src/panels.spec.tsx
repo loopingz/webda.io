@@ -9,7 +9,7 @@ import { ModelsPanel } from "./panels/ModelsPanel.js";
 import { OperationsPanel } from "./panels/OperationsPanel.js";
 import { mergeRequests, RequestsPanel } from "./panels/RequestsPanel.js";
 import { ServicesPanel } from "./panels/ServicesPanel.js";
-import { ancestorsOf, buildGraph, visibleModels } from "./components/ModelGraph.js";
+import { ancestorsOf, buildGraph, fitScale, MIN_FIT_SCALE, visibleModels } from "./components/ModelGraph.js";
 import { highlightJS } from "./components/CodeBlock.js";
 import { resolveRef } from "./components/SchemaForm.js";
 import {
@@ -161,6 +161,31 @@ describe("ModelsPanel", () => {
     const models = MODELS.map(m => ({ ...m, ancestors: m.metadata?.Ancestors, metadata: { Ancestors: [] } }));
     const graph = buildGraph(models, null, 800);
     assert.strictEqual(graph.edges.filter(e => e.type === "inheritance").length, 5);
+  });
+
+  it("shrinks wide graphs to the container and scrolls past the minimum scale", () => {
+    assert.strictEqual(fitScale(500, 800), 1);
+    assert.strictEqual(fitScale(1000, 800), 0.8);
+    assert.strictEqual(fitScale(4000, 800), MIN_FIT_SCALE);
+    const wide = Array.from({ length: 40 }, (_, i) => ({
+      id: `App/M${i}`,
+      plural: "",
+      actions: [],
+      relations: {},
+      metadata: { Ancestors: ["App/Root"] }
+    }));
+    const graph = buildGraph(
+      [{ id: "App/Root", plural: "", actions: [], relations: {}, metadata: {} }, ...wide],
+      null,
+      800
+    );
+    assert.ok(graph.width <= 800, "a 40-leaf tree wraps its children into rows instead of overflowing");
+    assert.ok(new Set(graph.nodes.map(n => n.y)).size > 2, "the leaves spread over several rows");
+    const root = graph.nodes.find(n => n.id === "App/Root")!;
+    assert.ok(
+      graph.nodes.every(n => n.id === "App/Root" || n.y > root.y),
+      "the root stays above its children"
+    );
   });
 
   it("lays out inheritance trees and relation edges", () => {

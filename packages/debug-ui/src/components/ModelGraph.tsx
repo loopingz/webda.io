@@ -67,21 +67,10 @@ export function isFrameworkModel(id: string): boolean {
   return id.startsWith("Webda/");
 }
 
-const treeWidth = (nodeId: string, childMap: ChildMap): number => {
-  const kids = childMap[nodeId] || [];
-  if (kids.length === 0) return 1;
-  return kids.reduce((sum, k) => sum + treeWidth(k, childMap), 0);
-};
-
-const treeDepth = (nodeId: string, childMap: ChildMap): number => {
-  const kids = childMap[nodeId] || [];
-  if (kids.length === 0) return 1;
-  return 1 + Math.max(...kids.map(k => treeDepth(k, childMap)));
-};
-
 /**
- * Lay the inheritance trees out on a grid, wrapping root trees into bands that
- * fit the container width, then place the orphans and build the relation edges.
+ * Lay the inheritance trees out on a grid: children wrap into rows and root
+ * trees wrap into bands so that the drawing fits the container width, then
+ * build the relation edges.
  *
  * @param models - the models
  * @param selectedId - highlighted model
@@ -116,51 +105,55 @@ export function buildGraph(models: DebugModel[], selectedId: string | null, cont
   const cellH = nodeH + gapY;
   const maxCols = Math.max(1, Math.floor((containerW - MARGIN * 2 + gapX) / cellW));
 
-  const bands: { id: string; colStart: number; width: number }[][] = [];
-  let curBandRoots: { id: string; colStart: number; width: number }[] = [];
-  let curBandCols = 0;
-  roots.forEach(r => {
-    const w = treeWidth(r, childMap);
-    if (curBandCols > 0 && curBandCols + w > maxCols) {
-      bands.push(curBandRoots);
-      curBandRoots = [];
-      curBandCols = 0;
+  // Measure every subtree in cells. Children are laid out left to right and
+  // wrap to a new row once they would exceed the container width, so a model
+  // with many descendants grows downwards instead of past the right edge.
+  const sizes: Record<string, { w: number; h: number; kids: { id: string; col: number; row: number }[] }> = {};
+  const measure = (nodeId: string): { w: number; h: number } => {
+    const kids = childMap[nodeId] || [];
+    const placed: { id: string; col: number; row: number }[] = [];
+    let cursor = 0;
+    let rowTop = 0;
+    let rowHeight = 0;
+    let width = 1;
+    for (const kid of kids) {
+      const size = measure(kid);
+      if (cursor > 0 && cursor + size.w > maxCols) {
+        rowTop += rowHeight;
+        cursor = 0;
+        rowHeight = 0;
+      }
+      placed.push({ id: kid, col: cursor, row: 1 + rowTop });
+      cursor += size.w;
+      rowHeight = Math.max(rowHeight, size.h);
+      width = Math.max(width, cursor);
     }
-    curBandRoots.push({ id: r, colStart: curBandCols, width: w });
-    curBandCols += w;
-  });
-  if (curBandRoots.length) bands.push(curBandRoots);
+    const h = 1 + rowTop + rowHeight;
+    sizes[nodeId] = { w: width, h, kids: placed };
+    return { w: width, h };
+  };
+  roots.forEach(measure);
 
+  // Wrap the root trees into bands that fit the width, then place every node
   const grid: Record<string, { col: number; row: number }> = {};
-  let bandRowOffset = 0;
-  bands.forEach(band => {
-    let bandMaxDepth = 0;
-    band.forEach(entry => {
-      bandMaxDepth = Math.max(bandMaxDepth, treeDepth(entry.id, childMap));
-      let nextCol = entry.colStart;
-      const layoutTree = (nodeId: string, depth: number): void => {
-        const kids = childMap[nodeId] || [];
-        if (kids.length === 0) {
-          grid[nodeId] = { col: nextCol, row: bandRowOffset + depth };
-          nextCol++;
-          return;
-        }
-        kids.forEach(kid => layoutTree(kid, depth + 1));
-        const first = grid[kids[0]];
-        const last = grid[kids[kids.length - 1]];
-        grid[nodeId] = { col: (first.col + last.col) / 2, row: bandRowOffset + depth };
-      };
-      layoutTree(entry.id, 0);
-    });
-    bandRowOffset += bandMaxDepth;
-  });
-
-  let orphanCol = 0;
-  models.forEach(m => {
-    if (!grid[m.id]) {
-      grid[m.id] = { col: orphanCol, row: bandRowOffset };
-      orphanCol++;
+  const place = (nodeId: string, col0: number, row0: number): void => {
+    const size = sizes[nodeId];
+    grid[nodeId] = { col: col0 + (size.w - 1) / 2, row: row0 };
+    for (const kid of size.kids) place(kid.id, col0 + kid.col, row0 + kid.row);
+  };
+  let bandCol = 0;
+  let bandRow = 0;
+  let bandHeight = 0;
+  roots.forEach(root => {
+    const size = sizes[root];
+    if (bandCol > 0 && bandCol + size.w > maxCols) {
+      bandRow += bandHeight;
+      bandCol = 0;
+      bandHeight = 0;
     }
+    place(root, bandCol, bandRow);
+    bandCol += size.w;
+    bandHeight = Math.max(bandHeight, size.h);
   });
 
   const nodes: GraphNodeLayout[] = models.map(m => {
@@ -326,6 +319,22 @@ export function visibleModels(models: DebugModel[], hideFramework: boolean): Deb
   return models.filter(m => keep.has(m.id));
 }
 
+/** Below this scale the graph scrolls instead of shrinking further. */
+export const MIN_FIT_SCALE = 0.55;
+
+/**
+ * Scale applied to a graph wider than its container: shrink to fit the width,
+ * down to {@link MIN_FIT_SCALE}; wider graphs keep that scale and scroll.
+ *
+ * @param graphWidth - natural width of the layout
+ * @param containerWidth - available width
+ * @returns the scale (1 when the graph fits)
+ */
+export function fitScale(graphWidth: number, containerWidth: number): number {
+  if (graphWidth <= containerWidth || containerWidth <= 0) return 1;
+  return Math.max(MIN_FIT_SCALE, containerWidth / graphWidth);
+}
+
 /**
  * Inheritance and relation graph of the models, re-laid out when the container resizes.
  *
@@ -351,6 +360,7 @@ export function ModelGraph(props: ModelGraphProps): React.JSX.Element {
   }, []);
 
   const graph = useMemo(() => buildGraph(models, props.selectedId, width), [models, props.selectedId, width]);
+  const fit = fitScale(graph.width, width);
 
   const legend: { color: string; label: string; dashed?: boolean; circle?: boolean }[] = [
     { color: COLORS.inheritance, label: "Extends", dashed: true },
@@ -385,7 +395,14 @@ export function ModelGraph(props: ModelGraphProps): React.JSX.Element {
         )}
       </div>
       <div ref={containerRef} className="wdbg-graph-canvas">
-        <svg width={graph.width} height={graph.height} style={{ display: "block" }} data-testid="model-graph">
+        <svg
+          width={Math.round(graph.width * fit)}
+          height={Math.round(graph.height * fit)}
+          viewBox={`0 0 ${graph.width} ${graph.height}`}
+          style={{ display: "block" }}
+          data-testid="model-graph"
+          data-scale={fit}
+        >
           <defs>
             {(["inheritance", "parent", "link", "query", "map"] as EdgeType[]).map(type => (
               <marker

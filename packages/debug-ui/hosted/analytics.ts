@@ -1,5 +1,5 @@
 // Analytics relay, running in the sandboxed (opaque origin) iframe of the hosted dashboard.
-import { validateAnalyticsMessage } from "../src/analytics-allowlist.js";
+import { isSandboxedFrame, validateAnalyticsMessage } from "../src/analytics-allowlist.js";
 
 type Gtag = (...args: unknown[]) => void;
 
@@ -48,12 +48,15 @@ function loadGtag(id: string, consent: "granted" | "denied"): Gtag {
   return gtag;
 }
 
+// The measurement id is written here by docs/sync-debug-ui.js at build time; the
+// placeholder never matches the id pattern, so nothing runs without it.
+const id = "__WEBDA_GA_ID__";
 const params = new URLSearchParams(location.search);
-const id = params.get("id") || "";
 const consent = params.get("consent") === "granted" ? "granted" : "denied";
 const parentOrigin = new URL(location.href).origin;
 
-if (/^G-[A-Z0-9]+$/.test(id)) {
+// Only inside the sandboxed iframe of the dashboard: opaque origin and framed
+if (isSandboxedFrame({ origin: self.origin, parent: window.parent, self: window }) && /^G-[A-Z0-9]+$/.test(id)) {
   const gtag = loadGtag(id, consent);
   window.addEventListener("message", evt => {
     // Only the page that embeds this relay (same origin as this document's URL) may post

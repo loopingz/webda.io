@@ -54,7 +54,7 @@ export {
   compareVersions,
   featuresForVersion,
   SUPPORTED_DEBUG_API_VERSION,
-  MIN_DEBUG_PACKAGE_VERSION
+  LAST_UNSUPPORTED_DEBUG_VERSION
 } from "./version.js";
 export type { VersionStatus, DebugFeatures } from "./version.js";
 export { ModelsPanel } from "./panels/ModelsPanel.js";

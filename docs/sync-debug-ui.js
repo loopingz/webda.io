@@ -38,4 +38,13 @@ if (id) {
   html = html.replace(placeholder, `<meta name="webda-ga" content="${id}" />`);
 }
 fs.writeFileSync(page, html);
+
+// The relay reads its measurement id from a baked-in constant, never from the URL
+const relay = path.join(target, "analytics.html");
+let relayHtml = fs.readFileSync(relay, "utf8");
+if (!relayHtml.includes('"__WEBDA_GA_ID__"')) {
+  console.error("Analytics relay has no measurement id placeholder");
+  process.exit(1);
+}
+fs.writeFileSync(relay, relayHtml.replace('"__WEBDA_GA_ID__"', JSON.stringify(id)));
 console.log(`Hosted debug dashboard synced to static/debug (analytics ${id ? "on" : "off"})`);

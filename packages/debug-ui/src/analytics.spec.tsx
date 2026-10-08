@@ -12,6 +12,7 @@ import {
   sanitizeEvent,
   useTrack,
   validateAnalyticsMessage,
+  isSandboxedFrame,
   type AnalyticsEvent,
   type AnalyticsParams
 } from "./analytics.js";
@@ -110,6 +111,20 @@ describe("UseTrackTest", () => {
       );
     });
     assert.strictEqual(sink.mock.calls.length, 1);
+  });
+});
+
+describe("relay guard", () => {
+  it("runsOnlyInsideASandboxedFrame", () => {
+    assert.strictEqual(isSandboxedFrame({ origin: "null", parent: {} as Window, self: {} as Window }), true);
+    const top = {} as Window;
+    assert.strictEqual(isSandboxedFrame({ origin: "null", parent: top, self: top }), false, "top-level, even opaque");
+    assert.strictEqual(
+      isSandboxedFrame({ origin: "https://webda.io", parent: {} as Window, self: top }),
+      false,
+      "framed without sandbox"
+    );
+    assert.strictEqual(isSandboxedFrame({ origin: undefined, parent: {} as Window, self: top }), false);
   });
 });
 

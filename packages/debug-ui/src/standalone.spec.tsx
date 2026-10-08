@@ -115,7 +115,11 @@ describe("HostedApp", () => {
     assert.ok(iframe, "analytics iframe created");
     assert.strictEqual(iframe.getAttribute("sandbox"), "allow-scripts");
     assert.ok(!iframe.getAttribute("sandbox")!.includes("allow-same-origin"));
-    assert.strictEqual(iframe.getAttribute("src"), "./analytics.html?id=G-TEST123&consent=granted");
+    assert.strictEqual(
+      iframe.getAttribute("src"),
+      "./analytics.html?consent=granted",
+      "the id is baked into the relay, never in the URL"
+    );
     const posted: unknown[] = [];
     const postMessage = vi.fn((m: unknown) => posted.push(m));
     Object.defineProperty(iframe, "contentWindow", { value: { postMessage }, configurable: true });

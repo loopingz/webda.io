@@ -3,8 +3,8 @@ import type { DebugInfo } from "./types.js";
 /** Highest debug API version this dashboard understands. */
 export const SUPPORTED_DEBUG_API_VERSION = 1;
 
-/** First `@webda/debug` release exposing `debugApiVersion` (and requiring the token). */
-export const MIN_DEBUG_PACKAGE_VERSION = "4.0.0-beta.6";
+/** Last `@webda/debug` release without `debugApiVersion` (and without the token): anything newer is supported. */
+export const LAST_UNSUPPORTED_DEBUG_VERSION = "4.0.0-beta.5";
 
 /** Outcome of comparing the server with the dashboard. */
 export interface VersionStatus {

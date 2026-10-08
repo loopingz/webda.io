@@ -90,7 +90,7 @@ describe("DebugDashboard", () => {
     routes["/api/info"] = { ...INFO, debugApiVersion: undefined };
     renderDashboard(routes);
     await screen.findByText("Update @webda/debug");
-    screen.getByText(/4\.0\.0-beta\.6 or later/);
+    screen.getByText(/newer than 4\.0\.0-beta\.5/);
   });
 
   it("warns when the server is newer than the dashboard", async () => {

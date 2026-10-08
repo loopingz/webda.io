@@ -65,8 +65,7 @@ const config = {
     // /configuration/* → /debug/
     "./src/plugins/configuration",
     // Consent Mode v2 defaults and debug-session hygiene: must precede the Google tag
-    ["./src/plugins/analytics", { measurementId: gaMeasurementId }],
-    ...(gaMeasurementId ? [["@docusaurus/plugin-google-gtag", { trackingID: gaMeasurementId, anonymizeIP: true }]] : [])
+    ["./src/plugins/analytics", { measurementId: gaMeasurementId }]
   ],
 
   themes: ["@docusaurus/theme-mermaid"],

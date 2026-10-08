@@ -18,8 +18,9 @@ Two front-ends read it:
 
 `@webda/debug` releases up to **4.0.0-beta.5** have no session token, trust every `*.webda.io` origin and listen on
 all network interfaces. While such a server runs, any script on webda.io (including the site's analytics) and any
-machine on your network can read your application's configuration and captured requests. Upgrade to 4.0.0-beta.6
-or later, which requires a per-session token, binds to loopback only and trusts `https://webda.io` exactly.
+machine on your network can read your application's configuration and captured requests. Upgrade to the next
+release, which requires a per-session token, binds to loopback only and trusts `https://webda.io` exactly (plus the
+origin named by `WEBDA_DEBUG_UI_URL`, and its own origin for `--local`).
 
 :::
 
@@ -31,9 +32,10 @@ webda debug --web --local    # opens http://127.0.0.1:18181/#code=… served by 
 webda debug --web --no-open  # prints the URL, does not open a browser
 ```
 
-By default `--web` opens the dashboard hosted on this site. `/debug/` is a static page: it loads nothing but its
-own script and stylesheet (a Content-Security-Policy on the page enforces it), and your browser talks directly to
-the debug server on `127.0.0.1`. Nothing about your application transits through webda.io. The hosted dashboard is
+By default `--web` opens the dashboard hosted on this site. `/debug/` is a static page: the dashboard document
+loads nothing but its own script and stylesheet (a Content-Security-Policy on the page enforces it; the only
+third-party code, Google's gtag, runs inside a sandboxed iframe with an opaque origin, see Telemetry), and your
+browser talks directly to the debug server on `127.0.0.1`. Nothing about your application transits through webda.io. The hosted dashboard is
 always the latest version, while the `@webda/debug` package in your application may be older: the dashboard
 detects the server's API version and tells you when an update is needed.
 
@@ -57,13 +59,15 @@ only the origins of this site (plus its own, for the local page).
 - **Hosted:** the token travels in the URL fragment (`#token=…`), which browsers never send to any server. The page
   keeps it in memory only and removes it from the address bar immediately: nothing stored on the webda.io origin
   ever holds it. A reload therefore asks for the printed URL again — which every server restart requires anyway.
-  The fragment does stay in your browser history and in the terminal that printed it; the token dies with the
-  `webda debug` process.
+  The fragment does stay in your browser history, in the terminal that printed it and, while the browser is being
+  opened, in the arguments of the `open` / `xdg-open` command (visible to other users of the machine); the token
+  dies with the `webda debug` process.
 - **Local:** the printed URL carries a single-use code (`#code=…`), valid for ten minutes. The page exchanges it
   once for the token on `POST /api/session`; the token is kept in memory and in the tab's sessionStorage of
   `http://127.0.0.1:<port>`, an origin where only the bundled dashboard runs, so that a reload keeps working. The
-  debug server serves no page with the token in it: a plain `GET /` by another local process gets nothing. In
-  hosted mode `GET /` only shows where the dashboard is.
+  debug server serves no page with the token in it: a plain `GET /` by another local process gets nothing. A
+  wrong code does not invalidate the real one; if another local process uses the link first, the page says so
+  and the server logs a warning. In hosted mode `GET /` only shows where the dashboard is.
 
 If the dashboard reports that the token was refused, the debug server was restarted: run the command again and open
 the new URL it prints.
@@ -74,7 +78,7 @@ The documentation site uses Google Analytics 4 to count usage. Analytics are onl
 measurement id is configured, and run under Consent Mode v2: cookies are denied until you accept the banner, and
 while denied only cookieless, anonymous pings are sent.
 
-The hosted dashboard page itself runs no analytics script and no third-party code. Its usage events are relayed by
+The hosted dashboard document itself runs no analytics script and no third-party code. Its usage events are relayed by
 `postMessage` to a small page loaded in an iframe with `sandbox="allow-scripts"` (no `allow-same-origin`): that
 relay runs in an opaque origin, cannot read the dashboard, its storage or the debug server, and is the only place
 gtag runs. It validates every message against the same allowlist before forwarding it, and applies the consent

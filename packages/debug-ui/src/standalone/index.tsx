@@ -179,7 +179,7 @@ export function mountStandalone(element?: HTMLElement | null): void {
 
 /** Options of {@link HostedApp}. */
 export interface HostedAppProps {
-  /** GA4 measurement id (`<meta name="webda-ga">`); no iframe without it */
+  /** GA4 measurement id (`<meta name="webda-ga">`, also baked into the relay); no iframe without it */
   measurementId?: string;
   /** Path of the analytics iframe page */
   analyticsPage?: string;
@@ -218,7 +218,7 @@ export function HostedApp(props: HostedAppProps): React.JSX.Element {
     [analyticsEnabled]
   );
   const iframeSrc = analyticsEnabled
-    ? `${props.analyticsPage ?? "./analytics.html"}?id=${encodeURIComponent(props.measurementId!)}&consent=${docsConsent()}`
+    ? `${props.analyticsPage ?? "./analytics.html"}?consent=${docsConsent()}`
     : undefined;
   return (
     <AnalyticsProvider value={track}>

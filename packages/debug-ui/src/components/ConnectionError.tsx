@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useDebugConnection, type ConnectionFailure } from "../connection.js";
 import { parsePort } from "../session.js";
-import { MIN_DEBUG_PACKAGE_VERSION } from "../version.js";
+import { LAST_UNSUPPORTED_DEBUG_VERSION } from "../version.js";
 
 /** Copy shown for each failure reason. */
 export interface FailureMessage {
@@ -46,7 +46,7 @@ export function failureMessage(
       return {
         title: "Update @webda/debug",
         lines: [
-          `The running debug server is older than this dashboard supports (needs @webda/debug ${MIN_DEBUG_PACKAGE_VERSION} or later).`,
+          `The running debug server is older than this dashboard supports (any @webda/debug newer than ${LAST_UNSUPPORTED_DEBUG_VERSION} works).`,
           "Update it with `pnpm add -D @webda/debug@latest` (or npm / yarn), then run `webda debug --web` again."
         ]
       };
@@ -61,7 +61,7 @@ export function failureMessage(
                 "Make sure `webda debug --web` is running in your application directory and that the port matches.",
                 "Chrome may ask for permission to reach your local network: allow it.",
                 "A server older than @webda/debug " +
-                  MIN_DEBUG_PACKAGE_VERSION +
+                  LAST_UNSUPPORTED_DEBUG_VERSION +
                   " refuses this page: update it, or " +
                   local.charAt(0).toLowerCase() +
                   local.slice(1)

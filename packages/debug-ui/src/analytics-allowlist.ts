@@ -128,3 +128,24 @@ export function createIframeTracker(target: () => MessageTarget | null | undefin
     }
   };
 }
+
+/** Minimal window-like shape for {@link isSandboxedFrame}. */
+export interface FrameLike {
+  /** `self.origin` (`"null"` for an opaque origin) */
+  origin: string | undefined;
+  parent: unknown;
+  self: unknown;
+}
+
+/**
+ * Whether the analytics relay runs where it is meant to: framed, with an opaque origin.
+ *
+ * Loaded top-level, or framed without `sandbox`, the relay does nothing: gtag
+ * must never run on the site's origin from this page.
+ *
+ * @param frame - window-like values
+ * @returns `true` inside a sandboxed iframe
+ */
+export function isSandboxedFrame(frame: FrameLike): boolean {
+  return frame.origin === "null" && frame.parent !== frame.self;
+}

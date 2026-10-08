@@ -1928,16 +1928,12 @@
           "WebdaModel": "Contact\nNot sure what this jsdoc does\n\nAnother comment",
           "additionalProperties": false,
           "definitions": {
-            "BinariesItem<{ location: { lat: number; lng: number; }; }>": {
+            "StoredBinaryInfo<{ location: { lat: number; lng: number; }; }>": {
               "additionalProperties": false,
-              "description": "Define a Binary map stored in a Binaries collection",
+              "description": "The file information of a binary attached to a model, as stored and as sent to clients: without the `challenge`\n(the proof of possession, see {@link BinaryFileInfo})",
               "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
                 "hash": {
-                  "description": "Will be computed by the service\n\nhash of the content",
+                  "description": "Hash of the binary",
                   "type": "string"
                 },
                 "metadata": {
@@ -1945,19 +1941,15 @@
                   "description": "Metadatas stored along with the binary"
                 },
                 "mimetype": {
-                  "description": "Mimetype of the binary",
+                  "description": "Mimetype",
                   "type": "string"
                 },
                 "name": {
-                  "description": "Current name",
-                  "type": "string"
-                },
-                "originalname": {
-                  "description": "Original name",
+                  "description": "Name of the file",
                   "type": "string"
                 },
                 "size": {
-                  "description": "Size of the binary",
+                  "description": "Size of the file",
                   "type": "number"
                 }
               },
@@ -1968,15 +1960,11 @@
               ],
               "type": "object"
             },
-            "BinaryFileInfo<{}>": {
+            "StoredBinaryInfo<{}>": {
               "WebdaBehavior": "Webda/Binary",
               "additionalProperties": false,
-              "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
+              "description": "The file information of a binary attached to a model, as stored and as sent to clients: without the `challenge`\n(the proof of possession, see {@link BinaryFileInfo})",
               "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
                 "hash": {
                   "description": "Hash of the binary",
                   "type": "string"
@@ -2046,7 +2034,7 @@
               "type": "number"
             },
             "avatar": {
-              "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E",
+              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%7D%3E",
               "description": "Contact avatar"
             },
             "firstName": {
@@ -2070,7 +2058,7 @@
               "WebdaBehavior": "Webda/BinariesImpl",
               "description": "Contact photos",
               "items": {
-                "$ref": "#/definitions/BinariesItem%3C%7B%20location%3A%20%7B%20lat%3A%20number%3B%20lng%3A%20number%3B%20%7D%3B%20%7D%3E"
+                "$ref": "#/definitions/StoredBinaryInfo%3C%7B%20location%3A%20%7B%20lat%3A%20number%3B%20lng%3A%20number%3B%20%7D%3B%20%7D%3E"
               },
               "readOnly": true,
               "type": "array"
@@ -2167,16 +2155,12 @@
           "WebdaModel": "Contact\nNot sure what this jsdoc does\n\nAnother comment",
           "additionalProperties": false,
           "definitions": {
-            "BinariesItem<{ location: { lat: number; lng: number; }; }>": {
+            "StoredBinaryInfo<{ location: { lat: number; lng: number; }; }>": {
               "additionalProperties": false,
-              "description": "Define a Binary map stored in a Binaries collection",
+              "description": "The file information of a binary attached to a model, as stored and as sent to clients: without the `challenge`\n(the proof of possession, see {@link BinaryFileInfo})",
               "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
                 "hash": {
-                  "description": "Will be computed by the service\n\nhash of the content",
+                  "description": "Hash of the binary",
                   "type": "string"
                 },
                 "metadata": {
@@ -2184,19 +2168,15 @@
                   "description": "Metadatas stored along with the binary"
                 },
                 "mimetype": {
-                  "description": "Mimetype of the binary",
+                  "description": "Mimetype",
                   "type": "string"
                 },
                 "name": {
-                  "description": "Current name",
-                  "type": "string"
-                },
-                "originalname": {
-                  "description": "Original name",
+                  "description": "Name of the file",
                   "type": "string"
                 },
                 "size": {
-                  "description": "Size of the binary",
+                  "description": "Size of the file",
                   "type": "number"
                 }
               },
@@ -2207,15 +2187,11 @@
               ],
               "type": "object"
             },
-            "BinaryFileInfo<{}>": {
+            "StoredBinaryInfo<{}>": {
               "WebdaBehavior": "Webda/Binary",
               "additionalProperties": false,
-              "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
+              "description": "The file information of a binary attached to a model, as stored and as sent to clients: without the `challenge`\n(the proof of possession, see {@link BinaryFileInfo})",
               "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
                 "hash": {
                   "description": "Hash of the binary",
                   "type": "string"
@@ -2285,7 +2261,7 @@
               "type": "number"
             },
             "avatar": {
-              "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E",
+              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%7D%3E",
               "description": "Contact avatar"
             },
             "firstName": {
@@ -2309,7 +2285,7 @@
               "WebdaBehavior": "Webda/BinariesImpl",
               "description": "Contact photos",
               "items": {
-                "$ref": "#/definitions/BinariesItem%3C%7B%20location%3A%20%7B%20lat%3A%20number%3B%20lng%3A%20number%3B%20%7D%3B%20%7D%3E"
+                "$ref": "#/definitions/StoredBinaryInfo%3C%7B%20location%3A%20%7B%20lat%3A%20number%3B%20lng%3A%20number%3B%20%7D%3B%20%7D%3E"
               },
               "readOnly": true,
               "type": "array"
@@ -4298,55 +4274,17 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
           "definitions": {
-            "BinariesItem<{}>": {
-              "additionalProperties": false,
-              "description": "Define a Binary map stored in a Binaries collection",
-              "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
-                "hash": {
-                  "description": "Will be computed by the service\n\nhash of the content",
-                  "type": "string"
-                },
-                "metadata": {
-                  "$ref": "#/definitions/images%5B%5D%24metadata",
-                  "description": "Metadatas stored along with the binary"
-                },
-                "mimetype": {
-                  "description": "Mimetype of the binary",
-                  "type": "string"
-                },
-                "name": {
-                  "description": "Current name",
-                  "type": "string"
-                },
-                "originalname": {
-                  "description": "Original name",
-                  "type": "string"
-                },
-                "size": {
-                  "description": "Size of the binary",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "mimetype",
-                "name",
-                "size"
-              ],
+            "Record<string, any>": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": {},
+              "description": "Construct a type with a set of properties K of type T",
               "type": "object"
             },
-            "BinaryFileInfo<{ width: number; height: number; }>": {
+            "StoredBinaryInfo<{ width: number; height: number; }>": {
               "WebdaBehavior": "Webda/Binary",
               "additionalProperties": false,
-              "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
+              "description": "The file information of a binary attached to a model, as stored and as sent to clients: without the `challenge`\n(the proof of possession, see {@link BinaryFileInfo})",
               "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
                 "hash": {
                   "description": "Hash of the binary",
                   "type": "string"
@@ -4376,10 +4314,36 @@
               ],
               "type": "object"
             },
-            "Record<string, any>": {
-              "WebdaBehavior": "Webda/Password",
-              "additionalProperties": {},
-              "description": "Construct a type with a set of properties K of type T",
+            "StoredBinaryInfo<{}>": {
+              "additionalProperties": false,
+              "description": "The file information of a binary attached to a model, as stored and as sent to clients: without the `challenge`\n(the proof of possession, see {@link BinaryFileInfo})",
+              "properties": {
+                "hash": {
+                  "description": "Hash of the binary",
+                  "type": "string"
+                },
+                "metadata": {
+                  "$ref": "#/definitions/images%5B%5D%24metadata",
+                  "description": "Metadatas stored along with the binary"
+                },
+                "mimetype": {
+                  "description": "Mimetype",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Name of the file",
+                  "type": "string"
+                },
+                "size": {
+                  "description": "Size of the file",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "mimetype",
+                "name",
+                "size"
+              ],
               "type": "object"
             },
             "images[]$metadata": {
@@ -4428,7 +4392,7 @@
               "WebdaBehavior": "Webda/BinariesImpl",
               "description": "Type-level alias for `BinariesImpl<T>`.\n\nModels declare `photos: Binaries<...>` rather than the more verbose\n`photos: BinariesImpl<...>`; the compiler resolves this alias to the\n`BinariesImpl` class declaration, picks up the `@WebdaBehavior` JSDoc\ntag there, and registers the attribute as a Behavior. The runtime\nshape (push/splice/index access plus `attach`, `attachChallenge`, `get`,\n`getUrl`, `deleteAt`, `setMetadata`, `upload`) comes from\n`BinariesImpl` directly.",
               "items": {
-                "$ref": "#/definitions/BinariesItem%3C%7B%7D%3E"
+                "$ref": "#/definitions/StoredBinaryInfo%3C%7B%7D%3E"
               },
               "readOnly": true,
               "type": "array"
@@ -4446,7 +4410,7 @@
               "description": "Password credential"
             },
             "profilePicture": {
-              "$ref": "#/definitions/BinaryFileInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
+              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -4528,55 +4492,17 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
           "definitions": {
-            "BinariesItem<{}>": {
-              "additionalProperties": false,
-              "description": "Define a Binary map stored in a Binaries collection",
-              "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
-                "hash": {
-                  "description": "Will be computed by the service\n\nhash of the content",
-                  "type": "string"
-                },
-                "metadata": {
-                  "$ref": "#/definitions/images%5B%5D%24metadata",
-                  "description": "Metadatas stored along with the binary"
-                },
-                "mimetype": {
-                  "description": "Mimetype of the binary",
-                  "type": "string"
-                },
-                "name": {
-                  "description": "Current name",
-                  "type": "string"
-                },
-                "originalname": {
-                  "description": "Original name",
-                  "type": "string"
-                },
-                "size": {
-                  "description": "Size of the binary",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "mimetype",
-                "name",
-                "size"
-              ],
+            "Record<string, any>": {
+              "WebdaBehavior": "Webda/Password",
+              "additionalProperties": {},
+              "description": "Construct a type with a set of properties K of type T",
               "type": "object"
             },
-            "BinaryFileInfo<{ width: number; height: number; }>": {
+            "StoredBinaryInfo<{ width: number; height: number; }>": {
               "WebdaBehavior": "Webda/Binary",
               "additionalProperties": false,
-              "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
+              "description": "The file information of a binary attached to a model, as stored and as sent to clients: without the `challenge`\n(the proof of possession, see {@link BinaryFileInfo})",
               "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
                 "hash": {
                   "description": "Hash of the binary",
                   "type": "string"
@@ -4606,10 +4532,36 @@
               ],
               "type": "object"
             },
-            "Record<string, any>": {
-              "WebdaBehavior": "Webda/Password",
-              "additionalProperties": {},
-              "description": "Construct a type with a set of properties K of type T",
+            "StoredBinaryInfo<{}>": {
+              "additionalProperties": false,
+              "description": "The file information of a binary attached to a model, as stored and as sent to clients: without the `challenge`\n(the proof of possession, see {@link BinaryFileInfo})",
+              "properties": {
+                "hash": {
+                  "description": "Hash of the binary",
+                  "type": "string"
+                },
+                "metadata": {
+                  "$ref": "#/definitions/images%5B%5D%24metadata",
+                  "description": "Metadatas stored along with the binary"
+                },
+                "mimetype": {
+                  "description": "Mimetype",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Name of the file",
+                  "type": "string"
+                },
+                "size": {
+                  "description": "Size of the file",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "mimetype",
+                "name",
+                "size"
+              ],
               "type": "object"
             },
             "images[]$metadata": {
@@ -4658,7 +4610,7 @@
               "WebdaBehavior": "Webda/BinariesImpl",
               "description": "Type-level alias for `BinariesImpl<T>`.\n\nModels declare `photos: Binaries<...>` rather than the more verbose\n`photos: BinariesImpl<...>`; the compiler resolves this alias to the\n`BinariesImpl` class declaration, picks up the `@WebdaBehavior` JSDoc\ntag there, and registers the attribute as a Behavior. The runtime\nshape (push/splice/index access plus `attach`, `attachChallenge`, `get`,\n`getUrl`, `deleteAt`, `setMetadata`, `upload`) comes from\n`BinariesImpl` directly.",
               "items": {
-                "$ref": "#/definitions/BinariesItem%3C%7B%7D%3E"
+                "$ref": "#/definitions/StoredBinaryInfo%3C%7B%7D%3E"
               },
               "readOnly": true,
               "type": "array"
@@ -4676,7 +4628,7 @@
               "description": "Password credential"
             },
             "profilePicture": {
-              "$ref": "#/definitions/BinaryFileInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
+              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
             },
             "uuid": {
               "description": "UUID of the model",
@@ -4726,10 +4678,6 @@
       "additionalProperties": false,
       "description": "Represent a file to store",
       "properties": {
-        "challenge": {
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-          "type": "string"
-        },
         "hash": {
           "description": "Will be computed by the service\n\nhash of the content",
           "type": "string"

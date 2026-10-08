@@ -373,15 +373,11 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
           "definitions": {
-            "BinaryFileInfo<{}>": {
+            "StoredBinaryInfo<{}>": {
               "WebdaBehavior": "Webda/Binary",
               "additionalProperties": false,
-              "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
+              "description": "The file information of a binary attached to a model, as stored and as sent to clients: without the `challenge`\n(the proof of possession, see {@link BinaryFileInfo})",
               "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
                 "hash": {
                   "description": "Hash of the binary",
                   "type": "string"
@@ -419,7 +415,7 @@
           "description": "Binary Model is a model that store its data in a binary file",
           "properties": {
             "__binary": {
-              "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E"
+              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%7D%3E"
             },
             "__data": {},
             "__dataUpdated": {
@@ -477,15 +473,11 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
           "definitions": {
-            "BinaryFileInfo<{}>": {
+            "StoredBinaryInfo<{}>": {
               "WebdaBehavior": "Webda/Binary",
               "additionalProperties": false,
-              "description": "One Binary instance — single-cardinality binary attribute on a CoreModel.\n\nTagged as a Behavior so the compiler picks it up via the same path as every\nother `@WebdaBehavior` class. Its `@Action`-decorated methods are exposed\nas model-scoped operations (`<Model>.<Attribute>.<Action>`) and routed by\n`RESTOperationsTransport.exposeBehaviorRoutes`.\n\nConstructor takes no required arguments because the transformer-emitted\n`__hydrateBehaviors` calls `new Binary()` with zero args before stamping\nthe parent reference into `WEBDA_STORAGE[\"__parent__\"]`. Legacy 2-arg\nusage (`new Binary(attribute, model)`) is still supported for direct\ncallers and tests; when present, the constructor eagerly resolves the\nservice and copies the existing model attribute value so callers can call\n`isEmpty()` and `hash`/`size` immediately.",
+              "description": "The file information of a binary attached to a model, as stored and as sent to clients: without the `challenge`\n(the proof of possession, see {@link BinaryFileInfo})",
               "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
                 "hash": {
                   "description": "Hash of the binary",
                   "type": "string"
@@ -523,7 +515,7 @@
           "description": "Binary Model is a model that store its data in a binary file",
           "properties": {
             "__binary": {
-              "$ref": "#/definitions/BinaryFileInfo%3C%7B%7D%3E"
+              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%7D%3E"
             },
             "__data": {},
             "__dataUpdated": {
@@ -578,10 +570,6 @@
       "additionalProperties": false,
       "description": "Represent a file to store",
       "properties": {
-        "challenge": {
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-          "type": "string"
-        },
         "hash": {
           "description": "Will be computed by the service\n\nhash of the content",
           "type": "string"

@@ -373,14 +373,10 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
           "definitions": {
-            "BinaryFileInfo<{ width: number; height: number; }>": {
+            "StoredBinaryInfo<{ width: number; height: number; }>": {
               "additionalProperties": false,
-              "description": "Define a Binary map stored in a Binaries collection",
+              "description": "The file information of a binary attached to a model, as stored and as sent to clients: without the `challenge`\n(the proof of possession, see {@link BinaryFileInfo})",
               "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
                 "hash": {
                   "description": "Hash of the binary",
                   "type": "string"
@@ -495,13 +491,13 @@
               "WebdaBehavior": "Webda/BinariesImpl",
               "description": "Additional images for the post, stored as an array of binaries with width and height metadata. This shows how to manage multiple related binary files in a model.",
               "items": {
-                "$ref": "#/definitions/BinaryFileInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
+                "$ref": "#/definitions/StoredBinaryInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
               },
               "readOnly": true,
               "type": "array"
             },
             "mainImage": {
-              "$ref": "#/definitions/BinaryFileInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E",
+              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E",
               "description": "Main image for the post, stored as binary data with width and height metadata. This demonstrates how to use binary data in a model, which can be useful for storing images or files directly in the database."
             },
             "publishedAt": {
@@ -694,14 +690,10 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
           "definitions": {
-            "BinaryFileInfo<{ width: number; height: number; }>": {
+            "StoredBinaryInfo<{ width: number; height: number; }>": {
               "additionalProperties": false,
-              "description": "Define a Binary map stored in a Binaries collection",
+              "description": "The file information of a binary attached to a model, as stored and as sent to clients: without the `challenge`\n(the proof of possession, see {@link BinaryFileInfo})",
               "properties": {
-                "challenge": {
-                  "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-                  "type": "string"
-                },
                 "hash": {
                   "description": "Hash of the binary",
                   "type": "string"
@@ -816,13 +808,13 @@
               "WebdaBehavior": "Webda/BinariesImpl",
               "description": "Additional images for the post, stored as an array of binaries with width and height metadata. This shows how to manage multiple related binary files in a model.",
               "items": {
-                "$ref": "#/definitions/BinaryFileInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
+                "$ref": "#/definitions/StoredBinaryInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E"
               },
               "readOnly": true,
               "type": "array"
             },
             "mainImage": {
-              "$ref": "#/definitions/BinaryFileInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E",
+              "$ref": "#/definitions/StoredBinaryInfo%3C%7B%20width%3A%20number%3B%20height%3A%20number%3B%20%7D%3E",
               "description": "Main image for the post, stored as binary data with width and height metadata. This demonstrates how to use binary data in a model, which can be useful for storing images or files directly in the database."
             },
             "publishedAt": {

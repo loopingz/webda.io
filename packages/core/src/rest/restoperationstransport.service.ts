@@ -1,4 +1,4 @@
-import { QueryValidator } from "@webda/ql";
+import { bind, QueryValidator } from "@webda/ql";
 import { TransformCase, TransformCaseType } from "@webda/utils";
 import { OperationsTransport, OperationsTransportParameters } from "../services/operationstransport.js";
 import { OperationDefinition } from "../core/icore.js";
@@ -130,7 +130,6 @@ export class RESTOperationsTransport<
    * OpenAPI cache
    */
   openapiContent: string;
-
 
   /**
    * Transform name using configured casing
@@ -406,7 +405,8 @@ export class RESTOperationsTransport<
 
         // Inject parent attribute
         if (injectAttribute) {
-          query.merge(`${injectAttribute} = '${context.parameter(parentId)}'`);
+          // The parent id comes from the URL: bind it as an escaped value
+          query.merge(bind(`${injectAttribute} = ?`, [context.parameter(parentId)]));
         }
         context.getParameters().query = query.toString();
         return callOperation(context, operationId);
@@ -496,10 +496,7 @@ export class RESTOperationsTransport<
               const parsed = typeof output === "string" ? JSON.parse(output) : output;
               const pkParts = pkFields.map(f => parsed?.[f]).filter(v => v !== undefined && v !== null);
               if (pkParts.length === pkFields.length) {
-                context.setHeader(
-                  "Location",
-                  `${context.getHttpContext().getAbsoluteUrl()}/${pkParts.join("/")}`
-                );
+                context.setHeader("Location", `${context.getHttpContext().getAbsoluteUrl()}/${pkParts.join("/")}`);
               }
             } catch {
               // Not JSON, skip Location
@@ -550,9 +547,10 @@ export class RESTOperationsTransport<
     // Use the operation's declared REST path so the URL params match the model's
     // actual primary-key field names (e.g. {slug} for Tag, {follower}/{following}
     // for UserFollow). Fall back to {uuid} for legacy operations.
-    const pathSuffix = typeof operations[operationId].rest === "object"
-      ? (operations[operationId].rest as any).path || "{uuid}"
-      : "{uuid}";
+    const pathSuffix =
+      typeof operations[operationId].rest === "object"
+        ? (operations[operationId].rest as any).path || "{uuid}"
+        : "{uuid}";
     this.addRoute(
       `${prefix}/${pathSuffix}`,
       ["DELETE"],
@@ -630,9 +628,7 @@ export class RESTOperationsTransport<
 
     // Use the update op's declared REST path so URL params match the PK fields.
     const updateOp = operations[updateOpId] ?? operations[patchOpId];
-    const pathSuffix = typeof updateOp?.rest === "object"
-      ? (updateOp.rest as any).path || "{uuid}"
-      : "{uuid}";
+    const pathSuffix = typeof updateOp?.rest === "object" ? (updateOp.rest as any).path || "{uuid}" : "{uuid}";
     // DomainService registers both `${shortId}.Update` and `${shortId}.Patch`;
     // when an application declares only one of them, route both verbs to it
     // (modelUpdate's load() already merges, which is patch semantics).
@@ -697,9 +693,10 @@ export class RESTOperationsTransport<
       }
     };
 
-    const pathSuffix = typeof operations[operationId].rest === "object"
-      ? (operations[operationId].rest as any).path || "{uuid}"
-      : "{uuid}";
+    const pathSuffix =
+      typeof operations[operationId].rest === "object"
+        ? (operations[operationId].rest as any).path || "{uuid}"
+        : "{uuid}";
     this.addRoute(
       `${prefix}/${pathSuffix}`,
       ["GET"],

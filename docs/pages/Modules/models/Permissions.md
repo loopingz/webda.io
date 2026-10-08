@@ -39,6 +39,10 @@ A string is the refusal reason: it is logged at `DEBUG` and **never sent to the 
 
 There is no class-level gate on queries: a query is the per-row `"get"` check, after the store filter of `getPermissionQuery` (see [Query filtering](#query-filtering)).
 
+### Objects reached through a parent class
+
+Stores are polymorphic: an object reached through a model class (the route, the queried class, a GraphQL link typed with the parent) may belong to a subclass with its own policy. The action is then allowed only when **both** classes allow it: `ReachedModel.canAct(ctx, action, object)` first, then `object.constructor.canAct(ctx, action, object)`. When the two are the same class the question is asked once. So a subclass can only tighten what its parent allows: an object of a closed subclass stays hidden through the parent's routes and queries, and an object of an open subclass stays hidden through a closed parent (reach it through its own routes). An object that is not an instance of the reached class at all (a misconfigured shared repository) is refused.
+
 ### The base implementation: delegate, otherwise deny
 
 The base `Model.canAct` delegates to the **instance** method `canAct(context, action)` when `object` defines one (a subclass overrode it), and denies in every other case: no instance method, or no object. So:
@@ -135,7 +139,9 @@ export class Computer extends UuidModel {
 
 ### Static actions
 
-A static (global) model action (`@Action()` on a static method, `PUT /<plural>/<action>`) is gated by `Model.canAct(context, "<action>")` **without object**. A refusal is a `403` (there is no object to hide). The same applies to model-registered static operations. Model actions have no `permission` option; the static `canAct` is the place to decide.
+A static (global) model action (`@Action()` on a static method, `PUT /<plural>/<action>`) is gated by `Model.canAct(context, "<action>")` **without object**. A refusal is a `403` (there is no object to hide). The same applies to model-registered static operations. Model actions have no `permission` option; the static `canAct` is the place to decide. A model that defines only the instance form refuses every static action; when it exposes some, the DomainService logs a warning at startup naming them.
+
+A static action declared with parameters (`static async login(email: string, password: string)`) receives them, resolved from the input schema the compiler generates; one declared without parameters receives the operation context. Instance actions receive the context and read their input with `await context.getInput()`.
 
 ### Refused reads are 404
 
@@ -264,7 +270,9 @@ A query (`<Plural>.Query`, the GraphQL list query, relation sub-queries and quer
 
 Rows dropped by step 2 are replaced by continuing the scan in the store (next pages, asking only for the missing rows), so a page is full unless the store has no more matches or the scan budget is spent: `SCAN_FACTOR` (10) times the page `LIMIT` rows, between `MIN_SCANNED_ROWS` (100) and `MAX_SCANNED_ROWS` (10000), and at most `MAX_REFILL_PAGES` (100) store pages. When the budget is spent the page can be shorter than its `LIMIT`; it carries a `continuationToken` only if it holds visible results, so an empty page never carries one. Page on the token, not on the page size. A precise `getPermissionQuery` filters in the store and avoids the extra scans.
 
-**Continuation tokens are sealed** on every query: the store token is encrypted with the `CryptoService` (random IV, fixed-size padding), because store tokens count or name rows (Postgres/Firestore offsets, memory offsets, Dynamo keys) and would reveal hidden matches. A token is **bound** to the model, the query (its filter and `ORDER BY`, without `LIMIT`/`OFFSET`) and the caller (user id, or "anonymous"), and **expires after one hour** (`CONTINUATION_TOKEN_TTL_MS`). Send it back unchanged in `OFFSET "<token>"` of the same query, as the same caller, within the hour; any other value, another query, another model, another caller or an expired token is a `400`, and paging restarts from the first page. Tokens follow the CryptoService key rotation.
+**Continuation tokens are sealed** on every query: the store token is encrypted with the `CryptoService` (random IV, fixed-size padding), because store tokens count or name rows (Postgres/Firestore offsets, memory offsets, Dynamo keys) and would reveal hidden matches. A token is **bound** to the model, the query (its filter and `ORDER BY`, without `LIMIT`/`OFFSET`) and the caller (user id, or "anonymous"), and **expires after one hour** (`CONTINUATION_TOKEN_TTL_MS`). Send it back unchanged in `OFFSET "<token>"` of the same query, as the same caller, within the hour; any other value, another query, another model, another caller or an expired token is a `400`, and paging restarts from the first page. The `LIMIT` is not part of the binding: the same query may page on with another page size. Anonymous callers share one binding: a token continues the same filter for any anonymous caller, which reveals nothing beyond what any of them can page through, as long as `canAct` and `getPermissionQuery` decide on the user id only (not on other session state such as a cart or an IP). Tokens follow the CryptoService key rotation.
+
+Residual: when a query has more hidden matches than the scan budget, a page comes back empty where it would otherwise hold a visible row, a coarse "more than N hidden matches" signal (with its response time). It is inherent to post-filtering; a precise `getPermissionQuery` removes it.
 
 `getPermissionQuery` is **inherited**, also by subclasses that override `canAct` (typically to add restrictions and call `super`): a store filter fails closed, it can only hide rows. A subclass whose `canAct` is more permissive than its parent's overrides `getPermissionQuery` too (returning `null` disables the store filter, leaving only the `canAct` filter):
 
@@ -307,7 +315,10 @@ export class Draft extends UuidModel {
 
 Binary attributes (`Binary`, `Binaries`) are behaviors: their actions are checked on the parent object with the dotted name, e.g. `canAct(ctx, "avatar.attachChallenge", object)`, `"avatar.attach"`, `"avatar.download"`, `"avatar.downloadUrl"`, `"photos.get"`, `"photos.deleteAt"`, `"avatar.setMetadata"`. `OwnerModel` allows the read actions (`download`, `downloadUrl`, `get`, `getUrl`) on `public` objects to anyone, like `"get"`.
 
-With `FileBinary`, the challenge (`PUT /<plural>/{uuid}/<attribute>` with `{ hash, challenge, size, name, mimetype }`) attaches an existing binary **only with proof of possession**: the `challenge` is the md5 of `"WEBDA"` + the content, so only a client holding the content can produce it. Otherwise the challenge answers an upload URL and attaches nothing; the upload stores the content, verifies it against the announced hash and attaches it then. Upload tokens only upload and download tokens only download; both are short-lived (60 seconds for an upload, the `expires` of the signed download URL). A hash alone, visible on any readable object, never gives access to the binary.
+The challenge (`PUT /<plural>/{uuid}/<attribute>` with `{ hash, challenge, size, name, mimetype }`) attaches an existing binary **only with proof of possession**: the `challenge` is the md5 of `"WEBDA"` + the content, so only a client holding the content can produce it. The challenge is **never sent to clients nor persisted on the object**: `BinaryMap.toJSON()` leaves it out and `uploadSuccess` drops it, so a reader of an object sees the hash of its binaries but cannot copy the proof. The hash alone never attaches a binary:
+
+- `FileBinary`: with the matching challenge the binary is attached without upload; otherwise the challenge answers an upload URL and attaches nothing, and the upload stores the content, verifies it against the announced hash and attaches it then. Upload tokens only upload and download tokens only download; both are short-lived (60 seconds for an upload, the `expires` of the signed download URL);
+- `S3Binary` and the GCS `Storage`: an existing binary is attached only when the challenge matches the one stored with it (the uploader's); otherwise the upload URL is returned without attaching. New content is attached before its upload: the signed PUT carries `Content-MD5`, so the bucket only ever stores the bytes of the announced hash under that key.
 
 ## Built-in permission models
 

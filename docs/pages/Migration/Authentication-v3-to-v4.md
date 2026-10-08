@@ -66,17 +66,24 @@ New operations: `Auth.Refresh`, `Auth.Idents`, `Auth.Unlink`, `Auth.Password.Cha
 `GoogleAuthentication` is now an `@webda/auth` provider (`OAuthProvider`), configured as its own service next to
 `Authentication` (it was a provider of the v3 `Authentication` / an `OAuthService`). The modda name is unchanged.
 
-| v3                                                                 | v4                                                                              |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| `url` default `/google`                                            | `url` default `/auth/google`                                                    |
-| `authorized_uris` (regexps)                                        | `authorized_uris`: absolute urls, same origin + path prefix match               |
-| referer used as post-login target                                  | `?redirect=` only (checked against `authorized_uris`), else `redirects.success` |
-| `redirects.use_referer/whitelist/defaults`                         | `redirects.success`, `redirects.failure` (required)                             |
-| `no_referer`, `exposeScope`, `authenticationService`, `project_id` | removed                                                                         |
-| `scope` default `["email"]`                                        | `["openid", "email", "profile"]`                                                |
-| `POST <url>/token` with `{ tokens: { id_token } }`                 | `Auth.Google.Token` (`POST auth/google/token`) with `{ token: "<id token>" }`   |
-| `GoogleAuth.Tokens` / `OAuth.Callback` events                      | `Authentication.Login` (tokens are stored on the ident `__tokens`)              |
-| `getLocalClient()` (local callback server)                         | removed                                                                         |
+| v3                                                                 | v4                                                                                                                                                                                   |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `url` default `/google`                                            | `url` default `/auth/google`                                                                                                                                                         |
+| `authorized_uris` (regexps)                                        | `authorized_uris`: absolute urls, same origin + path prefix match                                                                                                                    |
+| referer used as post-login target                                  | `?redirect=` only (checked against `authorized_uris`), else `redirects.success`                                                                                                      |
+| `redirects.use_referer/whitelist/defaults`                         | `redirects.success`, `redirects.failure` (required)                                                                                                                                  |
+| `no_referer`, `exposeScope`, `authenticationService`, `project_id` | removed                                                                                                                                                                              |
+| `scope` default `["email"]`                                        | `["openid", "email", "profile"]`                                                                                                                                                     |
+| `POST <url>/token` with `{ tokens: Credentials }`                  | `Auth.Google.Token` (`POST auth/google/token`): the same JSON body `{ tokens }` still works (its `id_token` is verified), or `{ token: "<id token>" }`; JSON `Content-Type` required |
+| `GoogleAuth.Tokens` event                                          | kept: `{ tokens, context }` after a successful callback or token login                                                                                                               |
+| `OAuth.Callback` event                                             | `Authentication.Login` (without provider tokens)                                                                                                                                     |
+| ident `__tokens` (plaintext)                                       | ident `tokens`, encrypted (`await ident.tokens.get()`); upgraded idents are encrypted                                                                                                |
+| `getLocalClient()` (local callback server)                         | removed                                                                                                                                                                              |
+
+The v3 `checkRequest` request filter (which let the provider referer call the routes) is gone: an application with
+its own request filters (CORS, CSRF...) must allow `GET <url>`, `GET <url>/callback` and `POST auth/google/token`.
+The browser flow now uses PKCE and an OpenID nonce and keeps its state in a dedicated `webda_oauth_google` cookie
+(not the session). `Auth.Google.Token` never links an identity to the logged-in user.
 
 New: `audiences`, `hostedDomain`, `allowedEmailDomains`, `trustEmailVerification`. v3 Google idents
 (`<sub>_google`) are upgraded like the others (lazily, or with `webda auth migrate`). Register

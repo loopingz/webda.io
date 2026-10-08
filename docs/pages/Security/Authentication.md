@@ -221,45 +221,79 @@ explicitly behind a proxy: the default is built from the request host.
 
 **Browser flow**
 
-1. `GET <url>?redirect=<target>` creates a random `state` (256 bits), stores it in the session with the target and
-   the `redirect_uri`, single-use and valid 10 minutes, then redirects to the provider. `redirect` is optional; when
-   present it must be an absolute http(s) url with the **same origin** as an `authorized_uris` entry and a path equal
-   to or below that entry's path (`https://app.example.com/after` allows `/after` and `/after/x`, not `/afterwards`).
-   Anything else redirects to `redirects.failure?reason=REDIRECT_NOT_ALLOWED` without starting a login.
-2. `GET <url>/callback?code=...&state=...` consumes the pending login, compares the state in constant time, exchanges
-   the code (`redirect_uri` of step 1), and hands the identity to `Authentication.complete()`. It never answers an
-   error: it redirects to the stored target (or `redirects.success`), with `mfa=required` added when the user must
-   still pass MFA, or to `redirects.failure?reason=<CODE>`:
+1. `GET <url>?redirect=<target>` creates a random `state` (256 bits), a PKCE code verifier (the S256 challenge goes to
+   the provider) and an OpenID `nonce`, and keeps them with the target and the `redirect_uri` in a dedicated cookie
+   `webda_oauth_<provider>`: encrypted with the CryptoService, `HttpOnly`, `SameSite=Lax`, `Secure` on https,
+   `Path=<url>`, valid 10 minutes. Nothing is written in the session, so the flow works whatever the session cookie
+   `sameSite` (including `strict`). `redirect` is optional; when present it must be an absolute http(s) url with the
+   **same origin** as an `authorized_uris` entry and a path equal to or below that entry's path
+   (`https://app.example.com/after` allows `/after` and `/after/x`, not `/afterwards`); a path containing an encoded
+   slash or backslash (`%2f`, `%5c`) is refused. Anything else redirects to `redirects.failure?reason=REDIRECT_NOT_ALLOWED`
+   without starting a login.
+2. `GET <url>/callback?code=...&state=...` reads and clears that cookie (single use), compares the state in constant
+   time, exchanges the code with the PKCE verifier and the `redirect_uri` of step 1 (an OpenID provider also checks
+   the ID token `nonce`), and hands the identity to `Authentication.complete()`. It never answers an error: it
+   redirects to the stored target (or `redirects.success`), with `mfa=required` added when the user must still pass
+   MFA, or to `redirects.failure?reason=<CODE>`. Both routes answer `Cache-Control: no-store`.
 
-| Reason                                            | Cause                                                                     |
-| ------------------------------------------------- | ------------------------------------------------------------------------- |
-| `REDIRECT_NOT_ALLOWED`                            | the login `redirect` does not match `authorized_uris`                     |
-| `STATE_MISMATCH`                                  | no pending login in this session, wrong, missing, expired or reused state |
-| `PROVIDER_ERROR`                                  | the provider answered with `error` or without code                        |
-| `TOKEN_INVALID`                                   | the code exchange or the ID token verification failed                     |
-| `ACCOUNT_EXISTS`, `EMAIL_DOMAIN_NOT_ALLOWED`, ... | refused by `Authentication.complete()` (linking, email policy, ...)       |
-| `OAUTH_ERROR`                                     | unexpected failure (logged, no detail in the url)                         |
+| Reason                                            | Cause                                                                      |
+| ------------------------------------------------- | -------------------------------------------------------------------------- |
+| `REDIRECT_NOT_ALLOWED`                            | the login `redirect` does not match `authorized_uris`                      |
+| `STATE_MISMATCH`                                  | no pending login cookie, or a wrong, missing, expired, tampered state      |
+| `PROVIDER_ERROR`                                  | the provider answered with `error` or without code                         |
+| `TOKEN_INVALID`                                   | the code exchange or the ID token verification (audience, nonce...) failed |
+| `ACCOUNT_EXISTS`, `EMAIL_DOMAIN_NOT_ALLOWED`, ... | refused by `Authentication.complete()` (linking, email policy, ...)        |
+| `OAUTH_ERROR`                                     | unexpected failure (logged as a reason code, no detail in the url)         |
 
-The pending login lives in the session cookie: the callback is a cross-site navigation from the provider, so keep the
-session cookie `sameSite` at `lax` (default) or `none`, not `strict`. A logged-in user going through the flow links
-the provider identity to the current account (or gets `IDENT_LINKED_ELSEWHERE`).
+A browser whose session cookie reaches the callback (`lax`) while logged in links the provider identity to the current
+account (or gets `IDENT_LINKED_ELSEWHERE`): linking is a browser-flow action, protected by the state and PKCE.
 
-**Token operation**: `Auth.<Provider>.Token` (`POST auth/<provider>/token`, body `{ "token": "..." }`) is for clients
-that obtained a token from the provider themselves (mobile, desktop, Google One Tap). It returns the login result like
-`Auth.Email.Login`; an unverifiable token is `TOKEN_INVALID`. `Auth.Google.Token` only accepts **Google ID tokens**
-whose audience is `client_id` or one of `audiences` (never access tokens, whose audience cannot be checked).
+**Token operation**: `Auth.<Provider>.Token` (`POST auth/<provider>/token`) is for clients that obtained a token from
+the provider themselves (mobile, desktop, Google One Tap). The body is JSON, `{ "token": "..." }` or the v3 form
+`{ "tokens": { "id_token": "...", "access_token": "...", ... } }`; any other `Content-Type` is refused with
+`UNSUPPORTED_MEDIA_TYPE` (415), so a cross-site form or `text/plain` POST cannot use a victim's cookies. It returns
+the login result like `Auth.Email.Login`; an unverifiable token is `TOKEN_INVALID`. It **never links**: when the
+request carries a logged-in session, an identity owned by another user is refused with `IDENT_LINKED_ELSEWHERE`, and a
+new or unowned identity starts a fresh session (the cookie user is logged out) instead of being attached to it.
+`Auth.Google.Token` only accepts **Google ID tokens** (`token`, or `tokens.id_token`) whose audience is `client_id`
+or one of `audiences` (never access tokens, whose audience cannot be checked).
+
+**Provider tokens** are stored on the ident as `ident.tokens`, an `EncryptedField` (see below): only a ciphertext is
+written, read them with `await ident.tokens.get()`. They are not part of the `Authentication.Login` /
+`Authentication.Register` events; a provider publishes them with its own event.
 
 **Google identities**: the ident is `<sub>:google`; the email is verified only when the ID token claim
 `email_verified` is `true` (so an unverified Google email never claims the email ident nor links an existing account
-under the `verified` policy); the profile keeps `name`, `picture`, `locale`, `hd`; the tokens of the code exchange
-are stored in the ident `__tokens` (server-only). With `hostedDomain`, an ID token without that `hd` claim is refused
-with `EMAIL_DOMAIN_NOT_ALLOWED`.
+under the `verified` policy); the profile keeps `name`, `picture`, `locale`, `hd`. With `hostedDomain`, an ID token
+without that `hd` claim is refused with `EMAIL_DOMAIN_NOT_ALLOWED`. ID tokens are verified by one `OAuth2Client` per
+service, so Google's certificates are fetched once and cached. After a successful login the service emits
+`GoogleAuth.Tokens` with `{ tokens, context }`: the credentials of the code exchange, or the `tokens` (`{ id_token }`
+for a bare token) sent to `Auth.Google.Token`, where only the ID token is verified.
 
-**Writing a provider**: extend `OAuthProvider` and implement `providerName`, `getAuthorizationUrl(state, redirectUri,
-scope)`, `handleCallback(code, redirectUri)` and `handleToken(token)`, both returning a `ResolvedIdentity`. The base
-class forces `identity.provider` to `providerName` (a provider cannot assert another provider's identity) and defaults
-`amr` to `["oauth"]`; override `requiresClientSecret()` for public clients. Errors that are not `HttpError`s become
-`TOKEN_INVALID` for the operation and `OAUTH_ERROR` for the callback.
+```typescript
+useService("google").on("GoogleAuth.Tokens", async ({ tokens, context }) => {
+  // tokens.access_token, tokens.refresh_token (access_type "offline")
+});
+```
+
+**Writing a provider**: extend `OAuthProvider` and implement `providerName`,
+`getAuthorizationUrl({ state, redirectUri, scope, codeChallenge, codeChallengeMethod, nonce })`,
+`handleCallback({ code, redirectUri, codeVerifier, nonce })` (an OpenID provider must check the ID token `nonce`) and
+`handleToken({ token, tokens })`, both returning a `ResolvedIdentity`. The base class forces `identity.provider` to
+`providerName` (a provider cannot assert another provider's identity) and defaults `amr` to `["oauth"]`; override
+`requiresClientSecret()` for public clients and `onAuthenticated()` to react to a login. Errors that are not
+`HttpError`s become `TOKEN_INVALID` for the operation and `OAUTH_ERROR` for the callback; log errors with
+`safeErrorReason(err)`, never their message (libraries put tokens in them).
+
+### Encrypted fields
+
+`EncryptedField<T>` (`@webda/core`, behavior `Webda/Encrypted`) stores a value encrypted at rest with the
+CryptoService: `await field.set(value)`, `await field.get()`, `field.clear()`, `field.isSet()`. Only `__ciphertext`
+is stored (server-only, never in an API output): the JSON value encrypted with the current symmetric key (random IV)
+inside a JWT signed with that key, so tampering is detected. Values encrypted before a key rotation still decrypt
+while the old key is in the CryptoService registry. Declare it like any behavior: `secret: EncryptedField<MyType>;`.
+**Every instance must share the CryptoService keys** (the `Registry` store): an instance without the key cannot
+decrypt.
 
 ## Tokens
 
@@ -332,7 +366,9 @@ Listen on the `Authentication` service. All payloads include `context`.
 | `Authentication.Linked`         | `user`, `ident`                                                                                                                                |
 | `Authentication.Unlinked`       | `user`, `ident` (projection: `uuid`, `provider`, `providerUid`, `email`, `verifiedAt`, `lastUsedAt`, `userId`; no provider tokens nor profile) |
 
-`Authentication.Register` is emitted before the new user is saved: it can still change it. `Authentication.LoginFailed`
+The `identity` of `Authentication.Register` and `Authentication.Login` never carries the provider `tokens` (see
+[OAuth providers](#oauth-providers)). `Authentication.Register` is emitted before the new user is saved: it can still
+change it. `Authentication.LoginFailed`
 carries `{ context, user }` only (`user` is undefined for an unknown email).
 
 ## Errors
@@ -351,6 +387,7 @@ carries `{ context, user }` only (`user` is undefined for an unknown email).
 | `THROTTLED`                | 429  | Too many attempts, or a mail was sent too recently               |
 | `PASSWORD_POLICY`          | 400  | The password does not satisfy the policy                         |
 | `INVALID_IDENT`            | 400  | Malformed ident                                                  |
+| `UNSUPPORTED_MEDIA_TYPE`   | 415  | `Auth.<Provider>.Token` called without a JSON body               |
 | `BAD_REQUEST`              | 400  | `complete()` called for a provider name that is not registered   |
 
 Importable from `@webda/auth` (`AccountExists`, `Throttled`, ...).
@@ -388,6 +425,5 @@ Emailed tokens are purpose-scoped JWTs (audience `webda-email`): register and ve
 - Access tokens stay valid until expiry after logout or refresh-family revocation (default 15 minutes); a password
   change does end them (see above).
 - `Auth.<Provider>.Token` accepts a valid provider token until it expires: a client must protect the tokens it
-  obtains. The OAuth flow does not use PKCE nor an OpenID `nonce` (the code is exchanged server side with the client
-  secret, bound to the session by `state`).
+  obtains (there is no server nonce on this operation).
 - `Auth.Email.Register` answers `ACCOUNT_EXISTS` for a registered email, so it can be used to enumerate accounts.

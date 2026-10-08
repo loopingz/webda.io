@@ -76,16 +76,25 @@ pnpm add @webda/auth @webda/google-auth
 
 ## Usage
 
-- Browser: link to `GET /auth/google?redirect=https://app.example.com/after`. After the Google consent the callback
-  logs the user in (cookie session) and redirects to `redirect` (or `redirects.success`), adding `?mfa=required` when
-  the user still has to pass MFA. Failures redirect to `redirects.failure?reason=CODE` (`STATE_MISMATCH`,
-  `PROVIDER_ERROR`, `TOKEN_INVALID`, `ACCOUNT_EXISTS`, `EMAIL_DOMAIN_NOT_ALLOWED`, ...).
-- Other clients: `POST /auth/google/token` (`Auth.Google.Token`) with `{ "token": "<Google ID token>" }` returns the
-  `@webda/auth` result (`{ status: "ok", accessToken, refreshToken, ... }`). Access tokens are not accepted.
+- Browser: link to `GET /auth/google?redirect=https://app.example.com/after`. The flow uses PKCE and an OpenID nonce,
+  kept in a short-lived encrypted `webda_oauth_google` cookie (so it also works with a `SameSite=Strict` session
+  cookie). After the Google consent the callback logs the user in and redirects to `redirect` (or
+  `redirects.success`), adding `?mfa=required` when the user still has to pass MFA. Failures redirect to
+  `redirects.failure?reason=CODE` (`STATE_MISMATCH`, `PROVIDER_ERROR`, `TOKEN_INVALID`, `ACCOUNT_EXISTS`,
+  `EMAIL_DOMAIN_NOT_ALLOWED`, ...).
+- Other clients: `POST /auth/google/token` (`Auth.Google.Token`) with a JSON body `{ "token": "<Google ID token>" }`
+  or the v3 body `{ "tokens": { "id_token": "...", "access_token": "...", ... } }` returns the `@webda/auth` result
+  (`{ status: "ok", accessToken, refreshToken, ... }`). Only ID tokens are verified; access tokens alone are refused.
+  This operation never links the identity to an already logged-in user.
 
 The Google identity is the ID token `sub`; the email is only treated as verified when `email_verified` is `true`.
-Google tokens of the code exchange are stored on the ident (`__tokens`, never exposed); react to logins with the
-`Authentication.Login` event.
+Google credentials are stored encrypted on the ident (`await ident.tokens.get()`) and published after each login:
+
+```typescript
+useService("google").on("GoogleAuth.Tokens", async ({ tokens, context }) => {
+  // tokens.access_token, tokens.refresh_token (access_type "offline")
+});
+```
 
 ## Reference
 

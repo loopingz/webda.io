@@ -14,6 +14,7 @@ import { useModelMetadata } from "../core/hooks.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
 import { registerOperation } from "../core/operations.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
+import { checkModelPermission, queryModelWithPermissions } from "../models/permissions.js";
 
 /**
  * Remove Behavior-typed attributes (Metadata.Relations.behaviors) and private fields from client input.
@@ -28,8 +29,21 @@ export function sanitizeModelInput<T = any>(model: ModelClass<any>, input: T): T
     for (const rel of useModelMetadata(model)?.Relations?.behaviors ?? []) {
       delete out[rel.attribute];
     }
+    // Server-managed attributes (e.g. the owner of an OwnerModel) are never taken from client input
+    for (const attribute of getProtectedAttributes(model)) {
+      delete out[attribute];
+    }
   }
   return out;
+}
+
+/**
+ * Attributes a model refuses from client input, declared by its optional static `getProtectedAttributes()`
+ * @param model - the model class
+ * @returns the attribute names
+ */
+export function getProtectedAttributes(model: any): string[] {
+  return typeof model?.getProtectedAttributes === "function" ? (model.getProtectedAttributes() ?? []) : [];
 }
 
 /**
@@ -250,6 +264,9 @@ export class DomainService<
       // Instantiate the model from raw input, load data, then save
       const object = new (model as any)() as Model;
       (object as any).load(input);
+      // Let the model set its server-managed fields (e.g. the owner) from the caller
+      await (object as any).prepareCreate?.(context);
+      await checkModelPermission(object, context, "create");
       await object.save();
       return object;
     });
@@ -289,7 +306,10 @@ export class DomainService<
             {} as Record<string, unknown>
           );
     const object = await this.loadModel(model, pk);
+    // Check on the stored object, before any client input is applied
+    await checkModelPermission(object, context, "update");
     object["load"](input);
+    await object.save();
     return object;
   }
 
@@ -302,7 +322,7 @@ export class DomainService<
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
     const object = await this.loadModel(model, uuid);
-    //await object.checkAct(context, "get");
+    await checkModelPermission(object, context, "get");
     return object;
   }
 
@@ -314,7 +334,7 @@ export class DomainService<
     const context = useContext<OperationContext>();
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
     const object = await this.loadModel(model, uuid);
-    //await object.checkAct(context, "delete");
+    await checkModelPermission(object, context, "delete");
     // Object can decide to not delete but mark as deleted
     await object.delete();
   }
@@ -329,7 +349,7 @@ export class DomainService<
     const { model } = context.getExtension<{ model: ModelClass }>("operationContext");
     return runWithContext(context, async () => {
       try {
-        return await model.query(query);
+        return await queryModelWithPermissions(model, query, context);
       } catch (err) {
         if (err instanceof SyntaxError) {
           this.log("INFO", "Query syntax error");
@@ -370,6 +390,8 @@ export class DomainService<
             {} as Record<string, unknown>
           );
     const object = await this.loadModel(model, pk);
+    // Check on the stored object, before any client input is applied
+    await checkModelPermission(object, context, "update");
     await object.patch(input);
     return object;
   }
@@ -394,7 +416,7 @@ export class DomainService<
       if (!object || object.isDeleted()) {
         throw new WebdaError.NotFound("Object not found");
       }
-      //await object.checkAct(context, action.name as ActionsEnum<Model>);
+      await checkModelPermission(object, context, action.name);
       return object[handler](context);
     } else {
       return model[handler](context);
@@ -709,10 +731,7 @@ export class DomainService<
       throw new WebdaError.NotFound("Object not found");
     }
 
-    const allowed = await instance.canAct(context, `${attribute}.${action}`);
-    if (allowed !== true && allowed !== instance) {
-      throw new WebdaError.Forbidden(`Action ${attribute}.${action} not allowed`);
-    }
+    await checkModelPermission(instance, context, `${attribute}.${action}`);
 
     const behaviorInstance = instance[attribute];
     if (!behaviorInstance || typeof behaviorInstance[action] !== "function") {

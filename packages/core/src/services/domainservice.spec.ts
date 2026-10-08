@@ -568,8 +568,15 @@ class DomainServiceTest extends WebdaApplicationTest {
     const uuid = "550e8400-e29b-41d4-a716-446655440001";
     await Classroom.create({ uuid, name: "Room101" } as any);
 
+    // Classroom only lets the "test" user act on it
+    const anonymous = new FakeOpContext();
+    await anonymous.init();
+    anonymous.setParameters({ uuid });
+    await assert.rejects(() => callOperation(anonymous, "Classroom.Test"), WebdaError.Forbidden);
+
     const ctx = new FakeOpContext();
     await ctx.init();
+    ctx.newSession().login("test", "test");
     ctx.setParameters({ uuid });
     await callOperation(ctx, "Classroom.Test");
     const output = ctx.getOutput();
@@ -594,6 +601,7 @@ class DomainServiceTest extends WebdaApplicationTest {
       await Classroom.create({ uuid, name: "Room102" } as any);
       const ctx = new FakeOpContext();
       await ctx.init();
+      ctx.newSession().login("test", "test");
       ctx.setParameters({ uuid });
       await callOperation(ctx, "Classroom.ExposedTest");
       // `test` writes {} to the context

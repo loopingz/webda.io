@@ -54,7 +54,12 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
    * @param _FakeMFA - kept as the parameter name for backwards readability;
    *   ignored by the registry since runtime class lookup no longer exists.
    */
-  private patchUserWithMfaBehavior(_FakeMFA: any = class FakeMFA { verify() {} set() {} }): () => void {
+  private patchUserWithMfaBehavior(
+    _FakeMFA: any = class FakeMFA {
+      verify() {}
+      set() {}
+    }
+  ): () => void {
     const app = useApplication<Application>() as any;
     const previousBehavior = app.behaviors["Test/MFA"];
     app.behaviors["Test/MFA"] = {
@@ -301,6 +306,38 @@ class DomainServiceBehaviorOperationsTest extends WebdaApplicationTest {
 
       await assert.rejects(() => callOperation(ctx, "User.Mfa.Set"), WebdaError.Forbidden);
       assert.deepStrictEqual(calls, [], "behavior method must not run when canAct denies");
+    } finally {
+      refStub?.restore();
+      restore();
+    }
+  }
+
+  /**
+   * A model without `canAct` is allowed (framework default), the dispatcher must not crash with a TypeError
+   */
+  @test
+  async modelBehaviorActionWithoutCanAct() {
+    const calls: any[] = [];
+    class FakeMFA {
+      async verify() {
+        calls.push("verify");
+        return "ok";
+      }
+      async set() {}
+    }
+    const restore = this.patchUserWithMfaBehavior(FakeMFA);
+    let refStub: sinon.SinonStub | undefined;
+    try {
+      const { User } = this.setupBehaviorDispatcher();
+      const fakeUser: any = { isDeleted: () => false, mfa: new FakeMFA() };
+      refStub = this.stubModelRef(User, fakeUser);
+
+      const ctx = new OperationContext();
+      await ctx.init();
+      ctx.setParameters({ uuid: "user-mfa-nocanact" });
+
+      await callOperation(ctx, "User.Mfa.Verify");
+      assert.deepStrictEqual(calls, ["verify"]);
     } finally {
       refStub?.restore();
       restore();

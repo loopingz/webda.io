@@ -90,7 +90,7 @@ class SharedOpsTest extends AuthTest {
     const { ctx } = await this.login("i1");
     const list = await this.op("Auth.Idents", {}, ctx);
     assert.deepStrictEqual(list.map(i => `${i.providerUid}:${i.provider}`).sort(), ["i1:google", "i1@x.com:email"]);
-    assert.ok(list.every(i => i.__profile === undefined && i.__tokens === undefined));
+    assert.ok(list.every(i => i.__profile === undefined && i.__tokens === undefined && i.tokens === undefined));
     // another user's idents are not listed
     const other = await this.login("i2");
     const list2 = await this.op("Auth.Idents", {}, other.ctx);
@@ -128,9 +128,11 @@ class SharedOpsTest extends AuthTest {
     const user = await ctx.getCurrentUser<any>();
     await user.password.set("longenough");
     await user.save();
-    await runAsSystem(() =>
-      Ident.ref(Ident.key("ev1", "google")).patch({ __tokens: { access: "secret" }, __profile: { name: "P" } } as any)
-    );
+    await runAsSystem(async () => {
+      const ident = await Ident.ref(Ident.key("ev1", "google")).get();
+      await ident.tokens.set({ access_token: "secret" });
+      await ident.ref().patch({ tokens: ident.tokens, __profile: { name: "P" } } as any);
+    });
     const events: any[] = [];
     this.auth.on("Authentication.Unlinked" as any, (evt: any) => {
       events.push(evt);
@@ -139,6 +141,7 @@ class SharedOpsTest extends AuthTest {
     assert.strictEqual(events.length, 1);
     assert.strictEqual(events[0].ident.provider, "google");
     assert.strictEqual(events[0].ident.providerUid, "ev1");
+    assert.strictEqual(events[0].ident.tokens, undefined);
     assert.strictEqual(events[0].ident.__tokens, undefined);
     assert.strictEqual(events[0].ident.__profile, undefined);
   }

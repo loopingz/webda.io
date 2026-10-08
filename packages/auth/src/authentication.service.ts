@@ -63,6 +63,16 @@ export interface MigrationReport {
 /** Authentication methods (amr) that are a primary factor: a second factor only counts on top of one of them */
 export const PRIMARY_FACTORS: readonly string[] = ["pwd", "oauth"];
 
+/**
+ * @param identity - resolved identity
+ * @returns the identity without its provider tokens
+ */
+function withoutTokens(identity: ResolvedIdentity): ResolvedIdentity {
+  if (!identity || identity.tokens === undefined) return identity;
+  const { tokens, ...rest } = identity;
+  return rest as ResolvedIdentity;
+}
+
 /** Maximum ident passes of one migration */
 const MIGRATION_MAX_PASSES = 100;
 
@@ -338,7 +348,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
       user,
       data,
       identId: `${identity.providerUid}:${identity.provider}`,
-      identity
+      identity: withoutTokens(identity)
     } as any);
     await user.save();
     this.metrics?.registration?.inc({ provider: identity.provider });
@@ -444,10 +454,13 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
         ...Ident.key(identity.providerUid, identity.provider),
         email,
         __profile: identity.profile,
-        __tokens: identity.tokens,
         verifiedAt: identity.emailVerified ? new Date() : undefined
       } as any);
       ident.setUser(userId);
+      // Provider tokens are only stored encrypted
+      if (identity.tokens) {
+        await ident.tokens.set(identity.tokens);
+      }
       try {
         await ident.getRepository().create(ident);
       } catch (err) {
@@ -517,14 +530,18 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     session.login(userId, ident.getUUID(), { provider: identity.provider, amr: identity.amr, mfa });
     // A later password change of the user ends this session (checked by the session manager on load)
     session.authAt = Date.now();
+    // Provider profile and tokens are kept even when MFA is pending
+    const update: any = {
+      ...(identity.profile ? { __profile: identity.profile } : {}),
+      ...(await this.tokensUpdate(ident, identity.tokens))
+    };
     if (mfa === "pending") {
+      if (Object.keys(update).length) {
+        await ident.ref().patch(update);
+      }
       return { status: "mfa_required", methods };
     }
-    await ident.ref().patch({
-      lastUsedAt: new Date(),
-      ...(identity.profile ? { __profile: identity.profile } : {}),
-      ...(identity.tokens ? { __tokens: identity.tokens } : {})
-    } as any);
+    await ident.ref().patch({ lastUsedAt: new Date(), ...update });
     const tokens = await useService("TokenService").issue(session);
     await this.emit("Authentication.Login", {
       context: ctx,
@@ -533,10 +550,26 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
       identId: ident.getUUID(),
       ident,
       provider: identity.provider,
-      identity
+      // Provider tokens never travel in Authentication events (providers emit their own)
+      identity: withoutTokens(identity)
     } as any);
     this.metrics?.login?.inc({ provider: identity.provider });
     return { status: "ok", user: userObj.toPublicEntry(), ...tokens };
+  }
+
+  /**
+   * Patch storing new provider tokens encrypted; also drops plaintext tokens left by an earlier v4 beta (`__tokens`)
+   * @param ident - the ident
+   * @param tokens - tokens from the provider, if any
+   * @returns the attributes to patch
+   */
+  protected async tokensUpdate(ident: Ident, tokens: any): Promise<any> {
+    if (!tokens) return {};
+    await ident.tokens.set(tokens);
+    return {
+      tokens: { __ciphertext: ident.tokens.__ciphertext },
+      ...((ident as any).__tokens !== undefined ? { __tokens: null } : {})
+    };
   }
 
   /**

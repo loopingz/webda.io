@@ -2048,6 +2048,12 @@
             "model": "Webda/User",
             "type": "LINK"
           }
+        ],
+        "behaviors": [
+          {
+            "attribute": "tokens",
+            "behavior": "Webda/Encrypted"
+          }
         ]
       },
       "Ancestors": [],
@@ -2086,8 +2092,11 @@
         "__profile": {
           "type": "any"
         },
-        "__tokens": {
-          "type": "IdentTokens"
+        "tokens": {
+          "type": "EncryptedField",
+          "typeParameters": [
+            "IdentTokens"
+          ]
         }
       },
       "Schemas": {
@@ -2096,6 +2105,18 @@
           "WebdaModel": true,
           "additionalProperties": false,
           "definitions": {
+            "EncryptedField<IdentTokens>": {
+              "WebdaBehavior": "Webda/Encrypted",
+              "additionalProperties": false,
+              "description": "A model field encrypted at rest with the CryptoService\n\nOnly the ciphertext is stored (`__ciphertext`, server-only: `__` keys never reach a public output). The value is\nJSON-serialised, encrypted with the current symmetric key (AES, with a random IV) and wrapped in a JWT signed with\nthat key, so tampering is detected; values encrypted before a key rotation still decrypt while the CryptoService\nkeeps the old key.\n\n```typescript\nclass MyModel extends UuidModel {\n  secret: EncryptedField<{ apiKey: string }>;\n}\nawait model.secret.set({ apiKey: \"...\" });\nawait model.save();\nconst { apiKey } = await model.secret.get();\n```",
+              "properties": {
+                "__ciphertext": {
+                  "description": "Encrypted value (a JWT wrapping the AES ciphertext), never output",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
             "IdentThrottle": {
               "additionalProperties": false,
               "description": "Email sending throttle state of an ident (login failures are top-level `Ident` attributes)",
@@ -2106,31 +2127,12 @@
                 }
               },
               "type": "object"
-            },
-            "IdentTokens": {
-              "additionalProperties": false,
-              "description": "OAuth tokens associated with an identity provider",
-              "properties": {
-                "access": {
-                  "description": "Access token",
-                  "type": "string"
-                },
-                "refresh": {
-                  "description": "Refresh token",
-                  "type": "string"
-                }
-              },
-              "type": "object"
             }
           },
           "description": "An identity linked to a user: `<providerUid>:<provider>`",
           "properties": {
             "__profile": {
               "description": "Provider profile"
-            },
-            "__tokens": {
-              "$ref": "#/definitions/IdentTokens",
-              "description": "Provider tokens"
             },
             "_lastLoginAttemptAt": {
               "description": "Timestamp (ms) of the last counted login attempt",
@@ -2165,6 +2167,10 @@
               "description": "Identifier on the provider (normalised email for \"email\")",
               "type": "string"
             },
+            "tokens": {
+              "$ref": "#/definitions/EncryptedField%3CIdentTokens%3E",
+              "description": "Provider tokens, encrypted at rest (`await ident.tokens.get()`)"
+            },
             "verifiedAt": {
               "description": "When the ident was verified",
               "format": "date-time",
@@ -2174,7 +2180,8 @@
           "required": [
             "_user",
             "provider",
-            "providerUid"
+            "providerUid",
+            "tokens"
           ],
           "type": "object",
           "$webda": "toDto$auto"
@@ -2184,6 +2191,18 @@
           "WebdaModel": true,
           "additionalProperties": false,
           "definitions": {
+            "EncryptedField<IdentTokens>": {
+              "WebdaBehavior": "Webda/Encrypted",
+              "additionalProperties": false,
+              "description": "A model field encrypted at rest with the CryptoService\n\nOnly the ciphertext is stored (`__ciphertext`, server-only: `__` keys never reach a public output). The value is\nJSON-serialised, encrypted with the current symmetric key (AES, with a random IV) and wrapped in a JWT signed with\nthat key, so tampering is detected; values encrypted before a key rotation still decrypt while the CryptoService\nkeeps the old key.\n\n```typescript\nclass MyModel extends UuidModel {\n  secret: EncryptedField<{ apiKey: string }>;\n}\nawait model.secret.set({ apiKey: \"...\" });\nawait model.save();\nconst { apiKey } = await model.secret.get();\n```",
+              "properties": {
+                "__ciphertext": {
+                  "description": "Encrypted value (a JWT wrapping the AES ciphertext), never output",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
             "IdentThrottle": {
               "additionalProperties": false,
               "description": "Email sending throttle state of an ident (login failures are top-level `Ident` attributes)",
@@ -2194,31 +2213,12 @@
                 }
               },
               "type": "object"
-            },
-            "IdentTokens": {
-              "additionalProperties": false,
-              "description": "OAuth tokens associated with an identity provider",
-              "properties": {
-                "access": {
-                  "description": "Access token",
-                  "type": "string"
-                },
-                "refresh": {
-                  "description": "Refresh token",
-                  "type": "string"
-                }
-              },
-              "type": "object"
             }
           },
           "description": "An identity linked to a user: `<providerUid>:<provider>`",
           "properties": {
             "__profile": {
               "description": "Provider profile"
-            },
-            "__tokens": {
-              "$ref": "#/definitions/IdentTokens",
-              "description": "Provider tokens"
             },
             "_lastLoginAttemptAt": {
               "description": "Timestamp (ms) of the last counted login attempt",
@@ -2253,6 +2253,10 @@
               "description": "Identifier on the provider (normalised email for \"email\")",
               "type": "string"
             },
+            "tokens": {
+              "$ref": "#/definitions/EncryptedField%3CIdentTokens%3E",
+              "description": "Provider tokens, encrypted at rest (`await ident.tokens.get()`)"
+            },
             "verifiedAt": {
               "description": "When the ident was verified",
               "format": "date-time",
@@ -2262,7 +2266,8 @@
           "required": [
             "_user",
             "provider",
-            "providerUid"
+            "providerUid",
+            "tokens"
           ],
           "type": "object",
           "$webda": "fromDto$auto"
@@ -2272,6 +2277,18 @@
           "WebdaModel": true,
           "additionalProperties": false,
           "definitions": {
+            "EncryptedField<IdentTokens>": {
+              "WebdaBehavior": "Webda/Encrypted",
+              "additionalProperties": false,
+              "description": "A model field encrypted at rest with the CryptoService\n\nOnly the ciphertext is stored (`__ciphertext`, server-only: `__` keys never reach a public output). The value is\nJSON-serialised, encrypted with the current symmetric key (AES, with a random IV) and wrapped in a JWT signed with\nthat key, so tampering is detected; values encrypted before a key rotation still decrypt while the CryptoService\nkeeps the old key.\n\n```typescript\nclass MyModel extends UuidModel {\n  secret: EncryptedField<{ apiKey: string }>;\n}\nawait model.secret.set({ apiKey: \"...\" });\nawait model.save();\nconst { apiKey } = await model.secret.get();\n```",
+              "properties": {
+                "__ciphertext": {
+                  "description": "Encrypted value (a JWT wrapping the AES ciphertext), never output",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
             "IdentThrottle": {
               "additionalProperties": false,
               "description": "Email sending throttle state of an ident (login failures are top-level `Ident` attributes)",
@@ -2282,31 +2299,12 @@
                 }
               },
               "type": "object"
-            },
-            "IdentTokens": {
-              "additionalProperties": false,
-              "description": "OAuth tokens associated with an identity provider",
-              "properties": {
-                "access": {
-                  "description": "Access token",
-                  "type": "string"
-                },
-                "refresh": {
-                  "description": "Refresh token",
-                  "type": "string"
-                }
-              },
-              "type": "object"
             }
           },
           "description": "An identity linked to a user: `<providerUid>:<provider>`",
           "properties": {
             "__profile": {
               "description": "Provider profile"
-            },
-            "__tokens": {
-              "$ref": "#/definitions/IdentTokens",
-              "description": "Provider tokens"
             },
             "_lastLoginAttemptAt": {
               "description": "Timestamp (ms) of the last counted login attempt",
@@ -2341,6 +2339,10 @@
               "description": "Identifier on the provider (normalised email for \"email\")",
               "type": "string"
             },
+            "tokens": {
+              "$ref": "#/definitions/EncryptedField%3CIdentTokens%3E",
+              "description": "Provider tokens, encrypted at rest (`await ident.tokens.get()`)"
+            },
             "verifiedAt": {
               "description": "When the ident was verified",
               "format": "date-time",
@@ -2350,7 +2352,8 @@
           "required": [
             "_user",
             "provider",
-            "providerUid"
+            "providerUid",
+            "tokens"
           ],
           "type": "object",
           "$webda": "toJSON$return"
@@ -4054,6 +4057,11 @@
           }
         }
       }
+    },
+    "Webda/Encrypted": {
+      "Identifier": "Webda/Encrypted",
+      "Import": "lib/models/encrypted.model:EncryptedField",
+      "Actions": {}
     }
   },
   "capabilities": {

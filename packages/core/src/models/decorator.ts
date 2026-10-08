@@ -82,6 +82,10 @@ export const Masked = createPropertyDecorator((value: any, context, mask: string
   }
 });
 
+/**
+ * Placeholder that only prefixes the value with "ENCRYPTED:": it does NOT encrypt anything
+ * @deprecated use the {@link EncryptedField} behavior (`field: EncryptedField<T>`), encrypted with the CryptoService
+ */
 export const Encrypted = createPropertyDecorator((value: any, context) => {
   if (context.kind === "field") {
     context.addInitializer(function encryptedInit(this: any) {

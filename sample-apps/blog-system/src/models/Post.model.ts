@@ -4,6 +4,7 @@ import type { Comment } from "./Comment.model.js";
 import type { Tag } from "./Tag.model.js";
 import { Binaries, Binary, Operation } from "@webda/core";
 import type { IOperationContext } from "@webda/core";
+import { bind } from "@webda/ql";
 
 /**
  * Events emitted by posts, on top of the model events
@@ -16,8 +17,10 @@ export class PostEvents<T extends Post> {
 /**
  * Post model representing blog posts
  *
- * Permission model (see `canAct` below): anyone reads, logged-in users create, the author edits, deletes and
- * publishes. The author is always the caller: it is set on create and never taken from client input.
+ * Permission model (see `canAct` below): anyone reads a published post, drafts and archived posts are the
+ * author's; logged-in users create; the author edits, deletes and publishes. The author is always the caller: it is
+ * set on create and never taken from client input. `getPermissionQuery` applies the read rule in the store, so lists
+ * never scan the other authors' drafts.
  */
 export class Post extends Model {
   [WEBDA_PRIMARY_KEY] = ["slug"] as const;
@@ -139,18 +142,40 @@ export class Post extends Model {
   }
 
   /**
+   * Store filter matching the read rule of `canAct`: published posts, plus the caller's own
+   * @param context - the caller context
+   * @returns the permission query
+   */
+  static getPermissionQuery(context?: IOperationContext): null | { partial: boolean; query: string } {
+    if (!context) {
+      return null;
+    }
+    const userId = context.getCurrentUserId();
+    return {
+      query: userId ? bind("status = 'published' OR author = ?", [userId]) : "status = 'published'",
+      partial: false
+    };
+  }
+
+  /**
    * Permission rule (instance form: the decision depends on the post)
-   * - "get": anyone, drafts included (a real blog would hide drafts from non-authors);
+   * - "get" and the binary reads: anyone for a published post, the author otherwise (drafts, archived);
    * - "create": any logged-in user (the author is the caller, see `prepareCreate`);
-   * - "update", "delete", "publish" and the binary actions: the author.
+   * - "update", "delete", "publish" and the other binary actions: the author.
    * @param context - the caller context
    * @param action - the action
    * @returns true or the refusal reason
    */
   async canAct(context: IOperationContext, action: string): Promise<boolean | string> {
     const userId = context.getCurrentUserId();
-    if (action === "get" || action.endsWith(".download") || action.endsWith(".get")) {
-      return true;
+    const isAuthor = !!userId && this.author?.toString() === userId;
+    if (
+      action === "get" ||
+      action.endsWith(".download") ||
+      action.endsWith(".downloadUrl") ||
+      action.endsWith(".get")
+    ) {
+      return this.status === "published" || isAuthor ? true : "Only the author can read an unpublished post";
     }
     if (!userId) {
       return "Login required";
@@ -158,7 +183,7 @@ export class Post extends Model {
     if (action === "create") {
       return true;
     }
-    return this.author?.toString() === userId ? true : "Only the author";
+    return isAuthor ? true : "Only the author";
   }
 
   /**

@@ -327,13 +327,15 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
    * @param username - the username
    * @returns the user id and its email/password
    */
-  async register(username: string): Promise<{ uuid: string; email: string; password: string }> {
-    const email = `${username}-${Date.now()}@example.com`;
-    const password = `${username}-secret-1`;
+  async register(name: string): Promise<{ uuid: string; email: string; password: string }> {
+    // Usernames and emails are unique: one of each per registration
+    const username = `${name}_${Date.now()}_${registered++}`;
+    const email = `${username}@example.com`;
+    const password = `${name}-secret-1`;
     const res = await this.routerHttp<{ uuid: string }>({
       method: "PUT",
       url: "/users/register",
-      body: { username, email, name: `${username} name`, password }
+      body: { username, email, name: `${name} name`, password }
     });
     assert.strictEqual(res.statusCode, 200, res.body);
     return { uuid: res.parsed!.uuid, email, password };
@@ -502,6 +504,7 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
   @test
   async registerAndLoginOpenTheSession() {
     const { uuid, email, password } = await this.register("carol");
+    const carol = (await this.routerHttp<any>({ method: "GET", url: `/users/${uuid}` })).parsed.username;
     // Registration logs the new account in
     const other = await this.routerHttp({ method: "GET", url: `/users/${uuid}` });
     assert.strictEqual(other.statusCode, 200);
@@ -517,6 +520,13 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
       assert.strictEqual(refused.statusCode, 403, JSON.stringify(bad));
       assert.strictEqual(refused.ctx.getCurrentUserId(), undefined);
     }
+    // Usernames are unique
+    const dup = await this.routerHttp({
+      method: "PUT",
+      url: "/users/register",
+      body: { username: carol, email: `other-${Date.now()}@example.com`, name: "Carol Two", password: "carol-secret-2" }
+    });
+    assert.strictEqual(dup.statusCode, 409, dup.body);
     // Accounts are created with register only
     const direct = await this.routerHttp({
       method: "POST",
@@ -534,7 +544,7 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
     // Profiles are public; the email is shown to its owner only; the password hash never
     const asBob = await this.routerHttp<any>({ method: "GET", url: `/users/${alice.uuid}`, user: bob.uuid });
     assert.strictEqual(asBob.statusCode, 200);
-    assert.strictEqual(asBob.parsed.username, "alice");
+    assert.ok(asBob.parsed.username.startsWith("alice_"));
     assert.strictEqual(asBob.parsed.email, undefined);
     assert.ok(!asBob.body!.includes("__password") && !asBob.body!.includes("__email"), asBob.body);
     const asAlice = await this.routerHttp<any>({ method: "GET", url: `/users/${alice.uuid}`, user: alice.uuid });
@@ -651,14 +661,14 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
         title: "A post title",
         slug,
         content: "Content long enough for the post validation.",
-        status: "draft",
+        status: "published",
         viewCount: 0,
         author: bob.uuid
       }
     });
     assert.strictEqual(created.statusCode, 200, created.body);
     assert.strictEqual(created.parsed.author, alice.uuid);
-    // Anyone reads, only Alice changes
+    // Anyone reads a published post, only Alice changes it
     assert.strictEqual((await this.routerHttp({ method: "GET", url: `/posts/${slug}` })).statusCode, 200);
     assert.strictEqual(
       (await this.routerHttp({ method: "GET", url: `/posts/${slug}`, user: bob.uuid })).statusCode,
@@ -754,6 +764,49 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
       (await this.routerHttp({ method: "DELETE", url: `/comments/${id}`, user: bob.uuid })).statusCode,
       204
     );
+    // Drafts and archived posts are the author's: hidden from others (single reads and lists)
+    const draft = `draft-${Date.now()}`;
+    assert.strictEqual((await this.createPost(alice.uuid, draft)).statusCode, 200);
+    assert.strictEqual(
+      (await this.routerHttp({ method: "GET", url: `/posts/${draft}`, user: bob.uuid })).statusCode,
+      404
+    );
+    assert.strictEqual((await this.routerHttp({ method: "GET", url: `/posts/${draft}` })).statusCode, 404);
+    assert.strictEqual(
+      (await this.routerHttp({ method: "GET", url: `/posts/${draft}`, user: alice.uuid })).statusCode,
+      200
+    );
+    const slugsFor = async (user?: string) =>
+      (await this.routerHttp<any>({ method: "PUT", url: "/posts", user, body: { q: "" } })).parsed.results.map(
+        (p: any) => p.slug
+      );
+    assert.ok(!(await slugsFor(bob.uuid)).includes(draft));
+    assert.ok(!(await slugsFor()).includes(draft));
+    assert.ok((await slugsFor(alice.uuid)).includes(draft));
+    assert.strictEqual(
+      (
+        await this.routerHttp({
+          method: "PATCH",
+          url: `/posts/${draft}`,
+          user: alice.uuid,
+          body: { status: "published" }
+        })
+      ).statusCode,
+      200
+    );
+    assert.ok((await slugsFor(bob.uuid)).includes(draft));
+    assert.strictEqual((await this.routerHttp({ method: "GET", url: `/posts/${draft}` })).statusCode, 200);
+    // Read-only dates are server-managed
+    const before = (await this.routerHttp<any>({ method: "GET", url: `/posts/${slug}` })).parsed.createdAt;
+    assert.ok(before);
+    const dated = await this.routerHttp({
+      method: "PATCH",
+      url: `/posts/${slug}`,
+      user: alice.uuid,
+      body: { createdAt: "2000-01-01T00:00:00.000Z" }
+    });
+    assert.ok(dated.statusCode === 200 || dated.statusCode === 400, dated.body);
+    assert.strictEqual((await this.routerHttp<any>({ method: "GET", url: `/posts/${slug}` })).parsed.createdAt, before);
     // Tags: readable by all, created by logged-in users, not editable
     assert.strictEqual(
       (await this.routerHttp({ method: "POST", url: "/tags", body: { name: "anon", slug: "anon-tag" } })).statusCode,
@@ -779,6 +832,11 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
     );
   }
 }
+
+/**
+ * Registrations so far: usernames are unique
+ */
+let registered = 0;
 
 /**
  * Application class that loads the blog-system

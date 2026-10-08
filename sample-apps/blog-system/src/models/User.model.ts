@@ -188,8 +188,12 @@ export class User extends UuidModel {
     if (!email || !password || password.length < 8) {
       throw new WebdaError.BadRequest("Email and a password of at least 8 characters are required");
     }
+    // Both are unique: the email identifies the account, the username is shown on posts
     if (await User.findByEmail(email)) {
       throw new WebdaError.Conflict("Email already registered");
+    }
+    if ((await User.query(bind("username = ?", [username]))).results.length) {
+      throw new WebdaError.Conflict("Username already taken");
     }
     const user = new User();
     user.username = username;

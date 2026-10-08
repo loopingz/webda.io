@@ -1,6 +1,7 @@
 import { Model, WEBDA_PRIMARY_KEY, BelongTo, RelateTo } from "@webda/models";
 import type { Post } from "./Post.model.js";
 import type { Tag } from "./Tag.model.js";
+import { isModelActionAllowed } from "@webda/core";
 import type { IOperationContext } from "@webda/core";
 
 /**
@@ -42,10 +43,11 @@ export class PostTag extends Model {
       return "Login required";
     }
     try {
-      // The post decides: its author may tag it (the same rule as editing it)
+      // The post decides: its author may tag it (the same rule as editing it), asked through the framework helper
+      // so the post's static policy applies too
       const { Post } = await import("./Post.model.js");
       const post = await Post.ref(this.post?.toString()).get();
-      return (await post.canAct(context, "update")) === true ? true : "Only the post author";
+      return (await isModelActionAllowed(post, context, "update", Post)) ? true : "Only the post author";
     } catch {
       return "Unknown post";
     }

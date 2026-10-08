@@ -133,6 +133,8 @@ Every model decides who may do what, through the static `canAct(context, action,
 | `UserFollow` | anyone                                                                 | the follower                                               | the follower                                                   |
 | `PostTag`    | anyone                                                                 | the post's author                                          | the post's author                                              |
 
+Published posts are readable by all; drafts and archived posts only by their author, in single reads and in lists (`getPermissionQuery`). Known limitations of this sample, not to copy as is: there is no rate limiting on `login`/`register` (bcrypt makes each attempt cheap to request and costly to serve), and `register` answers 409 on a used email, so both reveal whether an email exists; a real application adds throttling and a neutral answer.
+
 There is no authentication service in this sample: `PUT /users/register {username, email, name, password}` creates the account and opens the session, `PUT /users/login {email, password}` opens it, `PUT /users/logout` closes it. The password is stored as a bcrypt hash in the private `__password` field and the email in `__email`: private (`__`) fields are never sent to clients and never taken from client input. `User.register`/`User.login` are static operations (allowed by the static `canAct`); `changePassword`, `follow` and `unfollow` are instance operations reading their input from the context.
 
 ## Domain Model

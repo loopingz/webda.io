@@ -141,7 +141,7 @@ export class Computer extends UuidModel {
 
 A static (global) model action (`@Action()` on a static method, `PUT /<plural>/<action>`) is gated by `Model.canAct(context, "<action>")` **without object**. A refusal is a `403` (there is no object to hide). The same applies to model-registered static operations. Model actions have no `permission` option; the static `canAct` is the place to decide. A model that defines only the instance form refuses every static action; when it exposes some, the DomainService logs a warning at startup naming them.
 
-A static action declared with parameters (`static async login(email: string, password: string)`) receives them, resolved from the input schema the compiler generates; one declared without parameters receives the operation context. Instance actions receive the context and read their input with `await context.getInput()`.
+A static action declared with parameters (`static async login(email: string, password: string)`) receives them, resolved from the input schema the compiler generates. Without an input schema (a model registered at runtime, an action declared without parameters) the action receives the request body, sanitized like model input (`__` and `_` attributes, protected and read-only attributes removed, no prototype keys), or the operation context when there is no body. Instance actions receive the context and read their input with `await context.getInput()`.
 
 ### Refused reads are 404
 
@@ -202,7 +202,8 @@ Before input reaches a model, the DomainService (and GraphQL) removes:
 - `__`-prefixed (private) attributes, at any depth;
 - `_`-prefixed (server-managed) **top-level** attributes: `_user`, `_roles`, `_groups`, `_creationDate`... (nested objects keep their `_` keys). A model that genuinely accepts one from clients lists it in its static `getClientWritableAttributes()`; the parent link of a create is kept (and checked against the parent);
 - behavior attributes (changed only through the behavior's actions);
-- the attributes returned by the model's optional static `getProtectedAttributes()`, even when listed as writable. `OwnerModel` protects `_user`, so the owner can never be set or changed by a client.
+- the attributes returned by the model's optional static `getProtectedAttributes()`, even when listed as writable. `OwnerModel` protects `_user`, so the owner can never be set or changed by a client;
+- the attributes marked `@readOnly` in the model (read-only in its schemas): server-managed dates and the like.
 
 ```typescript
 import { UuidModel } from "@webda/models";
@@ -315,7 +316,11 @@ export class Draft extends UuidModel {
 
 Binary attributes (`Binary`, `Binaries`) are behaviors: their actions are checked on the parent object with the dotted name, e.g. `canAct(ctx, "avatar.attachChallenge", object)`, `"avatar.attach"`, `"avatar.download"`, `"avatar.downloadUrl"`, `"photos.get"`, `"photos.deleteAt"`, `"avatar.setMetadata"`. `OwnerModel` allows the read actions (`download`, `downloadUrl`, `get`, `getUrl`) on `public` objects to anyone, like `"get"`.
 
-The challenge (`PUT /<plural>/{uuid}/<attribute>` with `{ hash, challenge, size, name, mimetype }`) attaches an existing binary **only with proof of possession**: the `challenge` is the md5 of `"WEBDA"` + the content, so only a client holding the content can produce it. The challenge is **never sent to clients nor persisted on the object**: `BinaryMap.toJSON()` leaves it out and `uploadSuccess` drops it, so a reader of an object sees the hash of its binaries but cannot copy the proof. The hash alone never attaches a binary:
+The challenge (`PUT /<plural>/{uuid}/<attribute>` with `{ hash, challenge, size, name, mimetype }`) attaches an existing binary **only with proof of possession**: the `challenge` is the md5 of `"WEBDA"` + the content, so only a client holding the content can produce it. The challenge is **never sent to clients nor persisted on the object**: it is not part of the schema of a binary attribute (so no REST, GraphQL or MCP output carries it), `BinaryMap` never loads it (maps persisted before 4.0.0-beta.5 carry one: it is dropped on load) and `uploadSuccess` never stores it, so a reader of an object sees the hash of its binaries but cannot copy the proof.
+
+**Upgrade.** Before 4.0.0-beta.5 the challenge was persisted and sent to every reader, so any value seen then may be known to others. The proofs stored by the services before the upgrade (FileBinary `_<challenge>` markers, S3 `challenge_` keys, GCS `challenge` metadata) are therefore not trusted: a challenge on a binary that only has a legacy proof answers an upload URL and attaches nothing, and the first client to upload the content again writes the new proof (`proof_<challenge>` marker / key, `proof` metadata), after which the dedupe works as before. Residual: the formula did not change, so a value leaked before the upgrade becomes a valid proof again once that binary has been re-uploaded; binaries whose challenge may have leaked and that must stay private are to be re-uploaded as new content (or kept non-dedupable by never re-uploading them).
+
+The hash alone never attaches a binary:
 
 - `FileBinary`: with the matching challenge the binary is attached without upload; otherwise the challenge answers an upload URL and attaches nothing, and the upload stores the content, verifies it against the announced hash and attaches it then. Upload tokens only upload and download tokens only download; both are short-lived (60 seconds for an upload, the `expires` of the signed download URL);
 - `S3Binary` and the GCS `Storage`: an existing binary is attached only when the challenge matches the one stored with it (the uploader's); otherwise the upload URL is returned without attaching. New content is attached before its upload: the signed PUT carries `Content-MD5`, so the bucket only ever stores the bytes of the announced hash under that key.

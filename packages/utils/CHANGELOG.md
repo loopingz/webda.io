@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.0-beta.4](https://github.com/loopingz/webda.io/compare/utils-v4.0.0-beta.3...utils-v4.0.0-beta.4) (2026-10-08)
+
+
+### Features
+
+* deployers as commands (deployment units, CloudFormation/Lambda, daemonless OCI images) ([#796](https://github.com/loopingz/webda.io/issues/796)) ([2539cc9](https://github.com/loopingz/webda.io/commit/2539cc991c29e65a76659a379d72ce7a51ebb1e7))
+
 ## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/utils-v4.0.0-beta.1...utils-v4.0.0-beta.3) (2026-10-05)
 
 

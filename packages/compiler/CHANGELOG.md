@@ -1,5 +1,20 @@
 # Changelog
 
+## [4.0.0-beta.4](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.3...compiler-v4.0.0-beta.4) (2026-10-08)
+
+
+### Features
+
+* add @webda/create (npm create [@webda](https://github.com/webda)) with agent guidance ([#799](https://github.com/loopingz/webda.io/issues/799)) ([e29822a](https://github.com/loopingz/webda.io/commit/e29822a82bca2c58043238001c5c817db91af817))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/content-mapper bumped to 4.0.0-beta.4
+    * @webda/utils bumped to 4.0.0-beta.4
+
 ## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.2...compiler-v4.0.0-beta.3) (2026-10-05)
 
 

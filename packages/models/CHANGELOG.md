@@ -1,5 +1,29 @@
 # Changelog
 
+## [4.0.0-beta.4](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.3...models-v4.0.0-beta.4) (2026-10-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **auth:** redesign authentication with @webda/auth ([#800](https://github.com/loopingz/webda.io/issues/800))
+
+### Features
+
+* add @webda/create (npm create [@webda](https://github.com/webda)) with agent guidance ([#799](https://github.com/loopingz/webda.io/issues/799)) ([e29822a](https://github.com/loopingz/webda.io/commit/e29822a82bca2c58043238001c5c817db91af817))
+* **auth:** redesign authentication with @webda/auth ([#800](https://github.com/loopingz/webda.io/issues/800)) ([74dc5df](https://github.com/loopingz/webda.io/commit/74dc5df103bdf93cdab92b02ef966598e44e2735))
+* deployers as commands (deployment units, CloudFormation/Lambda, daemonless OCI images) ([#796](https://github.com/loopingz/webda.io/issues/796)) ([2539cc9](https://github.com/loopingz/webda.io/commit/2539cc991c29e65a76659a379d72ce7a51ebb1e7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/serialize bumped to 4.0.0-beta.4
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.4
+  * peerDependencies
+    * @webda/utils bumped to 4.0.0-beta.4
+
 ## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.1...models-v4.0.0-beta.3) (2026-10-05)
 
 

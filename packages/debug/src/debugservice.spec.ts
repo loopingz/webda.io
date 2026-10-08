@@ -4,6 +4,9 @@ import { vi } from "vitest";
 import { createServer, Server, IncomingMessage, ServerResponse } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { AddressInfo } from "node:net";
+import { existsSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { RequestLog } from "./requestlog.js";
 
 // Mocks for the actual DebugService tests
@@ -973,22 +976,32 @@ class DebugServiceStaticFileServingTest {
     assert.ok(res.status === 200 || res.status === 404);
   }
 
+  /**
+   * Built asset names (hashed by vite) of the bundled dashboard.
+   */
+  builtAssets(): string[] {
+    const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "webui", "assets");
+    return existsSync(dir) ? readdirSync(dir) : [];
+  }
+
   @test
   async servesStaticCssFile() {
-    const res = await fetch(`http://localhost:${this.port}/styles.css`);
-    if (res.status === 200) {
-      const contentType = res.headers.get("content-type");
-      assert.ok(contentType?.includes("text/css"), `Expected CSS content-type, got ${contentType}`);
-    }
+    const css = this.builtAssets().find(f => f.endsWith(".css"));
+    if (!css) return; // bundle not built
+    const res = await fetch(`http://localhost:${this.port}/assets/${css}`);
+    assert.strictEqual(res.status, 200);
+    const contentType = res.headers.get("content-type");
+    assert.ok(contentType?.includes("text/css"), `Expected CSS content-type, got ${contentType}`);
   }
 
   @test
   async servesStaticJsFile() {
-    const res = await fetch(`http://localhost:${this.port}/app.js`);
-    if (res.status === 200) {
-      const contentType = res.headers.get("content-type");
-      assert.ok(contentType?.includes("javascript"), `Expected JS content-type, got ${contentType}`);
-    }
+    const js = this.builtAssets().find(f => f.endsWith(".js"));
+    if (!js) return; // bundle not built
+    const res = await fetch(`http://localhost:${this.port}/assets/${js}`);
+    assert.strictEqual(res.status, 200);
+    const contentType = res.headers.get("content-type");
+    assert.ok(contentType?.includes("javascript"), `Expected JS content-type, got ${contentType}`);
   }
 
   @test

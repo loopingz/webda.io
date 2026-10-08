@@ -58,7 +58,21 @@
             },
             "web": {
               "type": "boolean",
-              "description": "Disable TUI and only serve the web dashboard"
+              "description": "Disable TUI and open the web dashboard (hosted on webda.io)"
+            },
+            "local": {
+              "type": "boolean",
+              "description": "With --web: serve the bundled dashboard from the debug port instead of webda.io"
+            },
+            "open": {
+              "type": "boolean",
+              "default": true,
+              "description": "With --web: open the dashboard in the browser (--no-open to only print the URL)"
+            },
+            "telemetry": {
+              "type": "boolean",
+              "default": true,
+              "description": "With --web: allow usage analytics on the hosted dashboard (--no-telemetry or WEBDA_TELEMETRY=0 to disable)"
             }
           },
           "requires": [

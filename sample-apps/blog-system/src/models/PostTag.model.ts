@@ -23,4 +23,12 @@ export class PostTag extends Model {
   // Relations to actual objects
   post!: BelongTo<Post>;
   tag!: RelateTo<Tag>;
+
+  /**
+   * Public sample — the join table is as open as the posts and tags it links (static form: no object logic needed)
+   * @returns true
+   */
+  static canAct(): boolean {
+    return true;
+  }
 }

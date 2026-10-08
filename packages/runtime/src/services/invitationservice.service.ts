@@ -567,7 +567,7 @@ export class InvitationService<
       if (
         target &&
         !(await this.hasPendingInvitation(ctx, target)) &&
-        !(await isModelActionAllowed(target, ctx, "get").catch(() => false))
+        !(await isModelActionAllowed(target, ctx, "get", this.model))
       ) {
         target = undefined;
       }

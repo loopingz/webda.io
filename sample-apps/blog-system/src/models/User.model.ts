@@ -168,7 +168,22 @@ export class User extends UuidModel {
     });
   }
 
-  /** Public sample — permissive for all actions. */
+  /**
+   * Public sample: the static operations (`login`, `logout`) are open to everyone, objects follow the instance
+   * check below
+   * @param context - the caller context
+   * @param action - the action
+   * @param object - the user, undefined for a static operation
+   * @returns true or the refusal
+   */
+  static canAct(context: any, action: string, object?: User): Promise<boolean | string> | boolean | string {
+    if (object === undefined) {
+      return ["login", "logout"].includes(action);
+    }
+    return super.canAct(context, action, object);
+  }
+
+  /** Public sample — permissive for all actions on users. Real apps restrict update/delete to the user itself. */
   async canAct(_context: any, _action: string): Promise<boolean> {
     return true;
   }

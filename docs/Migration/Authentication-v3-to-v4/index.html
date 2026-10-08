@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en" dir="ltr" class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-Migration/Authentication-v3-to-v4" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.10.2">
+<title data-rh="true">Authentication: v3 to v4 | Webda.io</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" property="og:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://webda.io/docs/Migration/Authentication-v3-to-v4"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="keywords" content="webda, typescript, framework"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Authentication: v3 to v4 | Webda.io"><meta data-rh="true" name="description" content="The authentication service moved from @webda/core to @webda/auth, and the email login became a separate provider"><meta data-rh="true" property="og:description" content="The authentication service moved from @webda/core to @webda/auth, and the email login became a separate provider"><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://webda.io/docs/Migration/Authentication-v3-to-v4"><link data-rh="true" rel="alternate" href="https://webda.io/docs/Migration/Authentication-v3-to-v4" hreflang="en"><link data-rh="true" rel="alternate" href="https://webda.io/docs/Migration/Authentication-v3-to-v4" hreflang="x-default"><link data-rh="true" rel="preconnect" href="https://UJ1RRJDCSY-dsn.algolia.net" crossorigin="anonymous"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Migration","item":"https://webda.io/docs/Migration/"},{"@type":"ListItem","position":2,"name":"Authentication: v3 to v4","item":"https://webda.io/docs/Migration/Authentication-v3-to-v4"}]}</script><link rel="search" type="application/opensearchdescription+xml" title="Webda.io" href="/opensearch.xml"><link rel="stylesheet" href="/assets/css/styles.fd0048db.css">
+<script src="/assets/js/runtime~main.75cf3f8d.js" defer="defer"></script>
+<script src="/assets/js/main.8bdc523e.js" defer="defer"></script>
+</head>
+<body>
+<svg style="display: none;"><defs>
+<symbol id="theme-svg-external-link" viewBox="0 0 24 24"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
+</defs></svg>
+<script>!function(){var t=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",t||"light"),document.documentElement.setAttribute("data-theme-choice",t||"light")}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><link rel="preload" as="image" href="/img/webda.svg"><div role="region" aria-label="Skip to main content"><a class="skipToContent_JWeg" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="theme-layout-navbar navbar navbar--fixed-top"><div class="navbar__inner"><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/"><div class="navbar__logo"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_LTLz themedComponent--light_u6Uj"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_LTLz themedComponent--dark_vFQX"></div><b class="navbar__title text--truncate">Webda.io</b></a><a class="navbar__item navbar__link" href="/docs/QuickStart">Quick Start</a><a class="navbar__item navbar__link" href="/docs/Concepts">Concepts</a><a class="navbar__item navbar__link" href="/typedoc/core/">Typedoc</a></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><a class="navbar__item navbar__link" style="opacity:0.5;transition:opacity 200ms ease;display:inline-flex;align-items:center;gap:6px" title="My Application — no daemon connected (link still works)" href="/configuration/welcome">My Application</a><a class="navbar__item navbar__link" href="/contribute/Contribute">Contribute</a><a href="https://github.com/loopingz/webda.io" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">GitHub<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_ny9m"><use href="#theme-svg-external-link"></use></svg></a><div class="toggle_Lxsn colorModeToggle_wCyq"><button class="clean-btn toggleButton_BEJb toggleButtonDisabled_wzmd" type="button" disabled="" title="system mode" aria-label="Switch between dark and light mode (currently system mode)"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m lightToggleIcon_ViIh"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m darkToggleIcon_Xnlu"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m systemToggleIcon_LOzk"><path fill="currentColor" d="m12 21c4.971 0 9-4.029 9-9s-4.029-9-9-9-9 4.029-9 9 4.029 9 9 9zm4.95-13.95c1.313 1.313 2.05 3.093 2.05 4.95s-0.738 3.637-2.05 4.95c-1.313 1.313-3.093 2.05-4.95 2.05v-14c1.857 0 3.637 0.737 4.95 2.05z"></path></svg></button></div><div class="navbarSearchContainer_agmU"><button type="button" class="DocSearch DocSearch-Button" aria-label="Search (Meta+k)" aria-keyshortcuts="Meta+k"><span class="DocSearch-Button-Container"><svg width="20" height="20" class="DocSearch-Search-Icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8" stroke="currentColor" fill="none" stroke-width="1.4"></circle><path d="m21 21-4.3-4.3" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="DocSearch-Button-Placeholder">Search</span></span><span class="DocSearch-Button-Keys"></span></button></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="theme-layout-main main-wrapper mainWrapper_ra6T"><div class="docsWrapper_ylEi"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_t5dj" type="button"></button><div class="docRoot_V1J5"><aside class="theme-doc-sidebar-container docSidebarContainer_DBGv"><div class="sidebarViewport_YVHm"><div class="sidebar_tgig"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_JjJ7"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/QuickStart/"><span class="categoryLinkLabel_Aqc2">QuickStart</span></a><button aria-label="Expand sidebar category &#x27;QuickStart&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Glossary"><span class="linkLabel_pzku">Glossary</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/Concepts/"><span class="categoryLinkLabel_Aqc2">Concepts</span></a><button aria-label="Expand sidebar category &#x27;Concepts&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/REST/"><span class="categoryLinkLabel_Aqc2">REST</span></a><button aria-label="Expand sidebar category &#x27;REST&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/Modules/"><span class="categoryLinkLabel_Aqc2">Modules</span></a><button aria-label="Expand sidebar category &#x27;Modules&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/Deployments/"><span class="categoryLinkLabel_Aqc2">Deployments</span></a><button aria-label="Expand sidebar category &#x27;Deployments&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/Security/"><span class="categoryLinkLabel_Aqc2">Security</span></a><button aria-label="Expand sidebar category &#x27;Security&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/Monitoring/"><span class="categoryLinkLabel_Aqc2">Monitoring</span></a><button aria-label="Expand sidebar category &#x27;Monitoring&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Application/"><span class="linkLabel_pzku">Application</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/CommonIssues/"><span class="categoryLinkLabel_Aqc2">Common Issues</span></a><button aria-label="Expand sidebar category &#x27;Common Issues&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/docs/Debug/DebugInVSCode"><span class="categoryLinkLabel_Aqc2">Debug</span></a></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Intro"><span class="linkLabel_pzku">Webda</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Lifecycle"><span class="linkLabel_pzku">Lifecycle</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--active" href="/docs/Migration/"><span class="categoryLinkLabel_Aqc2">Migration</span></a><button aria-label="Collapse sidebar category &#x27;Migration&#x27;" aria-expanded="true" type="button" class="clean-btn menu__caret"></button></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/docs/Migration/Authentication-v3-to-v4"><span class="linkLabel_pzku">Authentication: v3 to v4</span></a></li></ul></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Testing"><span class="linkLabel_pzku">Testing your application</span></a></li></ul></nav></div></div></aside><main class="docMainContainer_t64q"><div class="container padding-top--md padding-bottom--lg"><div class="row"><div class="col docItemCol_PNm0"><div class="docItemContainer_fty0"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_TsV8" aria-label="Breadcrumbs"><ul class="breadcrumbs"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_ZRLn"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li class="breadcrumbs__item"><a class="breadcrumbs__link" href="/docs/Migration/"><span>Migration</span></a></li><li class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link">Authentication: v3 to v4</span></li></ul></nav><div class="tocCollapsible_OUT1 theme-doc-toc-mobile tocMobile_MVBj"><button type="button" class="clean-btn tocCollapsibleButton_jdOG">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>Authentication: v3 to v4</h1></header>
+<p>The authentication service moved from <code>@webda/core</code> to <code>@webda/auth</code>, and the email login became a separate provider
+service. See <a class="" href="/docs/Security/Authentication">Authentication</a> for the complete reference.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="configuration-map">Configuration map<a href="#configuration-map" class="hash-link" aria-label="Direct link to Configuration map" title="Direct link to Configuration map" translate="no">​</a></h2>
+<p>The <code>Authentication</code> service type is now <code>Webda/Authentication</code> (package <code>@webda/auth</code>) and the email part is its own
+service, <code>Webda/EmailPasswordProvider</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>v3</th><th>v4</th></tr></thead><tbody><tr><td><code>email.postValidation: true</code></td><td><code>verification: &quot;after&quot;</code></td></tr><tr><td><code>email.skipEmailValidation: true</code></td><td><code>verification: &quot;none&quot;</code></td></tr><tr><td>neither</td><td><code>verification: &quot;before&quot;</code> (default)</td></tr><tr><td><code>password.regexp</code></td><td><code>password.policy</code></td></tr><tr><td><code>email.delay</code></td><td><code>throttle.resendDelay</code></td></tr><tr><td><code>failedLoginBeforeDelay</code></td><td><code>throttle.failedBeforeDelay</code></td></tr><tr><td><code>failureRedirect</code></td><td><code>redirects.failure</code></td></tr><tr><td><code>successRedirect</code></td><td><code>redirects.verified</code></td></tr><tr><td><code>registerRedirect</code></td><td><code>redirects.register</code></td></tr></tbody></table>
+<div class="language-jsonc codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-jsonc codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">{</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;services&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;Authentication&quot;: { &quot;type&quot;: &quot;Webda/Authentication&quot;, &quot;compatibility&quot;: { &quot;v3&quot;: true } },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;emailAuth&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;type&quot;: &quot;Webda/EmailPasswordProvider&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;verification&quot;: &quot;before&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      // example values: pages of your front-end, required (no defaults)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;redirects&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;verified&quot;: &quot;https://app.example.com/email-verified&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;failure&quot;: &quot;https://app.example.com/link-failed&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;register&quot;: &quot;https://app.example.com/register&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;recover&quot;: &quot;https://app.example.com/reset-password&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p><code>redirects.failure</code> and <code>redirects.recover</code> are required, <code>redirects.verified</code> and <code>redirects.register</code> too unless
+<code>verification</code> is <code>&quot;none&quot;</code>: the provider refuses to start without them. The recovery mail links to
+<code>GET &lt;url&gt;/recover?token=...</code>, redirected to <code>redirects.recover?token=...</code>.</p>
+<p>New in v4: <code>redirects.recover</code>, <code>redirects.confirm</code>, <code>linking</code>, <code>registration</code>, <code>allowedEmailDomains</code>, <code>trustEmailVerification</code>,
+<code>throttle.lockout</code>, <code>password.verifier</code>.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="route-map">Route map<a href="#route-map" class="hash-link" aria-label="Direct link to Route map" title="Direct link to Route map" translate="no">​</a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>v3 route</th><th>v4</th></tr></thead><tbody><tr><td><code>POST /auth/email</code></td><td><code>Auth.Email.Login</code> (<code>POST auth/email/login</code>) / <code>Auth.Email.Register</code> (<code>POST auth/email/register</code>)</td></tr><tr><td><code>GET /auth/email/{email}/recover</code></td><td><code>Auth.Password.StartRecovery</code> (<code>POST auth/password/recovery</code>)</td></tr><tr><td><code>POST /auth/email/passwordRecovery</code></td><td><code>Auth.Password.Recover</code> (<code>POST auth/password/recover</code>)</td></tr><tr><td><code>GET /auth/email/callback</code></td><td><code>GET auth/email/verify</code> + <code>Auth.Email.Verify</code></td></tr><tr><td><code>GET /auth/email/{email}/validate</code></td><td><code>Auth.Email.StartVerification</code> (<code>POST auth/email/verification</code>)</td></tr><tr><td><code>GET /auth</code></td><td><code>Auth.Providers</code> (<code>GET auth/providers</code>)</td></tr><tr><td><code>DELETE /auth</code></td><td><code>Auth.Logout</code> (<code>POST auth/logout</code>)</td></tr><tr><td><code>GET /auth/me</code></td><td><code>Auth.Me</code> (<code>GET auth/me</code>)</td></tr></tbody></table>
+<p>New operations: <code>Auth.Refresh</code>, <code>Auth.Idents</code>, <code>Auth.Unlink</code>, <code>Auth.Password.Change</code>.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="google-webdagoogle-auth">Google (<code>@webda/google-auth</code>)<a href="#google-webdagoogle-auth" class="hash-link" aria-label="Direct link to google-webdagoogle-auth" title="Direct link to google-webdagoogle-auth" translate="no">​</a></h3>
+<p><code>GoogleAuthentication</code> is now an <code>@webda/auth</code> provider (<code>OAuthProvider</code>), configured as its own service next to
+<code>Authentication</code> (it was a provider of the v3 <code>Authentication</code> / an <code>OAuthService</code>). The modda name is unchanged.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>v3</th><th>v4</th></tr></thead><tbody><tr><td><code>url</code> default <code>/google</code></td><td><code>url</code> default <code>/auth/google</code></td></tr><tr><td><code>authorized_uris</code> (regexps)</td><td><code>authorized_uris</code>: absolute urls, same origin + path prefix match</td></tr><tr><td>referer used as post-login target</td><td><code>?redirect=</code> only (checked against <code>authorized_uris</code>), else <code>redirects.success</code></td></tr><tr><td><code>redirects.use_referer/whitelist/defaults</code></td><td><code>redirects.success</code>, <code>redirects.failure</code> (required)</td></tr><tr><td><code>no_referer</code>, <code>exposeScope</code>, <code>authenticationService</code>, <code>project_id</code></td><td>removed</td></tr><tr><td><code>scope</code> default <code>[&quot;email&quot;]</code></td><td><code>[&quot;openid&quot;, &quot;email&quot;, &quot;profile&quot;]</code></td></tr><tr><td><code>POST &lt;url&gt;/token</code> with <code>{ tokens: Credentials }</code></td><td><code>Auth.Google.Token</code> (<code>POST auth/google/token</code>): the same JSON body <code>{ tokens }</code> still works (its <code>id_token</code> is verified), or <code>{ token: &quot;&lt;id token&gt;&quot; }</code>; JSON <code>Content-Type</code> required</td></tr><tr><td><code>GoogleAuth.Tokens</code> event</td><td>kept: <code>{ tokens, context }</code> after a successful callback or token login</td></tr><tr><td><code>OAuth.Callback</code> event</td><td><code>Authentication.Login</code> (without provider tokens)</td></tr><tr><td>ident <code>__tokens</code> (plaintext)</td><td>ident <code>tokens</code>, encrypted (<code>await ident.tokens.get()</code>); upgraded idents are encrypted</td></tr><tr><td><code>getLocalClient()</code> (local callback server)</td><td>removed</td></tr></tbody></table>
+<p>The v3 <code>checkRequest</code> request filter (which let the provider referer call the routes) is gone: an application with
+its own request filters (CORS, CSRF...) must allow <code>GET &lt;url&gt;</code>, <code>GET &lt;url&gt;/callback</code> and <code>POST auth/google/token</code>.
+The browser flow now uses PKCE and an OpenID nonce and keeps its state in a dedicated <code>webda_oauth_google</code> cookie
+(not the session). <code>Auth.Google.Token</code> never links an identity to the logged-in user.</p>
+<p>New: <code>audiences</code>, <code>hostedDomain</code>, <code>allowedEmailDomains</code>, <code>trustEmailVerification</code>. v3 Google idents
+(<code>&lt;sub&gt;_google</code>) are upgraded like the others (lazily, or with <code>webda auth migrate</code>). Register
+<code>&lt;url&gt;/callback</code> (or your <code>redirect_uri</code>) as an authorized redirect URI in the Google Cloud console.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="behaviour-changes">Behaviour changes<a href="#behaviour-changes" class="hash-link" aria-label="Direct link to Behaviour changes" title="Direct link to Behaviour changes" translate="no">​</a></h2>
+<ul>
+<li class="">Sessions are complemented by an access JWT (15 min) and rotating refresh tokens; clients should send
+<code>Authorization: Bearer</code>.</li>
+<li class="">Verifying an email requires a logged-in session matching the token&#x27;s user; a verify link opened without it redirects
+to <code>redirects.confirm</code> with <code>reason=LOGIN_REQUIRED&amp;token=...</code> and changes nothing.</li>
+<li class="">Successful password recovery marks the email as verified, resets the login attempts and ends all sessions of the
+user (refresh tokens revoked; cookie sessions and access tokens authenticated before the change are loaded as
+anonymous). A password change ends the other sessions.</li>
+<li class="">A session waiting for its second factor has no current user (<code>getCurrentUserId()</code> is <code>undefined</code>).</li>
+<li class="">Account linking follows the <code>linking</code> policy (default <code>verified</code>): an unauthenticated login on an email owned by a
+verified ident gets <code>ACCOUNT_EXISTS</code> unless the provider asserts the email as verified.</li>
+<li class="">Login failures are counted before the password check, on the <code>_loginAttempts</code> / <code>_lastLoginAttemptAt</code> ident fields
+(v3: <code>_failedLogin</code>).</li>
+<li class="">Logged-out <code>StartVerification</code> and <code>StartRecovery</code> never reveal whether an email exists. They, and a <code>before</code> mode
+<code>Auth.Email.Register</code> without token, send at most one mail per <code>throttle.resendDelay</code> per address.</li>
+<li class="">The user password is a <code>password</code> behavior (<code>user.password.set(...)</code>, <code>.verify(...)</code>), not methods of <code>User</code>.</li>
+<li class="">Server-only fields: the REST/DomainService layer strips every <code>__</code>-prefixed key (any depth) and behavior attributes
+from client input on create/update/patch, and an update keeps the stored behavior state. GraphQL create/update
+mutations apply the same rules, and their generated input types omit <code>__</code> and behavior attributes.</li>
+<li class=""><code>MemoryRepository</code> and <code>FileStore</code> return model instances for rows without an envelope.</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="data-migration">Data migration<a href="#data-migration" class="hash-link" aria-label="Direct link to Data migration" title="Direct link to Data migration" translate="no">​</a></h2>
+<p>v3 stores idents under <code>&quot;&lt;providerUid&gt;_&lt;provider&gt;&quot;</code> keys and passwords in <code>User.__password</code>. v4 uses
+<code>&quot;&lt;providerUid&gt;:&lt;provider&gt;&quot;</code> keys and the <code>password</code> behavior.</p>
+<ol>
+<li class="">Keep <code>compatibility.v3: true</code> (default). v3 data then works as is: v3 ident keys are read through a legacy key hook,
+an ident is upgraded when it is used to log in and when a user&#x27;s idents are listed, and a user&#x27;s <code>__password</code> is
+mapped on load.</li>
+<li class="">Preview: <code>webda auth migrate --dryRun</code> (nothing is written; counts of idents and users that would migrate).</li>
+<li class="">Migrate: <code>webda auth migrate [--batch N]</code> (<code>--batch</code> is the page size, default 100). It runs several passes until
+nothing more is upgraded, is idempotent, and reports <code>migrated</code>, <code>skipped</code> and <code>failed</code> per kind. If it reports
+<code>incomplete</code>, run it again.</li>
+<li class="">Set <code>compatibility.v3: false</code> once the report is clean.</li>
+</ol>
+<p>Field map: <code>_failedLogin</code> -&gt; <code>_loginAttempts</code>, <code>_lastFailedLogin</code> -&gt; <code>_lastLoginAttemptAt</code>, <code>_lastValidationEmail</code> -&gt;
+<code>_throttle.lastSentAt</code>, <code>_validation</code> -&gt; <code>verifiedAt</code>, <code>__password</code> -&gt; <code>password.__hash</code>. A v3 failure count without
+<code>_lastFailedLogin</code> is treated as an expired lock: the next login is verified normally and counting resumes.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="collisions-and-malformed-keys">Collisions and malformed keys<a href="#collisions-and-malformed-keys" class="hash-link" aria-label="Direct link to Collisions and malformed keys" title="Direct link to Collisions and malformed keys" translate="no">​</a></h3>
+<ul>
+<li class="">Two v3 idents that differ only by case (for example <code>Bob@x.com_email</code> and <code>bob@x.com_email</code>) upgrade to the same v4
+key. The second is reported in <code>idents.failed</code> as <code>IDENT_CONFLICT</code> and kept untouched. Decide which user keeps the
+email, delete (or rename) the other v3 row, and run the command again. Until then the account stays usable (the row
+is skipped when listing, with a warning).</li>
+<li class="">A malformed ident key aborts the scan with guidance: remove that row manually and re-run.</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="known-issues">Known issues<a href="#known-issues" class="hash-link" aria-label="Direct link to Known issues" title="Direct link to Known issues" translate="no">​</a></h2>
+<ul>
+<li class="">Access tokens stay valid until expiry after logout (a password change does end them).</li>
+<li class=""><code>__</code>-prefixed fields are now server-only: an application that wrote them through REST must use an operation instead.</li>
+</ul></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col noPrint_hLnR"><a href="https://github.com/loopingz/webda.io/tree/docs/pages/Migration/Authentication-v3-to-v4.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_a9_Z" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_GhXS"></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/docs/Migration/"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">Migration</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/docs/Testing"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">Testing your application</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_kFBU thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#configuration-map" class="table-of-contents__link toc-highlight">Configuration map</a></li><li><a href="#route-map" class="table-of-contents__link toc-highlight">Route map</a><ul><li><a href="#google-webdagoogle-auth" class="table-of-contents__link toc-highlight">Google (<code>@webda/google-auth</code>)</a></li></ul></li><li><a href="#behaviour-changes" class="table-of-contents__link toc-highlight">Behaviour changes</a></li><li><a href="#data-migration" class="table-of-contents__link toc-highlight">Data migration</a><ul><li><a href="#collisions-and-malformed-keys" class="table-of-contents__link toc-highlight">Collisions and malformed keys</a></li></ul></li><li><a href="#known-issues" class="table-of-contents__link toc-highlight">Known issues</a></li></ul></div></div></div></div></main></div></div></div><div style="background-color:#afcedb;height:48px"></div></div>
+</body>
+</html>

@@ -1,0 +1,1649 @@
+<!doctype html>
+<html lang="en" dir="ltr" class="docs-wrapper plugin-docs plugin-id-contribute docs-version-current docs-doc-page docs-doc-id-TypeScript 7 Content Mappers" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.10.2">
+<title data-rh="true">TypeScript 7.1: Why We Chose Content Mappers | Webda.io</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" property="og:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://webda.io/contribute/TypeScript 7 Content Mappers"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="keywords" content="webda, typescript, framework"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-contribute-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-contribute-current"><meta data-rh="true" property="og:title" content="TypeScript 7.1: Why We Chose Content Mappers | Webda.io"><meta data-rh="true" name="description" content="Decision: Webda&#x27;s compile-time code generation moves to a TypeScript 7.1 content mapper"><meta data-rh="true" property="og:description" content="Decision: Webda&#x27;s compile-time code generation moves to a TypeScript 7.1 content mapper"><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://webda.io/contribute/TypeScript 7 Content Mappers"><link data-rh="true" rel="alternate" href="https://webda.io/contribute/TypeScript 7 Content Mappers" hreflang="en"><link data-rh="true" rel="alternate" href="https://webda.io/contribute/TypeScript 7 Content Mappers" hreflang="x-default"><link data-rh="true" rel="preconnect" href="https://UJ1RRJDCSY-dsn.algolia.net" crossorigin="anonymous"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"TypeScript 7.1: Why We Chose Content Mappers","item":"https://webda.io/contribute/TypeScript 7 Content Mappers"}]}</script><link rel="search" type="application/opensearchdescription+xml" title="Webda.io" href="/opensearch.xml"><link rel="stylesheet" href="/assets/css/styles.fd0048db.css">
+<script src="/assets/js/runtime~main.75cf3f8d.js" defer="defer"></script>
+<script src="/assets/js/main.8bdc523e.js" defer="defer"></script>
+</head>
+<body>
+<svg style="display: none;"><defs>
+<symbol id="theme-svg-external-link" viewBox="0 0 24 24"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
+</defs></svg>
+<script>!function(){var t=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",t||"light"),document.documentElement.setAttribute("data-theme-choice",t||"light")}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><link rel="preload" as="image" href="/img/webda.svg"><div role="region" aria-label="Skip to main content"><a class="skipToContent_JWeg" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="theme-layout-navbar navbar navbar--fixed-top"><div class="navbar__inner"><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/"><div class="navbar__logo"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_LTLz themedComponent--light_u6Uj"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_LTLz themedComponent--dark_vFQX"></div><b class="navbar__title text--truncate">Webda.io</b></a><a class="navbar__item navbar__link" href="/docs/QuickStart">Quick Start</a><a class="navbar__item navbar__link" href="/docs/Concepts">Concepts</a><a class="navbar__item navbar__link" href="/typedoc/core/">Typedoc</a></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><a class="navbar__item navbar__link" style="opacity:0.5;transition:opacity 200ms ease;display:inline-flex;align-items:center;gap:6px" title="My Application — no daemon connected (link still works)" href="/configuration/welcome">My Application</a><a aria-current="page" class="navbar__item navbar__link navbar__link--active" href="/contribute/Contribute">Contribute</a><a href="https://github.com/loopingz/webda.io" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">GitHub<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_ny9m"><use href="#theme-svg-external-link"></use></svg></a><div class="toggle_Lxsn colorModeToggle_wCyq"><button class="clean-btn toggleButton_BEJb toggleButtonDisabled_wzmd" type="button" disabled="" title="system mode" aria-label="Switch between dark and light mode (currently system mode)"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m lightToggleIcon_ViIh"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m darkToggleIcon_Xnlu"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m systemToggleIcon_LOzk"><path fill="currentColor" d="m12 21c4.971 0 9-4.029 9-9s-4.029-9-9-9-9 4.029-9 9 4.029 9 9 9zm4.95-13.95c1.313 1.313 2.05 3.093 2.05 4.95s-0.738 3.637-2.05 4.95c-1.313 1.313-3.093 2.05-4.95 2.05v-14c1.857 0 3.637 0.737 4.95 2.05z"></path></svg></button></div><div class="navbarSearchContainer_agmU"><button type="button" class="DocSearch DocSearch-Button" aria-label="Search (Meta+k)" aria-keyshortcuts="Meta+k"><span class="DocSearch-Button-Container"><svg width="20" height="20" class="DocSearch-Search-Icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8" stroke="currentColor" fill="none" stroke-width="1.4"></circle><path d="m21 21-4.3-4.3" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="DocSearch-Button-Placeholder">Search</span></span><span class="DocSearch-Button-Keys"></span></button></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="theme-layout-main main-wrapper mainWrapper_ra6T"><div class="docsWrapper_ylEi"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_t5dj" type="button"></button><div class="docRoot_V1J5"><aside class="theme-doc-sidebar-container docSidebarContainer_DBGv"><div class="sidebarViewport_YVHm"><div class="sidebar_tgig"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_JjJ7"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/contribute/Contribute"><span class="linkLabel_pzku">Contribute</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/contribute/Docker"><span class="linkLabel_pzku">Docker development version</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/contribute/Ideas/Versioning"><span class="categoryLinkLabel_Aqc2">Ideas</span></a></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" href="/contribute/TypeScript 7 Content Mappers"><span class="linkLabel_pzku">TypeScript 7.1: Why We Chose Content Mappers</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/contribute/WebdaQL Development"><span class="linkLabel_pzku">WebdaQL Developement</span></a></li></ul></nav></div></div></aside><main class="docMainContainer_t64q"><div class="container padding-top--md padding-bottom--lg"><div class="row"><div class="col docItemCol_PNm0"><div class="docItemContainer_fty0"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_TsV8" aria-label="Breadcrumbs"><ul class="breadcrumbs"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_ZRLn"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link">TypeScript 7.1: Why We Chose Content Mappers</span></li></ul></nav><div class="tocCollapsible_OUT1 theme-doc-toc-mobile tocMobile_MVBj"><button type="button" class="clean-btn tocCollapsibleButton_jdOG">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>TypeScript 7.1: Why We Chose Content Mappers</h1></header>
+<p><strong>Decision:</strong> Webda&#x27;s compile-time code generation moves to a <strong>TypeScript 7.1 content mapper</strong>
+for type-checking and editor support, plus a <strong>two-pass virtual-filesystem build</strong> for
+JavaScript emit. Model and service sources adopt a <code>.model.ts</code> / <code>.service.ts</code> suffix.</p>
+<p>This page records why, what was measured, and what we are knowingly accepting.</p>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="1-the-problem">1. The problem<a href="#1-the-problem" class="hash-link" aria-label="Direct link to 1. The problem" title="Direct link to 1. The problem" translate="no">​</a></h2>
+<p>Webda generates code at compile time. The clearest example is property coercion:</p>
+<div class="language-ts codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-ts codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">export</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">class</span><span class="token plain"> </span><span class="token class-name">User</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">extends</span><span class="token plain"> </span><span class="token class-name">Model</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  createdAt</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> Date</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p>You are allowed to write <code>user.createdAt = &quot;2020-01-01&quot;</code> — the value is coerced on the way
+in. Today that works through a <code>ts-patch</code>-installed emit transformer which synthesises:</p>
+<div class="language-js codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-js codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">get</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">createdAt</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token keyword control-flow" style="color:#00009f">return</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">this</span><span class="token punctuation" style="color:#393A34">[</span><span class="token constant" style="color:#36acaa">WEBDA_STORAGE</span><span class="token punctuation" style="color:#393A34">]</span><span class="token punctuation" style="color:#393A34">[</span><span class="token string" style="color:#e3116c">&quot;createdAt&quot;</span><span class="token punctuation" style="color:#393A34">]</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">set</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">createdAt</span><span class="token punctuation" style="color:#393A34">(</span><span class="token parameter">value</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">this</span><span class="token punctuation" style="color:#393A34">[</span><span class="token constant" style="color:#36acaa">WEBDA_STORAGE</span><span class="token punctuation" style="color:#393A34">]</span><span class="token punctuation" style="color:#393A34">[</span><span class="token string" style="color:#e3116c">&quot;createdAt&quot;</span><span class="token punctuation" style="color:#393A34">]</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> value </span><span class="token operator" style="color:#393A34">!=</span><span class="token plain"> </span><span class="token keyword null nil" style="color:#00009f">null</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">?</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">new</span><span class="token plain"> </span><span class="token class-name">Date</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">value</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> value</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p>and a matching <code>.d.ts</code> through an <code>afterDeclarations</code> transformer, with <code>@webda/ts-plugin</code>
+suppressing the false <code>TS2322</code> the editor would otherwise report.</p>
+<p><strong>TypeScript 7 — the native Go port — removes every one of those hooks.</strong> Verified against
+the shipped binary:</p>
+<ul>
+<li class="">no <code>createProgram</code> / <code>factory</code> / <code>transform</code> exported from <code>typescript</code></li>
+<li class="">zero <code>TransformerFactory</code> / <code>CustomTransformer</code> anywhere in the distribution</li>
+<li class=""><code>emit()</code> takes no transformers parameter</li>
+<li class="">the <code>tsgo</code> binary contains no plugin-loading machinery at all — a
+<code>&quot;plugins&quot;: [{ &quot;name&quot;: &quot;@webda/ts-plugin&quot; }]</code> entry is silently ignored</li>
+</ul>
+<p><code>ts-patch</code> and language-service plugins are not temporarily unavailable. They are gone, and
+the 7.1 API additions make clear the direction is <em>analyse → generate source → emit</em>.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="2-the-insight-that-makes-any-of-this-possible">2. The insight that makes any of this possible<a href="#2-the-insight-that-makes-any-of-this-possible" class="hash-link" aria-label="Direct link to 2. The insight that makes any of this possible" title="Direct link to 2. The insight that makes any of this possible" translate="no">​</a></h2>
+<p>The <code>.d.ts</code> the current transformer produces is an <strong>asymmetric accessor</strong>:</p>
+<div class="language-ts codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-ts codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">get</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">createdAt</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">)</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> Date</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">set</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">createdAt</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">value</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token builtin">string</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">|</span><span class="token plain"> </span><span class="token builtin">number</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">|</span><span class="token plain"> Date</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p>Asymmetric accessors have been legal TypeScript <em>source</em> since 4.3. So the entire apparatus
+exists to synthesise, at emit time, something you are simply allowed to write down.</p>
+<p>Write it in the source and:</p>
+<ul>
+<li class="">any compiler (tsc, tsgo, esbuild, swc) emits the correct <code>.js</code> and <code>.d.ts</code></li>
+<li class="">the false <code>TS2322</code> disappears, because the setter genuinely accepts the wide type</li>
+<li class="">the language-service plugin and <code>ts-patch</code> both become unnecessary</li>
+</ul>
+<p>Every option below is a different answer to <em>when</em> and <em>where</em> that text gets written.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="3-options-considered">3. Options considered<a href="#3-options-considered" class="hash-link" aria-label="Direct link to 3. Options considered" title="Direct link to 3. Options considered" translate="no">​</a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th></th><th>Authored source</th><th>Build</th><th>Editor</th><th>Verdict</th></tr></thead><tbody><tr><td><strong>A.</strong> Wrapper + hand-rolled LSP proxy</td><td>clean</td><td>temp-dir wrapper</td><td>LSP proxy we own forever</td><td>rejected — unbounded maintenance</td></tr><tr><td><strong>B.</strong> In-place codegen, committed</td><td>contains generated accessors</td><td>plain <code>tsc</code></td><td>correct natively</td><td>rejected — see §7</td></tr><tr><td><strong>C.</strong> Narrow the API so coercion is explicit</td><td>clean</td><td>plain <code>tsc</code></td><td>correct natively</td><td>rejected — breaking API change</td></tr><tr><td><strong>D.</strong> Content mapper + two-pass build</td><td>clean</td><td>two-pass virtual FS</td><td>correct natively</td><td><strong>chosen</strong></td></tr></tbody></table>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="4-what-a-content-mapper-is">4. What a content mapper is<a href="#4-what-a-content-mapper-is" class="hash-link" aria-label="Direct link to 4. What a content mapper is" title="Direct link to 4. What a content mapper is" translate="no">​</a></h2>
+<p>Content mappers landed in TypeScript 7.1 (<code>microsoft/typescript-go#4712</code>, completed in
+<code>microsoft/TypeScript#63936</code>). They are the supported successor to language-service plugins
+for source-generating tools, and they are wired into <code>tsc</code>, the project system,
+<code>.tsbuildinfo</code> <strong>and the language server</strong>.</p>
+<p>A mapper is a separate process speaking JSON-RPC over stdio. TypeScript drives every
+exchange — <code>initialize</code> → <code>openProject</code> → <code>transform</code>* → <code>closeProject</code>. Mappers never
+initiate.</p>
+<p>Registration is a tsconfig option plus a package manifest:</p>
+<div class="language-jsonc codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-jsonc codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">// tsconfig.json</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">{</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;contentMappers&quot;: [</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;package&quot;: &quot;@webda/content-mapper&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;extensions&quot;: [&quot;.model.ts&quot;, &quot;.service.ts&quot;],</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;options&quot;: { &quot;storageModule&quot;: &quot;@webda/models&quot; }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  ]</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<div class="language-jsonc codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-jsonc codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">// @webda/content-mapper/package.json</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">{</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;typescript&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;contentMapper&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;exec&quot;: [&quot;node&quot;, &quot;dist/server.js&quot;],</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;compilerOptions&quot;: [&quot;module&quot;, &quot;target&quot;]</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p><code>transform</code> returns the rewritten text plus a <strong>span map</strong> — tuples of
+<code>[virtualStart, virtualLength, originalStart, originalLength, kind, features?]</code> — where
+<code>kind</code> is <code>Verbatim</code>, <code>Atom</code> or <code>Alias</code>, and <code>features</code> is a bitmask enabling individual
+language-server features per span. Untouched regions map verbatim, which is what keeps
+diagnostics, hover and rename landing on the authored text.</p>
+<p>Content mappers are trust-gated: <code>tsc --runExternalCode</code> on the command line, and
+<code>initializationOptions.runExternalCode</code> over LSP. Note it is <strong>not</strong> an LSP command-line
+flag — <code>tsc --lsp --runExternalCode</code> fails with <code>flag provided but not defined</code>.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="5-constraints-we-verified">5. Constraints we verified<a href="#5-constraints-we-verified" class="hash-link" aria-label="Direct link to 5. Constraints we verified" title="Direct link to 5. Constraints we verified" translate="no">​</a></h2>
+<p>These were established empirically against <code>typescript@7.1.0-dev.20260918.1</code>, not inferred
+from documentation.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="a-mapper-cannot-claim-ts">A mapper cannot claim <code>.ts</code><a href="#a-mapper-cannot-claim-ts" class="hash-link" aria-label="Direct link to a-mapper-cannot-claim-ts" title="Direct link to a-mapper-cannot-claim-ts" translate="no">​</a></h3>
+<div class="language-text codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-text codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">error TS100021: Content mapper file extension &#x27;.ts&#x27; is a built-in extension</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">and cannot be registered by a content mapper.</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p>Content mappers exist to bring <em>foreign</em> file types into a program — <code>.vue</code>, <code>.svelte</code>,
+<code>.astro</code>. On the face of it the feature does not apply to Webda at all.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="but-compound-suffixes-are-accepted">But compound suffixes are accepted<a href="#but-compound-suffixes-are-accepted" class="hash-link" aria-label="Direct link to But compound suffixes are accepted" title="Direct link to But compound suffixes are accepted" translate="no">​</a></h3>
+<p><code>.model.ts</code>, <code>.webda.ts</code> and <code>.wts</code> all pass validation. Only a missing leading dot is
+rejected (<code>model.ts</code> → <code>TS100020</code>). <code>.model.ts</code> was then verified end to end: the mapper is
+invoked, the transform applied, diagnostics mapped back, and the file imported with an
+ordinary <code>nodenext</code> specifier (<code>./user.model.js</code>).</p>
+<p>This is the finding the whole decision rests on. Because the filename still <em>ends</em> in <code>.ts</code>,
+eslint, prettier, vitest, bundlers and editor syntax highlighting keep treating it as
+TypeScript. No tooling outside the compiler needs to know.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="modelts-degrades-gracefully-wts-does-not"><code>.model.ts</code> degrades gracefully; <code>.wts</code> does not<a href="#modelts-degrades-gracefully-wts-does-not" class="hash-link" aria-label="Direct link to modelts-degrades-gracefully-wts-does-not" title="Direct link to modelts-degrades-gracefully-wts-does-not" translate="no">​</a></h3>
+<p>With mappers disabled, the two behave very differently:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th></th><th>mappers on</th><th>mappers off</th></tr></thead><tbody><tr><td><code>.model.ts</code></td><td>transformed</td><td><strong>compiles as plain TypeScript</strong></td></tr><tr><td><code>.wts</code></td><td>transformed</td><td><code>TS2307: Cannot find module</code></td></tr></tbody></table>
+<p>This is why we chose a compound suffix over a novel extension. Any tool that is not
+mapper-aware — including the mapper&#x27;s <em>own</em> resident program, see §6 — still sees valid
+TypeScript.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="mappers-emit-declarations-not-javascript">Mappers emit declarations, not JavaScript<a href="#mappers-emit-declarations-not-javascript" class="hash-link" aria-label="Direct link to Mappers emit declarations, not JavaScript" title="Direct link to Mappers emit declarations, not JavaScript" translate="no">​</a></h3>
+<p>For a mapped input, <code>tsc</code> emits only a declaration file, and currently with a mangled name:</p>
+<div class="language-text codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-text codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">lib/user.d.model.ts.ts     # content correct, filename is not</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p>This is by design — in the Vue model, a bundler compiles the component and TypeScript only
+type-checks and emits types. The filename is a known defect
+(<code>microsoft/TypeScript#64053</code>, fix in flight as <code>#64120</code>).</p>
+<p><strong>Webda needs <code>tsc</code> to produce runtime JavaScript, so content mappers cannot be our build
+path.</strong> That is why the decision includes a two-pass build.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="6-the-architecture">6. The architecture<a href="#6-the-architecture" class="hash-link" aria-label="Direct link to 6. The architecture" title="Direct link to 6. The architecture" translate="no">​</a></h2>
+<p>The two halves share one implementation of the transform. The generators and the plan model
+(<code>Edit</code> = <code>[start, end) -&gt; text</code>) are the stable core; the mapper and the build are thin
+hosts around it.</p>
+<!-- -->
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="the-resident-program">The resident program<a href="#the-resident-program" class="hash-link" aria-label="Direct link to The resident program" title="Direct link to The resident program" translate="no">​</a></h3>
+<p><code>transform(fileName, content)</code> hands the mapper one file&#x27;s text and nothing else — no
+<code>Program</code>, no <code>Checker</code>. That is not enough for Webda: the dominant coercions
+(<code>ManyToOne&lt;T&gt;</code> → <code>ModelLink</code>, <code>OneToMany&lt;T&gt;</code> → <code>ModelRelated</code>, <code>@WebdaAutoSetter</code>
+set-methods) all require type resolution. Measured in this repo, there are roughly <strong>4</strong>
+plain <code>Date</code> fields against <strong>~100</strong> relation ones, so a purely syntactic mapper would cover
+the rare case and miss the common one.</p>
+<p>So the mapper runs its own TypeScript program over the original sources and keeps it warm
+across requests. Unsaved editor buffers reach it through a filesystem layer.</p>
+<p>Because <code>.model.ts</code> degrades to plain TypeScript, the mapper opens the project&#x27;s own
+tsconfig <em>without</em> <code>runExternalCode</code>: mappers are inert in its resident program, so
+recursion is impossible.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="two-implementation-traps">Two implementation traps<a href="#two-implementation-traps" class="hash-link" aria-label="Direct link to Two implementation traps" title="Direct link to Two implementation traps" translate="no">​</a></h3>
+<p>Both cost real debugging time, and the second is dangerous:</p>
+<ul>
+<li class=""><strong><code>APIOptions.fs</code> cannot carry the unsaved buffer.</strong> Source files are cached, so the
+spawn-time <code>readFile</code> callback is consulted once and a later edit to the same path is
+never re-read. Use <code>createFileSystemLayer</code> passed to <code>snapshot.update</code>, which is checked
+ahead of the host filesystem.</li>
+<li class=""><strong><code>ensurePrograms: true</code> is required.</strong> Programs update lazily, so without it the new
+snapshot hands back the <em>previous</em> program and every transform silently analyses stale
+text — producing plausible, wrong output with no error anywhere. This is the easiest way
+to build something that appears to work and does not.</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="7-why-not-in-place-codegen">7. Why not in-place codegen<a href="#7-why-not-in-place-codegen" class="hash-link" aria-label="Direct link to 7. Why not in-place codegen" title="Direct link to 7. Why not in-place codegen" translate="no">​</a></h2>
+<p>Option B — run the generator and commit its output — is simpler in almost every operational
+respect: no mapper process, no trust prompts, no span maps, no second resident program.</p>
+<p>It was rejected for one reason: <strong>forgetting to run the generator is not a compile error.</strong></p>
+<p>An un-generated model is perfectly valid TypeScript. The wide-assignment path would still be
+caught, but that is not where the damage is — hydration is. <code>Object.assign(model, json)</code>
+passes through <code>any</code>, so a missing coercion leaves a string in a <code>Date</code>-typed field and
+nothing complains until something calls <code>.getTime()</code> in production.</p>
+<p>The usual mitigation is a CI check (<code>webdac code &amp;&amp; git diff --exit-code</code>). It works, but it
+fires in CI rather than at the compiler, and the local loop is wrong until then.</p>
+<p>Two further costs:</p>
+<ul>
+<li class="">every semantic change drags generated churn into the diff, degrading review quality</li>
+<li class="">committing accessors changes the generated metadata — measured below</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="measured-in-place-codegen-changes-webdamodulejson">Measured: in-place codegen changes <code>webda.module.json</code><a href="#measured-in-place-codegen-changes-webdamodulejson" class="hash-link" aria-label="Direct link to measured-in-place-codegen-changes-webdamodulejson" title="Direct link to measured-in-place-codegen-changes-webdamodulejson" translate="no">​</a></h3>
+<p>Today the module generator runs on the <strong>untransformed</strong> program (<code>compiler.ts:217</code> runs
+after <code>program.emit()</code>, and transformers do not mutate the Program&#x27;s AST), so
+<code>@webda/schema</code> sees plain properties. If the accessors are committed into the source, it
+sees accessors instead.</p>
+<p>This was tested rather than assumed. Method: take <code>sample-app</code>, confirm
+<code>webdac build --force</code> reproduces the committed <code>webda.module.json</code> byte for byte, apply the
+<strong>shipping</strong> in-place morpher (<code>packages/compiler/src/morpher/accessors.ts</code>) to
+<code>Project.test: Date</code>, rebuild, and diff.</p>
+<p>It is not neutral. Two distinct effects:</p>
+<p><strong>1. <code>Reflection</code> loses the field entirely.</strong> Four models lose their entry:</p>
+<div class="language-diff codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-diff codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">- &quot;Reflection&quot;: { &quot;test&quot;: { &quot;type&quot;: &quot;Date&quot; }, ... }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">+ &quot;Reflection&quot;: { ... }</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p>Accessors are simply not recorded as fields. Anything introspecting model metadata stops
+seeing <code>test</code>. This is an unambiguous regression.</p>
+<p><strong>2. Input schemas widen to the setter type.</strong> Four model <code>Schemas.Input</code> entries plus one
+action input schema embedding a <code>Project</code>:</p>
+<div class="language-diff codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-diff codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;test&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">-   &quot;type&quot;: &quot;string&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">-   &quot;format&quot;: &quot;date-time&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">+   &quot;anyOf&quot;: [</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">+     { &quot;type&quot;: &quot;string&quot; },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">+     { &quot;type&quot;: &quot;number&quot; },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">+     { &quot;type&quot;: &quot;string&quot;, &quot;format&quot;: &quot;date-time&quot; }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">+   ]</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p>This one is arguably <em>more</em> correct — the setter genuinely accepts <code>string | number | Date</code>,
+so the input schema now matches runtime behaviour. But it is still a silent, repo-wide change
+to API validation and to anything generated from these schemas.</p>
+<p><code>Schemas.Stored</code> and <code>Schemas.Output</code> were unaffected, so there is no stored-data integrity
+issue.</p>
+<p>Net: option B requires fixing <code>@webda/schema</code> to treat an accessor pair as a field (reading
+the getter for <code>Stored</code>/<code>Output</code> and the setter for <code>Input</code>) before it could ship. Option D
+avoids the question entirely, because the authored source keeps plain properties and the
+module generator sees exactly what it sees today.</p>
+<p>Reproduce: <code>packages/compiler/src/morpher/accessors.ts</code> exports <code>transformAccessors</code>; drive
+it over a ts-morph <code>Project</code> built from <code>sample-app/tsconfig.json</code>, then <code>webdac build --force</code>. Note <code>webdac code</code> will not do this for you — it constructs <code>new Project(undefined)</code>
+(<code>morpher/morpher.ts:60</code>), so it walks zero source files and silently does nothing.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="mode-d-has-the-same-failure-class--but-it-is-containable">Mode D has the same failure class — but it is containable<a href="#mode-d-has-the-same-failure-class--but-it-is-containable" class="hash-link" aria-label="Direct link to Mode D has the same failure class — but it is containable" title="Direct link to Mode D has the same failure class — but it is containable" translate="no">​</a></h3>
+<p>If someone creates <code>user.ts</code> instead of <code>user.model.ts</code>, the mapper never runs and the same
+silent bug appears. What changes is frequency and detectability:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th></th><th>in-place codegen</th><th>content mapper</th></tr></thead><tbody><tr><td>when it can happen</td><td><strong>every edit</strong></td><td>only when creating a file</td></tr><tr><td>what the guard must do</td><td>re-run the generator and diff</td><td>check a filename</td></tr><tr><td>missing <code>--runExternalCode</code></td><td>n/a</td><td><strong>hard error</strong> (<code>TS18068</code>)</td></tr></tbody></table>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="8-guardrails">8. Guardrails<a href="#8-guardrails" class="hash-link" aria-label="Direct link to 8. Guardrails" title="Direct link to 8. Guardrails" translate="no">​</a></h2>
+<p>The naming rule must be enforced, or mode D inherits the problem it was chosen to avoid.</p>
+<p><strong>Build time (authoritative).</strong> <code>ModuleGenerator.searchForWebdaObjects()</code>
+(<code>packages/compiler/src/module.ts:447-604</code>) already holds a <code>Program</code> + <code>TypeChecker</code>,
+iterates every source file, and resolves each class&#x27;s base-type chain across package
+boundaries. A model is decided at <code>module.ts:540</code> via
+<code>extends(classTree, &quot;@webda/models&quot;, &quot;Model&quot;)</code> — with <code>sourceFile.fileName</code> in scope. The
+check is a few lines at the point that already classifies the class, using the same type
+resolution the generator uses. No heuristics, no new pass.</p>
+<p>It is also the cheapest thing in the codebase to port to TS7: it is already a standalone
+post-emit pass, not a transformer.</p>
+<p><strong>Load time (backstop).</strong> <code>webda.module.json</code> records real paths — <code>Import: &quot;lib/models/project:AnotherSubProject&quot;</code> — and the loader consumes them verbatim
+(<code>application.ts:631-654</code>). Today only <code>$schema</code> is validated
+(<code>unpackedapplication.ts:411</code>). A model whose <code>Import</code> does not match the convention can be
+rejected there.</p>
+<p>Two things to design around: <code>packages/core/src/test/objects.ts:508-517</code> rewrites
+<code>lib/</code>→<code>src/</code> and <code>:</code>→<code>.ts:</code> so tests load sources, so the check must accept both forms; and
+modules are also consumed at build time (<code>compiler/src/shell.ts:49-62</code>,
+<code>core/src/bin/cli.ts:432</code>), so a check in <code>application.ts</code> alone is not exhaustive.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="9-benchmarks">9. Benchmarks<a href="#9-benchmarks" class="hash-link" aria-label="Direct link to 9. Benchmarks" title="Direct link to 9. Benchmarks" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="method">Method<a href="#method" class="hash-link" aria-label="Direct link to Method" title="Direct link to Method" translate="no">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>hardware / OS</td><td>Apple Silicon (arm64), macOS</td></tr><tr><td>Node</td><td>v22.19.0</td></tr><tr><td>TypeScript</td><td><code>7.1.0-dev.20260918.1</code> (<code>tsgo</code>)</td></tr><tr><td>fixture</td><td>100 generated models, 165 files total</td></tr><tr><td>model shape</td><td>2 <code>Date</code> fields, 2 <code>ModelLink</code> (one via <code>ManyToOne</code> alias), 2 <code>ModelRelated</code> (one via <code>OneToMany</code>), 1 static, 1 pre-existing accessor, 1 service needing <code>loadParameters</code></td></tr></tbody></table>
+<p>Every model exercises all three coercion kinds and references a class from another file, so
+the checker resolves something on every transform. Wall-clock figures are the median of five
+runs.</p>
+<blockquote>
+<p>The fixture is synthetic and self-contained, with a trivial dependency graph. Absolute
+numbers on real packages will be larger; §9.4 gives the real-package figures.</p>
+</blockquote>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="91-full-build">9.1 Full build<a href="#91-full-build" class="hash-link" aria-label="Direct link to 9.1 Full build" title="Direct link to 9.1 Full build" translate="no">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th></th><th style="text-align:right">wall clock</th><th>diagnostics</th></tr></thead><tbody><tr><td>plain <code>tsgo</code>, no mapper</td><td style="text-align:right"><strong>0.03s</strong></td><td>0</td></tr><tr><td><code>tsgo --runExternalCode</code> with the mapper</td><td style="text-align:right"><strong>0.32s</strong></td><td><strong>0</strong></td></tr></tbody></table>
+<p>Breakdown of the difference: Node process spawn ≈ 60ms, mapper resident program startup
+32ms, 100 transforms 192ms (p50 1.80ms, p95 2.70ms, max 8.10ms).</p>
+<p>The ratio looks alarming and the absolute number does not. Bare <code>tsgo</code> at 30ms is doing no
+code generation whatsoever; the meaningful comparison is §9.4.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="92-editor-latency">9.2 Editor latency<a href="#92-editor-latency" class="hash-link" aria-label="Direct link to 9.2 Editor latency" title="Direct link to 9.2 Editor latency" translate="no">​</a></h3>
+<p>Real LSP session, typing <code>deletedAt: Date;</code> one character at a time into a model file:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th></th><th style="text-align:right"></th></tr></thead><tbody><tr><td>cold open → first diagnostics</td><td style="text-align:right">347ms</td></tr><tr><td><code>didChange</code> → diagnostics, end to end</td><td style="text-align:right">p50 <strong>5.1ms</strong>, p95 8.5ms</td></tr><tr><td>mapper-internal transform</td><td style="text-align:right">p50 3.3ms (snapshot 2.1 + analyze 1.3)</td></tr><tr><td>diagnostics on the valid final text</td><td style="text-align:right">0</td></tr><tr><td>hover on the just-typed field</td><td style="text-align:right"><code>(accessor) Entity042.deletedAt: Date</code></td></tr></tbody></table>
+<p>That last row is the system working end to end: a property typed milliseconds earlier,
+resolved through the checker, rewritten into an accessor, and reported back against the
+authored text.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="93-scaling">9.3 Scaling<a href="#93-scaling" class="hash-link" aria-label="Direct link to 9.3 Scaling" title="Direct link to 9.3 Scaling" translate="no">​</a></h3>
+<p>Only the edited file is re-analysed, so cost tracks program refresh rather than edit size.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style="text-align:right">models</th><th style="text-align:right">files</th><th style="text-align:right">resident startup</th><th style="text-align:right">keystroke transform</th></tr></thead><tbody><tr><td style="text-align:right">25</td><td style="text-align:right">90</td><td style="text-align:right">30ms</td><td style="text-align:right">2.5ms</td></tr><tr><td style="text-align:right">100</td><td style="text-align:right">165</td><td style="text-align:right">37ms</td><td style="text-align:right">3.4ms</td></tr><tr><td style="text-align:right">400</td><td style="text-align:right">465</td><td style="text-align:right">43ms</td><td style="text-align:right">2.9ms</td></tr><tr><td style="text-align:right">800</td><td style="text-align:right">865</td><td style="text-align:right">76ms</td><td style="text-align:right">5.7ms</td></tr></tbody></table>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="94-against-the-current-toolchain">9.4 Against the current toolchain<a href="#94-against-the-current-toolchain" class="hash-link" aria-label="Direct link to 9.4 Against the current toolchain" title="Direct link to 9.4 Against the current toolchain" translate="no">​</a></h3>
+<p>Two-pass build over the real packages, <strong>0 diagnostics against the generated code</strong>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>package</th><th style="text-align:right">pass 1</th><th style="text-align:right">pass 2</th><th style="text-align:right">total</th><th>edits</th></tr></thead><tbody><tr><td>models</td><td style="text-align:right">49ms</td><td style="text-align:right">78ms</td><td style="text-align:right">127ms</td><td>0</td></tr><tr><td>core</td><td style="text-align:right">85ms</td><td style="text-align:right">207ms</td><td style="text-align:right"><strong>292ms</strong></td><td>2 accessors + 17 <code>loadParameters</code></td></tr><tr><td>runtime</td><td style="text-align:right">45ms</td><td style="text-align:right">73ms</td><td style="text-align:right">119ms</td><td>0</td></tr></tbody></table>
+<p>TypeScript 6.0.2 single-pass <code>--noEmit</code> on <code>packages/core</code>, for comparison: <strong>1.44s</strong>
+(median of 3).</p>
+<p>So the replacement architecture type-checks <code>@webda/core</code> roughly <strong>5× faster than the
+toolchain it replaces</strong>, while doing strictly more work.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="95-idempotency">9.5 Idempotency<a href="#95-idempotency" class="hash-link" aria-label="Direct link to 9.5 Idempotency" title="Direct link to 9.5 Idempotency" translate="no">​</a></h3>
+<p>A file already containing generated accessors passes through unchanged:</p>
+<div class="language-text codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-text codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">authored source   -&gt; edits=8</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">generated source  -&gt; edits=0   IDEMPOTENT</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">third pass        -&gt; edits=0   stable=true</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p>This matters beyond tidiness: it means a codegen&#x27;d file is a no-op through the mapper, so a
+migration can proceed package by package without a flag day.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="reproducing">Reproducing<a href="#reproducing" class="hash-link" aria-label="Direct link to Reproducing" title="Direct link to Reproducing" translate="no">​</a></h3>
+<div class="language-sh codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-sh codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">cd prototypes/ts7-codegen</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">npm install &amp;&amp; npm run build</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain" style="display:inline-block"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">cd contentmapper/bench</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">node generate.mjs 100                      # resize the fixture</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">node session-probe.mjs                     # startup + transform, no LSP</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">node idem-probe.mjs                        # idempotency</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">WEBDA_MAPPER_LOG=/tmp/m.log node typing-bench.mjs   # editor latency</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">../node_modules/@typescript/typescript-darwin-arm64/lib/tsc \</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  -p tsconfig.json --runExternalCode       # full build</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p><code>prototypes/ts7-codegen/README.md</code> carries the full engineering log, including the
+approaches that failed.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="10-what-we-are-accepting">10. What we are accepting<a href="#10-what-we-are-accepting" class="hash-link" aria-label="Direct link to 10. What we are accepting" title="Direct link to 10. What we are accepting" translate="no">​</a></h2>
+<p>Stated plainly, because none of these are solved:</p>
+<ul>
+<li class=""><strong>TypeScript 7.1 is a development build.</strong> Content mappers are three weeks old and
+actively churning, with open issues on auto-imports, inlay hints and declaration
+extensions. We are early adopters. This is the risk that cannot be engineered around.</li>
+<li class=""><strong>Memory is unmeasured</strong>, and two full TypeScript programs are resident — <code>tsgo</code>&#x27;s and the
+mapper&#x27;s. Expect roughly double.</li>
+<li class=""><strong>Span quality is uneven across transforms.</strong> Accessors and <code>loadParameters</code> are local and
+structure-preserving, so their spans are clean. The WebdaQL rewrite and <code>unserialize</code>
+restructure code; their spans degrade to <code>Atom</code> or gaps, so hover and rename will be worse
+in those regions. Those transforms will be second-class in the editor and should be
+documented as such.</li>
+<li class=""><strong>Trust prompts</strong> for every contributor, and <code>--runExternalCode</code> in CI.</li>
+<li class=""><strong><code>snapshot</code> refresh already dominates <code>analyze</code></strong> (2.1ms vs 1.3ms), so keystroke cost
+scales with project size rather than edit size. That is the term to watch as the monorepo
+grows.</li>
+<li class="">Unmeasured: many files open and edited simultaneously, invalidation storms from editing a
+shared file, and mapper memory growth over a long session.</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="11-target-package-layout">11. Target package layout<a href="#11-target-package-layout" class="hash-link" aria-label="Direct link to 11. Target package layout" title="Direct link to 11. Target package layout" translate="no">​</a></h2>
+<p><code>@webda/ts-plugin</code> is today two things under one name: the language-service plugin, <strong>and</strong>
+the transform library <code>@webda/compiler</code> consumes. Only the first half disappears outright —
+<code>packages/compiler/package.json</code> currently declares <code>&quot;@webda/ts-plugin&quot;: &quot;workspace:^&quot;</code> and
+<code>compiler.ts:17-20</code> imports <code>DEFAULT_COERCIONS</code>, <code>PerfTracker</code> and the accessor transformers
+from <code>@webda/ts-plugin/transform</code>.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="where-the-code-ends-up">Where the code ends up<a href="#where-the-code-ends-up" class="hash-link" aria-label="Direct link to Where the code ends up" title="Direct link to Where the code ends up" translate="no">​</a></h3>
+<div class="language-text codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-text codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">@webda/content-mapper    thin: generators + plan + spans + mapper server</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        ▲                the only thing spawned per project</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        │</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">@webda/compiler          webdac: two-pass build, webda.module.json,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">                         schema, operations — reuses the same generators</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p>The mapper is deliberately <strong>not</strong> folded into <code>@webda/compiler</code>. It is spawned as a process
+per project and its startup sits on the build&#x27;s critical path — roughly 60ms of the 320ms
+build in §9.1 is Node spawn plus module load. <code>@webda/compiler</code> pulls <code>ts-morph</code>,
+<code>@webda/schema</code>, <code>tsquery</code>, <code>yargs</code>, <code>diff</code> and <code>accept-language</code>, and <code>transform</code> needs none
+of them.</p>
+<p>Deployment detail: tsconfig names the mapper by package (<code>&quot;package&quot;: &quot;@webda/content-mapper&quot;</code>),
+so it must resolve from the <strong>application</strong>, not merely transitively through the compiler. It
+belongs in the app template&#x27;s <code>devDependencies</code>.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="fate-of-webdats-plugin">Fate of <code>@webda/ts-plugin</code><a href="#fate-of-webdats-plugin" class="hash-link" aria-label="Direct link to fate-of-webdats-plugin" title="Direct link to fate-of-webdats-plugin" translate="no">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>file</th><th style="text-align:right">lines</th><th>fate</th></tr></thead><tbody><tr><td><code>index.ts</code> — language-service plugin</td><td style="text-align:right">413</td><td>delete — made unnecessary by real accessors</td></tr><tr><td><code>transform.ts</code> — transformer wiring</td><td style="text-align:right">331</td><td>delete</td></tr><tr><td><code>transforms/accessors.ts</code></td><td style="text-align:right">1324</td><td>delete once the mapper generators land</td></tr><tr><td><code>transforms/module-generator.ts</code></td><td style="text-align:right">513</td><td>delete — scaffold duplicate of <code>compiler/src/module.ts</code></td></tr><tr><td><code>analyzer.ts</code> — <code>computeCoercibleFields</code></td><td style="text-align:right">258</td><td>delete — replaced by the TS7 analyzer</td></tr><tr><td><code>transforms/behaviors.ts</code></td><td style="text-align:right">959</td><td><strong>port</strong></td></tr><tr><td><code>transforms/qlvalidator.ts</code></td><td style="text-align:right">598</td><td><strong>port</strong></td></tr><tr><td><code>coercions.ts</code></td><td style="text-align:right">29</td><td>move into <code>@webda/content-mapper</code></td></tr><tr><td><code>perf.ts</code></td><td style="text-align:right">122</td><td>move into <code>@webda/compiler</code></td></tr></tbody></table>
+<p>Roughly 2.8k lines are deleted and 1.6k must be ported first.</p>
+<blockquote>
+<p><code>qlvalidator</code> is the one to be careful with. It is the WebdaQL compile-time validator, a
+user-facing feature rather than error suppression. Removing <code>@webda/ts-plugin</code> before it is
+ported is a straight regression. <code>behaviors</code> is rated low difficulty because the technique
+carries over, not because it is small.</p>
+</blockquote>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="the-constraint-that-dictates-the-order">The constraint that dictates the order<a href="#the-constraint-that-dictates-the-order" class="hash-link" aria-label="Direct link to The constraint that dictates the order" title="Direct link to The constraint that dictates the order" translate="no">​</a></h3>
+<p>A package can declare only one <code>typescript</code>. That makes the switch to 7.1 <strong>atomic across a
+group of packages</strong>, not incremental within them:</p>
+<ul>
+<li class="">
+<p><code>@webda/compiler</code> drives emit with transformers —
+<code>tsProgram.emit(undefined, writer, undefined, false, { before, afterDeclarations })</code>
+(<code>compiler.ts:150-168</code>) — plus <code>ts.createProgram</code>, <code>ts.factory</code> and <code>ts.createSourceFile</code>.
+None of these exist in TypeScript 7.</p>
+</li>
+<li class="">
+<p><code>@webda/compiler</code> and <code>@webda/schema</code> are coupled at the type level: <code>module.ts:1354</code>
+passes <code>this.compiler.tsProgram</code> into <code>new SchemaGenerator({ program })</code>, typed <code>ts.Program</code>
+at <code>schema/src/generator.ts:211</code>. The signature names <code>ts.Program</code>, so the two cannot be
+typed against different majors.</p>
+<p>The coupling is weaker than it looks, though, and an earlier version of this page
+overstated it. The passed program is <strong>discarded</strong>:</p>
+<div class="language-ts codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-ts codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token comment" style="color:#999988;font-style:italic">// generator.ts:261-266</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">options</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">project </span><span class="token operator" style="color:#393A34">??=</span><span class="token plain"> options</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">program </span><span class="token operator" style="color:#393A34">?</span><span class="token plain"> options</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">program</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">getCurrentDirectory</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> process</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">cwd</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">if</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">options</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">project</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token comment" style="color:#999988;font-style:italic">// always true after the line above</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token keyword" style="color:#00009f">this</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">program </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">this</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">createLanguageService</span><span class="token punctuation" style="color:#393A34">(</span><span class="token keyword" style="color:#00009f">this</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">options</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">project</span><span class="token operator" style="color:#393A34">!</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">getProgram</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">)</span><span class="token operator" style="color:#393A34">!</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">else</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token keyword" style="color:#00009f">this</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">program </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> options</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">program</span><span class="token operator" style="color:#393A34">!</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"> </span><span class="token comment" style="color:#999988;font-style:italic">// dead</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#7EBF6A"></path></svg></div>
+<p>Measured: passing a 367-file program for <code>packages/models</code> returns a <strong>170-file program for
+<code>packages/schema</code></strong> — whatever project sits at the process cwd — after 371ms of rebuilding.
+In production it works by accident, because <code>webdac build</code> runs with cwd at the application
+root. But the program is built twice per build, and schemas are generated from a different
+view of the code than the one that was type-checked. This needs fixing, and the order
+matters — see below.</p>
+</li>
+<li class="">
+<p><code>@webda/schema</code> builds its own language service (<code>generator.ts:602</code>,
+<code>ts.createLanguageService</code> + <code>ts.createDocumentRegistry</code>). This too was overstated here
+earlier as a redesign. It appears exactly once, at <code>generator.ts:263</code>, and only to call
+<code>.getProgram()</code> — it is a Program factory with extra steps, replaceable by
+<code>api.createSnapshot({ openProjects: [tsconfig] }).getProjects()[0].program</code>. The real work
+in porting <code>@webda/schema</code> is its 2,400 lines of type-to-JSON-Schema conversion, which lean
+on <code>objectFlags</code>, <code>elementFlags</code> and <code>intrinsicName</code>.</p>
+</li>
+</ul>
+<p>So the atomic unit is <strong>compiler + schema + tsc-esm, with ts-plugin deleted in the same
+change</strong> — roughly 9,200 non-spec lines of surface. Most of it is mechanical: <code>ts.Node</code>,
+<code>ts.ClassDeclaration</code> and friends map onto <code>typescript/unstable/ast</code>, the <code>ts.isX</code> predicates
+onto <code>typescript/unstable/ast/is</code>, and <code>SyntaxKind</code> / <code>TypeFlags</code> / <code>SymbolFlags</code> /
+<code>ObjectFlags</code> are exported from <code>typescript/unstable/sync</code>. The genuinely hard spots are the
+five removed APIs listed above.</p>
+<p>An earlier version of this section put &quot;point <code>@webda/compiler</code> at the content mapper&quot; as step
+two. That is not reachable: the moment compiler imports <code>@webda/content-mapper</code> it inherits
+the <code>&gt;=7.1.0-dev</code> peer while still needing TypeScript 6 for its own transformers.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="order-of-work">Order of work<a href="#order-of-work" class="hash-link" aria-label="Direct link to Order of work" title="Direct link to Order of work" translate="no">​</a></h3>
+<p>Each stage is verifiable on its own, which matters because the atomic switch at the end is
+otherwise a big-bang with no feedback until it lands.</p>
+<ol>
+<li class=""><strong>Done.</strong> Create <code>@webda/content-mapper</code> — accessors and <code>loadParameters</code> generators, plan
+model, span builder, mapper server, coercion registry.</li>
+<li class=""><strong>Done.</strong> Rename sources to <code>.model.ts</code> / <code>.service.ts</code>.</li>
+<li class=""><strong>Done.</strong> Naming guardrail in <code>ModuleGenerator.searchForWebdaObjects()</code> (§8).</li>
+<li class="">Port <code>transforms/behaviors.ts</code> into a content-mapper generator. It is written against
+<code>ts.factory</code>; the target is text generation through the existing plan model.
+<em>Verified by:</em> unit tests, plus parity against the emitted output of the current transform.</li>
+<li class="">Port <code>transforms/qlvalidator.ts</code>. The validation half is pure analysis; the rewrite half
+(template literal to <code>escape()</code> call) is local and mechanical.</li>
+<li class="">Port module generation to the TypeScript 7 API. Already a standalone post-emit pass, so it
+carries the least structural risk.
+<em>Verified by:</em> <strong>byte-diffing <code>webda.module.json</code></strong> against the TypeScript 6 output across
+real packages. It is a committed artefact, so an identical diff is objective proof.</li>
+<li class="">Port <code>@webda/schema</code>, replacing <code>createLanguageService</code> with <code>project.languageService</code>.
+<em>Verified by:</em> byte-diffing generated schemas. Note §7 — it must also learn to treat an
+accessor pair as a field if in-place output is ever produced.</li>
+<li class=""><strong>Done.</strong> Replace the <code>@webda/tsc-esm</code> binary. See &quot;Stage 8&quot; below — it was not the
+drop-in this line assumed.</li>
+<li class=""><strong>Done.</strong> Atomic switch: move the compiler to 7.1; delete <code>@webda/ts-plugin</code> and
+<code>ts-patch</code>. See &quot;Stage 9 result&quot; below.</li>
+</ol>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="webdaschema-and-the-native-generator"><code>@webda/schema</code> and the native generator<a href="#webdaschema-and-the-native-generator" class="hash-link" aria-label="Direct link to webdaschema-and-the-native-generator" title="Direct link to webdaschema-and-the-native-generator" translate="no">​</a></h3>
+<p><code>@webda/schema</code> is a reimplementation of
+<a href="https://github.com/vega/ts-json-schema-generator" target="_blank" rel="noopener noreferrer" class=""><code>vega/ts-json-schema-generator</code></a> — its test
+suite replays that project&#x27;s fixture corpus from <code>packages/schema/test/vega-fixtures</code>, with a
+blacklist for the cases it does not yet match.</p>
+<p>Vega now ships
+<a href="https://github.com/vega/ts-json-schema-generator-go" target="_blank" rel="noopener noreferrer" class=""><code>ts-json-schema-generator-go</code></a>: the same
+generator implemented in Go on <code>typescript-go</code>, distributed as a single binary with no Node
+dependency, verified against 251 golden fixtures plus the full vega-lite and Mosaic schemas.
+It installs as <code>ts-json-schema-generator@native</code> and exposes <code>generateSchema(config)</code> over a
+process boundary — the same shape as <code>packages/schema/src/worker.ts</code>.</p>
+<p>If it worked on Webda&#x27;s sources it would remove the entire port: TypeScript 7 everywhere, no
+TypeScript 6, no hand-written conversion. <strong>It does not, yet.</strong> Measured against
+<code>3.0.0-native.5</code>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>target</th><th>result</th></tr></thead><tbody><tr><td><code>packages/models</code> → <code>UuidModel</code></td><td><code>Error: unknown node kind=KindThisType (model.model.ts:67:32)</code></td></tr><tr><td><code>sample-app</code> → <code>Company</code></td><td><code>Error: Unhandled case in Node.Text: *ast.ComputedPropertyName</code></td></tr></tbody></table>
+<p>Both are central to how Webda models are written, not edge cases:</p>
+<ul>
+<li class=""><code>[WEBDA_EVENTS]?: ModelEvents&lt;this&gt;</code> — <code>this</code> types appear in <code>Store</code>, <code>Service</code>,
+<code>IService</code>, <code>MemoryStore</code> and <code>OperationsTransport</code> as well.</li>
+<li class=""><code>[WEBDA_PRIMARY_KEY]</code>, <code>[WEBDA_STORAGE]</code>, <code>[WEBDA_EVENTS]</code> — symbol-keyed slots are the
+mechanism the whole accessor design rests on.</li>
+</ul>
+<p>It is also fast: 85ms for a run that costs <code>@webda/schema</code> 371ms just to build its program.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="the-dto-in--dto-out-modes-cannot-be-wrapped-around-it">The <code>dto-in</code> / <code>dto-out</code> modes cannot be wrapped around it<a href="#the-dto-in--dto-out-modes-cannot-be-wrapped-around-it" class="hash-link" aria-label="Direct link to the-dto-in--dto-out-modes-cannot-be-wrapped-around-it" title="Direct link to the-dto-in--dto-out-modes-cannot-be-wrapped-around-it" translate="no">​</a></h4>
+<p>These modes are accessor-aware property selection, and they are the same asymmetric-accessor
+semantics the content mapper produces: input uses the <strong>setter</strong> parameter type, output uses
+the <strong>getter</strong> return type (<code>generator.ts:444-471</code>).</p>
+<p>Measured on <code>class User { name; get createdAt(): Date; set createdAt(v: string|number|Date); get computed(): string; readonly id; }</code>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th></th><th>properties</th><th><code>createdAt</code></th></tr></thead><tbody><tr><td><code>@webda/schema</code> <code>dto-in</code></td><td><code>createdAt</code>, <code>name</code></td><td><code>anyOf[string, number, date-time]</code> — the setter type</td></tr><tr><td><code>@webda/schema</code> <code>dto-out</code></td><td><code>computed</code>, <code>createdAt</code>, <code>id</code>, <code>name</code></td><td><code>date-time</code> — the getter type</td></tr><tr><td>native generator</td><td><code>id</code>, <code>name</code></td><td><strong>absent</strong></td></tr></tbody></table>
+<p>The native generator does not emit accessor-backed properties at all, and has no flag to. So
+this is not a mode that can be layered on top: the information never reaches the output, and
+no amount of pre- or post-processing recovers a property that was never emitted.</p>
+<p>That matters more than it looks. After the content mapper transform, every coerced model
+field <em>is</em> an accessor — so on the native generator every coerced field would silently vanish
+from the schema.</p>
+<p>So the gap list is two missing node kinds plus one missing feature:</p>
+<ol>
+<li class=""><code>KindThisType</code> — a node kind.</li>
+<li class=""><code>ComputedPropertyName</code> — a node kind.</li>
+<li class=""><strong>Accessor support with a read/write type distinction</strong> — a feature touching the parser,
+the formatter and the CLI surface.</li>
+</ol>
+<p>The next question to answer, and it is cheap: does the <strong>TypeScript</strong> reference
+<code>ts-json-schema-generator</code> handle accessors? The Go port mirrors it module for module, so if
+the reference does and the port does not, (3) is a port bug worth reporting. If neither does,
+(3) is a feature contribution — and that is the point at which a fork, rather than an issue,
+becomes the honest option.</p>
+<p>So the sequence is: report both gaps upstream, and until they close, either carry the
+hand-written port or keep <code>@webda/schema</code> behind the worker boundary. Two further things to
+check before committing either way — whether the native generator can express the
+Webda-specific layer (<code>$webda</code> provenance markers, the <code>dto-in</code> / <code>dto-out</code> / <code>output</code> modes,
+<code>WebdaModel</code> and <code>class</code> flags, Buffer mapping), and how many of the vega fixtures
+<code>@webda/schema</code> currently blacklists, since those are cases where the two already disagree.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="stage-7-plan-a-purpose-built-converter-not-a-port">Stage 7 plan: a purpose-built converter, not a port<a href="#stage-7-plan-a-purpose-built-converter-not-a-port" class="hash-link" aria-label="Direct link to Stage 7 plan: a purpose-built converter, not a port" title="Direct link to Stage 7 plan: a purpose-built converter, not a port" translate="no">​</a></h3>
+<p>Three options were considered and two were rejected on evidence.</p>
+<p><strong>Rejected — port <code>@webda/schema</code> to 7.1.</strong> 2,200 lines targeting the vega corpus: conditional
+types, mapped types, intersections, tuples, template literals. Its own suite blacklists
+fixtures it cannot match, so the thing being ported is not fully correct to begin with. Every
+API it needs does exist in 7.1 (audited above), so this remains the fallback — but it is the
+most work for the least certainty.</p>
+<p><strong>Rejected for now — adopt <code>ts-json-schema-generator-go</code>.</strong> Right architecture, wrong
+capabilities today: two missing node kinds and, decisively, no accessor support at all. Keep
+it on the table; the harness verifies either implementation. Revisit if upstream adds
+accessors.</p>
+<p><strong>Chosen — write a converter for the shapes Webda actually uses</strong>, in
+<code>@webda/content-mapper</code>, on the TypeScript 7 checker it already drives.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="why-it-is-smaller-than-it-sounds">Why it is smaller than it sounds<a href="#why-it-is-smaller-than-it-sounds" class="hash-link" aria-label="Direct link to Why it is smaller than it sounds" title="Direct link to Why it is smaller than it sounds" translate="no">​</a></h4>
+<p>The committed corpus is narrow. Measured across core, models, runtime and sample-app:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>total</td><td>4,154 schema nodes, max depth 9</td></tr><tr><td>by origin</td><td>model <code>Schemas</code> 3,350 · modda <code>Schema</code> 1,589 · top-level 804 · bean <code>Schema</code> 41</td></tr><tr><td>keywords used</td><td><code>type</code> 876 · <code>description</code> 525 · <code>additionalProperties</code> 225 · <code>properties</code> 171 · <code>required</code> 156 · <code>$ref</code> 98 · <code>$webda</code> 87 · <code>format</code> 77 · <code>items</code> 38 · <code>enum</code> 19 · <code>allOf</code> 8 · <code>title</code> 6</td></tr><tr><td>distinct <code>$ref</code> definitions</td><td>27</td></tr></tbody></table>
+<p>Twelve keywords. No <code>oneOf</code>, no <code>not</code>, no <code>patternProperties</code>, no conditionals. Webda models
+and service parameters are ordinary object shapes, not arbitrary TypeScript — which is the
+whole reason a general-purpose generator is overkill here.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="the-hard-constraint">The hard constraint<a href="#the-hard-constraint" class="hash-link" aria-label="Direct link to The hard constraint" title="Direct link to The hard constraint" translate="no">​</a></h4>
+<p><strong>It must throw on any type it cannot convert, naming the type and the property.</strong> Never a
+best-effort schema.</p>
+<p>Every bug found in stages 4 to 6 produced plausible output that type-checked. A schema
+converter that silently degrades is the worst version of that failure: valid JSON that
+validates real payloads against the wrong contract. Loud failure is what makes the 29/29
+target mean something, and it gives user code with exotic types a clear error instead of a
+quietly wrong API surface.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="definition-of-done">Definition of done<a href="#definition-of-done" class="hash-link" aria-label="Direct link to Definition of done" title="Direct link to Definition of done" translate="no">​</a></h4>
+<p><code>node packages/content-mapper/tools/schema-diff.mjs</code> reports <code>IDENTICAL</code> for all four
+packages — 29 model schemas. The harness already exists and currently reports 22/29 through
+the TypeScript 6 worker, so the target is calibrated rather than hypothetical.</p>
+<blockquote>
+<p><strong>Amended after 7.1 and 7.2.</strong> &quot;Identical to the committed file&quot; turned out to be the
+wrong target, because the committed file is not what <code>@webda/schema</code> computes — it is what
+<code>webdac build</code> computes, and that runs the generator with a checker that does not own the
+nodes it converts (§11). Measured: 18 of the 68 schemas in the corpus cannot be reproduced
+by <em>either</em> implementation running correctly.</p>
+<p>So the harness now scores three outcomes rather than two, and every divergence has to be
+demonstrated, not declared:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>outcome</th><th>meaning</th></tr></thead><tbody><tr><td>identical</td><td>byte-for-byte against the committed artefact</td></tr><tr><td>known divergence</td><td>differs, and the harness <em>proves</em> why — see below</td></tr><tr><td>mismatch</td><td>unexplained; exit code 1</td></tr></tbody></table>
+<p>The load-bearing check is a cross-check against the TypeScript 6 oracle: when the port and
+the oracle agree and only the artefact differs, the artefact is stale. That is verified per
+run by executing the oracle, not by a maintained list of ids, so it stops applying the
+moment the two implementations disagree.</p>
+</blockquote>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="order">Order<a href="#order" class="hash-link" aria-label="Direct link to Order" title="Direct link to Order" translate="no">​</a></h4>
+<ol>
+<li class=""><strong>Done.</strong> Convert <strong>service parameter</strong> schemas first (modda <code>Schema</code>, 1,589 nodes). Plain
+config objects, no accessors, no model semantics — the easiest third of the corpus and it
+exercises the whole pipeline. See §7.1 below.</li>
+<li class=""><strong>Done.</strong> Then model <code>Schemas</code> (3,350 nodes), which need the <code>dto-in</code> / <code>dto-out</code> /
+<code>output</code> modes: input takes the setter parameter type, output the getter return type.
+See §7.2 below.</li>
+<li class=""><strong>Done.</strong> Then top-level action schemas (804 nodes). See §7.3 below.</li>
+<li class=""><strong>Done.</strong> Delete <code>@webda/schema</code> and the worker together. See §7.6.</li>
+</ol>
+<p>Generate from the <strong>untransformed</strong> view first, so the output is byte-identical to today and
+the port is proven. Switching to the transformed view is a separate commit — it widens every
+coerced field&#x27;s Input schema, which is a real behaviour change and, as §7 shows, a fix: today
+the Input schema says <code>date-time</code> while the runtime accepts <code>string | number | Date</code>.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="what-it-plugs-into">What it plugs into<a href="#what-it-plugs-into" class="hash-link" aria-label="Direct link to What it plugs into" title="Direct link to What it plugs into" translate="no">​</a></h4>
+<p>Already built and verified, so the converter is the only missing piece:</p>
+<ul>
+<li class=""><code>openSession</code> / <code>WarmSession</code> — a resident 7.1 <code>Program</code> and <code>Checker</code>.</li>
+<li class=""><code>discoverWebdaObjects</code>, <code>buildModelMetadata</code>, <code>reflectAttributes</code>, <code>buildRelations</code> — the
+rest of <code>webda.module.json</code>, byte-identical.</li>
+<li class=""><code>packages/schema/src/worker.ts</code> — the oracle to diff against while porting, deleted at the
+end.</li>
+<li class=""><code>tools/schema-diff.mjs</code> — the scoreboard.</li>
+</ul>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="traps-already-paid-for">Traps already paid for<a href="#traps-already-paid-for" class="hash-link" aria-label="Direct link to Traps already paid for" title="Direct link to Traps already paid for" translate="no">​</a></h4>
+<p>The RPC-backed API bit every generator ported so far; expect the same here.</p>
+<ul>
+<li class=""><code>Symbol.declarations</code> are handles — <code>.resolve(project)</code> to reach the node.</li>
+<li class=""><code>Signature.parameters</code> are raw handles, not symbols — use <code>Checker.getParameterType</code>.</li>
+<li class="">Some calls <strong>throw rather than return undefined</strong>, e.g. <code>getConstraintOfTypeParameter</code> on a
+non-parameter.</li>
+<li class=""><code>Node.getChildren()</code> does not exist; read structured properties instead.</li>
+<li class="">Walking a type&#x27;s base chain must key on <strong>declaration, not name</strong> — <code>class User extends User</code> is ordinary and a name-keyed guard stops one link short.</li>
+<li class="">Reflection-style walks must use the <strong>type&#x27;s</strong> properties, not the class&#x27;s own members, or
+inherited attributes vanish.</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="stage-71-result-service-parameter-schemas">Stage 7.1 result: service parameter schemas<a href="#stage-71-result-service-parameter-schemas" class="hash-link" aria-label="Direct link to Stage 7.1 result: service parameter schemas" title="Direct link to Stage 7.1 result: service parameter schemas" translate="no">​</a></h3>
+<p><code>node tools/schema-diff.mjs --only=services</code> reports <code>IDENTICAL</code> for all four packages — 33
+of 39 byte-identical, plus 6 deliberate divergences described below. The harness now scores
+both groups and takes <code>--impl=ts7|worker</code>, so the TypeScript 6 oracle and the port answer
+the same requests and the score is a regression test rather than a claim. Model schemas are
+unchanged at 22/29 through the worker.</p>
+<p>The converter is ~900 lines in <code>packages/content-mapper/src/schema/</code>, against
+<code>@webda/schema</code>&#x27;s 2,200.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="what-the-71-checker-does-not-tell-you">What the 7.1 checker does not tell you<a href="#what-the-71-checker-does-not-tell-you" class="hash-link" aria-label="Direct link to What the 7.1 checker does not tell you" title="Direct link to What the 7.1 checker does not tell you" translate="no">​</a></h4>
+<p>Four differences account for every mismatch found, and all four fail <strong>silently</strong> — each
+produces a valid schema that is quietly wrong, which is exactly the failure class the hard
+constraint exists for.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>symptom</th><th>cause</th></tr></thead><tbody><tr><td>every <code>enum</code> reordered</td><td><code>UnionType.getTypes()</code> returns constituents alphabetically, not by type id</td></tr><tr><td>descriptions missing on inline object types</td><td><code>getDocumentationComment</code> no longer walks a type literal up to its parent property</td></tr><tr><td>descriptions missing on documented bases</td><td>it no longer inherits through <code>extends</code> / <code>implements</code></td></tr><tr><td><code>{@link X}</code> flattened to <code>X</code></td><td>links are rendered rather than returned in source form</td></tr></tbody></table>
+<p>The first is restored by sorting on <code>Type.id</code>: both checkers canonicalise a union by id, and
+ids are issued as types are created, so for the literals of one union that ordering <strong>is</strong>
+declaration order. The other three are reimplemented on the AST in <code>schema/jsdoc.ts</code> — the
+6.x services layer answered a wider question than 7.1 does, and the committed schemas were
+generated against the wider one.</p>
+<p>Two further traps, both caught by fixtures rather than by the corpus:</p>
+<ul>
+<li class=""><strong><code>Symbol.getSymbolAtLocation</code> no longer accepts a declaration node.</strong> It did not in
+TypeScript 6 either — a plausible-looking &quot;fix&quot; here double-applies every JSDoc tag, which
+turns <code>default: &quot;all&quot;</code> into <code>default: [&quot;all&quot;, &quot;all&quot;]</code>. Worth knowing before it is
+rediscovered.</li>
+<li class=""><strong><code>string</code> carries a numeric index signature</strong>, so a template literal or <code>Uppercase&lt;T&gt;</code>
+reads as array-like and would emit <code>type: &quot;array&quot;</code>. Both now throw.</li>
+</ul>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="the-six-divergences-are-a-fix-and-a-visible-one">The six divergences are a fix, and a visible one<a href="#the-six-divergences-are-a-fix-and-a-visible-one" class="hash-link" aria-label="Direct link to The six divergences are a fix, and a visible one" title="Direct link to The six divergences are a fix, and a visible one" translate="no">​</a></h4>
+<p>For a service that names no parameters type of its own — <code>class SimpleService extends Service</code> — the committed <code>Schema</code> has no <code>type</code> and no properties beyond the injected
+<code>openapi</code>. That is not what <code>@webda/schema</code> computes; it is what falls out of the
+discarded-program bug in §11. Instrumenting a real <code>webdac build</code> shows it directly:</p>
+<div class="language-text codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-text codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">[PROBE] node=TypeReference &quot;ServiceParameters&quot; file=service.d.ts</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        type=ServiceParameters flags=1 props=0</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#7EBF6A"></path></svg></div>
+<p><code>flags=1</code> is <code>TypeFlags.Any</code> — the error type, printed under the name it failed to resolve.
+The node comes from <code>@webda/compiler</code>&#x27;s program while the checker comes from the one
+<code>@webda/schema</code> built for itself, and the import inside <code>@webda/core</code>&#x27;s <code>service.d.ts</code> does
+not resolve across that boundary. Given a consistent program the same 6.x generator produces
+the full schema, so this is corruption rather than behaviour and reproducing it is neither
+possible nor desirable.</p>
+<p>The TypeScript 7 pipeline has one program, so these six services gain the real
+<code>ServiceParameters</code> schema — <strong>including a required <code>type</code> property in configuration
+validation</strong>. <code>tools/schema-diff.mjs</code> records them by id and asserts the shape of both
+sides, so the exemption lapses the moment either changes.</p>
+<p>Affected: <code>Webda/PasswordEncryptionService</code>, <code>WebdaDemo/SimpleService</code>,
+<code>WebdaDemo/TestCommandService</code>, <code>WebdaDemo/ThirdOtherService</code>, <code>WebdaDemo/BeanService</code>,
+<code>WebdaDemo/SampleAppGoodBean</code>.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="faithfully-reproduced-oddities">Faithfully reproduced oddities<a href="#faithfully-reproduced-oddities" class="hash-link" aria-label="Direct link to Faithfully reproduced oddities" title="Direct link to Faithfully reproduced oddities" translate="no">​</a></h4>
+<p>Byte-identical output means porting the quirks too. These are commented at their definitions
+so they are not &quot;tidied&quot; later:</p>
+<ul>
+<li class="">an unclassified JSDoc tag becomes a keyword of its own name, so <code>@see</code> and <code>@returns</code> reach
+the schema and <code>@type number | string</code> <strong>overwrites</strong> the structural <code>type</code></li>
+<li class="">a repeated tag collects into an array, and because the first value may already be an array
+the second nests inside it (<code>@examples [&quot;a&quot;]</code> then <code>[&quot;b&quot;]</code> → <code>[&quot;a&quot;, [&quot;b&quot;]]</code>)</li>
+<li class="">an unresolved <code>{@link Foo}</code> renders with a trailing space — <code>{@link Foo }</code> — because 6.x
+only omitted it when the target resolved</li>
+</ul>
+<p>Each is a behaviour change if altered, so any of them is a separate, visible commit.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="stage-72-result-model-schemas">Stage 7.2 result: model schemas<a href="#stage-72-result-model-schemas" class="hash-link" aria-label="Direct link to Stage 7.2 result: model schemas" title="Direct link to Stage 7.2 result: model schemas" translate="no">​</a></h3>
+<p><code>node tools/schema-diff.mjs</code> reports <code>IDENTICAL</code> for both groups across all four packages:
+17 of 29 model schemas byte-identical, 12 divergences the harness proves. Against the
+TypeScript 6 oracle run under equal conditions — <code>--baseline=worker</code> — the two
+implementations agree on 22 of 29, and every remaining difference is the same single cause.</p>
+<p><code>Input</code>, <code>Output</code> and <code>Stored</code> come from <code>fromDto</code>, <code>toDto</code> and <code>toJSON</code> when the model
+declares them and from the class shape otherwise, with the <code>$webda</code> marker recording which
+applied. The accessor read/write distinction finally matters here: <code>Input</code> takes the setter
+parameter type, <code>Output</code> the getter return type, so a field the content mapper rewrites is
+wide on the way in and narrow on the way out.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="model-relations-are-their-primary-key-not-an-empty-object">Model relations are their primary key, not an empty object<a href="#model-relations-are-their-primary-key-not-an-empty-object" class="hash-link" aria-label="Direct link to Model relations are their primary key, not an empty object" title="Direct link to Model relations are their primary key, not an empty object" translate="no">​</a></h4>
+<p>This is the consequential change in the whole port, and it is a correction.</p>
+<p><code>ModelLink&lt;T&gt;.toJSON()</code> returns <code>PrimaryKeyType&lt;T&gt;</code> — <code>PK&lt;T, ...&gt; &amp; { toString(): string }</code> —
+and at runtime that is the uuid string <code>getKey()</code> produces. The committed schemas instead
+describe every relation as <code>{ &quot;type&quot;: &quot;object&quot;, &quot;additionalProperties&quot;: false }</code>: an object
+with no properties, which <strong>rejects the value actually stored</strong>.</p>
+<p>Two different 6.x failures produce that, and probing the checker shows both:</p>
+<div class="language-text codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-text codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">packages/core   ModelLink&lt;User&gt;.toJSON() -&gt; PrimaryKeyType&lt;User&gt;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">sample-app      ModelLink&lt;User&gt;.toJSON() -&gt; { toString(): string; }</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p>In sample-app the <code>PK&lt;T, T[typeof WEBDA_PRIMARY_KEY][number]&gt;</code> half of the intersection
+collapses — the symbol-keyed indexed access does not resolve — leaving only the method,
+which converts to an empty object. In core it resolves, and the committed file is wrong
+there for the other reason instead: it was generated by the two-program build.</p>
+<p>TypeScript 7.1 resolves it consistently, so relations become <code>type: &quot;string&quot;</code> in all three
+views. Seven models change under <code>--baseline=worker</code>; twelve against the committed file.
+Anything generated from these schemas — API validation, client types — changes with them.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="what-the-71-checker-does-differently-again">What the 7.1 checker does differently, again<a href="#what-the-71-checker-does-differently-again" class="hash-link" aria-label="Direct link to What the 7.1 checker does differently, again" title="Direct link to What the 7.1 checker does differently, again" translate="no">​</a></h4>
+<p>Two more silent divergences, on top of the four from 7.1:</p>
+<ul>
+<li class=""><strong>JSDoc keeps its trailing newline.</strong> A block closed by a blank <code>*</code> line, or followed by
+tags, leaves <code>\n</code> at the end of the comment in the 7.1 AST; 6.x trimmed it. It affected
+roughly a third of the descriptions in the corpus.</li>
+<li class=""><strong><code>Symbol.getSymbolAtLocation</code> still does not accept a declaration node</strong> — worth
+restating, because &quot;fixing&quot; it is the most natural-looking mistake in this area and it
+silently doubles every JSDoc tag.</li>
+</ul>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="the-ordering-trap-worth-knowing-about">The ordering trap worth knowing about<a href="#the-ordering-trap-worth-knowing-about" class="hash-link" aria-label="Direct link to The ordering trap worth knowing about" title="Direct link to The ordering trap worth knowing about" translate="no">​</a></h4>
+<p>7.1&#x27;s union ordering was the subtlest bug in either stage. <code>UnionType.getTypes()</code> returns
+constituents alphabetically, so the order has to be reconstructed, and sorting on <code>Type.id</code>
+appears to do it — ids are issued as types are created. It is wrong, and it fails
+<em>intermittently</em>: ids depend on what the session queried first, so <code>&quot;SUCCESS&quot; | &quot;ERROR&quot;</code>
+came back reversed whenever something earlier in the batch had already interned <code>&quot;ERROR&quot;</code>.
+The score moved depending on which requests shared a worker.</p>
+<p>What 6.x actually exposed is id order under two regimes, and both have to be modelled:</p>
+<ul>
+<li class=""><strong>primitives</strong> are interned when the checker starts, in a fixed order, so they always sort
+first and among themselves by that order — <code>number | string</code> is recorded as
+<code>[&quot;string&quot;, &quot;number&quot;]</code>, not in source order</li>
+<li class=""><strong>literals</strong> are interned on first use, so their ids follow the source</li>
+</ul>
+<p>So primitives are ranked from a table matching <code>initializeTypeChecker</code>, and literals from
+the syntax — the <code>UnionTypeNode</code> behind the alias or the property, or the members of an
+<code>enum</code>. Id order survives only as the fallback for constituents with no syntax to read.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="reproducing-1">Reproducing<a href="#reproducing-1" class="hash-link" aria-label="Direct link to Reproducing" title="Direct link to Reproducing" translate="no">​</a></h4>
+<div class="language-sh codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-sh codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">node packages/content-mapper/tools/schema-diff.mjs                    # both groups</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">node packages/content-mapper/tools/schema-diff.mjs --baseline=worker  # port vs oracle</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">node packages/content-mapper/tools/schema-diff.mjs --diff=WebdaDemo/Computer</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="stage-73-result-top-level-schemas">Stage 7.3 result: top-level schemas<a href="#stage-73-result-top-level-schemas" class="hash-link" aria-label="Direct link to Stage 7.3 result: top-level schemas" title="Direct link to Stage 7.3 result: top-level schemas" translate="no">​</a></h3>
+<p><code>node tools/schema-diff.mjs</code> reports <code>IDENTICAL</code> for all three groups across all four
+packages. Top-level: 47 of 50 byte-identical, 3 proven divergences.</p>
+<p>These entries are different in kind from the first two stages: the key is all there is, so
+there is no provenance to look them up by. Reproducing them means reproducing the
+<strong>discovery</strong> as well as the conversion, and the worker answers one request with the whole
+map. Two sorts share it:</p>
+<ul>
+<li class=""><strong><code>&lt;Namespace&gt;/&lt;Name&gt;</code></strong> for a type tagged <code>@WebdaSchema</code>. Found across the <em>whole
+program</em>, dependencies included — the 6.x walk tests the tag before it tests whether the
+file belongs to the project, which is why <code>@webda/core</code>&#x27;s <code>BinaryFile</code> reappears in every
+downstream module under that application&#x27;s namespace. Restricting the walk to project
+sources silently drops it.</li>
+<li class=""><strong><code>&lt;Root&gt;.&lt;method&gt;.input</code> / <code>.output</code></strong> for <code>@Action</code> or <code>@Operation</code> methods. The root is
+<em>not</em> computed uniformly, and the inconsistency is load-bearing rather than incidental: a
+model uses its namespaced name, a modda or bean uses its <strong>raw class name</strong>, a behaviour
+uses its <code>@WebdaBehavior</code> payload. <code>.webda/operations.json</code> depends on the middle case —
+it recovers service operations by matching <code>^([^.]+)\.</code> against the short class name, so a
+namespaced key would never be found.</li>
+</ul>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="input-is-not-a-generated-document"><code>.input</code> is not a generated document<a href="#input-is-not-a-generated-document" class="hash-link" aria-label="Direct link to input-is-not-a-generated-document" title="Direct link to input-is-not-a-generated-document" translate="no">​</a></h4>
+<p>It is a hand-built wrapper whose properties are one generated document per parameter, each
+stripped of its <code>$schema</code>. Everything odd about it follows from that, and all of it is in
+the committed artefact:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th></th><th><code>.input</code></th><th><code>.output</code></th></tr></thead><tbody><tr><td><code>$schema</code></td><td>absent</td><td>present</td></tr><tr><td><code>additionalProperties</code></td><td>absent</td><td><code>false</code></td></tr><tr><td>key order</td><td>declaration order</td><td>sorted</td></tr><tr><td><code>required</code></td><td>declaration order, omitted when empty</td><td>sorted</td></tr></tbody></table>
+<p>Every parameter is included, with no filter for <code>context</code> / <code>ctx</code>, so an <code>OperationContext</code>
+argument is expanded in full — <code>Writable</code>, <code>Promise&lt;any&gt;</code> and <code>Error</code> definitions and all.
+That is strange for something called an operation <em>input</em>, and it is reproduced rather than
+improved, because improving it is a separate decision.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="one-more-syntactic-rule-found-by-the-harness">One more syntactic rule, found by the harness<a href="#one-more-syntactic-rule-found-by-the-harness" class="hash-link" aria-label="Direct link to One more syntactic rule, found by the harness" title="Direct link to One more syntactic rule, found by the harness" translate="no">​</a></h4>
+<p>A property written <code>T | undefined</code> is optional <strong>even though the checker says otherwise</strong>.
+Most Webda packages compile with <code>strict: false</code>, where <code>string | undefined</code> folds back to
+<code>string</code>; <code>@webda/schema</code> therefore checks the <em>syntax</em> of the declaration rather than the
+type. Missing it made <code>Location</code> required in <code>Binary.downloadUrl.output</code>.</p>
+<p>The rule applies to properties only. A <em>parameter</em> written <code>| undefined</code> is still
+positionally required, and the two paths genuinely differ — both are pinned by tests.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="the-three-divergences">The three divergences<a href="#the-three-divergences" class="hash-link" aria-label="Direct link to The three divergences" title="Direct link to The three divergences" translate="no">​</a></h4>
+<p>Two are the relation correction from §7.2, reaching action inputs through an embedded
+model. The third is a new member of the same family: 6.x left <code>OperationContext&lt;P, U&gt;</code>&#x27;s
+<code>parameters: U</code> unsubstituted, hit its type-parameter branch and emitted <code>{}</code>; 7.1
+substitutes it and emits the real shape.</p>
+<p>The harness accepts that one under a rule that is safe in a single direction: the reference
+said &quot;anything&quot;, so the port can only be <em>narrowing</em> a contract that validated everything.
+The reverse — the port loosening a contract — is never accepted, which is the case that
+would matter.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="the-classifier-is-not-a-suppression-list">The classifier is not a suppression list<a href="#the-classifier-is-not-a-suppression-list" class="hash-link" aria-label="Direct link to The classifier is not a suppression list" title="Direct link to The classifier is not a suppression list" translate="no">​</a></h4>
+<p>Worth stating plainly, because &quot;12 known divergences&quot; invites the question. The three
+recognised kinds are each checked structurally, per run, and everything else fails the
+build. Verified by deliberately regressing the converter — removing the automatic
+<code>default: false</code> on booleans — which the harness reports across all three groups and exits
+1 on:</p>
+<div class="language-text codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-text codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">services   20/39 + 6 known divergences</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">models     15/29 + 7 known divergences</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">top        44/50 + 2 known divergences</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="stage-74-validated-across-the-monorepo">Stage 7.4: validated across the monorepo<a href="#stage-74-validated-across-the-monorepo" class="hash-link" aria-label="Direct link to Stage 7.4: validated across the monorepo" title="Direct link to Stage 7.4: validated across the monorepo" translate="no">​</a></h3>
+<p>Four packages were never the target — they were what the harness happened to list. Before
+<code>@webda/schema</code> can go, the port has to hold everywhere, so the harness now discovers every
+directory carrying a committed module. It reports <code>IDENTICAL</code> for all three groups across
+all twelve comparable targets: <strong>127 of 159 schemas byte-identical, 32 proven divergences,
+nothing unexplained.</strong></p>
+<p>This found five bugs the four-package corpus never exercised, and two categories of
+artefact that should not have been compared at all.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="thirteen-modules-are-not-comparable-for-two-different-reasons">Thirteen modules are not comparable, for two different reasons<a href="#thirteen-modules-are-not-comparable-for-two-different-reasons" class="hash-link" aria-label="Direct link to Thirteen modules are not comparable, for two different reasons" title="Direct link to Thirteen modules are not comparable, for two different reasons" translate="no">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>reason</th><th style="text-align:right">count</th><th>which</th></tr></thead><tbody><tr><td>pre-format: no <code>$schema</code>, <code>moddas</code> are bare strings</td><td style="text-align:right">11</td><td>amqp, async, aws, cloudevents, elasticsearch, gcp, google-auth, hawk, kubernetes, mongodb, otel</td></tr><tr><td>no installed dependencies</td><td style="text-align:right">2</td><td><code>test/compiler</code>, <code>test/compiler-operations</code></td></tr></tbody></table>
+<p>The first set was never produced by the generator being replaced — ten of the eleven are
+also <code>!</code>-excluded in <code>pnpm-workspace.yaml</code> as &quot;not yet ready&quot;. The second are compiler test
+fixtures with no <code>node_modules</code>, so <code>@webda/core</code> cannot resolve and no class can be
+classified; they are regenerated inside the compiler&#x27;s own tests, which set resolution up
+differently. Both sets are skipped with the reason printed, not silently dropped.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="what-the-wider-corpus-found">What the wider corpus found<a href="#what-the-wider-corpus-found" class="hash-link" aria-label="Direct link to What the wider corpus found" title="Direct link to What the wider corpus found" translate="no">​</a></h4>
+<ul>
+<li class=""><strong><code>@readonly</code> is not <code>@readOnly</code>.</strong> Only the second is a JSON Schema keyword; the first
+arrives through the generic tag handling. <code>@webda/schema</code> checks both, and the corpus
+mostly uses the lowercase spelling — so <code>createdAt</code> and <code>updatedAt</code> were appearing in
+Input schemas that should exclude them.</li>
+<li class=""><strong><code>@enum</code> payloads are invisible in 6.x.</strong> <code>parseEnumTag</code> calls <code>parseJSDocTypeExpression</code>
+with <code>mayOmitBraces: true</code>, so <code>@enum [&quot;draft&quot;, &quot;published&quot;]</code> is parsed as a <em>type</em> and
+the comment is empty. 7.1 returns the raw payload. Reproduced deliberately: letting it
+through would start populating <code>enum</code> from the tag, which is arguably what the author
+meant and is also a behaviour change. <code>@type</code> is unaffected — <code>parseTypeTag</code> requires
+braces, which is why <code>@type number | string</code> does reach the committed schemas.</li>
+<li class=""><strong>The id-based exemption list was already wrong.</strong> It missed <code>WebdaSample/Publisher</code> and
+<code>WebdaSample/TestBean</code> — the same unresolved-parameters defect in a package the list had
+never seen. Replaced by a shape check keyed on the invariant that actually holds: the
+reference is missing the <code>type</code> property every <code>ServiceParameters</code> subclass inherits.</li>
+<li class=""><strong><code>anyOf</code> order is not always recoverable.</strong> For <em>literals</em> it is — that is what the
+primitive-rank table and syntax order reconstruct. For object types drawn from library
+declarations it is not: 6.x ordered them by when each type happened to be created across
+the whole program. <code>ConnectionOptions.ALPNProtocols</code> puts <code>Uint8Array</code> ahead of <code>string[]</code>
+for no reason visible in the source. Accepted as a divergence, because <code>anyOf</code> is an
+unordered set and the member sets are compared. Deliberately <strong>not</strong> extended to <code>enum</code>,
+where order is reproducible and visible downstream.</li>
+<li class=""><strong>Diffing was broken for top-level entries.</strong> <code>--diff=&lt;key&gt;</code> matched the internal request
+id rather than the schema name, so it silently printed nothing.</li>
+</ul>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="the-classifier-is-adversarially-tested">The classifier is adversarially tested<a href="#the-classifier-is-adversarially-tested" class="hash-link" aria-label="Direct link to The classifier is adversarially tested" title="Direct link to The classifier is adversarially tested" translate="no">​</a></h4>
+<p>Three kinds of divergence are recognised — unresolved parameters, relation serialisation,
+generic substitution — plus <code>anyOf</code> reordering. Each is checked structurally on every run.
+Two deliberate regressions confirm the harness is not a rubber stamp:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>injected fault</th><th>result</th></tr></thead><tbody><tr><td>drop the automatic <code>default: false</code></td><td>24/48, 15/35, 67/76 — exit 1</td></tr><tr><td>silently drop two real properties</td><td>27/48 — exit 1</td></tr></tbody></table>
+<p>The second is the important one. Accepting a <em>removed</em> property is the most dangerous rule
+in the classifier, so it is allowed only when the reference schema for that property was
+literally <code>{}</code> — it constrained nothing, so nothing it expressed can have been lost. A
+property with a real schema disappearing still fails.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="why-webdaschema-cannot-be-deleted-yet">Why <code>@webda/schema</code> cannot be deleted yet<a href="#why-webdaschema-cannot-be-deleted-yet" class="hash-link" aria-label="Direct link to why-webdaschema-cannot-be-deleted-yet" title="Direct link to why-webdaschema-cannot-be-deleted-yet" translate="no">​</a></h4>
+<p>Stage 7&#x27;s fourth step is &quot;delete <code>@webda/schema</code> and the worker together&quot;. It is not
+reachable in that order, for two reasons:</p>
+<ol>
+<li class=""><strong>The worker is the evidence.</strong> Eighteen divergences are classified as &quot;committed
+artefact is stale&quot; only because the port and the 6.x oracle agree under equal
+conditions. Deleting the oracle deletes the proof.</li>
+<li class=""><strong>The artefacts have to be regenerated first</strong>, and that means <code>webdac build</code> producing
+them — which is stage 7.5 below. Only then do the divergences collapse to zero and the
+oracle become redundant.</li>
+</ol>
+<p>Regenerating is also the point at which the relation change becomes real for users, across
+26 committed modules. It belongs in its own commit.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="stage-75-the-compiler-can-drive-the-port">Stage 7.5: the compiler can drive the port<a href="#stage-75-the-compiler-can-drive-the-port" class="hash-link" aria-label="Direct link to Stage 7.5: the compiler can drive the port" title="Direct link to Stage 7.5: the compiler can drive the port" translate="no">​</a></h3>
+<p><code>WEBDA_SCHEMA_BACKEND=ts7</code> makes <code>webdac build</code> generate every schema through
+<code>@webda/content-mapper</code> instead of <code>@webda/schema</code>. Off by default; the TypeScript 6 path
+is untouched otherwise.</p>
+<p>The two majors never meet. <code>@webda/compiler</code> spawns <code>lib/schema/worker-cli.js</code> as a
+subprocess and exchanges JSON — the same shape <code>@webda/content-mapper</code> already uses to
+drive <code>tsgo</code>. One spawn per build, batched, because opening the program is the expensive
+part: 34 requests in 351ms for <code>packages/core</code>. <code>@webda/content-mapper</code> is deliberately
+<em>not</em> a declared dependency of the compiler — it peers on <code>typescript@&gt;=7.1.0-dev</code>, which
+would collide with the compiler&#x27;s own TypeScript 6 the moment a package manager tried to
+satisfy it. <code>WEBDA_SCHEMA_WORKER</code> points at the worker directly, which is how the whole
+monorepo was exercised without first adding the package to twelve applications.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="what-this-validates-that-the-harness-cannot">What this validates that the harness cannot<a href="#what-this-validates-that-the-harness-cannot" class="hash-link" aria-label="Direct link to What this validates that the harness cannot" title="Direct link to What this validates that the harness cannot" translate="no">​</a></h4>
+<p>The harness derives schema names from the committed artefact. A real build derives them
+from <strong>discovery</strong>, so the two can disagree about which schemas exist at all — and only a
+build catches that. Measured across six packages, the build changes exactly the entries
+the harness predicts, with no key added or removed:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>package</th><th style="text-align:right">harness predicts</th><th style="text-align:right">build changes</th></tr></thead><tbody><tr><td><code>packages/core</code></td><td style="text-align:right">2</td><td style="text-align:right">2</td></tr><tr><td><code>packages/fs</code></td><td style="text-align:right">0</td><td style="text-align:right">0</td></tr><tr><td><code>packages/postgres</code></td><td style="text-align:right">3</td><td style="text-align:right">3</td></tr><tr><td><code>packages/runtime</code></td><td style="text-align:right">1</td><td style="text-align:right">1</td></tr><tr><td><code>sample-app</code></td><td style="text-align:right">18</td><td style="text-align:right">18</td></tr><tr><td><code>sample-apps/blog-system</code></td><td style="text-align:right">10</td><td style="text-align:right">10</td></tr></tbody></table>
+<p>It immediately found two defects the harness had been hiding:</p>
+<ul>
+<li class=""><strong>The harness skipped <code>:default</code>-exported services.</strong> Two of the three services in
+<code>packages/postgres</code> were never compared — the gap had been fixed for models and not for
+services. The build changed three entries where the score claimed one.</li>
+<li class=""><strong>The port titled a default-exported service <code>&quot;default&quot;</code>.</strong> With the skip removed, the
+title came from the <em>requested</em> name rather than the declaration&#x27;s. Both fixed.</li>
+</ul>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="what-has-not-been-done">What has not been done<a href="#what-has-not-been-done" class="hash-link" aria-label="Direct link to What has not been done" title="Direct link to What has not been done" translate="no">​</a></h4>
+<p>The artefacts are <strong>not</strong> regenerated. Running a real build with the flag confirms the
+change is exactly the 32 proven divergences; committing that is a separate, deliberate
+step, because it changes API validation for every model relation across 26 modules.</p>
+<p>One wrinkle for whoever does it: <code>sourceDigest</code> hashes the compiler package itself, so
+changing the compiler at all rewrites the digest in every module on next build. It should
+be regenerated everywhere at once rather than package by package.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="stage-76-artefacts-regenerated-webdaschema-deleted">Stage 7.6: artefacts regenerated, <code>@webda/schema</code> deleted<a href="#stage-76-artefacts-regenerated-webdaschema-deleted" class="hash-link" aria-label="Direct link to stage-76-artefacts-regenerated-webdaschema-deleted" title="Direct link to stage-76-artefacts-regenerated-webdaschema-deleted" translate="no">​</a></h3>
+<p><code>webdac build</code> now generates every schema through <code>@webda/content-mapper</code>. There is no
+flag and no TypeScript 6 path: <code>@webda/schema</code> is gone, along with its CLI, its 183 tests
+and its documentation pages.</p>
+<p><code>node tools/schema-diff.mjs</code> reports <strong>IDENTICAL for all three groups, 164/164, with no
+divergences</strong>. The classifier that explained the previous 32 is deleted with them — it
+existed because the committed artefacts predated the port, and they no longer do.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="the-order-this-had-to-happen-in">The order this had to happen in<a href="#the-order-this-had-to-happen-in" class="hash-link" aria-label="Direct link to The order this had to happen in" title="Direct link to The order this had to happen in" translate="no">​</a></h4>
+<p>Deleting first was not possible, and the sequence is worth recording because the
+dependency is not obvious:</p>
+<ol>
+<li class="">Make the generator the only path in <code>@webda/compiler</code> — otherwise a default build
+reverts the artefacts and the tree is permanently dirty.</li>
+<li class="">Regenerate through a real <code>webdac build</code>, so the artefacts are produced by the
+supported route rather than hand-patched.</li>
+<li class="">Only then delete <code>@webda/schema</code>, because until step 2 it was the only evidence that
+18 of the divergences were stale artefacts rather than port bugs.</li>
+</ol>
+<p>Regeneration changed <strong>34 schemas across 10 packages, and no keys</strong> — exactly the 34 the
+harness had predicted (11 services, 18 models, 5 top-level).</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="what-changed-for-users">What changed for users<a href="#what-changed-for-users" class="hash-link" aria-label="Direct link to What changed for users" title="Direct link to What changed for users" translate="no">​</a></h4>
+<p>The relation correction from §7.2, now real: <code>ModelLink</code>-typed attributes are <code>type: &quot;string&quot;</code> in <code>Input</code>, <code>Output</code> and <code>Stored</code> rather than an object with no properties.
+Anything generated from these schemas — API validation, client types — changes with them.
+Six services also gain the <code>type</code> property they inherit from <code>ServiceParameters</code>, which
+the old pipeline lost.</p>
+<p>One fixed by regenerating rather than by anyone editing it: <code>packages/compiler</code>&#x27;s
+<code>compileSampleApp</code> test had been failing on <code>Binary attribute Contact.avatar must be absent from Input</code>. The port excludes it correctly.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="how-the-two-majors-coexist">How the two majors coexist<a href="#how-the-two-majors-coexist" class="hash-link" aria-label="Direct link to How the two majors coexist" title="Direct link to How the two majors coexist" translate="no">​</a></h4>
+<p><code>@webda/compiler</code> depends on <code>@webda/content-mapper</code> and spawns
+<code>@webda/content-mapper/schema-worker-cli</code> as a subprocess, exchanging JSON. It never
+imports it, so the compiler keeps TypeScript 6 and the generator keeps 7.1 — which is the
+same trick <code>@webda/content-mapper</code> already uses on <code>tsgo</code>. A dedicated export entry exists
+because the package&#x27;s <code>exports</code> map otherwise blocks resolving a path inside it.
+<code>WEBDA_SCHEMA_WORKER</code> overrides the resolved worker, for running a generator that is not
+the installed one.</p>
+<p>Cost is one spawn per build — 34 requests in 477ms for <code>packages/core</code> — because opening
+the program dominates and the caller batches.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="still-outstanding">Still outstanding<a href="#still-outstanding" class="hash-link" aria-label="Direct link to Still outstanding" title="Direct link to Still outstanding" translate="no">​</a></h4>
+<ul>
+<li class=""><strong>Thirteen modules were not regenerated</strong>: eleven pre-format ones (ten of which
+<code>pnpm-workspace.yaml</code> marks &quot;not yet ready&quot;) and two compiler fixtures with no installed
+dependencies. They were not comparable before either. Whoever revives those packages
+regenerates them.</li>
+<li class=""><strong><code>sourceDigest</code> hashes the compiler package</strong>, so every module&#x27;s digest moved. They
+were regenerated together, which is the only way that stays consistent.</li>
+<li class=""><code>@webda/content-mapper</code> peers on <code>typescript@&gt;=7.1.0-dev</code>. In the workspace it resolves
+from its own tree; a published consumer has to provide it, which is already true of the
+content mapper itself and belongs in the application template.</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="stage-8-the-tsc-esm-binary">Stage 8: the <code>tsc-esm</code> binary<a href="#stage-8-the-tsc-esm-binary" class="hash-link" aria-label="Direct link to stage-8-the-tsc-esm-binary" title="Direct link to stage-8-the-tsc-esm-binary" translate="no">​</a></h3>
+<p>Six packages built with the <code>tsc-esm</code> binary; they now build with plain <code>tsc</code> under <code>nodenext</code>.
+The ten <code>webdac</code>-built packages were moved to <code>nodenext</code> in a follow-up, under the current
+compiler, so the extension change could be proven independently of the emitter change.</p>
+<p><strong>It was not a drop-in.</strong> <code>rewriteRelativeImportExtensions</code> rewrites <code>.ts</code> to <code>.js</code>; it never
+<em>adds</em> an extension. The packages wrote extensionless imports under <code>bundler</code> resolution and
+<code>tsc-esm</code>&#x27;s writer appended <code>.js</code> after emit, by regex. So the sources had to change, and they
+now use <code>.js</code> — the repo convention — which needs no rewrite flag at all.</p>
+<p><strong>The regex writer was shipping broken modules</strong>, and no test noticed because vitest runs from
+<code>src/</code>:</p>
+<ul>
+<li class=""><code>cloudevents</code> imported the directory <code>./filters</code>; the writer made it <code>./filters.js</code>.
+<code>lib/models/subscription.js</code> failed with <code>ERR_MODULE_NOT_FOUND</code>.</li>
+<li class=""><code>cloudevents</code>&#x27; SQL filter deep-imported <code>antlr4ts/tree</code> and <code>antlr4ts/Lexer</code> into a package
+with no <code>exports</code> map. The writer only touches relative specifiers, so these shipped as-is and
+failed with <code>ERR_UNSUPPORTED_DIR_IMPORT</code>.</li>
+</ul>
+<p><code>scripts/add-import-extensions.mjs</code> replaces the writer. It resolves each specifier against the
+real tree (<code>./dir</code> → <code>./dir/index.js</code>, never <code>./dir.js</code>), leaves packages with an <code>exports</code>
+map alone, and exits 1 naming file and line rather than guessing. It runs as part of both
+ANTLR <code>grammar</code> scripts, so regenerating a parser keeps the fix.</p>
+<p>Verified by emit diff, not by tests: across 16 packages, every emitted file is byte-identical
+to a fresh <code>tsc-esm</code> build except specifier extensions and empty modules gaining <code>export {};</code>.</p>
+<p>Found here and fixed with the switch: <code>webdac build</code> reported &quot;Cache up-to-date; skipping build&quot;
+after <code>lib/</code> was deleted, because the cache checked the source digest and never the output. It now
+checks every file an <code>Import</code> in <code>webda.module.json</code> points at, so one deleted output is enough.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="stage-9-where-it-actually-stands">Stage 9: where it actually stands<a href="#stage-9-where-it-actually-stands" class="hash-link" aria-label="Direct link to Stage 9: where it actually stands" title="Direct link to Stage 9: where it actually stands" translate="no">​</a></h3>
+<p>The plan treated the switch as mechanical: point the compiler&#x27;s emit at the two-pass tsgo
+build, delete <code>@webda/ts-plugin</code>. Measuring first says otherwise.</p>
+<p>Stage 9 splits in two:</p>
+<ul>
+<li class=""><strong>9a — emit.</strong> Build application JavaScript through <code>runTwoPass</code> instead of <code>tsProgram.emit</code>
+with four <code>@webda/ts-plugin</code> transformers. This is what lets <code>@webda/ts-plugin</code> and
+<code>ts-patch</code> go.</li>
+<li class=""><strong>9b — analysis.</strong> Port the compiler&#x27;s own checker use — module generation and six metadata
+plugins, about 320 <code>ts.</code> call sites — to the 7.1 API.</li>
+</ul>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="the-emitter-is-not-the-problem">The emitter is not the problem<a href="#the-emitter-is-not-the-problem" class="hash-link" aria-label="Direct link to The emitter is not the problem" title="Direct link to The emitter is not the problem" translate="no">​</a></h4>
+<p>For packages with no generated code, tsgo&#x27;s emit is <strong>byte-identical</strong> to tsc 6: <code>models</code>,
+<code>debug</code>, <code>fs</code>, <code>grpc</code>, <code>graphql</code> and <code>postgres</code>. Whatever differs is the generators.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="the-generators-are-not-at-parity">The generators are not at parity<a href="#the-generators-are-not-at-parity" class="hash-link" aria-label="Direct link to The generators are not at parity" title="Direct link to The generators are not at parity" translate="no">​</a></h4>
+<p><code>tools/emit-twopass.mjs</code> emits a package through the two-pass build without touching <code>lib/</code>;
+<code>tools/emit-classdiff.mjs</code> compares the result against the shipped TypeScript 6 build
+class by class. Byte-identity is the wrong bar — the generators rewrite accessors in place,
+with their JSDoc, where the transformers appended them — so member order and comments are
+ignored and everything else is reported.</p>
+<p>Across <code>core</code>, <code>runtime</code>, <code>sample-app</code> and <code>blog-system</code>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style="text-align:right">count</th><th>cause</th><th>effect if shipped</th></tr></thead><tbody><tr><td style="text-align:right">32+1</td><td>accessor not generated</td><td><code>Date</code> / relation coercion missing</td></tr><tr><td style="text-align:right">20</td><td><code>toJSON()</code> not generated</td><td>accessor-backed fields vanish from JSON</td></tr><tr><td style="text-align:right">8</td><td>constructor differs</td><td>includes a <code>ReferenceError</code>, below</td></tr><tr><td style="text-align:right">3</td><td><code>__hydrateBehaviors</code> differs</td><td>behaviours not wired on hydration</td></tr><tr><td style="text-align:right">1</td><td><code>ModelRelated</code> initialiser not generated</td><td>relation is <code>undefined</code></td></tr><tr><td style="text-align:right">1</td><td><code>ModelLink</code> setter body differs</td><td>not yet analysed</td></tr><tr><td style="text-align:right">50</td><td>import differences</td><td>13 are a TS6 bug, below</td></tr></tbody></table>
+<p>Stages 4–5 verified the generators against a small fixture, not against the shipped output of
+real packages, which is where these hid. Every row is a <em>silent</em> failure: the code compiles
+and loads, and the data is wrong.</p>
+<p>Three details worth recording:</p>
+<ul>
+<li class=""><strong><code>toJSON</code> is load-bearing.</strong> <code>Model.toJSON()</code> returns <code>this</code>, and <code>JSON.stringify</code> skips
+symbol-keyed properties, so without the injected <code>toJSON</code> that merges <code>WEBDA_STORAGE</code>, every
+generated accessor&#x27;s value is dropped from serialisation.</li>
+<li class=""><strong>tsgo crashes on <code>Binary</code>, and TS6 is wrong about it too.</strong> <code>Binary</code>&#x27;s constructor calls
+<code>super()</code> inside <code>if</code>/<code>else</code>. tsgo emits the decorator <code>__runInitializers(this, …)</code> <em>before</em>
+<code>super()</code> — <code>new Binary()</code> throws <code>ReferenceError</code>, verified. TS6 does not crash only because
+it silently drops the initialisers, so <code>@Action</code> decorators registering <code>addInitializer</code>
+never run for <code>Binary</code>. A single top-level <code>super()</code> would fix both; that is a change to
+shipping code and should be reviewed as one.</li>
+<li class=""><strong>TS6 emits monorepo-relative imports.</strong> For value imports it synthesises, the transformer
+maps <code>node_modules</code> paths to package names — but workspace packages are symlinks, so
+<code>@webda/models</code> becomes <code>&quot;../../../models/lib/relations.js&quot;</code>, which only resolves inside this
+repository. The generators reuse the specifier the author wrote, which is correct.</li>
+</ul>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="done-so-far">Done so far<a href="#done-so-far" class="hash-link" aria-label="Direct link to Done so far" title="Direct link to Done so far" translate="no">​</a></h4>
+<ul>
+<li class=""><code>loadParameters</code> is no longer generated by default. Nothing calls it — parameters come from
+<code>createConfiguration</code> — and TS6 never emitted it, so generating it added a dead method to 17
+shipped services. Both hosts now take their defaults from one list in <code>defaults.ts</code>, so the
+editor and the build cannot drift apart.</li>
+</ul>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="next-in-order">Next, in order<a href="#next-in-order" class="hash-link" aria-label="Direct link to Next, in order" title="Direct link to Next, in order" translate="no">​</a></h4>
+<ol>
+<li class="">Close the generator gaps above until <code>emit-classdiff</code> reports nothing across all ten
+packages. <code>toJSON</code> and the missing accessors first; they are the widest and the quietest.</li>
+<li class="">Resolve <code>Binary</code>&#x27;s conditional <code>super()</code> in source.</li>
+<li class="">Drive the emit from <code>@webda/compiler</code> through a worker, as schemas are; delete
+<code>@webda/ts-plugin</code>, <code>ts-patch</code> and the three tsconfig <code>plugins</code> entries.</li>
+<li class="">9b.</li>
+</ol>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="stage-9-result-the-switch">Stage 9 result: the switch<a href="#stage-9-result-the-switch" class="hash-link" aria-label="Direct link to Stage 9 result: the switch" title="Direct link to Stage 9 result: the switch" translate="no">​</a></h3>
+<p>Done, in the order the measurements forced:</p>
+<ol>
+<li class=""><strong><code>Binary</code>&#x27;s constructor</strong> now calls <code>super()</code> first and unconditionally. tsgo ran decorator
+initialisers before a conditional <code>super()</code>, so <code>new Binary()</code> threw. TS6 avoided the crash
+only by hanging them on a <code>[WEBDA_STORAGE]</code> field its transformer injected, which replaced
+the storage <code>BinaryMap</code> had just populated: with a stub core, the shipped
+<code>new Binary(attribute, model)</code> lost its <code>BinaryService</code>.</li>
+<li class=""><strong>Generator parity.</strong> One root cause covered most of the gap: a name the generated code
+needs at runtime that the file does not import as a value. <code>generators/imports.ts</code> allows two
+moves — promote an <code>import type</code>, or add a named import from a module the file already uses
+once the checker confirms it exports the name — and refuses anything else. Plus <code>toJSON</code>,
+relation constructors decided by kind rather than arity (7.1 reports no
+<code>minArgumentCount</code>), default-export targets, and array behaviours. <code>emit-classdiff</code> now
+reports nothing where tsgo is wrong; <code>emit-importid</code> loads both outputs and confirms all 22
+rebound imports resolve to the identical object.</li>
+<li class=""><strong>Module generation</strong> moved to <code>@webda/content-mapper</code> (<code>generateWebdaModule</code>),
+byte-identical across all ten packages by <code>tools/module-diff.mjs</code>.</li>
+<li class=""><strong>The compiler</strong> makes one worker round trip per build — two-pass emit, then module — and
+keeps only the digest, the naming guard and the <code>.webda/module.d.ts</code> writer. About 13,800
+lines were deleted, including a dead island of TS6 code nothing reached.</li>
+<li class=""><strong>The toolchain.</strong> Every workspace package builds itself with 7.1 — pinned to
+<code>7.1.0-dev.20260929.1</code> since 2026-09-29, the newest 7.1 build; <code>latest</code> on npm is still 7.0. Each <code>tsc</code>-built package
+was compiled with tsgo and diffed against its TS6 output before the version bump.</li>
+</ol>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="what-typescript-6-was-getting-wrong">What TypeScript 6 was getting wrong<a href="#what-typescript-6-was-getting-wrong" class="hash-link" aria-label="Direct link to What TypeScript 6 was getting wrong" title="Direct link to What TypeScript 6 was getting wrong" translate="no">​</a></h4>
+<p>The switch changes shipped behaviour, and every change is a correction, verified against the
+output it replaces:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>TypeScript 6 behaviour</th><th>consequence</th></tr></thead><tbody><tr><td><code>AuditEntry.timestamp: number</code> coerced to <code>Date</code></td><td>a numeric timestamp became a <code>Date</code></td></tr><tr><td><code>new ModelLink(T)</code> on a type parameter</td><td><code>ReferenceError</code> on first raw-uuid assignment</td></tr><tr><td><code>[WEBDA_STORAGE]</code> injected into <code>Binary</code></td><td><code>new Binary(attribute, model)</code> lost its service</td></tr><tr><td>base-chain guard keyed on class name</td><td><code>User extends WebdaUser</code> not a model; relations <code>undefined</code></td></tr><tr><td>value imports synthesised from symlinked paths</td><td><code>../../../models/lib/relations.js</code> breaks once installed</td></tr><tr><td><code>.d.ts</code> referencing unimported <code>PrimaryKeyType</code>, bare <code>BelongTo</code></td><td>invalid declarations</td></tr><tr><td>strict naming violation logged, build still succeeded</td><td>the guard never stopped a build</td></tr></tbody></table>
+<p>Module generation still reproduces four TS6 bugs exactly, because <code>webda.module.json</code> is a
+committed artefact and changing it is its own decision: dependency models never resolve
+(<code>moduleInfo.models.list</code> no longer exists), inherited generic links lose their target, two
+same-named models resolve silently, and <code>Webda/CoreModel</code> is hard-excluded from <code>Ancestors</code>.</p>
+<p>Rechecked on 2026-09-29; all four still reproduce, and they are not equally harmless:</p>
+<ul>
+<li class=""><strong>Two same-named models</strong> is a real bug today. <code>core</code> has two <code>AuditEntry</code> classes:
+<code>services/audit.model.ts</code> (extends <code>CoreModel</code>, the one <code>AuditService</code> constructs and saves) and
+<code>models/auditentry.model.ts</code> (extends <code>UuidModel</code>, the one <code>Webda/AuditEntry</code> registers). The
+saved class has no model id and its stored schema describes the other class; <code>audit.spec.ts</code>
+mocks <code>save</code>, so nothing notices. Fix the source collision, then make the generator reject
+duplicates.</li>
+<li class=""><strong>Dependency models never resolve.</strong> Only <code>Ancestors</code> is wrong in the committed modules, and
+<code>Ancestors</code> is only displayed — but an application declaring <code>ModelParent</code>, <code>ModelRelated</code> or
+<code>ModelsMapped</code> against a model from another package fails <code>webdac build</code>. The fix walks from the
+class&#x27;s <code>.d.ts</code> to its package&#x27;s <code>webda.module.json</code>; it changes <code>Ancestors</code> in core, runtime,
+sample-app and blog-system.</li>
+<li class=""><strong><code>Webda/CoreModel</code> excluded from <code>Ancestors</code></strong> made sense when <code>CoreModel</code> was the root; it now
+sits between <code>UuidModel</code> and application models. On its own removing it changes nothing; it
+belongs with the fix above.</li>
+<li class=""><strong>Inherited generic links</strong> leave <code>_user</code> without a target on <code>Webda/OwnerModel</code> and
+<code>Webda/Ident</code>, so GraphQL drops that field. Resolving the property&#x27;s type argument fixes both.</li>
+</ul>
+<p><code>module-discovery.ts</code> holds a second copy of this logic (<code>buildModelMetadata</code>,
+<code>buildRelations</code>) that disagrees with <code>module.ts</code> on duplicates; a fix has to land in both, or
+one copy should go.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="what-is-still-on-typescript-6">What is still on TypeScript 6<a href="#what-is-still-on-typescript-6" class="hash-link" aria-label="Direct link to What is still on TypeScript 6" title="Direct link to What is still on TypeScript 6" translate="no">​</a></h4>
+<p>The workspace root keeps <code>typescript@6</code> as a tooling dependency, and only that:
+<code>typescript-eslint</code> peers on <code>&lt;6.1.0</code> and builds programs through the classic API, as
+does <code>typedoc</code> in <code>docs/</code>. Neither runs on 7.1 yet — rechecked on 2026-09-29 against
+<code>typescript-eslint</code> 8.71.0 (and its canary) and <code>typedoc</code> 0.28.20, which peers on <code>6.0.x</code>.</p>
+<p><code>ts-jest</code> had the same problem and nothing reported it: <code>@webda/test</code>&#x27;s <code>test:jest</code> script, which
+proves the framework runs under jest, had failed since the switch because ts-jest imports the
+classic API directly (its <code>compiler</code> option does not cover every call). Jest now transforms the
+specs with esbuild, which needs no TypeScript. <code>compiler/documentation/</code> and three dev
+scripts in <code>scripts/</code> also use the classic API; none is built or referenced.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="known-failures-not-caused-by-the-switch">Known failures, not caused by the switch<a href="#known-failures-not-caused-by-the-switch" class="hash-link" aria-label="Direct link to Known failures, not caused by the switch" title="Direct link to Known failures, not caused by the switch" translate="no">​</a></h4>
+<ul>
+<li class="">
+<p><code>postgres</code>: 21 tests need a server on <code>:5432</code>.</p>
+</li>
+<li class="">
+<p><code>blog-system</code>: <code>openApiStdout</code> parses stdout as JSON, and <code>@webda/grpc</code> logs to stdout first
+(added 2026-09-19); two spec files fail to load — one imports <code>router.js</code>, renamed in stage
+2, and one is a Playwright spec vitest should not collect.</p>
+</li>
+<li class="">
+<p>Eleven packages are <code>!</code>-excluded from the workspace and were not migrated; their committed
+modules predate the current format. <strong>None of their errors is caused by TypeScript 7.</strong>
+Type-checked on 2026-09-29 under 7.1 and 6.0.2, with the removed <code>@webda/shell</code> dependency
+stripped, the counts are identical:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>package</th><th style="text-align:right">errors</th><th></th><th>package</th><th style="text-align:right">errors</th></tr></thead><tbody><tr><td><code>aws</code></td><td style="text-align:right">598</td><td></td><td><code>mongodb</code></td><td style="text-align:right">27</td></tr><tr><td><code>async</code></td><td style="text-align:right">196</td><td></td><td><code>otel</code></td><td style="text-align:right">22</td></tr><tr><td><code>gcp</code></td><td style="text-align:right">100</td><td></td><td><code>amqp</code></td><td style="text-align:right">18</td></tr><tr><td><code>elasticsearch</code></td><td style="text-align:right">64</td><td></td><td><code>google-auth</code></td><td style="text-align:right">8</td></tr><tr><td><code>hawk</code></td><td style="text-align:right">61</td><td></td><td><code>iam</code></td><td style="text-align:right">no <code>package.json</code></td></tr><tr><td><code>kubernetes</code></td><td style="text-align:right">30</td><td></td><td></td><td style="text-align:right"></td></tr></tbody></table>
+<p>They are the v4 API port — <code>getWebda</code>, <code>emitSync</code>, <code>@testdeck/mocha</code>, <code>WebdaSimpleTest</code>, the
+<code>@webda/shell</code> dependency seven of them still declare — and belong to whoever revives each
+package. The TypeScript side is then mechanical: <code>nodenext</code>, <code>.js</code> specifiers, the 7.1 pin,
+<code>webdac build</code>, and <code>.model.ts</code> / <code>.service.ts</code> names.</p>
+</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="transition-option-run-the-new-pipeline-out-of-process">Transition option: run the new pipeline out-of-process<a href="#transition-option-run-the-new-pipeline-out-of-process" class="hash-link" aria-label="Direct link to Transition option: run the new pipeline out-of-process" title="Direct link to Transition option: run the new pipeline out-of-process" translate="no">​</a></h3>
+<p>Stages 4 to 8 leave <code>@webda/content-mapper</code> unused, which means no feedback until stage 9.
+That can be avoided: the TypeScript 7 API already works by spawning <code>tsgo</code> as a subprocess, so
+<code>webdac build</code> can shell out to a build binary in <code>@webda/content-mapper</code> rather than
+importing it. No shared <code>typescript</code>, so both majors coexist, and the new pipeline can be
+exercised on real packages — behind a flag — long before the switch.</p>
+<p>Verified working: <code>runTwoPass({ emit: true })</code> emits 16 files for the package fixture with
+zero diagnostics, and the generated accessors are present in the emitted JavaScript.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="cleanup-that-is-easy-to-forget">Cleanup that is easy to forget<a href="#cleanup-that-is-easy-to-forget" class="hash-link" aria-label="Direct link to Cleanup that is easy to forget" title="Direct link to Cleanup that is easy to forget" translate="no">​</a></h3>
+<p>Done on 2026-09-29:</p>
+<ul>
+<li class="">The comment-only references to <code>@webda/ts-plugin</code> and the three tsconfig <code>plugins</code> entries
+were already gone with the switch.</li>
+<li class=""><strong><code>.vscode/settings.json</code></strong> points <code>js/ts.tsdk.path</code> at
+<code>packages/content-mapper/node_modules/typescript/bin</code>: VS Code&#x27;s TypeScript 7 extension uses
+the <code>tsc</code> executable it finds there as its language server. Generated accessors still need the
+<code>contentMappers</code> entry described in the compiler plugin page.</li>
+<li class=""><strong><code>.release-please-manifest.json</code></strong> no longer lists <code>packages/ts-plugin</code> or <code>packages/schema</code>.</li>
+<li class=""><strong><code>@webda/tsc-esm</code></strong> lost its binary in stage 8 and is now only a library of shared types and
+decorator helpers; its README and description say so, and <code>debug</code> and <code>postgres</code>, which never
+imported it, no longer depend on it.</li>
+<li class=""><strong><code>webdac code</code></strong> walked zero files: <code>WebdaMorpher</code> built <code>new Project(undefined)</code>. It now opens
+<code>&lt;appPath&gt;/tsconfig.json</code> and honours <code>--module</code>. Three of its five modules — <code>accessors</code>,
+<code>loadParameters</code> and <code>unserializer</code> — wrote into the sources what the build now generates, or
+what nothing calls, which is the in-place codegen §7 rejects; they are deleted, and <code>webdac code</code>
+is a migration tool with <code>updateImports</code> and <code>capabilities</code>. Pointing it at a real project also
+found that <code>updateImports</code> deleted side-effect imports (<code>import &quot;@webda/core&quot;</code>) and renamed every
+whole-module move to <code>@webda/test</code>; both fixed. The dead <code>webdac build --code</code> flag is gone.</li>
+</ul>
+<p>Not done, and not caused by TypeScript 7: fourteen <code>package.json</code> files still carry <code>nx</code> blocks
+from before the pnpm migration, and <code>packages/shell/src/handlers/http.ts</code> and <code>packages/mapper/</code>
+are orphaned sources with no package around them.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="references">References<a href="#references" class="hash-link" aria-label="Direct link to References" title="Direct link to References" translate="no">​</a></h2>
+<ul>
+<li class=""><code>microsoft/typescript-go#4712</code> — content mapper design and protocol</li>
+<li class=""><code>microsoft/TypeScript#63936</code> — protocol revisions</li>
+<li class=""><code>microsoft/TypeScript#63703</code> — TypeScript 7.1 iteration plan</li>
+<li class=""><code>microsoft/TypeScript#64053</code> / <code>#64120</code> — declaration extension naming</li>
+<li class=""><code>microsoft/TypeScript#64182</code> — proposal to let mappers return declarations</li>
+<li class=""><code>prototypes/ts7-codegen/</code> — working prototype, benchmarks and engineering log</li>
+</ul></div></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/contribute/Ideas/v4"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">Webda v4</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/contribute/WebdaQL Development"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">WebdaQL Developement</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_kFBU thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#1-the-problem" class="table-of-contents__link toc-highlight">1. The problem</a></li><li><a href="#2-the-insight-that-makes-any-of-this-possible" class="table-of-contents__link toc-highlight">2. The insight that makes any of this possible</a></li><li><a href="#3-options-considered" class="table-of-contents__link toc-highlight">3. Options considered</a></li><li><a href="#4-what-a-content-mapper-is" class="table-of-contents__link toc-highlight">4. What a content mapper is</a></li><li><a href="#5-constraints-we-verified" class="table-of-contents__link toc-highlight">5. Constraints we verified</a><ul><li><a href="#a-mapper-cannot-claim-ts" class="table-of-contents__link toc-highlight">A mapper cannot claim <code>.ts</code></a></li><li><a href="#but-compound-suffixes-are-accepted" class="table-of-contents__link toc-highlight">But compound suffixes are accepted</a></li><li><a href="#modelts-degrades-gracefully-wts-does-not" class="table-of-contents__link toc-highlight"><code>.model.ts</code> degrades gracefully; <code>.wts</code> does not</a></li><li><a href="#mappers-emit-declarations-not-javascript" class="table-of-contents__link toc-highlight">Mappers emit declarations, not JavaScript</a></li></ul></li><li><a href="#6-the-architecture" class="table-of-contents__link toc-highlight">6. The architecture</a><ul><li><a href="#the-resident-program" class="table-of-contents__link toc-highlight">The resident program</a></li><li><a href="#two-implementation-traps" class="table-of-contents__link toc-highlight">Two implementation traps</a></li></ul></li><li><a href="#7-why-not-in-place-codegen" class="table-of-contents__link toc-highlight">7. Why not in-place codegen</a><ul><li><a href="#measured-in-place-codegen-changes-webdamodulejson" class="table-of-contents__link toc-highlight">Measured: in-place codegen changes <code>webda.module.json</code></a></li><li><a href="#mode-d-has-the-same-failure-class--but-it-is-containable" class="table-of-contents__link toc-highlight">Mode D has the same failure class — but it is containable</a></li></ul></li><li><a href="#8-guardrails" class="table-of-contents__link toc-highlight">8. Guardrails</a></li><li><a href="#9-benchmarks" class="table-of-contents__link toc-highlight">9. Benchmarks</a><ul><li><a href="#method" class="table-of-contents__link toc-highlight">Method</a></li><li><a href="#91-full-build" class="table-of-contents__link toc-highlight">9.1 Full build</a></li><li><a href="#92-editor-latency" class="table-of-contents__link toc-highlight">9.2 Editor latency</a></li><li><a href="#93-scaling" class="table-of-contents__link toc-highlight">9.3 Scaling</a></li><li><a href="#94-against-the-current-toolchain" class="table-of-contents__link toc-highlight">9.4 Against the current toolchain</a></li><li><a href="#95-idempotency" class="table-of-contents__link toc-highlight">9.5 Idempotency</a></li><li><a href="#reproducing" class="table-of-contents__link toc-highlight">Reproducing</a></li></ul></li><li><a href="#10-what-we-are-accepting" class="table-of-contents__link toc-highlight">10. What we are accepting</a></li><li><a href="#11-target-package-layout" class="table-of-contents__link toc-highlight">11. Target package layout</a><ul><li><a href="#where-the-code-ends-up" class="table-of-contents__link toc-highlight">Where the code ends up</a></li><li><a href="#fate-of-webdats-plugin" class="table-of-contents__link toc-highlight">Fate of <code>@webda/ts-plugin</code></a></li><li><a href="#the-constraint-that-dictates-the-order" class="table-of-contents__link toc-highlight">The constraint that dictates the order</a></li><li><a href="#order-of-work" class="table-of-contents__link toc-highlight">Order of work</a></li><li><a href="#webdaschema-and-the-native-generator" class="table-of-contents__link toc-highlight"><code>@webda/schema</code> and the native generator</a></li><li><a href="#stage-7-plan-a-purpose-built-converter-not-a-port" class="table-of-contents__link toc-highlight">Stage 7 plan: a purpose-built converter, not a port</a></li><li><a href="#stage-71-result-service-parameter-schemas" class="table-of-contents__link toc-highlight">Stage 7.1 result: service parameter schemas</a></li><li><a href="#stage-72-result-model-schemas" class="table-of-contents__link toc-highlight">Stage 7.2 result: model schemas</a></li><li><a href="#stage-73-result-top-level-schemas" class="table-of-contents__link toc-highlight">Stage 7.3 result: top-level schemas</a></li><li><a href="#stage-74-validated-across-the-monorepo" class="table-of-contents__link toc-highlight">Stage 7.4: validated across the monorepo</a></li><li><a href="#stage-75-the-compiler-can-drive-the-port" class="table-of-contents__link toc-highlight">Stage 7.5: the compiler can drive the port</a></li><li><a href="#stage-76-artefacts-regenerated-webdaschema-deleted" class="table-of-contents__link toc-highlight">Stage 7.6: artefacts regenerated, <code>@webda/schema</code> deleted</a></li><li><a href="#stage-8-the-tsc-esm-binary" class="table-of-contents__link toc-highlight">Stage 8: the <code>tsc-esm</code> binary</a></li><li><a href="#stage-9-where-it-actually-stands" class="table-of-contents__link toc-highlight">Stage 9: where it actually stands</a></li><li><a href="#stage-9-result-the-switch" class="table-of-contents__link toc-highlight">Stage 9 result: the switch</a></li><li><a href="#transition-option-run-the-new-pipeline-out-of-process" class="table-of-contents__link toc-highlight">Transition option: run the new pipeline out-of-process</a></li><li><a href="#cleanup-that-is-easy-to-forget" class="table-of-contents__link toc-highlight">Cleanup that is easy to forget</a></li></ul></li><li><a href="#references" class="table-of-contents__link toc-highlight">References</a></li></ul></div></div></div></div></main></div></div></div><div style="background-color:#afcedb;height:48px"></div></div>
+</body>
+</html>

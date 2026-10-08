@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="en" dir="ltr" class="docs-wrapper plugin-docs plugin-id-typedoc docs-version-current docs-doc-page docs-doc-id-aws/classes/AWSDeployer" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.10.2">
+<title data-rh="true">AWSDeployer | Webda.io</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" property="og:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://webda.io/typedoc/aws/classes/AWSDeployer"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="keywords" content="webda, typescript, framework"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-typedoc-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-typedoc-current"><meta data-rh="true" property="og:title" content="AWSDeployer | Webda.io"><meta data-rh="true" name="description" content="@webda/aws"><meta data-rh="true" property="og:description" content="@webda/aws"><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://webda.io/typedoc/aws/classes/AWSDeployer"><link data-rh="true" rel="alternate" href="https://webda.io/typedoc/aws/classes/AWSDeployer" hreflang="en"><link data-rh="true" rel="alternate" href="https://webda.io/typedoc/aws/classes/AWSDeployer" hreflang="x-default"><link data-rh="true" rel="preconnect" href="https://UJ1RRJDCSY-dsn.algolia.net" crossorigin="anonymous"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"@webda/aws","item":"https://webda.io/typedoc/aws/"},{"@type":"ListItem","position":2,"name":"AWSDeployer","item":"https://webda.io/typedoc/aws/classes/AWSDeployer"}]}</script><link rel="search" type="application/opensearchdescription+xml" title="Webda.io" href="/opensearch.xml"><link rel="stylesheet" href="/assets/css/styles.fd0048db.css">
+<script src="/assets/js/runtime~main.75cf3f8d.js" defer="defer"></script>
+<script src="/assets/js/main.8bdc523e.js" defer="defer"></script>
+</head>
+<body>
+<svg style="display: none;"><defs>
+<symbol id="theme-svg-external-link" viewBox="0 0 24 24"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
+</defs></svg>
+<script>!function(){var t=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",t||"light"),document.documentElement.setAttribute("data-theme-choice",t||"light")}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><link rel="preload" as="image" href="/img/webda.svg"><div role="region" aria-label="Skip to main content"><a class="skipToContent_JWeg" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="theme-layout-navbar navbar navbar--fixed-top"><div class="navbar__inner"><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/"><div class="navbar__logo"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_LTLz themedComponent--light_u6Uj"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_LTLz themedComponent--dark_vFQX"></div><b class="navbar__title text--truncate">Webda.io</b></a><a class="navbar__item navbar__link" href="/docs/QuickStart">Quick Start</a><a class="navbar__item navbar__link" href="/docs/Concepts">Concepts</a><a aria-current="page" class="navbar__item navbar__link navbar__link--active" href="/typedoc/core/">Typedoc</a></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><a class="navbar__item navbar__link" style="opacity:0.5;transition:opacity 200ms ease;display:inline-flex;align-items:center;gap:6px" title="My Application — no daemon connected (link still works)" href="/configuration/welcome">My Application</a><a class="navbar__item navbar__link" href="/contribute/Contribute">Contribute</a><a href="https://github.com/loopingz/webda.io" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">GitHub<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_ny9m"><use href="#theme-svg-external-link"></use></svg></a><div class="toggle_Lxsn colorModeToggle_wCyq"><button class="clean-btn toggleButton_BEJb toggleButtonDisabled_wzmd" type="button" disabled="" title="system mode" aria-label="Switch between dark and light mode (currently system mode)"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m lightToggleIcon_ViIh"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m darkToggleIcon_Xnlu"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m systemToggleIcon_LOzk"><path fill="currentColor" d="m12 21c4.971 0 9-4.029 9-9s-4.029-9-9-9-9 4.029-9 9 4.029 9 9 9zm4.95-13.95c1.313 1.313 2.05 3.093 2.05 4.95s-0.738 3.637-2.05 4.95c-1.313 1.313-3.093 2.05-4.95 2.05v-14c1.857 0 3.637 0.737 4.95 2.05z"></path></svg></button></div><div class="navbarSearchContainer_agmU"><button type="button" class="DocSearch DocSearch-Button" aria-label="Search (Meta+k)" aria-keyshortcuts="Meta+k"><span class="DocSearch-Button-Container"><svg width="20" height="20" class="DocSearch-Search-Icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8" stroke="currentColor" fill="none" stroke-width="1.4"></circle><path d="m21 21-4.3-4.3" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="DocSearch-Button-Placeholder">Search</span></span><span class="DocSearch-Button-Keys"></span></button></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="theme-layout-main main-wrapper mainWrapper_ra6T"><div class="docsWrapper_ylEi"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_t5dj" type="button"></button><div class="docRoot_V1J5"><aside class="theme-doc-sidebar-container docSidebarContainer_DBGv"><div class="sidebarViewport_YVHm"><div class="sidebar_tgig"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_JjJ7"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/amqp/"><span class="categoryLinkLabel_Aqc2">@webda/amqp</span></a><button aria-label="Expand sidebar category &#x27;@webda/amqp&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--active" href="/typedoc/aws/"><span class="categoryLinkLabel_Aqc2">@webda/aws</span></a><button aria-label="Collapse sidebar category &#x27;@webda/aws&#x27;" aria-expanded="true" type="button" class="clean-btn menu__caret"></button></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/CHANGELOG"><span class="linkLabel_pzku">Change Log</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role="button" aria-expanded="true" tabindex="0" href="/typedoc/aws/classes/AWSCommands"><span class="categoryLinkLabel_Aqc2">classes</span></a></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/AWSCommands"><span class="linkLabel_pzku">AWSCommands</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/typedoc/aws/classes/AWSDeployer"><span class="linkLabel_pzku">AWSDeployer</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/AWSDeployerParameters"><span class="linkLabel_pzku">AWSDeployerParameters</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/AWSSecretsManager"><span class="linkLabel_pzku">AWSSecretsManager</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/AWSSecretsManagerParameters"><span class="linkLabel_pzku">AWSSecretsManagerParameters</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/CloudFormationDeployer"><span class="linkLabel_pzku">CloudFormationDeployer</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/CloudFormationDeployerParameters"><span class="linkLabel_pzku">CloudFormationDeployerParameters</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/CloudWatchLogger"><span class="linkLabel_pzku">CloudWatchLogger</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/CloudWatchLoggerParameters"><span class="linkLabel_pzku">CloudWatchLoggerParameters</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/DynamoRepository"><span class="linkLabel_pzku">DynamoRepository</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/DynamoStore"><span class="linkLabel_pzku">DynamoStore</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/DynamoStoreParameters"><span class="linkLabel_pzku">DynamoStoreParameters</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/LambdaCaller"><span class="linkLabel_pzku">LambdaCaller</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/LambdaCallerParameters"><span class="linkLabel_pzku">LambdaCallerParameters</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/LambdaPackager"><span class="linkLabel_pzku">LambdaPackager</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/LambdaPackagerParameters"><span class="linkLabel_pzku">LambdaPackagerParameters</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/LambdaServer"><span class="linkLabel_pzku">LambdaServer</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/LambdaServerParameters"><span class="linkLabel_pzku">LambdaServerParameters</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/Route53Service"><span class="linkLabel_pzku">Route53Service</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/S3Binary"><span class="linkLabel_pzku">S3Binary</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/S3BinaryParameters"><span class="linkLabel_pzku">S3BinaryParameters</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/SQSQueue"><span class="linkLabel_pzku">SQSQueue</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/classes/SQSQueueParameters"><span class="linkLabel_pzku">SQSQueueParameters</span></a></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/typedoc/aws/functions/cleanObject"><span class="categoryLinkLabel_Aqc2">functions</span></a></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/aws/globals"><span class="linkLabel_pzku">globals</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/typedoc/aws/interfaces/AWSEventsHandler"><span class="categoryLinkLabel_Aqc2">interfaces</span></a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/typedoc/aws/type-aliases/AWSDeployerEndpoint"><span class="categoryLinkLabel_Aqc2">type-aliases</span></a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/typedoc/aws/variables/CLOUDFORMATION_SECTIONS"><span class="categoryLinkLabel_Aqc2">variables</span></a></div></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/cache/"><span class="categoryLinkLabel_Aqc2">@webda/cache</span></a><button aria-label="Expand sidebar category &#x27;@webda/cache&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/cloudevents/"><span class="categoryLinkLabel_Aqc2">@webda/cloudevents</span></a><button aria-label="Expand sidebar category &#x27;@webda/cloudevents&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/compiler/"><span class="categoryLinkLabel_Aqc2">@webda/compiler</span></a><button aria-label="Expand sidebar category &#x27;@webda/compiler&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/content-mapper/"><span class="categoryLinkLabel_Aqc2">@webda/content-mapper</span></a><button aria-label="Expand sidebar category &#x27;@webda/content-mapper&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/core/"><span class="categoryLinkLabel_Aqc2">@webda/core</span></a><button aria-label="Expand sidebar category &#x27;@webda/core&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/create/"><span class="categoryLinkLabel_Aqc2">@webda/create</span></a><button aria-label="Expand sidebar category &#x27;@webda/create&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/debug/"><span class="categoryLinkLabel_Aqc2">@webda/debug</span></a><button aria-label="Expand sidebar category &#x27;@webda/debug&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/decorators/"><span class="categoryLinkLabel_Aqc2">@webda/decorators</span></a><button aria-label="Expand sidebar category &#x27;@webda/decorators&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/elasticsearch/"><span class="categoryLinkLabel_Aqc2">@webda/elasticsearch</span></a><button aria-label="Expand sidebar category &#x27;@webda/elasticsearch&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/fs/"><span class="categoryLinkLabel_Aqc2">@webda/fs</span></a><button aria-label="Expand sidebar category &#x27;@webda/fs&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/gcp/"><span class="categoryLinkLabel_Aqc2">@webda/gcp</span></a><button aria-label="Expand sidebar category &#x27;@webda/gcp&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/google-auth/"><span class="categoryLinkLabel_Aqc2">@webda/google-auth</span></a><button aria-label="Expand sidebar category &#x27;@webda/google-auth&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/graphql/"><span class="categoryLinkLabel_Aqc2">@webda/graphql</span></a><button aria-label="Expand sidebar category &#x27;@webda/graphql&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/grpc/"><span class="categoryLinkLabel_Aqc2">@webda/grpc</span></a><button aria-label="Expand sidebar category &#x27;@webda/grpc&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/hawk/"><span class="categoryLinkLabel_Aqc2">@webda/hawk</span></a><button aria-label="Expand sidebar category &#x27;@webda/hawk&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/kubernetes/"><span class="categoryLinkLabel_Aqc2">@webda/kubernetes</span></a><button aria-label="Expand sidebar category &#x27;@webda/kubernetes&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/mcp/"><span class="categoryLinkLabel_Aqc2">@webda/mcp</span></a><button aria-label="Expand sidebar category &#x27;@webda/mcp&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/mock/"><span class="categoryLinkLabel_Aqc2">@webda/mock</span></a><button aria-label="Expand sidebar category &#x27;@webda/mock&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/models/"><span class="categoryLinkLabel_Aqc2">@webda/models</span></a><button aria-label="Expand sidebar category &#x27;@webda/models&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/mongodb/"><span class="categoryLinkLabel_Aqc2">@webda/mongodb</span></a><button aria-label="Expand sidebar category &#x27;@webda/mongodb&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/oci/"><span class="categoryLinkLabel_Aqc2">@webda/oci</span></a><button aria-label="Expand sidebar category &#x27;@webda/oci&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/otel/"><span class="categoryLinkLabel_Aqc2">@webda/otel</span></a><button aria-label="Expand sidebar category &#x27;@webda/otel&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/postgres/"><span class="categoryLinkLabel_Aqc2">@webda/postgres</span></a><button aria-label="Expand sidebar category &#x27;@webda/postgres&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/ql/"><span class="categoryLinkLabel_Aqc2">@webda/ql</span></a><button aria-label="Expand sidebar category &#x27;@webda/ql&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/runtime/"><span class="categoryLinkLabel_Aqc2">@webda/runtime</span></a><button aria-label="Expand sidebar category &#x27;@webda/runtime&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/test/"><span class="categoryLinkLabel_Aqc2">@webda/test</span></a><button aria-label="Expand sidebar category &#x27;@webda/test&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/utils/"><span class="categoryLinkLabel_Aqc2">@webda/utils</span></a><button aria-label="Expand sidebar category &#x27;@webda/utils&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/versioning/"><span class="categoryLinkLabel_Aqc2">@webda/versioning</span></a><button aria-label="Expand sidebar category &#x27;@webda/versioning&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/typedoc/workout/"><span class="categoryLinkLabel_Aqc2">@webda/workout</span></a><button aria-label="Expand sidebar category &#x27;@webda/workout&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li></ul></nav></div></div></aside><main class="docMainContainer_t64q"><div class="container padding-top--md padding-bottom--lg"><div class="row"><div class="col docItemCol_PNm0"><div class="docItemContainer_fty0"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_TsV8" aria-label="Breadcrumbs"><ul class="breadcrumbs"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_ZRLn"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li class="breadcrumbs__item"><a class="breadcrumbs__link" href="/typedoc/aws/"><span>@webda/aws</span></a></li><li class="breadcrumbs__item"><span class="breadcrumbs__link">classes</span></li><li class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link">AWSDeployer</span></li></ul></nav><div class="tocCollapsible_OUT1 theme-doc-toc-mobile tocMobile_MVBj"><button type="button" class="clean-btn tocCollapsibleButton_jdOG">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>AWSDeployer</h1></header><p><a class="" href="/typedoc/aws/"><strong>@webda/aws</strong></a></p>
+<hr>
+<h1>Abstract Class: AWSDeployer&lt;T&gt;</h1>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L121" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:121</a></p>
+<p>Abstract AWS Deployer</p>
+<p>It includes some basic utilities methods to be used by
+final deployers. A final deployer declares <code>implements Deployer</code> itself.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="extends">Extends<a href="#extends" class="hash-link" aria-label="Direct link to Extends" title="Direct link to Extends" translate="no">​</a></h2>
+<ul>
+<li class=""><code>Service</code>&lt;<code>T</code>&gt;</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="extended-by">Extended by<a href="#extended-by" class="hash-link" aria-label="Direct link to Extended by" title="Direct link to Extended by" translate="no">​</a></h2>
+<ul>
+<li class=""><a class="" href="/typedoc/aws/classes/CloudFormationDeployer"><code>CloudFormationDeployer</code></a></li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters">Type Parameters<a href="#type-parameters" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="t">T<a href="#t" class="hash-link" aria-label="Direct link to T" title="Direct link to T" translate="no">​</a></h3>
+<p><code>T</code> <em>extends</em> <a class="" href="/typedoc/aws/classes/AWSDeployerParameters"><code>AWSDeployerParameters</code></a> = <a class="" href="/typedoc/aws/classes/AWSDeployerParameters"><code>AWSDeployerParameters</code></a></p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="constructors">Constructors<a href="#constructors" class="hash-link" aria-label="Direct link to Constructors" title="Direct link to Constructors" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="constructor">Constructor<a href="#constructor" class="hash-link" aria-label="Direct link to Constructor" title="Direct link to Constructor" translate="no">​</a></h3>
+<blockquote>
+<p><strong>new AWSDeployer</strong>&lt;<code>T</code>&gt;(<code>name</code>, <code>params</code>): <code>AWSDeployer</code>&lt;<code>T</code>&gt;</p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:72</p>
+<p>Service</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters">Parameters<a href="#parameters" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="name">name<a href="#name" class="hash-link" aria-label="Direct link to name" title="Direct link to name" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>The name of the service</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="params">params<a href="#params" class="hash-link" aria-label="Direct link to params" title="Direct link to params" translate="no">​</a></h5>
+<p><code>T</code></p>
+<p>The parameters block define in the configuration file</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns">Returns<a href="#returns" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>AWSDeployer</code>&lt;<code>T</code>&gt;</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from">Inherited from<a href="#inherited-from" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service&lt;T&gt;.constructor</code></p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="properties">Properties<a href="#properties" class="hash-link" aria-label="Direct link to Properties" title="Direct link to Properties" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="_compiledcapabilities">_compiledCapabilities<a href="#_compiledcapabilities" class="hash-link" aria-label="Direct link to _compiledCapabilities" title="Direct link to _compiledCapabilities" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>_compiledCapabilities</strong>: <code>Record</code>&lt;<code>string</code>, <code>any</code>&gt;</p>
+</blockquote>
+<p>Defined in: core/lib/services/iservice.d.ts:39</p>
+<p>Capabilities detected at compile-time from <code>@WebdaCapability</code>-tagged interfaces.</p>
+<p>Populated during Service.resolve by reading the service&#x27;s entry in
+<code>webda.module.json</code>. Each key is a capability name (e.g., <code>&quot;request-filter&quot;</code>),
+and the value is an empty object <code>{}</code> by default. Override <a href="#getcapabilities" class="">getCapabilities</a>
+to provide capability-specific configuration or to conditionally disable capabilities.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see">See<a href="#see" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>getCapabilities</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-1">Inherited from<a href="#inherited-from-1" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/aws/classes/CloudFormationDeployer"><code>CloudFormationDeployer</code></a>.<a class="" href="/typedoc/aws/classes/CloudFormationDeployer#_compiledcapabilities"><code>_compiledCapabilities</code></a></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="webda_events">[WEBDA_EVENTS]<a href="#webda_events" class="hash-link" aria-label="Direct link to [WEBDA_EVENTS]" title="Direct link to [WEBDA_EVENTS]" translate="no">​</a></h3>
+<blockquote>
+<p><strong>[WEBDA_EVENTS]</strong>: <code>object</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:50</p>
+<p>Set the Webda events here</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-2">Inherited from<a href="#inherited-from-2" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.[WEBDA_EVENTS]</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="logger">logger<a href="#logger" class="hash-link" aria-label="Direct link to logger" title="Direct link to logger" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>logger</strong>: <code>Logger</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:59</p>
+<p>Logger with class context</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-3">Inherited from<a href="#inherited-from-3" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/aws/classes/CloudFormationDeployer"><code>CloudFormationDeployer</code></a>.<a class="" href="/typedoc/aws/classes/CloudFormationDeployer#logger"><code>logger</code></a></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="metrics">metrics?<a href="#metrics" class="hash-link" aria-label="Direct link to metrics?" title="Direct link to metrics?" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>optional</code> <strong>metrics?</strong>: <code>object</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:63</p>
+<p>Get metrics</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-4">Inherited from<a href="#inherited-from-4" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.metrics</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="name-1">name<a href="#name-1" class="hash-link" aria-label="Direct link to name" title="Direct link to name" translate="no">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>name</strong>: <code>string</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/iservice.d.ts:19</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-5">Inherited from<a href="#inherited-from-5" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><a class="" href="/typedoc/aws/classes/CloudFormationDeployer"><code>CloudFormationDeployer</code></a>.<a class="" href="/typedoc/aws/classes/CloudFormationDeployer#name"><code>name</code></a></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-1">parameters<a href="#parameters-1" class="hash-link" aria-label="Direct link to parameters" title="Direct link to parameters" translate="no">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>parameters</strong>: <code>T</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/iservice.d.ts:20</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-6">Inherited from<a href="#inherited-from-6" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.parameters</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="resources">resources<a href="#resources" class="hash-link" aria-label="Direct link to resources" title="Direct link to resources" translate="no">​</a></h3>
+<blockquote>
+<p><strong>resources</strong>: <a class="" href="/typedoc/aws/type-aliases/DeployerResources"><code>DeployerResources</code></a>&lt;<code>T</code>&gt; &amp; <code>object</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L127" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:127</a></p>
+<p>Parameters of the deployer with the deployment variables replaced and the defaults applied</p>
+<p>Computed by <a href="#prepare" class="">AWSDeployer.prepare</a></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="createconfiguration">createConfiguration?<a href="#createconfiguration" class="hash-link" aria-label="Direct link to createConfiguration?" title="Direct link to createConfiguration?" translate="no">​</a></h3>
+<blockquote>
+<p><code>static</code> <code>optional</code> <strong>createConfiguration?</strong>: (<code>params</code>) =&gt; <code>any</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/iservice.d.ts:24</p>
+<p>Create configuration set by the application on load</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-2">Parameters<a href="#parameters-2" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="params-1">params<a href="#params-1" class="hash-link" aria-label="Direct link to params" title="Direct link to params" translate="no">​</a></h5>
+<p><code>any</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-1">Returns<a href="#returns-1" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-7">Inherited from<a href="#inherited-from-7" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.createConfiguration</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="filterconfiguration">filterConfiguration?<a href="#filterconfiguration" class="hash-link" aria-label="Direct link to filterConfiguration?" title="Direct link to filterConfiguration?" translate="no">​</a></h3>
+<blockquote>
+<p><code>static</code> <code>optional</code> <strong>filterConfiguration?</strong>: (<code>params</code>) =&gt; <code>any</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/iservice.d.ts:28</p>
+<p>Create configuration set by the application on load</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-3">Parameters<a href="#parameters-3" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="params-2">params<a href="#params-2" class="hash-link" aria-label="Direct link to params" title="Direct link to params" translate="no">​</a></h5>
+<p><code>any</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-2">Returns<a href="#returns-2" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-8">Inherited from<a href="#inherited-from-8" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.filterConfiguration</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-4">Parameters<a href="#parameters-4" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>Parameters</strong>: <em>typeof</em> <code>ServiceParameters</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:46</p>
+<p>Service parameters</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-9">Inherited from<a href="#inherited-from-9" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.Parameters</code></p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="methods">Methods<a href="#methods" class="hash-link" aria-label="Direct link to Methods" title="Direct link to Methods" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="__clean">__clean()<a href="#__clean" class="hash-link" aria-label="Direct link to __clean()" title="Direct link to __clean()" translate="no">​</a></h3>
+<blockquote>
+<p><code>abstract</code> <strong>__clean</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:215</p>
+<p>Clean the service data, can only be used in test mode</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-3">Returns<a href="#returns-3" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-10">Inherited from<a href="#inherited-from-10" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.__clean</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="_replaceforaws">_replaceForAWS()<a href="#_replaceforaws" class="hash-link" aria-label="Direct link to _replaceForAWS()" title="Direct link to _replaceForAWS()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>_replaceForAWS</strong>(<code>id</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L271" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:271</a></p>
+<p>Replace / by _ as theses ID are not allowed in AWS</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-5">Parameters<a href="#parameters-5" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="id">id<a href="#id" class="hash-link" aria-label="Direct link to id" title="Direct link to id" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>to replace</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-4">Returns<a href="#returns-4" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the AWS compatible id</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="addlistener">addListener()<a href="#addlistener" class="hash-link" aria-label="Direct link to addListener()" title="Direct link to addListener()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>addListener</strong>&lt;<code>Key</code>&gt;(<code>eventName</code>, <code>listener</code>): <code>this</code></p>
+</blockquote>
+<p>Defined in: core/lib/events/asynceventemitter.d.ts:80</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-1">Type Parameters<a href="#type-parameters-1" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key">Key<a href="#key" class="hash-link" aria-label="Direct link to Key" title="Direct link to Key" translate="no">​</a></h5>
+<p><code>Key</code> <em>extends</em> <code>never</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-6">Parameters<a href="#parameters-6" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="eventname">eventName<a href="#eventname" class="hash-link" aria-label="Direct link to eventName" title="Direct link to eventName" translate="no">​</a></h5>
+<p><code>Key</code></p>
+<p>the event name</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="listener">listener<a href="#listener" class="hash-link" aria-label="Direct link to listener" title="Direct link to listener" translate="no">​</a></h5>
+<p>(<code>event</code>) =&gt; <code>void</code> | <code>Promise</code>&lt;<code>void</code>&gt;</p>
+<p>the event listener</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-5">Returns<a href="#returns-5" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<p>this for chaining</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see-1">See<a href="#see-1" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>EventEmitter.addListener</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-11">Inherited from<a href="#inherited-from-11" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.addListener</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="addroute">addRoute()<a href="#addroute" class="hash-link" aria-label="Direct link to addRoute()" title="Direct link to addRoute()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>addRoute</strong>(<code>url</code>, <code>methods</code>, <code>executer</code>, <code>openapi?</code>, <code>override?</code>): <code>void</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:177</p>
+<p>Add a route dynamicaly</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-7">Parameters<a href="#parameters-7" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="url">url<a href="#url" class="hash-link" aria-label="Direct link to url" title="Direct link to url" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>of the route can contains dynamic part like {uuid}</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="methods-1">methods<a href="#methods-1" class="hash-link" aria-label="Direct link to methods" title="Direct link to methods" translate="no">​</a></h5>
+<p><code>HttpMethodType</code>[]</p>
+<p>the HTTP methods</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="executer">executer<a href="#executer" class="hash-link" aria-label="Direct link to executer" title="Direct link to executer" translate="no">​</a></h5>
+<p><code>Function</code></p>
+<p>Method to execute for this route</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="openapi">openapi?<a href="#openapi" class="hash-link" aria-label="Direct link to openapi?" title="Direct link to openapi?" translate="no">​</a></h5>
+<p><code>OpenAPIWebdaDefinition</code></p>
+<p>the OpenAPI specification</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="override">override?<a href="#override" class="hash-link" aria-label="Direct link to override?" title="Direct link to override?" translate="no">​</a></h5>
+<p><code>boolean</code></p>
+<p>whether to override existing</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-6">Returns<a href="#returns-6" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-12">Inherited from<a href="#inherited-from-12" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.addRoute</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="authorizeclientevent">authorizeClientEvent()<a href="#authorizeclientevent" class="hash-link" aria-label="Direct link to authorizeClientEvent()" title="Direct link to authorizeClientEvent()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>authorizeClientEvent</strong>(<code>_event</code>, <code>_context</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:153</p>
+<p>Authorize a public event subscription</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-8">Parameters<a href="#parameters-8" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="_event">_event<a href="#_event" class="hash-link" aria-label="Direct link to _event" title="Direct link to _event" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the event name</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="_context">_context<a href="#_context" class="hash-link" aria-label="Direct link to _context" title="Direct link to _context" translate="no">​</a></h5>
+<p><code>OperationContext</code></p>
+<p>the execution context</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-7">Returns<a href="#returns-7" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>boolean</code></p>
+<p>true if the condition is met</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-13">Inherited from<a href="#inherited-from-13" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.authorizeClientEvent</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="commonprefix">commonPrefix()<a href="#commonprefix" class="hash-link" aria-label="Direct link to commonPrefix()" title="Direct link to commonPrefix()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>commonPrefix</strong>(<code>str1</code>, <code>str2</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L672" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:672</a></p>
+<p>Find the common prefix between two strings</p>
+<p>Example</p>
+<div class="language-text codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-text codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">commonPrefix(&quot;/test/plop1&quot;, &quot;/templates/&quot;) =&gt; &quot;/te&quot;</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-9">Parameters<a href="#parameters-9" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="str1">str1<a href="#str1" class="hash-link" aria-label="Direct link to str1" title="Direct link to str1" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>to compare</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="str2">str2<a href="#str2" class="hash-link" aria-label="Direct link to str2" title="Direct link to str2" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>to compare</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-8">Returns<a href="#returns-8" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the common prefix</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="computeparameters"><del>computeParameters()</del><a href="#computeparameters" class="hash-link" aria-label="Direct link to computeparameters" title="Direct link to computeparameters" translate="no">​</a></h3>
+<blockquote>
+<p><strong>computeParameters</strong>(): <code>void</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:77</p>
+<p>Used to compute or derivate input parameter to attribute</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-9">Returns<a href="#returns-9" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="deprecated">Deprecated<a href="#deprecated" class="hash-link" aria-label="Direct link to Deprecated" title="Direct link to Deprecated" translate="no">​</a></h4>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-14">Inherited from<a href="#inherited-from-14" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.computeParameters</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="createbucket">createBucket()<a href="#createbucket" class="hash-link" aria-label="Direct link to createBucket()" title="Direct link to createBucket()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>createBucket</strong>(<code>Bucket</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L600" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:600</a></p>
+<p>Create a bucket if it does not exist</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-10">Parameters<a href="#parameters-10" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="bucket">Bucket<a href="#bucket" class="hash-link" aria-label="Direct link to Bucket" title="Direct link to Bucket" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>to create</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-10">Returns<a href="#returns-10" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="creatednsentry">createDNSEntry()<a href="#creatednsentry" class="hash-link" aria-label="Direct link to createDNSEntry()" title="Direct link to createDNSEntry()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>createDNSEntry</strong>(<code>domain</code>, <code>type</code>, <code>value</code>, <code>targetZone?</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L493" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:493</a></p>
+<p>Create DNS entry</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-11">Parameters<a href="#parameters-11" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="domain">domain<a href="#domain" class="hash-link" aria-label="Direct link to domain" title="Direct link to domain" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>to create</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="type">type<a href="#type" class="hash-link" aria-label="Direct link to type" title="Direct link to type" translate="no">​</a></h5>
+<p><code>RRType</code></p>
+<p>of DNS</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="value">value<a href="#value" class="hash-link" aria-label="Direct link to value" title="Direct link to value" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the value of the record</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="targetzone">targetZone?<a href="#targetzone" class="hash-link" aria-label="Direct link to targetZone?" title="Direct link to targetZone?" translate="no">​</a></h5>
+<p><code>HostedZone</code> = <code>undefined</code></p>
+<p>the zone, found from the domain if not provided</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-11">Returns<a href="#returns-11" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="defaultresources">defaultResources()<a href="#defaultresources" class="hash-link" aria-label="Direct link to defaultResources()" title="Direct link to defaultResources()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>defaultResources</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L160" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:160</a></p>
+<p>Apply the default resources</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-12">Returns<a href="#returns-12" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="docreatecertificate">doCreateCertificate()<a href="#docreatecertificate" class="hash-link" aria-label="Direct link to doCreateCertificate()" title="Direct link to doCreateCertificate()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>doCreateCertificate</strong>(<code>domain</code>, <code>zone</code>, <code>region?</code>): <code>Promise</code>&lt;<code>CertificateDetail</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L421" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:421</a></p>
+<p>Create a certificate for a domain
+Will use Route 53 to do the validation</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-12">Parameters<a href="#parameters-12" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="domain-1">domain<a href="#domain-1" class="hash-link" aria-label="Direct link to domain" title="Direct link to domain" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>to create the certificate for</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="zone">zone<a href="#zone" class="hash-link" aria-label="Direct link to zone" title="Direct link to zone" translate="no">​</a></h5>
+<p><code>HostedZone</code></p>
+<p>to create the validation record in</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="region">region?<a href="#region" class="hash-link" aria-label="Direct link to region?" title="Direct link to region?" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>of the certificate</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-13">Returns<a href="#returns-13" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>CertificateDetail</code>&gt;</p>
+<p>the certificate</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="emit">emit()<a href="#emit" class="hash-link" aria-label="Direct link to emit()" title="Direct link to emit()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>emit</strong>&lt;<code>Key</code>&gt;(<code>event</code>, <code>data</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:204</p>
+<p>Emit the event with data and wait for Promise to finish if listener returned a Promise</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-2">Type Parameters<a href="#type-parameters-2" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-1">Key<a href="#key-1" class="hash-link" aria-label="Direct link to Key" title="Direct link to Key" translate="no">​</a></h5>
+<p><code>Key</code> <em>extends</em> <code>never</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-13">Parameters<a href="#parameters-13" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="event">event<a href="#event" class="hash-link" aria-label="Direct link to event" title="Direct link to event" translate="no">​</a></h5>
+<p><code>Key</code></p>
+<p>the event name</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="data">data<a href="#data" class="hash-link" aria-label="Direct link to data" title="Direct link to data" translate="no">​</a></h5>
+<p><code>object</code>[<code>Key</code>]</p>
+<p>the data to process</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-14">Returns<a href="#returns-14" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-15">Inherited from<a href="#inherited-from-15" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.emit</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getapplicationservices">getApplicationServices()<a href="#getapplicationservices" class="hash-link" aria-label="Direct link to getApplicationServices()" title="Direct link to getApplicationServices()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getApplicationServices</strong>(): <code>Service</code>&lt;<code>ServiceParameters</code>, { }&gt;[]</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L589" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:589</a></p>
+<p>Services of the application, the deployers excluded</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-15">Returns<a href="#returns-15" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Service</code>&lt;<code>ServiceParameters</code>, { }&gt;[]</p>
+<p>the services</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getarnpolicy">getARNPolicy()<a href="#getarnpolicy" class="hash-link" aria-label="Direct link to getARNPolicy()" title="Direct link to getARNPolicy()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getARNPolicy</strong>(<code>accountId</code>, <code>region</code>): <code>any</code>[]</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L538" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:538</a></p>
+<p>Permissions needed by the deployed application itself</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-14">Parameters<a href="#parameters-14" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="accountid">accountId<a href="#accountid" class="hash-link" aria-label="Direct link to accountId" title="Direct link to accountId" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the account</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="region-1">region<a href="#region-1" class="hash-link" aria-label="Direct link to region" title="Direct link to region" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the region</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-16">Returns<a href="#returns-16" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>any</code>[]</p>
+<p>the policy statements</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getawsidentity">getAWSIdentity()<a href="#getawsidentity" class="hash-link" aria-label="Direct link to getAWSIdentity()" title="Direct link to getAWSIdentity()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getAWSIdentity</strong>(): <code>Promise</code>&lt;<code>GetCallerIdentityResponse</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L206" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:206</a></p>
+<p>Return the current AWS Identity used</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-17">Returns<a href="#returns-17" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>GetCallerIdentityResponse</code>&gt;</p>
+<p>the identity</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getcapabilities">getCapabilities()<a href="#getcapabilities" class="hash-link" aria-label="Direct link to getCapabilities()" title="Direct link to getCapabilities()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getCapabilities</strong>(): <code>Record</code>&lt;<code>string</code>, <code>any</code>&gt;</p>
+</blockquote>
+<p>Defined in: core/lib/services/iservice.d.ts:61</p>
+<p>Return the capabilities of this service.</p>
+<p>By default returns capabilities detected at compile-time from</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-18">Returns<a href="#returns-18" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Record</code>&lt;<code>string</code>, <code>any</code>&gt;</p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="webda-capability-tagged">Webda Capability-tagged<a href="#webda-capability-tagged" class="hash-link" aria-label="Direct link to Webda Capability-tagged" title="Direct link to Webda Capability-tagged" translate="no">​</a></h4>
+<p>interfaces in webda.module.json.</p>
+<p>Override to disable capabilities based on configuration:</p>
+<div class="language-typescript codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-typescript codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token function" style="color:#d73a49">getCapabilities</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token keyword" style="color:#00009f">const</span><span class="token plain"> caps </span><span class="token operator" style="color:#393A34">=</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">super</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">getCapabilities</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token keyword" style="color:#00009f">if</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">(</span><span class="token operator" style="color:#393A34">!</span><span class="token keyword" style="color:#00009f">this</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">parameters</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">enabled</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">delete</span><span class="token plain"> caps</span><span class="token punctuation" style="color:#393A34">[</span><span class="token string" style="color:#e3116c">&quot;request-filter&quot;</span><span class="token punctuation" style="color:#393A34">]</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token keyword" style="color:#00009f">return</span><span class="token plain"> caps</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-16">Inherited from<a href="#inherited-from-16" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getCapabilities</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getcertificate">getCertificate()<a href="#getcertificate" class="hash-link" aria-label="Direct link to getCertificate()" title="Direct link to getCertificate()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getCertificate</strong>(<code>domain</code>, <code>region?</code>): <code>Promise</code>&lt;<code>any</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L282" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:282</a></p>
+<p>Get a certificate or create it</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-15">Parameters<a href="#parameters-15" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="domain-2">domain<a href="#domain-2" class="hash-link" aria-label="Direct link to domain" title="Direct link to domain" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>to get certificate for</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="region-2">region?<a href="#region-2" class="hash-link" aria-label="Direct link to region?" title="Direct link to region?" translate="no">​</a></h5>
+<p><code>string</code> = <code>undefined</code></p>
+<p>of the certificate</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-19">Returns<a href="#returns-19" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>any</code>&gt;</p>
+<p>the certificate</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getclientconfig">getClientConfig()<a href="#getclientconfig" class="hash-link" aria-label="Direct link to getClientConfig()" title="Direct link to getClientConfig()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getClientConfig</strong>(<code>endpoint?</code>, <code>region?</code>): <code>any</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L176" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:176</a></p>
+<p>Configuration of an AWS client</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-16">Parameters<a href="#parameters-16" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="endpoint">endpoint?<a href="#endpoint" class="hash-link" aria-label="Direct link to endpoint?" title="Direct link to endpoint?" translate="no">​</a></h5>
+<p><a class="" href="/typedoc/aws/type-aliases/AWSDeployerEndpoint"><code>AWSDeployerEndpoint</code></a></p>
+<p>the client, to use its custom endpoint</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="region-3">region?<a href="#region-3" class="hash-link" aria-label="Direct link to region?" title="Direct link to region?" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>force a region</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-20">Returns<a href="#returns-20" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>any</code></p>
+<p>the client configuration</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getclientevents">getClientEvents()<a href="#getclientevents" class="hash-link" aria-label="Direct link to getClientEvents()" title="Direct link to getClientEvents()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getClientEvents</strong>(): <code>string</code>[]</p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:144</p>
+<p>Return the events that an external system can subscribe to</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-21">Returns<a href="#returns-21" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code>[]</p>
+<p>the list of results</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-17">Inherited from<a href="#inherited-from-17" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getClientEvents</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getdefaulttags">getDefaultTags()<a href="#getdefaulttags" class="hash-link" aria-label="Direct link to getDefaultTags()" title="Direct link to getDefaultTags()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getDefaultTags</strong>(<code>key?</code>): <code>object</code>[]</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L356" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:356</a></p>
+<p>Take this.resources[key].Tags and add all remaining Tags from this.resources.Tags</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-17">Parameters<a href="#parameters-17" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-2">key?<a href="#key-2" class="hash-link" aria-label="Direct link to key?" title="Direct link to key?" translate="no">​</a></h5>
+<p><code>string</code> | <a class="" href="/typedoc/aws/type-aliases/TagsDefinition"><code>TagsDefinition</code></a></p>
+<p>of the resources to add, or the tags themselves</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-22">Returns<a href="#returns-22" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>object</code>[]</p>
+<p>the tags array</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getdefaulttagsasmap">getDefaultTagsAsMap()<a href="#getdefaulttagsasmap" class="hash-link" aria-label="Direct link to getDefaultTagsAsMap()" title="Direct link to getDefaultTagsAsMap()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getDefaultTagsAsMap</strong>(<code>key?</code>): <code>object</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L377" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:377</a></p>
+<p>Take this.resources[key].Tags and add all remaining Tags from this.resources.Tags</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-18">Parameters<a href="#parameters-18" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-3">key?<a href="#key-3" class="hash-link" aria-label="Direct link to key?" title="Direct link to key?" translate="no">​</a></h5>
+<p><code>string</code> | <a class="" href="/typedoc/aws/type-aliases/TagsDefinition"><code>TagsDefinition</code></a></p>
+<p>of the resources to add</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-23">Returns<a href="#returns-23" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>object</code></p>
+<p>the tags map</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getdefaulttagsass3tagging">getDefaultTagsAsS3Tagging()<a href="#getdefaulttagsass3tagging" class="hash-link" aria-label="Direct link to getDefaultTagsAsS3Tagging()" title="Direct link to getDefaultTagsAsS3Tagging()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getDefaultTagsAsS3Tagging</strong>(<code>key?</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L388" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:388</a></p>
+<p>Return the S3 Tagging string</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-19">Parameters<a href="#parameters-19" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-4">key?<a href="#key-4" class="hash-link" aria-label="Direct link to key?" title="Direct link to key?" translate="no">​</a></h5>
+<p><code>string</code> | <a class="" href="/typedoc/aws/type-aliases/TagsDefinition"><code>TagsDefinition</code></a></p>
+<p>of the resources to add</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-24">Returns<a href="#returns-24" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the url encoded tags</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getdefaultvpc">getDefaultVpc()<a href="#getdefaultvpc" class="hash-link" aria-label="Direct link to getDefaultVpc()" title="Direct link to getDefaultVpc()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getDefaultVpc</strong>(): <code>Promise</code>&lt;{ <code>Id</code>: <code>string</code>; <code>Subnets</code>: <code>any</code>[]; }&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L216" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:216</a></p>
+<p>Return the default VPC for the current region</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-25">Returns<a href="#returns-25" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;{ <code>Id</code>: <code>string</code>; <code>Subnets</code>: <code>any</code>[]; }&gt;</p>
+<p>the VPC id and its subnets, undefined if there is no default VPC</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getmaxlisteners">getMaxListeners()<a href="#getmaxlisteners" class="hash-link" aria-label="Direct link to getMaxListeners()" title="Direct link to getMaxListeners()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getMaxListeners</strong>(): <code>number</code></p>
+</blockquote>
+<p>Defined in: core/lib/events/asynceventemitter.d.ts:84</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-26">Returns<a href="#returns-26" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>number</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-18">Inherited from<a href="#inherited-from-18" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getMaxListeners</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getmetric">getMetric()<a href="#getmetric" class="hash-link" aria-label="Direct link to getMetric()" title="Direct link to getMetric()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getMetric</strong>&lt;<code>T</code>&gt;(<code>type</code>, <code>configuration</code>): <code>T</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:138</p>
+<p>Add service name label</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-3">Type Parameters<a href="#type-parameters-3" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="t-1">T<a href="#t-1" class="hash-link" aria-label="Direct link to T" title="Direct link to T" translate="no">​</a></h5>
+<p><code>T</code> = <code>Counter</code>&lt;<code>string</code>&gt; | <code>Gauge</code>&lt;<code>string</code>&gt; | <code>Histogram</code>&lt;<code>string</code>&gt;</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-20">Parameters<a href="#parameters-20" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="type-1">type<a href="#type-1" class="hash-link" aria-label="Direct link to type" title="Direct link to type" translate="no">​</a></h5>
+<p><code>CustomConstructor</code>&lt;<code>T</code>, [<code>MetricConfiguration</code>&lt;<code>T</code>&gt;]&gt;</p>
+<p>the type to look up</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="configuration">configuration<a href="#configuration" class="hash-link" aria-label="Direct link to configuration" title="Direct link to configuration" translate="no">​</a></h5>
+<p><code>MetricConfiguration</code>&lt;<code>T</code>&gt;</p>
+<p>the configuration</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-27">Returns<a href="#returns-27" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>T</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-19">Inherited from<a href="#inherited-from-19" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getMetric</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getname">getName()<a href="#getname" class="hash-link" aria-label="Direct link to getName()" title="Direct link to getName()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getName</strong>(): <code>string</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:209</p>
+<p>Get service name</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-28">Returns<a href="#returns-28" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the result string</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-20">Inherited from<a href="#inherited-from-20" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getName</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getopenapireplacements">getOpenApiReplacements()<a href="#getopenapireplacements" class="hash-link" aria-label="Direct link to getOpenApiReplacements()" title="Direct link to getOpenApiReplacements()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getOpenApiReplacements</strong>(): <code>any</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:182</p>
+<p>Return variables for replacement in openapi</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-29">Returns<a href="#returns-29" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>any</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-21">Inherited from<a href="#inherited-from-21" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getOpenApiReplacements</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getoperationid">getOperationId()<a href="#getoperationid" class="hash-link" aria-label="Direct link to getOperationId()" title="Direct link to getOperationId()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getOperationId</strong>(<code>id</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:167</p>
+<p>If undefined is returned it cancel the operation registration</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-21">Parameters<a href="#parameters-21" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="id-1">id<a href="#id-1" class="hash-link" aria-label="Direct link to id" title="Direct link to id" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>the identifier</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-30">Returns<a href="#returns-30" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-22">Inherited from<a href="#inherited-from-22" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getOperationId</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getparameters">getParameters()<a href="#getparameters" class="hash-link" aria-label="Direct link to getParameters()" title="Direct link to getParameters()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getParameters</strong>(): <code>T</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:82</p>
+<p>Get the service parameters</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-31">Returns<a href="#returns-31" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>T</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-23">Inherited from<a href="#inherited-from-23" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getParameters</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getpolicydocument">getPolicyDocument()<a href="#getpolicydocument" class="hash-link" aria-label="Direct link to getPolicyDocument()" title="Direct link to getPolicyDocument()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getPolicyDocument</strong>(<code>additionalStatements?</code>): <code>Promise</code>&lt;<code>any</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L560" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:560</a></p>
+<p>Generate the <code>PolicyDocument</code></p>
+<p>It will browse all services for a method <code>getARNPolicy</code>
+Allowing you to write some specific Service or Bean that
+requires specific AWS permissions</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-22">Parameters<a href="#parameters-22" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="additionalstatements">additionalStatements?<a href="#additionalstatements" class="hash-link" aria-label="Direct link to additionalStatements?" title="Direct link to additionalStatements?" translate="no">​</a></h5>
+<p><code>any</code>[] = <code>[]</code></p>
+<p>statements to add</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-32">Returns<a href="#returns-32" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>any</code>&gt;</p>
+<p>the optimized policy document</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getrawparameters">getRawParameters()<a href="#getrawparameters" class="hash-link" aria-label="Direct link to getRawParameters()" title="Direct link to getRawParameters()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>getRawParameters</strong>(): <code>any</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L151" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:151</a></p>
+<p>Parameters as a plain object</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-33">Returns<a href="#returns-33" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>any</code></p>
+<p>a copy of the parameters</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getregion">getRegion()<a href="#getregion" class="hash-link" aria-label="Direct link to getRegion()" title="Direct link to getRegion()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getRegion</strong>(): <code>string</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L197" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:197</a></p>
+<p>Return AWS region</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-34">Returns<a href="#returns-34" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the region</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="gets3">getS3()<a href="#gets3" class="hash-link" aria-label="Direct link to getS3()" title="Direct link to getS3()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>getS3</strong>(): <code>S3</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L631" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:631</a></p>
+<p>S3 client</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-35">Returns<a href="#returns-35" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>S3</code></p>
+<p>the client</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getservice"><del>getService()</del><a href="#getservice" class="hash-link" aria-label="Direct link to getservice" title="Direct link to getservice" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getService</strong>&lt;<code>T</code>&gt;(<code>name</code>): <code>ServicesMap</code>[<code>T</code>]</p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:131</p>
+<p>Get a service by name</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-4">Type Parameters<a href="#type-parameters-4" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="t-2">T<a href="#t-2" class="hash-link" aria-label="Direct link to T" title="Direct link to T" translate="no">​</a></h5>
+<p><code>T</code> <em>extends</em> keyof <code>ServicesMap</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-23">Parameters<a href="#parameters-23" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="name-2">name<a href="#name-2" class="hash-link" aria-label="Direct link to name" title="Direct link to name" translate="no">​</a></h5>
+<p><code>T</code></p>
+<p>the name to use</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-36">Returns<a href="#returns-36" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>ServicesMap</code>[<code>T</code>]</p>
+<p>the result map</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="deprecated-1">Deprecated<a href="#deprecated-1" class="hash-link" aria-label="Direct link to Deprecated" title="Direct link to Deprecated" translate="no">​</a></h4>
+<p>Use useService, might reconsider</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-24">Inherited from<a href="#inherited-from-24" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getService</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getstate">getState()<a href="#getstate" class="hash-link" aria-label="Direct link to getState()" title="Direct link to getState()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getState</strong>(): <code>ServiceStates</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:55</p>
+<p>Get the current state</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-37">Returns<a href="#returns-37" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>ServiceStates</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-25">Inherited from<a href="#inherited-from-25" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getState</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="geturl">getUrl()<a href="#geturl" class="hash-link" aria-label="Direct link to getUrl()" title="Direct link to getUrl()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getUrl</strong>(<code>url</code>, <code>_methods</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:161</p>
+<p>Return the full path url based on parameters</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-24">Parameters<a href="#parameters-24" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="url-1">url<a href="#url-1" class="hash-link" aria-label="Direct link to url" title="Direct link to url" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>relative url to service</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="_methods">_methods<a href="#_methods" class="hash-link" aria-label="Direct link to _methods" title="Direct link to _methods" translate="no">​</a></h5>
+<p><code>HttpMethodType</code>[]</p>
+<p>in case we need filtering (like Store)</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-38">Returns<a href="#returns-38" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>absolute url or undefined if need to skip the Route</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-26">Inherited from<a href="#inherited-from-26" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.getUrl</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="getzonefordomainname">getZoneForDomainName()<a href="#getzonefordomainname" class="hash-link" aria-label="Direct link to getZoneForDomainName()" title="Direct link to getZoneForDomainName()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>getZoneForDomainName</strong>(<code>domain</code>): <code>Promise</code>&lt;<code>HostedZone</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L314" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:314</a></p>
+<p>Get the closest zone to the domain</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-25">Parameters<a href="#parameters-25" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="domain-3">domain<a href="#domain-3" class="hash-link" aria-label="Direct link to domain" title="Direct link to domain" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>to get zone for</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-39">Returns<a href="#returns-39" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>HostedZone</code>&gt;</p>
+<p>the zone</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="hash">hash()<a href="#hash" class="hash-link" aria-label="Direct link to hash()" title="Direct link to hash()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>hash</strong>(<code>str</code>, <code>type?</code>, <code>format?</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L261" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:261</a></p>
+<p>Hash the string</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-26">Parameters<a href="#parameters-26" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="str">str<a href="#str" class="hash-link" aria-label="Direct link to str" title="Direct link to str" translate="no">​</a></h5>
+<p><code>string</code> | <code>Buffer</code>&lt;<code>ArrayBufferLike</code>&gt;</p>
+<p>to hash</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="type-2">type?<a href="#type-2" class="hash-link" aria-label="Direct link to type?" title="Direct link to type?" translate="no">​</a></h5>
+<p><code>string</code> = <code>&quot;md5&quot;</code></p>
+<p>of hash</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="format">format?<a href="#format" class="hash-link" aria-label="Direct link to format?" title="Direct link to format?" translate="no">​</a></h5>
+<p><code>&quot;base64&quot;</code> | <code>&quot;hex&quot;</code></p>
+<p>hex or b64</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-40">Returns<a href="#returns-40" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the hash</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="init">init()<a href="#init" class="hash-link" aria-label="Direct link to init()" title="Direct link to init()" translate="no">​</a></h3>
+<blockquote>
+<p><code>abstract</code> <strong>init</strong>(): <code>Promise</code>&lt;<code>AWSDeployer</code>&lt;<code>T</code>&gt;&gt;</p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:198</p>
+<p>Will be called after all the Services are created</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-41">Returns<a href="#returns-41" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>AWSDeployer</code>&lt;<code>T</code>&gt;&gt;</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-27">Inherited from<a href="#inherited-from-27" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.init</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="initmetrics">initMetrics()<a href="#initmetrics" class="hash-link" aria-label="Direct link to initMetrics()" title="Direct link to initMetrics()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>initMetrics</strong>(): <code>void</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:124</p>
+<p>Init the metrics</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-42">Returns<a href="#returns-42" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-28">Inherited from<a href="#inherited-from-28" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.initMetrics</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="initoperations">initOperations()<a href="#initoperations" class="hash-link" aria-label="Direct link to initOperations()" title="Direct link to initOperations()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>initOperations</strong>(): <code>void</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:186</p>
+<p>Init the operations from</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-43">Returns<a href="#returns-43" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="operation">Operation<a href="#operation" class="hash-link" aria-label="Direct link to Operation" title="Direct link to Operation" translate="no">​</a></h4>
+<p>decorators on this service</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-29">Inherited from<a href="#inherited-from-29" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.initOperations</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="listeners">listeners()<a href="#listeners" class="hash-link" aria-label="Direct link to listeners()" title="Direct link to listeners()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>listeners</strong>(<code>eventName</code>): <code>Function</code>[]</p>
+</blockquote>
+<p>Defined in: core/lib/events/asynceventemitter.d.ts:139</p>
+<p>Get all listeners for an event</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-27">Parameters<a href="#parameters-27" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="eventname-1">eventName<a href="#eventname-1" class="hash-link" aria-label="Direct link to eventName" title="Direct link to eventName" translate="no">​</a></h5>
+<p><code>never</code></p>
+<p>the event name</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-44">Returns<a href="#returns-44" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Function</code>[]</p>
+<p>the list of results</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-30">Inherited from<a href="#inherited-from-30" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.listeners</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="loadcapabilities">loadCapabilities()<a href="#loadcapabilities" class="hash-link" aria-label="Direct link to loadCapabilities()" title="Direct link to loadCapabilities()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>loadCapabilities</strong>(): <code>void</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:120</p>
+<p>Load capabilities from webda.module.json metadata into <a class="" href="/typedoc/aws/classes/CloudFormationDeployer#_compiledcapabilities">_compiledCapabilities</a>.</p>
+<p>Called during <a href="#resolve" class="">resolve</a> after dependency injection. Reads the service&#x27;s
+type name from parameters, looks it up in the application&#x27;s module metadata
+(moddas or beans section), and populates <code>_compiledCapabilities</code> with an
+empty object for each declared capability name.</p>
+<p>Fails silently if the application is not available (e.g., in unit tests
+where services are instantiated without a full application context).</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-45">Returns<a href="#returns-45" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="example">Example<a href="#example" class="hash-link" aria-label="Direct link to Example" title="Direct link to Example" translate="no">​</a></h4>
+<div class="language-typescript codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-typescript codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token comment" style="color:#999988;font-style:italic">// If webda.module.json contains:</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token comment" style="color:#999988;font-style:italic">// { &quot;moddas&quot;: { &quot;MyApp/HawkService&quot;: { &quot;capabilities&quot;: [&quot;request-filter&quot;, &quot;cors-filter&quot;] } } }</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token comment" style="color:#999988;font-style:italic">// Then after resolve(), this.getCapabilities() returns:</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token comment" style="color:#999988;font-style:italic">// { &quot;request-filter&quot;: {}, &quot;cors-filter&quot;: {} }</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#7EBF6A"></path></svg></div>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see-2">See<a href="#see-2" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>getCapabilities</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-31">Inherited from<a href="#inherited-from-31" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.loadCapabilities</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="log">log()<a href="#log" class="hash-link" aria-label="Direct link to log()" title="Direct link to log()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>log</strong>(<code>level</code>, ...<code>args</code>): <code>void</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:226</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-28">Parameters<a href="#parameters-28" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="level">level<a href="#level" class="hash-link" aria-label="Direct link to level" title="Direct link to level" translate="no">​</a></h5>
+<p><code>WorkerLogLevel</code></p>
+<p>to log</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="args">args<a href="#args" class="hash-link" aria-label="Direct link to args" title="Direct link to args" translate="no">​</a></h5>
+<p>...<code>any</code>[]</p>
+<p>additional arguments</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-46">Returns<a href="#returns-46" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-32">Inherited from<a href="#inherited-from-32" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.log</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="md5">md5()<a href="#md5" class="hash-link" aria-label="Direct link to md5()" title="Direct link to md5()" translate="no">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>md5</strong>(<code>str</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L249" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:249</a></p>
+<p>Generate a MD5 in hex</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-29">Parameters<a href="#parameters-29" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="str-1">str<a href="#str-1" class="hash-link" aria-label="Direct link to str" title="Direct link to str" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>to hash</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-47">Returns<a href="#returns-47" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the hash</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="off">off()<a href="#off" class="hash-link" aria-label="Direct link to off()" title="Direct link to off()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>off</strong>&lt;<code>Key</code>&gt;(<code>eventName</code>, <code>listener</code>): <code>this</code></p>
+</blockquote>
+<p>Defined in: core/lib/events/asynceventemitter.d.ts:116</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-5">Type Parameters<a href="#type-parameters-5" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-5">Key<a href="#key-5" class="hash-link" aria-label="Direct link to Key" title="Direct link to Key" translate="no">​</a></h5>
+<p><code>Key</code> <em>extends</em> <code>never</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-30">Parameters<a href="#parameters-30" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="eventname-2">eventName<a href="#eventname-2" class="hash-link" aria-label="Direct link to eventName" title="Direct link to eventName" translate="no">​</a></h5>
+<p><code>Key</code></p>
+<p>the event name</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="listener-1">listener<a href="#listener-1" class="hash-link" aria-label="Direct link to listener" title="Direct link to listener" translate="no">​</a></h5>
+<p>(<code>event</code>) =&gt; <code>void</code></p>
+<p>the event listener</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-48">Returns<a href="#returns-48" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<p>this for chaining</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see-3">See<a href="#see-3" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>EventEmitter.off</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-33">Inherited from<a href="#inherited-from-33" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.off</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="on">on()<a href="#on" class="hash-link" aria-label="Direct link to on()" title="Direct link to on()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>on</strong>&lt;<code>Key</code>&gt;(<code>eventName</code>, <code>listener</code>): <code>this</code></p>
+</blockquote>
+<p>Defined in: core/lib/events/asynceventemitter.d.ts:102</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-6">Type Parameters<a href="#type-parameters-6" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-6">Key<a href="#key-6" class="hash-link" aria-label="Direct link to Key" title="Direct link to Key" translate="no">​</a></h5>
+<p><code>Key</code> <em>extends</em> <code>never</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-31">Parameters<a href="#parameters-31" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="eventname-3">eventName<a href="#eventname-3" class="hash-link" aria-label="Direct link to eventName" title="Direct link to eventName" translate="no">​</a></h5>
+<p><code>Key</code></p>
+<p>the event name</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="listener-2">listener<a href="#listener-2" class="hash-link" aria-label="Direct link to listener" title="Direct link to listener" translate="no">​</a></h5>
+<p>(<code>event</code>) =&gt; <code>void</code></p>
+<p>the event listener</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-49">Returns<a href="#returns-49" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<p>this for chaining</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see-4">See<a href="#see-4" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>EventEmitter.once</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-34">Inherited from<a href="#inherited-from-34" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.on</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="once">once()<a href="#once" class="hash-link" aria-label="Direct link to once()" title="Direct link to once()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>once</strong>&lt;<code>Key</code>&gt;(<code>eventName</code>, <code>listener</code>): <code>this</code></p>
+</blockquote>
+<p>Defined in: core/lib/events/asynceventemitter.d.ts:95</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-7">Type Parameters<a href="#type-parameters-7" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-7">Key<a href="#key-7" class="hash-link" aria-label="Direct link to Key" title="Direct link to Key" translate="no">​</a></h5>
+<p><code>Key</code> <em>extends</em> <code>never</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-32">Parameters<a href="#parameters-32" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="eventname-4">eventName<a href="#eventname-4" class="hash-link" aria-label="Direct link to eventName" title="Direct link to eventName" translate="no">​</a></h5>
+<p><code>Key</code></p>
+<p>the event name</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="listener-3">listener<a href="#listener-3" class="hash-link" aria-label="Direct link to listener" title="Direct link to listener" translate="no">​</a></h5>
+<p>(<code>event</code>) =&gt; <code>void</code></p>
+<p>the event listener</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-50">Returns<a href="#returns-50" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<p>this for chaining</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see-5">See<a href="#see-5" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>EventEmitter.once</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-35">Inherited from<a href="#inherited-from-35" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.once</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="prepare">prepare()<a href="#prepare" class="hash-link" aria-label="Direct link to prepare()" title="Direct link to prepare()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>prepare</strong>(<code>extra?</code>): <code>Promise</code>&lt;<a class="" href="/typedoc/aws/type-aliases/DeployerResources"><code>DeployerResources</code></a>&lt;<code>T</code>&gt; &amp; <code>object</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L135" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:135</a></p>
+<p>Compute the resources from the parameters</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-33">Parameters<a href="#parameters-33" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="extra">extra?<a href="#extra" class="hash-link" aria-label="Direct link to extra?" title="Direct link to extra?" translate="no">​</a></h5>
+<p><code>Record</code>&lt;<code>string</code>, <code>any</code>&gt; = <code>{}</code></p>
+<p>additional deployment variables</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-51">Returns<a href="#returns-51" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<a class="" href="/typedoc/aws/type-aliases/DeployerResources"><code>DeployerResources</code></a>&lt;<code>T</code>&gt; &amp; <code>object</code>&gt;</p>
+<p>the resources</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="putfilesonbucket">putFilesOnBucket()<a href="#putfilesonbucket" class="hash-link" aria-label="Direct link to putFilesOnBucket()" title="Direct link to putFilesOnBucket()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>putFilesOnBucket</strong>(<code>bucket</code>, <code>files</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L694" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:694</a></p>
+<p>Add files to a bucket</p>
+<p>It uses hash and ETag to avoid uploading files already present</p>
+<p>The files src can be either:</p>
+<ul>
+<li class="">a string representing the local path</li>
+<li class="">a Buffer with the dynamic content</li>
+</ul>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-34">Parameters<a href="#parameters-34" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="bucket-1">bucket<a href="#bucket-1" class="hash-link" aria-label="Direct link to bucket" title="Direct link to bucket" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>to send bucket</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="files">files<a href="#files" class="hash-link" aria-label="Direct link to files" title="Direct link to files" translate="no">​</a></h5>
+<p><code>object</code>[]</p>
+<p>to send</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-52">Returns<a href="#returns-52" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="putfolderonbucket">putFolderOnBucket()<a href="#putfolderonbucket" class="hash-link" aria-label="Direct link to putFolderOnBucket()" title="Direct link to putFolderOnBucket()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>putFolderOnBucket</strong>(<code>bucket</code>, <code>folder</code>, <code>prefix?</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L645" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:645</a></p>
+<p>Send a full folder (recursive) on bucket</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-35">Parameters<a href="#parameters-35" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="bucket-2">bucket<a href="#bucket-2" class="hash-link" aria-label="Direct link to bucket" title="Direct link to bucket" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>to send data to</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="folder">folder<a href="#folder" class="hash-link" aria-label="Direct link to folder" title="Direct link to folder" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>path to local folder to send</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="prefix">prefix?<a href="#prefix" class="hash-link" aria-label="Direct link to prefix?" title="Direct link to prefix?" translate="no">​</a></h5>
+<p><code>string</code> = <code>&quot;&quot;</code></p>
+<p>prefix on the bucket</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-53">Returns<a href="#returns-53" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="removealllisteners">removeAllListeners()<a href="#removealllisteners" class="hash-link" aria-label="Direct link to removeAllListeners()" title="Direct link to removeAllListeners()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>removeAllListeners</strong>&lt;<code>Key</code>&gt;(<code>eventName?</code>): <code>this</code></p>
+</blockquote>
+<p>Defined in: core/lib/events/asynceventemitter.d.ts:122</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-8">Type Parameters<a href="#type-parameters-8" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-8">Key<a href="#key-8" class="hash-link" aria-label="Direct link to Key" title="Direct link to Key" translate="no">​</a></h5>
+<p><code>Key</code> <em>extends</em> <code>never</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-36">Parameters<a href="#parameters-36" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="eventname-5">eventName?<a href="#eventname-5" class="hash-link" aria-label="Direct link to eventName?" title="Direct link to eventName?" translate="no">​</a></h5>
+<p><code>Key</code></p>
+<p>the event name</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-54">Returns<a href="#returns-54" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<p>this for chaining</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see-6">See<a href="#see-6" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>EventEmitter.removeAllListeners</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-36">Inherited from<a href="#inherited-from-36" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.removeAllListeners</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="removelistener">removeListener()<a href="#removelistener" class="hash-link" aria-label="Direct link to removeListener()" title="Direct link to removeListener()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>removeListener</strong>&lt;<code>Key</code>&gt;(<code>eventName</code>, <code>listener</code>): <code>this</code></p>
+</blockquote>
+<p>Defined in: core/lib/events/asynceventemitter.d.ts:109</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="type-parameters-9">Type Parameters<a href="#type-parameters-9" class="hash-link" aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="key-9">Key<a href="#key-9" class="hash-link" aria-label="Direct link to Key" title="Direct link to Key" translate="no">​</a></h5>
+<p><code>Key</code> <em>extends</em> <code>never</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-37">Parameters<a href="#parameters-37" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="eventname-6">eventName<a href="#eventname-6" class="hash-link" aria-label="Direct link to eventName" title="Direct link to eventName" translate="no">​</a></h5>
+<p><code>Key</code></p>
+<p>the event name</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="listener-4">listener<a href="#listener-4" class="hash-link" aria-label="Direct link to listener" title="Direct link to listener" translate="no">​</a></h5>
+<p>(<code>event</code>) =&gt; <code>void</code></p>
+<p>the event listener</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-55">Returns<a href="#returns-55" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<p>this for chaining</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="see-7">See<a href="#see-7" class="hash-link" aria-label="Direct link to See" title="Direct link to See" translate="no">​</a></h4>
+<p>EventEmitter.removeListener</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-37">Inherited from<a href="#inherited-from-37" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.removeListener</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="resolve">resolve()<a href="#resolve" class="hash-link" aria-label="Direct link to resolve()" title="Direct link to resolve()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>resolve</strong>(): <code>this</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:98</p>
+<p>Resolve parameters and load metadata. <code>@Route</code>-declared routes are scanned
+and registered by <code>Router.discoverRoutes(services)</code> from <code>Core.init()</code>
+once every service has resolved — nothing to do per-service here.</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-56">Returns<a href="#returns-56" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-38">Inherited from<a href="#inherited-from-38" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.resolve</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="setmaxlisteners">setMaxListeners()<a href="#setmaxlisteners" class="hash-link" aria-label="Direct link to setMaxListeners()" title="Direct link to setMaxListeners()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>setMaxListeners</strong>(<code>n</code>): <code>this</code></p>
+</blockquote>
+<p>Defined in: core/lib/events/asynceventemitter.d.ts:88</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-38">Parameters<a href="#parameters-38" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="n">n<a href="#n" class="hash-link" aria-label="Direct link to n" title="Direct link to n" translate="no">​</a></h5>
+<p><code>number</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-57">Returns<a href="#returns-57" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>this</code></p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-39">Inherited from<a href="#inherited-from-39" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.setMaxListeners</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="stop">stop()<a href="#stop" class="hash-link" aria-label="Direct link to stop()" title="Direct link to stop()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>stop</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:86</p>
+<p>Shutdown the current service if action need to be taken</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-58">Returns<a href="#returns-58" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-40">Inherited from<a href="#inherited-from-40" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.stop</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="tojson">toJSON()<a href="#tojson" class="hash-link" aria-label="Direct link to toJSON()" title="Direct link to toJSON()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>toJSON</strong>(): <code>string</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:191</p>
+<p>Prevent service to be serialized</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-59">Returns<a href="#returns-59" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-41">Inherited from<a href="#inherited-from-41" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.toJSON</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="tostring">toString()<a href="#tostring" class="hash-link" aria-label="Direct link to toString()" title="Direct link to toString()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>toString</strong>(): <code>string</code></p>
+</blockquote>
+<p>Defined in: core/lib/services/service.d.ts:91</p>
+<p>Return service representation</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-60">Returns<a href="#returns-60" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>string</code></p>
+<p>the result</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="inherited-from-42">Inherited from<a href="#inherited-from-42" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from" translate="no">​</a></h4>
+<p><code>Service.toString</code></p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="transformarraytagstomap">transformArrayTagsToMap()<a href="#transformarraytagstomap" class="hash-link" aria-label="Direct link to transformArrayTagsToMap()" title="Direct link to transformArrayTagsToMap()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>transformArrayTagsToMap</strong>(<code>tags</code>): <code>object</code></p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L341" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:341</a></p>
+<p>Transform a tag array into a tag map</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-39">Parameters<a href="#parameters-39" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="tags">tags<a href="#tags" class="hash-link" aria-label="Direct link to tags" title="Direct link to tags" translate="no">​</a></h5>
+<p><a class="" href="/typedoc/aws/type-aliases/TagsDefinition"><code>TagsDefinition</code></a></p>
+<p>to transform</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-61">Returns<a href="#returns-61" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>object</code></p>
+<p>the tags map</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="transformmaptagstoarray">transformMapTagsToArray()<a href="#transformmaptagstoarray" class="hash-link" aria-label="Direct link to transformMapTagsToArray()" title="Direct link to transformMapTagsToArray()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>transformMapTagsToArray</strong>(<code>tags</code>): <code>object</code>[]</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L324" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:324</a></p>
+<p>Transform a tag map into a tag array</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-40">Parameters<a href="#parameters-40" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="tags-1">tags<a href="#tags-1" class="hash-link" aria-label="Direct link to tags" title="Direct link to tags" translate="no">​</a></h5>
+<p><a class="" href="/typedoc/aws/type-aliases/TagsDefinition"><code>TagsDefinition</code></a></p>
+<p>to transform</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-62">Returns<a href="#returns-62" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>object</code>[]</p>
+<p>the tags array</p>
+<hr>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="waitfor">waitFor()<a href="#waitfor" class="hash-link" aria-label="Direct link to waitFor()" title="Direct link to waitFor()" translate="no">​</a></h3>
+<blockquote>
+<p><strong>waitFor</strong>(<code>callback</code>, <code>retries</code>, <code>title</code>, <code>delay</code>): <code>Promise</code>&lt;<code>any</code>&gt;</p>
+</blockquote>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5fbad77aa73c8607598d9145c88d17265032c889/packages/aws/src/deployers/awsdeployer.ts#L403" target="_blank" rel="noopener noreferrer" class="">aws/src/deployers/awsdeployer.ts:403</a></p>
+<p>Wait for a condition with a linear delay</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="parameters-41">Parameters<a href="#parameters-41" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters" translate="no">​</a></h4>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="callback">callback<a href="#callback" class="hash-link" aria-label="Direct link to callback" title="Direct link to callback" translate="no">​</a></h5>
+<p>(<code>resolve?</code>, <code>reject?</code>) =&gt; <code>Promise</code>&lt;<code>boolean</code>&gt;</p>
+<p>resolve when done, return true to stop</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="retries">retries<a href="#retries" class="hash-link" aria-label="Direct link to retries" title="Direct link to retries" translate="no">​</a></h5>
+<p><code>number</code></p>
+<p>maximum number of tries</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="title">title<a href="#title" class="hash-link" aria-label="Direct link to title" title="Direct link to title" translate="no">​</a></h5>
+<p><code>string</code></p>
+<p>of the wait</p>
+<h5 class="anchor anchorTargetStickyNavbar_FE5u" id="delay">delay<a href="#delay" class="hash-link" aria-label="Direct link to delay" title="Direct link to delay" translate="no">​</a></h5>
+<p><code>number</code></p>
+<p>between tries in ms</p>
+<h4 class="anchor anchorTargetStickyNavbar_FE5u" id="returns-63">Returns<a href="#returns-63" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns" translate="no">​</a></h4>
+<p><code>Promise</code>&lt;<code>any</code>&gt;</p>
+<p>the resolved value</p></div></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/typedoc/aws/classes/AWSCommands"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">AWSCommands</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/typedoc/aws/classes/AWSDeployerParameters"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">AWSDeployerParameters</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_kFBU thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#extends" class="table-of-contents__link toc-highlight">Extends</a></li><li><a href="#extended-by" class="table-of-contents__link toc-highlight">Extended by</a></li><li><a href="#type-parameters" class="table-of-contents__link toc-highlight">Type Parameters</a><ul><li><a href="#t" class="table-of-contents__link toc-highlight">T</a></li></ul></li><li><a href="#constructors" class="table-of-contents__link toc-highlight">Constructors</a><ul><li><a href="#constructor" class="table-of-contents__link toc-highlight">Constructor</a></li></ul></li><li><a href="#properties" class="table-of-contents__link toc-highlight">Properties</a><ul><li><a href="#_compiledcapabilities" class="table-of-contents__link toc-highlight">_compiledCapabilities</a></li><li><a href="#webda_events" class="table-of-contents__link toc-highlight">[WEBDA_EVENTS]</a></li><li><a href="#logger" class="table-of-contents__link toc-highlight">logger</a></li><li><a href="#metrics" class="table-of-contents__link toc-highlight">metrics?</a></li><li><a href="#name-1" class="table-of-contents__link toc-highlight">name</a></li><li><a href="#parameters-1" class="table-of-contents__link toc-highlight">parameters</a></li><li><a href="#resources" class="table-of-contents__link toc-highlight">resources</a></li><li><a href="#createconfiguration" class="table-of-contents__link toc-highlight">createConfiguration?</a></li><li><a href="#filterconfiguration" class="table-of-contents__link toc-highlight">filterConfiguration?</a></li><li><a href="#parameters-4" class="table-of-contents__link toc-highlight">Parameters</a></li></ul></li><li><a href="#methods" class="table-of-contents__link toc-highlight">Methods</a><ul><li><a href="#__clean" class="table-of-contents__link toc-highlight">__clean()</a></li><li><a href="#_replaceforaws" class="table-of-contents__link toc-highlight">_replaceForAWS()</a></li><li><a href="#addlistener" class="table-of-contents__link toc-highlight">addListener()</a></li><li><a href="#addroute" class="table-of-contents__link toc-highlight">addRoute()</a></li><li><a href="#authorizeclientevent" class="table-of-contents__link toc-highlight">authorizeClientEvent()</a></li><li><a href="#commonprefix" class="table-of-contents__link toc-highlight">commonPrefix()</a></li><li><a href="#computeparameters" class="table-of-contents__link toc-highlight"><del>computeParameters()</del></a></li><li><a href="#createbucket" class="table-of-contents__link toc-highlight">createBucket()</a></li><li><a href="#creatednsentry" class="table-of-contents__link toc-highlight">createDNSEntry()</a></li><li><a href="#defaultresources" class="table-of-contents__link toc-highlight">defaultResources()</a></li><li><a href="#docreatecertificate" class="table-of-contents__link toc-highlight">doCreateCertificate()</a></li><li><a href="#emit" class="table-of-contents__link toc-highlight">emit()</a></li><li><a href="#getapplicationservices" class="table-of-contents__link toc-highlight">getApplicationServices()</a></li><li><a href="#getarnpolicy" class="table-of-contents__link toc-highlight">getARNPolicy()</a></li><li><a href="#getawsidentity" class="table-of-contents__link toc-highlight">getAWSIdentity()</a></li><li><a href="#getcapabilities" class="table-of-contents__link toc-highlight">getCapabilities()</a></li><li><a href="#getcertificate" class="table-of-contents__link toc-highlight">getCertificate()</a></li><li><a href="#getclientconfig" class="table-of-contents__link toc-highlight">getClientConfig()</a></li><li><a href="#getclientevents" class="table-of-contents__link toc-highlight">getClientEvents()</a></li><li><a href="#getdefaulttags" class="table-of-contents__link toc-highlight">getDefaultTags()</a></li><li><a href="#getdefaulttagsasmap" class="table-of-contents__link toc-highlight">getDefaultTagsAsMap()</a></li><li><a href="#getdefaulttagsass3tagging" class="table-of-contents__link toc-highlight">getDefaultTagsAsS3Tagging()</a></li><li><a href="#getdefaultvpc" class="table-of-contents__link toc-highlight">getDefaultVpc()</a></li><li><a href="#getmaxlisteners" class="table-of-contents__link toc-highlight">getMaxListeners()</a></li><li><a href="#getmetric" class="table-of-contents__link toc-highlight">getMetric()</a></li><li><a href="#getname" class="table-of-contents__link toc-highlight">getName()</a></li><li><a href="#getopenapireplacements" class="table-of-contents__link toc-highlight">getOpenApiReplacements()</a></li><li><a href="#getoperationid" class="table-of-contents__link toc-highlight">getOperationId()</a></li><li><a href="#getparameters" class="table-of-contents__link toc-highlight">getParameters()</a></li><li><a href="#getpolicydocument" class="table-of-contents__link toc-highlight">getPolicyDocument()</a></li><li><a href="#getrawparameters" class="table-of-contents__link toc-highlight">getRawParameters()</a></li><li><a href="#getregion" class="table-of-contents__link toc-highlight">getRegion()</a></li><li><a href="#gets3" class="table-of-contents__link toc-highlight">getS3()</a></li><li><a href="#getservice" class="table-of-contents__link toc-highlight"><del>getService()</del></a></li><li><a href="#getstate" class="table-of-contents__link toc-highlight">getState()</a></li><li><a href="#geturl" class="table-of-contents__link toc-highlight">getUrl()</a></li><li><a href="#getzonefordomainname" class="table-of-contents__link toc-highlight">getZoneForDomainName()</a></li><li><a href="#hash" class="table-of-contents__link toc-highlight">hash()</a></li><li><a href="#init" class="table-of-contents__link toc-highlight">init()</a></li><li><a href="#initmetrics" class="table-of-contents__link toc-highlight">initMetrics()</a></li><li><a href="#initoperations" class="table-of-contents__link toc-highlight">initOperations()</a></li><li><a href="#listeners" class="table-of-contents__link toc-highlight">listeners()</a></li><li><a href="#loadcapabilities" class="table-of-contents__link toc-highlight">loadCapabilities()</a></li><li><a href="#log" class="table-of-contents__link toc-highlight">log()</a></li><li><a href="#md5" class="table-of-contents__link toc-highlight">md5()</a></li><li><a href="#off" class="table-of-contents__link toc-highlight">off()</a></li><li><a href="#on" class="table-of-contents__link toc-highlight">on()</a></li><li><a href="#once" class="table-of-contents__link toc-highlight">once()</a></li><li><a href="#prepare" class="table-of-contents__link toc-highlight">prepare()</a></li><li><a href="#putfilesonbucket" class="table-of-contents__link toc-highlight">putFilesOnBucket()</a></li><li><a href="#putfolderonbucket" class="table-of-contents__link toc-highlight">putFolderOnBucket()</a></li><li><a href="#removealllisteners" class="table-of-contents__link toc-highlight">removeAllListeners()</a></li><li><a href="#removelistener" class="table-of-contents__link toc-highlight">removeListener()</a></li><li><a href="#resolve" class="table-of-contents__link toc-highlight">resolve()</a></li><li><a href="#setmaxlisteners" class="table-of-contents__link toc-highlight">setMaxListeners()</a></li><li><a href="#stop" class="table-of-contents__link toc-highlight">stop()</a></li><li><a href="#tojson" class="table-of-contents__link toc-highlight">toJSON()</a></li><li><a href="#tostring" class="table-of-contents__link toc-highlight">toString()</a></li><li><a href="#transformarraytagstomap" class="table-of-contents__link toc-highlight">transformArrayTagsToMap()</a></li><li><a href="#transformmaptagstoarray" class="table-of-contents__link toc-highlight">transformMapTagsToArray()</a></li><li><a href="#waitfor" class="table-of-contents__link toc-highlight">waitFor()</a></li></ul></li></ul></div></div></div></div></main></div></div></div><div style="background-color:#afcedb;height:48px"></div></div>
+</body>
+</html>

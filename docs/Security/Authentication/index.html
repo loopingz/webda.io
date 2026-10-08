@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en" dir="ltr" class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-Security/Authentication" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.10.2">
+<title data-rh="true">Authentication | Webda.io</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" property="og:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://webda.io/docs/Security/Authentication"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="keywords" content="webda, typescript, framework"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Authentication | Webda.io"><meta data-rh="true" name="description" content="@webda/auth provides login, registration, account linking, password recovery and token issuing for Webda applications."><meta data-rh="true" property="og:description" content="@webda/auth provides login, registration, account linking, password recovery and token issuing for Webda applications."><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://webda.io/docs/Security/Authentication"><link data-rh="true" rel="alternate" href="https://webda.io/docs/Security/Authentication" hreflang="en"><link data-rh="true" rel="alternate" href="https://webda.io/docs/Security/Authentication" hreflang="x-default"><link data-rh="true" rel="preconnect" href="https://UJ1RRJDCSY-dsn.algolia.net" crossorigin="anonymous"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Security","item":"https://webda.io/docs/Security/"},{"@type":"ListItem","position":2,"name":"Authentication","item":"https://webda.io/docs/Security/Authentication"}]}</script><link rel="search" type="application/opensearchdescription+xml" title="Webda.io" href="/opensearch.xml"><link rel="stylesheet" href="/assets/css/styles.fd0048db.css">
+<script src="/assets/js/runtime~main.75cf3f8d.js" defer="defer"></script>
+<script src="/assets/js/main.8bdc523e.js" defer="defer"></script>
+</head>
+<body>
+<svg style="display: none;"><defs>
+<symbol id="theme-svg-external-link" viewBox="0 0 24 24"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
+</defs></svg>
+<script>!function(){var t=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",t||"light"),document.documentElement.setAttribute("data-theme-choice",t||"light")}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><link rel="preload" as="image" href="/img/webda.svg"><div role="region" aria-label="Skip to main content"><a class="skipToContent_JWeg" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="theme-layout-navbar navbar navbar--fixed-top"><div class="navbar__inner"><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/"><div class="navbar__logo"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_LTLz themedComponent--light_u6Uj"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_LTLz themedComponent--dark_vFQX"></div><b class="navbar__title text--truncate">Webda.io</b></a><a class="navbar__item navbar__link" href="/docs/QuickStart">Quick Start</a><a class="navbar__item navbar__link" href="/docs/Concepts">Concepts</a><a class="navbar__item navbar__link" href="/typedoc/core/">Typedoc</a></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><a class="navbar__item navbar__link" style="opacity:0.5;transition:opacity 200ms ease;display:inline-flex;align-items:center;gap:6px" title="My Application — no daemon connected (link still works)" href="/configuration/welcome">My Application</a><a class="navbar__item navbar__link" href="/contribute/Contribute">Contribute</a><a href="https://github.com/loopingz/webda.io" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">GitHub<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_ny9m"><use href="#theme-svg-external-link"></use></svg></a><div class="toggle_Lxsn colorModeToggle_wCyq"><button class="clean-btn toggleButton_BEJb toggleButtonDisabled_wzmd" type="button" disabled="" title="system mode" aria-label="Switch between dark and light mode (currently system mode)"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m lightToggleIcon_ViIh"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m darkToggleIcon_Xnlu"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_Lr3m systemToggleIcon_LOzk"><path fill="currentColor" d="m12 21c4.971 0 9-4.029 9-9s-4.029-9-9-9-9 4.029-9 9 4.029 9 9 9zm4.95-13.95c1.313 1.313 2.05 3.093 2.05 4.95s-0.738 3.637-2.05 4.95c-1.313 1.313-3.093 2.05-4.95 2.05v-14c1.857 0 3.637 0.737 4.95 2.05z"></path></svg></button></div><div class="navbarSearchContainer_agmU"><button type="button" class="DocSearch DocSearch-Button" aria-label="Search (Meta+k)" aria-keyshortcuts="Meta+k"><span class="DocSearch-Button-Container"><svg width="20" height="20" class="DocSearch-Search-Icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8" stroke="currentColor" fill="none" stroke-width="1.4"></circle><path d="m21 21-4.3-4.3" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="DocSearch-Button-Placeholder">Search</span></span><span class="DocSearch-Button-Keys"></span></button></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="theme-layout-main main-wrapper mainWrapper_ra6T"><div class="docsWrapper_ylEi"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_t5dj" type="button"></button><div class="docRoot_V1J5"><aside class="theme-doc-sidebar-container docSidebarContainer_DBGv"><div class="sidebarViewport_YVHm"><div class="sidebar_tgig"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_JjJ7"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/QuickStart/"><span class="categoryLinkLabel_Aqc2">QuickStart</span></a><button aria-label="Expand sidebar category &#x27;QuickStart&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Glossary"><span class="linkLabel_pzku">Glossary</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/Concepts/"><span class="categoryLinkLabel_Aqc2">Concepts</span></a><button aria-label="Expand sidebar category &#x27;Concepts&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/REST/"><span class="categoryLinkLabel_Aqc2">REST</span></a><button aria-label="Expand sidebar category &#x27;REST&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/Modules/"><span class="categoryLinkLabel_Aqc2">Modules</span></a><button aria-label="Expand sidebar category &#x27;Modules&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/Deployments/"><span class="categoryLinkLabel_Aqc2">Deployments</span></a><button aria-label="Expand sidebar category &#x27;Deployments&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--active" href="/docs/Security/"><span class="categoryLinkLabel_Aqc2">Security</span></a><button aria-label="Collapse sidebar category &#x27;Security&#x27;" aria-expanded="true" type="button" class="clean-btn menu__caret"></button></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/docs/Security/Authentication"><span class="linkLabel_pzku">Authentication</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Security/CORS"><span class="linkLabel_pzku">CORS</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Security/CookieConfiguration"><span class="linkLabel_pzku">Cookies</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/docs/Security/Hawk"><span class="linkLabel_pzku">Hawk</span></a></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/Monitoring/"><span class="categoryLinkLabel_Aqc2">Monitoring</span></a><button aria-label="Expand sidebar category &#x27;Monitoring&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Application/"><span class="linkLabel_pzku">Application</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/CommonIssues/"><span class="categoryLinkLabel_Aqc2">Common Issues</span></a><button aria-label="Expand sidebar category &#x27;Common Issues&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/docs/Debug/DebugInVSCode"><span class="categoryLinkLabel_Aqc2">Debug</span></a></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Intro"><span class="linkLabel_pzku">Webda</span></a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Lifecycle"><span class="linkLabel_pzku">Lifecycle</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_QuNW menu__link menu__link--sublist" href="/docs/Migration/"><span class="categoryLinkLabel_Aqc2">Migration</span></a><button aria-label="Expand sidebar category &#x27;Migration&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/docs/Testing"><span class="linkLabel_pzku">Testing your application</span></a></li></ul></nav></div></div></aside><main class="docMainContainer_t64q"><div class="container padding-top--md padding-bottom--lg"><div class="row"><div class="col docItemCol_PNm0"><div class="docItemContainer_fty0"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_TsV8" aria-label="Breadcrumbs"><ul class="breadcrumbs"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_ZRLn"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li class="breadcrumbs__item"><a class="breadcrumbs__link" href="/docs/Security/"><span>Security</span></a></li><li class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link">Authentication</span></li></ul></nav><div class="tocCollapsible_OUT1 theme-doc-toc-mobile tocMobile_MVBj"><button type="button" class="clean-btn tocCollapsibleButton_jdOG">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>Authentication</h1></header>
+<p><code>@webda/auth</code> provides login, registration, account linking, password recovery and token issuing for Webda applications.
+It replaces the v3 <code>Authentication</code> service (see the <a class="" href="/docs/Migration/Authentication-v3-to-v4">v3 to v4 migration guide</a>).</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="overview">Overview<a href="#overview" class="hash-link" aria-label="Direct link to Overview" title="Direct link to Overview" translate="no">​</a></h2>
+<p>The <code>Authentication</code> service holds the shared logic. Each login method is a separate <strong>provider</strong> service. A provider
+proves an identity and hands a <code>ResolvedIdentity</code> to <code>Authentication.complete</code>:</p>
+<div class="language-text codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-text codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain"> EmailPasswordProvider ─┐</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"> GoogleAuthentication ───┤ (OAuthProvider)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"> your own provider ──────┴─&gt; ResolvedIdentity ──&gt; Authentication.complete()</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">                                                   │</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">                                                   ├─ apply provider email policy (allowedEmailDomains, trustEmailVerification)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">                                                   ├─ find the Ident (provider, providerUid)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">                                                   ├─ link / adopt / register the User (linking policy)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">                                                   ├─ session.login() + MFA state</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">                                                   └─ TokenService.issue() ──&gt; { accessToken, refreshToken, expiresIn }</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#7EBF6A"></path></svg></div>
+<p>Any service exposing <code>providerName</code> and <code>getPublicInfo()</code> is discovered as a provider; two providers with the same name
+are refused at startup. <code>Authentication.complete()</code> (and <code>applyPolicy()</code>) refuse an identity whose <code>provider</code> is not
+the name of a registered provider with <code>BAD_REQUEST</code> (400): a made-up name would escape the email policy of the
+provider it impersonates.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="installation">Installation<a href="#installation" class="hash-link" aria-label="Direct link to Installation" title="Direct link to Installation" translate="no">​</a></h2>
+<div class="language-bash codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-bash codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">pnpm add @webda/auth</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#555"></path></svg></div>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="configuration">Configuration<a href="#configuration" class="hash-link" aria-label="Direct link to Configuration" title="Direct link to Configuration" translate="no">​</a></h2>
+<div class="language-jsonc codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-jsonc codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">{</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;services&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;Authentication&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;type&quot;: &quot;Webda/Authentication&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;userModel&quot;: &quot;Webda/User&quot;, // default</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;identModel&quot;: &quot;Webda/Ident&quot;, // default</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;linking&quot;: &quot;verified&quot;, // &quot;never&quot; | &quot;verified&quot; | &quot;always&quot;, default &quot;verified&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;registration&quot;: true, // default true: allow automatic registration</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;compatibility&quot;: { &quot;v3&quot;: true } // default { &quot;v3&quot;: true }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;emailAuth&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;type&quot;: &quot;Webda/EmailPasswordProvider&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;mailer&quot;: &quot;Mailer&quot;, // default</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;verification&quot;: &quot;before&quot;, // &quot;before&quot; | &quot;after&quot; | &quot;none&quot;, default &quot;before&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;password&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;policy&quot;: &quot;.{8,}&quot;, // regexp, default &quot;.{8,}&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;verifier&quot;: &quot;myVerifier&quot; // optional service name, replaces the regexp</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;throttle&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;resendDelay&quot;: 14400000, // ms between two emails to the same address (4h)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;failedBeforeDelay&quot;: 3, // failed logins before locking</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;lockout&quot;: 900000 // ms (15 min)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      // Pages of YOUR front-end (example values, there are no defaults). init() fails naming a missing key:</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      // failure and recover are always required, verified and register unless verification is &quot;none&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;redirects&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;verified&quot;: &quot;https://app.example.com/email-verified&quot;, // GET verify link success</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;failure&quot;: &quot;https://app.example.com/link-failed&quot;, // any GET link failure, receives ?reason=CODE</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;register&quot;: &quot;https://app.example.com/register&quot;, // GET register link, receives ?token=...&amp;email=...</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;recover&quot;: &quot;https://app.example.com/reset-password&quot;, // GET recovery link, receives ?token=...</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;confirm&quot;: &quot;https://app.example.com/login&quot; // optional: verify link without the matching session (default: failure)</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      // base url of emailed links, default &quot;/auth/email&quot;; prefer an absolute url</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;url&quot;: &quot;https://api.example.com/auth/email&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;allowedEmailDomains&quot;: [&quot;example.com&quot;], // optional</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;trustEmailVerification&quot;: true // optional, boolean | string[]</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p><code>verification</code> modes:</p>
+<ul>
+<li class=""><code>before</code>: registration is a two step flow; a register link is emailed and the account is created when the link is used</li>
+<li class=""><code>after</code>: the account is created immediately, the email is unverified until the user verifies it</li>
+<li class=""><code>none</code>: the account is created immediately and no verification mail is sent</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="per-provider-email-policy">Per-provider email policy<a href="#per-provider-email-policy" class="hash-link" aria-label="Direct link to Per-provider email policy" title="Direct link to Per-provider email policy" translate="no">​</a></h3>
+<p>Any provider (it reads its own service parameters) may set:</p>
+<ul>
+<li class=""><code>trustEmailVerification</code>: whether the provider&#x27;s &quot;email verified&quot; claim is believed. <code>true</code> (default) believes it,
+<code>false</code> never, a <code>string[]</code> only for those domains. A distrusted claim is treated as unverified.</li>
+<li class=""><code>allowedEmailDomains</code>: only these domains may log in (case-insensitive, exact domain match, no wildcard, <code>[]</code> refuses
+everyone). The email must be <strong>verified and trusted</strong>; otherwise login fails with <code>EMAIL_DOMAIN_NOT_ALLOWED</code>. As a
+consequence, under an allow-list email/password registration in <code>after</code> or <code>none</code> mode is refused (the new email is
+unverified): use <code>before</code>.</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="store-mapping">Store mapping<a href="#store-mapping" class="hash-link" aria-label="Direct link to Store mapping" title="Direct link to Store mapping" translate="no">​</a></h2>
+<p>Users, idents and refresh tokens are regular models; map them to a store like any other model:</p>
+<div class="language-jsonc codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-jsonc codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">{</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;services&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;db&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;type&quot;: &quot;MemoryStore&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;models&quot;: [&quot;Webda/User&quot;, &quot;Webda/Ident&quot;, &quot;Webda/RefreshToken&quot;]</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p>A model mapped to no store falls back to the application registry store. That is acceptable for a single instance
+only: <strong>multi-instance deployments must map <code>Webda/RefreshToken</code> (and the user and ident models) to a shared store</strong>,
+otherwise a refresh token issued by one instance is unknown to the others and revocation does not reach them.</p>
+<p><code>Webda/Ident</code> and <code>Webda/RefreshToken</code>, and any application subclass of them (for example a custom <code>identModel</code>), are
+never exposed by the <code>DomainService</code> (REST, GraphQL, model operations): their fields (<code>_user</code>, <code>verifiedAt</code>,
+<code>_loginAttempts</code>, ...) would allow an account takeover. Only an explicit listing in the DomainService <code>models</code> parameter
+exposes them; the <code>&quot;*&quot;</code> wildcard does not.</p>
+<p>There is no <code>LegacyIdent</code> model: v3 ident records stored under the <code>&quot;&lt;uid&gt;_&lt;provider&gt;&quot;</code> key are read through the
+<code>Webda/Ident</code> model (see <a class="" href="/docs/Migration/Authentication-v3-to-v4">compatibility</a>). Ident keys are
+<code>&quot;&lt;providerUid&gt;:&lt;provider&gt;&quot;</code>; emails are normalised (trimmed, lowercased).</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="operations">Operations<a href="#operations" class="hash-link" aria-label="Direct link to Operations" title="Direct link to Operations" translate="no">​</a></h2>
+<p>All operations are exposed through the REST API with the path shown (relative to the API root) and as operations by id.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Operation id</th><th>REST</th><th>Inputs</th><th>Result / notes</th></tr></thead><tbody><tr><td><code>Auth.Providers</code></td><td><code>GET auth/providers</code></td><td>-</td><td>list of <code>{ name, type, startUrl? }</code></td></tr><tr><td><code>Auth.Me</code></td><td><code>GET auth/me</code></td><td>-</td><td>public entry of the user, 404 when not logged in</td></tr><tr><td><code>Auth.Logout</code></td><td><code>POST auth/logout</code></td><td>-</td><td>revokes the refresh family of the session, clears the session; also abandons pending MFA</td></tr><tr><td><code>Auth.Refresh</code></td><td><code>POST auth/refresh</code></td><td><code>refreshToken</code></td><td><code>{ accessToken, refreshToken, expiresIn }</code></td></tr><tr><td><code>Auth.Idents</code></td><td><code>GET auth/idents</code></td><td>-</td><td><code>[{ provider, providerUid, email?, verifiedAt?, lastUsedAt? }]</code>; upgrades v3 idents first</td></tr><tr><td><code>Auth.Unlink</code></td><td><code>POST auth/idents/unlink</code></td><td><code>provider</code>, <code>providerUid</code></td><td>409 <code>LAST_LOGIN_METHOD</code> if no usable login method would remain (see below)</td></tr><tr><td><code>Auth.Email.Login</code></td><td><code>POST auth/email/login</code></td><td><code>email</code>, <code>password</code></td><td><code>{ status: &quot;ok&quot;, user, accessToken, ... }</code> or <code>{ status: &quot;mfa_required&quot;, methods }</code></td></tr><tr><td><code>Auth.Email.Register</code></td><td><code>POST auth/email/register</code></td><td><code>email</code>, <code>password</code>, <code>token?</code>, <code>profile?</code></td><td><code>{ status: &quot;verification_sent&quot; }</code> (mode <code>before</code>, no token) or the login result</td></tr><tr><td><code>Auth.Email.StartVerification</code></td><td><code>POST auth/email/verification</code></td><td><code>email</code></td><td>204. Logged out: never reveals whether the email exists</td></tr><tr><td><code>Auth.Email.Verify</code></td><td><code>POST auth/email/verify</code></td><td><code>token</code></td><td><code>{ status: &quot;verified&quot; }</code>. Needs a session of the user named by the token</td></tr><tr><td>(GET link)</td><td><code>GET auth/email/verify?token=...</code></td><td><code>token</code></td><td>302 redirect, see below</td></tr><tr><td>(GET link)</td><td><code>GET auth/email/recover?token=...</code></td><td><code>token</code></td><td>302 to <code>redirects.recover?token=...</code> (token not consumed), invalid: <code>redirects.failure?reason=</code></td></tr><tr><td><code>Auth.Password.StartRecovery</code></td><td><code>POST auth/password/recovery</code></td><td><code>email</code></td><td>always 204 (never reveals accounts)</td></tr><tr><td><code>Auth.Password.Recover</code></td><td><code>POST auth/password/recover</code></td><td><code>token</code>, <code>password</code></td><td>sets the password, marks the email verified, ends all sessions (see below); does not log in</td></tr><tr><td><code>Auth.Password.Change</code></td><td><code>POST auth/password/change</code></td><td><code>current</code>, <code>next</code></td><td>requires login; ends the other sessions (see below); emits <code>Authentication.PasswordUpdate</code></td></tr><tr><td><code>Auth.&lt;Provider&gt;.Token</code></td><td><code>POST auth/&lt;provider&gt;/token</code></td><td><code>token</code></td><td>OAuth providers, e.g. <code>Auth.Google.Token</code>: the login result (see <a href="#oauth-providers" class="">OAuth providers</a>)</td></tr><tr><td>(GET link)</td><td><code>GET &lt;url&gt;?redirect=...</code></td><td><code>redirect?</code></td><td>OAuth providers: 302 to the provider, see <a href="#oauth-providers" class="">OAuth providers</a></td></tr><tr><td>(GET link)</td><td><code>GET &lt;url&gt;/callback</code></td><td><code>code</code>, <code>state</code></td><td>OAuth providers: 302 to the login target or <code>redirects.failure?reason=</code></td></tr></tbody></table>
+<p><code>Auth.Unlink</code> only counts the <strong>usable</strong> remaining login methods: idents of other providers, plus email idents when
+the user has a password (without one an email ident allows neither login nor recovery). It also refuses to remove the
+last email ident of a user with a password.</p>
+<p>The CLI command <code>webda auth migrate</code> is described in the <a class="" href="/docs/Migration/Authentication-v3-to-v4">migration guide</a>.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="email-verification">Email verification<a href="#email-verification" class="hash-link" aria-label="Direct link to Email verification" title="Direct link to Email verification" translate="no">​</a></h3>
+<p>Verification requires a <strong>logged-in session matching the token&#x27;s user</strong>: a link opened by someone else, or by a
+logged-out browser, cannot verify anything.</p>
+<ul>
+<li class=""><code>GET auth/email/verify?token=...</code> with the matching session: verifies, redirects to <code>redirects.verified</code></li>
+<li class="">with a register token: redirects to <code>redirects.register</code></li>
+<li class="">verify token without a matching session: no state change, redirects to <code>redirects.confirm</code> (default
+<code>redirects.failure</code>) with <code>?reason=LOGIN_REQUIRED&amp;token=...</code>. Log in, then call <code>Auth.Email.Verify</code> with the token</li>
+<li class=""><code>Auth.Email.Register</code> in <code>before</code> mode without a token answers <code>{ status: &quot;verification_sent&quot; }</code> and sends the
+register link like a logged-out <code>Auth.Email.StartVerification</code>: in the background, at most once per
+<code>throttle.resendDelay</code> per address (further calls are silently ignored), never for an owned or verified email</li>
+<li class=""><code>Auth.Email.StartVerification</code> while logged in emails a link for the current account; the ident only becomes yours
+when <code>Auth.Email.Verify</code> is called by that same session</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="recovery-link">Recovery link<a href="#recovery-link" class="hash-link" aria-label="Direct link to Recovery link" title="Direct link to Recovery link" translate="no">​</a></h3>
+<p>The recovery mail links to <code>GET &lt;url&gt;/recover?token=...</code>. A valid token is redirected, unconsumed, to
+<code>redirects.recover?token=...</code>: that page asks for the new password and calls <code>Auth.Password.Recover</code> with the token.
+An invalid or expired token is redirected to <code>redirects.failure?reason=TOKEN_INVALID</code> (or <code>TOKEN_EXPIRED</code>).</p>
+<p>Emailed links carry their token in the query string: serve the <code>confirm</code>, <code>register</code> and <code>recover</code> pages with
+<code>Referrer-Policy: no-referrer</code> (or <code>same-origin</code>) so the token does not leak to third-party resources they load.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="login-throttling">Login throttling<a href="#login-throttling" class="hash-link" aria-label="Direct link to Login throttling" title="Direct link to Login throttling" translate="no">​</a></h3>
+<p>Failed logins are counted <strong>before</strong> the password is checked, with atomic increments on the ident&#x27;s top-level
+<code>_loginAttempts</code> and <code>_lastLoginAttemptAt</code> attributes, so parallel guesses are counted on every store. After
+<code>failedBeforeDelay</code> attempts the ident is locked for <code>lockout</code> ms (<code>THROTTLED</code>, 429). A success, or a successful
+<code>Auth.Password.Recover</code>, resets the counter. A count without <code>_lastLoginAttemptAt</code> (upgraded v3 data) is an expired lock.
+<code>Auth.Email.Register</code> refuses any email already owned (<code>ACCOUNT_EXISTS</code>).</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="oauth-providers">OAuth providers<a href="#oauth-providers" class="hash-link" aria-label="Direct link to OAuth providers" title="Direct link to OAuth providers" translate="no">​</a></h2>
+<p><code>OAuthProvider</code> (exported by <code>@webda/auth</code>) is the base of the OAuth 2.0 / OpenID Connect providers;
+<a class="" href="/docs/Modules/google-auth/"><code>@webda/google-auth</code></a> provides <code>GoogleAuthentication</code> (provider name <code>google</code>). A
+provider is a service of its own next to <code>Authentication</code>:</p>
+<div class="language-jsonc codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-jsonc codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token plain">{</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  &quot;services&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;Authentication&quot;: { &quot;type&quot;: &quot;Webda/Authentication&quot; },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    &quot;google&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;type&quot;: &quot;Webda/GoogleAuthentication&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;client_id&quot;: &quot;${GOOGLE_CLIENT_ID}&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;client_secret&quot;: &quot;${GOOGLE_CLIENT_SECRET}&quot;,</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;url&quot;: &quot;/auth/google&quot;, // default &quot;/auth/&lt;provider&gt;&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;redirect_uri&quot;: &quot;https://api.example.com/auth/google/callback&quot;, // default: request url + &quot;/callback&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;redirects&quot;: {</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;success&quot;: &quot;https://app.example.com/&quot;, // default &quot;/&quot;</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">        &quot;failure&quot;: &quot;https://app.example.com/login&quot; // required, receives ?reason=CODE</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      },</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;authorized_uris&quot;: [&quot;https://app.example.com/&quot;], // allowed ?redirect= targets, default []</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;scope&quot;: [&quot;openid&quot;, &quot;email&quot;, &quot;profile&quot;], // Google default</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;access_type&quot;: &quot;online&quot;, // Google: &quot;offline&quot; also returns a refresh token</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;audiences&quot;: [&quot;1234-ios.apps.googleusercontent.com&quot;], // Google: extra client ids for Auth.Google.Token</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;hostedDomain&quot;: &quot;example.com&quot;, // Google: only Workspace accounts of this domain</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;allowedEmailDomains&quot;: [&quot;example.com&quot;], // optional per-provider email policy</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">      &quot;trustEmailVerification&quot;: true</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  }</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#3F51B5"></path></svg></div>
+<p><code>init()</code> refuses to start without <code>client_id</code>, <code>client_secret</code> (unless the provider is a public client),
+<code>redirects.failure</code> or an <code>Authentication</code> service, and with a relative <code>authorized_uris</code> entry. Set <code>redirect_uri</code>
+explicitly behind a proxy: the default is built from the request host.</p>
+<p><strong>Browser flow</strong></p>
+<ol>
+<li class=""><code>GET &lt;url&gt;?redirect=&lt;target&gt;</code> creates a random <code>state</code> (256 bits), a PKCE code verifier (the S256 challenge goes to
+the provider) and an OpenID <code>nonce</code>, and keeps them with the target and the <code>redirect_uri</code> in a dedicated cookie
+<code>webda_oauth_&lt;provider&gt;</code>: encrypted with the CryptoService, <code>HttpOnly</code>, <code>SameSite=Lax</code>, <code>Secure</code> when the request
+or the <code>redirect_uri</code> is https, valid 10 minutes, with <code>Path</code> set to the path of the <code>redirect_uri</code> (so it includes
+any deployment prefix, such as an API Gateway stage or a path-stripping proxy; the callback must be served by the
+same host as the login). Nothing is written in the session, so the flow works whatever the session cookie
+<code>sameSite</code> (including <code>strict</code>). <code>redirect</code> is optional; when present it must be an absolute http(s) url with the
+<strong>same origin</strong> as an <code>authorized_uris</code> entry and a path equal to or below that entry&#x27;s path
+(<code>https://app.example.com/after</code> allows <code>/after</code> and <code>/after/x</code>, not <code>/afterwards</code>); a path containing an encoded
+slash or backslash (<code>%2f</code>, <code>%5c</code>) or longer than 1024 characters is refused. Anything else redirects to <code>redirects.failure?reason=REDIRECT_NOT_ALLOWED</code>
+without starting a login.</li>
+<li class=""><code>GET &lt;url&gt;/callback?code=...&amp;state=...</code> reads and clears that cookie (single use), compares the state in constant
+time, exchanges the code with the PKCE verifier and the <code>redirect_uri</code> of step 1 (an OpenID provider also checks
+the ID token <code>nonce</code>), and hands the identity to <code>Authentication.complete()</code>. It never answers an error: it
+redirects to the stored target (or <code>redirects.success</code>), with <code>mfa=required</code> added when the user must still pass
+MFA, or to <code>redirects.failure?reason=&lt;CODE&gt;</code>. Both routes answer <code>Cache-Control: no-store</code>.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Reason</th><th>Cause</th></tr></thead><tbody><tr><td><code>REDIRECT_NOT_ALLOWED</code></td><td>the login <code>redirect</code> does not match <code>authorized_uris</code></td></tr><tr><td><code>STATE_MISMATCH</code></td><td>no pending login cookie, or a wrong, missing, expired, tampered state</td></tr><tr><td><code>PROVIDER_ERROR</code></td><td>the provider answered with <code>error</code> or without code</td></tr><tr><td><code>TOKEN_INVALID</code></td><td>the code exchange or the ID token verification (audience, nonce...) failed</td></tr><tr><td><code>ACCOUNT_EXISTS</code>, <code>EMAIL_DOMAIN_NOT_ALLOWED</code>, ...</td><td>refused by <code>Authentication.complete()</code> (linking, email policy, ...)</td></tr><tr><td><code>OAUTH_ERROR</code></td><td>unexpected failure (logged as a reason code, no detail in the url)</td></tr></tbody></table>
+<p>A browser whose session cookie reaches the callback (<code>lax</code>) while logged in links the provider identity to the current
+account (or gets <code>IDENT_LINKED_ELSEWHERE</code>): linking is a browser-flow action, protected by the state and PKCE.</p>
+<p><strong>Token operation</strong>: <code>Auth.&lt;Provider&gt;.Token</code> (<code>POST auth/&lt;provider&gt;/token</code>) is for clients that obtained a token from
+the provider themselves (mobile, desktop, Google One Tap). The body is JSON, <code>{ &quot;token&quot;: &quot;...&quot; }</code> or the v3 form
+<code>{ &quot;tokens&quot;: { &quot;id_token&quot;: &quot;...&quot;, &quot;access_token&quot;: &quot;...&quot;, ... } }</code> (only <code>id_token</code>, <code>access_token</code>, <code>refresh_token</code>,
+<code>expiry_date</code>, <code>token_type</code> and <code>scope</code>, as strings or numbers of at most 4096 characters, are kept); any other <code>Content-Type</code> is refused with
+<code>UNSUPPORTED_MEDIA_TYPE</code> (415), so a cross-site form or <code>text/plain</code> POST cannot use a victim&#x27;s cookies. It returns
+the login result like <code>Auth.Email.Login</code>; an unverifiable token is <code>TOKEN_INVALID</code>. It <strong>never links</strong>: when the
+request carries a logged-in session, an identity owned by another user is refused with <code>IDENT_LINKED_ELSEWHERE</code>, and a
+new or unowned identity starts a fresh session (the cookie user is logged out) instead of being attached to it.
+<code>Auth.Google.Token</code> only accepts <strong>Google ID tokens</strong> (<code>token</code>, or <code>tokens.id_token</code>) whose audience is <code>client_id</code>
+or one of <code>audiences</code> (never access tokens, whose audience cannot be checked).</p>
+<p><strong>Provider tokens</strong> are stored on the ident as <code>ident.tokens</code>, an <code>EncryptedField</code> (see below): only a ciphertext is
+written, read them with <code>await ident.tokens.get()</code>. They are not part of the <code>Authentication.Login</code> /
+<code>Authentication.Register</code> events; a provider publishes them with its own event.</p>
+<p><strong>Google identities</strong>: the ident is <code>&lt;sub&gt;:google</code>; the email is verified only when the ID token claim
+<code>email_verified</code> is <code>true</code> (so an unverified Google email never claims the email ident nor links an existing account
+under the <code>verified</code> policy); the profile keeps <code>name</code>, <code>picture</code>, <code>locale</code>, <code>hd</code>. With <code>hostedDomain</code>, an ID token
+without that <code>hd</code> claim is refused with <code>EMAIL_DOMAIN_NOT_ALLOWED</code>. ID tokens are verified by one <code>OAuth2Client</code> per
+service, so Google&#x27;s certificates are fetched once and cached. After a successful login the service emits
+<code>GoogleAuth.Tokens</code> with <code>{ tokens, context }</code>: the credentials of the code exchange, or the <code>tokens</code> (<code>{ id_token }</code>
+for a bare token) sent to <code>Auth.Google.Token</code>, where only the ID token is verified.</p>
+<div class="language-typescript codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-typescript codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token function" style="color:#d73a49">useService</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&quot;google&quot;</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">on</span><span class="token punctuation" style="color:#393A34">(</span><span class="token string" style="color:#e3116c">&quot;GoogleAuth.Tokens&quot;</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">async</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"> tokens</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> context </span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">)</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">=&gt;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token comment" style="color:#999988;font-style:italic">// tokens.access_token, tokens.refresh_token (access_type &quot;offline&quot;)</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#7EBF6A"></path></svg></div>
+<p><strong>Writing a provider</strong>: extend <code>OAuthProvider</code> and implement <code>providerName</code>,
+<code>getAuthorizationUrl({ state, redirectUri, scope, codeChallenge, codeChallengeMethod, nonce })</code>,
+<code>handleCallback({ code, redirectUri, codeVerifier, nonce })</code> (an OpenID provider must check the ID token <code>nonce</code>) and
+<code>handleToken({ token, tokens })</code>, both returning a <code>ResolvedIdentity</code>. The base class forces <code>identity.provider</code> to
+<code>providerName</code> (a provider cannot assert another provider&#x27;s identity) and defaults <code>amr</code> to <code>[&quot;oauth&quot;]</code>; override
+<code>requiresClientSecret()</code> for public clients and <code>onAuthenticated()</code> to react to a login. Errors that are not
+<code>HttpError</code>s become <code>TOKEN_INVALID</code> for the operation and <code>OAUTH_ERROR</code> for the callback; log errors with
+<code>safeErrorReason(err)</code>, never their message (libraries put tokens in them).</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="encrypted-fields">Encrypted fields<a href="#encrypted-fields" class="hash-link" aria-label="Direct link to Encrypted fields" title="Direct link to Encrypted fields" translate="no">​</a></h3>
+<p><code>EncryptedField&lt;T&gt;</code> (<code>@webda/core</code>, behavior <code>Webda/Encrypted</code>) stores a value encrypted at rest with the
+CryptoService: <code>await field.set(value)</code>, <code>await field.get()</code>, <code>field.clear()</code>, <code>field.isSet()</code>. Only <code>__ciphertext</code>
+is stored (server-only, never in an API output): the JSON value encrypted with the current symmetric key (random IV)
+inside a JWT signed with that key, so tampering is detected. Values encrypted before a key rotation still decrypt
+while the old key is in the CryptoService registry. Declare it like any behavior: <code>secret: EncryptedField&lt;MyType&gt;;</code>.
+<strong>Every instance must share the CryptoService keys</strong> (the <code>Registry</code> store): an instance without the key cannot
+decrypt.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="tokens">Tokens<a href="#tokens" class="hash-link" aria-label="Direct link to Tokens" title="Direct link to Tokens" translate="no">​</a></h2>
+<ul>
+<li class=""><strong>Access token</strong>: a JWT (audience <code>webda-access</code>) valid <code>accessTtl</code> seconds (default 900). Send it as
+<code>Authorization: Bearer &lt;token&gt;</code>; the scheme is case-insensitive. An invalid Bearer token means anonymous: there is no
+fallback to the session cookie.</li>
+<li class=""><strong>Refresh token</strong>: opaque, valid <code>refreshTtl</code> seconds (default 2592000, 30 days), stored as a SHA-256 hash. Each
+<code>Auth.Refresh</code> rotates it. Presenting an already used token revokes the whole token family (reuse detection).
+<code>TokenService.issue()</code> refuses a session whose MFA is pending, and the MFA state is persisted with the refresh token.</li>
+<li class=""><code>Auth.Logout</code> revokes the family; access tokens already issued remain valid until they expire.</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="sessions-and-password-changes">Sessions and password changes<a href="#sessions-and-password-changes" class="hash-link" aria-label="Direct link to Sessions and password changes" title="Direct link to Sessions and password changes" translate="no">​</a></h3>
+<p>A login stamps <code>session.authAt</code> (and the access token carries it as the <code>authAt</code> claim). When the session manager loads
+a cookie session or a Bearer token carrying <code>authAt</code>, it reads the user (one read per request, through the user
+resolver registered by <code>Authentication</code>) and treats the session as <strong>anonymous</strong> when <code>user.password.changedAt</code> is
+later than <code>authAt</code>. A failing read also yields an anonymous session. So:</p>
+<ul>
+<li class=""><code>Auth.Password.Recover</code> revokes every refresh token of the user and ends all of its cookie sessions and access tokens.</li>
+<li class=""><code>Auth.Password.Change</code> does the same for every other session; the calling cookie session is re-stamped and stays
+logged in. A Bearer caller must log in again (its refresh token is revoked too).</li>
+</ul>
+<p>Sessions without <code>authAt</code> (created before this check existed, or by custom code calling <code>session.login()</code>) are not
+checked.</p>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="pending-mfa-sessions">Pending MFA sessions<a href="#pending-mfa-sessions" class="hash-link" aria-label="Direct link to Pending MFA sessions" title="Direct link to Pending MFA sessions" translate="no">​</a></h3>
+<p>When the user has MFA enabled, a login is only complete when the provider&#x27;s <code>amr</code> contains a primary factor (<code>pwd</code> or
+<code>oauth</code>, exported as <code>PRIMARY_FACTORS</code>) <strong>and</strong> one of the user&#x27;s enabled MFA methods (for example <code>totp</code>). Any other
+<code>amr</code> leaves the session pending and answers <code>{ status: &quot;mfa_required&quot;, methods }</code>.</p>
+<p>A session whose MFA is pending is not logged in: <code>ctx.getCurrentUserId()</code> and <code>ctx.getCurrentUser()</code> return
+<code>undefined</code>, so permission checks (<code>canAct</code>) treat it as anonymous. Code that needs the pending user reads
+<code>ctx.getSession().userId</code>.</p>
+<p><code>TokenService</code> parameters: <code>accessTtl</code>, <code>refreshTtl</code>.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="linking-policy">Linking policy<a href="#linking-policy" class="hash-link" aria-label="Direct link to Linking policy" title="Direct link to Linking policy" translate="no">​</a></h2>
+<p><code>linking</code> decides what happens when an <strong>unauthenticated</strong> login presents an email that an existing account owns. Only
+a <strong>verified</strong> email ident counts as an owner under <code>never</code> and <code>verified</code>; an unverified one is treated as absent.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Policy</th><th>Provider asserts the email as verified (and trusted)</th><th>Provider does not assert verification</th></tr></thead><tbody><tr><td><code>never</code></td><td><code>ACCOUNT_EXISTS</code> (log in, then link)</td><td><code>ACCOUNT_EXISTS</code></td></tr><tr><td><code>verified</code></td><td>linked to the owning account</td><td><code>ACCOUNT_EXISTS</code></td></tr><tr><td><code>always</code></td><td>linked (admin accepted risk, owner may be unverified)</td><td>linked</td></tr></tbody></table>
+<p>Other rules:</p>
+<ul>
+<li class="">A logged-in user presenting an ident that belongs to another user gets <code>IDENT_LINKED_ELSEWHERE</code>.</li>
+<li class="">If the provider hands a user (<code>identity.user</code>) that differs from the ident&#x27;s owner: <code>ACCOUNT_EXISTS</code>.</li>
+<li class="">An existing ident with no owner is adopted by the resolved, current or newly registered user.</li>
+<li class="">The additional <code>email</code> ident is only created when the provider asserts (trusted) verification.</li>
+<li class="">With <code>registration: false</code> a new user is refused with <code>REGISTRATION_DISABLED</code>.</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="events">Events<a href="#events" class="hash-link" aria-label="Direct link to Events" title="Direct link to Events" translate="no">​</a></h2>
+<p>Listen on the <code>Authentication</code> service. All payloads include <code>context</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Event</th><th>Payload</th></tr></thead><tbody><tr><td><code>Authentication.Register</code></td><td><code>user</code>, <code>data</code>, <code>identId</code>, <code>identity</code></td></tr><tr><td><code>Authentication.Login</code></td><td><code>userId</code>, <code>user</code>, <code>identId</code>, <code>ident</code>, <code>provider</code>, <code>identity</code></td></tr><tr><td><code>Authentication.LoginFailed</code></td><td><code>user</code> (undefined for an unknown email)</td></tr><tr><td><code>Authentication.Logout</code></td><td>-</td></tr><tr><td><code>Authentication.GetMe</code></td><td><code>user</code></td></tr><tr><td><code>Authentication.PasswordCreate</code></td><td><code>user</code>, <code>password</code></td></tr><tr><td><code>Authentication.PasswordUpdate</code></td><td><code>user</code>, <code>password</code></td></tr><tr><td><code>Authentication.Linked</code></td><td><code>user</code>, <code>ident</code></td></tr><tr><td><code>Authentication.Unlinked</code></td><td><code>user</code>, <code>ident</code> (projection: <code>uuid</code>, <code>provider</code>, <code>providerUid</code>, <code>email</code>, <code>verifiedAt</code>, <code>lastUsedAt</code>, <code>userId</code>; no provider tokens nor profile)</td></tr></tbody></table>
+<p>The <code>identity</code> of <code>Authentication.Register</code> and <code>Authentication.Login</code> never carries the provider <code>tokens</code> (see
+<a href="#oauth-providers" class="">OAuth providers</a>). <code>Authentication.Register</code> is emitted before the new user is saved: it can still
+change it. <code>Authentication.LoginFailed</code>
+carries <code>{ context, user }</code> only (<code>user</code> is undefined for an unknown email).</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="errors">Errors<a href="#errors" class="hash-link" aria-label="Direct link to Errors" title="Direct link to Errors" translate="no">​</a></h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Code</th><th>HTTP</th><th>Meaning</th></tr></thead><tbody><tr><td><code>ACCOUNT_EXISTS</code></td><td>409</td><td>An account owns this email, log in to link</td></tr><tr><td><code>IDENT_LINKED_ELSEWHERE</code></td><td>409</td><td>The ident belongs to another user</td></tr><tr><td><code>IDENT_CONFLICT</code></td><td>409</td><td>A v3 ident upgrades onto a key another user holds</td></tr><tr><td><code>LAST_LOGIN_METHOD</code></td><td>409</td><td>The last login method cannot be removed</td></tr><tr><td><code>INVALID_CREDENTIALS</code></td><td>403</td><td>Wrong email or password</td></tr><tr><td><code>REGISTRATION_DISABLED</code></td><td>403</td><td>Automatic registration is off</td></tr><tr><td><code>EMAIL_DOMAIN_NOT_ALLOWED</code></td><td>403</td><td>The provider policy refuses this email (domain, or not verified)</td></tr><tr><td><code>TOKEN_INVALID</code></td><td>403</td><td>Malformed, wrong purpose, revoked or reused token</td></tr><tr><td><code>TOKEN_EXPIRED</code></td><td>410</td><td>Expired emailed token</td></tr><tr><td><code>THROTTLED</code></td><td>429</td><td>Too many attempts, or a mail was sent too recently</td></tr><tr><td><code>PASSWORD_POLICY</code></td><td>400</td><td>The password does not satisfy the policy</td></tr><tr><td><code>INVALID_IDENT</code></td><td>400</td><td>Malformed ident</td></tr><tr><td><code>UNSUPPORTED_MEDIA_TYPE</code></td><td>415</td><td><code>Auth.&lt;Provider&gt;.Token</code> called without a JSON body</td></tr><tr><td><code>BAD_REQUEST</code></td><td>400</td><td><code>complete()</code> called for a provider name that is not registered</td></tr></tbody></table>
+<p>Importable from <code>@webda/auth</code> (<code>AccountExists</code>, <code>Throttled</code>, ...).</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="password-policy">Password policy<a href="#password-policy" class="hash-link" aria-label="Direct link to Password policy" title="Direct link to Password policy" translate="no">​</a></h2>
+<p><code>password.policy</code> is a regular expression (default <code>.{8,}</code>). For anything else, write a service with a
+<code>validate(password, user?)</code> method returning (a promise of) a boolean, and reference its name in <code>password.verifier</code>:</p>
+<div class="language-typescript codeBlockContainer_PzNY theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_t1lQ"><pre tabindex="0" class="prism-code language-typescript codeBlock_GqC7 thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_nZha"><div class="token-line" style="color:#393A34"><span class="token decorator at operator" style="color:#393A34">@</span><span class="token decorator function" style="color:#d73a49">Bean</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">export</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">class</span><span class="token plain"> </span><span class="token class-name">MyVerifier</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">extends</span><span class="token plain"> </span><span class="token class-name">Service</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token keyword" style="color:#00009f">async</span><span class="token plain"> </span><span class="token function" style="color:#d73a49">validate</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">password</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token builtin">string</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> user</span><span class="token operator" style="color:#393A34">?</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> User</span><span class="token punctuation" style="color:#393A34">)</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token builtin">Promise</span><span class="token operator" style="color:#393A34">&lt;</span><span class="token builtin">boolean</span><span class="token operator" style="color:#393A34">&gt;</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">    </span><span class="token keyword" style="color:#00009f">return</span><span class="token plain"> password</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">length </span><span class="token operator" style="color:#393A34">&gt;=</span><span class="token plain"> </span><span class="token number" style="color:#36acaa">12</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">&amp;&amp;</span><span class="token plain"> </span><span class="token operator" style="color:#393A34">!</span><span class="token plain">password</span><span class="token punctuation" style="color:#393A34">.</span><span class="token function" style="color:#d73a49">includes</span><span class="token punctuation" style="color:#393A34">(</span><span class="token plain">user</span><span class="token operator" style="color:#393A34">?.</span><span class="token plain">email </span><span class="token operator" style="color:#393A34">??</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;\0&quot;</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">  </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><br></div></code></pre></div></div><div style="display:flex;justify-content:end;margin-top:-40px;margin-right:-10px"><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" style="transform:scale(-1, 1);width:32"><path d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z" style="fill:#7EBF6A"></path></svg></div>
+<p>The policy is process-wide: with several <code>EmailPasswordProvider</code> instances, the last one resolved wins.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="mail-templates">Mail templates<a href="#mail-templates" class="hash-link" aria-label="Direct link to Mail templates" title="Direct link to Mail templates" translate="no">​</a></h2>
+<p>The provider sends through the configured <code>Mailer</code> with these templates and replacements <code>{ url, token, to }</code>:</p>
+<ul>
+<li class=""><code>EMAIL_REGISTER</code>: registration and verification links</li>
+<li class=""><code>EMAIL_RECOVERY</code>: password recovery link</li>
+</ul>
+<p><code>url</code> is the full link (<code>&lt;url&gt;/verify?token=...</code> or <code>&lt;url&gt;/recover?token=...</code>), <code>token</code> the raw token, <code>to</code> the address.
+A relative <code>url</code> parameter is made absolute from the request when one is available; configure an absolute <code>url</code> so
+links are correct whatever triggered the mail.
+Emailed tokens are purpose-scoped JWTs (audience <code>webda-email</code>): register and verify 24 h, recover 1 h.</p>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="known-limitations">Known limitations<a href="#known-limitations" class="hash-link" aria-label="Direct link to Known limitations" title="Direct link to Known limitations" translate="no">​</a></h2>
+<ul>
+<li class="">Access tokens stay valid until expiry after logout or refresh-family revocation (default 15 minutes); a password
+change does end them (see above).</li>
+<li class=""><code>Auth.&lt;Provider&gt;.Token</code> accepts a valid provider token until it expires: a client must protect the tokens it
+obtains (there is no server nonce on this operation).</li>
+<li class=""><code>Auth.Email.Register</code> answers <code>ACCOUNT_EXISTS</code> for a registered email, so it can be used to enumerate accounts.</li>
+</ul></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col noPrint_hLnR"><a href="https://github.com/loopingz/webda.io/tree/docs/pages/Security/Authentication.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_a9_Z" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_GhXS"></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/docs/Security/"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">Security</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/docs/Security/CORS"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">CORS</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_kFBU thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#overview" class="table-of-contents__link toc-highlight">Overview</a></li><li><a href="#installation" class="table-of-contents__link toc-highlight">Installation</a></li><li><a href="#configuration" class="table-of-contents__link toc-highlight">Configuration</a><ul><li><a href="#per-provider-email-policy" class="table-of-contents__link toc-highlight">Per-provider email policy</a></li></ul></li><li><a href="#store-mapping" class="table-of-contents__link toc-highlight">Store mapping</a></li><li><a href="#operations" class="table-of-contents__link toc-highlight">Operations</a><ul><li><a href="#email-verification" class="table-of-contents__link toc-highlight">Email verification</a></li><li><a href="#recovery-link" class="table-of-contents__link toc-highlight">Recovery link</a></li><li><a href="#login-throttling" class="table-of-contents__link toc-highlight">Login throttling</a></li></ul></li><li><a href="#oauth-providers" class="table-of-contents__link toc-highlight">OAuth providers</a><ul><li><a href="#encrypted-fields" class="table-of-contents__link toc-highlight">Encrypted fields</a></li></ul></li><li><a href="#tokens" class="table-of-contents__link toc-highlight">Tokens</a><ul><li><a href="#sessions-and-password-changes" class="table-of-contents__link toc-highlight">Sessions and password changes</a></li><li><a href="#pending-mfa-sessions" class="table-of-contents__link toc-highlight">Pending MFA sessions</a></li></ul></li><li><a href="#linking-policy" class="table-of-contents__link toc-highlight">Linking policy</a></li><li><a href="#events" class="table-of-contents__link toc-highlight">Events</a></li><li><a href="#errors" class="table-of-contents__link toc-highlight">Errors</a></li><li><a href="#password-policy" class="table-of-contents__link toc-highlight">Password policy</a></li><li><a href="#mail-templates" class="table-of-contents__link toc-highlight">Mail templates</a></li><li><a href="#known-limitations" class="table-of-contents__link toc-highlight">Known limitations</a></li></ul></div></div></div></div></main></div></div></div><div style="background-color:#afcedb;height:48px"></div></div>
+</body>
+</html>

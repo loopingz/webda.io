@@ -1,20 +1,25 @@
 import { Service, ServiceParameters, useDynamicService, useCoreEvents, useRouter, useApplication } from "@webda/core";
 import { Command } from "@webda/core";
 import { createServer, IncomingMessage, ServerResponse, Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import type { Duplex } from "node:stream";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { dirname, join, extname } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
 import {
+  BOOTSTRAP_CODE_TTL,
   DEBUG_API_VERSION,
+  HOSTED_DASHBOARD_URL,
+  LOCAL_PAGE_CSP,
   WS_PROTOCOL,
+  allowedOrigins,
   buildDebugUrl,
+  debugOrigins,
   extractBearerToken,
   extractWsToken,
   generateToken,
-  injectToken,
   isAllowedHost,
   isAllowedOrigin,
   openInBrowser,
@@ -31,7 +36,33 @@ import { CancelablePromise } from "@webda/utils";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const WEBUI_DIR = join(__dirname, "..", "webui");
 
-export { isAllowedOrigin, DEBUG_API_VERSION } from "./security.js";
+export { isAllowedOrigin, allowedOrigins, DEBUG_API_VERSION } from "./security.js";
+
+/** Options of {@link DebugService.startDebugServer}. */
+export interface DebugServerOptions {
+  /** Serve the bundled dashboard and the one-time code exchange (`--local`) */
+  local?: boolean;
+}
+
+/**
+ * Page served at `/` in hosted mode: no token, no bundle, just directions.
+ *
+ * @param hostedBase - the hosted dashboard URL
+ * @returns the HTML
+ */
+function hostedPlaceholderPage(hostedBase: string): string {
+  const base = hostedBase.replace(/[<>&"]/g, "");
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Webda debug server</title></head>
+<body style="font-family: system-ui, sans-serif; max-width: 40rem; margin: 4rem auto; line-height: 1.6">
+<h1>Webda debug server</h1>
+<p>This is the API of <code>webda debug --web</code>. The dashboard is hosted at
+<a href="${base}">${base}</a>: open the URL printed by the command, it carries your session.</p>
+<p>To serve the dashboard from here instead, restart with <code>webda debug --web --local</code>.</p>
+</body></html>
+`;
+}
 
 /**
  * Version of this package, read once from its package.json.
@@ -120,7 +151,9 @@ export class DebugService extends Service<DebugServiceParameters> {
   requestLog: RequestLog = new RequestLog();
   /** Ring buffer of application log entries */
   private logBuffer: LogBuffer = new LogBuffer();
-  /** HTTP server for the debug API */
+  /** HTTP servers for the debug API (one per loopback address) */
+  private servers: Server[] = [];
+  /** The IPv4 server, kept for the tests and the port lookup */
   private server?: Server;
   /** WebSocket server for live event push */
   private wss?: WebSocketServer;
@@ -142,6 +175,44 @@ export class DebugService extends Service<DebugServiceParameters> {
   private dashboardUrl?: string;
   /** Version of @webda/core, captured while the application context is available */
   private frameworkVersion?: string;
+  /** Whether the bundled dashboard is served (`--local`) */
+  private localMode: boolean = false;
+  /** One-time code the local page exchanges for the token, with its expiry */
+  private bootstrap?: { code: string; expires: number };
+  /** Origins allowed by CORS (computed at start from the environment) */
+  private origins: string[] = allowedOrigins(process.env);
+
+  /**
+   * Port the debug server listens on (resolved after start).
+   * @returns the port
+   */
+  getPort(): number {
+    return this.listeningPort;
+  }
+
+  /**
+   * Loopback addresses the debug server is bound to.
+   * @returns the addresses, e.g. `["127.0.0.1", "::1"]`
+   */
+  getBoundAddresses(): string[] {
+    return this.servers
+      .map(server => (server.address() as AddressInfo | null)?.address)
+      .filter((a): a is string => !!a);
+  }
+
+  /**
+   * Issue a one-time bootstrap code for the local page (`--local`).
+   *
+   * The code is random, single-use and expires after {@link BOOTSTRAP_CODE_TTL};
+   * `POST /api/session` exchanges it for the session token.
+   * @param ttl - lifetime in milliseconds (tests use a negative value for an expired code)
+   * @returns the code
+   */
+  issueBootstrapCode(ttl: number = BOOTSTRAP_CODE_TTL): string {
+    const code = generateToken();
+    this.bootstrap = { code, expires: Date.now() + ttl };
+    return code;
+  }
 
   /**
    * Session token required on every `/api/*` request and websocket connection.
@@ -422,8 +493,8 @@ export class DebugService extends Service<DebugServiceParameters> {
     }
 
     // Start the debug HTTP + WebSocket server
-    await this.startDebugServer(port);
-    this.log("INFO", `Debug dashboard API listening on port ${this.listeningPort}`);
+    await this.startDebugServer(port, { local: !!(web && local) });
+    this.log("INFO", `Debug dashboard API listening on 127.0.0.1:${this.listeningPort}`);
 
     // Launch TUI by default, unless --web is passed
     if (!web) {
@@ -438,6 +509,7 @@ export class DebugService extends Service<DebugServiceParameters> {
       port: this.listeningPort,
       token: this.token,
       local,
+      code: local ? this.issueBootstrapCode() : undefined,
       telemetry: resolveTelemetry(telemetry, process.env),
       hostedBase: process.env.WEBDA_DEBUG_UI_URL
     });
@@ -484,33 +556,73 @@ export class DebugService extends Service<DebugServiceParameters> {
   /**
    * Create and start the debug HTTP server with WebSocket support.
    *
-   * The server binds to the IPv4 loopback only; the websocket upgrade is
-   * handled by hand so that the `Host` and token checks run before `ws`
-   * completes the handshake.
-   * @param port - Port to listen on
+   * One server per loopback address: `127.0.0.1` and `::1`, so that no other
+   * local process can squat the IPv6 side of `localhost`. A port already taken
+   * on either address is an error; an unavailable IPv6 stack is tolerated.
+   * The websocket upgrade is handled by hand so that the `Host`, `Origin` and
+   * token checks run before `ws` completes the handshake.
+   * @param port - Port to listen on (0 for a random one)
+   * @param options - local mode
    */
-  async startDebugServer(port: number): Promise<void> {
-    this.server = createServer((req, res) => this.handleRequest(req, res));
+  async startDebugServer(port: number, options: DebugServerOptions = {}): Promise<void> {
+    this.localMode = !!options.local;
+    this.origins = allowedOrigins(process.env);
     this.wss = new WebSocketServer({
       noServer: true,
       handleProtocols: protocols => (protocols.has(WS_PROTOCOL) ? WS_PROTOCOL : false)
     });
-
     this.wss.on("connection", (ws: WebSocket) => {
       this.clients.add(ws);
       ws.on("close", () => this.clients.delete(ws));
       ws.on("error", () => this.clients.delete(ws));
     });
 
-    this.server.on("upgrade", (req: IncomingMessage, socket: Duplex, head: Buffer) =>
-      this.handleUpgrade(req, socket, head)
-    );
+    const v4 = await this.listen(port, "127.0.0.1");
+    this.server = v4;
+    this.listeningPort = (v4.address() as AddressInfo).port;
+    try {
+      await this.listen(this.listeningPort, "::1");
+    } catch (err: any) {
+      if (err?.code === "EADDRINUSE") {
+        // Close without settling the command: the caller must see the failure
+        await this.closeServers();
+        throw new Error(
+          `[::1]:${this.listeningPort} is already in use: refusing to start with half of localhost exposed`
+        );
+      }
+      // EADDRNOTAVAIL / EAFNOSUPPORT: no IPv6 loopback on this host
+      this.log("WARN", `IPv6 loopback unavailable (${err?.code || err}), listening on 127.0.0.1 only`);
+    }
+  }
 
-    await new Promise<void>(resolve => {
-      this.server!.listen(port, "127.0.0.1", () => {
-        const address = this.server!.address();
-        this.listeningPort = typeof address === "object" && address ? address.port : port;
-        resolve();
+  /**
+   * Close every bound server.
+   */
+  private async closeServers(): Promise<void> {
+    for (const server of this.servers) {
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+    this.servers = [];
+    this.server = undefined;
+  }
+
+  /**
+   * Start one HTTP server on an address.
+   * @param port - the port
+   * @param address - the loopback address
+   * @returns the listening server
+   */
+  private listen(port: number, address: string): Promise<Server> {
+    return new Promise<Server>((resolve, reject) => {
+      const server = createServer((req, res) => this.handleRequest(req, res));
+      server.on("upgrade", (req: IncomingMessage, socket: Duplex, head: Buffer) =>
+        this.handleUpgrade(req, socket, head)
+      );
+      server.once("error", reject);
+      server.listen(port, address, () => {
+        server.removeListener("error", reject);
+        this.servers.push(server);
+        resolve(server);
       });
     });
   }
@@ -530,6 +642,13 @@ export class DebugService extends Service<DebugServiceParameters> {
       reject(403, "Forbidden");
       return;
     }
+    // Browsers always send Origin on a websocket handshake: only the hosted
+    // dashboard and the debug origin itself may connect. No Origin = not a browser.
+    const origin = req.headers.origin;
+    if (origin && !this.isTrustedOrigin(origin)) {
+      reject(403, "Forbidden");
+      return;
+    }
     if (!safeEqual(extractWsToken(req.headers["sec-websocket-protocol"]), this.token)) {
       reject(401, "Unauthorized");
       return;
@@ -537,6 +656,15 @@ export class DebugService extends Service<DebugServiceParameters> {
     this.wss!.handleUpgrade(req, socket, head, ws => {
       this.wss!.emit("connection", ws, req);
     });
+  }
+
+  /**
+   * Whether an Origin is the hosted dashboard, the dev server or the debug server itself.
+   * @param origin - the Origin header value
+   * @returns `true` when trusted
+   */
+  private isTrustedOrigin(origin: string): boolean {
+    return isAllowedOrigin(origin, this.origins) || debugOrigins(this.listeningPort).includes(origin);
   }
 
   /**
@@ -558,11 +686,12 @@ export class DebugService extends Service<DebugServiceParameters> {
     // proxy caches do not serve a response with an allowed origin header to a
     // different (disallowed) origin.
     const origin = req.headers.origin;
-    const originAllowed = isAllowedOrigin(origin);
+    const originAllowed = isAllowedOrigin(origin, this.origins);
+    // Vary on every response so that no cache serves one origin's answer to another
+    res.setHeader("Vary", "Origin");
     if (originAllowed) {
       res.setHeader("Access-Control-Allow-Origin", origin!);
-      res.setHeader("Vary", "Origin");
-      res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
       res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
       res.setHeader("Access-Control-Max-Age", "600");
       // Private Network Access: the hosted dashboard (public) talks to
@@ -583,6 +712,11 @@ export class DebugService extends Service<DebugServiceParameters> {
 
     if (!pathname.startsWith("/api/")) {
       this.serveStaticFile(pathname, req, res);
+      return;
+    }
+
+    if (pathname === "/api/session") {
+      this.handleSessionExchange(req, res);
       return;
     }
 
@@ -667,40 +801,115 @@ export class DebugService extends Service<DebugServiceParameters> {
   }
 
   /**
-   * Whether the session token may be injected into the page for this request.
+   * `POST /api/session`: exchange the one-time bootstrap code for the session token (`--local` only).
    *
-   * Only top-level navigations on the debug origin get it: a cross-site
-   * `fetch` carries an `Origin` header and `Sec-Fetch-Site: cross-site` (or
-   * `same-site` from the docs dev server on another port), and gets a clean page.
-   * @param req - the incoming request
-   * @returns `true` for same-origin navigations
+   * The code is printed in the local URL fragment; the page sends it once and
+   * keeps the token in memory. Accepted only from the debug origin itself (or
+   * without Origin, for non-browser clients); 404 in hosted mode so the route
+   * reveals nothing there.
+   * @param req - the request
+   * @param res - the response
    */
-  private canReceiveToken(req: IncomingMessage): boolean {
-    if (req.headers.origin) return false;
-    const site = req.headers["sec-fetch-site"];
-    return site === undefined || site === "none" || site === "same-origin";
+  private handleSessionExchange(req: IncomingMessage, res: ServerResponse): void {
+    if (!this.localMode) {
+      this.sendJson(res, { error: "Not found" }, 404);
+      return;
+    }
+    if (req.method !== "POST") {
+      this.sendJson(res, { error: "Method not allowed" }, 405);
+      return;
+    }
+    const origin = req.headers.origin;
+    if (origin && !debugOrigins(this.listeningPort).includes(origin)) {
+      this.sendJson(res, { error: "Forbidden" }, 403);
+      return;
+    }
+    let body = "";
+    req.on("data", chunk => {
+      body += chunk;
+      if (body.length > 4096) req.destroy();
+    });
+    req.on("end", () => {
+      let code: unknown;
+      try {
+        code = JSON.parse(body || "null")?.code;
+      } catch {
+        code = undefined;
+      }
+      if (typeof code !== "string" || !code) {
+        this.sendJson(res, { error: "Missing code" }, 400);
+        return;
+      }
+      const pending = this.bootstrap;
+      // Single use: the code is consumed by the first attempt, right or wrong
+      this.bootstrap = undefined;
+      if (!pending || pending.expires < Date.now() || !safeEqual(code, pending.code)) {
+        this.sendJson(res, { error: "Invalid or expired code" }, 403);
+        return;
+      }
+      this.sendJson(res, { token: this.token, debugApiVersion: DEBUG_API_VERSION });
+    });
   }
 
   /**
-   * Serve a static file from the webui directory.
-   * Falls back to index.html for SPA-style routing; the page gets the session
-   * token injected (see {@link canReceiveToken}) so the bundled dashboard can
-   * authenticate without the token ever appearing in a URL.
+   * Security headers of the pages and assets the debug server serves.
+   * @param res - the response
+   * @param html - whether the response is a page
+   */
+  private pageHeaders(res: ServerResponse, html: boolean): void {
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    if (html) {
+      res.setHeader("Content-Security-Policy", LOCAL_PAGE_CSP);
+      res.setHeader("X-Frame-Options", "DENY");
+      res.setHeader("Referrer-Policy", "no-referrer");
+    }
+  }
+
+  /**
+   * Serve a static file from the webui directory (`--local`), or the hosted
+   * placeholder page.
+   *
+   * The page never carries the token: the local page obtains it through the
+   * one-time code exchange. Unknown paths fall back to index.html (SPA routing);
+   * directories are not found.
    * @param pathname - Request pathname
    * @param req - Incoming request
    * @param res - Server response
    */
   private serveStaticFile(pathname: string, req: IncomingMessage, res: ServerResponse): void {
+    if (!this.localMode) {
+      if (pathname === "/" || pathname === "/index.html") {
+        this.pageHeaders(res, true);
+        res.writeHead(200, { "Content-Type": MIME_TYPES[".html"] });
+        res.end(hostedPlaceholderPage(process.env.WEBDA_DEBUG_UI_URL || HOSTED_DASHBOARD_URL));
+        return;
+      }
+      this.sendJson(res, { error: "Not found" }, 404);
+      return;
+    }
+
     // Prevent directory traversal
     const safePath = pathname.replace(/\.\./g, "").replace(/\/+/g, "/");
     let filePath = join(WEBUI_DIR, safePath === "/" ? "index.html" : safePath);
 
-    // If the file doesn't exist, serve index.html (SPA fallback)
-    if (!existsSync(filePath)) {
+    // SPA fallback for unknown paths (not for existing directories such as /assets)
+    const isFile = (file: string): boolean => {
+      try {
+        return statSync(file).isFile();
+      } catch {
+        return false;
+      }
+    };
+    if (!isFile(filePath)) {
+      if (existsSync(filePath) || safePath.startsWith("/assets")) {
+        this.sendJson(res, { error: "Not found" }, 404);
+        return;
+      }
       filePath = join(WEBUI_DIR, "index.html");
     }
 
-    if (!existsSync(filePath)) {
+    if (!isFile(filePath)) {
       this.sendJson(res, { error: "Not found" }, 404);
       return;
     }
@@ -708,18 +917,9 @@ export class DebugService extends Service<DebugServiceParameters> {
     try {
       const ext = extname(filePath);
       const mime = MIME_TYPES[ext] || "application/octet-stream";
-      if (ext === ".html") {
-        let html = readFileSync(filePath, "utf8");
-        if (this.canReceiveToken(req)) {
-          html = injectToken(html, this.token);
-        }
-        res.writeHead(200, { "Content-Type": mime, "Cache-Control": "no-store" });
-        res.end(html);
-        return;
-      }
-      const content = readFileSync(filePath);
+      this.pageHeaders(res, ext === ".html");
       res.writeHead(200, { "Content-Type": mime });
-      res.end(content);
+      res.end(readFileSync(filePath));
     } catch {
       this.sendJson(res, { error: "Internal server error" }, 500);
     }
@@ -732,7 +932,7 @@ export class DebugService extends Service<DebugServiceParameters> {
    * @param statusCode - HTTP status code
    */
   private sendJson(res: ServerResponse, data: unknown, statusCode: number = 200): void {
-    res.writeHead(statusCode, { "Content-Type": "application/json" });
+    res.writeHead(statusCode, { "Content-Type": "application/json", "Cache-Control": "no-store" });
     res.end(JSON.stringify(data));
   }
 
@@ -771,10 +971,8 @@ export class DebugService extends Service<DebugServiceParameters> {
       this.wss.close();
       this.wss = undefined;
     }
-    if (this.server) {
-      await new Promise<void>(resolve => this.server!.close(() => resolve()));
-      this.server = undefined;
-    }
+    await this.closeServers();
+    this.bootstrap = undefined;
 
     this.timings.clear();
     this.tui?.stop();

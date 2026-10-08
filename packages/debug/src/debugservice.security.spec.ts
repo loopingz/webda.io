@@ -188,7 +188,7 @@ class DebugServiceCorsAndPnaTest {
 
   @test
   async exactOriginsReceiveAuthorizationInAllowedHeaders() {
-    for (const origin of ["https://webda.io", "http://localhost:3000", "http://127.0.0.1:3000"]) {
+    for (const origin of ["https://webda.io"]) {
       const res = await rawRequest(
         this.port,
         "/api/info",
@@ -315,7 +315,7 @@ class DebugServiceLocalPageTest {
   async beforeEach() {
     this.service = new DebugService();
     this.service.resolve();
-    await this.service.startDebugServer(0);
+    await this.service.startDebugServer(0, { local: true });
     this.port = ((this.service as any).server as Server).address().port;
   }
 
@@ -324,10 +324,11 @@ class DebugServiceLocalPageTest {
   }
 
   @test
-  async indexPageReceivesTheTokenForNavigations() {
+  async indexPageNeverCarriesTheToken() {
     const res = await rawRequest(this.port, "/", { Host: `localhost:${this.port}`, "Sec-Fetch-Site": "none" });
-    if (res.status !== 200) return; // bundle not built in this environment
-    assert.ok(res.body.includes(`"token":"${this.service.getToken()}"`), "token must be injected");
+    if (res.status !== 200) return; // bundle not built
+    assert.ok(!res.body.includes(this.service.getToken()), "the page is served without the token");
+    assert.ok(!res.body.includes("__WEBDA_DEBUG__"));
     assert.strictEqual(res.headers["cache-control"], "no-store");
   }
 
@@ -399,7 +400,7 @@ class DebugCommandUrlTest {
   @test
   async localServesTheBundledDashboard() {
     const { opened, url, port, token } = await this.runDebug({ local: true }, { WEBDA_DEBUG_NO_BROWSER: "" });
-    assert.strictEqual(url, `http://localhost:${port}/`);
+    assert.ok(url.startsWith(`http://127.0.0.1:${port}/#code=`), url);
     assert.ok(!url.includes(token));
     assert.deepStrictEqual(opened, [url]);
   }

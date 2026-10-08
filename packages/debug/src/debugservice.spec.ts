@@ -968,7 +968,7 @@ class DebugServiceStaticFileServingTest {
   async beforeEach() {
     this.service = new DebugService();
     this.service.resolve();
-    await this.service.startDebugServer(0);
+    await this.service.startDebugServer(0, { local: true });
     this.port = ((this.service as any).server as Server).address().port;
   }
 
@@ -1099,13 +1099,13 @@ class DebugServiceStopCleanupTest {
 @suite
 class IsAllowedOriginTest {
   @test
-  localhostPort3000IsAllowed() {
-    assert.strictEqual(isAllowedOrigin("http://localhost:3000"), true);
+  localhostPort3000IsNotAllowedWithoutTheDevVariable() {
+    assert.strictEqual(isAllowedOrigin("http://localhost:3000"), false);
   }
 
   @test
-  loopbackPort3000IsAllowed() {
-    assert.strictEqual(isAllowedOrigin("http://127.0.0.1:3000"), true);
+  loopbackPort3000IsNotAllowedWithoutTheDevVariable() {
+    assert.strictEqual(isAllowedOrigin("http://127.0.0.1:3000"), false);
   }
 
   @test
@@ -1174,9 +1174,9 @@ class DebugServiceCorsTest {
   @test
   async allowedOriginReceivesCorsHeaders() {
     const res = await fetch(`http://localhost:${this.port}/api/info`, {
-      headers: { Origin: "http://localhost:3000", ...auth(this.service) }
+      headers: { Origin: "https://webda.io", ...auth(this.service) }
     });
-    assert.strictEqual(res.headers.get("access-control-allow-origin"), "http://localhost:3000");
+    assert.strictEqual(res.headers.get("access-control-allow-origin"), "https://webda.io");
     assert.strictEqual(res.headers.get("vary"), "Origin");
   }
 

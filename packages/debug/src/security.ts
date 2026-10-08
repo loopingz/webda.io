@@ -21,12 +21,44 @@ export const WS_TOKEN_PREFIX = "webda-token.";
 /** Default location of the hosted dashboard. */
 export const HOSTED_DASHBOARD_URL = "https://webda.io/debug/";
 
-/** Origins allowed to call the debug API from a browser: the docs site and its dev server. */
-const ALLOWED_ORIGINS: ReadonlySet<string> = new Set([
-  "https://webda.io",
-  "http://localhost:3000",
-  "http://127.0.0.1:3000"
-]);
+/** Lifetime of a one-time bootstrap code, in milliseconds. */
+export const BOOTSTRAP_CODE_TTL = 10 * 60 * 1000;
+
+/**
+ * Content-Security-Policy of the pages the debug server serves.
+ *
+ * Only same-origin scripts and styles, connections to itself (API + websocket),
+ * never framed.
+ */
+export const LOCAL_PAGE_CSP =
+  "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; " +
+  "object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+
+/** The only origin allowed to call the debug API from a browser in production: the docs site. */
+export const HOSTED_ORIGIN = "https://webda.io";
+
+/**
+ * Origins allowed to call the debug API from a browser.
+ *
+ * `https://webda.io` always; the origin of `WEBDA_DEBUG_UI_URL` (the docs dev
+ * server, e.g. `http://localhost:3000/debug/`) only when that variable is set,
+ * so a random local server on port 3000 gets nothing in a normal run.
+ *
+ * @param env - environment variables
+ * @returns the allowed origins
+ */
+export function allowedOrigins(env: Record<string, string | undefined>): string[] {
+  const origins = [HOSTED_ORIGIN];
+  if (env.WEBDA_DEBUG_UI_URL) {
+    try {
+      const origin = new URL(env.WEBDA_DEBUG_UI_URL).origin;
+      if (origin && origin !== "null" && !origins.includes(origin)) origins.push(origin);
+    } catch {
+      // not a URL: ignored
+    }
+  }
+  return origins;
+}
 
 /**
  * Generate a per-session token: 32 random bytes (256 bits) as hex.
@@ -101,14 +133,25 @@ export function isAllowedHost(host: string | undefined, port: number): boolean {
 /**
  * Determine whether the given Origin header value is allowed to access the debug API.
  *
- * Exactly `https://webda.io` (the docs site hosting the dashboard) and the docs
- * dev server on `localhost:3000` / `127.0.0.1:3000`. No wildcard.
+ * Exact comparison against {@link allowedOrigins}: `https://webda.io`, plus the
+ * dev origin when `WEBDA_DEBUG_UI_URL` is set. No wildcard.
  *
  * @param origin - The value of the HTTP `Origin` request header.
+ * @param origins - The allowlist (defaults to the production one).
  * @returns `true` if the origin is allowed, `false` otherwise.
  */
-export function isAllowedOrigin(origin: string | undefined): boolean {
-  return !!origin && ALLOWED_ORIGINS.has(origin);
+export function isAllowedOrigin(origin: string | undefined, origins: readonly string[] = [HOSTED_ORIGIN]): boolean {
+  return !!origin && origins.includes(origin);
+}
+
+/**
+ * Origins of the debug server itself, for same-origin requests from the `--local` page.
+ *
+ * @param port - the debug port
+ * @returns `http://127.0.0.1:<port>`, `http://[::1]:<port>` and `http://localhost:<port>`
+ */
+export function debugOrigins(port: number): string[] {
+  return [`http://127.0.0.1:${port}`, `http://[::1]:${port}`, `http://localhost:${port}`];
 }
 
 /** Inputs of {@link buildDebugUrl}. */
@@ -123,6 +166,8 @@ export interface DebugUrlOptions {
   telemetry?: boolean;
   /** Hosted dashboard base URL (defaults to {@link HOSTED_DASHBOARD_URL}) */
   hostedBase?: string;
+  /** One-time bootstrap code of the local page (`--local`) */
+  code?: string;
 }
 
 /**
@@ -131,15 +176,18 @@ export interface DebugUrlOptions {
  * - hosted: `https://webda.io/debug/?port=<port>#token=<token>[&telemetry=0]` —
  *   the token travels in the fragment, which browsers never send to the server
  *   and which the docs page strips before analytics can see it;
- * - local: `http://localhost:<port>/` — the token is injected into the page by
- *   the debug server itself, so the URL carries none.
+ * - local: `http://127.0.0.1:<port>/#code=<one-time code>` — the page exchanges
+ *   the code for the token on `/api/session`; the URL never carries the token.
+ *
+ * `127.0.0.1` rather than `localhost`: browsers resolve `localhost` to `::1`
+ * first, and a squatter on `[::1]:<port>` would otherwise receive the requests.
  *
  * @param options - port, token and mode
  * @returns the URL to open
  */
 export function buildDebugUrl(options: DebugUrlOptions): string {
   if (options.local) {
-    return `http://localhost:${options.port}/`;
+    return `http://127.0.0.1:${options.port}/${options.code ? `#code=${encodeURIComponent(options.code)}` : ""}`;
   }
   let base = options.hostedBase || HOSTED_DASHBOARD_URL;
   if (!base.endsWith("/")) base += "/";
@@ -158,28 +206,6 @@ export function resolveTelemetry(flag: boolean | undefined, env: Record<string, 
   if (flag === false) return false;
   const value = (env.WEBDA_TELEMETRY || "").trim().toLowerCase();
   return !(value === "0" || value === "false" || value === "off" || value === "no");
-}
-
-/**
- * Inject the session token into the served `index.html`.
- *
- * The token is exposed as `window.__WEBDA_DEBUG__` for the bundled dashboard.
- * `<`, `>` and `&` are escaped as unicode sequences so the payload can never
- * close the script tag.
- *
- * @param html - the page source
- * @param token - the session token
- * @returns the page with the inline script inserted before `</head>`
- */
-export function injectToken(html: string, token: string): string {
-  const payload = JSON.stringify({ token, debugApiVersion: DEBUG_API_VERSION })
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/&/g, "\\u0026");
-  const script = `<script>window.__WEBDA_DEBUG__=${payload};</script>`;
-  const index = html.indexOf("</head>");
-  if (index === -1) return script + html;
-  return html.substring(0, index) + script + html.substring(index);
 }
 
 /**

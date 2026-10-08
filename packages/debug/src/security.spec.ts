@@ -9,8 +9,8 @@ import {
   isAllowedOrigin,
   buildDebugUrl,
   resolveTelemetry,
-  injectToken,
   browserOpenCommand,
+  allowedOrigins,
   WS_PROTOCOL,
   WS_TOKEN_PREFIX,
   DEBUG_API_VERSION
@@ -79,10 +79,14 @@ class HostAndOriginTest {
   }
 
   @test
-  allowsExactlyTheDocsOrigins() {
+  allowsExactlyTheDocsOrigin() {
     assert.strictEqual(isAllowedOrigin("https://webda.io"), true);
-    assert.strictEqual(isAllowedOrigin("http://localhost:3000"), true);
-    assert.strictEqual(isAllowedOrigin("http://127.0.0.1:3000"), true);
+    // the docs dev server only with WEBDA_DEBUG_UI_URL
+    assert.strictEqual(isAllowedOrigin("http://localhost:3000"), false);
+    assert.strictEqual(isAllowedOrigin("http://127.0.0.1:3000"), false);
+    const dev = allowedOrigins({ WEBDA_DEBUG_UI_URL: "http://127.0.0.1:3000/debug/" });
+    assert.strictEqual(isAllowedOrigin("http://127.0.0.1:3000", dev), true);
+    assert.strictEqual(isAllowedOrigin("http://localhost:3000", dev), false);
   }
 
   @test
@@ -124,10 +128,11 @@ class DebugUrlTest {
   }
 
   @test
-  localUrlHasNoToken() {
-    const url = buildDebugUrl({ port: 18181, token: "abc", local: true, telemetry: true });
-    assert.strictEqual(url, "http://localhost:18181/");
+  localUrlCarriesTheOneTimeCodeNotTheToken() {
+    const url = buildDebugUrl({ port: 18181, token: "abc", local: true, telemetry: true, code: "c0de" });
+    assert.strictEqual(url, "http://127.0.0.1:18181/#code=c0de");
     assert.ok(!url.includes("abc"));
+    assert.strictEqual(buildDebugUrl({ port: 18181, token: "abc", local: true }), "http://127.0.0.1:18181/");
   }
 
   @test
@@ -138,25 +143,6 @@ class DebugUrlTest {
     assert.strictEqual(resolveTelemetry(true, { WEBDA_TELEMETRY: "0" }), false);
     assert.strictEqual(resolveTelemetry(true, { WEBDA_TELEMETRY: "false" }), false);
     assert.strictEqual(resolveTelemetry(true, { WEBDA_TELEMETRY: "1" }), true);
-  }
-}
-
-@suite
-class StaticPageTest {
-  @test
-  injectsTheTokenIntoTheHead() {
-    const html = "<!doctype html><html><head><title>x</title></head><body></body></html>";
-    const out = injectToken(html, "abc");
-    assert.ok(out.includes('window.__WEBDA_DEBUG__={"token":"abc"'));
-    assert.ok(out.indexOf("__WEBDA_DEBUG__") < out.indexOf("</head>"));
-  }
-
-  @test
-  escapesHtmlSensitiveCharacters() {
-    const html = "<html><head></head><body></body></html>";
-    const out = injectToken(html, "</script><script>alert(1)</script>");
-    assert.ok(!out.includes("</script><script>alert"));
-    assert.ok(out.includes("\\u003c/script"));
   }
 }
 

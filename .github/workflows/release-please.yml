@@ -65,6 +65,7 @@ jobs:
 
       - name: Build docs
         if: ${{ steps.release.outputs.releases_created == 'true' || inputs.publish_ref }}
+        timeout-minutes: 45
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
         run: pnpm run docs
@@ -74,7 +75,8 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@4.1.4
         with:
           branch: gh-pages
-          folder: docs/dist
+          # docusaurus build output (the docs script writes the CNAME there)
+          folder: docs/build
 
       # A one-shot `release-as` (set by `pnpm release-as`) is removed inside the release PR,
       # so merging the release clears it from the base branch. release-please rewrites its

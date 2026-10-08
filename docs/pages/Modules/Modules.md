@@ -34,7 +34,7 @@ These packages form the backbone of the framework. Most applications depend on a
 | [compiler](./compiler/README.md) | TypeScript compiler wrapper (`webdac`) that generates `webda.module.json`, OpenAPI specs, and JSON schemas at build time. |
 | [models](./models/README.md) | Pre-built domain-model base classes (User, Group, Email, Policy …) ready to extend. |
 | [decorators](./decorators/README.md) | All first-party decorators: `@Bean`, `@Route`, `@Inject`, `@Action`, `@Expose`, and more. |
-| [schema](./schema/README.md) | JSON-Schema generation, validation pipeline, and the `webda-schema` CLI. |
+| [content-mapper](./content-mapper/README.md) | TypeScript content mapping behind `webdac build`: model metadata, JSON Schema generation and the generated accessors. |
 | [ql](./ql/README.md) | WebdaQL — a portable query language for filtering model collections across every store backend. |
 | [graphql](./graphql/README.md) | Auto-generates a GraphQL schema from your models and wires queries, mutations, and subscriptions. |
 

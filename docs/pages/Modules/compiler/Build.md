@@ -159,4 +159,4 @@ ls -la sample-apps/blog-system/webda.module.json
 - [Code Generation](./CodeGen.md) — `webdac code` for boilerplate method generation
 - [Module Manifest](./ModuleManifest.md) — the structure and purpose of `webda.module.json`
 - [Plugins](./Plugins.md) — extending the compiler with custom morpher modules
-- [@webda/content-mapper JSON Schema](../schema/JSON-Schema.md) — schema generation details
+- [@webda/content-mapper JSON Schema](../content-mapper/README.md) — schema generation details

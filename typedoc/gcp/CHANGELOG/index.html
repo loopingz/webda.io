@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.10.2">
 <title data-rh="true">Changelog | Webda.io</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" property="og:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://webda.io/typedoc/gcp/CHANGELOG"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="keywords" content="webda, typescript, framework"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-typedoc-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-typedoc-current"><meta data-rh="true" property="og:title" content="Changelog | Webda.io"><meta data-rh="true" name="description" content="Dependencies"><meta data-rh="true" property="og:description" content="Dependencies"><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://webda.io/typedoc/gcp/CHANGELOG"><link data-rh="true" rel="alternate" href="https://webda.io/typedoc/gcp/CHANGELOG" hreflang="en"><link data-rh="true" rel="alternate" href="https://webda.io/typedoc/gcp/CHANGELOG" hreflang="x-default"><link data-rh="true" rel="preconnect" href="https://UJ1RRJDCSY-dsn.algolia.net" crossorigin="anonymous"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"@webda/gcp","item":"https://webda.io/typedoc/gcp/"},{"@type":"ListItem","position":2,"name":"Changelog","item":"https://webda.io/typedoc/gcp/CHANGELOG"}]}</script><link rel="search" type="application/opensearchdescription+xml" title="Webda.io" href="/opensearch.xml"><link rel="stylesheet" href="/assets/css/styles.fd0048db.css">
-<script src="/assets/js/runtime~main.dc0a81d6.js" defer="defer"></script>
-<script src="/assets/js/main.cbd83144.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.db75cca9.js" defer="defer"></script>
+<script src="/assets/js/main.7a9ad3ac.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -246,8 +246,38 @@
 </ul>
 </li>
 </ul>
-<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="400-beta4-2026-10-08"><a href="https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.3...gcp-v4.0.0-beta.4" target="_blank" rel="noopener noreferrer" class="">4.0.0-beta.4</a> (2026-10-08)<a href="#400-beta4-2026-10-08" class="hash-link" aria-label="Direct link to 400-beta4-2026-10-08" title="Direct link to 400-beta4-2026-10-08" translate="no">​</a></h2>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="400-beta5-2026-10-08"><a href="https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.4...gcp-v4.0.0-beta.5" target="_blank" rel="noopener noreferrer" class="">4.0.0-beta.5</a> (2026-10-08)<a href="#400-beta5-2026-10-08" class="hash-link" aria-label="Direct link to 400-beta5-2026-10-08" title="Direct link to 400-beta5-2026-10-08" translate="no">​</a></h2>
 <h3 class="anchor anchorTargetStickyNavbar_FE5u" id="-breaking-changes">⚠ BREAKING CHANGES<a href="#-breaking-changes" class="hash-link" aria-label="Direct link to ⚠ BREAKING CHANGES" title="Direct link to ⚠ BREAKING CHANGES" translate="no">​</a></h3>
+<ul>
+<li class=""><strong>core:</strong> models defining canAct are now enforced on REST, gRPC and MCP operations; refused calls return 403. Query pages can be shorter than their LIMIT. OwnerModel ignores a client supplied _user. ResourceAcl.canAct signature changed to (context, action) and entries need a principal.</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes">Bug Fixes<a href="#bug-fixes" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
+<ul>
+<li class=""><strong>core:</strong> enforce model permissions on every transport, deny by default (<a href="https://github.com/loopingz/webda.io/issues/810" target="_blank" rel="noopener noreferrer" class="">#810</a>) (<a href="https://github.com/loopingz/webda.io/commit/24c11824f38999ef28ec7795c8af8d0ba862d9be" target="_blank" rel="noopener noreferrer" class="">24c1182</a>)</li>
+<li class=""><strong>packaging:</strong> point every package&#x27;s repository at its monorepo folder (<a href="https://github.com/loopingz/webda.io/issues/812" target="_blank" rel="noopener noreferrer" class="">#812</a>) (<a href="https://github.com/loopingz/webda.io/commit/3717b73c7a7b91348057d84c8e64ecf840c75cb1" target="_blank" rel="noopener noreferrer" class="">3717b73</a>)</li>
+</ul>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-13">Dependencies<a href="#dependencies-13" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<ul>
+<li class="">The following workspace dependencies were updated
+<ul>
+<li class="">dependencies
+<ul>
+<li class="">@webda/core bumped to 4.0.0-beta.5</li>
+<li class="">@webda/ql bumped to 4.0.0-beta.5</li>
+<li class="">@webda/utils bumped to 4.0.0-beta.5</li>
+</ul>
+</li>
+<li class="">devDependencies
+<ul>
+<li class="">@webda/compiler bumped to 4.0.0-beta.5</li>
+<li class="">@webda/test bumped to 4.0.0-beta.5</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_FE5u" id="400-beta4-2026-10-08"><a href="https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.3...gcp-v4.0.0-beta.4" target="_blank" rel="noopener noreferrer" class="">4.0.0-beta.4</a> (2026-10-08)<a href="#400-beta4-2026-10-08" class="hash-link" aria-label="Direct link to 400-beta4-2026-10-08" title="Direct link to 400-beta4-2026-10-08" translate="no">​</a></h2>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="-breaking-changes-1">⚠ BREAKING CHANGES<a href="#-breaking-changes-1" class="hash-link" aria-label="Direct link to ⚠ BREAKING CHANGES" title="Direct link to ⚠ BREAKING CHANGES" translate="no">​</a></h3>
 <ul>
 <li class=""><strong>auth:</strong> redesign authentication with @webda/auth (<a href="https://github.com/loopingz/webda.io/issues/800" target="_blank" rel="noopener noreferrer" class="">#800</a>)</li>
 </ul>
@@ -255,7 +285,7 @@
 <ul>
 <li class=""><strong>auth:</strong> redesign authentication with @webda/auth (<a href="https://github.com/loopingz/webda.io/issues/800" target="_blank" rel="noopener noreferrer" class="">#800</a>) (<a href="https://github.com/loopingz/webda.io/commit/74dc5df103bdf93cdab92b02ef966598e44e2735" target="_blank" rel="noopener noreferrer" class="">74dc5df</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-13">Dependencies<a href="#dependencies-13" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-14">Dependencies<a href="#dependencies-14" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -274,7 +304,7 @@
 </li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_FE5u" id="400-beta3-2026-10-05"><a href="https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.1...gcp-v4.0.0-beta.3" target="_blank" rel="noopener noreferrer" class="">4.0.0-beta.3</a> (2026-10-05)<a href="#400-beta3-2026-10-05" class="hash-link" aria-label="Direct link to 400-beta3-2026-10-05" title="Direct link to 400-beta3-2026-10-05" translate="no">​</a></h2>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="-breaking-changes-1">⚠ BREAKING CHANGES<a href="#-breaking-changes-1" class="hash-link" aria-label="Direct link to ⚠ BREAKING CHANGES" title="Direct link to ⚠ BREAKING CHANGES" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="-breaking-changes-2">⚠ BREAKING CHANGES<a href="#-breaking-changes-2" class="hash-link" aria-label="Direct link to ⚠ BREAKING CHANGES" title="Direct link to ⚠ BREAKING CHANGES" translate="no">​</a></h3>
 <ul>
 <li class="">remove node 18 support</li>
 <li class="">remove expose for Store</li>
@@ -291,14 +321,14 @@
 <li class="">remove node 18 support (<a href="https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1" target="_blank" rel="noopener noreferrer" class="">44e7de2</a>)</li>
 <li class=""><strong>stores:</strong> translate IS NULL and IS NOT NULL (<a href="https://github.com/loopingz/webda.io/commit/8dc727b0aff4be2f7052f5c5799049de9819f2b6" target="_blank" rel="noopener noreferrer" class="">8dc727b</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes">Bug Fixes<a href="#bug-fixes" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-1">Bug Fixes<a href="#bug-fixes-1" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
 <ul>
 <li class="">compiler metadata, CLI commands, cron/async hooks and long-running command lifecycle (<a href="https://github.com/loopingz/webda.io/issues/785" target="_blank" rel="noopener noreferrer" class="">#785</a>) (<a href="https://github.com/loopingz/webda.io/commit/05157157c9f52af3c8df720f6630053cd2dc8b98" target="_blank" rel="noopener noreferrer" class="">0515715</a>)</li>
 <li class="">post-migration follow-ups (store create uuid, LambdaServer stage, drop workarounds) (<a href="https://github.com/loopingz/webda.io/issues/784" target="_blank" rel="noopener noreferrer" class="">#784</a>) (<a href="https://github.com/loopingz/webda.io/commit/7eead4d71152c19abaa834817b8bf4a7f89818d1" target="_blank" rel="noopener noreferrer" class="">7eead4d</a>)</li>
 <li class=""><strong>stores:</strong> escape WebdaQL string values and handle TRUE/FALSE in query translators (<a href="https://github.com/loopingz/webda.io/commit/d02f0a2307ba8f32ec5d16bb1e214f32aa68dd06" target="_blank" rel="noopener noreferrer" class="">d02f0a2</a>)</li>
 <li class="">unit test models relations (<a href="https://github.com/loopingz/webda.io/commit/2d160f18d2139b362e8a12f935e15eaad27a808a" target="_blank" rel="noopener noreferrer" class="">2d160f1</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-14">Dependencies<a href="#dependencies-14" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-15">Dependencies<a href="#dependencies-15" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -324,7 +354,7 @@
 <li class=""><strong>gcp:</strong> add GCSFinder (<a href="https://github.com/loopingz/webda.io/commit/9dc56d54c64d3db1b581c3cc9608dfbe4fb5ace9" target="_blank" rel="noopener noreferrer" class="">9dc56d5</a>)</li>
 <li class="">separate WebdaQL module (<a href="https://github.com/loopingz/webda.io/commit/69beabb0d1715ab81636338509539ade89c07c6a" target="_blank" rel="noopener noreferrer" class="">69beabb</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-1">Bug Fixes<a href="#bug-fixes-1" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-2">Bug Fixes<a href="#bug-fixes-2" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
 <ul>
 <li class="">pubsub queue abusive close (<a href="https://github.com/loopingz/webda.io/commit/33ccadcd630e6de84b00745cb48012231f3d69bd" target="_blank" rel="noopener noreferrer" class="">33ccadc</a>)</li>
 <li class="">remove projectId (<a href="https://github.com/loopingz/webda.io/commit/fa36f8f3034bb54a0f489fbbbae9d4cf58b3b8f2" target="_blank" rel="noopener noreferrer" class="">fa36f8f</a>)</li>
@@ -333,7 +363,7 @@
 <ul>
 <li class="">prepare version for 4.0 (<a href="https://github.com/loopingz/webda.io/commit/24e8e789b8e4ac2364ac0d1669b115237ff4be6d" target="_blank" rel="noopener noreferrer" class="">24e8e78</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-15">Dependencies<a href="#dependencies-15" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-16">Dependencies<a href="#dependencies-16" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -352,11 +382,11 @@
 </li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_FE5u" id="361-2024-05-19"><a href="https://github.com/loopingz/webda.io/compare/gcp-v3.6.0...gcp-v3.6.1" target="_blank" rel="noopener noreferrer" class="">3.6.1</a> (2024-05-19)<a href="#361-2024-05-19" class="hash-link" aria-label="Direct link to 361-2024-05-19" title="Direct link to 361-2024-05-19" translate="no">​</a></h2>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-2">Bug Fixes<a href="#bug-fixes-2" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-3">Bug Fixes<a href="#bug-fixes-3" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
 <ul>
 <li class="">update in otel and json-schema-generator (<a href="https://github.com/loopingz/webda.io/commit/c1d9866ffc6717b622c4e4d72682ef91dc187a12" target="_blank" rel="noopener noreferrer" class="">c1d9866</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-16">Dependencies<a href="#dependencies-16" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-17">Dependencies<a href="#dependencies-17" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -380,7 +410,7 @@
 <li class="">add bucket size count (<a href="https://github.com/loopingz/webda.io/commit/3e9c3220f816df32fda8a5c68ce56100b17ea517" target="_blank" rel="noopener noreferrer" class="">3e9c322</a>)</li>
 <li class="">update store to model (<a href="https://github.com/loopingz/webda.io/issues/577" target="_blank" rel="noopener noreferrer" class="">#577</a>) (<a href="https://github.com/loopingz/webda.io/commit/018d0969ce83b9a1e8346a9ef5df9857573adb3e" target="_blank" rel="noopener noreferrer" class="">018d096</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-17">Dependencies<a href="#dependencies-17" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-18">Dependencies<a href="#dependencies-18" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -403,7 +433,7 @@
 <ul>
 <li class="">add default action in getSignedUrl to read (<a href="https://github.com/loopingz/webda.io/commit/09c43e5f5c7c0bf824a4b42e8d4d6300f58a0402" target="_blank" rel="noopener noreferrer" class="">09c43e5</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-18">Dependencies<a href="#dependencies-18" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-19">Dependencies<a href="#dependencies-19" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -422,11 +452,11 @@
 </li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_FE5u" id="343-2024-01-22"><a href="https://github.com/loopingz/webda.io/compare/gcp-v3.4.2...gcp-v3.4.3" target="_blank" rel="noopener noreferrer" class="">3.4.3</a> (2024-01-22)<a href="#343-2024-01-22" class="hash-link" aria-label="Direct link to 343-2024-01-22" title="Direct link to 343-2024-01-22" translate="no">​</a></h2>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-3">Bug Fixes<a href="#bug-fixes-3" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-4">Bug Fixes<a href="#bug-fixes-4" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
 <ul>
 <li class="">numeric equals on postgres (<a href="https://github.com/loopingz/webda.io/commit/75f5e36e1517a29f99c99e7e4af0e4d5da9ba8bd" target="_blank" rel="noopener noreferrer" class="">75f5e36</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-19">Dependencies<a href="#dependencies-19" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-20">Dependencies<a href="#dependencies-20" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -445,7 +475,7 @@
 </li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_FE5u" id="342-2024-01-18"><a href="https://github.com/loopingz/webda.io/compare/gcp-v3.4.1...gcp-v3.4.2" target="_blank" rel="noopener noreferrer" class="">3.4.2</a> (2024-01-18)<a href="#342-2024-01-18" class="hash-link" aria-label="Direct link to 342-2024-01-18" title="Direct link to 342-2024-01-18" translate="no">​</a></h2>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-4">Bug Fixes<a href="#bug-fixes-4" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-5">Bug Fixes<a href="#bug-fixes-5" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
 <ul>
 <li class="">use base64 for gcp encrypted kms (<a href="https://github.com/loopingz/webda.io/commit/ac444666dca398ad8b8c0143ed1becc611378b17" target="_blank" rel="noopener noreferrer" class="">ac44466</a>)</li>
 </ul>
@@ -454,13 +484,13 @@
 <ul>
 <li class="">allow cluster member info to be extended (<a href="https://github.com/loopingz/webda.io/commit/cb1e982814357145a47c5cfd039a7bacee379d86" target="_blank" rel="noopener noreferrer" class="">cb1e982</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-5">Bug Fixes<a href="#bug-fixes-5" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-6">Bug Fixes<a href="#bug-fixes-6" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
 <ul>
 <li class=""><strong>gcp:</strong> cleanUsage not being part of the transaction (<a href="https://github.com/loopingz/webda.io/commit/5dda48bef855583b503494ce2c2ad6e1d75d2ec4" target="_blank" rel="noopener noreferrer" class="">5dda48b</a>)</li>
 <li class="">make amqp queueOptions optional (<a href="https://github.com/loopingz/webda.io/commit/1f40de18b27d9fb7bed033e367e6ccb49c14f8b9" target="_blank" rel="noopener noreferrer" class="">1f40de1</a>)</li>
 <li class="">use machineId for pubsub subscription (<a href="https://github.com/loopingz/webda.io/commit/c099564163dce7cc22b873a1535857ed1b970331" target="_blank" rel="noopener noreferrer" class="">c099564</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-20">Dependencies<a href="#dependencies-20" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-21">Dependencies<a href="#dependencies-21" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -485,7 +515,7 @@
 <li class="">add metrics to pubsub and update store for cache update (<a href="https://github.com/loopingz/webda.io/commit/5c6e19619e00478baa332d8db1496ad0b8eb0cf9" target="_blank" rel="noopener noreferrer" class="">5c6e196</a>)</li>
 <li class="">move ProxyService to runtime (<a href="https://github.com/loopingz/webda.io/issues/342" target="_blank" rel="noopener noreferrer" class="">#342</a>) (<a href="https://github.com/loopingz/webda.io/commit/a95a7977ed4e35b0f475fd3cb0648ae5a0c5cc75" target="_blank" rel="noopener noreferrer" class="">a95a797</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-21">Dependencies<a href="#dependencies-21" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-22">Dependencies<a href="#dependencies-22" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -504,11 +534,11 @@
 </li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_FE5u" id="327-2023-12-04"><a href="https://github.com/loopingz/webda.io/compare/gcp-v3.2.6...gcp-v3.2.7" target="_blank" rel="noopener noreferrer" class="">3.2.7</a> (2023-12-04)<a href="#327-2023-12-04" class="hash-link" aria-label="Direct link to 327-2023-12-04" title="Direct link to 327-2023-12-04" translate="no">​</a></h2>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-6">Bug Fixes<a href="#bug-fixes-6" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-7">Bug Fixes<a href="#bug-fixes-7" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
 <ul>
 <li class="">allow Binaries to define metadata and metadata schema (<a href="https://github.com/loopingz/webda.io/commit/2001b1e9a43b415a25e9e7726e94d351d1749e51" target="_blank" rel="noopener noreferrer" class="">2001b1e</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-22">Dependencies<a href="#dependencies-22" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-23">Dependencies<a href="#dependencies-23" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -527,11 +557,11 @@
 </li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_FE5u" id="326-2023-11-30"><a href="https://github.com/loopingz/webda.io/compare/gcp-v3.2.5...gcp-v3.2.6" target="_blank" rel="noopener noreferrer" class="">3.2.6</a> (2023-11-30)<a href="#326-2023-11-30" class="hash-link" aria-label="Direct link to 326-2023-11-30" title="Direct link to 326-2023-11-30" translate="no">​</a></h2>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-7">Bug Fixes<a href="#bug-fixes-7" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-8">Bug Fixes<a href="#bug-fixes-8" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
 <ul>
 <li class=""><strong>tsc-esm:</strong> node module import rewrite .js (<a href="https://github.com/loopingz/webda.io/commit/e4a15ae90a761620520cb890fa5a9121415c453b" target="_blank" rel="noopener noreferrer" class="">e4a15ae</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-23">Dependencies<a href="#dependencies-23" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-24">Dependencies<a href="#dependencies-24" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -555,7 +585,7 @@
 <li class="">drop node16 as it is EOL (<a href="https://github.com/loopingz/webda.io/commit/a6b795a76e5089a0cf81269c49e00131bc17c1a9" target="_blank" rel="noopener noreferrer" class="">a6b795a</a>)</li>
 <li class="">RESTDomainService: add the url info retriever on Binaries (<a href="https://github.com/loopingz/webda.io/commit/13fe77ccd0082432ea79ec9b7c32ac261cebeb01" target="_blank" rel="noopener noreferrer" class="">13fe77c</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-24">Dependencies<a href="#dependencies-24" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-25">Dependencies<a href="#dependencies-25" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -574,11 +604,11 @@
 </li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_FE5u" id="319-2023-10-07"><a href="https://github.com/loopingz/webda.io/compare/gcp-v3.1.8...gcp-v3.1.9" target="_blank" rel="noopener noreferrer" class="">3.1.9</a> (2023-10-07)<a href="#319-2023-10-07" class="hash-link" aria-label="Direct link to 319-2023-10-07" title="Direct link to 319-2023-10-07" translate="no">​</a></h2>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-8">Bug Fixes<a href="#bug-fixes-8" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-9">Bug Fixes<a href="#bug-fixes-9" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
 <ul>
 <li class="">display help command (<a href="https://github.com/loopingz/webda.io/commit/3d0b79090f1fc23e3d02a7e7b0c3ce023f85f586" target="_blank" rel="noopener noreferrer" class="">3d0b790</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-25">Dependencies<a href="#dependencies-25" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-26">Dependencies<a href="#dependencies-26" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -597,11 +627,11 @@
 </li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_FE5u" id="318-2023-10-04"><a href="https://github.com/loopingz/webda.io/compare/gcp-v3.1.7...gcp-v3.1.8" target="_blank" rel="noopener noreferrer" class="">3.1.8</a> (2023-10-04)<a href="#318-2023-10-04" class="hash-link" aria-label="Direct link to 318-2023-10-04" title="Direct link to 318-2023-10-04" translate="no">​</a></h2>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-9">Bug Fixes<a href="#bug-fixes-9" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-10">Bug Fixes<a href="#bug-fixes-10" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
 <ul>
 <li class="">default toLowerCase for k8s resources name (<a href="https://github.com/loopingz/webda.io/commit/aaa0d5844f12532d2eb3a5813968a730deb4d4d0" target="_blank" rel="noopener noreferrer" class="">aaa0d58</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-26">Dependencies<a href="#dependencies-26" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-27">Dependencies<a href="#dependencies-27" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -620,11 +650,11 @@
 </li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_FE5u" id="316-2023-08-30"><a href="https://github.com/loopingz/webda.io/compare/gcp-v3.1.5...gcp-v3.1.6" target="_blank" rel="noopener noreferrer" class="">3.1.6</a> (2023-08-30)<a href="#316-2023-08-30" class="hash-link" aria-label="Direct link to 316-2023-08-30" title="Direct link to 316-2023-08-30" translate="no">​</a></h2>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-10">Bug Fixes<a href="#bug-fixes-10" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-11">Bug Fixes<a href="#bug-fixes-11" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
 <ul>
 <li class="">update in metadata.size type (<a href="https://github.com/loopingz/webda.io/commit/9638683d18a642474d14a51ec3bab3a2ba7efeb3" target="_blank" rel="noopener noreferrer" class="">9638683</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-27">Dependencies<a href="#dependencies-27" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-28">Dependencies<a href="#dependencies-28" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -643,11 +673,11 @@
 </li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_FE5u" id="311-2023-06-30"><a href="https://github.com/loopingz/webda.io/compare/gcp-v3.1.0...gcp-v3.1.1" target="_blank" rel="noopener noreferrer" class="">3.1.1</a> (2023-06-30)<a href="#311-2023-06-30" class="hash-link" aria-label="Direct link to 311-2023-06-30" title="Direct link to 311-2023-06-30" translate="no">​</a></h2>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-11">Bug Fixes<a href="#bug-fixes-11" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-12">Bug Fixes<a href="#bug-fixes-12" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
 <ul>
 <li class="">add explicit dependencies declaration (<a href="https://github.com/loopingz/webda.io/issues/411" target="_blank" rel="noopener noreferrer" class="">#411</a>) (<a href="https://github.com/loopingz/webda.io/commit/4d8cbae4d6d31b62df98832591bc97ca77ae6a69" target="_blank" rel="noopener noreferrer" class="">4d8cbae</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-28">Dependencies<a href="#dependencies-28" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-29">Dependencies<a href="#dependencies-29" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -670,11 +700,11 @@
 <ul>
 <li class="">add WS proxy system (<a href="https://github.com/loopingz/webda.io/commit/fdc394de666d74e9130d29fb6d4ddd67b650430f" target="_blank" rel="noopener noreferrer" class="">fdc394d</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-12">Bug Fixes<a href="#bug-fixes-12" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="bug-fixes-13">Bug Fixes<a href="#bug-fixes-13" class="hash-link" aria-label="Direct link to Bug Fixes" title="Direct link to Bug Fixes" translate="no">​</a></h3>
 <ul>
 <li class="">@types/ws version (<a href="https://github.com/loopingz/webda.io/commit/f63b0025b72f96f4282fbd30232f02164134ed5e" target="_blank" rel="noopener noreferrer" class="">f63b002</a>)</li>
 </ul>
-<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-29">Dependencies<a href="#dependencies-29" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
+<h3 class="anchor anchorTargetStickyNavbar_FE5u" id="dependencies-30">Dependencies<a href="#dependencies-30" class="hash-link" aria-label="Direct link to Dependencies" title="Direct link to Dependencies" translate="no">​</a></h3>
 <ul>
 <li class="">The following workspace dependencies were updated
 <ul>
@@ -694,6 +724,6 @@
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_FE5u" id="change-log">Change Log<a href="#change-log" class="hash-link" aria-label="Direct link to Change Log" title="Direct link to Change Log" translate="no">​</a></h2>
 <p>All notable changes to this project will be documented in this file.
-See <a href="https://conventionalcommits.org" target="_blank" rel="noopener noreferrer" class="">Conventional Commits</a> for commit guidelines.</p></div></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/typedoc/gcp/"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">@webda/gcp</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/typedoc/gcp/classes/FireStore"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">FireStore</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_kFBU thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#dependencies" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-1" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-2" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-3" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-4" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-5" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-6" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-7" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-8" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-9" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-10" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-11" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-12" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#400-beta4-2026-10-08" class="table-of-contents__link toc-highlight">4.0.0-beta.4 (2026-10-08)</a><ul><li><a href="#-breaking-changes" class="table-of-contents__link toc-highlight">⚠ BREAKING CHANGES</a></li><li><a href="#features" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#dependencies-13" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#400-beta3-2026-10-05" class="table-of-contents__link toc-highlight">4.0.0-beta.3 (2026-10-05)</a><ul><li><a href="#-breaking-changes-1" class="table-of-contents__link toc-highlight">⚠ BREAKING CHANGES</a></li><li><a href="#features-1" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#bug-fixes" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-14" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#400-beta1-2024-08-14" class="table-of-contents__link toc-highlight">4.0.0-beta.1 (2024-08-14)</a><ul><li><a href="#features-2" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#bug-fixes-1" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#miscellaneous-chores" class="table-of-contents__link toc-highlight">Miscellaneous Chores</a></li><li><a href="#dependencies-15" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#361-2024-05-19" class="table-of-contents__link toc-highlight">3.6.1 (2024-05-19)</a><ul><li><a href="#bug-fixes-2" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-16" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#360-2024-04-12" class="table-of-contents__link toc-highlight">3.6.0 (2024-04-12)</a><ul><li><a href="#features-3" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#dependencies-17" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#350-2024-02-04" class="table-of-contents__link toc-highlight">3.5.0 (2024-02-04)</a><ul><li><a href="#features-4" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#dependencies-18" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#343-2024-01-22" class="table-of-contents__link toc-highlight">3.4.3 (2024-01-22)</a><ul><li><a href="#bug-fixes-3" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-19" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#342-2024-01-18" class="table-of-contents__link toc-highlight">3.4.2 (2024-01-18)</a><ul><li><a href="#bug-fixes-4" class="table-of-contents__link toc-highlight">Bug Fixes</a></li></ul></li><li><a href="#340-2024-01-16" class="table-of-contents__link toc-highlight">3.4.0 (2024-01-16)</a><ul><li><a href="#features-5" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#bug-fixes-5" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-20" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#330-2024-01-09" class="table-of-contents__link toc-highlight">3.3.0 (2024-01-09)</a><ul><li><a href="#features-6" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#dependencies-21" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#327-2023-12-04" class="table-of-contents__link toc-highlight">3.2.7 (2023-12-04)</a><ul><li><a href="#bug-fixes-6" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-22" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#326-2023-11-30" class="table-of-contents__link toc-highlight">3.2.6 (2023-11-30)</a><ul><li><a href="#bug-fixes-7" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-23" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#320-2023-11-12" class="table-of-contents__link toc-highlight">3.2.0 (2023-11-12)</a><ul><li><a href="#features-7" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#dependencies-24" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#319-2023-10-07" class="table-of-contents__link toc-highlight">3.1.9 (2023-10-07)</a><ul><li><a href="#bug-fixes-8" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-25" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#318-2023-10-04" class="table-of-contents__link toc-highlight">3.1.8 (2023-10-04)</a><ul><li><a href="#bug-fixes-9" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-26" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#316-2023-08-30" class="table-of-contents__link toc-highlight">3.1.6 (2023-08-30)</a><ul><li><a href="#bug-fixes-10" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-27" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#311-2023-06-30" class="table-of-contents__link toc-highlight">3.1.1 (2023-06-30)</a><ul><li><a href="#bug-fixes-11" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-28" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#310-2023-06-30" class="table-of-contents__link toc-highlight">3.1.0 (2023-06-30)</a><ul><li><a href="#features-8" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#bug-fixes-12" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-29" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#change-log" class="table-of-contents__link toc-highlight">Change Log</a></li></ul></div></div></div></div></main></div></div></div><div style="background-color:#afcedb;height:48px"></div></div>
+See <a href="https://conventionalcommits.org" target="_blank" rel="noopener noreferrer" class="">Conventional Commits</a> for commit guidelines.</p></div></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/typedoc/gcp/"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">@webda/gcp</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/typedoc/gcp/classes/FireStore"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">FireStore</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_kFBU thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#dependencies" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-1" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-2" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-3" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-4" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-5" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-6" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-7" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-8" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-9" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-10" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-11" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#dependencies-12" class="table-of-contents__link toc-highlight">Dependencies</a></li><li><a href="#400-beta5-2026-10-08" class="table-of-contents__link toc-highlight">4.0.0-beta.5 (2026-10-08)</a><ul><li><a href="#-breaking-changes" class="table-of-contents__link toc-highlight">⚠ BREAKING CHANGES</a></li><li><a href="#bug-fixes" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-13" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#400-beta4-2026-10-08" class="table-of-contents__link toc-highlight">4.0.0-beta.4 (2026-10-08)</a><ul><li><a href="#-breaking-changes-1" class="table-of-contents__link toc-highlight">⚠ BREAKING CHANGES</a></li><li><a href="#features" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#dependencies-14" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#400-beta3-2026-10-05" class="table-of-contents__link toc-highlight">4.0.0-beta.3 (2026-10-05)</a><ul><li><a href="#-breaking-changes-2" class="table-of-contents__link toc-highlight">⚠ BREAKING CHANGES</a></li><li><a href="#features-1" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#bug-fixes-1" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-15" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#400-beta1-2024-08-14" class="table-of-contents__link toc-highlight">4.0.0-beta.1 (2024-08-14)</a><ul><li><a href="#features-2" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#bug-fixes-2" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#miscellaneous-chores" class="table-of-contents__link toc-highlight">Miscellaneous Chores</a></li><li><a href="#dependencies-16" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#361-2024-05-19" class="table-of-contents__link toc-highlight">3.6.1 (2024-05-19)</a><ul><li><a href="#bug-fixes-3" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-17" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#360-2024-04-12" class="table-of-contents__link toc-highlight">3.6.0 (2024-04-12)</a><ul><li><a href="#features-3" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#dependencies-18" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#350-2024-02-04" class="table-of-contents__link toc-highlight">3.5.0 (2024-02-04)</a><ul><li><a href="#features-4" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#dependencies-19" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#343-2024-01-22" class="table-of-contents__link toc-highlight">3.4.3 (2024-01-22)</a><ul><li><a href="#bug-fixes-4" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-20" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#342-2024-01-18" class="table-of-contents__link toc-highlight">3.4.2 (2024-01-18)</a><ul><li><a href="#bug-fixes-5" class="table-of-contents__link toc-highlight">Bug Fixes</a></li></ul></li><li><a href="#340-2024-01-16" class="table-of-contents__link toc-highlight">3.4.0 (2024-01-16)</a><ul><li><a href="#features-5" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#bug-fixes-6" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-21" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#330-2024-01-09" class="table-of-contents__link toc-highlight">3.3.0 (2024-01-09)</a><ul><li><a href="#features-6" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#dependencies-22" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#327-2023-12-04" class="table-of-contents__link toc-highlight">3.2.7 (2023-12-04)</a><ul><li><a href="#bug-fixes-7" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-23" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#326-2023-11-30" class="table-of-contents__link toc-highlight">3.2.6 (2023-11-30)</a><ul><li><a href="#bug-fixes-8" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-24" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#320-2023-11-12" class="table-of-contents__link toc-highlight">3.2.0 (2023-11-12)</a><ul><li><a href="#features-7" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#dependencies-25" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#319-2023-10-07" class="table-of-contents__link toc-highlight">3.1.9 (2023-10-07)</a><ul><li><a href="#bug-fixes-9" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-26" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#318-2023-10-04" class="table-of-contents__link toc-highlight">3.1.8 (2023-10-04)</a><ul><li><a href="#bug-fixes-10" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-27" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#316-2023-08-30" class="table-of-contents__link toc-highlight">3.1.6 (2023-08-30)</a><ul><li><a href="#bug-fixes-11" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-28" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#311-2023-06-30" class="table-of-contents__link toc-highlight">3.1.1 (2023-06-30)</a><ul><li><a href="#bug-fixes-12" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-29" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#310-2023-06-30" class="table-of-contents__link toc-highlight">3.1.0 (2023-06-30)</a><ul><li><a href="#features-8" class="table-of-contents__link toc-highlight">Features</a></li><li><a href="#bug-fixes-13" class="table-of-contents__link toc-highlight">Bug Fixes</a></li><li><a href="#dependencies-30" class="table-of-contents__link toc-highlight">Dependencies</a></li></ul></li><li><a href="#change-log" class="table-of-contents__link toc-highlight">Change Log</a></li></ul></div></div></div></div></main></div></div></div><div style="background-color:#afcedb;height:48px"></div></div>
 </body>
 </html>

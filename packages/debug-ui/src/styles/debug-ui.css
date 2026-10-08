@@ -1339,7 +1339,79 @@
   border-radius: 3px;
 }
 
+/* ---- Hosted top bar / boot screen ---- */
+.wdbg-hosted-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.35rem var(--ifm-global-spacing);
+  background: var(--ifm-background-surface-color);
+  border-bottom: 1px solid var(--ifm-color-emphasis-300);
+  font-size: 0.875rem;
+  font-family: var(--ifm-font-family-base);
+}
+
+.wdbg-hosted-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  color: var(--ifm-font-color-base);
+  text-decoration: none;
+}
+
+.wdbg-hosted-brand .wdbg-logo {
+  width: 22px;
+  height: 22px;
+  color: #3f51b5;
+}
+
+.wdbg-hosted-link {
+  margin-left: auto;
+  color: var(--ifm-link-color);
+}
+
+.wdbg-boot {
+  padding: 3rem var(--ifm-global-spacing);
+  text-align: center;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.wdbg-graph-toggle {
+  margin-left: auto;
+}
+
 /* ---- Responsive ---- */
+@media (max-width: 1440px) {
+  .wdbg-app-cwd {
+    max-width: 180px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .wdbg-header-status .wdbg-conn-label {
+    display: none;
+  }
+
+  .wdbg-app-cwd {
+    display: none;
+  }
+
+  .wdbg-tab {
+    padding: 0 0.75rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .wdbg-app-info {
+    display: none;
+  }
+
+  .wdbg-brand-title {
+    display: none;
+  }
+}
+
 @media (max-width: 768px) {
   .wdbg-split {
     flex-direction: column;

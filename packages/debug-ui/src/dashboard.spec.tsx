@@ -3,12 +3,12 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import React from "react";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { AnalyticsProvider } from "./analytics.js";
-import { assertAllowlisted } from "./analytics.spec.js";
 import { describeConnection } from "./components/ConnectionStatus.js";
 import { failureMessage } from "./components/ConnectionError.js";
 import { DebugConnectionProvider, useDebugConnection } from "./connection.js";
 import { DebugDashboard, shortenCwd } from "./DebugDashboard.js";
 import {
+  assertAllowlisted,
   FakeWebSocket,
   healthyRoutes,
   installFetch,
@@ -103,12 +103,12 @@ describe("DebugDashboard", () => {
 
   it("explains an unreachable server and offers the port picker", async () => {
     renderDashboard({}, { networkError: true });
-    await screen.findByText("No debug server at http://localhost:18181");
+    await screen.findByText("No debug server at http://127.0.0.1:18181");
     assert.ok(screen.getAllByText(/webda debug --web/).length > 0);
     const input = screen.getByLabelText("Debug port") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "18182" } });
     fireEvent.click(screen.getByText("Use port"));
-    await screen.findByText("No debug server at http://localhost:18182");
+    await screen.findByText("No debug server at http://127.0.0.1:18182");
     assert.strictEqual(window.localStorage.getItem("webda.debug.port"), "18182");
   });
 
@@ -127,10 +127,10 @@ describe("DebugDashboard", () => {
       </DebugConnectionProvider>
     );
     // jsdom pages are http: the client classifies by page protocol, so drive the message helper directly too
-    const message = failureMessage("mixed_content", "http://localhost:18181", "hosted");
+    const message = failureMessage("mixed_content", "http://127.0.0.1:18181", "hosted");
     assert.strictEqual(message.title, "Your browser blocked the connection to localhost");
     assert.ok(message.lines.some(l => l.includes("--local")));
-    await screen.findByText("No debug server at http://localhost:18181");
+    await screen.findByText("No debug server at http://127.0.0.1:18181");
   });
 
   it("retries on demand", async () => {
@@ -243,10 +243,10 @@ describe("helpers", () => {
       "not_found",
       null
     ] as const) {
-      const message = failureMessage(reason, "http://localhost:18181", "hosted");
+      const message = failureMessage(reason, "http://127.0.0.1:18181", "hosted");
       assert.ok(message.title.length > 0);
       assert.ok(message.lines.length > 0);
     }
-    assert.ok(failureMessage("unreachable", "http://localhost:18181", "local").lines[0].includes("--local"));
+    assert.ok(failureMessage("unreachable", "http://127.0.0.1:18181", "local").lines[0].includes("--local"));
   });
 });

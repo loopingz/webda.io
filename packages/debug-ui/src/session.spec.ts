@@ -1,13 +1,16 @@
 import * as assert from "assert";
 import { afterEach, describe, it } from "vitest";
 import {
+  clearStoredToken,
   getStoredPort,
   getStoredToken,
-  hasDebugSession,
+  hasUsedDashboard,
   isTelemetryEnabled,
   parseDashboardLocation,
   parsePort,
-  readSession,
+  readHostedSession,
+  readLocalSession,
+  setStoredToken,
   TELEMETRY_KEY,
   TOKEN_KEY
 } from "./session.js";
@@ -39,31 +42,43 @@ describe("DashboardLocationTest", () => {
     assert.strictEqual(parsePort(null), undefined);
   });
 
-  it("readSessionPersistsAndStripsTheFragment", () => {
+  it("parsesTheLocalBootstrapCode", () => {
+    assert.deepStrictEqual(parseDashboardLocation("", "#code=abc"), { code: "abc" });
+  });
+
+  it("hostedSessionKeepsTheTokenInMemoryOnlyAndStripsTheFragment", () => {
     window.history.replaceState(null, "", "/debug/?port=18182#token=abc&telemetry=0");
-    const session = readSession();
+    const session = readHostedSession();
     assert.deepStrictEqual(session, { port: 18182, token: "abc", telemetry: false });
     assert.strictEqual(window.location.hash, "");
     assert.strictEqual(window.location.search, "?port=18182");
     assert.strictEqual(getStoredPort(), 18182);
-    assert.strictEqual(window.sessionStorage.getItem(TOKEN_KEY), "abc");
+    assert.strictEqual(window.sessionStorage.getItem(TOKEN_KEY), null, "the hosted token is never stored");
     assert.strictEqual(window.sessionStorage.getItem(TELEMETRY_KEY), "0");
     assert.strictEqual(isTelemetryEnabled(), false);
-    // Second read, after the fragment is gone, still finds everything
-    assert.deepStrictEqual(readSession(), { port: 18182, token: "abc", telemetry: false });
+    // After a reload the token is gone: the printed URL is needed again
+    assert.deepStrictEqual(readHostedSession(), { port: 18182, token: undefined, telemetry: false });
   });
 
-  it("readSessionFallsBackToStorageAndDefaults", () => {
-    assert.deepStrictEqual(readSession(), { port: 18181, token: undefined, telemetry: true });
-    window.sessionStorage.setItem(TOKEN_KEY, "stored");
-    assert.strictEqual(getStoredToken(), "stored");
-    assert.strictEqual(hasDebugSession(), true);
+  it("hostedSessionFallsBackToDefaults", () => {
+    assert.deepStrictEqual(readHostedSession(), { port: 18181, token: undefined, telemetry: true });
   });
 
-  it("hasDebugSessionIsFalseForPlainVisitors", () => {
-    assert.strictEqual(hasDebugSession(), false);
-    window.history.replaceState(null, "", "/docs/#heading");
-    assert.strictEqual(hasDebugSession(), false);
+  it("localSessionReadsTheCodeAndRemembersTheTokenPerOrigin", () => {
+    window.history.replaceState(null, "", "/#code=c0de");
+    assert.deepStrictEqual(readLocalSession(), { code: "c0de", token: undefined });
+    assert.strictEqual(window.location.hash, "");
+    setStoredToken("tok");
+    assert.deepStrictEqual(readLocalSession(), { code: undefined, token: "tok" });
+    assert.strictEqual(getStoredToken(), "tok");
+    clearStoredToken();
+    assert.strictEqual(getStoredToken(), undefined);
+  });
+
+  it("hasUsedDashboardIsFalseForPlainVisitors", () => {
+    assert.strictEqual(hasUsedDashboard(), false);
+    window.localStorage.setItem("webda.debug.port", "18181");
+    assert.strictEqual(hasUsedDashboard(), true);
   });
 });
 

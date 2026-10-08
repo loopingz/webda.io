@@ -1,3 +1,5 @@
 .docusaurus
 typedoc
 Modules/*/README.md
+# hosted debug dashboard, copied from @webda/debug-ui at build time
+static/debug

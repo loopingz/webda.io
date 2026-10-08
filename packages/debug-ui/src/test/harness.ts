@@ -1,4 +1,6 @@
+import * as assert from "assert";
 import { vi } from "vitest";
+import { ANALYTICS_EVENTS, ANALYTICS_PARAM_VALUES, type AnalyticsEvent, type AnalyticsParams } from "../analytics.js";
 import type { DebugInfo, DebugLogEntry, DebugModel, DebugOperation, DebugRequest, DebugServiceInfo } from "../types.js";
 
 /** A canned API: path → body or status. */
@@ -49,7 +51,8 @@ export const MODELS: DebugModel[] = [
     metadata: { Ancestors: ["Webda/CoreModel"] }
   },
   { id: "Sample/Tag", plural: "Tags", actions: [], relations: {}, metadata: { Ancestors: ["Webda/CoreModel"] } },
-  { id: "Webda/CoreModel", plural: "CoreModels", actions: [], relations: {}, metadata: {} }
+  { id: "Webda/CoreModel", plural: "CoreModels", actions: [], relations: {}, metadata: {} },
+  { id: "Webda/Ident", plural: "Idents", actions: [], relations: {}, metadata: { Ancestors: ["Webda/CoreModel"] } }
 ];
 
 /** Fixture `/api/services`. */
@@ -261,5 +264,25 @@ export async function waitUntil(check: () => boolean, timeout = 3000): Promise<v
   while (!check()) {
     if (Date.now() - start > timeout) throw new Error("waitUntil timed out");
     await new Promise(resolve => setTimeout(resolve, 10));
+  }
+}
+
+/**
+ * Assert that a tracked call only carries allowlisted parameters.
+ *
+ * @param event - the event
+ * @param params - the parameters
+ */
+export function assertAllowlisted(event: string, params: AnalyticsParams | undefined): void {
+  assert.ok(Object.prototype.hasOwnProperty.call(ANALYTICS_EVENTS, event), `event ${event} is not allowlisted`);
+  const allowed: readonly string[] = ANALYTICS_EVENTS[event as AnalyticsEvent];
+  for (const [key, value] of Object.entries(params ?? {})) {
+    assert.ok(allowed.includes(key), `param ${key} is not allowed on ${event}`);
+    const enumeration = ANALYTICS_PARAM_VALUES[key];
+    if (enumeration) assert.ok(enumeration.includes(String(value)), `value ${value} is not allowed for ${key}`);
+    assert.ok(
+      typeof value === "number" || (typeof value === "string" && value.length <= 64),
+      `unexpected value for ${key}`
+    );
   }
 }

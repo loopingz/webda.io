@@ -5,6 +5,7 @@ import {
   createDebugClient,
   DebugClientError,
   deriveWsUrl,
+  exchangeBootstrapCode,
   localhostBaseUrl,
   WS_PROTOCOL,
   WS_TOKEN_PREFIX
@@ -27,9 +28,10 @@ describe("DebugClientUrlTest", () => {
     assert.strictEqual(deriveWsUrl("http://127.0.0.1:18181/"), "ws://127.0.0.1:18181/ws");
   });
 
-  it("buildsLoopbackBaseUrls", () => {
-    assert.strictEqual(localhostBaseUrl(18181), "http://localhost:18181");
-    assert.strictEqual(localhostBaseUrl(1234, "127.0.0.1"), "http://127.0.0.1:1234");
+  it("buildsLoopbackBaseUrlsOnTheIpv4Address", () => {
+    assert.strictEqual(localhostBaseUrl(18181), "http://127.0.0.1:18181");
+    assert.strictEqual(localhostBaseUrl(1234, "[::1]"), "http://[::1]:1234");
+    assert.strictEqual(localhostBaseUrl(1234, "localhost"), "http://localhost:1234");
   });
 });
 
@@ -144,5 +146,35 @@ describe("DebugClientSocketTest", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("exchangeBootstrapCode", () => {
+  it("postsTheCodeAndReturnsTheToken", async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      assert.strictEqual(init?.method, "POST");
+      assert.deepStrictEqual(JSON.parse(String(init?.body)), { code: "c0de" });
+      return new Response(JSON.stringify({ token: "tok", debugApiVersion: 1 }), { status: 200 });
+    });
+    const result = await exchangeBootstrapCode("http://127.0.0.1:18181/", "c0de", fetchMock as unknown as typeof fetch);
+    assert.deepStrictEqual(result, { token: "tok", debugApiVersion: 1 });
+    assert.strictEqual(fetchMock.mock.calls[0][0], "http://127.0.0.1:18181/api/session");
+  });
+
+  it("mapsRefusedCodesToUnauthorized", async () => {
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ error: "Invalid or expired code" }), { status: 403 })
+    );
+    await assert.rejects(
+      exchangeBootstrapCode("http://127.0.0.1:18181", "x", fetchMock as unknown as typeof fetch),
+      (err: DebugClientError) => err.reason === "unauthorized"
+    );
+    const down = vi.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    await assert.rejects(
+      exchangeBootstrapCode("http://127.0.0.1:18181", "x", down as unknown as typeof fetch),
+      (err: DebugClientError) => err.reason === "unreachable"
+    );
   });
 });

@@ -22,13 +22,15 @@
       "default": "./lib/standalone/index.js"
     },
     "./styles.css": "./lib/styles/debug-ui.css",
-    "./tokens.css": "./lib/styles/tokens.css"
+    "./tokens.css": "./lib/styles/tokens.css",
+    "./hosted-dist": "./dist/hosted",
+    "./package.json": "./package.json"
   },
   "files": [
     "lib"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/copy-styles.mjs",
+    "build": "tsc -p tsconfig.json && node scripts/copy-styles.mjs && vite build --config vite.hosted.config.ts && node scripts/build-analytics.mjs",
     "build:watch": "tsc -p tsconfig.json --watch",
     "format": "prettier --check \"src/**/*\"",
     "format:fix": "prettier --write \"src/**/*\"",
@@ -36,7 +38,8 @@
     "lint:fix": "eslint --fix",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "build:hosted": "vite build --config vite.hosted.config.ts && node scripts/build-analytics.mjs"
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -52,6 +55,7 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "typescript": "7.1.0-dev.20260929.1",
+    "vite": "^6.0.0",
     "vitest": "^4.1.2"
   },
   "engines": {

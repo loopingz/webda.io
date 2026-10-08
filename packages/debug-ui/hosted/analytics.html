@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      Analytics relay of the hosted debug dashboard. Loaded by /debug/ in an iframe with
+      sandbox="allow-scripts" (no allow-same-origin): this document runs in an opaque origin,
+      it cannot read the dashboard, its storage or the debug server. It receives allowlisted
+      {event, params} messages, validates them again, and forwards them to gtag.
+      The script is inlined at build time: an opaque origin cannot fetch module scripts.
+    -->
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="noindex" />
+    <title>Webda debug analytics</title>
+  </head>
+  <body>
+    <script>
+      /* WEBDA_ANALYTICS_RELAY */
+    </script>
+  </body>
+</html>

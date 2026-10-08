@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useTrack } from "../analytics.js";
-import { ModelGraph } from "../components/ModelGraph.js";
+import { ModelGraph, ancestorsOf } from "../components/ModelGraph.js";
 import {
   Badge,
   DetailSection,
@@ -174,8 +174,8 @@ function SchemaTabs(props: { schemas: Record<string, unknown> }): React.JSX.Elem
  */
 function ModelDetail(props: { model: DebugModel; onSelect: (id: string) => void }): React.JSX.Element {
   const { model, onSelect } = props;
-  const ancestors = model.metadata?.Ancestors || [];
-  const subclasses = model.metadata?.Subclasses || [];
+  const ancestors = ancestorsOf(model);
+  const subclasses = model.subclasses?.length ? model.subclasses : model.metadata?.Subclasses || [];
   return (
     <div>
       <h2 className="wdbg-title">{shortName(model.id)}</h2>

@@ -15,16 +15,30 @@ export {
   DebugClientError,
   deriveWsUrl,
   localhostBaseUrl,
+  exchangeBootstrapCode,
   classifyNetworkError,
   WS_PROTOCOL,
   WS_TOKEN_PREFIX
 } from "./client.js";
 export type { DebugClient, DebugClientOptions, DebugSocket, DebugErrorReason } from "./client.js";
-export { AnalyticsProvider, useTrack, sanitizeEvent, ANALYTICS_EVENTS, ANALYTICS_PARAM_VALUES } from "./analytics.js";
-export type { AnalyticsEvent, AnalyticsParams, TrackFunction } from "./analytics.js";
 export {
-  readSession,
-  hasDebugSession,
+  AnalyticsProvider,
+  useTrack,
+  sanitizeEvent,
+  validateAnalyticsMessage,
+  createIframeTracker,
+  ANALYTICS_EVENTS,
+  ANALYTICS_PARAM_VALUES,
+  ANALYTICS_MESSAGE_TYPE
+} from "./analytics.js";
+export type { AnalyticsEvent, AnalyticsParams, AnalyticsMessage, TrackFunction } from "./analytics.js";
+export {
+  readHostedSession,
+  readLocalSession,
+  hasUsedDashboard,
+  stripFragment,
+  setStoredToken,
+  clearStoredToken,
   parseDashboardLocation,
   parsePort,
   getStoredPort,
@@ -49,7 +63,7 @@ export { OperationsPanel } from "./panels/OperationsPanel.js";
 export { RequestsPanel, RequestDetail, mergeRequests } from "./panels/RequestsPanel.js";
 export { LogsPanel } from "./panels/LogsPanel.js";
 export { ConfigPanel, JsonTree } from "./panels/ConfigPanel.js";
-export { ModelGraph, buildGraph } from "./components/ModelGraph.js";
+export { ModelGraph, buildGraph, ancestorsOf, isFrameworkModel, visibleModels } from "./components/ModelGraph.js";
 export { SchemaForm, resolveRef } from "./components/SchemaForm.js";
 export { CodeBlock, highlightJS } from "./components/CodeBlock.js";
 export type * from "./types.js";

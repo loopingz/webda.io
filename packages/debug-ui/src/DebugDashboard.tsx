@@ -105,11 +105,12 @@ export function DebugDashboard(props: DebugDashboardProps): React.JSX.Element {
           </div>
         )}
         {state.info && (
-          <div className="wdbg-app-info">
+          <div
+            className="wdbg-app-info"
+            title={`${appName || "unknown"}\n${String(state.info.workingDirectory || "")}`}
+          >
             <div className="wdbg-app-name">{appName || "unknown"}</div>
-            <div className="wdbg-app-cwd wdbg-mono" title={String(state.info.workingDirectory || "")}>
-              {shortenCwd(state.info.workingDirectory as string)}
-            </div>
+            <div className="wdbg-app-cwd wdbg-mono">{shortenCwd(state.info.workingDirectory as string)}</div>
           </div>
         )}
         <nav className="wdbg-tabs" role="tablist" aria-label="Debug panels">

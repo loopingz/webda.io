@@ -9,7 +9,7 @@ import { ModelsPanel } from "./panels/ModelsPanel.js";
 import { OperationsPanel } from "./panels/OperationsPanel.js";
 import { mergeRequests, RequestsPanel } from "./panels/RequestsPanel.js";
 import { ServicesPanel } from "./panels/ServicesPanel.js";
-import { buildGraph } from "./components/ModelGraph.js";
+import { ancestorsOf, buildGraph, visibleModels } from "./components/ModelGraph.js";
 import { highlightJS } from "./components/CodeBlock.js";
 import { resolveRef } from "./components/SchemaForm.js";
 import {
@@ -99,7 +99,11 @@ describe("ModelsPanel", () => {
     await renderPanel(<ModelsPanel />);
     await screen.findByText("Model Graph");
     const svg = screen.getByTestId("model-graph");
-    assert.strictEqual(within(svg).getAllByRole("button").length, MODELS.length);
+    assert.strictEqual(
+      within(svg).getAllByRole("button").length,
+      MODELS.length - 1,
+      "unused Webda/* hidden by default"
+    );
     fireEvent.click(within(svg).getByRole("button", { name: "Sample/User" }));
     await screen.findByText("MemoryStore", { exact: false });
     assert.ok(screen.getAllByText("Users").length > 0);
@@ -120,11 +124,51 @@ describe("ModelsPanel", () => {
     await screen.findByText("Avatar".toLowerCase(), { exact: false });
   });
 
+  it("hides unused framework models by default and shows them on demand", async () => {
+    await renderPanel(<ModelsPanel />);
+    await screen.findByText("Model Graph");
+    const svg = screen.getByTestId("model-graph");
+    // CoreModel is an ancestor of the app models: it stays as the root of the tree; Ident has no descendants
+    within(svg).getByRole("button", { name: "Webda/CoreModel" });
+    assert.strictEqual(within(svg).queryByRole("button", { name: "Webda/Ident" }), null);
+    assert.strictEqual(within(svg).getAllByRole("button").length, MODELS.length - 1);
+    fireEvent.click(screen.getByLabelText(/Hide unused framework models/));
+    await within(screen.getByTestId("model-graph")).findByRole("button", { name: "Webda/Ident" });
+    assert.strictEqual(within(screen.getByTestId("model-graph")).getAllByRole("button").length, MODELS.length);
+  });
+
+  it("prefers the server's ancestors over the metadata", () => {
+    assert.deepStrictEqual(ancestorsOf({ ...MODELS[0], ancestors: ["A/B"], metadata: { Ancestors: ["C/D"] } }), [
+      "A/B"
+    ]);
+    assert.deepStrictEqual(ancestorsOf({ ...MODELS[0], ancestors: [], metadata: { Ancestors: ["C/D"] } }), ["C/D"]);
+    assert.deepStrictEqual(ancestorsOf({ ...MODELS[0], metadata: {} }), []);
+    assert.deepStrictEqual(
+      visibleModels(MODELS, true).map(m => m.id),
+      MODELS.filter(m => m.id !== "Webda/Ident").map(m => m.id)
+    );
+    assert.strictEqual(
+      visibleModels(
+        MODELS.filter(m => m.id.startsWith("Webda/")),
+        true
+      ).length,
+      2,
+      "framework-only apps keep their models"
+    );
+  });
+
+  it("draws inheritance from the server's ancestors when the metadata is empty", () => {
+    const models = MODELS.map(m => ({ ...m, ancestors: m.metadata?.Ancestors, metadata: { Ancestors: [] } }));
+    const graph = buildGraph(models, null, 800);
+    assert.strictEqual(graph.edges.filter(e => e.type === "inheritance").length, 5);
+  });
+
   it("lays out inheritance trees and relation edges", () => {
     const graph = buildGraph(MODELS, "Sample/User", 800);
     assert.strictEqual(graph.nodes.length, MODELS.length);
     const types = graph.edges.map(e => e.type).sort();
     assert.deepStrictEqual(types, [
+      "inheritance",
       "inheritance",
       "inheritance",
       "inheritance",

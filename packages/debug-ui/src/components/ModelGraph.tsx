@@ -45,6 +45,28 @@ export interface GraphLayout {
 
 type ChildMap = Record<string, string[]>;
 
+/**
+ * Registered parents of a model, closest first: the server's `ancestors`
+ * (4.0.0-beta.6+), else the metadata's `Ancestors`.
+ *
+ * @param model - the model
+ * @returns the ancestor identifiers
+ */
+export function ancestorsOf(model: DebugModel): string[] {
+  if (Array.isArray(model.ancestors) && model.ancestors.length > 0) return model.ancestors;
+  return model.metadata?.Ancestors || [];
+}
+
+/**
+ * Whether a model belongs to the framework rather than to the application.
+ *
+ * @param id - the model identifier
+ * @returns `true` for `Webda/*`
+ */
+export function isFrameworkModel(id: string): boolean {
+  return id.startsWith("Webda/");
+}
+
 const treeWidth = (nodeId: string, childMap: ChildMap): number => {
   const kids = childMap[nodeId] || [];
   if (kids.length === 0) return 1;
@@ -75,8 +97,8 @@ export function buildGraph(models: DebugModel[], selectedId: string | null, cont
   const childMap: ChildMap = {};
   const roots: string[] = [];
   models.forEach(m => {
-    const ancestors = m.metadata?.Ancestors || [];
-    const parentId = ancestors.length > 0 && byId[ancestors[0]] ? ancestors[0] : null;
+    // Closest registered ancestor that is part of the graph
+    const parentId = ancestorsOf(m).find(a => byId[a]) ?? null;
     if (parentId) {
       childMap[parentId] ??= [];
       childMap[parentId].push(m.id);
@@ -164,9 +186,9 @@ export function buildGraph(models: DebugModel[], selectedId: string | null, cont
     const src = nodeMap[m.id];
     if (!src) return;
     const relations = m.relations || {};
-    const ancestors = m.metadata?.Ancestors || [];
-    if (ancestors[0] && nodeMap[ancestors[0]]) {
-      edges.push({ from: nodeMap[ancestors[0]], to: src, type: "inheritance" });
+    const parentId = ancestorsOf(m).find(a => nodeMap[a]);
+    if (parentId) {
+      edges.push({ from: nodeMap[parentId], to: src, type: "inheritance" });
     }
     if (relations.parent && nodeMap[relations.parent.model]) {
       edges.push({ from: src, to: nodeMap[relations.parent.model], type: "parent", label: relations.parent.attribute });
@@ -282,6 +304,29 @@ export interface ModelGraphProps {
 }
 
 /**
+ * Models to draw.
+ *
+ * With `hideFramework`, the application's models stay, together with the
+ * framework models they extend (so the inheritance tree keeps its roots);
+ * framework models no application model descends from are hidden. An
+ * application without models of its own shows everything.
+ *
+ * @param models - all models
+ * @param hideFramework - hide `Webda/*` models that are not ancestors of application models
+ * @returns the models to draw
+ */
+export function visibleModels(models: DebugModel[], hideFramework: boolean): DebugModel[] {
+  if (!hideFramework) return models;
+  const app = models.filter(m => !isFrameworkModel(m.id));
+  if (app.length === 0) return models;
+  const keep = new Set<string>(app.map(m => m.id));
+  for (const m of app) {
+    for (const ancestor of ancestorsOf(m)) keep.add(ancestor);
+  }
+  return models.filter(m => keep.has(m.id));
+}
+
+/**
  * Inheritance and relation graph of the models, re-laid out when the container resizes.
  *
  * @param props - models, selection and select handler
@@ -290,6 +335,9 @@ export interface ModelGraphProps {
 export function ModelGraph(props: ModelGraphProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
+  const hasFramework = props.models.some(m => isFrameworkModel(m.id));
+  const [hideFramework, setHideFramework] = useState(true);
+  const models = useMemo(() => visibleModels(props.models, hideFramework), [props.models, hideFramework]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -302,10 +350,7 @@ export function ModelGraph(props: ModelGraphProps): React.JSX.Element {
     return () => ro.disconnect();
   }, []);
 
-  const graph = useMemo(
-    () => buildGraph(props.models, props.selectedId, width),
-    [props.models, props.selectedId, width]
-  );
+  const graph = useMemo(() => buildGraph(models, props.selectedId, width), [models, props.selectedId, width]);
 
   const legend: { color: string; label: string; dashed?: boolean; circle?: boolean }[] = [
     { color: COLORS.inheritance, label: "Extends", dashed: true },
@@ -332,6 +377,12 @@ export function ModelGraph(props: ModelGraphProps): React.JSX.Element {
             {l.label}
           </div>
         ))}
+        {hasFramework && (
+          <label className="wdbg-checkbox wdbg-graph-toggle">
+            <input type="checkbox" checked={hideFramework} onChange={e => setHideFramework(e.target.checked)} />
+            Hide unused framework models (Webda/*)
+          </label>
+        )}
       </div>
       <div ref={containerRef} className="wdbg-graph-canvas">
         <svg width={graph.width} height={graph.height} style={{ display: "block" }} data-testid="model-graph">

@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
-    "start": "NODE_OPTIONS='--max-old-space-size=8192' docusaurus start",
-    "build": "docusaurus build",
+    "start": "pnpm run sync:debug-ui && NODE_OPTIONS='--max-old-space-size=8192' docusaurus start",
+    "build": "pnpm run sync:debug-ui && docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",
@@ -13,12 +13,12 @@
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
     "update:typedoc": "node ./typedocs.js",
-    "update:readme": "node ./readme.js"
+    "update:readme": "node ./readme.js",
+    "sync:debug-ui": "node ./sync-debug-ui.js"
   },
   "dependencies": {
     "@docusaurus/core": "^3.9.2",
     "@docusaurus/module-type-aliases": "^3.9.2",
-    "@docusaurus/plugin-google-gtag": "^3.9.2",
     "@docusaurus/preset-classic": "^3.9.2",
     "@docusaurus/theme-mermaid": "^3.9.2",
     "@docusaurus/tsconfig": "^3.9.2",

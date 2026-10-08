@@ -48,6 +48,10 @@ export interface DebugModel {
   actions: (string | { name: string })[];
   /** Relation graph */
   relations: ModelRelations;
+  /** Registered parent models, closest first (servers ≥ 4.0.0-beta.6) */
+  ancestors?: string[];
+  /** Registered models extending this one directly */
+  subclasses?: string[];
   /** Name of the store persisting the model */
   store?: string;
   /** Class name of that store */

@@ -1,13 +1,17 @@
 import * as assert from "assert";
 import { act, cleanup, render } from "@testing-library/react";
 import React from "react";
+import { assertAllowlisted } from "./test/harness.js";
 import { afterEach, vi, describe, it } from "vitest";
 import {
   ANALYTICS_EVENTS,
+  ANALYTICS_MESSAGE_TYPE,
   ANALYTICS_PARAM_VALUES,
   AnalyticsProvider,
+  createIframeTracker,
   sanitizeEvent,
   useTrack,
+  validateAnalyticsMessage,
   type AnalyticsEvent,
   type AnalyticsParams
 } from "./analytics.js";
@@ -16,26 +20,6 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
-
-/**
- * Assert that a tracked call only carries allowlisted parameters.
- *
- * @param event - the event
- * @param params - the parameters
- */
-export function assertAllowlisted(event: string, params: AnalyticsParams | undefined): void {
-  assert.ok(Object.prototype.hasOwnProperty.call(ANALYTICS_EVENTS, event), `event ${event} is not allowlisted`);
-  const allowed: readonly string[] = ANALYTICS_EVENTS[event as AnalyticsEvent];
-  for (const [key, value] of Object.entries(params ?? {})) {
-    assert.ok(allowed.includes(key), `param ${key} is not allowed on ${event}`);
-    const enumeration = ANALYTICS_PARAM_VALUES[key];
-    if (enumeration) assert.ok(enumeration.includes(String(value)), `value ${value} is not allowed for ${key}`);
-    assert.ok(
-      typeof value === "number" || (typeof value === "string" && value.length <= 64),
-      `unexpected value for ${key}`
-    );
-  }
-}
 
 describe("SanitizeEventTest", () => {
   it("dropsUnknownEvents", () => {
@@ -66,8 +50,16 @@ describe("SanitizeEventTest", () => {
     );
   });
 
-  it("rejectsLongStrings", () => {
+  it("onlyAcceptsVersionsAsFrameworkVersion", () => {
     assert.deepStrictEqual(sanitizeEvent("debug_connected", { framework_version: "x".repeat(65) }), {});
+    assert.deepStrictEqual(sanitizeEvent("debug_connected", { framework_version: "4.0.0-beta.6" }), {
+      framework_version: "4.0.0-beta.6"
+    });
+    assert.deepStrictEqual(sanitizeEvent("debug_connected", { framework_version: "unknown" }), {
+      framework_version: "unknown"
+    });
+    assert.deepStrictEqual(sanitizeEvent("debug_connected", { framework_version: "/Users/me/app" }), {});
+    assert.deepStrictEqual(sanitizeEvent("debug_connected", { framework_version: "4.0.0-beta.6 my-app" }), {});
   });
 
   it("eventsWithoutParametersStayEmpty", () => {
@@ -118,5 +110,49 @@ describe("UseTrackTest", () => {
       );
     });
     assert.strictEqual(sink.mock.calls.length, 1);
+  });
+});
+
+describe("analytics iframe bridge", () => {
+  it("validatesMessagesAgainstTheAllowlist", () => {
+    assert.deepStrictEqual(
+      validateAnalyticsMessage({
+        type: ANALYTICS_MESSAGE_TYPE,
+        event: "panel_open",
+        params: { panel: "logs", model: "x" }
+      }),
+      {
+        event: "panel_open",
+        params: { panel: "logs" }
+      }
+    );
+    assert.strictEqual(
+      validateAnalyticsMessage({ type: ANALYTICS_MESSAGE_TYPE, event: "model_selected", params: {} }),
+      undefined
+    );
+    assert.strictEqual(validateAnalyticsMessage({ type: "other", event: "panel_open" }), undefined);
+    assert.strictEqual(validateAnalyticsMessage("panel_open"), undefined);
+    assert.strictEqual(validateAnalyticsMessage(null), undefined);
+    assert.deepStrictEqual(validateAnalyticsMessage({ type: ANALYTICS_MESSAGE_TYPE, event: "config_view" }), {
+      event: "config_view",
+      params: {}
+    });
+  });
+
+  it("postsOnlySanitizedPayloadsToTheIframe", () => {
+    const posted: unknown[][] = [];
+    const track = createIframeTracker(() => ({ postMessage: (m: unknown, o: string) => posted.push([m, o]) }));
+    track("panel_open", { panel: "models", model: "Sample/User", token: "secret" } as AnalyticsParams);
+    track("nope" as AnalyticsEvent, { a: 1 });
+    assert.deepStrictEqual(posted, [
+      [{ type: ANALYTICS_MESSAGE_TYPE, event: "panel_open", params: { panel: "models" } }, "*"]
+    ]);
+    for (const [message] of posted)
+      assertAllowlisted((message as { event: string }).event, (message as { params: AnalyticsParams }).params);
+  });
+
+  it("toleratesAMissingIframe", () => {
+    const track = createIframeTracker(() => null);
+    track("model_graph_view");
   });
 });

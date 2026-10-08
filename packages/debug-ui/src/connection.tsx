@@ -92,6 +92,8 @@ export interface DebugConnectionProviderProps {
   enabled?: boolean;
   /** Probe interval while disconnected, in ms */
   probeIntervalMs?: number;
+  /** Called when the server refuses the token (e.g. to forget a stored one) */
+  onUnauthorized?: () => void;
   children: React.ReactNode;
 }
 
@@ -105,7 +107,7 @@ export interface DebugConnectionProviderProps {
  * @returns the provider element
  */
 export function DebugConnectionProvider(props: DebugConnectionProviderProps): React.JSX.Element {
-  const { mode, enabled = true, probeIntervalMs = 5000, children } = props;
+  const { mode, enabled = true, probeIntervalMs = 5000, onUnauthorized, children } = props;
   const track = useTrack();
   const [port, setPortState] = useState<number>(() => props.port ?? getStoredPort());
   const [token, setToken] = useState<string | undefined>(() => props.token ?? getStoredToken());
@@ -180,6 +182,7 @@ export function DebugConnectionProvider(props: DebugConnectionProviderProps): Re
       } catch (err) {
         if (cancelled) return;
         const reason: ConnectionFailure = err instanceof DebugClientError ? err.reason : "unreachable";
+        if (reason === "unauthorized") onUnauthorized?.();
         setInfo(null);
         setVersion(null);
         setStatus("error");
@@ -199,7 +202,7 @@ export function DebugConnectionProvider(props: DebugConnectionProviderProps): Re
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [client, enabled, probeIntervalMs, attempt, mode, track]);
+  }, [client, enabled, probeIntervalMs, attempt, mode, track, onUnauthorized]);
 
   // Websocket, kept open while connected.
   useEffect(() => {

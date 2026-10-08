@@ -104,12 +104,51 @@ export function deriveWsUrl(baseUrl: string): string {
 /**
  * Base URL of a debug server on the loopback interface.
  *
+ * `127.0.0.1` by default: browsers resolve `localhost` to `::1` first, and a
+ * local squatter on `[::1]:<port>` would otherwise receive the token.
+ *
  * @param port - debug port
- * @param host - `localhost` (default) or `127.0.0.1`
+ * @param host - `127.0.0.1` (default), `[::1]` or `localhost`
  * @returns the base URL
  */
-export function localhostBaseUrl(port: number, host: "localhost" | "127.0.0.1" = "localhost"): string {
+export function localhostBaseUrl(port: number, host: "127.0.0.1" | "[::1]" | "localhost" = "127.0.0.1"): string {
   return `http://${host}:${port}`;
+}
+
+/**
+ * Exchange the one-time bootstrap code of `webda debug --web --local` for the session token.
+ *
+ * `POST <baseUrl>/api/session` with `{ code }`; the server consumes the code
+ * on the first attempt.
+ *
+ * @param baseUrl - the debug server
+ * @param code - the code from the `#code=` fragment
+ * @param doFetch - `fetch` implementation
+ * @returns the token and the API version
+ */
+export async function exchangeBootstrapCode(
+  baseUrl: string,
+  code: string,
+  doFetch: typeof fetch = fetch.bind(globalThis)
+): Promise<{ token: string; debugApiVersion?: number }> {
+  let res: Response;
+  try {
+    res = await doFetch(`${baseUrl.replace(/\/$/, "")}/api/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ code }),
+      mode: "same-origin",
+      credentials: "omit"
+    });
+  } catch (err) {
+    throw new DebugClientError("unreachable", (err as Error)?.message || "Network error");
+  }
+  if (res.status === 403 || res.status === 401)
+    throw new DebugClientError("unauthorized", "Invalid or expired code", res.status);
+  if (!res.ok) throw new DebugClientError("http", `session exchange: HTTP ${res.status}`, res.status);
+  const body = (await res.json()) as { token?: string; debugApiVersion?: number };
+  if (!body.token) throw new DebugClientError("http", "session exchange returned no token");
+  return { token: body.token, debugApiVersion: body.debugApiVersion };
 }
 
 /**

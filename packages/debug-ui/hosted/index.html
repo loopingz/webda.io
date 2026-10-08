@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Hosted debug dashboard (https://webda.io/debug/). Served as a static page outside
+      Docusaurus so that no site script, no analytics tag and no third-party code runs in
+      the document that holds the session token. Analytics go through the sandboxed
+      analytics.html iframe. The CSP below is the only one GitHub Pages can enforce; the
+      dashboard dials 127.0.0.1 only (browsers reject IPv6 literals as CSP sources anyway).
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:*; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="noindex" />
+    <meta name="webda-ga" content="" />
+    <title>Webda debug dashboard</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

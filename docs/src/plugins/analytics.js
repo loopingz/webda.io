@@ -1,47 +1,40 @@
 /**
- * Consent Mode v2 defaults and debug-session hygiene, injected in <head>
- * BEFORE the Google tag (this plugin is listed before plugin-google-gtag in
- * docusaurus.config.ts, and plugin head tags are emitted in that order).
+ * GA4 for the documentation pages, with Consent Mode v2.
  *
- * The inline script:
- * 1. moves the `#token=…&telemetry=0` fragment that `webda debug --web` puts in
- *    the dashboard URL into sessionStorage and removes it from the URL, so no
- *    page_location ever carries the token;
- * 2. disables the Google tag for the whole session when telemetry is opted out
- *    (`window["ga-disable-<id>"]`);
- * 3. pushes the consent defaults: everything denied, analytics_storage granted
- *    only when the visitor already accepted the banner.
+ * Not the stock plugin-google-gtag: the loader is emitted here so that
+ * - the consent defaults precede `gtag('config')`,
+ * - `page_location` never carries a query string or a fragment (the shared
+ *   helper in ./page-location.js is used by the head script and the client module),
+ * - nothing is emitted at all without a measurement id.
+ *
+ * The hosted debug dashboard (/debug/) is a static page outside Docusaurus and
+ * gets none of this; its usage events go through a sandboxed iframe.
  *
  * @param {import('@docusaurus/types').LoadContext} _context - the site context
  * @param {{ measurementId?: string }} options - the GA4 measurement id, when analytics are enabled
  * @returns {import('@docusaurus/types').Plugin} the plugin
  */
-module.exports = function analyticsConsentPlugin(_context, options) {
+module.exports = function analyticsPlugin(_context, options) {
   const measurementId = options && options.measurementId;
+  const enabled = !!measurementId && process.env.NODE_ENV === "production";
   return {
-    name: "webda-analytics-consent",
+    name: "webda-analytics",
+    getClientModules() {
+      return enabled ? ["./gtag-client.js"] : [];
+    },
     injectHtmlTags() {
-      if (!measurementId) return {};
-      const script = `
+      if (!enabled) return {};
+      const id = JSON.stringify(measurementId);
+      return {
+        headTags: [
+          { tagName: "link", attributes: { rel: "preconnect", href: "https://www.googletagmanager.com" } },
+          {
+            tagName: "script",
+            innerHTML: `
 (function () {
-  var id = ${JSON.stringify(measurementId)};
   window.dataLayer = window.dataLayer || [];
   function gtag() { dataLayer.push(arguments); }
-  try {
-    var hash = location.hash;
-    if (hash && /(^#|&)(token|telemetry)=/.test(hash)) {
-      var params = new URLSearchParams(hash.substring(1));
-      var token = params.get("token");
-      if (token) sessionStorage.setItem("webda.debug.token", token);
-      if (params.get("telemetry") === "0") sessionStorage.setItem("webda.debug.telemetry", "0");
-      var port = new URLSearchParams(location.search).get("port");
-      if (port && /^[0-9]+$/.test(port)) localStorage.setItem("webda.debug.port", port);
-      history.replaceState(null, "", location.pathname + location.search);
-    }
-  } catch (e) {}
-  try {
-    if (sessionStorage.getItem("webda.debug.telemetry") === "0") window["ga-disable-" + id] = true;
-  } catch (e) {}
+  window.gtag = gtag;
   var consent = null;
   try { consent = localStorage.getItem("webda.consent"); } catch (e) {}
   gtag("consent", "default", {
@@ -51,9 +44,22 @@ module.exports = function analyticsConsentPlugin(_context, options) {
     analytics_storage: consent === "granted" ? "granted" : "denied",
     wait_for_update: 500
   });
-})();`;
-      return {
-        headTags: [{ tagName: "script", innerHTML: script }]
+  gtag("js", new Date());
+  gtag("config", ${id}, {
+    anonymize_ip: true,
+    page_location: location.origin + location.pathname,
+    page_referrer: ""
+  });
+})();`
+          },
+          {
+            tagName: "script",
+            attributes: {
+              async: true,
+              src: `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`
+            }
+          }
+        ]
       };
     }
   };

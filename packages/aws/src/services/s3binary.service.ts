@@ -139,8 +139,9 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     for (const i in data.Contents) {
       if (data.Contents[i].Key.endsWith("data")) foundData = true;
       if (data.Contents[i].Key.endsWith(`${property}_${uuid}`)) foundMap = true;
-      if (data.Contents[i].Key.split("/").pop().startsWith("challenge_")) {
-        challenge = data.Contents[i].Key.split("/").pop().substring("challenge_".length);
+      // The proof the service wrote on upload (`proof_<challenge>`); legacy `challenge_` keys are no proof
+      if (data.Contents[i].Key.split("/").pop().startsWith("proof_")) {
+        challenge = data.Contents[i].Key.split("/").pop().substring("proof_".length);
       }
     }
     const headers = {
@@ -171,7 +172,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       return upload();
     }
     // New content: the signed PUT binds the bytes to the announced hash (Content-MD5)
-    await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
+    await this.putMarker(body.hash, `proof_${body.challenge}`, "proof");
     await this.uploadSuccess(<any>object, property, body);
     await this.putMarker(body.hash, `${property}_${uuid}`, store);
     return upload();
@@ -279,7 +280,9 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       Prefix: this._getKey(hash, "")
     });
     data.Contents ??= [];
-    return data.Contents.filter(k => !(k.Key.includes("data") || k.Key.includes("challenge"))).length;
+    return data.Contents.filter(
+      k => !(k.Key.includes("data") || k.Key.includes("challenge") || k.Key.includes("proof_"))
+    ).length;
   }
 
   /**
@@ -460,8 +463,8 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         ContentLength: file.size
       });
     }
-    // Set challenge aside for now
-    await this.putMarker(file.hash, `challenge_${file.challenge}`, "challenge");
+    // The proof of possession of the content, compared on later challenges
+    await this.putMarker(file.hash, `proof_${file.challenge}`, "proof");
 
     await this.putMarker(file.hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));
     await this.uploadSuccess(<any>object, property, file.toBinaryFileInfo());

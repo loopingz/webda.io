@@ -148,11 +148,11 @@ class StorageTest extends WebdaApplicationTest {
     const res = await this.binary.putRedirectUrl(user, "images", info);
     assert.strictEqual(res.method, "PUT");
     assert.strictEqual(res.headers["Content-MD5"], Buffer.from(file.hash, "hex").toString("base64"));
-    assert.strictEqual(res.headers["x-goog-meta-challenge"], file.challenge);
+    assert.strictEqual(res.headers["x-goog-meta-proof"], file.challenge);
     assert.ok(res.url.includes(this.binary._getKey(file.hash)));
     assert.strictEqual(await this.binary.getUsageCount(file.hash), 1);
     // Simulate the upload done by the client
-    await this.binary.putObject(this.binary._getKey(file.hash), await file.get(), { challenge: file.challenge });
+    await this.binary.putObject(this.binary._getKey(file.hash), await file.get(), { proof: file.challenge });
     // Same challenge, no need to upload again
     const user2 = await User.create({ uuid: randomUUID(), displayName: "plop2" });
     assert.strictEqual(await this.binary.putRedirectUrl(user2, "images", info), undefined);

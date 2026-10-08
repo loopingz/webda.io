@@ -70,7 +70,7 @@ class StorageChallengeTest extends WebdaApplicationTest {
   async existingDataNeedsTheMatchingChallenge() {
     const { file, info } = await this.file();
     // The binary exists with the challenge its uploader sent as metadata
-    this.objects.set(this.binary._getKey(file.hash, "data"), { challenge: file.challenge });
+    this.objects.set(this.binary._getKey(file.hash, "data"), { proof: file.challenge });
     // A reader copying the hash with a wrong challenge: an upload URL, nothing attached
     const attacker = await User.create({ uuid: "gcs-attacker" } as any);
     const res = await this.binary.putRedirectUrl(attacker, "images", {
@@ -89,13 +89,24 @@ class StorageChallengeTest extends WebdaApplicationTest {
   }
 
   @test
+  async legacyChallengeMetadataIsNoProof() {
+    const { file, info } = await this.file("legacy");
+    // Stored before the fix: a `challenge` metadata whose value every reader of the owner could see
+    this.objects.set(this.binary._getKey(file.hash, "data"), { challenge: file.challenge });
+    const user = await User.create({ uuid: "gcs-legacy" } as any);
+    const res = await this.binary.putRedirectUrl(user, "images", info as any);
+    assert.strictEqual(res?.method, "PUT", "an upload is required");
+    assert.strictEqual(((await User.ref("gcs-legacy").get()) as any).images, undefined);
+  }
+
+  @test
   async newContentAttachesAndAsksForTheUpload() {
     const { file, info } = await this.file("brand new");
     const user = await User.create({ uuid: "gcs-new" } as any);
     const res = await this.binary.putRedirectUrl(user, "images", info as any);
     assert.strictEqual(res?.method, "PUT");
     assert.strictEqual(res.headers["Content-MD5"], Buffer.from(file.hash, "hex").toString("base64"));
-    assert.strictEqual(res.headers["x-goog-meta-challenge"], file.challenge);
+    assert.strictEqual(res.headers["x-goog-meta-proof"], file.challenge);
     // The content is bound to the announced hash by Content-MD5 on the signed PUT
     assert.strictEqual(((await User.ref("gcs-new").get()) as any).images.hash, file.hash);
   }

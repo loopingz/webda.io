@@ -307,7 +307,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     if (!exists) {
       await this.putObject(this._getKey(file.hash), await file.get(), {
         ...file.metadata,
-        challenge: file.challenge
+        proof: file.challenge
       });
     }
     await this.putMarker(file.hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));
@@ -364,16 +364,17 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       contentType: "application/octet-stream",
       contentMd5: base64String,
       extensionHeaders: {
-        "x-goog-meta-challenge": body.challenge
+        "x-goog-meta-proof": body.challenge
       }
     };
-    // Check whether the data already exists, and the challenge its uploader stored with it
+    // Check whether the data already exists, and the proof its uploader stored with it (`proof` metadata; the
+    // legacy `challenge` metadata, whose value every reader of the owner could see, is no proof)
     let exists = false;
     let challenge: string | undefined;
     try {
       const res = await this.getStorageBucket().file(params.key).getMetadata();
       exists = true;
-      const stored = res[0].metadata?.challenge;
+      const stored = res[0].metadata?.proof;
       challenge = stored === undefined || stored === null ? undefined : `${stored}`;
     } catch {
       // The data does not exist yet
@@ -398,7 +399,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       headers: {
         "Content-MD5": base64String,
         "Content-Type": "application/octet-stream",
-        "x-goog-meta-challenge": body.challenge,
+        "x-goog-meta-proof": body.challenge,
         Host: new URL(url).host
       }
     };

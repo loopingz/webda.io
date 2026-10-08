@@ -66,7 +66,7 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
   async existingDataNeedsTheMatchingChallenge() {
     const { file, info } = await this.file();
     // The binary exists in the bucket with the challenge of its uploader
-    this.keys.push(this.binary._getKey(file.hash), this.binary._getKey(file.hash, `challenge_${file.challenge}`));
+    this.keys.push(this.binary._getKey(file.hash), this.binary._getKey(file.hash, `proof_${file.challenge}`));
     // A reader copying the hash with a wrong challenge: an upload URL, nothing attached
     const attacker = await User.create({ uuid: "s3-attacker" } as any);
     const res = await this.binary.putRedirectUrl(attacker, "images", { ...info, challenge: "not-the-challenge" });
@@ -89,6 +89,17 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     assert.strictEqual(res.headers["Content-MD5"], Buffer.from(file.hash, "hex").toString("base64"));
     // The content is bound to the announced hash by Content-MD5 on the signed PUT
     assert.strictEqual(((await User.ref("s3-new").get()) as any).images.hash, file.hash);
-    assert.ok(this.written.includes(this.binary._getKey(file.hash, `challenge_${file.challenge}`)));
+    assert.ok(this.written.includes(this.binary._getKey(file.hash, `proof_${file.challenge}`)));
+  }
+
+  @test
+  async legacyChallengeKeysAreNoProof() {
+    const { file, info } = await this.file("legacy");
+    // Stored before the fix: only a `challenge_` key, whose value every reader of the owner could see
+    this.keys.push(this.binary._getKey(file.hash), this.binary._getKey(file.hash, `challenge_${file.challenge}`));
+    const user = await User.create({ uuid: "s3-legacy" } as any);
+    const res = await this.binary.putRedirectUrl(user, "images", info);
+    assert.strictEqual(res?.method, "PUT", "an upload is required");
+    assert.strictEqual(((await User.ref("s3-legacy").get()) as any).images, undefined);
   }
 }

@@ -83,8 +83,11 @@ export class FileBinaryParameters extends CloudBinaryParameters {
  *
  * The structure used for now is
  * /folder/{hash}/data
- * /folder/{hash}/{targetStore}_{uuid}
- * /folder/{hash}/challenge
+ * /folder/{hash}/{model}_{attribute}_{uuid}   usage markers
+ * /folder/{hash}/proof_{challenge}           proof of possession, written by the service on upload
+ *
+ * Before 4.0.0-beta.5 the proof was `_{challenge}` and the challenge was sent to clients: those markers are ignored
+ * (a leaked value attaches nothing), the content is uploaded once more to get a `proof_` marker.
  *
  * It takes one parameter
  *  folder: "path"
@@ -410,7 +413,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     if (!fs.existsSync(path)) {
       fs.writeFileSync(path, body as any);
     }
-    this._touch(this._getPath(result.hash, "_" + result.challenge));
+    this._touch(this._getPath(result.hash, this.proofMarker(result.challenge)));
     if (dt.target) {
       // The content is stored and matches the announced hash: attach it to the object the challenge was made for
       let object: any;
@@ -429,12 +432,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @override
    */
   async getUsageCount(hash: string) {
-    const path = this._getPath(hash);
-    if (!fs.existsSync(path)) {
-      return 0;
-    }
-    const files = fs.readdirSync(path);
-    return files.length - 2;
+    return this.usageMarkers(hash).length;
   }
 
   /**
@@ -458,14 +456,12 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   async _cleanUsage(hash: string, uuid: string, attribute?: string): Promise<void> {
     const p = this._getPath(hash);
     if (!fs.existsSync(p)) return;
-    uuid = this.safeName(uuid);
-    uuid = uuid.startsWith("_") ? uuid : `_${uuid}`;
-    const files = fs.readdirSync(p);
-    files
-      .filter(f => f.endsWith(attribute ? `_${this.safeName(attribute)}${uuid}` : `${uuid}`))
+    // A marker ends with `_<attribute>_<uuid>` (see usageMarker)
+    const key = this.safeName(uuid);
+    this.usageMarkers(hash)
+      .filter(f => f.endsWith(attribute ? `_${this.safeName(attribute)}_${key}` : `_${key}`))
       .forEach(f => fs.unlinkSync(this._getPath(hash, f)));
-
-    if (files.length == 3) {
+    if (this.usageMarkers(hash).length === 0) {
       await this._cleanHash(hash);
     }
   }
@@ -480,15 +476,38 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
-   * Verify that a binary with the given hash exists and contains the expected challenge marker.
+   * Name of the proof marker of a challenge (legacy `_<challenge>` markers are not proofs)
+   * @param challenge - the challenge
+   * @returns the marker file name
+   */
+  protected proofMarker(challenge: string): string {
+    return `proof_${this.safeName(challenge)}`;
+  }
+
+  /**
+   * Verify that a binary with the given hash exists and carries the proof marker of the challenge, written by the
+   * service when the content was uploaded
    *
    * @param hash - the content hash
    * @param challenge - the challenge string
-   * @returns true if the challenge marker exists
+   * @returns true if the proof marker exists
    */
   challenge(hash, challenge) {
     const path = this._getPath(hash);
-    return fs.existsSync(path) && fs.existsSync(`${path}/_${challenge}`);
+    return !!challenge && fs.existsSync(path) && fs.existsSync(`${path}/${this.proofMarker(challenge)}`);
+  }
+
+  /**
+   * Usage markers of a hash folder: every file but the data and the proof markers (legacy `_` ones included)
+   * @param hash - the content hash
+   * @returns the marker names
+   */
+  protected usageMarkers(hash: string): string[] {
+    const path = this._getPath(hash);
+    if (!fs.existsSync(path)) {
+      return [];
+    }
+    return fs.readdirSync(path).filter(f => f !== "data" && !f.startsWith("_") && !f.startsWith("proof_"));
   }
 
   /**
@@ -515,7 +534,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
         .on("finish", resolve);
     });
 
-    this._touch(this._getPath(file.hash, "_" + file.challenge));
+    this._touch(this._getPath(file.hash, this.proofMarker(file.challenge)));
     this._touch(
       this._getPath(
         file.hash,

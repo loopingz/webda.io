@@ -6,6 +6,7 @@ import * as path from "path";
 import {
   Binaries,
   Binary,
+  BinaryMap,
   MemoryBinaryFile,
   MemoryRepository,
   registerRepository,
@@ -14,6 +15,7 @@ import {
   WebdaError
 } from "@webda/core";
 import { TestApplication, WebdaApplicationTest } from "@webda/core/lib/test";
+import { useApplication } from "@webda/core";
 import { JSONUtils } from "@webda/utils";
 import { FileBinary } from "./filebinary.service.js";
 
@@ -162,6 +164,66 @@ class FileBinaryChallengeTest extends WebdaApplicationTest {
     const res = await this.binary.putRedirectUrl(attacker, "images", copied, await this.newContext());
     assert.ok(res?.url);
     assert.deepStrictEqual(await this.images(attacker.getUUID()), []);
+  }
+
+  /**
+   * Maps persisted before the fix carry a challenge: it is dropped on load, absent from the schema, and the legacy
+   * `_<challenge>` markers are no proof any more (the holder uploads once; a leaked value attaches nothing)
+   */
+  @test
+  async legacyChallengesAreNeitherLoadedNorProofs() {
+    const { user, hash } = await this.storedFor("legacy content");
+    const { challenge } = await this.hashes("legacy content");
+    // A pre-fix row: the challenge persisted on the map, the legacy `_<challenge>` marker in the folder (no proof_)
+    await ImageUser.ref(user.getUUID()).patch({
+      images: [{ hash, challenge, size: 14, name: "l.txt", mimetype: "text/plain" }]
+    } as any);
+    fs.unlinkSync(this.binary._getPath(hash, `proof_${challenge}`));
+    this.binary._touch(this.binary._getPath(hash, `_${challenge}`));
+    assert.strictEqual(await this.binary.getUsageCount(hash), 1, "legacy markers do not count as usages");
+    const loaded: any = await ImageUser.ref(user.getUUID()).get();
+    // Hydrated the way a compiled model does it: the stored info goes through BinaryMap.set (BinariesItem, Binary)
+    const map = new BinaryMap(this.binary, loaded.images[0]);
+    assert.strictEqual(map.challenge, undefined, "dropped on load");
+    assert.strictEqual(map.hash, hash);
+    assert.ok(!JSON.stringify(map).includes(challenge));
+    assert.ok(!JSON.stringify(map).includes("challenge"));
+    // The single-binary behavior too
+    const single = new Binary();
+    single.set({ hash, challenge, size: 14, name: "l.txt", mimetype: "text/plain" } as any);
+    assert.strictEqual(single.challenge, undefined);
+    assert.ok(!JSON.stringify(single).includes("challenge"));
+    // The generated schema of the binary information carries no challenge
+    const schema: any = useApplication().getSchema("Webda/BinaryFile");
+    assert.ok(schema, "schema exists");
+    assert.strictEqual(schema.properties?.challenge, undefined);
+    assert.ok(!(schema.required ?? []).includes("challenge"));
+    // A leaked legacy challenge attaches nothing: the legacy marker is not a proof
+    const attacker = await ImageUser.create({ displayName: "attacker" } as any);
+    const res = await this.binary.putRedirectUrl(
+      attacker,
+      "images",
+      { hash, challenge, size: 14, name: "l.txt", mimetype: "text/plain" } as any,
+      await this.newContext()
+    );
+    assert.ok(res?.url, "an upload is required");
+    assert.deepStrictEqual(await this.images(attacker.getUUID()), []);
+    // Once uploaded again (post-fix proof), the holder dedupes
+    const upload = await this.newContext("legacy content");
+    upload.setParameters({ hash, token: res.url.split("token=")[1] });
+    await this.binary.storeBinary(upload);
+    assert.strictEqual((await this.images(attacker.getUUID())).length, 1);
+    const holder = await ImageUser.create({ displayName: "holder" } as any);
+    assert.strictEqual(
+      await this.binary.putRedirectUrl(
+        holder,
+        "images",
+        { hash, challenge, size: 14, name: "h.txt", mimetype: "text/plain" } as any,
+        await this.newContext()
+      ),
+      undefined
+    );
+    assert.strictEqual(await this.binary.getUsageCount(hash), 3);
   }
 
   /**

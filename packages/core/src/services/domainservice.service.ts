@@ -21,6 +21,7 @@ import {
   createModel,
   getParentRelation,
   hasModelPermissionCheck,
+  hasStaticPermissionCheck,
   NOT_FOUND_MESSAGE,
   queryModelWithPermissions
 } from "../models/permissions.js";
@@ -555,7 +556,9 @@ export class DomainService<
     } else {
       // Static action: the model's static canAct is asked without object
       await checkStaticModelPermission(model, context, action.name);
-      return model[handler](context);
+      // With an input schema the arguments are resolved from it (`callOperation`); without one the context is passed
+      const resolved = args.length > 0 && !(args[0] instanceof OperationContext);
+      return model[handler](...(resolved ? args : [context]));
     }
   }
 
@@ -625,6 +628,15 @@ export class DomainService<
           "WARN",
           `${Metadata.Identifier} is exposed but denies every request: define static canAct (or the instance canAct)`
         );
+      } else if (!hasStaticPermissionCheck(model)) {
+        // Instance form only: static actions are asked without object, so the base static refuses them all
+        const statics = Object.keys(Metadata.Actions ?? {}).filter(name => Metadata.Actions[name]?.global);
+        if (statics.length) {
+          this.log(
+            "WARN",
+            `${Metadata.Identifier} defines only the instance canAct: its static actions (${statics.join(", ")}) are always refused, define static canAct`
+          );
+        }
       }
       const shortId = Metadata.Identifier.split("/").pop();
       const plural = Metadata.Plural;

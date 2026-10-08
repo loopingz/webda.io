@@ -36,16 +36,14 @@ export type PermissionQuery = {
 type PermissionCheck = (context: IOperationContext, action: string, object?: any) => any;
 
 /**
- * The static `canAct(context, action, object?)` of a model class: the one framework entry point
+ * The static `canAct(context, action, object?)` of one model class
  *
  * When the class defines none (a plain object in a unit test, a class built without `@webda/models`), the base
  * {@link Model.canAct} semantics apply: delegate to the instance `canAct(context, action)`, otherwise deny.
- * @param model - the model class, when known
- * @param object - the object, to find the class when `model` is not given
+ * @param clazz - the model class
  * @returns the static check, bound to its class
  */
-function staticCanAct(model: any, object?: any): PermissionCheck {
-  const clazz = model ?? object?.constructor;
+function staticCanActOf(clazz: any): PermissionCheck {
   if (typeof clazz?.canAct === "function") {
     return (context, action, target) => clazz.canAct(context, action, target);
   }
@@ -53,16 +51,60 @@ function staticCanAct(model: any, object?: any): PermissionCheck {
 }
 
 /**
+ * The permission check of an object reached through a model class: the one framework entry point
+ *
+ * Stores are polymorphic: an object reached through a model class (the route or query class) may belong to a
+ * subclass with its own policy. The action is then allowed only when BOTH the reached class and the object's own
+ * class allow it, `ReachedModel.canAct(ctx, action, object)` first. When the two are the same class (or there is
+ * no object, as for a static action) the class is asked once.
+ * @param model - the model class the object is reached through, when known
+ * @param object - the object, if any
+ * @returns the check
+ */
+function staticCanAct(model: any, object?: any): PermissionCheck {
+  const own = object !== undefined && object !== null ? object.constructor : undefined;
+  const reached = model ?? own;
+  const classes = [reached];
+  if (typeof model === "function" && own && own !== model && own !== Object) {
+    if (!(object instanceof model)) {
+      // A row of an unrelated class (a misconfigured shared repository): it is not an object of the reached model
+      return () => `not a ${model.name}`;
+    }
+    classes.push(own);
+  }
+  const checks = classes.map(staticCanActOf);
+  if (checks.length === 1) {
+    return checks[0];
+  }
+  return async (context, action, target) => {
+    for (const check of checks) {
+      const allowed = await check(context, action, target);
+      if (allowed !== true) {
+        return allowed;
+      }
+    }
+    return true;
+  };
+}
+
+/**
+ * Whether a model class defines a static `canAct` of its own (not the base one)
+ * @param model - the model class
+ * @returns true when the static form is overridden
+ */
+export function hasStaticPermissionCheck(model: any): boolean {
+  return typeof model?.canAct === "function" && model.canAct !== Model.canAct;
+}
+
+/**
  * Whether a model class defines a permission check at all: a static `canAct` of its own (not the base one), or an
- * instance `canAct`. A model with neither is refused on every transport
+ * instance `canAct`. A model with neither is refused on every transport. Subclasses with their own check do not
+ * open a class that has none: an object reached through a class must be allowed by that class too
  * @param model - the model class
  * @returns true when the model defines one of the two forms
  */
 export function hasModelPermissionCheck(model: any): boolean {
-  return (
-    (typeof model?.canAct === "function" && model.canAct !== Model.canAct) ||
-    typeof model?.prototype?.canAct === "function"
-  );
+  return hasStaticPermissionCheck(model) || typeof model?.prototype?.canAct === "function";
 }
 
 /**
@@ -521,7 +563,6 @@ export async function queryModelWithPermissions<T = any>(
    */
   const page = (count: number, token?: string) =>
     new QueryValidator(base).merge(`LIMIT ${count}${token ? ` OFFSET ${JSON.stringify(token)}` : ""}`).toString();
-  const check = staticCanAct(model);
   const budget = Math.min(Math.max(limit * SCAN_FACTOR, MIN_SCANNED_ROWS), MAX_SCANNED_ROWS);
   const results: T[] = [];
   let scanned = 0;
@@ -531,7 +572,10 @@ export async function queryModelWithPermissions<T = any>(
   while (true) {
     const rows = res.results ?? [];
     scanned += rows.length;
-    const readable = await Promise.all(rows.map(async r => (await askPermission(check, context, "get", r)) === true));
+    // Each row is checked with the queried class and, for a subclass row, its own class too
+    const readable = await Promise.all(
+      rows.map(async r => (await askPermission(staticCanAct(model, r), context, "get", r)) === true)
+    );
     results.push(...rows.filter((_r, i) => readable[i]));
     token = res.continuationToken;
     if (!token || results.length >= limit) {

@@ -275,7 +275,17 @@ class BinaryBehaviorTest extends WebdaApplicationTest {
     const populated: any = Object.create(Binary.prototype);
     populated[WEBDA_STORAGE] = { empty: false };
     populated.hash = "abc";
-    assert.strictEqual(populated.toJSON(), populated, "populated Binary serializes as itself");
+    populated.challenge = "proof-of-possession";
+    populated.size = 3;
+    // A populated Binary serializes as its file information, without the challenge (the proof of possession)
+    assert.deepStrictEqual(populated.toJSON(), {
+      hash: "abc",
+      size: 3,
+      mimetype: undefined,
+      metadata: undefined,
+      name: undefined
+    });
+    assert.ok(!JSON.stringify(populated).includes("challenge"));
   }
 
   /**

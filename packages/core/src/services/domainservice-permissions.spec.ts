@@ -93,6 +93,15 @@ class Report extends UuidModel {
   static async rebuild() {
     return { rebuilt: true };
   }
+
+  /**
+   * Static action with parameters, resolved from its input schema: `PUT /reports/echo {value}`
+   * @param value - the value
+   * @returns the value
+   */
+  static async echo(value: string) {
+    return { value };
+  }
 }
 
 /**
@@ -183,6 +192,59 @@ OpenNote.registerSerializer();
 AclDoc.registerSerializer();
 
 /**
+ * Open parent, closed child: rows of the child come back from the parent's repository (polymorphic store)
+ */
+class PubBase extends UuidModel {
+  title: string;
+  static asked = 0;
+  static canAct(): boolean {
+    PubBase.asked++;
+    return true;
+  }
+}
+class SecretChild extends PubBase {
+  static canAct(): string {
+    return "secret";
+  }
+}
+class PubChild extends PubBase {
+  static canAct(): boolean {
+    return true;
+  }
+}
+/**
+ * Closed parent, open child
+ */
+class DenyBase extends UuidModel {
+  title: string;
+  static canAct(): string {
+    return "closed";
+  }
+}
+class OpenChild extends DenyBase {
+  static canAct(): boolean {
+    return true;
+  }
+}
+/**
+ * Instance form only, with a static action: that action is always refused
+ */
+class LegacyReport extends UuidModel {
+  async canAct(): Promise<boolean> {
+    return true;
+  }
+  static async rebuild() {
+    return {};
+  }
+}
+PubBase.registerSerializer();
+SecretChild.registerSerializer();
+PubChild.registerSerializer();
+DenyBase.registerSerializer();
+OpenChild.registerSerializer();
+LegacyReport.registerSerializer();
+
+/**
  * Minimal metadata for a model registered at runtime
  * @param id - the model identifier
  * @param actions - exposed actions
@@ -225,11 +287,28 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     app.addModel("WebdaDemo/PermTask", PermTask, metadata("WebdaDemo/PermTask", { publish: { method: "PUT" } }));
     app.addModel("WebdaDemo/OpenNote", OpenNote, metadata("WebdaDemo/OpenNote"));
     app.addModel("WebdaDemo/PublicNote", PublicNote, metadata("WebdaDemo/PublicNote"));
+    app.addModel("WebdaDemo/SecretChild", SecretChild, metadata("WebdaDemo/SecretChild"));
+    app.addModel("WebdaDemo/PubChild", PubChild, metadata("WebdaDemo/PubChild"));
+    app.addModel("WebdaDemo/PubBase", PubBase, {
+      ...metadata("WebdaDemo/PubBase"),
+      Subclasses: [SecretChild, PubChild]
+    });
+    app.addModel("WebdaDemo/OpenChild", OpenChild, metadata("WebdaDemo/OpenChild"));
+    app.addModel("WebdaDemo/DenyBase", DenyBase, { ...metadata("WebdaDemo/DenyBase"), Subclasses: [OpenChild] });
+    app.addModel(
+      "WebdaDemo/LegacyReport",
+      LegacyReport,
+      metadata("WebdaDemo/LegacyReport", { rebuild: { global: true, method: "PUT" } })
+    );
     app.addModel(
       "WebdaDemo/Report",
       Report,
-      metadata("WebdaDemo/Report", { rebuild: { global: true, method: "PUT" } })
+      metadata("WebdaDemo/Report", { rebuild: { global: true, method: "PUT" }, echo: { global: true, method: "PUT" } })
     );
+    const { registerSchema } = await import("../schemas/hooks.js");
+    const echoSchema = { type: "object", properties: { value: { type: "string" } }, required: ["value"] };
+    registerSchema("WebdaDemo/Report.echo.input", echoSchema);
+    app.getSchemas()["WebdaDemo/Report.echo.input"] = echoSchema;
     app.addModel("WebdaDemo/AclDoc", AclDoc, metadata("WebdaDemo/AclDoc"));
     app.addModel("WebdaDemo/PermSubTask", PermSubTask, {
       ...metadata("WebdaDemo/PermSubTask"),
@@ -266,6 +345,16 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     registerRepository(PublicNote, new MemoryRepository(PublicNote, ["uuid"]));
     registerRepository(Report, new MemoryRepository(Report, ["uuid"]));
     Report.calls = [];
+    // One storage per hierarchy, one repository per class (as a store does): subclass rows come back from the
+    // parent's queries and reads, typed with their own class
+    const pubStorage = new Map<string, string>();
+    registerRepository(PubBase, new MemoryRepository(PubBase, ["uuid"], undefined, pubStorage));
+    registerRepository(SecretChild, new MemoryRepository(SecretChild, ["uuid"], undefined, pubStorage));
+    registerRepository(PubChild, new MemoryRepository(PubChild, ["uuid"], undefined, pubStorage));
+    const denyStorage = new Map<string, string>();
+    registerRepository(DenyBase, new MemoryRepository(DenyBase, ["uuid"], undefined, denyStorage));
+    registerRepository(OpenChild, new MemoryRepository(OpenChild, ["uuid"], undefined, denyStorage));
+    registerRepository(LegacyReport, new MemoryRepository(LegacyReport, ["uuid"]));
     registerRepository(AclDoc, new MemoryRepository(AclDoc, ["uuid"]));
     registerRepository(PermSubTask, new MemoryRepository(PermSubTask, ["uuid"]));
     registerRepository(Slugged as any, new MemoryRepository(Slugged as any, ["slug"]) as any);
@@ -529,6 +618,11 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     const statics = Report.calls.filter(c => c.action === "rebuild");
     assert.strictEqual(statics.length, 3);
     assert.ok(statics.every(c => c.object === undefined));
+    // A static action with an input schema receives its arguments
+    const echo = await this.request("admin", "PUT", "/perm/reports/echo", { value: "hello" });
+    assert.strictEqual(echo.status, 200);
+    assert.deepStrictEqual(echo.body, { value: "hello" });
+    assert.strictEqual((await this.request("admin", "PUT", "/perm/reports/echo", {})).status, 400);
   }
 
   @test
@@ -616,9 +710,57 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
       warnings.some(w => w.includes("WebdaDemo/OpenNote") && w.includes("static canAct")),
       JSON.stringify(warnings)
     );
+    // Instance form only with a static action: that action is always refused
+    assert.ok(
+      warnings.some(w => w.includes("WebdaDemo/LegacyReport") && w.includes("rebuild")),
+      JSON.stringify(warnings)
+    );
     for (const covered of ["WebdaDemo/PermTask", "WebdaDemo/PublicNote", "WebdaDemo/Report", "WebdaDemo/AclDoc"]) {
       assert.ok(!warnings.some(w => w.includes(covered)), covered);
     }
+  }
+
+  @test
+  async subclassRowsAreCheckedWithBothClasses() {
+    // Rows are saved as instances of their class (the repository types them), as a store does for subclasses
+    await PubBase.create({ uuid: "base1", title: "base" } as any);
+    await Object.assign(new SecretChild(), { uuid: "child1", title: "secret child" }).save();
+    await Object.assign(new PubChild(), { uuid: "child2", title: "open child" }).save();
+    await DenyBase.create({ uuid: "deny1", title: "closed" } as any);
+    await Object.assign(new OpenChild(), { uuid: "open1", title: "open" }).save();
+    assert.strictEqual((await PubBase.ref("child1").get()).constructor, SecretChild, "the row keeps its class");
+    // A row of an unrelated class reached through a model is refused (a misconfigured shared repository)
+    const ctxA: any = { getCurrentUserId: () => USER_A };
+    await assert.rejects(() => checkModelPermission(new DenyBase(), ctxA, "get", OpenChild), WebdaError.NotFound);
+    const ids = async (url: string) =>
+      (await this.request(USER_A, "PUT", url, { q: "" })).body.results.map((r: any) => r.uuid).sort();
+    // Parent allows, child denies: denied through the parent route (and its own)
+    assert.strictEqual((await this.request(USER_A, "GET", "/perm/pubBases/child1")).status, 404);
+    assert.strictEqual((await this.request(USER_A, "PATCH", "/perm/pubBases/child1", { title: "x" })).status, 404);
+    assert.strictEqual(
+      (await this.request(USER_A, "PUT", "/perm/pubBases/child1", { uuid: "child1", title: "x" })).status,
+      404
+    );
+    assert.strictEqual((await this.request(USER_A, "DELETE", "/perm/pubBases/child1")).status, 404);
+    assert.strictEqual((await this.request(USER_A, "GET", "/perm/secretChilds/child1")).status, 404);
+    assert.strictEqual((await SecretChild.ref("child1").get()).title, "secret child", "unchanged");
+    assert.deepStrictEqual(await ids("/perm/pubBases"), ["base1", "child2"]);
+    assert.deepStrictEqual(await ids("/perm/secretChilds"), []);
+    // Parent denies, child allows: denied through the parent route, allowed through the child route
+    assert.strictEqual((await this.request(USER_A, "GET", "/perm/denyBases/open1")).status, 404);
+    assert.deepStrictEqual(await ids("/perm/denyBases"), []);
+    assert.strictEqual((await this.request(USER_A, "GET", "/perm/openChilds/open1")).status, 200);
+    assert.deepStrictEqual(await ids("/perm/openChilds"), ["open1"]);
+    // Both allow: allowed, and the parent is asked once per check when the classes are the same
+    assert.strictEqual((await this.request(USER_A, "GET", "/perm/pubBases/child2")).status, 200);
+    PubBase.asked = 0;
+    assert.strictEqual((await this.request(USER_A, "GET", "/perm/pubBases/base1")).status, 200);
+    assert.strictEqual(PubBase.asked, 1);
+    // The helper itself
+    await assert.rejects(() => checkModelPermission(new SecretChild(), ctxA, "get", PubBase), WebdaError.NotFound);
+    await assert.rejects(() => checkModelPermission(new OpenChild(), ctxA, "get", DenyBase), WebdaError.NotFound);
+    await checkModelPermission(new OpenChild(), ctxA, "get", OpenChild);
+    await checkModelPermission(new PubChild(), ctxA, "get", PubBase);
   }
 
   @test

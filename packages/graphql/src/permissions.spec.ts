@@ -35,6 +35,26 @@ class ClosedDoc extends UuidModel {
 ClosedDoc.registerSerializer();
 
 /**
+ * Open parent whose repository also holds the rows of a closed subclass
+ */
+class PubBase extends UuidModel {
+  static Metadata: any = { Identifier: "Test/PubBase", PrimaryKey: ["uuid"], Relations: {}, Subclasses: [] };
+  title: string;
+  static canAct(): boolean {
+    return true;
+  }
+}
+class SecretChild extends PubBase {
+  static Metadata: any = { Identifier: "Test/SecretChild", PrimaryKey: ["uuid"], Relations: {}, Subclasses: [] };
+  static canAct(): string {
+    return "secret";
+  }
+}
+PubBase.Metadata.Subclasses = [SecretChild];
+PubBase.registerSerializer();
+SecretChild.registerSerializer();
+
+/**
  * Owner-only children, with private fields
  */
 class Child extends OwnerModel {
@@ -114,6 +134,28 @@ describe("GraphQL permissions go through the core helper", () => {
       code: "NOT_FOUND"
     });
     assert.strictEqual((await ClosedDoc.ref("c1").get()).name, "closed");
+  });
+
+  it("a subclass row reached through its parent is checked with both classes", async () => {
+    const repo = new MemoryRepository(PubBase, ["uuid"]);
+    registerRepository(PubBase, repo as any);
+    registerRepository(SecretChild, repo as any);
+    await PubBase.create({ uuid: "base1", title: "base" } as any);
+    await Object.assign(new SecretChild(), { uuid: "child1", title: "secret" }).save();
+    const svc = service();
+    assert.strictEqual(((await svc.loadModelInstance("base1", PubBase as any, alice)) as any).title, "base");
+    const refused = await error(() => svc.loadModelInstance("child1", PubBase as any, alice));
+    assert.deepStrictEqual(refused, { message: "Object not found", code: "NOT_FOUND" });
+    assert.deepStrictEqual(await error(() => updateFromInput(PubBase, "child1", { title: "x" }, alice)), refused);
+    assert.deepStrictEqual(
+      await error(() => svc.registerAsyncIterator(PubBase as any, "child1", alice, "PubBase")),
+      refused
+    );
+    const list = await svc.queryRelated({ getQuery: (q: string) => q } as any, PubBase, "", alice);
+    assert.deepStrictEqual(
+      list.results.map((r: any) => r.uuid),
+      ["base1"]
+    );
   });
 
   it("any error thrown by canAct is a refusal, on create too", async () => {

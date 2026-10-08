@@ -290,6 +290,16 @@ export class BinaryMap<T extends object = {}> extends BinaryFile<T> {
   }
 
   /**
+   * Client representation: the file information without the `challenge`, which is the proof of possession of the
+   * content (md5 of "WEBDA" + content) and must never reach a reader of the object
+   * @returns the file information
+   */
+  toJSON(): BinaryFileInfo<T> {
+    const { challenge: _challenge, ...info } = this.toBinaryFileInfo();
+    return info;
+  }
+
+  /**
    * Get into a buffer
    * @returns the result
    */
@@ -655,7 +665,7 @@ export class Binary<T extends object = {}> extends BinaryMap<T> {
     if (!this.hash) {
       return undefined as unknown as BinaryFileInfo<T>;
     }
-    return this;
+    return super.toJSON();
   }
 }
 
@@ -1380,16 +1390,18 @@ export abstract class BinaryService<
           additionalAttr.join(",")
       );
     }
+    // The challenge is the proof of possession of the content: it is never persisted on the object (readers of the
+    // object would learn it and could attach the binary to their own objects)
+    const { challenge: _challenge, ...stored } = file;
+    file = stored;
     // Persist the BinaryFileInfo on the parent model. After the
     // Binary→Behavior migration the cardinality lives on
     // `Metadata.Relations.behaviors[]` (no more `Relations.binaries[]`).
     // `Webda/BinariesImpl` ⇒ MANY (append), anything else (`Webda/Binary`)
     // ⇒ ONE (replace).
-    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined =
-      (object as any)?.constructor?.Metadata?.Relations?.behaviors;
-    const beh = Array.isArray(behaviorRels)
-      ? behaviorRels.find(b => b.attribute === property)
-      : undefined;
+    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined = (object as any)?.constructor
+      ?.Metadata?.Relations?.behaviors;
+    const beh = Array.isArray(behaviorRels) ? behaviorRels.find(b => b.attribute === property) : undefined;
     const isCollection = beh?.behavior === "Webda/BinariesImpl";
 
     if (isCollection) {
@@ -1429,15 +1441,13 @@ export abstract class BinaryService<
     // Binary→Behavior migration. `Webda/BinariesImpl` ⇒ MANY (splice),
     // anything else (`Webda/Binary`) ⇒ ONE (clear). Mirrors the lookup in
     // `uploadSuccess`.
-    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined =
-      (object as any)?.constructor?.Metadata?.Relations?.behaviors;
-    const beh = Array.isArray(behaviorRels)
-      ? behaviorRels.find(b => b.attribute === property)
-      : undefined;
+    const behaviorRels: Array<{ attribute: string; behavior: string }> | undefined = (object as any)?.constructor
+      ?.Metadata?.Relations?.behaviors;
+    const beh = Array.isArray(behaviorRels) ? behaviorRels.find(b => b.attribute === property) : undefined;
     const isCollection = beh?.behavior === "Webda/BinariesImpl";
 
     const info: BinaryMap = <BinaryMap>(
-      isCollection && index !== undefined ? object[property][index] : object[property]
+      (isCollection && index !== undefined ? object[property][index] : object[property])
     );
 
     if (isCollection) {

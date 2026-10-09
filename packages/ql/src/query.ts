@@ -3,10 +3,15 @@ import { AbstractParseTreeVisitor, ParseTree, TerminalNode } from "antlr4ts/tree
 import { WebdaQLLexer } from "./WebdaQLLexer.js";
 import {
   AndLogicExpressionContext,
+  AssignmentContext,
   AtomExpressionContext,
   BinaryComparisonExpressionContext,
   BooleanLiteralContext,
   ContainsExpressionContext,
+  DeleteStatementContext,
+  ExpressionContext,
+  FieldListContext,
+  FilterQueryContext,
   InExpressionContext,
   IntegerLiteralContext,
   IsNotNullExpressionContext,
@@ -19,9 +24,12 @@ import {
   OrderExpressionContext,
   OrderFieldExpressionContext,
   ParameterContext,
+  SelectStatementContext,
   SetExpressionContext,
+  StatementContext,
   StringLiteralContext,
   SubExpressionContext,
+  UpdateStatementContext,
   WebdaQLParserParser,
   WebdaqlContext
 } from "./WebdaQLParserParser.js";
@@ -32,6 +40,21 @@ import { WebdaQLError } from "./webdaql-string.js";
  * Primitive value types supported by WebdaQL expressions
  */
 type value = boolean | string | number;
+
+/**
+ * Kind of statement a query is: a plain filter is an implicit `SELECT` of every field
+ */
+export type QueryType = "SELECT" | "DELETE" | "UPDATE";
+
+/**
+ * One `field = value` of an `UPDATE SET`
+ */
+export interface Assignment {
+  /** Field path (dot-notation for nested attributes) */
+  field: string;
+  /** Value to assign */
+  value: value;
+}
 
 /**
  * Strip the quotes of a WebdaQL string literal and unescape its contents.
@@ -94,11 +117,14 @@ export interface OrderBy {
  * Prepend a condition to an existing query string using AND logic
  *
  * Parses both strings, merges them, and reconstructs the combined query.
- * ORDER BY, LIMIT, and OFFSET clauses from the original query are preserved.
+ * The statement head (`SELECT fields`, `DELETE`, `UPDATE SET ...`) and the ORDER BY, LIMIT, and OFFSET clauses
+ * of the original query are preserved; the condition joins the WHERE part. Both sides keep their own grouping:
+ * `a OR b` merged with `c OR d` is `( a OR b ) AND ( c OR d )`.
  *
- * @param query - existing query string (may include ORDER BY / LIMIT / OFFSET)
- * @param condition - condition to prepend (filter expression only)
+ * @param query - existing query string (a plain filter or a statement, may include ORDER BY / LIMIT / OFFSET)
+ * @param condition - condition to prepend (a plain filter: a statement is refused)
  * @returns merged query string
+ * @throws {SyntaxError} if the condition is a statement, or adds ORDER BY / OFFSET to a DELETE or UPDATE
  *
  * @example
  * ```ts
@@ -136,6 +162,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
   protected defaultResult(): Query {
     // An empty AND return true
     return {
+      type: "SELECT",
       filter: new AndExpression([])
     };
   }
@@ -195,39 +222,127 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
   }
 
   /**
-   * Visit the root `webdaql` rule and build the complete Query
-   *
-   * Parses filter expression, ORDER BY, LIMIT, and OFFSET clauses.
-   * Returns an empty AND expression (always true) when no filter is present.
+   * Visit the root `webdaql` rule and build the complete Query: a statement or a plain filter query
    * @param ctx - the webdaql parse context
    * @returns the built Query
    */
   visitWebdaql(ctx: WebdaqlContext): Query {
-    if (ctx.childCount === 1) {
-      // An empty AND return true
-      return {
-        filter: new AndExpression([])
-      };
-    }
+    return ctx.statement() ? this.visitStatement(ctx.statement()) : this.visitFilterQuery(ctx.filterQuery());
+  }
 
-    // To parse offset and limit and order by
-    for (let i = 1; i < ctx.childCount - 1; i++) {
-      this.visit(ctx.getChild(i));
-    }
-    // If the first element is a sub expression, it means we have a filter
-    if (ctx.getChild(0) instanceof SubExpressionContext) {
-      return {
-        filter: normalizeFilter(
-          (this.visit(ctx.getChild(0).getChild(1)) as unknown as Expression) || new AndExpression([])
-        ),
-        limit: this.limit,
-        continuationToken: this.offset,
-        orderBy: this.orderBy
-      };
-    }
-    // Go down one level - if expression empty it means no expression were provided
+  /**
+   * Visit a DELETE, UPDATE or SELECT statement
+   * @param ctx - the statement context
+   * @returns the built Query
+   */
+  visitStatement(ctx: StatementContext): Query {
+    return this.visit(ctx.getChild(0));
+  }
+
+  /**
+   * Visit a plain filter query: an implicit SELECT of every field
+   *
+   * Parses filter expression, ORDER BY, LIMIT, and OFFSET clauses.
+   * Returns an empty AND expression (always true) when no filter is present.
+   * @param ctx - the filter query context
+   * @returns the built Query
+   */
+  visitFilterQuery(ctx: FilterQueryContext): Query {
+    return this.buildQuery("SELECT", ctx.expression(), ctx);
+  }
+
+  /**
+   * Visit `DELETE [WHERE ...] [LIMIT n]`
+   * @param ctx - the DELETE statement context
+   * @returns the built Query
+   */
+  visitDeleteStatement(ctx: DeleteStatementContext): Query {
+    return this.buildQuery("DELETE", ctx.whereClause()?.expression(), ctx);
+  }
+
+  /**
+   * Visit `UPDATE SET a = v, ... [WHERE ...] [LIMIT n]`
+   * @param ctx - the UPDATE statement context
+   * @returns the built Query
+   */
+  visitUpdateStatement(ctx: UpdateStatementContext): Query {
     return {
-      filter: normalizeFilter((this.visit(ctx.getChild(0)) as unknown as Expression) || new AndExpression([])),
+      ...this.buildQuery("UPDATE", ctx.whereClause()?.expression(), ctx),
+      assignments: ctx
+        .assignmentList()
+        .assignment()
+        .map(a => this.visitAssignment(a))
+    };
+  }
+
+  /**
+   * Visit `SELECT f1, f2 [WHERE ...] [ORDER BY ...] [LIMIT n] [OFFSET token]`
+   * @param ctx - the SELECT statement context
+   * @returns the built Query
+   */
+  visitSelectStatement(ctx: SelectStatementContext): Query {
+    return {
+      ...this.buildQuery("SELECT", ctx.whereClause()?.expression(), ctx),
+      fields: this.visitFieldList(ctx.fieldList())
+    };
+  }
+
+  /**
+   * Read one `field = value` of an UPDATE SET
+   * @param ctx - the assignment context
+   * @returns the assignment
+   */
+  visitAssignment(ctx: AssignmentContext): Assignment {
+    return {
+      field: ctx.identifier().text,
+      value: this.visit(ctx.getChild(2)) as unknown as value
+    };
+  }
+
+  /**
+   * Read the field list of a SELECT
+   * @param ctx - the field list context
+   * @returns the field paths
+   */
+  visitFieldList(ctx: FieldListContext): string[] {
+    return ctx.identifier().map(id => id.text);
+  }
+
+  /**
+   * Visit a parenthesised expression: the inner expression
+   * @param ctx - the sub expression context
+   * @returns the inner expression
+   */
+  visitSubExpression(ctx: SubExpressionContext): Expression {
+    return this.visit(ctx.expression()) as unknown as Expression;
+  }
+
+  /**
+   * Build the Query of a statement or filter query: its condition and its ORDER BY, LIMIT and OFFSET clauses
+   * @param type - the statement type
+   * @param expression - the condition, if any
+   * @param ctx - the statement context holding the optional clauses
+   * @returns the Query
+   */
+  protected buildQuery(
+    type: QueryType,
+    expression: ExpressionContext | undefined,
+    ctx: FilterQueryContext | DeleteStatementContext | UpdateStatementContext | SelectStatementContext
+  ): Query {
+    for (const clause of [
+      "orderExpression" in ctx ? ctx.orderExpression() : undefined,
+      ctx.limitExpression(),
+      "offsetExpression" in ctx ? ctx.offsetExpression() : undefined
+    ]) {
+      if (clause) {
+        this.visit(clause);
+      }
+    }
+    return {
+      type,
+      filter: normalizeFilter(
+        (expression ? (this.visit(expression) as unknown as Expression) : undefined) || new AndExpression([])
+      ),
       limit: this.limit,
       continuationToken: this.offset,
       orderBy: this.orderBy
@@ -450,6 +565,18 @@ export interface Query {
    * Order by clause
    */
   orderBy?: OrderBy[];
+  /**
+   * Statement type: `SELECT` for a plain filter query (an implicit SELECT of every field) and an explicit SELECT
+   */
+  type: QueryType;
+  /**
+   * Field list of an explicit `SELECT f1, f2`; undefined means every field
+   */
+  fields?: string[];
+  /**
+   * Assignments of an `UPDATE SET`
+   */
+  assignments?: Assignment[];
   /**
    * Get the string representation of the query
    */
@@ -963,17 +1090,7 @@ export class QueryValidator {
    * @returns the reconstructed query string
    */
   toString() {
-    let res = this.query.filter.toString();
-    if (this.query.orderBy) {
-      res += ` ORDER BY ${this.query.orderBy.map(o => `${o.field} ${o.direction}`).join(", ")}`;
-    }
-    if (this.query.limit) {
-      res += ` LIMIT ${this.query.limit}`;
-    }
-    if (this.query.continuationToken) {
-      res += ` OFFSET "${this.query.continuationToken}"`;
-    }
-    return res.trim();
+    return stringifyQuery(this.query);
   }
 
   /**
@@ -988,6 +1105,15 @@ export class QueryValidator {
    */
   merge(query: string, type: "OR" | "AND" = "AND"): this {
     const adds = new QueryValidator(query);
+    if (adds.query.type !== "SELECT" || adds.query.fields) {
+      throw new SyntaxError(`Only a filter can be merged into a query, not a statement (Query: ${query})`);
+    }
+    if (
+      (this.query.type === "DELETE" || this.query.type === "UPDATE") &&
+      (adds.query.orderBy || adds.query.continuationToken)
+    ) {
+      throw new SyntaxError(`${this.query.type} statements take no ORDER BY or OFFSET (Query: ${query})`);
+    }
     // Add additional conditions
     if (adds.hasCondition()) {
       if (
@@ -1038,11 +1164,10 @@ export class QueryValidator {
    * @returns the full query object
    */
   getQuery(): Query {
-    return {
-      ...this.query,
-      // Use displayTree to get the truely executed query
-      toString: () => this.displayTree()
-    };
+    const query: Query = { ...this.query };
+    // Print the current state of the query, so a caller changing its LIMIT or OFFSET prints the new values
+    query.toString = () => stringifyQuery(query);
+    return query;
   }
 
   /**
@@ -1332,10 +1457,117 @@ export function unsanitize(query: string): string {
 }
 
 /**
- * Parse a query string into a Query object
- * @param query - the query string to parse
- * @returns the parsed Query object
+ * Print a query in its canonical form, which parses back to the same query
+ *
+ * - plain filter: `<filter> [ORDER BY ...] [LIMIT n] [OFFSET "token"]`
+ * - `SELECT f1, f2 [WHERE <filter>] [ORDER BY ...] [LIMIT n] [OFFSET "token"]`
+ * - `DELETE [WHERE <filter>] [LIMIT n]`
+ * - `UPDATE SET a = v, ... [WHERE <filter>] [LIMIT n]`
+ *
+ * @param query - the query
+ * @returns the query string
  */
-export function parse(query: string): Query {
-  return new QueryValidator(query).getQuery();
+export function stringifyQuery(query: Omit<Query, "toString">): string {
+  const filter = query.filter.toString();
+  let head = "";
+  if (query.type === "DELETE") {
+    head = "DELETE";
+  } else if (query.type === "UPDATE") {
+    head = `UPDATE SET ${(query.assignments ?? []).map(a => new ComparisonExpression("=", a.field, a.value).toString()).join(", ")}`;
+  } else if (query.fields) {
+    head = `SELECT ${query.fields.join(", ")}`;
+  }
+  let res = head ? `${head}${filter ? ` WHERE ${filter}` : ""}` : filter;
+  if (query.orderBy?.length) {
+    res += ` ORDER BY ${query.orderBy.map(o => `${o.field} ${o.direction}`).join(", ")}`;
+  }
+  if (query.limit) {
+    res += ` LIMIT ${query.limit}`;
+  }
+  if (query.continuationToken) {
+    res += ` OFFSET ${ComparisonExpression.prototype.toStringValue(query.continuationToken)}`;
+  }
+  return res.trim();
+}
+
+/**
+ * Whether a field path is allowed: listed itself, or nested in a listed field (`address.city` with `address`)
+ * @param field - the field path
+ * @param allowed - the allowed field paths
+ * @returns true when allowed
+ */
+function isAllowedField(field: string, allowed: Set<string>): boolean {
+  const segments = field.split(".");
+  for (let i = 1; i <= segments.length; i++) {
+    if (allowed.has(segments.slice(0, i).join("."))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Validate the SELECT fields and the UPDATE SET targets of a query against the allowed fields
+ *
+ * A dotted path is allowed when it is listed, or when one of its parents is (`profile.email` is allowed by
+ * `profile` or by `profile.email`). Filter attributes are not checked.
+ *
+ * @param query - parsed query to validate
+ * @param allowedFields - allowed field paths (dot-notation)
+ * @throws {SyntaxError} if a field or an assignment target is not allowed
+ */
+export function validateQueryFields(query: Pick<Query, "fields" | "assignments">, allowedFields: string[]): void {
+  const allowed = new Set(allowedFields);
+  for (const field of query.fields ?? []) {
+    if (!isAllowedField(field, allowed)) {
+      throw new SyntaxError(`Unknown field "${field}". Allowed fields: ${allowedFields.join(", ")}`);
+    }
+  }
+  for (const { field } of query.assignments ?? []) {
+    if (!isAllowedField(field, allowed)) {
+      throw new SyntaxError(`Unknown assignment field "${field}". Allowed fields: ${allowedFields.join(", ")}`);
+    }
+  }
+}
+
+/**
+ * Refuse anything but a plain filter query: DELETE, UPDATE and SELECT with a field list
+ *
+ * Used where a query only selects objects, such as the Query operations exposed to clients. A query built by hand
+ * without `type` is a filter.
+ *
+ * @param query - the parsed query
+ * @throws {WebdaQLError} for a DELETE or UPDATE statement, or a SELECT field list
+ */
+export function assertFilterQuery(query: Partial<Pick<Query, "type" | "fields">>): void {
+  if (query.type !== undefined && query.type !== "SELECT") {
+    throw new WebdaQLError(`${query.type} statements are not accepted here: only a filter query is`);
+  }
+  if (query.fields !== undefined) {
+    throw new WebdaQLError("SELECT field lists are not accepted here: only a filter query is");
+  }
+}
+
+/**
+ * Parse a query string into a Query object
+ *
+ * Accepts a plain filter query (an implicit SELECT of every field) or a statement:
+ * - `SELECT f1, f2 [WHERE <condition>] [ORDER BY ...] [LIMIT n] [OFFSET token]`
+ * - `DELETE [WHERE <condition>] [LIMIT n]`
+ * - `UPDATE SET a = v, b = v [WHERE <condition>] [LIMIT n]`
+ *
+ * Keywords are uppercase only: `select`, `delete`, `set`... remain field names.
+ *
+ * @param query - the query string to parse
+ * @param allowedFields - when given, SELECT fields and UPDATE SET targets must be in this list
+ *   (see {@link validateQueryFields})
+ * @returns the parsed Query object
+ * @throws {SyntaxError} on a grammar error or a field outside `allowedFields`
+ */
+export function parse(query: string, allowedFields?: string[]): Query {
+  const result = new QueryValidator(query).getQuery();
+  if (allowedFields) {
+    validateQueryFields(result, allowedFields);
+  }
+  return result;
 }

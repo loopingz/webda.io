@@ -637,14 +637,21 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
   buildAggregationSQL(query: AggregationQuery, where?: string): { sql: string; decode: (row: any) => any } {
     const columns: string[] = [];
     const groupColumns: string[] = [];
-    const sortColumns: Record<string, string[]> = {};
-    query.groupBy.forEach((path, i) => {
-      columns.push(`${this.jsonPath(path)} AS "g${i}"`);
-      groupColumns.push(String(i + 1));
-      sortColumns[path] = [`"g${i}"`];
-    });
+    // Sort keys of each groupBy path / metric alias: type rank, then number, then text in code unit order, then jsonb
+    const sortKeys: Record<string, string[]> = {};
     const num = (x: string) => `CASE WHEN jsonb_typeof(${x}) = 'number' THEN (${x})::numeric END`;
-    const str = (x: string) => `CASE WHEN jsonb_typeof(${x}) = 'string' THEN ${x} #>> '{}' END`;
+    const str = (x: string) => `(CASE WHEN jsonb_typeof(${x}) = 'string' THEN ${x} #>> '{}' END) COLLATE "C"`;
+    query.groupBy.forEach((path, i) => {
+      const x = this.jsonPath(path);
+      columns.push(`${x} AS "g${i}"`);
+      groupColumns.push(String(i + 1));
+      sortKeys[path] = [
+        `CASE WHEN ${x} IS NULL THEN NULL WHEN jsonb_typeof(${x}) = 'number' THEN 1 WHEN jsonb_typeof(${x}) = 'string' THEN 2 ELSE 3 END`,
+        num(x),
+        str(x),
+        x
+      ];
+    });
     for (const [alias, metric] of Object.entries(query.metrics)) {
       const x = metric.field ? this.jsonPath(metric.field) : "";
       switch (metric.fn) {
@@ -661,27 +668,35 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
           columns.push(`AVG(${num(x)}) AS "m_${alias}"`);
           break;
         case "MIN":
-        case "MAX":
-          columns.push(`${metric.fn}(${num(x)}) AS "n_${alias}"`, `${metric.fn}(${str(x)}) AS "s_${alias}"`);
+        case "MAX": {
+          const n = `${metric.fn}(${num(x)})`;
+          const t = `${metric.fn}(${str(x)})`;
+          columns.push(`${n} AS "n_${alias}"`, `${t} AS "s_${alias}"`);
+          // numbers rank below strings: MIN prefers a number, MAX prefers a string
+          const [first, second] = metric.fn === "MIN" ? [n, t] : [t, n];
+          sortKeys[alias] = [
+            `CASE WHEN ${first} IS NOT NULL THEN 1 WHEN ${second} IS NOT NULL THEN 2 END`,
+            first,
+            second
+          ];
           break;
+        }
       }
-      sortColumns[alias] =
-        metric.fn === "MIN" || metric.fn === "MAX" ? [`"n_${alias}"`, `"s_${alias}"`] : [`"m_${alias}"`];
+      sortKeys[alias] ??= [`"m_${alias}"`];
     }
     const filter = this.duplicateExpression(query.filter).toString();
     let sql = `SELECT ${columns.join(", ")} FROM ${this.table} WHERE ${where ? `${where} AND (${filter})` : filter}`;
     if (groupColumns.length) {
       sql += ` GROUP BY ${groupColumns.join(", ")}`;
     }
-    const orders = (query.orderBy ?? []).flatMap(order =>
-      sortColumns[order.key].map(
-        column => `${column} ${order.direction} NULLS ${order.direction === "ASC" ? "FIRST" : "LAST"}`
-      )
-    );
+    const order = (keys: string[], direction: "ASC" | "DESC") =>
+      keys.map(key => `${key} ${direction} NULLS ${direction === "ASC" ? "FIRST" : "LAST"}`);
+    const orders = (query.orderBy ?? []).flatMap(o => order(sortKeys[o.key], o.direction));
+    if (!orders.length) {
+      orders.push(...query.groupBy.flatMap(path => order(sortKeys[path], "ASC")));
+    }
     if (orders.length) {
       sql += ` ORDER BY ${orders.join(", ")}`;
-    } else if (groupColumns.length) {
-      sql += ` ORDER BY ${groupColumns.join(", ")}`;
     }
     const limit = query.limit ?? (query.groupBy.length ? this.aggregationOptions.maxGroups + 1 : undefined);
     if (limit) {
@@ -692,8 +707,10 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
       query.groupBy.forEach((path, i) => (out[path] = row[`g${i}`] ?? null));
       for (const [alias, metric] of Object.entries(query.metrics)) {
         if (metric.fn === "MIN" || metric.fn === "MAX") {
-          const n = row[`n_${alias}`];
-          out[alias] = n !== null && n !== undefined ? Number(n) : (row[`s_${alias}`] ?? null);
+          const raw = row[`n_${alias}`];
+          const n = raw === null || raw === undefined ? null : Number(raw);
+          const t = row[`s_${alias}`] ?? null;
+          out[alias] = metric.fn === "MIN" ? (n ?? t) : (t ?? n);
         } else {
           const v = row[`m_${alias}`];
           out[alias] = v === null || v === undefined ? null : Number(v);

@@ -31,6 +31,14 @@ class Cat extends Animal {
 }
 Animal.Metadata.Subclasses.push(Dog, Cat);
 
+/** Two unrelated models sharing a table */
+class AggA extends Row {
+  static Metadata = { Identifier: "Test/AggA", Subclasses: [] as any[] };
+}
+class AggB extends Row {
+  static Metadata = { Identifier: "Test/AggB", Subclasses: [] as any[] };
+}
+
 /** Rows covering numbers, booleans, strings, missing fields, nulls and type mismatches */
 export const PARITY_ROWS = [
   { uuid: "r1", n: 1, s: "x", b: true, tags: ["x", 1] },
@@ -313,11 +321,77 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     const { sql } = repo.buildAggregationSQL(
       toAggregationQuery({ groupBy: ["team.name"], metrics: { n: { count: "*" } }, limit: 3 } as any)
     );
+    const x = `NULLIF(data #> '{team,name}', 'null'::jsonb)`;
     assert.strictEqual(
       sql,
-      `SELECT NULLIF(data #> '{team,name}', 'null'::jsonb) AS "g0", COUNT(*) AS "m_n" FROM t WHERE TRUE ` +
-        `GROUP BY 1 ORDER BY 1 LIMIT 3`
+      `SELECT ${x} AS "g0", COUNT(*) AS "m_n" FROM t WHERE TRUE GROUP BY 1 ORDER BY ` +
+        `CASE WHEN ${x} IS NULL THEN NULL WHEN jsonb_typeof(${x}) = 'number' THEN 1 ` +
+        `WHEN jsonb_typeof(${x}) = 'string' THEN 2 ELSE 3 END ASC NULLS FIRST, ` +
+        `CASE WHEN jsonb_typeof(${x}) = 'number' THEN (${x})::numeric END ASC NULLS FIRST, ` +
+        `(CASE WHEN jsonb_typeof(${x}) = 'string' THEN ${x} #>> '{}' END) COLLATE "C" ASC NULLS FIRST, ` +
+        `${x} ASC NULLS FIRST LIMIT 3`
     );
+  }
+
+  @test
+  async aggregationStaysInTheModelHierarchy() {
+    const client = this.store!.getClient();
+    await client.query("DROP TABLE IF EXISTS agg_iso");
+    try {
+      const a = new PostgresRepository<any>(
+        AggA as any,
+        ["uuid"],
+        client,
+        "agg_iso",
+        undefined,
+        undefined,
+        "Test/AggA"
+      );
+      const b = new PostgresRepository<any>(
+        AggB as any,
+        ["uuid"],
+        client,
+        "agg_iso",
+        undefined,
+        undefined,
+        "Test/AggA"
+      );
+      await a.setupTable();
+      await a.create({ uuid: "x", kind: "k1" });
+      await a.create({ uuid: "y", kind: "k2" });
+      await b.create({ uuid: "z", kind: "k1" });
+      await b.create({ uuid: "w", kind: "k3" });
+      // Written before stamping: belongs to the table model
+      await client.query(`INSERT INTO agg_iso(uuid,data) VALUES($1, $2)`, [
+        "old",
+        JSON.stringify({ uuid: "old", kind: "k1" })
+      ]);
+      for (const filter of [undefined, "uuid = 'x' OR uuid = 'z' OR uuid = 'old'"]) {
+        const total = await a.aggregate({ filter, metrics: { n: { count: "*" } } } as any);
+        assert.deepStrictEqual(total.rows, [{ n: filter ? 2 : 3 }], String(filter));
+        const grouped = await a.aggregate({
+          filter,
+          groupBy: ["kind"],
+          metrics: { n: { count: "*" } },
+          orderBy: [{ key: "kind", direction: "ASC" }]
+        } as any);
+        assert.deepStrictEqual(
+          grouped.rows,
+          filter
+            ? [{ kind: "k1", n: 2 }]
+            : [
+                { kind: "k1", n: 2 },
+                { kind: "k2", n: 1 }
+              ],
+          String(filter)
+        );
+        assert.strictEqual(total.native, true);
+      }
+      const other = await b.aggregate({ metrics: { n: { count: "*" } } } as any);
+      assert.deepStrictEqual(other.rows, [{ n: 2 }]);
+    } finally {
+      await client.query("DROP TABLE IF EXISTS agg_iso");
+    }
   }
 
   @test

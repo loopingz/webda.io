@@ -57,6 +57,20 @@ for await (const p of Post.iterate("status = 'published'")) {
 }
 ```
 
+### Bulk statements
+
+`deleteMany` and `updateMany` run a WebdaQL `DELETE` / `UPDATE` statement and return the number of objects
+affected (`query()` and `iterate()` only take a filter):
+
+```typescript
+await useRepository(Post).deleteMany("DELETE WHERE status = ? LIMIT 100", ["spam"]);
+await useRepository(Post).updateMany("UPDATE SET status = 'archived' WHERE createdAt < ?", [cutoff]);
+```
+
+They are bulk store operations: **no per-object event below fires, and no hook, validation or `canAct` runs**.
+Code that lets a client trigger them must check permissions itself. See
+[Statements](../../Modules/ql/Statements.md).
+
 ## Events
 
 Repositories emit typed events around every operation. Register listeners on the

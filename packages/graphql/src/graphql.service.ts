@@ -15,7 +15,8 @@ import {
   isModelActionAllowed,
   queryModelWithPermissions,
   getClientWritableAttributes,
-  assertNoPrivateFields
+  assertNoPrivateFields,
+  assertFilterOnly
 } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
 import * as WebdaQL from "@webda/ql";
@@ -479,7 +480,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * private (`__`) fields
    * @param filter - the client filter
    * @returns the validator, undefined without filter
-   * @throws GraphQLError BAD_USER_INPUT for an invalid filter or one reading private fields
+   * @throws GraphQLError BAD_USER_INPUT for an invalid filter, one reading private fields, or a statement (DELETE,
+   * UPDATE, SELECT field list): GraphQL selection sets choose the fields
    */
   parseFilter(filter?: string): WebdaQL.PartialValidator | undefined {
     if (!filter) {
@@ -488,6 +490,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     try {
       const validator = new WebdaQL.PartialValidator(WebdaQL.unsanitize(filter));
       assertNoPrivateFields(validator);
+      assertFilterOnly(validator);
       return validator;
     } catch (err) {
       throw new GraphQLError(err instanceof WebdaError.BadRequest ? err.message : "Invalid filter", {
@@ -711,7 +714,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         },
         resolve: async (_, args, context) => {
           // Same permission filtering as the DomainService query operation
-          return await queryModelWithPermissions(model, WebdaQL.unsanitize(args.query || ""), context);
+          return await this.queryModel(model, WebdaQL.unsanitize(args.query || ""), context);
         },
         subscribe: async (_source, args, context) => {
           this.log("DEBUG", "Subscription called on", args);
@@ -969,7 +972,43 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     query: string,
     context: any
   ): Promise<{ results: any[]; continuationToken?: string }> {
+    this.assertFilterQuery(query);
     return queryModelWithPermissions(model, related.getQuery(query), context);
+  }
+
+  /**
+   * Run a root query argument: the DomainService query with the caller permissions
+   * @param model - the model class
+   * @param query - the client query
+   * @param context - the caller context
+   * @returns the readable results
+   * @throws GraphQLError BAD_USER_INPUT for a statement (DELETE, UPDATE, SELECT field list)
+   */
+  async queryModel(model: any, query: string, context: any): Promise<{ results: any[]; continuationToken?: string }> {
+    this.assertFilterQuery(query);
+    return queryModelWithPermissions(model, query, context);
+  }
+
+  /**
+   * Refuse a query argument that is not a filter: DELETE and UPDATE are never run from GraphQL, and a SELECT field
+   * list is refused because the selection set already chooses the fields
+   *
+   * A query that does not parse is left to the query path, which reports it as before.
+   * @param query - the client query
+   * @throws GraphQLError BAD_USER_INPUT for a DELETE, an UPDATE or a SELECT field list
+   */
+  assertFilterQuery(query: string): void {
+    let validator: WebdaQL.QueryValidator;
+    try {
+      validator = new WebdaQL.QueryValidator(query ?? "");
+    } catch {
+      return;
+    }
+    try {
+      assertFilterOnly(validator);
+    } catch (err) {
+      throw new GraphQLError(err.message, { extensions: { code: "BAD_USER_INPUT" } });
+    }
   }
 
   /**
@@ -987,6 +1026,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     context: any
   ): Promise<AsyncIterator<any>> {
     // Results are always filtered with the subscriber permissions (permission query and canAct "get")
+    this.assertFilterQuery(query);
     const runQuery = () => queryModelWithPermissions(model, query, context);
     let result = await runQuery();
     const queryInfo = new WebdaQL.QueryValidator(query);

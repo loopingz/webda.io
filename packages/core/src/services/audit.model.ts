@@ -3,9 +3,9 @@ import { Service } from "../services/service.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { CoreModel } from "../models/coremodel.model.js";
 import type { JSONSchema7 } from "json-schema";
-import { escape, parse, QueryValidator } from "@webda/ql";
+import { escape, QueryValidator } from "@webda/ql";
 import * as WebdaError from "../errors/errors.js";
-import { checkModelPermission } from "../models/permissions.js";
+import { assertFilterOnly, checkModelPermission } from "../models/permissions.js";
 import { useApplication, useModel } from "../application/hooks.js";
 import { useModelMetadata } from "../core/hooks.js";
 import { useContext } from "../contexts/execution.js";
@@ -449,11 +449,15 @@ export class AuditService extends Service<AuditServiceParameters> {
     }
     let filter = "";
     if (q) {
+      let query: QueryValidator;
       try {
-        filter = parse(q).filter.toString();
+        query = new QueryValidator(q);
       } catch {
         throw new WebdaError.BadRequest("Query syntax error");
       }
+      // A filter only: a DELETE or UPDATE must not run as its WHERE
+      assertFilterOnly(query);
+      filter = query.getExpression().toString();
     }
     return this.findEntries(filter, limit, continuationToken);
   }

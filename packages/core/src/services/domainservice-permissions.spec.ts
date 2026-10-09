@@ -26,7 +26,9 @@ import {
   queryModelWithPermissions,
   sealContinuationToken,
   unsealContinuationToken,
-  MAX_REFILL_PAGES
+  MAX_REFILL_PAGES,
+  assertFilterOnly,
+  assertNoPrivateFields
 } from "../models/permissions.js";
 import { useCrypto } from "./cryptoservice.service.js";
 import { DomainService, DomainServiceParameters } from "./domainservice.service.js";
@@ -1033,6 +1035,93 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     }
     // `_` (server-managed, not private) fields stay queryable
     assert.strictEqual((await this.request(USER_A, "PUT", "/perm/permTasks", { q: "_user = 'user-a'" })).status, 200);
+  }
+
+  @test
+  async queriesTakeAFilterOnly() {
+    await OpenNote.create({ uuid: "sn1", text: "t" } as any);
+    const statements = [
+      "DELETE",
+      "DELETE WHERE uuid = 'task-b'",
+      "UPDATE SET title = 'pwned'",
+      "UPDATE SET title = 'pwned' WHERE uuid = 'task-b' LIMIT 1",
+      "SELECT title",
+      "SELECT title, uuid WHERE uuid = 'task-b' ORDER BY title LIMIT 5"
+    ];
+    const before = JSON.stringify(await this.stored("task-b"));
+    for (const q of statements) {
+      // REST (the query method of this transport is PUT), on a filtered and a post-filtered model
+      assert.strictEqual((await this.request(USER_B, "PUT", "/perm/permTasks", { q })).status, 400, q);
+      assert.strictEqual((await this.request(USER_B, "PUT", "/perm/aclDocs", { q })).status, 400, q);
+      // A model without any canAct check still refuses it with a 400, before the empty page
+      assert.strictEqual((await this.request(USER_B, "PUT", "/perm/openNotes", { q })).status, 400, q);
+    }
+    assert.strictEqual(JSON.stringify(await this.stored("task-b")), before, "nothing was changed");
+    // `__` in a field list or a SET target is a private field: refused as such
+    for (const q of ["SELECT __secret", "UPDATE SET __secret = 'x'", "SELECT inner.__h WHERE text = 't'"]) {
+      const res = await this.request(USER_B, "PUT", "/perm/openNotes", { q });
+      assert.strictEqual(res.status, 400, q);
+    }
+    // The filter form keeps working, including fields named like the keywords in lowercase
+    assert.strictEqual((await this.request(USER_B, "PUT", "/perm/permTasks", { q: "uuid = 'task-b'" })).status, 200);
+    assert.strictEqual(
+      (await this.request(USER_B, "PUT", "/perm/permTasks", { q: "select = 1 OR delete = 2 OR update = 3" })).status,
+      200
+    );
+  }
+
+  @test
+  privateFieldsInStatements() {
+    for (const query of [
+      "SELECT __secret",
+      "SELECT title, inner.__hash WHERE a = 1",
+      "UPDATE SET __secret = 'x'",
+      "UPDATE SET a = 1, inner.__hash = 'x' WHERE b = 2",
+      "DELETE WHERE __secret = 'x'",
+      "SELECT a ORDER BY __secret"
+    ]) {
+      assert.throws(() => assertNoPrivateFields(new QueryValidator(query)), WebdaError.BadRequest, query);
+    }
+    for (const query of ["SELECT title, inner.hash", "UPDATE SET _user = 'x'", "DELETE WHERE _user = 'x'"]) {
+      assertNoPrivateFields(new QueryValidator(query));
+    }
+  }
+
+  @test
+  filterOnly() {
+    for (const query of ["", "a = 1", "a = 1 ORDER BY b DESC LIMIT 5 OFFSET 'x'", "select = 1 AND where = 2"]) {
+      assertFilterOnly(new QueryValidator(query));
+    }
+    for (const query of [
+      "DELETE",
+      "DELETE WHERE a = 1 LIMIT 2",
+      "UPDATE SET a = 1",
+      "SELECT a",
+      "SELECT a WHERE b = 1"
+    ]) {
+      assert.throws(() => assertFilterOnly(new QueryValidator(query)), WebdaError.BadRequest, query);
+    }
+  }
+
+  @test
+  async otherTransportsTakeAFilterOnly() {
+    // gRPC and MCP dispatch through callOperation with a non-HTTP OperationContext
+    const call = async (operation: string, input: any) => {
+      const ctx = new SimpleOperationContext();
+      await ctx.init();
+      const session = new Session();
+      session.login(USER_B, USER_B);
+      ctx.setSession(session);
+      ctx.setInput(Buffer.from(JSON.stringify(input)));
+      ctx.setParameters(input);
+      await callOperation(ctx, operation);
+      return JSON.parse(<string>ctx.getOutput());
+    };
+    for (const query of ["DELETE WHERE uuid = 'task-b'", "UPDATE SET title = 'x'", "SELECT title"]) {
+      await assert.rejects(() => call("PermTasks.Query", { query }), WebdaError.BadRequest, query);
+    }
+    assert.strictEqual((await this.stored("task-b")).title, "B private");
+    assert.deepStrictEqual((await call("PermTasks.Query", { query: "uuid = 'task-b'" })).results.length, 1);
   }
 
   @test

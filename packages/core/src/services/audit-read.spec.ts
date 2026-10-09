@@ -412,6 +412,27 @@ class AuditReadTest extends WebdaApplicationTest {
   }
 
   @test
+  async queryTakesAFilterOnly() {
+    await this.setupAudit({ level: "write", readPermission: "roles CONTAINS 'admin'" });
+    const op = `Seed.${this.unique("S").replace(/[^A-Za-z0-9]/g, "")}`;
+    await this.seed({ operationId: op });
+    // A statement never runs as its WHERE, and a field list is not a projection
+    for (const q of [
+      `DELETE WHERE operationId = '${op}'`,
+      `UPDATE SET operationId = 'x' WHERE operationId = '${op}'`,
+      `SELECT operationId WHERE operationId = '${op}'`
+    ]) {
+      await assert.rejects(
+        () => this.call("Audit.Query", { q }, { id: "root", roles: ["admin"] }),
+        this.isError(WebdaError.BadRequest),
+        q
+      );
+    }
+    const res = await this.call("Audit.Query", { q: `operationId = '${op}'` }, { id: "root", roles: ["admin"] });
+    assert.strictEqual(res.results.length, 1);
+  }
+
+  @test
   async newestFirstAndPaginated() {
     await this.setupAudit({ level: "write" });
     const alice = await this.user();

@@ -71,6 +71,14 @@ They are bulk store operations: **no per-object event below fires, and no hook, 
 Code that lets a client trigger them must check permissions itself. See
 [Statements](../../Modules/ql/Statements.md).
 
+### Query objects
+
+`query()`, `iterate()`, the bulk methods and the stores' `find()` also take a parsed `Query` object. An object
+built or changed by code is checked and parsed again from its text (`normalizeQuery` in `@webda/ql`): it must be
+expressible in WebdaQL. Custom `Expression` subclasses, duck-typed filters (`{ eval }`), `Date` or object values,
+`$`-prefixed or empty path segments and non-integer LIMITs are refused with a `WebdaQLError`; pass a `Date` as its
+ISO string.
+
 ## Events
 
 Repositories emit typed events around every operation. Register listeners on the

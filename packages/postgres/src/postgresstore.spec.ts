@@ -1,11 +1,63 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
-import { WebdaQLError } from "@webda/ql";
+import { WebdaQLError, PrependCondition, parse } from "@webda/ql";
 import { checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
-import { EventRepository, useModel } from "@webda/core";
+import { EventRepository, MemoryRepository, useModel } from "@webda/core";
 import PostgresStore, { PostgresParameters } from "./postgresstore.service.js";
 import { PostgresRepository } from "./sqlstore.js";
+
+/** A model without metadata */
+class Row {
+  uuid: string;
+  [key: string]: any;
+  /**
+   * @param data - initial data
+   */
+  constructor(data?: any) {
+    Object.assign(this, data);
+  }
+}
+
+/** Parent and child models sharing one table */
+class Animal extends Row {
+  static Metadata = { Identifier: "Test/Animal", Subclasses: [] as any[] };
+}
+class Dog extends Animal {
+  static Metadata = { Identifier: "Test/Dog", Subclasses: [] as any[] };
+}
+Animal.Metadata.Subclasses.push(Dog);
+
+/** Rows covering numbers, booleans, strings, missing fields, nulls and type mismatches */
+export const PARITY_ROWS = [
+  { uuid: "r1", n: 1, s: "x", b: true, tags: ["x", 1] },
+  { uuid: "r2", n: 5, s: "abc", b: false, tags: ["y"] },
+  { uuid: "r3" },
+  { uuid: "r4", n: "abc", s: 1, b: "true", tags: "x" },
+  { uuid: "r5", s: null }
+];
+/** Queries whose results must be the same on every store */
+export const PARITY_QUERIES = [
+  "n < 2",
+  "n <= 1",
+  "n = 1",
+  "n != 1",
+  "n > 1",
+  "n >= 5",
+  "n IN [1, 5]",
+  "n = 'abc'",
+  "b = TRUE",
+  "b = FALSE",
+  "b != TRUE",
+  "s = 'x'",
+  "s != 'x'",
+  "s = 1",
+  "s LIKE 'a%'",
+  "s IS NULL",
+  "n IS NOT NULL",
+  "tags CONTAINS 'x'",
+  "n < 2 OR b = TRUE"
+];
 
 const params = {
   postgresqlServer: {
@@ -237,6 +289,86 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     await assert.rejects(() => events.updateMany("UPDATE SET unknown = 1"), /Unknown assignment field/);
     assert.strictEqual(await events.deleteMany("DELETE WHERE public = TRUE"), 1);
     assert.deepStrictEqual(seen, [], "bulk statements emit no per-object event");
+  }
+
+  @test
+  async queryParityWithMemory() {
+    const repo = new PostgresRepository<any>(Row as any, ["uuid"], this.store!.getClient(), "smoke_idents");
+    const memory = new MemoryRepository<any>(Row as any, ["uuid"]);
+    for (const row of PARITY_ROWS) {
+      await repo.create({ ...row });
+      await memory.create(new Row({ ...row }));
+    }
+    const uuids = async (r: any, q: string) => (await r.query(q)).results.map((o: any) => o.uuid).sort();
+    for (const query of PARITY_QUERIES) {
+      assert.deepStrictEqual(await uuids(repo, query), await uuids(memory, query), query);
+    }
+    // A bulk statement affects the same rows as the query
+    assert.strictEqual(await repo.deleteMany("DELETE WHERE n < 2"), 1);
+    assert.strictEqual(await repo.updateMany("UPDATE SET hit = TRUE WHERE b = FALSE"), 1);
+  }
+
+  @test
+  async forgedStatementObjectsCannotInject() {
+    const repo = new PostgresRepository<any>(Row as any, ["uuid"], this.store!.getClient(), "smoke_idents");
+    for (const uuid of ["a", "b", "c"]) {
+      await repo.create({ uuid, name: uuid });
+    }
+    const forged: [string, (q: any) => void][] = [
+      ["DELETE WHERE uuid = 'nope'", q => (q.filter.attribute = ["x}' IS NULL OR TRUE OR data#>>'{y"])],
+      ["DELETE WHERE uuid = 'nope'", q => (q.filter = { eval: () => true, toString: () => "TRUE" })],
+      ["DELETE WHERE uuid = 'nope'", q => (q.filter.value = { toString: () => "x' OR TRUE --" })],
+      ["DELETE LIMIT 1", q => (q.limit = "1; DROP TABLE smoke_idents")],
+      ["UPDATE SET name = 'x'", q => (q.assignments = [{ field: "na'me}", value: "x" }])]
+    ];
+    for (const [statement, change] of forged) {
+      const q: any = parse(statement);
+      change(q);
+      await assert.rejects(
+        () => (q.type === "DELETE" ? repo.deleteMany(q) : repo.updateMany(q)),
+        WebdaQLError,
+        `${statement} ${change}`
+      );
+      if (q.type === "DELETE") {
+        await assert.rejects(() => repo.query({ ...q, type: "SELECT" } as any), WebdaQLError);
+      }
+    }
+    assert.strictEqual((await repo.query("")).results.length, 3, "nothing was deleted");
+    // LIMIT 0 affects nothing, also through PrependCondition
+    assert.strictEqual(await repo.deleteMany(PrependCondition("DELETE LIMIT 0", "name = 'a'")), 0);
+    assert.strictEqual(await repo.updateMany("UPDATE SET name = 'z' LIMIT 0"), 0);
+    assert.strictEqual((await repo.query("name = 'z'")).results.length, 0);
+  }
+
+  @test
+  async updateThroughAnArrayIndex() {
+    const repo = new PostgresRepository<any>(Row as any, ["uuid"], this.store!.getClient(), "smoke_idents");
+    await repo.create({ uuid: "t", tags: ["t1", "t2"], list: [{ v: 1 }, { v: 2 }] });
+    assert.strictEqual(await repo.updateMany("UPDATE SET tags.0 = 'n', list.1.v = 3"), 1);
+    const row: any = await repo.get("t");
+    assert.deepStrictEqual(row.tags, ["n", "t2"]);
+    assert.deepStrictEqual(row.list, [{ v: 1 }, { v: 3 }]);
+  }
+
+  @test
+  async bulkStaysInTheModelHierarchy() {
+    const client = this.store!.getClient();
+    const animals = new PostgresRepository<any>(Animal as any, ["uuid"], client, "smoke_idents");
+    const dogs = new PostgresRepository<any>(Dog as any, ["uuid"], client, "smoke_idents");
+    await animals.create(new Animal({ uuid: "a1", kind: "cat" }));
+    await dogs.create(new Dog({ uuid: "d1", kind: "dog" }));
+    assert.deepStrictEqual(
+      (await dogs.query("")).results.map((r: any) => r.uuid),
+      ["d1"]
+    );
+    assert.strictEqual(await dogs.updateMany("UPDATE SET kind = 'x'"), 1);
+    assert.strictEqual(((await animals.get("a1")) as any).kind, "cat");
+    assert.ok(!Object.keys(await animals.get("a1")).includes("__type"));
+    assert.strictEqual(await dogs.deleteMany("DELETE"), 1);
+    assert.strictEqual(await animals.exists("a1"), true);
+    await dogs.create(new Dog({ uuid: "d2" }));
+    assert.strictEqual((await animals.query("")).results.length, 2, "the parent sees its subclasses");
+    assert.strictEqual(await animals.deleteMany("DELETE"), 2);
   }
 
   @test

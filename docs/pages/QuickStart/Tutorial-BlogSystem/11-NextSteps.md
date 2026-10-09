@@ -5,138 +5,86 @@ sidebar_label: "11 — Next Steps"
 
 # 11 — Next Steps
 
-**Goal:** Point you toward the modules and documentation topics that let you take your blog API from a development prototype to a production system.
+**Goal:** Point you toward the modules and documentation that take the blog API from a development prototype to a production system.
 
 **Files touched:** _(no new files — curated links only)_
 
-**Concepts:** Authentication, persistent stores, deployment targets, observability, testing.
+**Concepts:** authentication, persistent stores, deployment, testing, more transports.
 
 ---
 
-Congratulations — you have built a complete blog API with REST, GraphQL, and gRPC from a single TypeScript domain model. Below are the natural next topics, each with a link to the relevant module page.
+You have built a blog API served over REST, GraphQL and gRPC from one set of TypeScript models, with validation and permissions declared on the models. Here is where to go next.
 
 ## Authentication
 
-The blog currently allows anyone to create, update, and delete any resource. Real applications restrict operations to authenticated users.
-
-- **Email/password + OAuth** — [`@webda/core`](../../Modules/core/README.md) covers the built-in `Authentication` service which handles email-based login and provides hooks for OAuth.
-- **Google OAuth** — [`@webda/google-auth`](../../Modules/google-auth/README.md) — plug-and-play Google Sign-In that adds `/auth/google` and `/auth/google/callback` routes automatically.
-- **HAWK authentication** — [`@webda/hawk`](../../Modules/hawk/README.md) — MAC-based API authentication for server-to-server scenarios.
-
-Once authentication is in place, tighten `canAct` on each model:
-
-```typescript
-async canAct(context: WebContext, action: string): Promise<boolean> {
-  // Only allow the author to modify their own posts
-  if (action === "update" || action === "delete") {
-    return context.getCurrentUserId() === this.authorUuid;
-  }
-  return true;
-}
-```
+The blog handles accounts itself (`User.register` / `User.login`, bcrypt hashes in a private field), which keeps the tutorial self-contained. For a real application, use [`@webda/auth`](../../Security/Authentication.md): login providers (email and password with verification and recovery, OAuth), account linking, and access/refresh tokens. The `canAct` rules you wrote keep working: they only read `context.getCurrentUserId()`.
 
 ## Persistent stores
 
-`MemoryStore` is reset on every server restart — swap it for a durable backend before going to production.
+Models are saved in the default `Registry` store, in memory. Switching to a database is a configuration change: replace the `Registry` service in `webda.config.json` and add the package. No model code changes.
 
-| Backend | Package | Link |
-|---------|---------|------|
-| MongoDB | `@webda/mongodb` | [`@webda/mongodb`](../../Modules/mongodb/README.md) |
-| PostgreSQL | `@webda/postgres` | [`@webda/postgres`](../../Modules/postgres/README.md) |
-| AWS DynamoDB / S3 | `@webda/aws` | [`@webda/aws`](../../Modules/aws/README.md) |
+| Store      | Package           | `Registry` configuration                                   | Connection                                               |
+| ---------- | ----------------- | ---------------------------------------------------------- | -------------------------------------------------------- |
+| files      | `@webda/fs`       | `{ "type": "Webda/FileStore", "folder": "./data" }`        |                                                          |
+| MongoDB    | `@webda/mongo`    | `{ "type": "Webda/MongoStore", "collection": "registry" }` | `WEBDA_MONGO_URL`                                        |
+| PostgreSQL | `@webda/postgres` | `{ "type": "Webda/PostgresStore", "table": "registry" }`   | `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` |
 
-Changing the store is a config-only change — no model code is modified:
-
-```json title="webda.config.json"
+```json title="webda.config.json (services excerpt)"
 {
-  "postStore": {
-    "type": "Webda/MongoStore",
-    "model": "MyBlog/Post",
-    "mongoUrl": "mongodb://localhost:27017/myblog",
-    "collection": "posts"
+  "services": {
+    "Registry": { "type": "Webda/PostgresStore", "table": "registry" }
   }
 }
 ```
+
+Credentials come from environment variables, never from the configuration file. `npm create @webda my-app -- --store postgres` sets this up with a `docker-compose.yml` and a `.env.example`. See [Stores](../../Concepts/Stores/Stores.md), [`@webda/mongodb`](../../Modules/mongodb/README.md) and [`@webda/postgres`](../../Modules/postgres/README.md).
 
 ## Deployment
 
-Webda includes first-class deployers for cloud platforms.
+Environments are files in `deployments/<name>.json`: their `parameters` and `services` override `webda.config.json`, and their `units` list the deployers. Select one with `-d <name>` placed **before** the command (`npx webda -d production serve`) or with `WEBDA_DEPLOYMENT=production`.
 
-| Target | Package | Link |
-|--------|---------|------|
-| AWS Lambda + CloudFormation | `@webda/aws` | [`@webda/aws`](../../Modules/aws/README.md) |
-| Kubernetes | `@webda/kubernetes` | [`@webda/kubernetes`](../../Modules/kubernetes/README.md) |
-| Google Cloud | `@webda/gcp` | [`@webda/gcp`](../../Modules/gcp/README.md) |
-
-Deploying to AWS uses a dedicated deployment config:
-
-```json title="deployments/aws.json"
-{
-  "services": {
-    "postStore": {
-      "type": "Webda/DynamoStore",
-      "model": "MyBlog/Post",
-      "table": "myblog-posts-prod"
-    }
-  }
-}
-```
-
-Then deploy with:
+| Target                                   | Package      | Deployer types                                         |
+| ---------------------------------------- | ------------ | ------------------------------------------------------ |
+| Container image (built without Docker)   | `@webda/oci` | `Webda/ContainerDeployer`                              |
+| AWS Lambda package, CloudFormation stack | `@webda/aws` | `Webda/LambdaPackager`, `Webda/CloudFormationDeployer` |
 
 ```bash
-webda -d aws deploy
+npm install @webda/oci
+npm run build
+npx webda -d production container push
 ```
 
-## Observability
-
-**Logging** — [`@webda/workout`](../../Modules/workout/README.md) — provides structured log output, memory logging for tests, and a `useLog` helper used throughout this tutorial.
-
-**OpenTelemetry** — [`@webda/otel`](../../Modules/otel/README.md) — instruments your services with traces and metrics compatible with any OpenTelemetry backend (Jaeger, Grafana Tempo, AWS X-Ray, etc.).
-
-Add to `webda.config.json`:
-
-```json
-{
-  "OtelService": {
-    "type": "Webda/OtelService",
-    "serviceName": "my-blog",
-    "endpoint": "http://localhost:4318"
-  }
-}
-```
+See [Deployments](../../Deployments/Deployments.md), [Kubernetes](../../Deployments/Kubernetes/Kubernetes.md) and [`@webda/aws`](../../Modules/aws/README.md).
 
 ## Testing
 
-[`@webda/test`](../../Modules/test/README.md) provides:
+The generated `test/app.spec.ts` loads the application from `lib/` with `WebdaApplicationTest` from `@webda/core`. Get models with `useModel("MyBlog/Post")` and services with `useService("Publisher")` rather than importing them from `src/`, and run `npm test` (it builds first). The sample's `test/api-test.ts` goes further: it sends REST requests through the router as a given user, which is how the blog permissions are tested. See [`@webda/test`](../../Modules/test/README.md).
 
-- `WebdaTest` base class for Vitest/Mocha integration tests
-- `@testWrapper` decorator for automatic memory-log export on failure
-- Helpers to spin up an in-process application, register services, and send mock HTTP requests
+## More transports
 
-```typescript
-import { WebdaTest } from "@webda/test";
+- **MCP** — `npm install @webda/mcp` and `"MCP": { "type": "Webda/McpService" }` expose the operations as Model Context Protocol tools and the models as resources, for AI assistants. The sample app's README shows how to connect Claude Code to it.
+- **GraphQL subscriptions** — see [Subscriptions](../../Modules/graphql/Subscriptions.md).
 
-class PostApiTest extends WebdaTest {
-  async testCreatePost() {
-    const ctx = await this.newContext({ method: "POST", url: "/posts", body: { ... } });
-    await this.execute(ctx);
-    assert.strictEqual(ctx.statusCode, 200);
-  }
-}
-```
+## Other features of the sample app
+
+`sample-apps/blog-system` also shows:
+
+- binary attachments on `Post` (`Binary` and `Binaries` attributes, stored by `Webda/FileBinary`);
+- an audit log of every write (`Webda/AuditService`), with `setOperationSubject` in `Publisher.publishPost`;
+- an admin web UI served by `Webda/ResourceService` at `/admin`;
+- HTTPS and HTTP/2 on the main port with `"autoTls": true`.
 
 ## Other packages you may find useful
 
-| Package | Description | Link |
-|---------|-------------|------|
-| `@webda/mock` | Generates realistic mock data for models (Faker-backed) | [`@webda/mock`](../../Modules/mock/README.md) |
-| `@webda/elasticsearch` | Full-text search integration | [`@webda/elasticsearch`](../../Modules/elasticsearch/README.md) |
-| `@webda/cache` | In-process and Redis-backed caching | [`@webda/cache`](../../Modules/cache/README.md) |
-| `@webda/versioning` | Immutable object patches and audit trails | [`@webda/versioning`](../../Modules/versioning/README.md) |
-| `@webda/amqp` | AMQP/RabbitMQ queue workers | [`@webda/amqp`](../../Modules/amqp/README.md) |
-| `@webda/cloudevents` | CloudEvents ingestion and emission | [`@webda/cloudevents`](../../Modules/cloudevents/README.md) |
+| Package                | Description                                    | Link                                                            |
+| ---------------------- | ---------------------------------------------- | --------------------------------------------------------------- |
+| `@webda/otel`          | OpenTelemetry traces, metrics and logs         | [`@webda/otel`](../../Modules/otel/README.md)                   |
+| `@webda/mock`          | Coherent mock data for `@webda/models` classes | [`@webda/mock`](../../Modules/mock/README.md)                   |
+| `@webda/elasticsearch` | Elasticsearch integration                      | [`@webda/elasticsearch`](../../Modules/elasticsearch/README.md) |
+| `@webda/cache`         | Method-level caching with decorators and TTL   | [`@webda/cache`](../../Modules/cache/README.md)                 |
+| `@webda/amqp`          | AMQP (RabbitMQ) queues                         | [`@webda/amqp`](../../Modules/amqp/README.md)                   |
+| `@webda/cloudevents`   | CloudEvents discovery and subscriptions        | [`@webda/cloudevents`](../../Modules/cloudevents/README.md)     |
 
 ---
 
-(end of tutorial — return to [QuickStart index](../QuickStart.md))
+(end of tutorial — return to the [QuickStart index](../QuickStart.md))

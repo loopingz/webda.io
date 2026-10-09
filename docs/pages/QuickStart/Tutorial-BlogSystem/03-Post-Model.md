@@ -3,47 +3,33 @@ sidebar_position: 3
 sidebar_label: "03 — Post Model"
 ---
 
-# 03 — Post Model + REST
+# 03 — Post Model
 
-**Goal:** Add the `Post` model with a custom slug-based primary key and a `BelongTo<User>` relation, then verify that creating a user then a post and fetching the user's posts works end-to-end.
+**Goal:** Add the `Post` model with a slug primary key, a `BelongTo<User>` author set by the server, author-only permissions and a model operation.
 
-**Files touched:** `src/models/Post.ts`, `webda.config.json` (add `postStore`).
+**Files touched:** `src/models/Post.model.ts`, `src/models/User.model.ts`.
 
-**Concepts:** `WEBDA_PRIMARY_KEY` (custom primary key), `BelongTo` (many-to-one relation), `Contains` (one-to-many owned children), `ManyToMany`, `@Operation` on a model method.
+**Concepts:** `WEBDA_PRIMARY_KEY` (custom primary key), `BelongTo` and its `OneToMany` reverse side, `getProtectedAttributes`, `prepareCreate`, `getPermissionQuery`, `@Operation` on an instance method.
 
 ## Walkthrough
 
-### 1. Create `src/models/Post.ts`
+### 1. Create `src/models/Post.model.ts`
 
-```typescript title="src/models/Post.ts"
-import {
-  BelongTo,
-  Contains,
-  ManyToMany,
-  Model,
-  WEBDA_PRIMARY_KEY,
-  WEBDA_EVENTS,
-  ModelEvents
-} from "@webda/models";
-import type { User } from "./User";
-import type { Comment } from "./Comment";
-import type { Tag } from "./Tag";
+```typescript title="src/models/Post.model.ts"
+import { BelongTo, Model, WEBDA_PRIMARY_KEY } from "@webda/models";
+import type { User } from "./User.model.js";
 import { Operation } from "@webda/core";
-
-export class PostEvents<T extends Post> {
-  Publish: { post: T };
-}
+import type { IOperationContext } from "@webda/core";
+import { bind } from "@webda/ql";
 
 /**
  * Post model representing blog posts
  */
 export class Post extends Model {
   /**
-   * Custom primary key — posts are addressed by their URL slug, not a UUID.
+   * Posts are addressed by their URL slug, not a UUID
    */
   [WEBDA_PRIMARY_KEY] = ["slug"] as const;
-
-  [WEBDA_EVENTS]: ModelEvents<this> & PostEvents<this>;
 
   /**
    * Post title
@@ -53,7 +39,7 @@ export class Post extends Model {
   title!: string;
 
   /**
-   * URL-friendly slug (becomes the primary key)
+   * URL-friendly slug
    * @minLength 5
    * @maxLength 250
    * @pattern ^[a-z0-9-]+$
@@ -61,13 +47,13 @@ export class Post extends Model {
   slug!: string;
 
   /**
-   * Post content in Markdown
+   * Post content (markdown)
    * @minLength 10
    */
   content!: string;
 
   /**
-   * Short excerpt for listing pages
+   * Post excerpt for listings
    * @maxLength 500
    */
   excerpt?: string;
@@ -85,7 +71,7 @@ export class Post extends Model {
   status!: "draft" | "published" | "archived";
 
   /**
-   * View counter
+   * View count
    * @minimum 0
    */
   viewCount!: number;
@@ -106,151 +92,153 @@ export class Post extends Model {
   publishedAt?: Date;
 
   // Relations
-  author!: BelongTo<User>;       // Many posts belong to one User
-  comments!: Contains<Comment>;  // Post owns its comments (delete cascade)
-  tags!: ManyToMany<Tag>;        // Managed via PostTag join table (page 05)
+  author!: BelongTo<User>;
 
   /**
-   * Custom action — accessible via PUT /posts/:slug/publish
+   * The author is server-managed: never taken from client input (create, update, patch, GraphQL)
+   */
+  static getProtectedAttributes(): string[] {
+    return ["author"];
+  }
+
+  /**
+   * Called on a new post built from client input, before the "create" check: the caller is the author
+   */
+  prepareCreate(context: IOperationContext): void {
+    (this as any).author = context.getCurrentUserId();
+    this.createdAt ??= new Date();
+    this.updatedAt ??= this.createdAt;
+  }
+
+  /**
+   * Store filter matching the read rule of `canAct`: published posts, plus the caller's own
+   */
+  static getPermissionQuery(context?: IOperationContext): null | { partial: boolean; query: string } {
+    if (!context) {
+      return null;
+    }
+    const userId = context.getCurrentUserId();
+    return {
+      query: userId ? bind("status = 'published' OR author = ?", [userId]) : "status = 'published'",
+      partial: false
+    };
+  }
+
+  /**
+   * Permission rule (instance form: the decision depends on the post)
+   * - "get": anyone for a published post, the author otherwise (drafts, archived);
+   * - "create": any logged-in user;
+   * - "update", "delete", "publish": the author.
+   */
+  async canAct(context: IOperationContext, action: string): Promise<boolean | string> {
+    const userId = context.getCurrentUserId();
+    const isAuthor = !!userId && this.author?.toString() === userId;
+    if (action === "get") {
+      return this.status === "published" || isAuthor ? true : "Only the author can read an unpublished post";
+    }
+    if (!userId) {
+      return "Login required";
+    }
+    if (action === "create") {
+      return true;
+    }
+    return isAuthor ? true : "Only the author";
+  }
+
+  /**
+   * Publish the post somewhere: the author only (instance rule)
    */
   @Operation()
   async publish(destination: "linkedin" | "twitter"): Promise<string> {
     return `${destination}_${this.slug}_${Date.now()}`;
   }
-
-  /** Public sample — permissive for all actions. */
-  async canAct(_context: any, _action: string): Promise<boolean> {
-    return true;
-  }
 }
 ```
+
+### 2. Add the reverse relation on `User`
+
+```typescript title="src/models/User.model.ts (additions)"
+import { UuidModel, OneToMany, WEBDA_EVENTS, ModelEvents } from "@webda/models";
+import type { Post } from "./Post.model.js";
+
+export class User extends UuidModel {
+  // ...fields from page 02
+
+  // Relations
+  posts!: OneToMany<Post, User, "author">; // Posts authored by this user
+}
+```
+
+Related models are imported with `import type`: the compiler reads the types, and no circular import exists at runtime.
 
 #### Key design decisions
 
-**`[WEBDA_PRIMARY_KEY] = ["slug"] as const`**
+**`[WEBDA_PRIMARY_KEY] = ["slug"] as const`** — `Post` extends `Model` (not `UuidModel`) and declares its own key. Routes use it (`GET /posts/hello-world`), `Post.ref("hello-world").get()` loads by it, and `getPrimaryKey()` is typed from it.
 
-By default, `Model` uses `uuid` as the primary key (via `UuidModel`). When you set `WEBDA_PRIMARY_KEY` to `["slug"]`, the framework:
-- Addresses every REST route with the slug value: `GET /posts/hello-world`
-- Generates `getPrimaryKey()` returning `string` (single-field key)
-- Stores and indexes by slug in the underlying store
+**`BelongTo<User>` / `OneToMany<Post, User, "author">`** — the post stores the key of its author in `author` (the user's uuid). The third type argument of `OneToMany` names the attribute of `Post` that points back to the user, so `user.posts.query("status = 'published'")` returns that user's posts.
 
-**`BelongTo<User>` vs `OneToMany`**
+**The author is the caller.** `getProtectedAttributes()` strips `author` from every client input, and `prepareCreate(context)` sets it from the session before the `create` permission check. A client cannot create a post in someone else's name.
 
-`BelongTo` is the *many* side of a one-to-many — a Post has one author. The framework stores `authorUuid` (or `authorSlug` — the foreign key is derived from the relation target's primary key name) on the Post document. The complementary `OneToMany<Post, User, "author">` on `User.posts` (page 02) is the other side.
+**`canAct` and `getPermissionQuery` go together.** `canAct` decides for one object. For queries, `getPermissionQuery` adds a filter to the client's query, so a list never scans the other authors' drafts. `partial: false` means the filter is the complete read rule.
 
-**`Contains<Comment>`**
+**`@Operation()` on an instance method** — becomes the operation `Post.Publish`, exposed as `PUT /posts/{slug}/publish`. The post is loaded from the key in the URL, `canAct(context, "publish")` is asked, then the method runs on that post.
 
-`Contains` is a *strict* one-to-many ownership: comments live inside posts (conceptually and in some stores) and are deleted when the post is deleted.
+:::caution Instance operation arguments
+In 4.0.0-beta.6, an instance operation does not receive the body fields as method arguments: `destination` gets the whole request body. Read the input from the context instead, as `follow` does on [page 06](./06-UserFollow.md): `const { destination } = await useContext<OperationContext<{ destination: string }>>().getInput();`. Static operations (`User.register`, `User.login`) and service operations do receive their arguments.
+:::
 
-**`ManyToMany<Tag>`**
-
-The actual join table (`PostTag`) is created in page 05. Declaring `ManyToMany<Tag>` here tells the framework to look for a join table model.
-
-### 2. Add a store in `webda.config.json`
-
-```json title="webda.config.json (excerpt)"
-{
-  "services": {
-    "HttpServer":    { "type": "Webda/HttpServer", "autoTls": true },
-    "DomainService": { "type": "Webda/DomainService" },
-    "RESTService":   { "type": "Webda/RESTOperationsTransport" },
-    "userStore": {
-      "type": "Webda/MemoryStore",
-      "model": "MyBlog/User"
-    },
-    "postStore": {
-      "type": "Webda/MemoryStore",
-      "model": "MyBlog/Post"
-    }
-  }
-}
-```
+:::note Binaries
+The sample's `Post` also has `mainImage: Binary<{ width: number; height: number }>` and `images: Binaries<…>` attachments, stored by a `Webda/FileBinary` service. They are left out of this tutorial.
+:::
 
 ### 3. Rebuild and restart
 
 ```bash
-pnpm exec webdac build
-# restart webda debug in the other terminal (Ctrl-C, then pnpm exec webda debug)
+npm run debug   # or npm run serve
 ```
-
-`webda debug` also has hot-reload, so if you just edited the config and rebuilt, it may have already restarted.
-
-### 4. Exercise the Post endpoints
-
-**Create a post:**
-
-```bash
-curl -sk -X POST https://localhost:18080/posts \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Hello World",
-    "slug": "hello-world",
-    "content": "This is my first blog post with enough content.",
-    "status": "draft",
-    "viewCount": 0
-  }' | jq
-```
-
-```json
-{
-  "title": "Hello World",
-  "slug": "hello-world",
-  "content": "This is my first blog post with enough content.",
-  "status": "draft",
-  "viewCount": 0
-}
-```
-
-**Get the post by its slug (primary key):**
-
-```bash
-curl -sk https://localhost:18080/posts/hello-world | jq
-```
-
-```json
-{
-  "title": "Hello World",
-  "slug": "hello-world",
-  "status": "draft",
-  "viewCount": 0
-}
-```
-
-**Assign the author relation:**
-
-After creating a user (from page 02), you can wire the author by including the author's UUID in the post body:
-
-```bash
-curl -sk -X PATCH https://localhost:18080/posts/hello-world \
-  -H "Content-Type: application/json" \
-  -d '{"slug":"hello-world","author":"550e8400-e29b-41d4-a716-446655440001"}' | jq
-```
-
-**Call the publish action:**
-
-```bash
-curl -sk -X PUT https://localhost:18080/posts/hello-world/publish \
-  -H "Content-Type: application/json" \
-  -d '{"destination":"twitter"}' | jq
-```
-
-```json
-"twitter_hello-world_1714050000000"
-```
-
-The `@Operation()` decorator on `async publish(destination)` automatically became `PUT /posts/:slug/publish`. The method parameter is read from the request body.
 
 ## Verify
 
-:::warning Could not fully verify locally
-The server was not started during doc generation. The curl examples above are derived from the reference `rest.sh` script which passes all assertions when run against a live server. To verify:
+Use the cookie jar of page 02 (run the login command again if your session is gone).
+
+**Anonymous creation is refused:**
 
 ```bash
-cd sample-apps/blog-system
-pnpm exec webda debug &
-./rest.sh
+curl -s -X POST http://localhost:18080/posts -H "Content-Type: application/json" \
+  -d '{"title":"Hello World","slug":"hello-world","content":"This is my first blog post with enough content.","status":"draft","viewCount":0}'
 ```
-:::
+
+```json
+{ "error": { "code": "FORBIDDEN", "message": "Action create not allowed" } }
+```
+
+**Create a post as Alice:**
+
+```bash
+curl -s -b cookies.txt -X POST http://localhost:18080/posts -H "Content-Type: application/json" \
+  -d '{"title":"Hello World","slug":"hello-world","content":"This is my first blog post with enough content.","status":"draft","viewCount":0}' | jq
+```
+
+The response contains the post with `"author"` set to Alice's uuid, whatever the body said.
+
+**Drafts are private:** `GET /posts/hello-world` returns the post with Alice's cookie and `404` without it (an object you may not read answers like a missing one). Publish it to make it public:
+
+```bash
+curl -s -b cookies.txt -X PATCH http://localhost:18080/posts/hello-world \
+  -H "Content-Type: application/json" -d '{"status":"published"}'
+curl -s http://localhost:18080/posts/hello-world | jq .title
+# → "Hello World"
+```
+
+**Call the model operation:**
+
+```bash
+curl -s -b cookies.txt -o /dev/null -w "%{http_code}\n" -X PUT http://localhost:18080/posts/hello-world/publish \
+  -H "Content-Type: application/json" -d '{"destination":"twitter"}'
+# → 200
+```
+
+Without the cookie, or as another user, it returns `403`.
 
 ## What's next
 

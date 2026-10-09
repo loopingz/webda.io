@@ -5,38 +5,39 @@ sidebar_label: "05 — Tag + PostTag"
 
 # 05 — Tag + PostTag (Many-to-Many)
 
-**Goal:** Implement a tag taxonomy and the join table that links posts to tags using a composite primary key.
+**Goal:** Add a tag taxonomy and a join model linking posts to tags with a composite primary key.
 
-**Files touched:** `src/models/Tag.ts`, `src/models/PostTag.ts`, `webda.config.json` (add `tagStore`, `postTagStore`).
+**Files touched:** `src/models/Tag.model.ts`, `src/models/PostTag.model.ts`, `src/models/Post.model.ts`.
 
-**Concepts:** `WEBDA_PRIMARY_KEY` with multiple fields (composite key), `ManyToMany` relation, `BelongTo` and `RelateTo` on a join table, `OneToMany` reverse side.
+**Concepts:** static `canAct`, composite `WEBDA_PRIMARY_KEY`, `RelateTo`, `ManyToMany`, delegating a permission to another model with `isModelActionAllowed`.
 
 ## Walkthrough
 
-### 1. Create `src/models/Tag.ts`
+### 1. Create `src/models/Tag.model.ts`
 
-```typescript title="src/models/Tag.ts"
+```typescript title="src/models/Tag.model.ts"
 import { Model, WEBDA_PRIMARY_KEY, OneToMany } from "@webda/models";
-import type { Post } from "./Post";
+import type { Post } from "./Post.model.js";
+import type { IOperationContext } from "@webda/core";
 
 /**
  * Tag model for categorizing posts
+ *
+ * Anyone reads, logged-in users create, nobody edits or deletes
+ * (this sample has no administrator role; a real application would check one here).
  */
 export class Tag extends Model {
-  /**
-   * Tag primary key — slugs are more readable than UUIDs in URLs
-   */
   [WEBDA_PRIMARY_KEY] = ["slug"] as const;
 
   /**
-   * Tag display name
+   * Tag name
    * @minLength 2
    * @maxLength 30
    */
   name!: string;
 
   /**
-   * URL-friendly slug (also the primary key)
+   * URL-friendly slug
    * @minLength 2
    * @maxLength 50
    * @pattern ^[a-z0-9-]+$
@@ -44,50 +45,70 @@ export class Tag extends Model {
   slug!: string;
 
   /**
+   * Tag description
    * @maxLength 200
    */
   description?: string;
 
   /**
-   * Tag accent colour (hex)
+   * Tag color (hex)
    * @pattern ^#[0-9A-Fa-f]{6}$
    */
   color?: string;
 
-  // Reverse side of the ManyToMany
+  // Relations
   posts!: OneToMany<Post, Tag, "tags">;
 
-  /** Public sample — permissive. */
-  async canAct(_context: any, _action: string): Promise<boolean> {
-    return true;
+  /**
+   * Permission rule, static form: it does not depend on the tag
+   */
+  static canAct(context: IOperationContext, action: string, _object?: Tag): boolean | string {
+    if (action === "get") {
+      return true;
+    }
+    if (action === "create") {
+      return context.getCurrentUserId() ? true : "Login required";
+    }
+    // update, delete: e.g. `return context.getSession()?.roles?.includes("admin") ? true : "Admin only";`
+    return "Tags are not editable in this sample";
   }
 }
 ```
 
-`Tag` uses a single-field custom primary key (`slug`) — the same pattern as `Post`. Navigating to `/tags/javascript` reads the tag whose `slug` is `"javascript"`.
+When the rule does not depend on the object, override the **static** `canAct(context, action, object?)` directly. It is the method the framework asks for every request; the instance form used so far is what its default implementation delegates to.
 
-### 2. Create `src/models/PostTag.ts` — the join table
+### 2. Link posts to tags
 
-```typescript title="src/models/PostTag.ts"
+```typescript title="src/models/Post.model.ts (additions)"
+import { BelongTo, Contains, ManyToMany, Model, WEBDA_PRIMARY_KEY } from "@webda/models";
+import type { Tag } from "./Tag.model.js";
+
+export class Post extends Model {
+  // ...
+  comments!: Contains<Comment>;
+  tags!: ManyToMany<Tag>;
+}
+```
+
+`ManyToMany<Tag>` keeps a list of tag links on the post; `Tag.posts` (`OneToMany<Post, Tag, "tags">`) is its reverse side.
+
+### 3. Create `src/models/PostTag.model.ts` — the join model
+
+```typescript title="src/models/PostTag.model.ts"
 import { Model, WEBDA_PRIMARY_KEY, BelongTo, RelateTo } from "@webda/models";
-import type { Post } from "./Post";
-import type { Tag } from "./Tag";
+import type { Post } from "./Post.model.js";
+import type { Tag } from "./Tag.model.js";
+import { isModelActionAllowed } from "@webda/core";
+import type { IOperationContext } from "@webda/core";
 
 /**
- * PostTag join table — demonstrates composite primary keys.
+ * PostTag join table demonstrating composite primary keys
  *
- * Route implications (once stores are wired):
- *   GET  /posts/:slug/tags          — list tags for a post
- *   POST /posts/:slug/tags/:tagSlug — add a tag to a post
- *   DELETE /posts/:slug/tags/:tagSlug — remove a tag from a post
- *
- *   GET  /tags/:slug/posts          — list posts with a tag
+ * Anyone reads; tagging and untagging a post is the post author's.
  */
 export class PostTag extends Model {
   /**
-   * Composite primary key.
-   * TypeScript infers:
-   *   postTag.getPrimaryKey() → Pick<PostTag, "post" | "tag">
+   * Composite primary key: getPrimaryKey() is typed Pick<PostTag, "post" | "tag">
    */
   [WEBDA_PRIMARY_KEY] = ["post", "tag"] as const;
 
@@ -96,137 +117,94 @@ export class PostTag extends Model {
    */
   createdAt!: Date;
 
-  // Relations
-  post!: BelongTo<Post>;   // The post side (owns the relationship)
-  tag!: RelateTo<Tag>;     // The tag side (referenced, not owned)
-}
-```
+  // Relations to actual objects
+  post!: BelongTo<Post>;
+  tag!: RelateTo<Tag>;
 
-#### `BelongTo` vs `RelateTo`
-
-| Decorator | Meaning |
-|-----------|---------|
-| `BelongTo<T>` | This model is "inside" T's domain — T can cascade-delete it |
-| `RelateTo<T>` | This model references T but is not owned by it — no cascade delete |
-
-`PostTag` is owned by `Post` (via `BelongTo<Post>`) so it's deleted when the post goes away. But the `Tag` lives independently — deleting a tag should *not* cascade to posts.
-
-#### Composite primary key mechanics
-
-Setting `[WEBDA_PRIMARY_KEY] = ["post", "tag"] as const` means:
-
-```typescript
-const pk = postTag.getPrimaryKey();
-// TypeScript infers: Pick<PostTag, "post" | "tag">
-// Runtime value: { post: "hello-world", tag: "javascript" }
-// String form:   "hello-world#javascript"
-```
-
-The composite key ensures a post can only be tagged once with the same tag (uniqueness constraint enforced by the store).
-
-### 3. Add stores in `webda.config.json`
-
-```json title="webda.config.json (new entries)"
-{
-  "tagStore": {
-    "type": "Webda/MemoryStore",
-    "model": "MyBlog/Tag"
-  },
-  "postTagStore": {
-    "type": "Webda/MemoryStore",
-    "model": "MyBlog/PostTag"
+  /**
+   * Permission rule: "get" for anyone; "create" and "delete" for the author of the post
+   */
+  async canAct(context: IOperationContext, action: string): Promise<boolean | string> {
+    if (action === "get") {
+      return true;
+    }
+    const userId = context.getCurrentUserId();
+    if (!userId) {
+      return "Login required";
+    }
+    try {
+      // The post decides: its author may tag it (the same rule as editing it)
+      const { Post } = await import("./Post.model.js");
+      const post = await Post.ref(this.post?.toString()).get();
+      return (await isModelActionAllowed(post, context, "update", Post)) ? true : "Only the post author";
+    } catch {
+      return "Unknown post";
+    }
   }
 }
 ```
 
+- **Composite key** — `["post", "tag"]` makes the pair unique: a post can only be tagged once with the same tag. `PostTag.ref({ post: "hello-world", tag: "javascript" }).get()` loads one link in code.
+- **`BelongTo` vs `RelateTo`** — both store the key of the target. `BelongTo` marks the owner (the tag link is part of the post); `RelateTo` is a plain reference. Neither deletes anything in cascade.
+- **`isModelActionAllowed(post, context, "update", Post)`** — asks the `Post` permission rules (static and instance) instead of duplicating them. The dynamic `import()` avoids a circular import between the two model files.
+
+`ManyToMany` and a join model are two ways to model the same link. The join model is a model of its own: it has its key, its permissions, its routes, and can carry data (here `createdAt`).
+
 ### 4. Rebuild and restart
 
 ```bash
-pnpm exec webdac build
-# restart webda debug
+npm run debug   # or npm run serve
 ```
 
-### 5. Exercise the Tag endpoints
+## Verify
 
-**Create two tags:**
+**Create tags** (logged in; anonymous gets `403`):
 
 ```bash
-curl -sk -X POST https://localhost:18080/tags \
-  -H "Content-Type: application/json" \
+curl -s -b cookies.txt -X POST http://localhost:18080/tags -H "Content-Type: application/json" \
   -d '{"slug":"javascript","name":"JavaScript","description":"All things JS","color":"#f7df1e"}' | jq
-
-curl -sk -X POST https://localhost:18080/tags \
-  -H "Content-Type: application/json" \
-  -d '{"slug":"webda","name":"Webda","description":"Webda framework","color":"#f7992c"}' | jq
-```
-
-```json
-{"slug":"javascript","name":"JavaScript","description":"All things JS","color":"#f7df1e"}
-```
-
-**Get a tag by slug:**
-
-```bash
-curl -sk https://localhost:18080/tags/javascript | jq
+curl -s -b cookies.txt -X POST http://localhost:18080/tags -H "Content-Type: application/json" \
+  -d '{"slug":"webda","name":"Webda","description":"Webda framework","color":"#f7992c"}' > /dev/null
 ```
 
 **Query tags:**
 
 ```bash
-curl -sk -X PUT https://localhost:18080/tags \
-  -H "Content-Type: application/json" \
-  -d '{"q":""}' | jq '.results[] | .slug'
+curl -s -X PUT http://localhost:18080/tags -H "Content-Type: application/json" \
+  -d '{"q":"ORDER BY slug"}' | jq -r '.results[].slug'
 ```
 
 ```
-"javascript"
-"webda"
+javascript
+webda
 ```
 
-**Tag a post (add PostTag join record):**
+**Tags cannot be edited**, even by their creator:
 
 ```bash
-# Assuming post slug = "hello-world" and tag slug = "javascript"
-curl -sk -X POST "https://localhost:18080/posts/hello-world/tags/javascript" | jq
+curl -s -b cookies.txt -o /dev/null -w "%{http_code}\n" -X DELETE http://localhost:18080/tags/webda
+# → 403
 ```
 
-This creates a `PostTag` with `{ post: "hello-world", tag: "javascript" }` as the composite key.
-
-**List tags for the post:**
+**Tag the post** with a `PostTag` (Alice is the author of `hello-world`):
 
 ```bash
-curl -sk https://localhost:18080/posts/hello-world/tags | jq '.results[] | .slug'
+curl -s -b cookies.txt -X POST http://localhost:18080/postTags -H "Content-Type: application/json" \
+  -d "{\"post\":\"hello-world\",\"tag\":\"javascript\",\"createdAt\":\"$(date -u +%FT%TZ)\"}" | jq
 ```
 
-```
-"javascript"
-```
-
-**Remove the tag:**
+**Find the tags of the post:**
 
 ```bash
-curl -sk -X DELETE "https://localhost:18080/posts/hello-world/tags/javascript"
-# → HTTP 204
+curl -s -X PUT http://localhost:18080/postTags -H "Content-Type: application/json" \
+  -d "{\"q\":\"post = 'hello-world'\"}" | jq -r '.results[].tag'
+# → javascript
 ```
 
-**Delete tags:**
+Bob is not the author of `hello-world`: the same `POST /postTags` with his session returns `403`.
 
-```bash
-curl -sk -X DELETE https://localhost:18080/tags/webda
-curl -sk -X DELETE https://localhost:18080/tags/javascript
-# → HTTP 204 each
-```
-
-## Verify
-
-:::warning Could not fully verify locally
-The server was not started during doc generation. The commands above match the assertions in `rest.sh`. To verify end-to-end:
-
-```bash
-cd sample-apps/blog-system
-pnpm exec webda debug &
-./rest.sh
-```
+:::caution Composite keys over REST
+The single-object routes of a composite-key model take one path segment per key field (`/postTags/{post}/{tag}`), but in 4.0.0-beta.6 `GET` and `DELETE` on them answer `404`. Query the join model, and delete links in code (`(await PostTag.ref({ post, tag }).get()).delete()`), as `User.unfollow` does on the next page.
 :::
 
 ## What's next

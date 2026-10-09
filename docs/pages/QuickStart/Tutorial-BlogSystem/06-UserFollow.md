@@ -5,195 +5,179 @@ sidebar_label: "06 — UserFollow"
 
 # 06 — UserFollow (Self-Referential)
 
-**Goal:** Implement a follower graph where a `User` can follow other `User`s via a composite-key join table, then verify the two sides of the relation independently.
+**Goal:** Implement a follower graph where a `User` follows other `User`s through a composite-key join model, and add `follow` / `unfollow` operations on `User`.
 
-**Files touched:** `src/models/UserFollow.ts`, `webda.config.json` (add `userFollowStore`).
+**Files touched:** `src/models/UserFollow.model.ts`, `src/models/User.model.ts`.
 
-**Concepts:** Self-referential relations (both ends of a `BelongTo` point at the same model class), composite primary key on a join table, distinguishing the two sides via different relation names.
+**Concepts:** self-referential relations (both ends point at the same model), relation names, instance operations reading their input from the context, custom events.
 
 ## Walkthrough
 
-### 1. Create `src/models/UserFollow.ts`
+### 1. Create `src/models/UserFollow.model.ts`
 
-```typescript title="src/models/UserFollow.ts"
+```typescript title="src/models/UserFollow.model.ts"
 import { Model, WEBDA_PRIMARY_KEY, BelongTo } from "@webda/models";
-import type { User } from "./User";
+import type { User } from "./User.model.js";
+import type { IOperationContext } from "@webda/core";
 
 /**
- * UserFollow represents a directed "follows" edge between two users.
+ * UserFollow represents a follower relationship between users
  *
- * follower  → the user doing the following
- * following → the user being followed
- *
- * Composite PK (follower, following) ensures each pair appears only once.
- * DELETE /userfollows/:followerId/:followingId removes the edge.
+ * Anyone reads who follows whom; a user creates and deletes its own follow relationships only
+ * (the `follower` side is part of the key and must be the caller).
  */
 export class UserFollow extends Model {
   /**
-   * Composite primary key.
-   *
-   * getPrimaryKey() returns:
-   *   Pick<UserFollow, "follower" | "following">
-   *   → { follower: "<uuid>", following: "<uuid>" }
+   * Composite primary key: a user can only follow another user once
    */
   [WEBDA_PRIMARY_KEY] = ["follower", "following"] as const;
 
   /**
-   * When the follow was created
+   * When the follow relationship was created
    */
   createdAt!: Date;
 
-  // Self-referential relations — both point at User, but have different names
-  follower!: BelongTo<User>;   // the user doing the following
-  following!: BelongTo<User>;  // the user being followed
+  // Relations
+  follower!: BelongTo<User>; // The user doing the following
+  following!: BelongTo<User>; // The user being followed
 
-  /** Public sample — permissive. */
-  async canAct(_context: any, _action: string): Promise<boolean> {
+  /**
+   * Permission rule: "get" for anyone, "create" and "delete" for the follower
+   */
+  async canAct(context: IOperationContext, action: string): Promise<boolean | string> {
+    if (action === "get") {
+      return true;
+    }
+    const userId = context.getCurrentUserId();
+    if (!userId) {
+      return "Login required";
+    }
+    return this.follower?.toString() === userId ? true : "Only the follower";
+  }
+}
+```
+
+### 2. Add both sides and the operations on `User`
+
+```typescript title="src/models/User.model.ts (additions)"
+import type { UserFollow } from "./UserFollow.model.js";
+import type { OperationContext } from "@webda/core";
+
+export class UserEvents<T extends User> {
+  Login: { user: T };
+  Follow: { user: T; target: User };
+  Unfollow: { user: T; target: User };
+  Logout: { user: T };
+}
+
+export class User extends UuidModel {
+  // ...
+  // Self-referential relations (populated via UserFollow)
+  followers!: OneToMany<UserFollow, User, "following">; // Users who follow this user
+  following!: OneToMany<UserFollow, User, "follower">; // Users this user follows
+
+  /**
+   * The user named by the operation input `{target}`
+   */
+  private async targetUser(): Promise<User> {
+    const { target } = await useContext<OperationContext<{ target: string }>>().getInput();
+    try {
+      return await User.ref(target).get();
+    } catch {
+      throw new WebdaError.NotFound("Unknown user");
+    }
+  }
+
+  /**
+   * Follow a user: the account owner only (instance rule). `PUT /users/{uuid}/follow {target}`
+   */
+  @Operation()
+  async follow(): Promise<true> {
+    const target = await this.targetUser();
+    if (target.getUUID() === this.getUUID()) {
+      throw new WebdaError.BadRequest("Cannot follow yourself");
+    }
+    const existing = (await this.following.query(bind("following = ?", [target.getUUID()]))).results.pop();
+    if (existing) {
+      throw new WebdaError.BadRequest("Already following this user");
+    }
+    this.emit("Follow", { user: this, target });
     return true;
   }
-}
-```
 
-#### Why two separate relation names?
-
-The framework resolves relations by name. If both fields were called `user` it would be ambiguous. By naming them `follower` and `following`:
-
-- `User.followers` (declared in page 02 as `OneToMany<UserFollow, User, "following">`) — finds all `UserFollow` records where `following = <this user's uuid>`, i.e. "who follows me"
-- `User.following` (declared as `OneToMany<UserFollow, User, "follower">`) — finds all `UserFollow` records where `follower = <this user's uuid>`, i.e. "who I follow"
-
-The third generic argument to `OneToMany<UserFollow, User, "following">` tells the framework *which field on `UserFollow`* points back to this `User`. This is how the two sides of a self-referential relation stay distinct.
-
-#### Primary key walkthrough
-
-```typescript
-const edge = await UserFollow.ref({
-  follower: "user-alice",
-  following: "user-bob"
-}).get();
-
-const pk = edge.getPrimaryKey();
-// TypeScript infers: Pick<UserFollow, "follower" | "following">
-console.log(pk.follower);   // "user-alice"
-console.log(pk.following);  // "user-bob"
-console.log(pk.toString()); // "user-alice#user-bob"
-```
-
-The `#`-joined string form is what the URL looks like:
-`DELETE /userfollows/user-alice#user-bob`
-
-### 2. Add a store in `webda.config.json`
-
-```json title="webda.config.json (new entry)"
-{
-  "userFollowStore": {
-    "type": "Webda/MemoryStore",
-    "model": "MyBlog/UserFollow"
+  /**
+   * Unfollow a user: the account owner only (instance rule). `PUT /users/{uuid}/unfollow {target}`
+   */
+  @Operation()
+  async unfollow(): Promise<void> {
+    const target = await this.targetUser();
+    const existing = (await this.following.query(bind("following = ?", [target.getUUID()]))).results.pop();
+    if (!existing) {
+      throw new WebdaError.BadRequest("Not following this user");
+    }
+    await existing.delete();
+    this.emit("Unfollow", { user: this, target });
   }
 }
 ```
+
+#### Why two relation names?
+
+Both fields of `UserFollow` point at `User`, so the reverse sides must say which one they follow. The third type argument of `OneToMany` is the attribute of `UserFollow` that points back to this user:
+
+- `User.followers` — `OneToMany<UserFollow, User, "following">`: the edges where `following` is this user, i.e. who follows me.
+- `User.following` — `OneToMany<UserFollow, User, "follower">`: the edges where `follower` is this user, i.e. who I follow.
+
+`this.following.query(…)` runs a query restricted to that user's edges.
+
+#### Instance operations with input
+
+`follow` and `unfollow` take no method parameters: the user they act on is loaded from the URL (`/users/{uuid}/follow`), the instance `canAct(context, "follow")` decides (the account owner only, see page 02), and the body is read with `useContext().getInput()`. The static `canAct` of page 02 lets them through to the instance rule since the object is defined.
+
+`follow` checks the target and emits a `Follow` event; it does not write the edge itself. In this sample the edge is created through the `UserFollow` routes below. `unfollow` deletes the edge, then emits `Unfollow`.
 
 ### 3. Rebuild and restart
 
 ```bash
-pnpm exec webdac build
-# restart webda debug
+npm run debug   # or npm run serve
 ```
-
-### 4. Exercise the follow graph
-
-**Create two users (if not already done):**
-
-```bash
-USER1="550e8400-e29b-41d4-a716-446655440001"
-USER2="550e8400-e29b-41d4-a716-446655440002"
-
-curl -sk -X POST https://localhost:18080/users \
-  -H "Content-Type: application/json" \
-  -d "{\"uuid\":\"$USER1\",\"username\":\"alice\",\"email\":\"alice@example.com\",\"name\":\"Alice Smith\"}" \
-  -o /dev/null
-
-curl -sk -X POST https://localhost:18080/users \
-  -H "Content-Type: application/json" \
-  -d "{\"uuid\":\"$USER2\",\"username\":\"bob\",\"email\":\"bob@example.com\",\"name\":\"Bob Jones\"}" \
-  -o /dev/null
-```
-
-**Alice follows Bob (create a UserFollow edge):**
-
-```bash
-curl -sk -X POST https://localhost:18080/userfollows \
-  -H "Content-Type: application/json" \
-  -d "{\"follower\":\"$USER1\",\"following\":\"$USER2\",\"createdAt\":\"$(date -u +%FT%TZ)\"}" | jq
-```
-
-```json
-{
-  "followerUuid": "550e8400-e29b-41d4-a716-446655440001",
-  "followingUuid": "550e8400-e29b-41d4-a716-446655440002",
-  "createdAt": "2026-04-25T12:00:00.000Z"
-}
-```
-
-**Bob follows Alice back:**
-
-```bash
-curl -sk -X POST https://localhost:18080/userfollows \
-  -H "Content-Type: application/json" \
-  -d "{\"follower\":\"$USER2\",\"following\":\"$USER1\",\"createdAt\":\"$(date -u +%FT%TZ)\"}" | jq
-```
-
-**Query Alice's followers (who follows Alice):**
-
-```bash
-curl -sk -X PUT https://localhost:18080/userfollows \
-  -H "Content-Type: application/json" \
-  -d "{\"q\":\"followingUuid = '$USER1'\"}" | jq '.results | length'
-```
-
-```
-1
-```
-
-**Query who Alice follows:**
-
-```bash
-curl -sk -X PUT https://localhost:18080/userfollows \
-  -H "Content-Type: application/json" \
-  -d "{\"q\":\"followerUuid = '$USER1'\"}" | jq '.results | length'
-```
-
-```
-1
-```
-
-**Delete the follow edge (Alice unfollows Bob):**
-
-```bash
-# Composite PK: followerUuid#followingUuid
-curl -sk -X DELETE "https://localhost:18080/userfollows/$USER1%23$USER2"
-# → HTTP 204
-```
-
-The `%23` is the URL-encoded `#` character used to join the composite key parts.
-
-### 5. Using User.follow / User.unfollow operations
-
-The `User` model (page 02) also exposes high-level `@Operation` methods:
-
-```bash
-# PUT /users/:uuid/follow  { target: "<targetUuid>" }
-curl -sk -X PUT "https://localhost:18080/users/$USER1/follow" \
-  -H "Content-Type: application/json" \
-  -d "{\"target\":\"$USER2\"}"
-```
-
-These operations add/remove `UserFollow` records via the model's business logic and emit events (`Follow`, `Unfollow`) that other services can listen to.
 
 ## Verify
 
-:::warning Could not fully verify locally
-The server was not started during doc generation. The commands above demonstrate the expected behaviour. To verify end-to-end run `./rest.sh` against a live server started from `sample-apps/blog-system/`.
-:::
+Register a second user, Bob, in his own cookie jar, and keep both uuids:
+
+```bash
+curl -s -c bob.txt -X PUT http://localhost:18080/users/register -H "Content-Type: application/json" \
+  -d '{"username":"bob","email":"bob@example.com","name":"Bob Jones","password":"bob-secret-1"}' | jq -r .uuid
+BOB=<uuid from the response>
+```
+
+**Alice follows Bob** — the follower must be the caller:
+
+```bash
+curl -s -b cookies.txt -X POST http://localhost:18080/userFollows -H "Content-Type: application/json" \
+  -d "{\"follower\":\"$ALICE\",\"following\":\"$BOB\",\"createdAt\":\"$(date -u +%FT%TZ)\"}" | jq
+```
+
+Bob cannot create an edge in Alice's name: the same request with `-b bob.txt` returns `403`.
+
+**Who follows Bob:**
+
+```bash
+curl -s -X PUT http://localhost:18080/userFollows -H "Content-Type: application/json" \
+  -d "{\"q\":\"following = '$BOB'\"}" | jq '.results | length'
+# → 1
+```
+
+**Alice unfollows Bob** through the operation, which deletes the edge:
+
+```bash
+curl -s -b cookies.txt -o /dev/null -w "%{http_code}\n" -X PUT http://localhost:18080/users/$ALICE/unfollow \
+  -H "Content-Type: application/json" -d "{\"target\":\"$BOB\"}"
+# → 204
+```
+
+Calling it again returns `400 Not following this user`; calling it on Alice's account with Bob's cookie returns `403`.
 
 ## What's next
 

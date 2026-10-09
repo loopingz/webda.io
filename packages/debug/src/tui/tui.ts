@@ -32,9 +32,10 @@ export class DebugTui {
    * Create a new TUI instance.
    *
    * @param port - Port of the debug server to connect to
+   * @param token - Session token of the debug server
    */
-  constructor(port: number = 18181) {
-    this.client = new DebugClient(`http://localhost:${port}`);
+  constructor(port: number = 18181, token?: string) {
+    this.client = new DebugClient(`http://127.0.0.1:${port}`, token);
     this.logsPanel = new LogsPanel(this.client);
     this.panels = [
       this.logsPanel,
@@ -96,7 +97,11 @@ export class DebugTui {
       String(now.getSeconds()).padStart(2, "0");
 
     const refreshPromises = this.panels.map(p => (p.refresh ? p.refresh() : Promise.resolve()));
-    refreshPromises.push(this.client.getAppInfo().then(info => { this.appInfo = info; }));
+    refreshPromises.push(
+      this.client.getAppInfo().then(info => {
+        this.appInfo = info;
+      })
+    );
     await Promise.allSettled(refreshPromises);
 
     if (this.running) this.render();

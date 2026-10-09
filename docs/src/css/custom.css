@@ -1,3 +1,9 @@
-.configurationMenu > div {
-  padding-top: 10px;
+.webda-debug-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--ifm-navbar-height));
+}
+
+.webda-debug-page > .webda-debug-ui {
+  flex: 1;
 }

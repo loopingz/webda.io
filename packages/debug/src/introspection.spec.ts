@@ -1,7 +1,16 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { vi } from "vitest";
-import { getModels, getModel, getServices, getOperations, getRoutes, getConfig, getAppInfo } from "./introspection.js";
+import {
+  getModels,
+  getModel,
+  getServices,
+  getOperations,
+  getRoutes,
+  getConfig,
+  getAppInfo,
+  computeInheritance
+} from "./introspection.js";
 
 // ---------------------------------------------------------------------------
 // Mock data
@@ -55,11 +64,22 @@ const mockOperations = {
   "Task.Get": { output: "MyApp/Task", parameters: "uuidRequest", service: "DomainService", method: "modelGet" },
   "Task.Update": { input: "MyApp/Task", output: "MyApp/Task", service: "DomainService", method: "modelUpdate" },
   "Task.Patch": { input: "MyApp/Task", output: "MyApp/Task", service: "DomainService", method: "modelPatch" },
-  "Task.Publish": { input: "void", output: "void", service: "DomainService", method: "modelAction", context: { action: { name: "publish" }, model: { prototype: { publish: mockTestMethod }, getIdentifier: () => "MyApp/Task" } } }
+  "Task.Publish": {
+    input: "void",
+    output: "void",
+    service: "DomainService",
+    method: "modelAction",
+    context: {
+      action: { name: "publish" },
+      model: { prototype: { publish: mockTestMethod }, getIdentifier: () => "MyApp/Task" }
+    }
+  }
 };
 
 const mockRoutes = {
-  "/tasks": [{ methods: ["POST"], executor: "RESTOperationsTransport", openapi: { post: { operationId: "Task.Create" } } }],
+  "/tasks": [
+    { methods: ["POST"], executor: "RESTOperationsTransport", openapi: { post: { operationId: "Task.Create" } } }
+  ],
   "/tasks/{uuid}": [
     { methods: ["GET"], executor: "RESTOperationsTransport", openapi: { get: { operationId: "Task.Get" } } },
     // One route serves both verbs, each with its own operation
@@ -100,7 +120,12 @@ vi.mock("@webda/core", () => ({
   useCore: () => ({
     getServices: () => mockServices,
     getService: (name: string) => {
-      if (name === "DomainService") return { modelCreate: function modelCreate() {}, modelGet: function modelGet() {}, modelAction: function modelAction() {} };
+      if (name === "DomainService")
+        return {
+          modelCreate: function modelCreate() {},
+          modelGet: function modelGet() {},
+          modelAction: function modelAction() {}
+        };
       return undefined;
     }
   }),
@@ -154,6 +179,50 @@ class GetModelsTest {
   includesTheRawMetadataObject() {
     const [task] = getModels();
     assert.strictEqual(task.metadata, mockModelClass.Metadata);
+  }
+
+  @test
+  exposesInheritanceComputedFromTheClasses() {
+    const [task] = getModels();
+    assert.deepStrictEqual(task.ancestors, []);
+    assert.deepStrictEqual(task.subclasses, []);
+  }
+}
+
+@suite
+class ComputeInheritanceTest {
+  @test
+  walksThePrototypeChainOfRegisteredModels() {
+    class Core {}
+    class Owner extends Core {}
+    class Unregistered extends Owner {}
+    class Post extends Unregistered {}
+    class Draft extends Post {}
+    class Tag extends Core {}
+    const result = computeInheritance({
+      "Webda/CoreModel": Core,
+      "Webda/OwnerModel": Owner,
+      "App/Post": Post,
+      "App/Draft": Draft,
+      "App/Tag": Tag
+    });
+    assert.deepStrictEqual(result["App/Draft"], {
+      ancestors: ["App/Post", "Webda/OwnerModel", "Webda/CoreModel"],
+      subclasses: []
+    });
+    assert.deepStrictEqual(result["App/Post"], {
+      ancestors: ["Webda/OwnerModel", "Webda/CoreModel"],
+      subclasses: ["App/Draft"]
+    });
+    assert.deepStrictEqual(result["Webda/CoreModel"], { ancestors: [], subclasses: ["Webda/OwnerModel", "App/Tag"] });
+    assert.deepStrictEqual(result["App/Tag"].ancestors, ["Webda/CoreModel"]);
+  }
+
+  @test
+  toleratesPlainObjectsAndNulls() {
+    const result = computeInheritance({ "A/B": {}, "A/C": null });
+    assert.deepStrictEqual(result["A/B"], { ancestors: [], subclasses: [] });
+    assert.deepStrictEqual(result["A/C"], { ancestors: [], subclasses: [] });
   }
 }
 
@@ -253,7 +322,10 @@ class GetOperationsTest {
       { url: update.rest?.url, method: update.rest?.method },
       { url: "/tasks/{uuid}", method: "put" }
     );
-    assert.deepStrictEqual({ url: patch.rest?.url, method: patch.rest?.method }, { url: "/tasks/{uuid}", method: "patch" });
+    assert.deepStrictEqual(
+      { url: patch.rest?.url, method: patch.rest?.method },
+      { url: "/tasks/{uuid}", method: "patch" }
+    );
   }
 
   @test

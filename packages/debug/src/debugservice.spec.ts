@@ -4,6 +4,9 @@ import { vi } from "vitest";
 import { createServer, Server, IncomingMessage, ServerResponse } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { AddressInfo } from "node:net";
+import { existsSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { RequestLog } from "./requestlog.js";
 
 // Mocks for the actual DebugService tests
@@ -155,6 +158,21 @@ function createTestWsServer(): Promise<{
 
 // Dynamic import so mocks are set up first
 const { DebugService, isAllowedOrigin } = await import("./debugservice.service.js");
+const { WS_PROTOCOL, WS_TOKEN_PREFIX } = await import("./security.js");
+
+/**
+ * Authorization header carrying the session token of a service.
+ */
+function auth(service: { getToken(): string }): Record<string, string> {
+  return { Authorization: `Bearer ${service.getToken()}` };
+}
+
+/**
+ * Sub-protocols a websocket client offers to authenticate against a service.
+ */
+function wsProtocols(service: { getToken(): string }): string[] {
+  return [WS_PROTOCOL, `${WS_TOKEN_PREFIX}${service.getToken()}`];
+}
 
 @suite
 class DebugServiceHandleRequestTest {
@@ -174,7 +192,7 @@ class DebugServiceHandleRequestTest {
 
   @test
   async getApiServicesReturnsServices() {
-    const res = await fetch(`http://localhost:${this.port}/api/services`);
+    const res = await fetch(`http://localhost:${this.port}/api/services`, { headers: auth(this.service) });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
     assert.deepStrictEqual(body, mockServices);
@@ -182,7 +200,7 @@ class DebugServiceHandleRequestTest {
 
   @test
   async getApiOperationsReturnsOperations() {
-    const res = await fetch(`http://localhost:${this.port}/api/operations`);
+    const res = await fetch(`http://localhost:${this.port}/api/operations`, { headers: auth(this.service) });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
     assert.deepStrictEqual(body, mockOperations);
@@ -190,7 +208,7 @@ class DebugServiceHandleRequestTest {
 
   @test
   async getApiRoutesReturnsRoutes() {
-    const res = await fetch(`http://localhost:${this.port}/api/routes`);
+    const res = await fetch(`http://localhost:${this.port}/api/routes`, { headers: auth(this.service) });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
     assert.deepStrictEqual(body, mockRoutes);
@@ -198,7 +216,7 @@ class DebugServiceHandleRequestTest {
 
   @test
   async getApiConfigReturnsConfig() {
-    const res = await fetch(`http://localhost:${this.port}/api/config`);
+    const res = await fetch(`http://localhost:${this.port}/api/config`, { headers: auth(this.service) });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
     assert.deepStrictEqual(body, mockConfig);
@@ -206,16 +224,24 @@ class DebugServiceHandleRequestTest {
 
   @test
   async getApiInfoReturnsAppInfo() {
-    const res = await fetch(`http://localhost:${this.port}/api/info`);
+    const res = await fetch(`http://localhost:${this.port}/api/info`, { headers: auth(this.service) });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
-    assert.deepStrictEqual(body, mockAppInfo);
+    assert.deepStrictEqual(body, {
+      ...mockAppInfo,
+      debugApiVersion: 1,
+      debugVersion: body.debugVersion,
+      frameworkVersion: body.frameworkVersion
+    });
+    assert.strictEqual(typeof body.debugVersion, "string");
+    // Resolved from the @webda/core package.json since the mocked application has no getWebdaVersion
+    assert.strictEqual(typeof body.frameworkVersion, "string");
   }
 
   @test
   async getApiOpenapiReturnsOpenAPISpec() {
     mockRouterThrows = false;
-    const res = await fetch(`http://localhost:${this.port}/api/openapi`);
+    const res = await fetch(`http://localhost:${this.port}/api/openapi`, { headers: auth(this.service) });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
     assert.strictEqual(body.openapi, "3.0.3");
@@ -226,7 +252,7 @@ class DebugServiceHandleRequestTest {
   async getApiOpenapiReturnsStubWhenRouterUnavailable() {
     mockRouterThrows = true;
     try {
-      const res = await fetch(`http://localhost:${this.port}/api/openapi`);
+      const res = await fetch(`http://localhost:${this.port}/api/openapi`, { headers: auth(this.service) });
       assert.strictEqual(res.status, 200);
       const body = await res.json();
       assert.strictEqual(body.openapi, "3.0.3");
@@ -238,7 +264,7 @@ class DebugServiceHandleRequestTest {
 
   @test
   async getApiLogsReturnsLogEntries() {
-    const res = await fetch(`http://localhost:${this.port}/api/logs`);
+    const res = await fetch(`http://localhost:${this.port}/api/logs`, { headers: auth(this.service) });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
     assert.ok(Array.isArray(body));
@@ -246,7 +272,7 @@ class DebugServiceHandleRequestTest {
 
   @test
   async getApiLogsWithQueryFiltersLogs() {
-    const res = await fetch(`http://localhost:${this.port}/api/logs?q=test`);
+    const res = await fetch(`http://localhost:${this.port}/api/logs?q=test`, { headers: auth(this.service) });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
     assert.ok(Array.isArray(body));
@@ -254,7 +280,7 @@ class DebugServiceHandleRequestTest {
 
   @test
   async getApiModelsIdReturns404ForUnknownModel() {
-    const res = await fetch(`http://localhost:${this.port}/api/models/Unknown`);
+    const res = await fetch(`http://localhost:${this.port}/api/models/Unknown`, { headers: auth(this.service) });
     assert.strictEqual(res.status, 404);
     const body = await res.json();
     assert.strictEqual(body.error, "Model not found");
@@ -262,7 +288,7 @@ class DebugServiceHandleRequestTest {
 
   @test
   async getApiModelsIdReturnsModelForKnownId() {
-    const res = await fetch(`http://localhost:${this.port}/api/models/Test%2FModel`);
+    const res = await fetch(`http://localhost:${this.port}/api/models/Test%2FModel`, { headers: auth(this.service) });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
     assert.strictEqual(body.id, "Test/Model");
@@ -276,7 +302,7 @@ class DebugServiceHandleRequestTest {
 
   @test
   async getApiRequestsReturnsRequestLogEntries() {
-    const res = await fetch(`http://localhost:${this.port}/api/requests`);
+    const res = await fetch(`http://localhost:${this.port}/api/requests`, { headers: auth(this.service) });
     assert.strictEqual(res.status, 200);
     const body = await res.json();
     assert.ok(Array.isArray(body));
@@ -294,7 +320,7 @@ class DebugServiceHandleRequestTest {
     });
     this.service.requestLog.completeRequest("sum-1", 201, 12);
 
-    const res = await fetch(`http://localhost:${this.port}/api/requests`);
+    const res = await fetch(`http://localhost:${this.port}/api/requests`, { headers: auth(this.service) });
     const body = (await res.json()) as any[];
     const found = body.find(e => e.id === "sum-1");
     assert.ok(found, "summary entry should be present");
@@ -316,7 +342,7 @@ class DebugServiceHandleRequestTest {
     });
     this.service.requestLog.completeRequest("detail-1", 200, 5);
 
-    const res = await fetch(`http://localhost:${this.port}/api/requests/detail-1`);
+    const res = await fetch(`http://localhost:${this.port}/api/requests/detail-1`, { headers: auth(this.service) });
     assert.strictEqual(res.status, 200);
     const body = (await res.json()) as any;
     assert.strictEqual(body.id, "detail-1");
@@ -329,7 +355,7 @@ class DebugServiceHandleRequestTest {
 
   @test
   async getApiRequestsByIdReturns404ForUnknownId() {
-    const res = await fetch(`http://localhost:${this.port}/api/requests/nope`);
+    const res = await fetch(`http://localhost:${this.port}/api/requests/nope`, { headers: auth(this.service) });
     assert.strictEqual(res.status, 404);
     const body = (await res.json()) as any;
     assert.strictEqual(body.error, "Request not found");
@@ -346,7 +372,7 @@ class DebugServiceStopTest {
     const port = ((service as any).server as Server).address().port;
 
     // Connect a WS client
-    const client = new WebSocket(`ws://localhost:${port}`);
+    const client = new WebSocket(`ws://localhost:${port}`, wsProtocols(service));
     await new Promise<void>(resolve => client.on("open", resolve));
 
     assert.strictEqual((service as any).clients.size, 1);
@@ -375,7 +401,7 @@ class DebugServiceBroadcastTest {
     await service.startDebugServer(0);
     const port = ((service as any).server as Server).address().port;
 
-    const client = new WebSocket(`ws://localhost:${port}`);
+    const client = new WebSocket(`ws://localhost:${port}`, wsProtocols(service));
     await new Promise<void>(resolve => client.on("open", resolve));
 
     const received: any[] = [];
@@ -787,7 +813,7 @@ class DebugServiceSubscribeToEventsTest {
     await this.service.startDebugServer(0);
     const port = ((this.service as any).server as Server).address().port;
 
-    const client = new WebSocket(`ws://localhost:${port}`);
+    const client = new WebSocket(`ws://localhost:${port}`, wsProtocols(this.service));
     await new Promise<void>(resolve => client.on("open", resolve));
 
     const received: any[] = [];
@@ -942,7 +968,7 @@ class DebugServiceStaticFileServingTest {
   async beforeEach() {
     this.service = new DebugService();
     this.service.resolve();
-    await this.service.startDebugServer(0);
+    await this.service.startDebugServer(0, { local: true });
     this.port = ((this.service as any).server as Server).address().port;
   }
 
@@ -957,22 +983,32 @@ class DebugServiceStaticFileServingTest {
     assert.ok(res.status === 200 || res.status === 404);
   }
 
+  /**
+   * Built asset names (hashed by vite) of the bundled dashboard.
+   */
+  builtAssets(): string[] {
+    const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "webui", "assets");
+    return existsSync(dir) ? readdirSync(dir) : [];
+  }
+
   @test
   async servesStaticCssFile() {
-    const res = await fetch(`http://localhost:${this.port}/styles.css`);
-    if (res.status === 200) {
-      const contentType = res.headers.get("content-type");
-      assert.ok(contentType?.includes("text/css"), `Expected CSS content-type, got ${contentType}`);
-    }
+    const css = this.builtAssets().find(f => f.endsWith(".css"));
+    if (!css) return; // bundle not built
+    const res = await fetch(`http://localhost:${this.port}/assets/${css}`);
+    assert.strictEqual(res.status, 200);
+    const contentType = res.headers.get("content-type");
+    assert.ok(contentType?.includes("text/css"), `Expected CSS content-type, got ${contentType}`);
   }
 
   @test
   async servesStaticJsFile() {
-    const res = await fetch(`http://localhost:${this.port}/app.js`);
-    if (res.status === 200) {
-      const contentType = res.headers.get("content-type");
-      assert.ok(contentType?.includes("javascript"), `Expected JS content-type, got ${contentType}`);
-    }
+    const js = this.builtAssets().find(f => f.endsWith(".js"));
+    if (!js) return; // bundle not built
+    const res = await fetch(`http://localhost:${this.port}/assets/${js}`);
+    assert.strictEqual(res.status, 200);
+    const contentType = res.headers.get("content-type");
+    assert.ok(contentType?.includes("javascript"), `Expected JS content-type, got ${contentType}`);
   }
 
   @test
@@ -1063,13 +1099,13 @@ class DebugServiceStopCleanupTest {
 @suite
 class IsAllowedOriginTest {
   @test
-  localhostPort3000IsAllowed() {
-    assert.strictEqual(isAllowedOrigin("http://localhost:3000"), true);
+  localhostPort3000IsNotAllowedWithoutTheDevVariable() {
+    assert.strictEqual(isAllowedOrigin("http://localhost:3000"), false);
   }
 
   @test
-  loopbackPort3000IsAllowed() {
-    assert.strictEqual(isAllowedOrigin("http://127.0.0.1:3000"), true);
+  loopbackPort3000IsNotAllowedWithoutTheDevVariable() {
+    assert.strictEqual(isAllowedOrigin("http://127.0.0.1:3000"), false);
   }
 
   @test
@@ -1078,13 +1114,13 @@ class IsAllowedOriginTest {
   }
 
   @test
-  httpsDocsSubdomainIsAllowed() {
-    assert.strictEqual(isAllowedOrigin("https://docs.webda.io"), true);
+  httpsDocsSubdomainIsBlocked() {
+    assert.strictEqual(isAllowedOrigin("https://docs.webda.io"), false);
   }
 
   @test
-  httpsBlogSubdomainIsAllowed() {
-    assert.strictEqual(isAllowedOrigin("https://blog.webda.io"), true);
+  httpsBlogSubdomainIsBlocked() {
+    assert.strictEqual(isAllowedOrigin("https://blog.webda.io"), false);
   }
 
   @test
@@ -1138,24 +1174,24 @@ class DebugServiceCorsTest {
   @test
   async allowedOriginReceivesCorsHeaders() {
     const res = await fetch(`http://localhost:${this.port}/api/info`, {
-      headers: { Origin: "http://localhost:3000" }
+      headers: { Origin: "https://webda.io", ...auth(this.service) }
     });
-    assert.strictEqual(res.headers.get("access-control-allow-origin"), "http://localhost:3000");
+    assert.strictEqual(res.headers.get("access-control-allow-origin"), "https://webda.io");
     assert.strictEqual(res.headers.get("vary"), "Origin");
   }
 
   @test
-  async allowedWebdaIoSubdomainReceivesCorsHeaders() {
+  async webdaIoSubdomainDoesNotReceiveCorsHeaders() {
     const res = await fetch(`http://localhost:${this.port}/api/info`, {
-      headers: { Origin: "https://docs.webda.io" }
+      headers: { Origin: "https://docs.webda.io", ...auth(this.service) }
     });
-    assert.strictEqual(res.headers.get("access-control-allow-origin"), "https://docs.webda.io");
+    assert.strictEqual(res.headers.get("access-control-allow-origin"), null);
   }
 
   @test
   async disallowedOriginDoesNotReceiveCorsHeader() {
     const res = await fetch(`http://localhost:${this.port}/api/info`, {
-      headers: { Origin: "https://evil.com" }
+      headers: { Origin: "https://evil.com", ...auth(this.service) }
     });
     // No Access-Control-Allow-Origin header should be set
     assert.strictEqual(res.headers.get("access-control-allow-origin"), null);
@@ -1164,7 +1200,7 @@ class DebugServiceCorsTest {
   @test
   async requestWithNoOriginDoesNotReceiveCorsHeader() {
     // No Origin header at all (same-origin or non-browser request)
-    const res = await fetch(`http://localhost:${this.port}/api/info`);
+    const res = await fetch(`http://localhost:${this.port}/api/info`, { headers: auth(this.service) });
     assert.strictEqual(res.headers.get("access-control-allow-origin"), null);
   }
 
@@ -1203,7 +1239,7 @@ class DebugServiceHandleRequestErrorTest {
       // We already test the error fallback path, but let's verify the catch block
       // by forcing the router mock to throw a non-standard error.
       mockRouterThrows = true;
-      const res = await fetch(`http://localhost:${port}/api/openapi`);
+      const res = await fetch(`http://localhost:${port}/api/openapi`, { headers: auth(service) });
       // The getOpenAPISpec method catches internally and returns a stub, so this returns 200
       assert.strictEqual(res.status, 200);
     } finally {
@@ -1461,14 +1497,12 @@ class DebugServiceCollectDetailsTest {
     const http = {
       getHeaders: () => opts.httpHeaders ?? {},
       getRawBody: opts.rawBody !== undefined ? async () => opts.rawBody : undefined,
-      getUniqueHeader: (name: string) =>
-        name === "content-type" ? opts.contentType : undefined
+      getUniqueHeader: (name: string) => (name === "content-type" ? opts.contentType : undefined)
     };
     const ctx: any = {
       getHttpContext: () => http,
       getResponseHeaders: () => opts.responseHeaders ?? {},
-      getResponseBody:
-        opts.responseBody !== undefined || "responseBody" in opts ? () => opts.responseBody : undefined,
+      getResponseBody: opts.responseBody !== undefined || "responseBody" in opts ? () => opts.responseBody : undefined,
       getOutput: opts.output !== undefined ? () => opts.output : undefined,
       getRawInput: opts.rawInput !== undefined ? async () => opts.rawInput : undefined,
       getExtension: (key: string) => (key === "error" ? opts.error : undefined)

@@ -1,17 +1,15 @@
-"use strict";
-
 /**
  * Custom navbar item for the "My Application" entry.
  *
- * Renders a standard Docusaurus navbar link to /configuration/welcome.
- * When the debug daemon is connected the link shows a small green dot and
- * is fully opaque. When no daemon is reachable the link fades to 50%
- * opacity — it remains clickable so users can still navigate to the page.
+ * A standard Docusaurus navbar link to the debug dashboard (/debug/). The
+ * documentation pages never hold a session token, so the indicator can only
+ * report whether a debug server answers on the remembered port: amber when one
+ * is found (the dashboard will connect), nothing otherwise. The link always works.
  */
 
 import React from "react";
 import Link from "@docusaurus/Link";
-import { useDebugConnection } from "./useDebugConnection";
+import { useDebugConnection } from "@webda/debug-ui";
 
 /** Props that Docusaurus passes to all custom navbar items. */
 export interface AppNavbarItemProps {
@@ -19,39 +17,35 @@ export interface AppNavbarItemProps {
   position?: "left" | "right";
   /** Any additional class name forwarded by Docusaurus. */
   className?: string;
+  /** Mobile sidebar rendering flag forwarded by Docusaurus. */
+  mobile?: boolean;
 }
 
 /**
- * Renders the "My Application" navbar link.
+ * Renders the "My Application" navbar link with the server-found indicator.
  *
- * Opacity reflects the live daemon connection state:
- * - Connected → opacity 1 + a small green indicator dot
- * - Disconnected → opacity 0.5 (still fully clickable)
+ * @param props - navbar item props
+ * @returns the link element
  */
-export function AppNavbarItem({ className }: AppNavbarItemProps): JSX.Element {
-  const { connected } = useDebugConnection();
-
+export function AppNavbarItem({ className }: AppNavbarItemProps): React.JSX.Element {
+  const state = useDebugConnection();
+  // Without a token the server answers 401: it is running, the dashboard will connect
+  const found = state.status === "connected" || (state.status === "error" && state.failure === "unauthorized");
   return (
     <Link
-      to="/configuration/welcome"
+      // The dashboard is a static page outside the Docusaurus app: a full navigation, not a route
+      href="pathname:///debug/"
+      target="_self"
       className={`navbar__item navbar__link${className ? ` ${className}` : ""}`}
-      style={{
-        opacity: connected ? 1 : 0.5,
-        transition: "opacity 200ms ease",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6
-      }}
+      style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
       title={
-        connected
-          ? "My Application — daemon connected"
-          : "My Application — no daemon connected (link still works)"
+        found ? "My Application — a debug server is running, open the dashboard" : "My Application — debug dashboard"
       }
     >
       My Application
-      {connected && (
+      {found && (
         <span
-          aria-label="connected"
+          aria-label="debug server found"
           style={{
             display: "inline-block",
             width: 8,

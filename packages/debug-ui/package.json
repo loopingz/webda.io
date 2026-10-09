@@ -1,0 +1,65 @@
+{
+  "name": "@webda/debug-ui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared React dashboard for the Webda debug server, used by the docs site and by `webda debug --web --local`",
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/debug-ui"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./standalone": {
+      "types": "./lib/standalone/index.d.ts",
+      "default": "./lib/standalone/index.js"
+    },
+    "./styles.css": "./lib/styles/debug-ui.css",
+    "./tokens.css": "./lib/styles/tokens.css",
+    "./hosted-dist": "./dist/hosted",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-styles.mjs && vite build --config vite.hosted.config.ts && node scripts/build-analytics.mjs",
+    "build:watch": "tsc -p tsconfig.json --watch",
+    "format": "prettier --check \"src/**/*\"",
+    "format:fix": "prettier --write \"src/**/*\"",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "build:hosted": "vite build --config vite.hosted.config.ts && node scripts/build-analytics.mjs"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.0",
+    "@vitest/coverage-v8": "^4.1.2",
+    "jsdom": "^27.0.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "typescript": "7.1.0-dev.20260929.1",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "license": "LGPL-3.0-only"
+}

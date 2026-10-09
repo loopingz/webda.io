@@ -1,5 +1,3 @@
-
-
 import { useApplication, useCore, useRouter, listFullOperations, useModelMetadata } from "@webda/core";
 
 /**
@@ -14,8 +12,46 @@ export interface ModelInfo {
   actions: string[];
   /** Relation graph (links, queries, maps, binaries) */
   relations: any;
+  /** Identifiers of the registered parent models, closest first */
+  ancestors: string[];
+  /** Identifiers of the registered models extending this one directly */
+  subclasses: string[];
   /** Full raw ModelMetadata object */
   metadata: any;
+}
+
+/**
+ * Inheritance of the registered models, computed from the class prototype chain.
+ *
+ * The metadata's `Ancestors` is empty at runtime, so the chain is walked here:
+ * only registered models count, intermediate unregistered classes are skipped.
+ *
+ * @param models - identifier → model class
+ * @returns ancestors (closest first) and direct subclasses per identifier
+ */
+export function computeInheritance(
+  models: Record<string, any>
+): Record<string, { ancestors: string[]; subclasses: string[] }> {
+  const ids = new Map<any, string>();
+  for (const [id, model] of Object.entries(models)) {
+    if (typeof model === "function" || (model && typeof model === "object")) ids.set(model, id);
+  }
+  const result: Record<string, { ancestors: string[]; subclasses: string[] }> = {};
+  for (const id of Object.keys(models)) result[id] = { ancestors: [], subclasses: [] };
+  for (const [id, model] of Object.entries(models)) {
+    let parent = model ? Object.getPrototypeOf(model) : null;
+    let guard = 0;
+    while (parent && parent !== Function.prototype && parent !== Object.prototype && guard++ < 64) {
+      const parentId = ids.get(parent);
+      if (parentId && parentId !== id) {
+        result[id].ancestors.push(parentId);
+      }
+      parent = Object.getPrototypeOf(parent);
+    }
+    const direct = result[id].ancestors[0];
+    if (direct) result[direct].subclasses.push(id);
+  }
+  return result;
 }
 
 /**
@@ -74,6 +110,7 @@ export function getModels(): ModelInfo[] {
   const app = useApplication();
   const core = useCore();
   const models = app.getModels();
+  const inheritance = computeInheritance(models);
   return Object.entries(models).map(([key, model]) => {
     const metadata = useModelMetadata(model);
     let storeName: string | undefined;
@@ -92,6 +129,8 @@ export function getModels(): ModelInfo[] {
       plural: metadata?.Plural || key,
       actions: Object.keys(metadata?.Actions || {}),
       relations: metadata?.Relations || {},
+      ancestors: inheritance[key]?.ancestors ?? [],
+      subclasses: inheritance[key]?.subclasses ?? [],
       store: storeName,
       storeType,
       schemas: metadata?.Schemas,
@@ -134,10 +173,12 @@ export function getServices(): ServiceInfo[] {
           if (!metric || typeof metric !== "object") continue;
           const m = metric as any;
           try {
-            const values = m.hashMap ? Object.values(m.hashMap).map((v: any) => ({
-              value: v.value,
-              labels: v.labels
-            })) : [];
+            const values = m.hashMap
+              ? Object.values(m.hashMap).map((v: any) => ({
+                  value: v.value,
+                  labels: v.labels
+                }))
+              : [];
             metricsInfo.push({
               name: key,
               fullName: m.name,
@@ -205,7 +246,11 @@ export function getOperations(): OperationInfo[] {
     // Enrich rest with full URL from router
     const route = operationRoutes[opId];
     if (route) {
-      entry.rest = { ...(typeof entry.rest === "object" ? entry.rest : {}), url: route.url, method: entry.rest?.method || route.method };
+      entry.rest = {
+        ...(typeof entry.rest === "object" ? entry.rest : {}),
+        url: route.url,
+        method: entry.rest?.method || route.method
+      };
     }
     // Dedent: find the smallest leading whitespace (skipping the first line which
     // Function.toString() always returns at column 0) and strip it from all lines
@@ -213,7 +258,10 @@ export function getOperations(): OperationInfo[] {
       const lines = code.split("\n");
       if (lines.length <= 1) return code;
       // Compute min indent from lines 1+ (skip first line and empty lines)
-      const indents = lines.slice(1).filter(l => l.trim().length > 0).map(l => (l.match(/^(\s*)/) || ["", ""])[1].length);
+      const indents = lines
+        .slice(1)
+        .filter(l => l.trim().length > 0)
+        .map(l => (l.match(/^(\s*)/) || ["", ""])[1].length);
       if (indents.length === 0) return code;
       const min = Math.min(...indents);
       if (min === 0) return code;

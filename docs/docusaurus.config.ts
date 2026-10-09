@@ -4,6 +4,11 @@
 const lightCodeTheme = require("prism-react-renderer").themes.github;
 const darkCodeTheme = require("prism-react-renderer").themes.dracula;
 
+// GA4 usage analytics: only built into the site when the measurement id is
+// present at build time (the docs workflow passes vars.GA_MEASUREMENT_ID).
+// No id → no Google tag at all.
+const gaMeasurementId = process.env.GA_MEASUREMENT_ID || "";
+
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: "Webda.io",
@@ -21,6 +26,9 @@ const config = {
   projectName: "webda.io", // Usually your repo name.
 
   onBrokenLinks: "throw",
+  customFields: {
+    gaMeasurementId
+  },
   onBrokenMarkdownLinks: "warn",
   markdown: {
     mermaid: true,
@@ -54,7 +62,10 @@ const config = {
         // ... other options
       }
     ],
-    "./src/plugins/configuration"
+    // /configuration/* → /debug/
+    "./src/plugins/configuration",
+    // Consent Mode v2 defaults and debug-session hygiene: must precede the Google tag
+    ["./src/plugins/analytics", { measurementId: gaMeasurementId }]
   ],
 
   themes: ["@docusaurus/theme-mermaid"],
@@ -116,12 +127,11 @@ const config = {
             position: "left"
           },
           {
-            // Custom type that renders AppNavbarItem — shows a connection dot
-            // when the `webda debug --web` daemon is running and fades the
-            // link to 50% opacity when no daemon is detected.
-            // Defined in docs/src/theme/NavbarItem/ComponentTypes.tsx.
+            // Custom type that renders AppNavbarItem — a link to the debug
+            // dashboard (/debug/) with the connection indicator of
+            // `webda debug --web`. Defined in docs/src/theme/NavbarItem/ComponentTypes.tsx.
             // Falls back gracefully: if the swizzle is removed, switch back to:
-            //   { to: "/configuration/welcome", label: "My Application", position: "right" }
+            //   { to: "/debug/", label: "My Application", position: "right" }
             type: "custom-app-link",
             position: "right"
           },

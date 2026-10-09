@@ -15,7 +15,7 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "webdac build",
+    "build": "webdac build && vite build --config vite.webui.config.ts",
     "build:watch": "webdac build --watch",
     "pretest": "npm run build",
     "format": "prettier --check src/**/*",
@@ -25,7 +25,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:debug": "vitest debug",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "build:webui": "vite build --config vite.webui.config.ts",
+    "prepack": "node scripts/check-webui.mjs"
   },
   "dependencies": {
     "@webda/utils": "workspace:*",
@@ -42,8 +44,11 @@
     "@vitest/coverage-v8": "^4.1.2",
     "@webda/compiler": "workspace:^",
     "@webda/core": "workspace:^",
+    "@webda/debug-ui": "workspace:*",
     "@webda/test": "workspace:*",
     "jscodeshift": "^17.3.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "typescript": "7.1.0-dev.20260929.1",
     "vite": "^6.0.0",
     "vitest": "^4.1.2"

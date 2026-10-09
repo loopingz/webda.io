@@ -1,5 +1,28 @@
 # Changelog
 
+## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/grpc-v4.0.0-beta.5...grpc-v4.0.0-beta.6) (2026-10-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **ql:** DELETE, UPDATE, SELECT, SET and WHERE are reserved uppercase keywords; Query.type is required; parse().toString() prints the canonical query instead of the source tokens; the root parse rule is now `(statement | filterQuery) EOF` for code walking the ANTLR tree.
+
+### Features
+
+* **ql:** WebdaQL DELETE/UPDATE/SELECT statements, bulk deleteMany/updateMany, filter-only Query operations ([#818](https://github.com/loopingz/webda.io/issues/818)) ([add9503](https://github.com/loopingz/webda.io/commit/add95031aff982cd69a635c519b4ddaa6874ecbe))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.6
+    * @webda/core bumped to 4.0.0-beta.6
+    * @webda/test bumped to 4.0.0-beta.6
+    * @webda/utils bumped to 4.0.0-beta.6
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.6
+
 ## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/grpc-v4.0.0-beta.4...grpc-v4.0.0-beta.5) (2026-10-08)
 
 

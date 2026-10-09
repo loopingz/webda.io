@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/test-v4.0.0-beta.5...test-v4.0.0-beta.6) (2026-10-09)
+
+
+### Bug Fixes
+
+* **cache,test:** declare the packages they import at runtime ([#814](https://github.com/loopingz/webda.io/issues/814)) ([a86c50e](https://github.com/loopingz/webda.io/commit/a86c50e17367c6b6201524470e0d9f4a79a13e04))
+
 ## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/test-v4.0.0-beta.3...test-v4.0.0-beta.5) (2026-10-08)
 
 

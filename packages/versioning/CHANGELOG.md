@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/versioning-v4.0.0-beta.5...versioning-v4.0.0-beta.6) (2026-10-09)
+
+
+### Bug Fixes
+
+* **deps:** upgrade nodemailer, deepmerge-ts, jsondiffpatch, faker and OpenTelemetry (security) ([#816](https://github.com/loopingz/webda.io/issues/816)) ([f082ab8](https://github.com/loopingz/webda.io/commit/f082ab8926ae1b54e0da009d8ebd9ce6d5d33158))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.6
+    * @webda/models bumped to 4.0.0-beta.6
+    * @webda/test bumped to 4.0.0-beta.6
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.6
+    * @webda/models bumped to 4.0.0-beta.6
+
 ## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/versioning-v4.0.0-beta.4...versioning-v4.0.0-beta.5) (2026-10-08)
 
 

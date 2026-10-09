@@ -1,5 +1,29 @@
 # Changelog
 
+## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/ql-v4.0.0-beta.5...ql-v4.0.0-beta.6) (2026-10-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **ql:** DELETE, UPDATE, SELECT, SET and WHERE are reserved uppercase keywords; Query.type is required; parse().toString() prints the canonical query instead of the source tokens; the root parse rule is now `(statement | filterQuery) EOF` for code walking the ANTLR tree.
+
+### Features
+
+* **ql:** WebdaQL DELETE/UPDATE/SELECT statements, bulk deleteMany/updateMany, filter-only Query operations ([#818](https://github.com/loopingz/webda.io/issues/818)) ([add9503](https://github.com/loopingz/webda.io/commit/add95031aff982cd69a635c519b4ddaa6874ecbe))
+* store-agnostic aggregations (Model.aggregate, SELECT … GROUP BY) ([#820](https://github.com/loopingz/webda.io/issues/820)) ([9eca947](https://github.com/loopingz/webda.io/commit/9eca947fdd0cbf456690cb61c9a30c66c22be1ad))
+
+
+### Bug Fixes
+
+* **ql:** break aggregation/query circular import ([#822](https://github.com/loopingz/webda.io/issues/822)) ([6e96fa4](https://github.com/loopingz/webda.io/commit/6e96fa434004504abeb6bab66a744bdd987bdaf0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/test bumped to 4.0.0-beta.6
+
 ## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/ql-v4.0.0-beta.3...ql-v4.0.0-beta.5) (2026-10-08)
 
 

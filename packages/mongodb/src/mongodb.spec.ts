@@ -3,7 +3,7 @@ import * as assert from "node:assert";
 import * as WebdaQL from "@webda/ql";
 import { parse } from "@webda/ql";
 import { MongoClient } from "mongodb";
-import { checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
+import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import { EventRepository, MemoryRepository, StoreNotFoundError, UpdateConditionFailError, useModel } from "@webda/core";
 import { MongoParameters, MongoRepository, MongoStore, mapExpression } from "./mongodb.service.js";
 
@@ -170,6 +170,38 @@ export class MongoStoreTest extends WebdaApplicationTest {
 
   async afterEach() {
     await this.store?.stop();
+  }
+
+  @test
+  async aggregationConformance() {
+    const collection = (await this.store._connect()) as any;
+    await collection.deleteMany({});
+    await checkAggregation(new MongoRepository(Item as any, ["uuid"], () => this.store._connect()) as any, {
+      native: true
+    });
+    await collection.deleteMany({});
+  }
+
+  @test
+  aggregationPipeline() {
+    const repo: any = new MongoRepository(Item as any, ["uuid"], async () => undefined as any);
+    assert.deepStrictEqual(
+      repo.buildAggregationPipeline(
+        WebdaQL.toAggregationQuery({
+          groupBy: ["team.name"],
+          metrics: { n: { count: "*" }, d: { countDistinct: "label" } },
+          orderBy: [{ key: "n", direction: "DESC" }],
+          limit: 2
+        })
+      ),
+      [
+        { $match: { $or: [{ __type: { $in: ["Test/Item", "Test/SubItem"] } }, { __type: { $exists: false } }] } },
+        { $group: { _id: { g0: "$team.name" }, n: { $sum: 1 }, d: { $addToSet: "$label" } } },
+        { $addFields: { d: { $size: { $filter: { input: "$d", cond: { $ne: ["$$this", null] } } } } } },
+        { $sort: { n: -1 } },
+        { $limit: 2 }
+      ]
+    );
   }
 
   @test

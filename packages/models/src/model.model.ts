@@ -46,6 +46,7 @@ export type ModelEvents<T = any> = {
   Update: { object_id: string; object: T; previous: T };
   Patch: { object_id: string; object: T; previous: T };
   Query: { query: string };
+  Aggregate: { query: any };
   // Events sent after the change
   Created: { object_id: string; object: T };
   PartialUpdated: any;
@@ -53,6 +54,7 @@ export type ModelEvents<T = any> = {
   Patched: { object_id: string; object: T; previous: T };
   Updated: { object_id: string; object: T; previous: T };
   Queried: { query: string; results: T[]; continuationToken?: string };
+  Aggregated: { query: any; rows: any[]; native: boolean };
 };
 
 /**

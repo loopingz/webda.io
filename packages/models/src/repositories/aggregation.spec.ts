@@ -3,6 +3,7 @@ import * as assert from "node:assert";
 import { UuidModel } from "../model.model.js";
 import type { ModelClass } from "../storable.js";
 import { MemoryRepository } from "./memory.js";
+import { EventRepository } from "./event.js";
 
 /**
  * Model with typed attributes for aggregation tests (same fixture style as memory-classfilter.spec.ts)
@@ -115,5 +116,35 @@ class RepositoryAggregationTest {
     void (() => repo.aggregate({ groupBy: ["nope"], metrics: { n: { count: "*" } } }));
     // @ts-expect-error order key must be a group path or an alias
     void (() => repo.aggregate({ metrics: { n: { count: "*" } }, orderBy: [{ key: "x", direction: "ASC" }] }));
+  }
+}
+
+@suite
+class EventRepositoryAggregationTest {
+  @test
+  async delegatesBindsAndEmits() {
+    const inner = new MemoryRepository(Task, ["uuid"]);
+    const repo = new EventRepository(Task, ["uuid"], inner);
+    await fill(inner);
+    await inner.create({ uuid: "t4", status: "open", points: 1, owner: { uuid: "what?" } } as any);
+    const events: [string, any][] = [];
+    repo.on("Aggregate", evt => events.push(["Aggregate", evt]));
+    repo.on("Aggregated", evt => events.push(["Aggregated", evt]));
+    const res = await repo.aggregate({ filter: "owner.uuid = ?", metrics: { n: { count: "*" } } }, ["what?"]);
+    assert.deepStrictEqual(res, { rows: [{ n: 1 }], native: true }, "bound once, inner stays native");
+    assert.deepStrictEqual(
+      events.map(([name]) => name),
+      ["Aggregate", "Aggregated"]
+    );
+    assert.strictEqual(events[0][1].query.filter, "owner.uuid = 'what?'");
+    assert.strictEqual(events[1][1].native, true);
+  }
+
+  @test
+  async configurePropagates() {
+    const inner = new RemoteRepository(Task, ["uuid"]);
+    const repo = new EventRepository(Task, ["uuid"], inner);
+    repo.configureAggregation({ fallback: "deny" });
+    await assert.rejects(() => repo.aggregate({ metrics: { n: { count: "*" } } }), /runs in memory/);
   }
 }

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import {
@@ -162,6 +163,25 @@ class PackagerTest {
     assert.ok(!targets.some(target => target.endsWith("index.js")));
     assert.ok(!targets.some(target => target.startsWith("node_modules/a/")));
     assert.ok(targets.includes("node_modules/dev/package.json"));
+  }
+
+  @test
+  async reproducible() {
+    // A committed workspace: the packaged configuration bakes the git information
+    const git = (...args: string[]) =>
+      execFileSync("git", ["-c", "user.email=test@webda.io", "-c", "user.name=test", ...args], {
+        cwd: this.root,
+        stdio: "pipe"
+      });
+    git("init", "-q");
+    git("add", "-A");
+    git("commit", "-q", "-m", "init");
+    const contents = async () =>
+      (await packageApplication(this.getApp())).files.map(file => [file.target, file.source, file.content?.toString()]);
+    const first = await contents();
+    await new Promise(resolve => setTimeout(resolve, 10));
+    // Packaging the same sources later gives the same files
+    assert.deepStrictEqual(await contents(), first);
   }
 
   @test

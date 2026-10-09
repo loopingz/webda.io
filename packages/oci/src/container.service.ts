@@ -9,9 +9,10 @@ import {
   ServiceParameters,
   useApplication
 } from "@webda/core";
+import { useLog } from "@webda/workout";
 import { isAbsolute, join } from "node:path";
 import type { RegistryCredentials } from "./auth.js";
-import { buildImage, type BuiltImage, pushImage, writeLayoutArchive } from "./image.js";
+import { buildImage, type BuiltImage, isPinnedBaseImage, pushImage, writeLayoutArchive } from "./image.js";
 import { formatImageReference, parseImageReference, toTag } from "./reference.js";
 import type { TarEntry } from "./tar.js";
 
@@ -219,6 +220,13 @@ export class ContainerDeployer<T extends ContainerDeployerParameters = Container
     output: string,
     includeBaseLayers: boolean
   ): Promise<BuiltImage> {
+    if (!isPinnedBaseImage(parameters.baseImage)) {
+      useLog(
+        "WARN",
+        `Base image ${parameters.baseImage} is not pinned by digest: the image changes when the tag moves, ` +
+          `use ${parameters.baseImage}@sha256:<digest> for reproducible builds`
+      );
+    }
     const entries = await this.getLayerEntries(parameters);
     return buildImage(output, entries, {
       baseImage: parameters.baseImage,

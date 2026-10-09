@@ -2,12 +2,36 @@ import * as assert from "assert";
 import { suite, test } from "@webda/test";
 import { UnpackedApplication } from "./unpackedapplication.js";
 import { WebdaApplicationTest } from "../test/application.js";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "path";
 import { getCommonJS } from "@webda/utils";
 import { useApplication } from "./hooks.js";
 
 @suite
 class UnpackedApplicationTest extends WebdaApplicationTest {
+  @test
+  async findModulesFilesIsSorted() {
+    // The modules are merged in this order: it must not depend on the file system timing.
+    // A symlinked package takes longer to resolve than a folder, so it is found last without sorting,
+    // its real path (pnpm store) sorts first
+    const root = realpathSync(mkdtempSync(join(tmpdir(), "webda-modules-")));
+    try {
+      for (const name of ["a-store/a-module", "node_modules/b-module"]) {
+        mkdirSync(join(root, name), { recursive: true });
+        writeFileSync(join(root, name, "webda.module.json"), "{}");
+      }
+      symlinkSync(join(root, "a-store/a-module"), join(root, "node_modules/a-module"));
+      const modules = await UnpackedApplication.findModulesFiles(join(root, "node_modules"));
+      assert.deepStrictEqual(
+        modules.map(file => file.substring(root.length)),
+        ["/a-store/a-module/webda.module.json", "/node_modules/b-module/webda.module.json"]
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
   @test
   cachedModule() {
     const { __dirname } = getCommonJS(import.meta.url);

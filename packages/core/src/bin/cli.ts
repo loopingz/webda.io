@@ -73,7 +73,7 @@ const KNOWN_PARAMS: Record<string, { positional?: string; options?: Record<strin
     options: {
       query: { type: "string", alias: "q", describe: "Search query (WebdaQL)" }
     }
-  },
+  }
 };
 
 /**
@@ -279,7 +279,10 @@ export function buildCli(ops: OperationsFile, handler: OperationHandler, argv?: 
     });
   }
 
-  return cli.completion("completion", false as any).demandCommand(1, "Specify a command").help();
+  return cli
+    .completion("completion", false as any)
+    .demandCommand(1, "Specify a command")
+    .help();
 }
 
 /**
@@ -321,7 +324,10 @@ export function addServiceCommandsToCli(
   });
 
   // Group commands by top-level name for subcommand support
-  const topLevel = new Map<string, { name: string; info: import("../services/servicecommands.js").ServiceCommandInfo }[]>();
+  const topLevel = new Map<
+    string,
+    { name: string; info: import("../services/servicecommands.js").ServiceCommandInfo }[]
+  >();
 
   for (const [cmdName, cmdInfo] of Object.entries(serviceCommands)) {
     const parts = cmdName.split(" ");
@@ -401,8 +407,7 @@ async function promptForMissingInput(input: Record<string, any>, schema: JSONSch
   if (!process.stdin.isTTY) return input;
 
   const rl = createInterface({ input: process.stdin, output: process.stderr });
-  const ask = (question: string): Promise<string> =>
-    new Promise(resolve => rl.question(question, resolve));
+  const ask = (question: string): Promise<string> => new Promise(resolve => rl.question(question, resolve));
 
   try {
     for (const [name, prop] of missing) {
@@ -670,13 +675,30 @@ export function resolveCapabilities(app: Application, requires: string[]): void 
     // Check if a service with this type is already configured
     const shortName = serviceType.split("/").pop();
     const hasProvider =
-      Object.values(appConfig.services).some(
-        (cfg: any) => cfg.type === serviceType || cfg.type === shortName
-      ) || appConfig.services[shortName];
+      Object.values(appConfig.services).some((cfg: any) => cfg.type === serviceType || cfg.type === shortName) ||
+      appConfig.services[shortName];
     if (!hasProvider) {
       appConfig.services[shortName] = { type: serviceType };
     }
   }
+}
+
+/**
+ * Exit once stdout has flushed what the command wrote
+ *
+ * A piped stdout is asynchronous: `process.exit` right after a large `useOutput` truncates it.
+ * The write callback fires once every previously queued chunk is handed to the system.
+ *
+ * @param code - exit code
+ * @param stdout - stream to flush, replaceable for tests
+ * @param exit - process exit, replaceable for tests
+ */
+export function exitAfterFlush(
+  code: number,
+  stdout: Pick<NodeJS.WriteStream, "write"> = process.stdout,
+  exit: (code: number) => void = code => process.exit(code)
+): void {
+  stdout.write("", () => exit(code));
 }
 
 /**
@@ -691,7 +713,7 @@ export function resolveCapabilities(app: Application, requires: string[]): void 
  */
 export function createCommandShutdown(
   core: { stop(): Promise<void> },
-  exit: (code: number) => void = code => process.exit(code)
+  exit: (code: number) => void = code => exitAfterFlush(code)
 ): { shutdown: (code: number) => Promise<void>; interrupt: () => Promise<void> } {
   let stopping: Promise<void> | undefined;
   const shutdown = (code: number): Promise<void> => {
@@ -896,7 +918,10 @@ if (isMain) {
       const serviceCommands = collectServiceCommands(app);
 
       // Track which command was matched so we know whether to boot Core
-      let matchedCommand: { type: "operation"; call: OperationCall } | { type: "service"; name: string; args: Record<string, any> } | undefined;
+      let matchedCommand:
+        | { type: "operation"; call: OperationCall }
+        | { type: "service"; name: string; args: Record<string, any> }
+        | undefined;
 
       // Detect if @webda/compiler is available for --watch support
       let hasCompiler = false;
@@ -977,7 +1002,10 @@ if (isMain) {
         }
       }
 
-      cli.completion("completion", false as any).demandCommand(1, "Specify a command").help();
+      cli
+        .completion("completion", false as any)
+        .demandCommand(1, "Specify a command")
+        .help();
 
       await cli.parseAsync();
 
@@ -1040,7 +1068,7 @@ if (isMain) {
           useOutput(typeof result === "string" ? result : JSON.stringify(result, undefined, 2));
         }
         await core.stop();
-        process.exit(0);
+        exitAfterFlush(0);
       } else {
         // Service command: boot Core and execute
         const cmdInfo = serviceCommands[matchedCommand.name];

@@ -354,7 +354,8 @@ export class UnpackedApplication extends Application {
       return [...files];
     };
 
-    return scanNodeModules(path);
+    // The search runs in parallel: sort so the modules are merged in the same order on every run
+    return (await scanNodeModules(path)).sort();
   }
 
   /**

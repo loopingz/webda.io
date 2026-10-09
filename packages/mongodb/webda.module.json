@@ -288,6 +288,7 @@
           "maxGroups": {
             "default": 10000,
             "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
+            "minimum": 1,
             "type": "number"
           },
           "modelAliases": {

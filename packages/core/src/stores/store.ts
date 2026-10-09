@@ -1,7 +1,14 @@
 import { Counter, Histogram } from "../metrics/metrics.js";
 import * as WebdaError from "../errors/errors.js";
 
-import { registerRepository, type Model, type ModelClass, type PrimaryKey, type Repository } from "@webda/models";
+import {
+  registerRepository,
+  type AggregationOptions,
+  type Model,
+  type ModelClass,
+  type PrimaryKey,
+  type Repository
+} from "@webda/models";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { Service } from "../services/service.js";
 import * as WebdaQL from "@webda/ql";
@@ -260,6 +267,19 @@ export class StoreParameters extends ServiceParameters {
    */
   slowQueryThreshold: number;
   /**
+   * What to do when an aggregation on this store cannot run natively and must
+   * stream every matching object through memory
+   *
+   * @default "warn"
+   */
+  aggregationFallback?: "allow" | "warn" | "deny";
+  /**
+   * Maximum number of groups an aggregation may produce without LIMIT (or in memory)
+   *
+   * @default 10000
+   */
+  maxGroups?: number;
+  /**
    * Model Aliases to allow easier rename of Model
    */
   modelAliases?: { [key: string]: string };
@@ -426,7 +446,9 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         currentStore = registry;
       }
       // Register the repository
-      registerRepository(model, currentStore.getRepository(model) as any);
+      const repository = currentStore.getRepository(model);
+      repository.configureAggregation(currentStore.getAggregationOptions());
+      registerRepository(model, repository as any);
       useLog("DEBUG", `${useModelId(model)} using store ${currentStore.getName()}`);
     }
   }
@@ -463,7 +485,11 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         let subId: string | undefined;
         if (typeof entry === "string") {
           subId = entry;
-          try { subModel = useModel(entry); } catch { continue; }
+          try {
+            subModel = useModel(entry);
+          } catch {
+            continue;
+          }
         } else {
           subModel = entry as ModelClass;
           subId = useModelId(subModel);
@@ -577,6 +603,18 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   }
 
   abstract getRepository<T extends ModelClass>(model: T): Repository<T>;
+
+  /**
+   * Aggregation options applied to the repositories of this store
+   * @returns the options; undefined values keep the repository defaults
+   */
+  getAggregationOptions(): Partial<AggregationOptions> {
+    return {
+      fallback: this.parameters.aggregationFallback,
+      maxGroups: this.parameters.maxGroups,
+      warn: message => useLog("WARN", message)
+    };
+  }
 }
 
 export { Store };

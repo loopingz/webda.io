@@ -4,6 +4,7 @@ import { UuidModel } from "../model.model.js";
 import type { ModelClass } from "../storable.js";
 import { MemoryRepository } from "./memory.js";
 import { EventRepository } from "./event.js";
+import { checkAggregation } from "./conformance.js";
 import { registerRepository, Repositories } from "./hooks.js";
 
 /**
@@ -37,6 +38,41 @@ async function fill(repo: MemoryRepository<any>): Promise<void> {
   await repo.create({ uuid: "t1", status: "open", points: 3, owner: { uuid: "u1" } } as any);
   await repo.create({ uuid: "t2", status: "open", points: 5, owner: { uuid: "u2" } } as any);
   await repo.create({ uuid: "t3", status: "done", points: 2, owner: { uuid: "u1" } } as any);
+}
+
+/**
+ * Schemaless model for the conformance dataset
+ */
+class Row extends UuidModel {
+  /**
+   * @param data - initial data
+   */
+  constructor(data?: any) {
+    super(data);
+    Object.assign(this, data);
+  }
+}
+Row.registerSerializer();
+(Row as any).Metadata = { Identifier: "Test/Row", Subclasses: [] };
+
+@suite
+class AggregationConformanceTest {
+  @test
+  async memory() {
+    await checkAggregation(new MemoryRepository(Row, ["uuid"]), { native: true });
+  }
+
+  @test
+  async fallback() {
+    await checkAggregation(new RemoteRepository(Row, ["uuid"]), { native: false });
+  }
+
+  @test
+  async eventWrapped() {
+    await checkAggregation(new EventRepository(Row, ["uuid"], new MemoryRepository(Row, ["uuid"])), {
+      native: true
+    });
+  }
 }
 
 @suite

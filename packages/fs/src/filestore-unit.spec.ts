@@ -49,6 +49,17 @@ class FileBackedMapTest {
    */
 
   @test
+  async aggregationConformance() {
+    const { checkAggregation } = await import("@webda/core/lib/test");
+    await runWithInstanceStorage({}, async () => {
+      // Schemaless model, built like the other tests of this file
+      const AggregationRow: any = class AggregationRow {};
+      AggregationRow.Metadata = { Identifier: "Test/AggregationRow", PrimaryKey: ["uuid"], Subclasses: [] };
+      await checkAggregation(this.store.getRepository(AggregationRow), { native: true });
+    });
+  }
+
+  @test
   async hasReturnsFalseForMissing() {
     const exists = await this.store._exists("nonexistent");
     assert.strictEqual(exists, false);
@@ -371,7 +382,15 @@ class FileBackedMapTest {
   async upsertItemToCollectionNotFound() {
     await assert.rejects(
       () =>
-        this.store._upsertItemToCollection("nonexistent", "items", { id: 1 }, undefined, undefined, undefined, new Date()),
+        this.store._upsertItemToCollection(
+          "nonexistent",
+          "items",
+          { id: 1 },
+          undefined,
+          undefined,
+          undefined,
+          new Date()
+        ),
       StoreNotFoundError
     );
   }
@@ -438,10 +457,7 @@ class FileBackedMapTest {
   async removeAttributeWithConditionFail() {
     const data = { uuid: "ra3", name: "test", version: 1 };
     fs.writeFileSync(path.join(this.tmpDir, "ra3.json"), JSON.stringify(data));
-    await assert.rejects(
-      () => this.store._removeAttribute("ra3", "name", 99, "version"),
-      UpdateConditionFailError
-    );
+    await assert.rejects(() => this.store._removeAttribute("ra3", "name", 99, "version"), UpdateConditionFailError);
   }
 
   @test
@@ -472,7 +488,13 @@ class FileBackedMapTest {
 
   @test
   async deleteItemFromCollectionWithConditionFail() {
-    const data = { uuid: "coldf", items: [{ id: 1, v: 10 }, { id: 2, v: 20 }] };
+    const data = {
+      uuid: "coldf",
+      items: [
+        { id: 1, v: 10 },
+        { id: 2, v: 20 }
+      ]
+    };
     fs.writeFileSync(path.join(this.tmpDir, "coldf.json"), JSON.stringify(data));
     await assert.rejects(
       () => this.store._deleteItemFromCollection("coldf", "items", 0, 99, "v", new Date()),
@@ -484,15 +506,7 @@ class FileBackedMapTest {
   async upsertItemWithWriteConditionSuccess() {
     const data = { uuid: "colws", items: [{ id: 1, v: 10 }] };
     fs.writeFileSync(path.join(this.tmpDir, "colws.json"), JSON.stringify(data));
-    const result = await this.store._upsertItemToCollection(
-      "colws",
-      "items",
-      { id: 99 },
-      0,
-      10,
-      "v",
-      new Date()
-    );
+    const result = await this.store._upsertItemToCollection("colws", "items", { id: 99 }, 0, 10, "v", new Date());
     assert.deepStrictEqual(result.items[0], { id: 99 });
   }
 

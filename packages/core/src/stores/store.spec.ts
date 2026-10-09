@@ -9,6 +9,7 @@ import { CoreModel } from "../models/coremodel.model.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store.js";
 import { UuidModel, useRepository } from "@webda/models";
+import { checkAggregation } from "../test/index.js";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 
 /**
@@ -830,3 +831,36 @@ class StoreRepositoryEventsTest extends WebdaApplicationTest {
 }
 
 export { StoreTest };
+
+/**
+ * Schemaless model for the aggregation conformance dataset
+ */
+class AggregationRow extends UuidModel {
+  /**
+   * @param data - initial data
+   */
+  constructor(data?: any) {
+    super(data);
+    Object.assign(this, data);
+  }
+}
+AggregationRow.registerSerializer();
+(AggregationRow as any).Metadata = { Identifier: "WebdaTest/AggregationRow", PrimaryKey: ["uuid"], Subclasses: [] };
+
+@suite
+class StoreAggregationTest extends WebdaApplicationTest {
+  @test
+  async aggregationConformance() {
+    const store = new MemoryStore("aggregation", { models: [] } as any);
+    await checkAggregation(store.getRepository(AggregationRow as any), { native: true });
+  }
+
+  @test
+  async aggregationFallbackParameter() {
+    const store = new MemoryStore("aggregationDeny", { models: [], aggregationFallback: "deny", maxGroups: 5 } as any);
+    const repo: any = store.getRepository(AggregationRow as any);
+    repo.configureAggregation(store.getAggregationOptions());
+    assert.strictEqual(repo.repository.aggregationOptions.fallback, "deny");
+    assert.strictEqual(repo.repository.aggregationOptions.maxGroups, 5);
+  }
+}

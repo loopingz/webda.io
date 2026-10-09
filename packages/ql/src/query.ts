@@ -34,7 +34,7 @@ import {
   WebdaqlContext
 } from "./WebdaQLParserParser.js";
 import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor.js";
-import { WebdaQLError } from "./webdaql-string.js";
+import { escapeValue, WebdaQLError } from "./webdaql-string.js";
 
 /**
  * Primitive value types supported by WebdaQL expressions
@@ -1126,7 +1126,7 @@ export class QueryValidator {
       }
     }
     // Set the limit if overriden
-    if (adds.query.limit) {
+    if (adds.query.limit !== undefined) {
       this.query.limit = adds.query.limit;
     }
     // Set the offset if overriden
@@ -1481,13 +1481,163 @@ export function stringifyQuery(query: Omit<Query, "toString">): string {
   if (query.orderBy?.length) {
     res += ` ORDER BY ${query.orderBy.map(o => `${o.field} ${o.direction}`).join(", ")}`;
   }
-  if (query.limit) {
+  if (query.limit !== undefined) {
     res += ` LIMIT ${query.limit}`;
   }
   if (query.continuationToken) {
     res += ` OFFSET ${ComparisonExpression.prototype.toStringValue(query.continuationToken)}`;
   }
   return res.trim();
+}
+
+/**
+ * One segment of a field path, as the grammar's identifiers allow it: letters, digits and `_`
+ */
+const FIELD_SEGMENT = /^[A-Za-z0-9_]+$/;
+
+/**
+ * Check a field path of a query object
+ * @param field - the path, as a string or its segments
+ * @returns the dotted path
+ * @throws {WebdaQLError} when a segment is empty or holds anything but letters, digits and `_`
+ */
+function checkFieldPath(field: unknown): string {
+  const segments = Array.isArray(field) ? field : typeof field === "string" ? field.split(".") : undefined;
+  if (!segments?.length || segments.some(segment => typeof segment !== "string" || !FIELD_SEGMENT.test(segment))) {
+    throw new WebdaQLError(`Invalid field path in WebdaQL query: ${JSON.stringify(field)}`);
+  }
+  return segments.join(".");
+}
+
+/**
+ * Print a single value of a query object
+ * @param value - the value
+ * @returns its WebdaQL literal
+ * @throws {WebdaQLError} for anything but a string, a finite number or a boolean
+ */
+function checkScalar(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
+    throw new WebdaQLError(`Invalid value in WebdaQL query: ${typeof value}`);
+  }
+  return escapeValue(value);
+}
+
+/**
+ * Print an expression of a query object from its data only (never its own toString)
+ * @param expression - the expression
+ * @param nested - whether the expression is inside a logical expression
+ * @returns the WebdaQL text
+ * @throws {WebdaQLError} for an expression the grammar cannot produce
+ */
+function printExpression(expression: unknown, nested: boolean): string {
+  if (expression instanceof BooleanExpression && typeof expression.value === "boolean") {
+    return expression.value ? "TRUE" : "FALSE";
+  }
+  if (
+    (expression instanceof AndExpression || expression instanceof OrExpression) &&
+    Array.isArray(expression.children)
+  ) {
+    const operator = expression instanceof AndExpression ? "AND" : "OR";
+    if (expression.children.length === 0) {
+      // An empty AND or OR matches everything
+      return nested ? "TRUE" : "";
+    }
+    const text = expression.children.map(child => printExpression(child, true)).join(` ${operator} `);
+    return nested ? `( ${text} )` : text;
+  }
+  if (expression instanceof ComparisonExpression) {
+    const attribute = checkFieldPath(expression.attribute);
+    const operator = expression.operator as string;
+    if (UNARY_COMPARISON_OPERATORS.includes(operator as ComparisonOperator)) {
+      return `${attribute} ${operator}`;
+    }
+    if (operator === "IN") {
+      if (!Array.isArray(expression.value) || expression.value.length === 0) {
+        throw new WebdaQLError("Invalid IN values in WebdaQL query");
+      }
+      return `${attribute} IN [${expression.value.map(checkScalar).join(", ")}]`;
+    }
+    if (!["=", "!=", "<", "<=", ">", ">=", "LIKE", "CONTAINS"].includes(operator)) {
+      throw new WebdaQLError(`Invalid operator in WebdaQL query: ${JSON.stringify(operator)}`);
+    }
+    if ((operator === "LIKE" || operator === "CONTAINS") && typeof expression.value !== "string") {
+      throw new WebdaQLError(`${operator} takes a string in WebdaQL query`);
+    }
+    return `${attribute} ${operator} ${checkScalar(expression.value)}`;
+  }
+  throw new WebdaQLError("Invalid expression in WebdaQL query");
+}
+
+/**
+ * Normalize a query object built or changed by code: every part is checked against what the grammar allows, the
+ * query is printed from its data and parsed again
+ *
+ * Use it before handing a `Query` object received from a caller to a backend: field paths (letters, digits, `_`),
+ * operators, values (strings, finite numbers, booleans), LIMIT (non-negative integer) and OFFSET (string) are
+ * checked, and the result only holds expressions built by the parser.
+ *
+ * @param query - the query object
+ * @returns the same query, as parsed from its canonical text
+ * @throws {WebdaQLError} when a part of the query cannot be written in WebdaQL
+ */
+export function normalizeQuery(query: Partial<Query>): Query {
+  if (!query || typeof query !== "object") {
+    throw new WebdaQLError("Invalid WebdaQL query object");
+  }
+  const type = query.type ?? "SELECT";
+  if (!["SELECT", "DELETE", "UPDATE"].includes(type)) {
+    throw new WebdaQLError(`Invalid statement type in WebdaQL query: ${JSON.stringify(type)}`);
+  }
+  const filter = printExpression(query.filter ?? new AndExpression([]), false);
+  let head = "";
+  if (type === "DELETE") {
+    head = "DELETE";
+  } else if (type === "UPDATE") {
+    if (!Array.isArray(query.assignments) || query.assignments.length === 0) {
+      throw new WebdaQLError("UPDATE needs at least one SET assignment");
+    }
+    head = `UPDATE SET ${query.assignments.map(a => `${checkFieldPath(a?.field)} = ${checkScalar(a?.value)}`).join(", ")}`;
+  } else if (query.fields !== undefined) {
+    if (!Array.isArray(query.fields) || query.fields.length === 0) {
+      throw new WebdaQLError("Invalid SELECT field list in WebdaQL query");
+    }
+    head = `SELECT ${query.fields.map(checkFieldPath).join(", ")}`;
+  }
+  let res = head ? `${head}${filter ? ` WHERE ${filter}` : ""}` : filter;
+  if (query.orderBy !== undefined) {
+    if (!Array.isArray(query.orderBy)) {
+      throw new WebdaQLError("Invalid ORDER BY in WebdaQL query");
+    }
+    if (query.orderBy.length) {
+      res += ` ORDER BY ${query.orderBy
+        .map(o => {
+          if (o?.direction !== "ASC" && o?.direction !== "DESC") {
+            throw new WebdaQLError("Invalid ORDER BY direction in WebdaQL query");
+          }
+          return `${checkFieldPath(o.field)} ${o.direction}`;
+        })
+        .join(", ")}`;
+    }
+  }
+  if (query.limit !== undefined) {
+    if (!Number.isSafeInteger(query.limit) || query.limit < 0) {
+      throw new WebdaQLError(`Invalid LIMIT in WebdaQL query: ${JSON.stringify(query.limit)}`);
+    }
+    res += ` LIMIT ${query.limit}`;
+  }
+  if (query.continuationToken !== undefined && query.continuationToken !== null) {
+    if (typeof query.continuationToken !== "string") {
+      throw new WebdaQLError("Invalid OFFSET in WebdaQL query");
+    }
+    if (query.continuationToken) {
+      res += ` OFFSET ${escapeValue(query.continuationToken)}`;
+    }
+  }
+  try {
+    return parse(res.trim());
+  } catch (err) {
+    throw new WebdaQLError(`Invalid WebdaQL query object: ${(err as Error).message}`);
+  }
 }
 
 /**

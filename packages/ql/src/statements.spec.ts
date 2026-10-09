@@ -304,4 +304,58 @@ class StatementsTest {
       assert.throws(() => WebdaQL.parse(query), WebdaQLError, query);
     }
   }
+
+  @test
+  limitZeroIsKept() {
+    assert.strictEqual(roundTrip("DELETE LIMIT 0"), "DELETE LIMIT 0");
+    assert.strictEqual(roundTrip("UPDATE SET a = 1 WHERE b = 2 LIMIT 0"), "UPDATE SET a = 1 WHERE b = 2 LIMIT 0");
+    assert.strictEqual(roundTrip("SELECT a LIMIT 0 OFFSET 't'"), 'SELECT a LIMIT 0 OFFSET "t"');
+    assert.strictEqual(roundTrip("a = 1 LIMIT 0"), "a = 1 LIMIT 0");
+    assert.strictEqual(WebdaQL.PrependCondition("DELETE LIMIT 0", "name = 'x'"), 'DELETE WHERE name = "x" LIMIT 0');
+    assert.strictEqual(WebdaQL.parse(WebdaQL.PrependCondition("DELETE LIMIT 0", "name = 'x'")).limit, 0);
+    // A LIMIT 0 condition overrides the query LIMIT, like any other LIMIT
+    assert.strictEqual(WebdaQL.PrependCondition("DELETE LIMIT 5", "LIMIT 0"), "DELETE LIMIT 0");
+  }
+
+  @test
+  normalizeQueryRejectsForgedObjects() {
+    // A well-formed object goes back through the grammar unchanged
+    const ok = WebdaQL.normalizeQuery(WebdaQL.parse("DELETE WHERE a.b = 'x' AND c IN [1, 2] LIMIT 3"));
+    assert.strictEqual(ok.toString(), 'DELETE WHERE a.b = "x" AND c IN [1, 2] LIMIT 3');
+    assert.ok(ok.filter instanceof WebdaQL.AndExpression);
+    const forge = (query: string, change: (q: any) => void) => {
+      const q: any = WebdaQL.parse(query);
+      change(q);
+      return () => WebdaQL.normalizeQuery(q);
+    };
+    const invalid: [string, (q: any) => void][] = [
+      // SQL break-out through a field path
+      ["DELETE WHERE uuid = 'nope'", q => (q.filter.attribute = ["x}' IS NULL OR TRUE OR data#>>'{y"])],
+      // Mongo operators
+      ["DELETE WHERE uuid = 'nope'", q => (q.filter.attribute = ["$where"])],
+      ["DELETE WHERE uuid = 'nope'", q => (q.filter.value = { $ne: "nope" })],
+      ["DELETE WHERE uuid = 'nope'", q => (q.filter.attribute = ["a", "$"])],
+      ["DELETE WHERE uuid IN ['a']", q => (q.filter.value = [{ $gt: "" }])],
+      ["DELETE WHERE uuid = 'nope'", q => (q.filter.attribute = ["a", ""])],
+      ["DELETE WHERE uuid = 'nope'", q => (q.filter.value = Number.NaN)],
+      ["DELETE WHERE uuid = 'nope'", q => (q.filter.operator = "= 1 OR")],
+      // A foreign expression whose toString is chosen by the caller
+      ["DELETE", q => (q.filter = { eval: () => true, toString: () => "1 = 1; DROP TABLE x" })],
+      ["UPDATE SET a = 1", q => (q.assignments = [{ field: "a'}", value: 1 }])],
+      ["UPDATE SET a = 1", q => (q.assignments = [{ field: "a", value: { $set: 1 } }])],
+      ["UPDATE SET a = 1", q => (q.assignments = [{ field: "a", value: null }])],
+      ["SELECT a", q => (q.fields = ["a; DROP"])],
+      ["a = 1 ORDER BY a", q => (q.orderBy = [{ field: "a'", direction: "ASC" }])],
+      ["a = 1 ORDER BY a", q => (q.orderBy = [{ field: "a", direction: "ASC; DROP" }])],
+      ["DELETE LIMIT 1", q => (q.limit = Number.NaN)],
+      ["DELETE LIMIT 1", q => (q.limit = -1)],
+      ["DELETE LIMIT 1", q => (q.limit = 1.5)],
+      ["DELETE LIMIT 1", q => (q.limit = "1; DROP")],
+      ["a = 1", q => (q.continuationToken = 12)],
+      ["a = 1", q => (q.type = "DROP")]
+    ];
+    for (const [query, change] of invalid) {
+      assert.throws(forge(query, change), WebdaQLError, `${query} ${change}`);
+    }
+  }
 }

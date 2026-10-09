@@ -296,6 +296,9 @@ export class Core implements ICore {
   @CoreState({ start: "resolving", end: "resolved" })
   @InstanceCache()
   async resolve() {
+    // Declare application beans before the configuration service bootstraps,
+    // so dynamic configuration applies to them like any configured service
+    this.registerBeans();
     // Create services
     // First create the configuration service if defined
     const initOrders = [];
@@ -318,12 +321,10 @@ export class Core implements ICore {
         await this.initService(service);
       }
     }
-    // Create all services defined in configuration
+    // Create all services defined in configuration, beans included
     for (const service in this.configuration) {
       this.getService(service);
     }
-    // Auto-register application beans as services
-    this.registerBeans();
     this.initOrders = this.initOrders.filter(s => !initOrders.includes(s) && this.services[s]);
     // Ensure stores are initialized first
     this.initOrders.sort((a, b) => {
@@ -498,29 +499,26 @@ export class Core implements ICore {
   }
 
   /**
-   * Auto-register application beans as services if not already configured.
-   * Tests can disable by overriding getBeans() to return empty/undefined.
+   * Declare application beans as services if not already configured.
+   * The services themselves are created along with the configured ones.
+   * Tests can disable by overriding registerBeans().
    */
   registerBeans() {
     const appBeans = (this.application as any).beans || {};
-    if (Object.keys(appBeans).length === 0) return;
     for (const beanName in appBeans) {
-      // Skip if a service with this bean type is already configured
-      if (Object.values(this.applicationConfiguration.services).some((s: any) => s.type === beanName)) {
-        continue;
-      }
-      const serviceName = beanName.split("/").pop();
-      if (this.services[serviceName]) continue;
       const beanClass = appBeans[beanName];
       if (!beanClass) continue;
+      // Skip if a configured service already uses this bean
+      if (Object.values(this.moddas).includes(beanClass)) continue;
+      const serviceName = beanName.split("/").pop();
+      if (this.configuration[serviceName]) continue;
       this.moddas[serviceName] = beanClass;
-      this.moddas[beanName] = beanClass;
       const filtered = (beanClass.filterParameters || (p => p))({
         ...this.applicationConfiguration.parameters
       });
       filtered.type = beanName;
-      this.configuration[serviceName] = Object.freeze(filtered);
-      this.getService(serviceName);
+      // Configuration can be frozen once updated by the configuration service
+      this.configuration = { ...this.configuration, [serviceName]: Object.freeze(filtered) };
     }
   }
 

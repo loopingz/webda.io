@@ -1,4 +1,5 @@
-import { ComparisonExpression, type Expression } from "./query.js";
+import { assertFilterQuery, ComparisonExpression, parse, type Expression } from "./query.js";
+import { bind, type QueryParameters } from "./bind.js";
 import { WebdaQLError } from "./webdaql-string.js";
 
 /**
@@ -352,4 +353,70 @@ export class Aggregator {
     }
     return rows;
   }
+}
+
+/**
+ * Ergonomic metric definition used by the object API
+ */
+export type MetricInput =
+  { count: string } | { countDistinct: string } | { sum: string } | { avg: string } | { min: string } | { max: string };
+
+/**
+ * Untyped object form of an aggregation, as accepted by repositories
+ */
+export interface AggregationInput {
+  /**
+   * WebdaQL filter, without ORDER BY / LIMIT / OFFSET
+   */
+  filter?: string;
+  groupBy?: readonly string[];
+  metrics: Record<string, MetricInput>;
+  orderBy?: readonly AggregationOrder[];
+  limit?: number;
+}
+
+const METRIC_KEYS: Record<string, AggregateFunction> = {
+  count: "COUNT",
+  countDistinct: "COUNT_DISTINCT",
+  sum: "SUM",
+  avg: "AVG",
+  min: "MIN",
+  max: "MAX"
+};
+
+/**
+ * Convert the object form of an aggregation to the canonical AST
+ * @param input - the object form
+ * @param params - values for the `?` / `:name` placeholders of the filter
+ * @returns the validated AST
+ * @throws WebdaQLError when the input is invalid
+ */
+export function toAggregationQuery(input: AggregationInput, params?: QueryParameters): AggregationQuery {
+  let filter = input.filter ?? "";
+  if (params !== undefined) {
+    filter = bind(filter, params);
+  }
+  const parsed = parse(filter);
+  // DELETE / UPDATE / SELECT statements are not filters
+  assertFilterQuery(parsed);
+  if (parsed.limit !== undefined || parsed.orderBy?.length || parsed.continuationToken !== undefined) {
+    throw new WebdaQLError("An aggregation filter cannot contain ORDER BY, LIMIT or OFFSET");
+  }
+  const metrics: Record<string, Metric> = {};
+  for (const [alias, spec] of Object.entries(input.metrics ?? {})) {
+    const entries = Object.entries(spec ?? {});
+    if (entries.length !== 1 || !Object.prototype.hasOwnProperty.call(METRIC_KEYS, entries[0][0])) {
+      throw new WebdaQLError(`Metric '${alias}' must define exactly one of ${Object.keys(METRIC_KEYS).join(", ")}`);
+    }
+    const [kind, field] = entries[0];
+    const fn = METRIC_KEYS[kind];
+    metrics[alias] = fn === "COUNT" && field === "*" ? { fn } : { fn, field: field as string };
+  }
+  return validateAggregation({
+    filter: parsed.filter,
+    groupBy: [...(input.groupBy ?? [])],
+    metrics,
+    orderBy: input.orderBy?.map(order => ({ key: order.key, direction: order.direction })),
+    limit: input.limit
+  });
 }

@@ -1,6 +1,13 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Aggregator, AggregationError, compareValues, validateAggregation, type AggregationQuery } from "./aggregation.js";
+import {
+  Aggregator,
+  AggregationError,
+  compareValues,
+  toAggregationQuery,
+  validateAggregation,
+  type AggregationQuery
+} from "./aggregation.js";
 import { AndExpression } from "./query.js";
 import { WebdaQLError } from "./webdaql-string.js";
 
@@ -44,7 +51,7 @@ class ValidateAggregationTest {
       ["duplicate group", { groupBy: ["a", "a"] }],
       ["bad alias", { metrics: { "1n": { fn: "COUNT" } } }],
       ["underscore alias", { metrics: { _id: { fn: "COUNT" } } }],
-      ["reserved alias", { metrics: { constructor: { fn: "COUNT" } } }],
+      ["reserved alias", { metrics: { constructor: { fn: "COUNT" } } as any }],
       ["alias clash", { metrics: { status: { fn: "COUNT" } } }],
       ["unknown fn", { metrics: { n: { fn: "MEDIAN" as any, field: "a" } } }],
       ["missing field", { metrics: { n: { fn: "SUM" } } }],
@@ -67,7 +74,6 @@ class ValidateAggregationTest {
     assert.strictEqual(err.name, "AggregationError");
   }
 }
-
 
 /**
  * Run an aggregation over items
@@ -198,5 +204,63 @@ class AggregatorTest {
       () => agg.add({ tag: "c" }),
       (err: AggregationError) => err.code === "AGGREGATION_TOO_MANY_GROUPS"
     );
+  }
+}
+
+@suite
+class ToAggregationQueryTest {
+  @test
+  converts() {
+    const query = toAggregationQuery(
+      {
+        filter: "status = :status AND points > :min",
+        groupBy: ["owner.uuid"],
+        metrics: { n: { count: "*" }, withTag: { count: "tag" }, d: { countDistinct: "tag" }, s: { sum: "points" } },
+        orderBy: [{ key: "n", direction: "DESC" }],
+        limit: 5
+      },
+      { status: "open", min: 1 }
+    );
+    assert.strictEqual(query.filter.toString(), 'status = "open" AND points > 1');
+    assert.deepStrictEqual(query.groupBy, ["owner.uuid"]);
+    assert.deepStrictEqual(query.metrics, {
+      n: { fn: "COUNT" },
+      withTag: { fn: "COUNT", field: "tag" },
+      d: { fn: "COUNT_DISTINCT", field: "tag" },
+      s: { fn: "SUM", field: "points" }
+    });
+    assert.deepStrictEqual(query.orderBy, [{ key: "n", direction: "DESC" }]);
+    assert.strictEqual(query.limit, 5);
+  }
+
+  @test
+  defaults() {
+    const query = toAggregationQuery({ metrics: { n: { count: "*" } } });
+    assert.strictEqual(query.filter.toString(), "");
+    assert.deepStrictEqual(query.groupBy, []);
+  }
+
+  @test
+  rejects() {
+    assert.throws(() => toAggregationQuery({ filter: "a = 1 LIMIT 3", metrics: { n: { count: "*" } } }), WebdaQLError);
+    assert.throws(
+      () => toAggregationQuery({ filter: "a = 1 ORDER BY a", metrics: { n: { count: "*" } } }),
+      WebdaQLError
+    );
+    assert.throws(
+      () => toAggregationQuery({ filter: "a = 1 OFFSET 'x'", metrics: { n: { count: "*" } } }),
+      WebdaQLError
+    );
+    assert.throws(
+      () => toAggregationQuery({ filter: "DELETE WHERE a = 1", metrics: { n: { count: "*" } } }),
+      WebdaQLError
+    );
+    assert.throws(
+      () => toAggregationQuery({ filter: "SELECT a WHERE a = 1", metrics: { n: { count: "*" } } }),
+      WebdaQLError
+    );
+    assert.throws(() => toAggregationQuery({ metrics: { n: { count: "*", sum: "a" } as any } }), WebdaQLError);
+    assert.throws(() => toAggregationQuery({ metrics: { n: { toString: "a" } as any } }), WebdaQLError);
+    assert.throws(() => toAggregationQuery({ metrics: { n: { sum: "*" } } }), WebdaQLError, "* only for count");
   }
 }

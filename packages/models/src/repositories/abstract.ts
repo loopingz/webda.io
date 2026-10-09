@@ -307,7 +307,9 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
       if (params !== undefined) {
         throw new WebdaQL.WebdaQLError("Parameters can only be bound to a statement string");
       }
-      parsed = statement;
+      // A query object built or changed by code goes back through the grammar: no forged path, operator or value
+      // reaches a backend
+      parsed = WebdaQL.normalizeQuery(statement);
     }
     if (parsed.type !== type) {
       throw new WebdaQL.WebdaQLError(
@@ -318,13 +320,24 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
       if (!parsed.assignments?.length) {
         throw new WebdaQL.WebdaQLError("UPDATE needs at least one SET assignment");
       }
-      for (const { field } of parsed.assignments) {
+      const targets = parsed.assignments.map(a => a.field);
+      for (const field of targets) {
         const segments = field.split(".");
+        if (segments.some(s => !/^[A-Za-z0-9_]+$/.test(s))) {
+          throw new WebdaQL.WebdaQLError(`UPDATE cannot set the field '${field}': empty or invalid path segment`);
+        }
         if (this.pks.includes(segments[0])) {
           throw new WebdaQL.WebdaQLError(`UPDATE cannot change the primary key field '${field}'`);
         }
-        if (segments.some(s => s.startsWith("__") || s === "constructor" || s === "prototype")) {
+        if (segments.some(s => s.startsWith("__") || s in Object.prototype || s === "prototype")) {
           throw new WebdaQL.WebdaQLError(`UPDATE cannot set the private field '${field}'`);
+        }
+        // The same field twice, or a field and one of its children: the result would depend on the store
+        if (
+          targets.some(other => other !== field && other.startsWith(`${field}.`)) ||
+          targets.indexOf(field) !== targets.lastIndexOf(field)
+        ) {
+          throw new WebdaQL.WebdaQLError(`UPDATE sets '${field}' more than once`);
         }
       }
       const allowed = this.getAllowedFields();
@@ -338,7 +351,8 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   /**
    * Set the assignments of an UPDATE on an object, creating the intermediate objects of dotted paths
    *
-   * Targets were checked by {@link parseStatement}: no `__`, `constructor` or `prototype` segment.
+   * Targets were checked by {@link parseStatement}: letters, digits and `_` only, no `__` segment, no
+   * `Object.prototype` member name.
    * @param target - the object to change in place
    * @param assignments - the SET assignments
    * @returns the target
@@ -379,6 +393,25 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   }
 
   /**
+   * Run one write of the generic fallback; an object deleted since the keys were collected is skipped
+   * @param key - the primary key
+   * @param write - the write
+   * @returns true when written, false when the object is gone
+   * @throws the write error when the object still exists
+   */
+  protected async writeIfPresent(key: PrimaryKeyType<InstanceType<T>>, write: () => Promise<void>): Promise<boolean> {
+    try {
+      await write();
+      return true;
+    } catch (err) {
+      if (await this.exists(key)) {
+        throw err;
+      }
+      return false;
+    }
+  }
+
+  /**
    * Generic `deleteMany`: collect the matching keys (up to LIMIT), then delete them one by one with this
    * repository's `delete` primitive
    *
@@ -390,10 +423,11 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   protected async deleteManyByKey(statement: string | WebdaQLQuery, params?: QueryParameters): Promise<number> {
     const parsed = await this.parseStatement("DELETE", statement, params);
     const keys = await this.collectStatementKeys(parsed);
+    let count = 0;
     for (const key of keys) {
-      await this.delete(key);
+      if (await this.writeIfPresent(key, () => this.delete(key))) count++;
     }
-    return keys.length;
+    return count;
   }
 
   /**
@@ -409,19 +443,29 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     const parsed = await this.parseStatement("UPDATE", statement, params);
     const keys = await this.collectStatementKeys(parsed);
     const nested = parsed.assignments!.some(a => a.field.includes("."));
+    let count = 0;
     for (const key of keys) {
       const patch: any = {};
       if (nested) {
-        const current: any = await this.get(key);
+        let current: any;
+        try {
+          current = await this.get(key);
+        } catch (err) {
+          if (await this.exists(key)) throw err;
+          // Deleted since the keys were collected
+          continue;
+        }
         for (const { field } of parsed.assignments!) {
           const top = field.split(".")[0];
           // A deep copy of the current value, so the nested assignments keep its other fields
           patch[top] ??= current?.[top] === undefined ? undefined : JSON.parse(JSON.stringify(current[top]));
         }
       }
-      await this.patch(key, this.applyAssignments(patch, parsed.assignments!));
+      if (await this.writeIfPresent(key, () => this.patch(key, this.applyAssignments(patch, parsed.assignments!)))) {
+        count++;
+      }
     }
-    return keys.length;
+    return count;
   }
 
   /**

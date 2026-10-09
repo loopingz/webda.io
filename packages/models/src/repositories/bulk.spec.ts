@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
-import { WebdaQLError, parse } from "@webda/ql";
+import { PrependCondition, WebdaQLError, parse } from "@webda/ql";
 import { UuidModel } from "../model.model.js";
 import { EventRepository } from "./event.js";
 import { MemoryRepository } from "./memory.js";
@@ -61,6 +61,20 @@ class FallbackRepository extends MemoryRepository<typeof Task> {
     return super.patch(primaryKey, data);
   }
 }
+
+/** Parent and child sharing one storage, as a store wires them */
+class Animal extends UuidModel {
+  kind: string = "";
+  constructor(data?: Partial<Animal>) {
+    super(data);
+    Object.assign(this, data);
+  }
+}
+Animal.registerSerializer();
+class Dog extends Animal {}
+Dog.registerSerializer();
+(Animal as any).Metadata = { Identifier: "Test/Animal", Subclasses: [Dog] };
+(Dog as any).Metadata = { Identifier: "Test/Dog", Subclasses: [] };
 
 const EVENTS = [
   "Create",
@@ -284,5 +298,108 @@ class BulkStatementsTest {
     const repo = new MemoryRepository<typeof Task>(Task, ["uuid"]);
     await this.fill(repo, 1);
     await assert.rejects(() => repo.updateMany("UPDATE SET title = ?", [null]), /cannot be assigned/);
+  }
+
+  @test
+  async forgedQueryObjectsAreRefused() {
+    for (const repo of [new MemoryRepository<typeof Task>(Task, ["uuid"]), new FallbackRepository(Task, ["uuid"])]) {
+      await this.fill(repo, 3);
+      const forged: [string, (q: any) => void][] = [
+        ["DELETE WHERE uuid = 'nope'", q => (q.filter.attribute = ["x}' IS NULL OR TRUE OR data#>>'{y"])],
+        ["DELETE WHERE uuid = 'nope'", q => (q.filter.attribute = ["$where"])],
+        ["DELETE WHERE uuid = 'nope'", q => (q.filter.value = { $ne: "nope" })],
+        ["DELETE WHERE uuid = 'nope'", q => (q.filter = { eval: () => true, toString: () => "TRUE" })],
+        ["DELETE LIMIT 1", q => (q.limit = Number.NaN)],
+        ["UPDATE SET title = 'x'", q => (q.assignments = [{ field: "title", value: { $set: 1 } }])],
+        ["UPDATE SET title = 'x'", q => (q.assignments = [{ field: "__proto__.x", value: 1 }])],
+        ["UPDATE SET title = 'x'", q => (q.assignments = [{ field: "a.$x", value: 1 }])]
+      ];
+      for (const [statement, change] of forged) {
+        const q: any = parse(statement);
+        change(q);
+        const run = () => (q.type === "DELETE" ? repo.deleteMany(q) : repo.updateMany(q));
+        await assert.rejects(run, WebdaQLError, `${statement} ${change}`);
+        if (q.type === "DELETE") {
+          // The same forged filter or LIMIT is refused by query() too
+          await assert.rejects(() => repo.query({ ...q, type: "SELECT" }), WebdaQLError);
+        }
+      }
+      assert.deepStrictEqual(await this.uuids(repo), ["t1", "t2", "t3"], "nothing was deleted");
+      assert.strictEqual(({} as any).x, undefined);
+      // A well-formed object works
+      assert.strictEqual(await repo.deleteMany(parse("DELETE WHERE priority = 1")), 1);
+      assert.strictEqual((await repo.query(parse("priority > 1") as any)).results.length, 2);
+    }
+  }
+
+  @test
+  async limitZeroAffectsNothing() {
+    for (const repo of [new MemoryRepository<typeof Task>(Task, ["uuid"]), new FallbackRepository(Task, ["uuid"])]) {
+      await this.fill(repo, 3);
+      assert.strictEqual(await repo.deleteMany("DELETE LIMIT 0"), 0);
+      assert.strictEqual(await repo.deleteMany(PrependCondition("DELETE LIMIT 0", "priority > 0")), 0);
+      assert.strictEqual(await repo.updateMany(PrependCondition("UPDATE SET title = 'z' LIMIT 0", "priority > 0")), 0);
+      assert.deepStrictEqual(await this.uuids(repo), ["t1", "t2", "t3"]);
+      assert.strictEqual((await repo.query("title = 'z'")).results.length, 0);
+    }
+  }
+
+  @test
+  async edgeSetTargetsAreRefused() {
+    const repo = new MemoryRepository<typeof Task>(Task, ["uuid"]);
+    await this.fill(repo, 1);
+    for (const statement of [
+      "UPDATE SET profile = 'x', profile.level = 2",
+      "UPDATE SET profile.level = 2, profile = 'x'",
+      "UPDATE SET title = 'a', title = 'b'",
+      "UPDATE SET a..b = 1",
+      "UPDATE SET .a = 1",
+      "UPDATE SET toString.x = 1",
+      "UPDATE SET profile.hasOwnProperty = 1",
+      "UPDATE SET valueOf = 1"
+    ]) {
+      await assert.rejects(() => repo.updateMany(statement), WebdaQLError, statement);
+    }
+    assert.strictEqual(String(await repo.get("t1")).length > 0, true);
+  }
+
+  @test
+  async fallbackSkipsObjectsGoneMeanwhile() {
+    const repo = new FallbackRepository(Task, ["uuid"]);
+    await this.fill(repo, 3);
+    // An object deleted between the key collection and its write: like Dynamo / Firestore, patch then throws
+    const patch = repo.patch.bind(repo);
+    repo.patch = async (key: any, data: any) => {
+      if (String(key) === "t2") {
+        await repo.delete("t2");
+        throw new Error("Not found: t2");
+      }
+      return patch(key, data);
+    };
+    assert.strictEqual(await repo.updateMany("UPDATE SET title = 'x'"), 2);
+    assert.strictEqual((await repo.query("title = 'x'")).results.length, 2);
+    // Any other failure still stops the statement
+    repo.patch = async () => {
+      throw new Error("backend down");
+    };
+    await assert.rejects(() => repo.updateMany("UPDATE SET title = 'y'"), /backend down/);
+  }
+
+  @test
+  async bulkStaysInTheModelHierarchy() {
+    const storage = new Map<string, string>();
+    const animals = new MemoryRepository<typeof Animal>(Animal, ["uuid"], undefined, storage);
+    const dogs = new MemoryRepository<typeof Dog>(Dog, ["uuid"], undefined, storage);
+    await animals.create(new Animal({ uuid: "a1", kind: "cat" }));
+    await dogs.create(new Dog({ uuid: "d1", kind: "dog" }));
+    // The child repository only reaches its own rows
+    assert.strictEqual(await dogs.updateMany("UPDATE SET kind = 'x'"), 1);
+    assert.strictEqual(((await animals.get("a1")) as any).kind, "cat");
+    assert.strictEqual(await dogs.deleteMany("DELETE"), 1);
+    assert.ok(storage.has("a1"));
+    // The parent reaches its subclasses
+    await dogs.create(new Dog({ uuid: "d2", kind: "dog" }));
+    assert.strictEqual(await animals.deleteMany("DELETE"), 2);
+    assert.strictEqual(storage.size, 0);
   }
 }

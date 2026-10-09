@@ -381,7 +381,8 @@ export class MemoryRepository<
       // DELETE / UPDATE go to deleteMany / updateMany; a field list is not a projection here
       WebdaQL.assertFilterQuery(parsed);
     } else {
-      parsed = query as Query;
+      // A query object built or changed by code goes back through the grammar
+      parsed = WebdaQL.normalizeQuery(query as any) as Query;
       WebdaQL.assertFilterQuery(parsed);
       if (ids) {
         // Merge the class filter directly into the AST so callers like

@@ -138,6 +138,8 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
    * @param table - the table name
    * @param separator - composite key separator
    * @param prepare - awaited before every statement (e.g. to ensure the table exists)
+   * @param tableModel - identifier of the model the table was declared for: rows without `__type` (written before
+   *   stamping) belong to it. Defaults to the topmost ancestor of `model` carrying metadata.
    */
   constructor(
     model: T,
@@ -145,10 +147,52 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     protected readonly client: SQLClient,
     protected readonly table: string,
     separator?: string,
-    protected readonly prepare?: () => Promise<void>
+    protected readonly prepare?: () => Promise<void>,
+    tableModel?: string
   ) {
     // Pass an empty Map — we do NOT use in-memory storage
     super(model, pks, separator, new Map<string, string>() as any);
+    this.tableModel = tableModel ?? PostgresRepository.rootIdentifier(model);
+  }
+
+  /**
+   * Identifier of the model the table was declared for: unstamped rows belong to it
+   */
+  protected readonly tableModel?: string;
+
+  /**
+   * @param model - a model class
+   * @returns the identifier of its topmost ancestor (itself included) carrying metadata
+   */
+  static rootIdentifier(model: any): string | undefined {
+    let root: string | undefined;
+    for (let clazz = model; clazz && clazz !== Function.prototype; clazz = Object.getPrototypeOf(clazz)) {
+      if (Object.prototype.hasOwnProperty.call(clazz, "Metadata") && clazz.Metadata?.Identifier) {
+        root = clazz.Metadata.Identifier;
+      }
+    }
+    return root;
+  }
+
+  /**
+   * Stamp the rows written before `__type` stamping with the table model: they keep belonging to it, and a later
+   * change of the table model cannot reassign them
+   *
+   * Idempotent; only the repository of the table model writes. Equivalent SQL:
+   * `UPDATE <table> SET data = data || jsonb_build_object('__type', '<table model>') WHERE data->>'__type' IS NULL`.
+   * @returns the number of rows stamped
+   */
+  async backfillTypes(): Promise<number> {
+    const own = (this.model as any)?.Metadata?.Identifier;
+    if (!own || own !== this.tableModel) {
+      return 0;
+    }
+    return (
+      await this.execute(
+        `UPDATE ${this.table} SET data = data || jsonb_build_object('__type', $1::text) WHERE data->>'__type' IS NULL`,
+        [own]
+      )
+    ).rowCount;
   }
 
   /**
@@ -223,17 +267,40 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     if (!ids) {
       return undefined;
     }
-    return `(data->>'__type' IS NULL OR data->>'__type' IN (${ids.map(sqlString).join(", ")}))`;
+    const typed = `data->>'__type' IN (${ids.map(sqlString).join(", ")})`;
+    // Unstamped rows belong to the table model: its repository and its ancestors' see them, a subclass never does
+    return this.tableModel && ids.includes(this.tableModel) ? `(${typed} OR data->>'__type' IS NULL)` : `(${typed})`;
   }
 
   /**
-   * The JSON stored for an object: its fields and its model identifier in `__type`
+   * The type an object written by the application declares: the `__type` its row was read with (non-enumerable,
+   * set by {@link fromJSON}), else the identifier of its class. Plain data declares none, whatever its keys.
    * @param item - the object
+   * @returns the model identifier, undefined for plain data
+   */
+  protected declaredType(item: any): string | undefined {
+    if (!item || typeof item !== "object") {
+      return undefined;
+    }
+    const own = Object.getOwnPropertyDescriptor(item, "__type");
+    if (own && !own.enumerable && typeof own.value === "string") {
+      return own.value;
+    }
+    const clazz = Object.getPrototypeOf(item)?.constructor;
+    return clazz && clazz !== Object ? clazz.Metadata?.Identifier : undefined;
+  }
+
+  /**
+   * The JSON stored for an object: its fields, and its declared type in `__type` (see {@link declaredType})
+   * @param item - the object
+   * @param fallbackType - the type to stamp when the object declares none
    * @returns the JSON text
    */
-  protected toStoredJSON(item: any): string {
+  protected toStoredJSON(item: any, fallbackType?: string): string {
     const data = JSON.parse(JSON.stringify(item));
-    const type = item?.constructor?.Metadata?.Identifier ?? (this.model as any).Metadata?.Identifier;
+    // An enumerable `__type` key of plain data is never trusted
+    delete data.__type;
+    const type = this.declaredType(item) ?? fallbackType;
     if (type) {
       data.__type = type;
     }
@@ -307,7 +374,10 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     const item = this.buildItem(data);
     const key = this.getPrimaryKey(item).toString();
     try {
-      await this.execute(`INSERT INTO ${this.table}(uuid,data) VALUES($1, $2)`, [key, this.toStoredJSON(item)]);
+      await this.execute(`INSERT INTO ${this.table}(uuid,data) VALUES($1, $2)`, [
+        key,
+        this.toStoredJSON(item, (this.model as any).Metadata?.Identifier)
+      ]);
     } catch (err) {
       // unique_violation on the primary key: the object exists, never overwrite it
       if (err?.code === "23505") {
@@ -322,7 +392,10 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
   async update(data: any, conditionField?: any, condition?: any): Promise<void> {
     const key = this.getPrimaryKey(data).toString();
     const args: any[] = [this.toStoredJSON(data), key];
-    let q = `UPDATE ${this.table} SET data=$1 WHERE uuid=$2`;
+    // Plain data keeps the stored type: a write through a parent repository never re-types a subclass row
+    let q = this.declaredType(data)
+      ? `UPDATE ${this.table} SET data=$1 WHERE uuid=$2`
+      : `UPDATE ${this.table} SET data = CASE WHEN data ? '__type' THEN $1::jsonb || jsonb_build_object('__type', data->'__type') ELSE $1::jsonb END WHERE uuid=$2`;
     if (conditionField) {
       q += this.getQueryCondition(condition, conditionField as string, args);
     }

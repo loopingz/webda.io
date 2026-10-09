@@ -26,7 +26,10 @@ class Animal extends Row {
 class Dog extends Animal {
   static Metadata = { Identifier: "Test/Dog", Subclasses: [] as any[] };
 }
-Animal.Metadata.Subclasses.push(Dog);
+class Cat extends Animal {
+  static Metadata = { Identifier: "Test/Cat", Subclasses: [] as any[] };
+}
+Animal.Metadata.Subclasses.push(Dog, Cat);
 
 /** Rows covering numbers, booleans, strings, missing fields, nulls and type mismatches */
 export const PARITY_ROWS = [
@@ -369,6 +372,74 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     await dogs.create(new Dog({ uuid: "d2" }));
     assert.strictEqual((await animals.query("")).results.length, 2, "the parent sees its subclasses");
     assert.strictEqual(await animals.deleteMany("DELETE"), 2);
+  }
+
+  @test
+  async legacyRowsBelongToTheTableModel() {
+    const client = this.store!.getClient();
+    // Rows written before `__type` stamping: an Animal, a Dog and a Cat that nothing tells apart
+    for (const uuid of ["a1", "d1", "c1"]) {
+      await client.query(`INSERT INTO smoke_idents(uuid,data) VALUES($1, $2)`, [uuid, JSON.stringify({ uuid })]);
+    }
+    const animals = new PostgresRepository<any>(Animal as any, ["uuid"], client, "smoke_idents");
+    const dogs = new PostgresRepository<any>(Dog as any, ["uuid"], client, "smoke_idents");
+    const cats = new PostgresRepository<any>(Cat as any, ["uuid"], client, "smoke_idents");
+    await dogs.create(new Dog({ uuid: "d2" }));
+    await cats.create(new Cat({ uuid: "c2" }));
+    const uuids = async (repo: any, q = "") => (await repo.query(q)).results.map((r: any) => r.uuid).sort();
+    // Unstamped rows belong to the root model of the table only
+    assert.deepStrictEqual(await uuids(animals), ["a1", "c1", "c2", "d1", "d2"]);
+    assert.deepStrictEqual(await uuids(dogs), ["d2"]);
+    assert.deepStrictEqual(await uuids(cats), ["c2"]);
+    // A filter cannot reach them through precedence either
+    assert.deepStrictEqual(await uuids(cats, "uuid = 'zz' OR uuid IS NOT NULL"), ["c2"]);
+    // Subclass bulk statements never touch them
+    assert.strictEqual(await cats.deleteMany("DELETE"), 1);
+    assert.strictEqual(await dogs.updateMany("UPDATE SET x = 1"), 1);
+    assert.deepStrictEqual(await uuids(animals, "x IS NULL"), ["a1", "c1", "d1"]);
+    // The backfill stamps them with the table model, once
+    assert.strictEqual(await animals.backfillTypes(), 3);
+    assert.strictEqual(await animals.backfillTypes(), 0);
+    assert.strictEqual(await dogs.backfillTypes(), 0, "only the table model backfills");
+    const stamped = await client.query(`SELECT data->>'__type' AS t FROM smoke_idents WHERE uuid = 'a1'`);
+    assert.strictEqual(stamped.rows[0].t, "Test/Animal");
+    assert.strictEqual(await animals.deleteMany("DELETE WHERE x IS NULL"), 3);
+    // The store backfills each table with its declared model
+    await client.query(`INSERT INTO smoke_idents(uuid,data) VALUES($1, $2)`, ["o1", JSON.stringify({ uuid: "o1" })]);
+    assert.ok((await this.store!.backfillTypes()) >= 1);
+    const owner = await client.query(`SELECT data->>'__type' AS t FROM smoke_idents WHERE uuid = 'o1'`);
+    assert.strictEqual(owner.rows[0].t, this.store!.resolveTableModel(useModel("Webda/OwnerModel")));
+    assert.strictEqual(await this.store!.backfillTypes(), 0);
+  }
+
+  @test
+  async parentWritesKeepTheChildType() {
+    const client = this.store!.getClient();
+    const animals = new PostgresRepository<any>(Animal as any, ["uuid"], client, "smoke_idents");
+    const dogs = new PostgresRepository<any>(Dog as any, ["uuid"], client, "smoke_idents");
+    await dogs.create(new Dog({ uuid: "d2" }));
+    await dogs.create(new Dog({ uuid: "d3" }));
+    await client.query(`INSERT INTO smoke_idents(uuid,data) VALUES($1, $2)`, ["c1", JSON.stringify({ uuid: "c1" })]);
+    // An instance read through the parent, and plain data (ModelRef.update)
+    await animals.update(await animals.get("d2"));
+    await animals.update({ uuid: "d3", x: 1 });
+    await animals.update({ uuid: "c1", x: 1, __type: "Test/Dog" });
+    assert.deepStrictEqual((await dogs.query("")).results.map((r: any) => r.uuid).sort(), ["d2", "d3"]);
+    const types = await client.query(`SELECT uuid, data->>'__type' AS t FROM smoke_idents ORDER BY uuid`);
+    assert.deepStrictEqual(
+      types.rows.map((r: any) => [r.uuid, r.t]),
+      [
+        ["c1", null],
+        ["d2", "Test/Dog"],
+        ["d3", "Test/Dog"]
+      ]
+    );
+    // An instance of a class writes its own type
+    await animals.update(new Animal({ uuid: "d3" }));
+    assert.deepStrictEqual(
+      (await dogs.query("")).results.map((r: any) => r.uuid),
+      ["d2"]
+    );
   }
 
   @test

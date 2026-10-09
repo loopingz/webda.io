@@ -91,6 +91,13 @@ class AggregationSelectTest {
   }
 
   @test
+  reservedAliases() {
+    for (const bad of ["SELECT COUNT(*) AS n, SUM(x) AS __proto__", "SELECT SUM(x) AS __proto__"]) {
+      assert.throws(() => parse(bad), /Invalid metric alias/, bad);
+    }
+  }
+
+  @test
   allowedFields() {
     assert.throws(() => parse("SELECT SUM(secret) AS s", ["points"]), /secret/);
     assert.ok(parse("SELECT SUM(points) AS s", ["points"]).aggregation);

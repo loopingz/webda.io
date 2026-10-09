@@ -38,7 +38,13 @@ import {
   WebdaqlContext
 } from "./WebdaQLParserParser.js";
 import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor.js";
-import { validateAggregation, type AggregateFunction, type AggregationQuery, type Metric } from "./aggregation.js";
+import {
+  checkAlias,
+  validateAggregation,
+  type AggregateFunction,
+  type AggregationQuery,
+  type Metric
+} from "./aggregation.js";
 import { escapeValue, WebdaQLError } from "./webdaql-string.js";
 
 /**
@@ -334,6 +340,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
     const fields: string[] = [];
     const metrics: Record<string, Metric> = {};
     const add = (alias: string, metric: Metric) => {
+      // Before assigning: a `__proto__` alias would otherwise change the prototype of `metrics`
+      checkAlias(alias);
       if (Object.prototype.hasOwnProperty.call(metrics, alias)) {
         throw new WebdaQLError(`Duplicate metric alias '${alias}'`);
       }

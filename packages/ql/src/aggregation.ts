@@ -114,7 +114,7 @@ function checkPath(path: string, what: string): void {
  * @param alias - the alias
  * @throws WebdaQLError when invalid or reserved
  */
-function checkAlias(alias: string): void {
+export function checkAlias(alias: string): void {
   if (!AGGREGATION_ALIAS.test(alias) || FORBIDDEN_SEGMENTS.has(alias)) {
     throw new WebdaQLError(`Invalid metric alias '${alias}'`);
   }

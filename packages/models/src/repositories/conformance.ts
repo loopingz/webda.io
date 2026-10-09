@@ -68,15 +68,24 @@ export async function checkCreateWithoutPrimaryKey(
 
 /**
  * Dataset of {@link checkAggregation}: nulls, missing attributes, a non-numeric `points`,
- * nested `team.name`, booleans. Lowercase ASCII strings only, so collations agree.
+ * nested `team.name`, booleans. The `mixed` field mixes numbers and strings, with upper and lower case, to pin type ranking and code unit order.
  */
 export const AGGREGATION_DATASET: Record<string, any>[] = [
-  { uuid: "a1", kind: "bug", team: { name: "core" }, points: 3, score: 10, label: "delta", done: true },
-  { uuid: "a2", kind: "bug", team: { name: "core" }, points: 5, score: null, label: "alpha", done: false },
-  { uuid: "a3", kind: "feature", team: { name: "web" }, points: null, score: 7, label: "charlie", done: false },
-  { uuid: "a4", kind: "feature", team: { name: "web" }, points: "8", score: 2, label: "bravo", done: true },
+  { uuid: "a1", kind: "bug", team: { name: "core" }, points: 3, score: 10, label: "delta", done: true, mixed: 5 },
+  { uuid: "a2", kind: "bug", team: { name: "core" }, points: 5, score: null, label: "alpha", done: false, mixed: "b" },
+  {
+    uuid: "a3",
+    kind: "feature",
+    team: { name: "web" },
+    points: null,
+    score: 7,
+    label: "charlie",
+    done: false,
+    mixed: 10
+  },
+  { uuid: "a4", kind: "feature", team: { name: "web" }, points: "8", score: 2, label: "bravo", done: true, mixed: "B" },
   { uuid: "a5", kind: "chore", points: 1, label: "echo", done: false },
-  { uuid: "a6", kind: null, team: { name: "core" }, points: 2, score: 4, label: "alpha", done: false },
+  { uuid: "a6", kind: null, team: { name: "core" }, points: 2, score: 4, label: "alpha", done: false, mixed: "a" },
   { uuid: "a7", team: { name: "ops" }, points: 13, score: 1, label: "foxtrot", done: true }
 ];
 
@@ -193,6 +202,43 @@ export const AGGREGATION_CASES: { name: string; spec: any; rows: Record<string, 
     rows: [
       { kind: "feature", n: 2 },
       { kind: "bug", n: 2 }
+    ]
+  },
+  {
+    name: "min and max across numbers and strings",
+    spec: { metrics: { lo: { min: "mixed" }, hi: { max: "mixed" } } },
+    rows: [{ lo: 5, hi: "b" }]
+  },
+  {
+    name: "group keys order numbers before strings, code unit order",
+    spec: { groupBy: ["mixed"], metrics: { n: { count: "*" } }, orderBy: [{ key: "mixed", direction: "ASC" }] },
+    rows: [
+      { mixed: null, n: 2 },
+      { mixed: 5, n: 1 },
+      { mixed: 10, n: 1 },
+      { mixed: "B", n: 1 },
+      { mixed: "a", n: 1 },
+      { mixed: "b", n: 1 }
+    ]
+  },
+  {
+    name: "order by a max alias across types",
+    spec: { groupBy: ["kind"], metrics: { m: { max: "mixed" } }, orderBy: [{ key: "m", direction: "ASC" }] },
+    rows: [
+      { kind: "chore", m: null },
+      { kind: "feature", m: "B" },
+      { kind: null, m: "a" },
+      { kind: "bug", m: "b" }
+    ]
+  },
+  {
+    name: "order by a min alias across types, descending",
+    spec: { groupBy: ["kind"], metrics: { lo: { min: "mixed" } }, orderBy: [{ key: "lo", direction: "DESC" }] },
+    rows: [
+      { kind: null, lo: "a" },
+      { kind: "feature", lo: 10 },
+      { kind: "bug", lo: 5 },
+      { kind: "chore", lo: null }
     ]
   }
 ];

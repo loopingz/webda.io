@@ -44,7 +44,7 @@ import {
   type AggregateFunction,
   type AggregationQuery,
   type Metric
-} from "./aggregation.js";
+} from "./aggregation-query.js";
 import { escapeValue, WebdaQLError } from "./webdaql-string.js";
 
 /**

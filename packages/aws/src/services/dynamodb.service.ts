@@ -840,7 +840,8 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
    * @returns the results and the continuation token
    */
   async query(query: string | any): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
-    const parsed: WebdaQL.Query = typeof query === "string" ? WebdaQL.parse(query) : query;
+    // A query object built or changed by code goes back through the grammar before reaching the backend
+    const parsed: WebdaQL.Query = typeof query === "string" ? WebdaQL.parse(query) : WebdaQL.normalizeQuery(query);
     // DELETE / UPDATE go to deleteMany / updateMany; a field list is not a projection here
     WebdaQL.assertFilterQuery(parsed);
     const limit = parsed.limit ?? 1000;

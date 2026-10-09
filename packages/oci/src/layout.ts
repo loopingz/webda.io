@@ -23,6 +23,29 @@ import { generateTar, type TarEntry, type TarOptions } from "./tar.js";
 const OCI_LAYOUT = { imageLayoutVersion: "1.0.0" };
 
 /**
+ * Offset of the OS field in the gzip header
+ */
+const GZIP_OS_OFFSET = 9;
+
+/**
+ * Set the OS field of a gzip stream header to unix: zlib writes the code of the build platform
+ *
+ * @returns the transform, patching the header whatever the size of the chunks
+ */
+export function forceUnixGzipOs(): Transform {
+  let offset = 0;
+  return new Transform({
+    transform(chunk: Buffer, _encoding, callback) {
+      if (offset <= GZIP_OS_OFFSET && offset + chunk.length > GZIP_OS_OFFSET) {
+        chunk[GZIP_OS_OFFSET - offset] = 3;
+      }
+      offset += chunk.length;
+      callback(null, chunk);
+    }
+  });
+}
+
+/**
  * An OCI image layout on disk: `oci-layout`, `index.json` and `blobs/sha256/<hex>`
  *
  * It is the build output and the source of the push.
@@ -166,7 +189,6 @@ export class ImageLayout {
     const diffHash = createHash("sha256");
     const hash = createHash("sha256");
     let size = 0;
-    let first = true;
     try {
       await pipeline(
         Readable.from(generateTar(entries, options)),
@@ -177,13 +199,9 @@ export class ImageLayout {
           }
         }),
         createGzip({ level: 6 }),
+        forceUnixGzipOs(),
         new Transform({
           transform(chunk: Buffer, _encoding, callback) {
-            if (first && chunk.length > 9) {
-              // OS field of the gzip header: zlib writes the build platform code, force unix
-              chunk[9] = 3;
-              first = false;
-            }
             hash.update(chunk);
             size += chunk.length;
             callback(null, chunk);

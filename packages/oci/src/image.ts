@@ -28,6 +28,18 @@ import { generateTar, type TarEntry, withDirectories } from "./tar.js";
 export const SCRATCH = "scratch";
 
 /**
+ * Whether a base image always gives the same content: {@link SCRATCH}, or a reference pinned by digest
+ *
+ * A tag can move to another image, so a build on a tag is not reproducible over time
+ *
+ * @param baseImage - the base image reference
+ * @returns true when pinned
+ */
+export function isPinnedBaseImage(baseImage: string): boolean {
+  return baseImage === SCRATCH || parseImageReference(baseImage).digest !== undefined;
+}
+
+/**
  * Registry access options shared by the build and the push
  */
 export interface RegistryOptions {

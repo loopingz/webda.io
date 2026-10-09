@@ -6,7 +6,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { FakeRegistry } from "../test/registry.js";
-import { buildImage, createImageConfiguration, mergeEnv, pushImage, SCRATCH, writeLayoutArchive } from "./image.js";
+import {
+  buildImage,
+  createImageConfiguration,
+  isPinnedBaseImage,
+  mergeEnv,
+  pushImage,
+  SCRATCH,
+  writeLayoutArchive
+} from "./image.js";
 import { MediaTypes, platformMatches, sha256 } from "./oci.js";
 import { parseImageReference } from "./reference.js";
 import { RegistryClient } from "./registry.js";
@@ -158,6 +166,16 @@ class ImageTest {
     assert.strictEqual(sha256(gunzipSync(layer)), first.images[0].config.rootfs.diff_ids[0]);
     const other = await buildImage(this.folder(), ENTRIES, { baseImage: SCRATCH, mtime: 10 });
     assert.notStrictEqual(other.root.digest, first.root.digest);
+  }
+
+  @test
+  pinnedBaseImage() {
+    const digest = `sha256:${"a".repeat(64)}`;
+    assert.strictEqual(isPinnedBaseImage(SCRATCH), true);
+    assert.strictEqual(isPinnedBaseImage(`node:22-slim@${digest}`), true);
+    assert.strictEqual(isPinnedBaseImage(`ghcr.io/org/base@${digest}`), true);
+    assert.strictEqual(isPinnedBaseImage("node:22-slim"), false);
+    assert.strictEqual(isPinnedBaseImage("ghcr.io/org/base"), false);
   }
 
   @test

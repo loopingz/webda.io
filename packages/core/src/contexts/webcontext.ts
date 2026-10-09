@@ -4,6 +4,7 @@ import * as http from "http";
 import { HttpContext } from "./httpcontext.js";
 import { Readable, Writable } from "node:stream";
 import { WritableStreamBuffer } from "stream-buffers";
+import { serialize as cookieSerialize } from "cookie";
 import { useCore, useDynamicService, useService } from "../core/hooks.js";
 
 /**
@@ -190,6 +191,14 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    */
   getResponseCookies(): Map<string, Cookie> {
     return this._cookie;
+  }
+
+  /**
+   * The Set-Cookie header values of the response, one per cookie
+   * @returns the serialized cookies
+   */
+  getSetCookieHeaders(): string[] {
+    return Object.values(this._cookie ?? {}).map((c: Cookie) => cookieSerialize(c.name, c.value, c.options));
   }
 
   /**
@@ -391,7 +400,13 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    */
   async flushHeaders(): Promise<void> {
     if (this.flushed) return;
+    // The SessionManager writes the session cookie: save the session before the headers leave
+    await this.saveSession();
     const headers = this.getResponseHeaders();
+    const setCookies = this.getSetCookieHeaders();
+    if (setCookies.length) {
+      headers["Set-Cookie"] = setCookies;
+    }
     await super.flushHeaders();
     // Write to ServerResponse if the stream supports writeHead (not a WritableStreamBuffer)
     if (this._stream && !(this._stream instanceof WritableStreamBuffer) && typeof (this._stream as any).writeHead === "function") {

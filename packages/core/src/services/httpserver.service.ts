@@ -22,7 +22,6 @@ import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { AsyncResource } from "node:async_hooks";
 import { join } from "node:path";
-import { serialize as cookieSerialize } from "cookie";
 
 /**
  * How long a connection to a TLS port may stay silent before it is dropped,
@@ -200,9 +199,8 @@ export class HttpServer<
     if (res.headersSent) return;
 
     const headers = ctx.getResponseHeaders();
-    const cookies = ctx.getResponseCookies?.() || {};
-    // One Set-Cookie header per cookie: assigning them one by one would keep only the last
-    const setCookies = Object.values(cookies).map((c: any) => cookieSerialize(c.name, c.value, c.options));
+    // One Set-Cookie header per cookie
+    const setCookies = ctx.getSetCookieHeaders();
 
     if (this.isHttp2) {
       // HTTP/2: use setHeader individually, filter HTTP/1.1-only headers

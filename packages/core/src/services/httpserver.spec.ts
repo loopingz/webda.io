@@ -1087,4 +1087,29 @@ class HttpServerTest extends WebdaApplicationTest {
     const cookies = (res.headers["set-cookie"] ?? []).map(c => c.split(";")[0]);
     assert.deepStrictEqual(cookies.sort(), ["first=1", "second=2"]);
   }
+
+  @test
+  async streamedResponseSendsTheSessionAndCookies() {
+    useRouter().addRouteToRouter("/test-stream", {
+      methods: ["GET"],
+      executor: "TestRoute",
+      _method: async ctx => {
+        (ctx as any).cookie("flavor", "vanilla", { path: "/" });
+        ctx.writeHead(200, { "Content-Type": "text/plain" });
+        const out = await ctx.getOutputStream();
+        out.write("streamed");
+        out.end();
+      }
+    });
+    TestSessionManager.writeCookie = true;
+    try {
+      const port = await this.startServer();
+      const res = await httpRequest({ hostname: "127.0.0.1", port, path: "/test-stream", method: "GET" });
+      assert.strictEqual(res.body, "streamed");
+      const cookies = (res.headers["set-cookie"] ?? []).map(c => c.split(";")[0]);
+      assert.deepStrictEqual(cookies.sort(), ["flavor=vanilla", "webda=saved-session"]);
+    } finally {
+      TestSessionManager.writeCookie = false;
+    }
+  }
 }

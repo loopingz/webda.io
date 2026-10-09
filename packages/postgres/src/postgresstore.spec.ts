@@ -1,8 +1,8 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
-import { WebdaQLError, PrependCondition, parse } from "@webda/ql";
-import { checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
+import { WebdaQLError, PrependCondition, parse, toAggregationQuery } from "@webda/ql";
+import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import { EventRepository, MemoryRepository, useModel } from "@webda/core";
 import PostgresStore, { PostgresParameters } from "./postgresstore.service.js";
 import { PostgresRepository } from "./sqlstore.js";
@@ -292,6 +292,32 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     await assert.rejects(() => events.updateMany("UPDATE SET unknown = 1"), /Unknown assignment field/);
     assert.strictEqual(await events.deleteMany("DELETE WHERE public = TRUE"), 1);
     assert.deepStrictEqual(seen, [], "bulk statements emit no per-object event");
+  }
+
+  @test
+  async aggregationConformance() {
+    const client = this.store!.getClient();
+    await client.query("DROP TABLE IF EXISTS agg_rows");
+    try {
+      const repo = new PostgresRepository<any>(Row as any, ["uuid"], client, "agg_rows");
+      await repo.setupTable();
+      await checkAggregation(repo as any, { native: true });
+    } finally {
+      await client.query("DROP TABLE IF EXISTS agg_rows");
+    }
+  }
+
+  @test
+  aggregationSQLIsSafe() {
+    const repo: any = new PostgresRepository<any>(class {} as any, ["uuid"], {} as any, "t");
+    const { sql } = repo.buildAggregationSQL(
+      toAggregationQuery({ groupBy: ["team.name"], metrics: { n: { count: "*" } }, limit: 3 } as any)
+    );
+    assert.strictEqual(
+      sql,
+      `SELECT NULLIF(data #> '{team,name}', 'null'::jsonb) AS "g0", COUNT(*) AS "m_n" FROM t WHERE TRUE ` +
+        `GROUP BY 1 ORDER BY 1 LIMIT 3`
+    );
   }
 
   @test

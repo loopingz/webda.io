@@ -17,8 +17,8 @@ deleteStatement: DELETE whereClause? limitExpression?;
 // UPDATE SET <assignments> [WHERE <condition>] [LIMIT n]
 updateStatement: UPDATE SET assignmentList whereClause? limitExpression?;
 
-// SELECT <fields> [WHERE <condition>] [ORDER BY ...] [LIMIT n] [OFFSET token]
-selectStatement: SELECT fieldList whereClause? orderExpression? limitExpression? offsetExpression?;
+// SELECT <fields and metrics> [WHERE <condition>] [GROUP BY ...] [ORDER BY ...] [LIMIT n] [OFFSET token]
+selectStatement: SELECT fieldList whereClause? groupByExpression? orderExpression? limitExpression? offsetExpression?;
 
 // Plain filter query
 filterQuery: expression? orderExpression? limitExpression? offsetExpression?;
@@ -29,8 +29,15 @@ whereClause: WHERE expression;
 assignmentList: assignment (COMMA assignment)*;
 assignment: identifier EQUAL (values | parameter);
 
-// SELECT field list
-fieldList: identifier (COMMA identifier)*;
+// SELECT field list: fields, and aggregate metrics with their alias
+fieldList: selectItem (COMMA selectItem)*;
+selectItem
+    : identifier #fieldItem
+    | COUNT LR_BRACKET STAR RR_BRACKET AS identifier #countAllItem
+    | COUNT LR_BRACKET DISTINCT identifier RR_BRACKET AS identifier #countDistinctItem
+    | (COUNT | SUM | AVG | MIN | MAX) LR_BRACKET identifier RR_BRACKET AS identifier #metricItem
+    ;
+groupByExpression: GROUP_BY identifier (COMMA identifier)*;
 
 limitExpression: LIMIT (integerLiteral | parameter);
 offsetExpression: OFFSET (stringLiteral | parameter);

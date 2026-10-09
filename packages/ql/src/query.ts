@@ -8,8 +8,11 @@ import {
   BinaryComparisonExpressionContext,
   BooleanLiteralContext,
   ContainsExpressionContext,
+  CountAllItemContext,
+  CountDistinctItemContext,
   DeleteStatementContext,
   ExpressionContext,
+  FieldItemContext,
   FieldListContext,
   FilterQueryContext,
   InExpressionContext,
@@ -18,6 +21,7 @@ import {
   IsNullExpressionContext,
   LikeExpressionContext,
   LimitExpressionContext,
+  MetricItemContext,
   NumberLiteralContext,
   OffsetExpressionContext,
   OrLogicExpressionContext,
@@ -34,6 +38,7 @@ import {
   WebdaqlContext
 } from "./WebdaQLParserParser.js";
 import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor.js";
+import { validateAggregation, type AggregateFunction, type AggregationQuery, type Metric } from "./aggregation.js";
 import { escapeValue, WebdaQLError } from "./webdaql-string.js";
 
 /**
@@ -276,15 +281,36 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
   }
 
   /**
-   * Visit `SELECT f1, f2 [WHERE ...] [ORDER BY ...] [LIMIT n] [OFFSET token]`
-   * @param ctx - the SELECT statement context
-   * @returns the built Query
+   * Visit a SELECT statement: a field list, or an aggregation when it has metrics or a GROUP BY
+   * @param ctx - the select statement context
+   * @returns the query
    */
   visitSelectStatement(ctx: SelectStatementContext): Query {
-    return {
-      ...this.buildQuery("SELECT", ctx.whereClause()?.expression(), ctx),
-      fields: this.visitFieldList(ctx.fieldList())
-    };
+    const query: Query = { ...this.buildQuery("SELECT", ctx.whereClause()?.expression(), ctx) };
+    const { fields, metrics } = this.visitFieldList(ctx.fieldList());
+    query.fields = fields;
+    const groupBy = ctx
+      .groupByExpression()
+      ?.identifier()
+      .map(identifier => identifier.text);
+    if (!Object.keys(metrics).length && groupBy === undefined) {
+      return query;
+    }
+    if (query.continuationToken !== undefined) {
+      throw new WebdaQLError("OFFSET is not supported with GROUP BY or aggregate functions");
+    }
+    const by = groupBy ?? [];
+    if (fields.length !== by.length || fields.some(field => !by.includes(field))) {
+      throw new WebdaQLError("With aggregate functions, the selected fields must be exactly the GROUP BY fields");
+    }
+    query.aggregation = validateAggregation({
+      filter: query.filter,
+      groupBy: by,
+      metrics,
+      orderBy: query.orderBy?.map(order => ({ key: order.field, direction: order.direction })),
+      limit: query.limit
+    });
+    return query;
   }
 
   /**
@@ -300,12 +326,34 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
   }
 
   /**
-   * Read the field list of a SELECT
+   * Read the field list of a SELECT: plain fields and aggregate metrics
    * @param ctx - the field list context
-   * @returns the field paths
+   * @returns the field paths and the metrics by alias
    */
-  visitFieldList(ctx: FieldListContext): string[] {
-    return ctx.identifier().map(id => id.text);
+  visitFieldList(ctx: FieldListContext): { fields: string[]; metrics: Record<string, Metric> } {
+    const fields: string[] = [];
+    const metrics: Record<string, Metric> = {};
+    const add = (alias: string, metric: Metric) => {
+      if (Object.prototype.hasOwnProperty.call(metrics, alias)) {
+        throw new WebdaQLError(`Duplicate metric alias '${alias}'`);
+      }
+      metrics[alias] = metric;
+    };
+    for (const item of ctx.selectItem()) {
+      if (item instanceof FieldItemContext) {
+        fields.push(item.identifier().text);
+      } else if (item instanceof CountAllItemContext) {
+        add(item.identifier().text, { fn: "COUNT" });
+      } else if (item instanceof CountDistinctItemContext) {
+        add(item.identifier(1).text, { fn: "COUNT_DISTINCT", field: item.identifier(0).text });
+      } else if (item instanceof MetricItemContext) {
+        add(item.identifier(1).text, {
+          fn: item.getChild(0).text as AggregateFunction,
+          field: item.identifier(0).text
+        });
+      }
+    }
+    return { fields, metrics };
   }
 
   /**
@@ -577,6 +625,10 @@ export interface Query {
    * Assignments of an `UPDATE SET`
    */
   assignments?: Assignment[];
+  /**
+   * Aggregation of a `SELECT … GROUP BY` or a SELECT with aggregate functions
+   */
+  aggregation?: AggregationQuery;
   /**
    * Get the string representation of the query
    */
@@ -1474,10 +1526,21 @@ export function stringifyQuery(query: Omit<Query, "toString">): string {
     head = "DELETE";
   } else if (query.type === "UPDATE") {
     head = `UPDATE SET ${(query.assignments ?? []).map(a => new ComparisonExpression("=", a.field, a.value).toString()).join(", ")}`;
+  } else if (query.aggregation) {
+    const metrics = Object.entries(query.aggregation.metrics).map(([alias, metric]) => {
+      if (metric.fn === "COUNT_DISTINCT") {
+        return `COUNT(DISTINCT ${metric.field}) AS ${alias}`;
+      }
+      return `${metric.fn}(${metric.field ?? "*"}) AS ${alias}`;
+    });
+    head = `SELECT ${[...query.aggregation.groupBy, ...metrics].join(", ")}`;
   } else if (query.fields) {
     head = `SELECT ${query.fields.join(", ")}`;
   }
   let res = head ? `${head}${filter ? ` WHERE ${filter}` : ""}` : filter;
+  if (query.aggregation?.groupBy.length) {
+    res += ` GROUP BY ${query.aggregation.groupBy.join(", ")}`;
+  }
   if (query.orderBy?.length) {
     res += ` ORDER BY ${query.orderBy.map(o => `${o.field} ${o.direction}`).join(", ")}`;
   }
@@ -1615,6 +1678,9 @@ export function normalizeQuery(query: Partial<Query>): Query {
   if (typeof type !== "string" || !["SELECT", "DELETE", "UPDATE"].includes(type)) {
     throw new WebdaQLError(`Invalid statement type in WebdaQL query: ${JSON.stringify(type)}`);
   }
+  if (query.aggregation !== undefined) {
+    throw new WebdaQLError("Aggregation queries cannot be normalized: use toAggregationQuery");
+  }
   const filterObject: unknown = query.filter;
   const filter = printExpression(filterObject ?? new AndExpression([]), false);
   let head = "";
@@ -1708,7 +1774,10 @@ function isAllowedField(field: string, allowed: Set<string>): boolean {
  * @param allowedFields - allowed field paths (dot-notation)
  * @throws {SyntaxError} if a field or an assignment target is not allowed
  */
-export function validateQueryFields(query: Pick<Query, "fields" | "assignments">, allowedFields: string[]): void {
+export function validateQueryFields(
+  query: Pick<Query, "fields" | "assignments" | "aggregation">,
+  allowedFields: string[]
+): void {
   const allowed = new Set(allowedFields);
   for (const field of query.fields ?? []) {
     if (!isAllowedField(field, allowed)) {
@@ -1718,6 +1787,13 @@ export function validateQueryFields(query: Pick<Query, "fields" | "assignments">
   for (const { field } of query.assignments ?? []) {
     if (!isAllowedField(field, allowed)) {
       throw new SyntaxError(`Unknown assignment field "${field}". Allowed fields: ${allowedFields.join(", ")}`);
+    }
+  }
+  for (const [alias, metric] of Object.entries(query.aggregation?.metrics ?? {})) {
+    if (metric.field !== undefined && !isAllowedField(metric.field, allowed)) {
+      throw new SyntaxError(
+        `Unknown field "${metric.field}" in "${alias}". Allowed fields: ${allowedFields.join(", ")}`
+      );
     }
   }
 }

@@ -1,9 +1,26 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { PACKAGED_CONFIGURATION, PACKAGED_MARKER, packageApplication } from "./packager.js";
+import {
+  getDeployedConfiguration,
+  PACKAGED_CONFIGURATION,
+  PACKAGED_MARKER,
+  packageApplication,
+  writeApplicationPackage
+} from "./packager.js";
 
 /**
  * Write a file, creating its folders
@@ -166,5 +183,56 @@ class PackagerTest {
     assert.deepStrictEqual(written, configuration);
     const marker = JSON.parse(files.find(file => file.target === PACKAGED_MARKER).content.toString());
     assert.strictEqual(marker.deployment, "Prod");
+  }
+
+  @test
+  async excludeServices() {
+    // A service injected by the CLI to run a command is not part of the packaged application
+    const { configuration } = await packageApplication(this.getApp(), { excludeServices: ["store"] });
+    assert.deepStrictEqual(Object.keys(configuration.services), []);
+  }
+
+  @test
+  deployedConfiguration() {
+    const configuration = getDeployedConfiguration(this.getApp(), { excludeServices: ["store"] });
+    assert.deepStrictEqual(Object.keys(configuration.services), [], "units and excluded services are removed");
+    // Imports stay valid in the source tree
+    assert.strictEqual(
+      configuration.cachedModules.moddas["Webda/MemoryStore"].Import,
+      "../packages/lib/lib/index:MemoryStore"
+    );
+    assert.strictEqual(configuration.cachedModules.project.deployment.name, "Prod");
+    assert.ok(configuration.cachedModules.project.git);
+    assert.ok(
+      !this.getApp().getConfiguration().cachedModules.project.git,
+      "the application configuration is untouched"
+    );
+  }
+
+  @test
+  async writePackage() {
+    const output = join(this.root, "dist");
+    const pkg = await packageApplication(this.getApp());
+    writeApplicationPackage(pkg, output);
+    assert.strictEqual(readFileSync(join(output, "node_modules/b/lib/b.js"), "utf-8"), "// b lib/b.js");
+    assert.deepStrictEqual(JSON.parse(readFileSync(join(output, PACKAGED_CONFIGURATION), "utf-8")), pkg.configuration);
+    assert.ok(existsSync(join(output, PACKAGED_MARKER)));
+    // Never overwrite a previous package
+    assert.throws(() => writeApplicationPackage(pkg, output), /not empty/);
+    // An empty folder is fine
+    const empty = join(this.root, "empty");
+    mkdirSync(empty);
+    writeApplicationPackage(pkg, empty);
+    assert.ok(existsSync(join(empty, "package.json")));
+  }
+
+  @test
+  async writePackageKeepsExecutableBit() {
+    write(join(this.appPath, "lib/cli.js"), "#!/usr/bin/env node");
+    chmodSync(join(this.appPath, "lib/cli.js"), 0o755);
+    const output = join(this.root, "dist");
+    writeApplicationPackage(await packageApplication(this.getApp()), output);
+    assert.ok(statSync(join(output, "lib/cli.js")).mode & 0o100);
+    assert.ok(!(statSync(join(output, "lib/app.js")).mode & 0o100));
   }
 }

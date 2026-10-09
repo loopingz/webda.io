@@ -51,6 +51,7 @@ export * from "./application/deployment.js";
 export * from "./deployers/deployer.js";
 export * from "./deployers/git.js";
 export * from "./deployers/packager.js";
+export * from "./deployers/packager.service.js";
 export * from "./events/asynceventemitter.js";
 export * from "./events/events.js";
 export * from "./services/mailer.service.js";

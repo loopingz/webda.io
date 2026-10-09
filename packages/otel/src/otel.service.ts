@@ -202,7 +202,7 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
       this.loggerExporter ??= new OTLPLogExporter(this.parameters.loggerExporter);
       this.loggerProvider ??= new LoggerProvider({
         resource,
-        processors: [new BatchLogRecordProcessor(this.loggerExporter)]
+        processors: [new BatchLogRecordProcessor({ exporter: this.loggerExporter })]
       });
       this.otelLogger ??= new OtelLogger(this.loggerProvider.getLogger("webda"), useApplication().getWorkerOutput());
     }

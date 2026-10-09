@@ -9,7 +9,7 @@
 <= less than or equal to
 >= greater than or equal to
 IN array
-LIKE 
+LIKE
 ```
 
 ```
@@ -38,3 +38,11 @@ To define the LIMIT just add LIMIT
 ## Statements
 
 WebdaQL also parses `SELECT f1, f2 [WHERE ...]`, `DELETE [WHERE ...] [LIMIT n]` and `UPDATE SET a = v [WHERE ...] [LIMIT n]` (uppercase keywords only). The Query operations exposed to clients (REST, gRPC, MCP, GraphQL) take a filter only and refuse them with a 400. DELETE and UPDATE run through `useRepository(Model).deleteMany()` / `updateMany()`, which bypass events, hooks, validation and permissions. See [Statements](../../Modules/ql/Statements.md).
+
+## Aggregation
+
+`SELECT status, COUNT(*) AS n, SUM(points) AS total WHERE ... GROUP BY status ORDER BY total DESC LIMIT 10` parses
+into an aggregation, the string form of [`Model.aggregate()`](./Repositories.md#aggregation). The uppercase words
+`COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, `AS`, `DISTINCT` and `GROUP BY` are now reserved (a breaking change for
+attributes with those uppercase names; lowercase names are unaffected). See
+[Statements](../../Modules/ql/Statements.md#aggregation-select--group-by).

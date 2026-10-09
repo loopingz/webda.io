@@ -1773,14 +1773,16 @@ function isAllowedField(field: string, allowed: Set<string>): boolean {
 }
 
 /**
- * Validate the SELECT fields and the UPDATE SET targets of a query against the allowed fields
+ * Validate the SELECT fields, the aggregation metric fields and the UPDATE SET targets of a query against the
+ * allowed fields
  *
  * A dotted path is allowed when it is listed, or when one of its parents is (`profile.email` is allowed by
- * `profile` or by `profile.email`). Filter attributes are not checked.
+ * `profile` or by `profile.email`). GROUP BY paths are the SELECT fields; the field of every aggregation metric
+ * (`SUM(points)`) is checked too, `COUNT(*)` has none. Filter attributes are not checked.
  *
  * @param query - parsed query to validate
  * @param allowedFields - allowed field paths (dot-notation)
- * @throws {SyntaxError} if a field or an assignment target is not allowed
+ * @throws {SyntaxError} if a field, a metric field or an assignment target is not allowed
  */
 export function validateQueryFields(
   query: Pick<Query, "fields" | "assignments" | "aggregation">,
@@ -1829,14 +1831,17 @@ export function assertFilterQuery(query: Partial<Pick<Query, "type" | "fields">>
  *
  * Accepts a plain filter query (an implicit SELECT of every field) or a statement:
  * - `SELECT f1, f2 [WHERE <condition>] [ORDER BY ...] [LIMIT n] [OFFSET token]`
+ * - `SELECT g1, COUNT(*) AS n, SUM(f) AS s [WHERE <condition>] [GROUP BY g1] [ORDER BY ...] [LIMIT n]`: an
+ *   aggregation (metrics COUNT, COUNT(DISTINCT f), SUM, AVG, MIN, MAX), returned in `aggregation`; the
+ *   selected fields must be the GROUP BY paths, every metric needs an alias, OFFSET is refused
  * - `DELETE [WHERE <condition>] [LIMIT n]`
  * - `UPDATE SET a = v, b = v [WHERE <condition>] [LIMIT n]`
  *
- * Keywords are uppercase only: `select`, `delete`, `set`... remain field names.
+ * Keywords are uppercase only: `select`, `delete`, `set`, `count`... remain field names.
  *
  * @param query - the query string to parse
- * @param allowedFields - when given, SELECT fields and UPDATE SET targets must be in this list
- *   (see {@link validateQueryFields})
+ * @param allowedFields - when given, SELECT fields, aggregation metric fields and UPDATE SET targets must be in
+ *   this list (see {@link validateQueryFields})
  * @returns the parsed Query object
  * @throws {SyntaxError} on a grammar error or a field outside `allowedFields`
  */

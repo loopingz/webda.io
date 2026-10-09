@@ -23,14 +23,10 @@ You need WQL when you call `store.query()` or a relation's `.query()` method. Ev
 
 ```typescript
 // Query the User repository
-const { results } = await User.getRepository().query(
-  `email = 'alice@example.com' LIMIT 1`
-);
+const { results } = await User.getRepository().query(`email = 'alice@example.com' LIMIT 1`);
 
 // Query a relation
-const { results: posts } = await user.posts.query(
-  `status = 'published' ORDER BY createdAt DESC LIMIT 10`
-);
+const { results: posts } = await user.posts.query(`status = 'published' ORDER BY createdAt DESC LIMIT 10`);
 ```
 
 ### Install
@@ -46,13 +42,17 @@ npm install @webda/ql
 ```
 expression? orderExpression? limitExpression? offsetExpression?      -- a filter query (implicit SELECT)
 SELECT f1, f2 [WHERE expression] [ORDER BY ...] [LIMIT n] [OFFSET t]
+SELECT g, COUNT(*) AS n, SUM(f) AS s [WHERE expression] [GROUP BY g] [ORDER BY ...] [LIMIT n]
 DELETE [WHERE expression] [LIMIT n]
 UPDATE SET a = v, b.c = v [WHERE expression] [LIMIT n]
 ```
 
-Keywords are uppercase only: `select`, `delete`, `set`, `where`... in lowercase are field names.
+Keywords are uppercase only: `select`, `delete`, `set`, `where`... in lowercase are field names. Since the
+aggregation syntax, uppercase `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, `AS`, `DISTINCT` and `GROUP BY` are reserved too
+(breaking for attributes with those uppercase names).
 
 **Filter expressions** support:
+
 - Comparison: `field = value`, `field != value`, `field > value`, `field >= value`, `field < value`, `field <= value`
 - Pattern match: `field LIKE "pattern"` (`_` = single char, `%` = any chars)
 - Set membership: `field IN [value, value, ...]`
@@ -61,6 +61,7 @@ Keywords are uppercase only: `select`, `delete`, `set`, `where`... in lowercase 
 - Logic: `AND`, `OR`, `( ... )`
 
 **Pagination / ordering:**
+
 - `ORDER BY field [ASC|DESC], ...`
 - `LIMIT <integer>`
 - `OFFSET "<continuationToken>"`
@@ -71,17 +72,12 @@ Keywords are uppercase only: `select`, `delete`, `set`, `where`... in lowercase 
 import * as WebdaQL from "@webda/ql";
 
 // Parse and evaluate against an in-memory object
-const validator = new WebdaQL.QueryValidator(
-  `status = 'published' AND viewCount >= 100`
-);
+const validator = new WebdaQL.QueryValidator(`status = 'published' AND viewCount >= 100`);
 const post = { status: "published", viewCount: 150 };
 console.log(validator.eval(post)); // true
 
 // Prepend a mandatory condition to a user-supplied query
-const merged = WebdaQL.PrependCondition(
-  `status = 'published' ORDER BY title LIMIT 10`,
-  `authorId = 'u-123'`
-);
+const merged = WebdaQL.PrependCondition(`status = 'published' ORDER BY title LIMIT 10`, `authorId = 'u-123'`);
 // => 'status = "published" AND authorId = "u-123" ORDER BY title ASC LIMIT 10'
 ```
 
@@ -107,31 +103,50 @@ WebdaQL parses `SELECT`, `DELETE` and `UPDATE` statements; the parsed `Query` ca
 
 ```typescript
 const q = WebdaQL.parse("UPDATE SET status = 'archived' WHERE owner = 'bob' LIMIT 10");
-q.type;        // "UPDATE"
+q.type; // "UPDATE"
 q.assignments; // [{ field: "status", value: "archived" }]
 await useRepository(Task).updateMany("UPDATE SET status = ? WHERE owner = ?", ["archived", "bob"]); // count
 ```
 
 See [Statements](../../docs/pages/Modules/ql/Statements.md).
 
+### Aggregations
+
+A `SELECT` with aggregate functions or `GROUP BY` parses into an `AggregationQuery` (`parse(q).aggregation`), the
+same AST `toAggregationQuery()` builds from the object form used by `Model.aggregate()`. Stores translate it
+natively, or stream objects through the in-memory `Aggregator`.
+
+```typescript
+const q = WebdaQL.parse("SELECT status, COUNT(*) AS n, SUM(points) AS total GROUP BY status ORDER BY total DESC");
+q.aggregation.metrics; // { n: { fn: "COUNT" }, total: { fn: "SUM", field: "points" } }
+```
+
+See [Statements](../../docs/pages/Modules/ql/Statements.md#aggregation-select--group-by) and
+[Repositories](../../docs/pages/Concepts/Stores/Repositories.md#aggregation).
+
 ### API reference
 
-| Export | Description |
-|--------|-------------|
-| `QueryValidator` | Parses a WQL string; `eval(obj)` evaluates it, `toString()` normalizes it |
-| `bind(query, params)` | Binds `?` / `:name` placeholders to escaped values |
-| `escape(parts, values)` | Escapes template literal values (used by the compile-time rewrite) |
-| `validateSyntax(query)` | Checks a query against the grammar without evaluating it; placeholders allowed |
-| `PrependCondition(query, condition)` | Merges a condition in front of an existing query, preserving ORDER BY / LIMIT / OFFSET |
-| `ExpressionBuilder` | ANTLR visitor that builds the optimized expression AST |
-| `AndExpression` | Logic AND node |
-| `OrExpression` | Logic OR node |
-| `ComparisonExpression` | Comparison leaf node |
-| `parse(query, allowedFields?)` | Parses a filter or statement; `allowedFields` checks SELECT fields and SET targets |
-| `validateQueryFields(query, allowed)` | Checks SELECT fields and SET targets against a field list |
-| `assertFilterQuery(query)` | Refuses DELETE, UPDATE and SELECT field lists |
-| `Query` | Parsed query result: `{ type, filter, fields?, assignments?, orderBy?, limit?, continuationToken? }` |
-| `OrderBy` | `{ field: string; direction: "ASC" \| "DESC" }` |
+| Export                                | Description                                                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `QueryValidator`                      | Parses a WQL string; `eval(obj)` evaluates it, `toString()` normalizes it                                          |
+| `bind(query, params)`                 | Binds `?` / `:name` placeholders to escaped values                                                                 |
+| `escape(parts, values)`               | Escapes template literal values (used by the compile-time rewrite)                                                 |
+| `validateSyntax(query)`               | Checks a query against the grammar without evaluating it; placeholders allowed                                     |
+| `PrependCondition(query, condition)`  | Merges a condition in front of an existing query, preserving ORDER BY / LIMIT / OFFSET                             |
+| `ExpressionBuilder`                   | ANTLR visitor that builds the optimized expression AST                                                             |
+| `AndExpression`                       | Logic AND node                                                                                                     |
+| `OrExpression`                        | Logic OR node                                                                                                      |
+| `ComparisonExpression`                | Comparison leaf node                                                                                               |
+| `parse(query, allowedFields?)`        | Parses a filter or statement; `allowedFields` checks SELECT fields and SET targets                                 |
+| `validateQueryFields(query, allowed)` | Checks SELECT fields and SET targets against a field list                                                          |
+| `assertFilterQuery(query)`            | Refuses DELETE, UPDATE, SELECT field lists and aggregations                                                        |
+| `toAggregationQuery(input, params?)`  | Converts the object form of an aggregation to a validated `AggregationQuery`                                       |
+| `validateAggregation(query)`          | Validates an `AggregationQuery` (paths, aliases, functions, ORDER BY, LIMIT)                                       |
+| `Aggregator`                          | In-memory aggregation engine: `add(item)` then `rows()`                                                            |
+| `compareValues(a, b)`                 | The cross-backend ordering of aggregated values (null < numbers < strings)                                         |
+| `AggregationError`                    | Runtime aggregation error with a `code` (`AGGREGATION_NOT_NATIVE`, `AGGREGATION_TOO_MANY_GROUPS`)                  |
+| `Query`                               | Parsed query result: `{ type, filter, fields?, assignments?, aggregation?, orderBy?, limit?, continuationToken? }` |
+| `OrderBy`                             | `{ field: string; direction: "ASC" \| "DESC" }`                                                                    |
 
 ### See also
 
@@ -142,6 +157,7 @@ See [Statements](../../docs/pages/Modules/ql/Statements.md).
 - [Store Translators](../../docs/pages/Modules/ql/Translators.md) — how each Store backend converts WQL
 
 <!-- README_FOOTER -->
+
 ## Sponsors
 
 <!--

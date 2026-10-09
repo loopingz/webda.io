@@ -118,8 +118,17 @@ function queryableAttributes(ctx: AnalysisContext, type: any): string[] {
 /**
  * Field list of a `SELECT f1, f2.g [WHERE ...]` statement: everything between `SELECT` and the first clause
  * keyword (keywords are uppercase only, so a lowercase `where` is a field)
+ * @param query - raw query text
+ * @returns the raw field list, or undefined when the query is not a SELECT statement
  */
-const SELECT_FIELDS = /^\s*SELECT\s+(.+?)(?=\s+(?:WHERE|ORDER BY|LIMIT|OFFSET)\b|\s*$)/s;
+function selectFields(query: string): string | undefined {
+  // Two linear scans instead of one lazy pattern, which backtracks quadratically on long runs of spaces
+  const head = /^\s*SELECT\s/.exec(query);
+  if (!head) return undefined;
+  const rest = query.slice(head[0].length);
+  const end = rest.search(/\s(?:WHERE|ORDER BY|LIMIT|OFFSET)\b/);
+  return (end === -1 ? rest : rest.slice(0, end)).trim();
+}
 
 /**
  * Attribute paths referenced by a query, as written.
@@ -139,8 +148,7 @@ export function referencedAttributes(query: string): string[] {
     const head = match[1].split(".")[0];
     if (!/^(AND|OR|NOT|TRUE|FALSE|IN|LIKE|IS|NULL)$/i.test(head)) names.add(head);
   }
-  const select = SELECT_FIELDS.exec(query);
-  for (const field of select?.[1].split(",") ?? []) {
+  for (const field of selectFields(query)?.split(",") ?? []) {
     const head = field.trim().split(".")[0];
     if (head) names.add(head);
   }

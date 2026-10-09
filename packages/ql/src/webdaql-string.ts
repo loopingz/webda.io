@@ -70,12 +70,6 @@ export function escape<T = unknown>(
 }
 
 /**
- * `=` or `!=` right before an interpolated value, with its surrounding spaces
- * (`>=` and `<=` are not equalities)
- */
-const TRAILING_EQUALITY = /\s*(!=|(?<![<>!])=)\s*$/;
-
-/**
  * Append a `null`/`undefined` value to the query built so far
  *
  * WebdaQL has no `NULL` literal, only `IS NULL` and `IS NOT NULL`, so `x = ${null}`
@@ -86,11 +80,13 @@ const TRAILING_EQUALITY = /\s*(!=|(?<![<>!])=)\s*$/;
  * @returns the query with the null comparison
  */
 function appendNull(out: string): string {
-  const match = TRAILING_EQUALITY.exec(out);
-  if (!match) {
+  // `=` or `!=` right before the value (`>=` and `<=` are not equalities); trimEnd keeps this linear
+  const head = out.trimEnd();
+  const operator = head.endsWith("!=") ? "!=" : head.endsWith("=") && !/[<>!]/.test(head.at(-2) ?? "") ? "=" : "";
+  if (!operator) {
     throw new WebdaQLError("A null value can only be compared with = or != in a WebdaQL query");
   }
-  return `${out.substring(0, match.index)} ${match[1] === "=" ? "IS NULL" : "IS NOT NULL"}`;
+  return `${head.slice(0, -operator.length).trimEnd()} ${operator === "=" ? "IS NULL" : "IS NOT NULL"}`;
 }
 
 /**

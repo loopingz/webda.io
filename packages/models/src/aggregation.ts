@@ -13,6 +13,11 @@ export type MetricSpec<T extends object> =
   | { max: PropertyPaths<T> };
 
 /**
+ * Type of an attribute value in an aggregated row: a Date comes back as its ISO string on every backend
+ */
+export type RowValue<V> = V extends Date ? string : V;
+
+/**
  * Type of the value computed by a metric
  */
 export type MetricValue<T extends object, S> = S extends { count: any } | { countDistinct: any } | { sum: any }
@@ -21,7 +26,7 @@ export type MetricValue<T extends object, S> = S extends { count: any } | { coun
     ? number | null
     : S extends { min: infer P } | { max: infer P }
       ? P extends PropertyPaths<T>
-        ? PropertyPathType<T, P> | null
+        ? RowValue<PropertyPathType<T, P>> | null
         : unknown
       : never;
 
@@ -44,10 +49,11 @@ export interface AggregationSpec<
 }
 
 /**
- * One aggregated row: group paths keep their attribute type (or null), aliases their metric type
+ * One aggregated row: group paths keep their attribute type (or null), aliases their metric type;
+ * Date attributes are ISO strings
  */
 export type AggregatedRow<T extends object, G extends readonly string[], M> = {
-  [K in G[number]]: (K extends PropertyPaths<T> ? PropertyPathType<T, K> : unknown) | null;
+  [K in G[number]]: (K extends PropertyPaths<T> ? RowValue<PropertyPathType<T, K>> : unknown) | null;
 } & { [A in keyof M]: MetricValue<T, M[A]> };
 
 /**

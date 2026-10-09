@@ -69,10 +69,31 @@ export async function checkCreateWithoutPrimaryKey(
 /**
  * Dataset of {@link checkAggregation}: nulls, missing attributes, a non-numeric `points`,
  * nested `team.name`, booleans. The `mixed` field mixes numbers and strings, with upper and lower case, to pin type ranking and code unit order.
+ * The `at` field holds `Date` objects: in-memory engines read them as ISO strings, JSON backends store them so.
  */
 export const AGGREGATION_DATASET: Record<string, any>[] = [
-  { uuid: "a1", kind: "bug", team: { name: "core" }, points: 3, score: 10, label: "delta", done: true, mixed: 5 },
-  { uuid: "a2", kind: "bug", team: { name: "core" }, points: 5, score: null, label: "alpha", done: false, mixed: "b" },
+  {
+    uuid: "a1",
+    kind: "bug",
+    team: { name: "core" },
+    points: 3,
+    score: 10,
+    label: "delta",
+    done: true,
+    mixed: 5,
+    at: new Date("2026-01-05T10:00:00.000Z")
+  },
+  {
+    uuid: "a2",
+    kind: "bug",
+    team: { name: "core" },
+    points: 5,
+    score: null,
+    label: "alpha",
+    done: false,
+    mixed: "b",
+    at: new Date("2026-03-01T00:00:00.000Z")
+  },
   {
     uuid: "a3",
     kind: "feature",
@@ -81,12 +102,41 @@ export const AGGREGATION_DATASET: Record<string, any>[] = [
     score: 7,
     label: "charlie",
     done: false,
-    mixed: 10
+    mixed: 10,
+    at: new Date("2026-01-05T10:00:00.000Z")
   },
-  { uuid: "a4", kind: "feature", team: { name: "web" }, points: "8", score: 2, label: "bravo", done: true, mixed: "B" },
+  {
+    uuid: "a4",
+    kind: "feature",
+    team: { name: "web" },
+    points: "8",
+    score: 2,
+    label: "bravo",
+    done: true,
+    mixed: "B",
+    at: new Date("2025-12-31T23:59:59.000Z")
+  },
   { uuid: "a5", kind: "chore", points: 1, label: "echo", done: false },
-  { uuid: "a6", kind: null, team: { name: "core" }, points: 2, score: 4, label: "alpha", done: false, mixed: "a" },
-  { uuid: "a7", team: { name: "ops" }, points: 13, score: 1, label: "foxtrot", done: true }
+  {
+    uuid: "a6",
+    kind: null,
+    team: { name: "core" },
+    points: 2,
+    score: 4,
+    label: "alpha",
+    done: false,
+    mixed: "a",
+    at: null
+  },
+  {
+    uuid: "a7",
+    team: { name: "ops" },
+    points: 13,
+    score: 1,
+    label: "foxtrot",
+    done: true,
+    at: new Date("2026-02-14T12:30:00.000Z")
+  }
 ];
 
 /**
@@ -253,8 +303,32 @@ export const AGGREGATION_CASES: { name: string; spec: any; rows: Record<string, 
       { kind: "bug", m: 5 },
       { kind: "feature", m: "B" }
     ]
+  },
+  {
+    name: "min, max and count distinct on dates return ISO strings",
+    spec: {
+      groupBy: ["team.name"],
+      metrics: { lo: { min: "at" }, hi: { max: "at" }, days: { countDistinct: "at" } },
+      orderBy: [{ key: "team.name", direction: "ASC" }]
+    },
+    rows: [
+      { "team.name": null, lo: null, hi: null, days: 0 },
+      { "team.name": "core", lo: "2026-01-05T10:00:00.000Z", hi: "2026-03-01T00:00:00.000Z", days: 2 },
+      { "team.name": "ops", lo: "2026-02-14T12:30:00.000Z", hi: "2026-02-14T12:30:00.000Z", days: 1 },
+      { "team.name": "web", lo: "2025-12-31T23:59:59.000Z", hi: "2026-01-05T10:00:00.000Z", days: 2 }
+    ]
+  },
+  {
+    name: "group by a date returns ISO string keys",
+    spec: { groupBy: ["at"], metrics: { n: { count: "*" } }, orderBy: [{ key: "at", direction: "ASC" }] },
+    rows: [
+      { at: null, n: 2 },
+      { at: "2025-12-31T23:59:59.000Z", n: 1 },
+      { at: "2026-01-05T10:00:00.000Z", n: 2 },
+      { at: "2026-02-14T12:30:00.000Z", n: 1 },
+      { at: "2026-03-01T00:00:00.000Z", n: 1 }
+    ]
   }
-
 ];
 
 /**

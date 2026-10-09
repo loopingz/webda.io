@@ -49,14 +49,8 @@
     "tsx": "^4.21.0"
   },
   "peerDependenciesMeta": {
-    "mocha": {
-      "required": false
-    },
-    "jest": {
-      "required": false
-    },
     "vitest": {
-      "required": false
+      "optional": true
     }
   },
   "files": [
@@ -70,5 +64,8 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "license": "LGPL-3.0-only"
+  "license": "LGPL-3.0-only",
+  "peerDependencies": {
+    "vitest": "^4.1.2"
+  }
 }

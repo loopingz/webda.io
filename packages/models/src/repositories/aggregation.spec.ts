@@ -6,6 +6,7 @@ import { MemoryRepository } from "./memory.js";
 import { EventRepository } from "./event.js";
 import { checkAggregation } from "./conformance.js";
 import { registerRepository, Repositories } from "./hooks.js";
+import type { AggregatedRow } from "../aggregation.js";
 
 /**
  * Model with typed attributes for aggregation tests (same fixture style as memory-classfilter.spec.ts)
@@ -14,6 +15,7 @@ class Task extends UuidModel {
   status: "open" | "done";
   points: number;
   owner: { uuid: string };
+  due?: Date;
   /**
    * @param data - initial data
    */
@@ -153,6 +155,28 @@ class RepositoryAggregationTest {
     void (() => repo.aggregate({ groupBy: ["nope"], metrics: { n: { count: "*" } } }));
     // @ts-expect-error order key must be a group path or an alias
     void (() => repo.aggregate({ metrics: { n: { count: "*" } }, orderBy: [{ key: "x", direction: "ASC" }] }));
+    // Date paths come back as ISO strings, for group keys and MIN / MAX
+    const row: AggregatedRow<Task, ["due"], { lo: { min: "due" } }> = {
+      due: "2026-01-05T10:00:00.000Z",
+      lo: "2026-01-05T10:00:00.000Z"
+    };
+    assert.strictEqual(typeof row.due, "string");
+  }
+
+  @test
+  configureAggregationValidates() {
+    const repo = new MemoryRepository(Task, ["uuid"]);
+    for (const maxGroups of [0, -1, 1.5, Number.NaN, "10" as any]) {
+      assert.throws(() => repo.configureAggregation({ maxGroups }), /maxGroups/, String(maxGroups));
+    }
+    assert.throws(() => repo.configureAggregation({ fallback: "maybe" as any }), /fallback/);
+    // Only the known options are copied
+    repo.configureAggregation({ maxGroups: 5, fallback: "deny", other: 1 } as any);
+    assert.deepStrictEqual(Object.keys((repo as any).aggregationOptions).sort(), ["fallback", "maxGroups"]);
+    assert.strictEqual((repo as any).aggregationOptions.maxGroups, 5);
+    // Undefined values keep the defaults
+    repo.configureAggregation({ maxGroups: undefined, fallback: undefined });
+    assert.strictEqual((repo as any).aggregationOptions.maxGroups, 5);
   }
 }
 

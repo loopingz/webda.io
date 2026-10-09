@@ -508,13 +508,22 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
   abstract iterate(query: string, params?: QueryParameters): AsyncGenerator<InstanceType<T>, any, any>;
 
-  /** @override */
+  /**
+   * Copy the known options (fallback, maxGroups, warn); undefined values keep the current ones
+   * @override
+   * @throws Error when maxGroups is not a positive integer or fallback is unknown
+   */
   configureAggregation(options: Partial<AggregationOptions>): void {
-    for (const [key, value] of Object.entries(options)) {
-      if (value !== undefined) {
-        (this.aggregationOptions as any)[key] = value;
-      }
+    const { fallback, maxGroups, warn } = options ?? {};
+    if (maxGroups !== undefined && !(Number.isInteger(maxGroups) && maxGroups > 0)) {
+      throw new Error(`Invalid aggregation maxGroups '${maxGroups}': expected a positive integer`);
     }
+    if (fallback !== undefined && !["allow", "warn", "deny"].includes(fallback)) {
+      throw new Error(`Invalid aggregation fallback '${fallback}': expected allow, warn or deny`);
+    }
+    if (fallback !== undefined) this.aggregationOptions.fallback = fallback;
+    if (maxGroups !== undefined) this.aggregationOptions.maxGroups = maxGroups;
+    if (warn !== undefined) this.aggregationOptions.warn = warn;
   }
 
   /**

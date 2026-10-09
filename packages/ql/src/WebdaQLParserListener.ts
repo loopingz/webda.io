@@ -19,6 +19,15 @@ import { StringAtomContext } from "./WebdaQLParserParser.js";
 import { ValuesAtomContext } from "./WebdaQLParserParser.js";
 import { IdentifierAtomContext } from "./WebdaQLParserParser.js";
 import { WebdaqlContext } from "./WebdaQLParserParser.js";
+import { StatementContext } from "./WebdaQLParserParser.js";
+import { DeleteStatementContext } from "./WebdaQLParserParser.js";
+import { UpdateStatementContext } from "./WebdaQLParserParser.js";
+import { SelectStatementContext } from "./WebdaQLParserParser.js";
+import { FilterQueryContext } from "./WebdaQLParserParser.js";
+import { WhereClauseContext } from "./WebdaQLParserParser.js";
+import { AssignmentListContext } from "./WebdaQLParserParser.js";
+import { AssignmentContext } from "./WebdaQLParserParser.js";
+import { FieldListContext } from "./WebdaQLParserParser.js";
 import { LimitExpressionContext } from "./WebdaQLParserParser.js";
 import { OffsetExpressionContext } from "./WebdaQLParserParser.js";
 import { OrderFieldExpressionContext } from "./WebdaQLParserParser.js";
@@ -257,6 +266,105 @@ export interface WebdaQLParserListener extends ParseTreeListener {
    * @param ctx the parse tree
    */
   exitWebdaql?: (ctx: WebdaqlContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.statement`.
+   * @param ctx the parse tree
+   */
+  enterStatement?: (ctx: StatementContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.statement`.
+   * @param ctx the parse tree
+   */
+  exitStatement?: (ctx: StatementContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.deleteStatement`.
+   * @param ctx the parse tree
+   */
+  enterDeleteStatement?: (ctx: DeleteStatementContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.deleteStatement`.
+   * @param ctx the parse tree
+   */
+  exitDeleteStatement?: (ctx: DeleteStatementContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.updateStatement`.
+   * @param ctx the parse tree
+   */
+  enterUpdateStatement?: (ctx: UpdateStatementContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.updateStatement`.
+   * @param ctx the parse tree
+   */
+  exitUpdateStatement?: (ctx: UpdateStatementContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.selectStatement`.
+   * @param ctx the parse tree
+   */
+  enterSelectStatement?: (ctx: SelectStatementContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.selectStatement`.
+   * @param ctx the parse tree
+   */
+  exitSelectStatement?: (ctx: SelectStatementContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.filterQuery`.
+   * @param ctx the parse tree
+   */
+  enterFilterQuery?: (ctx: FilterQueryContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.filterQuery`.
+   * @param ctx the parse tree
+   */
+  exitFilterQuery?: (ctx: FilterQueryContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.whereClause`.
+   * @param ctx the parse tree
+   */
+  enterWhereClause?: (ctx: WhereClauseContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.whereClause`.
+   * @param ctx the parse tree
+   */
+  exitWhereClause?: (ctx: WhereClauseContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.assignmentList`.
+   * @param ctx the parse tree
+   */
+  enterAssignmentList?: (ctx: AssignmentListContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.assignmentList`.
+   * @param ctx the parse tree
+   */
+  exitAssignmentList?: (ctx: AssignmentListContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.assignment`.
+   * @param ctx the parse tree
+   */
+  enterAssignment?: (ctx: AssignmentContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.assignment`.
+   * @param ctx the parse tree
+   */
+  exitAssignment?: (ctx: AssignmentContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.fieldList`.
+   * @param ctx the parse tree
+   */
+  enterFieldList?: (ctx: FieldListContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.fieldList`.
+   * @param ctx the parse tree
+   */
+  exitFieldList?: (ctx: FieldListContext) => void;
 
   /**
    * Enter a parse tree produced by `WebdaQLParserParser.limitExpression`.

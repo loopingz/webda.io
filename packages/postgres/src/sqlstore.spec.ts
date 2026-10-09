@@ -153,7 +153,7 @@ describe("PostgresRepository table readiness", () => {
     const { repo, events } = makeReadyRepository();
     const calls: Array<[string, () => Promise<any>, RegExp]> = [
       ["create", () => repo.create({ uuid: "a" }), /^INSERT INTO items/],
-      ["update", () => repo.update({ uuid: "a" }, "name", "x"), /^UPDATE items SET data=\$1/],
+      ["update", () => repo.update({ uuid: "a" }, "name", "x"), /^UPDATE items SET data = CASE WHEN data \? /],
       ["patch", () => repo.patch("a", { name: "b" }, "name", "x"), /data \|\| \$1::jsonb/],
       ["delete", () => repo.delete("a"), /^DELETE FROM items WHERE uuid=\$1$/],
       ["conditional delete", () => repo.delete("a", "name", "x"), /^DELETE FROM items WHERE uuid=\$1 AND/],

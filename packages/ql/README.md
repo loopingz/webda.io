@@ -44,8 +44,13 @@ npm install @webda/ql
 ### Syntax overview
 
 ```
-expression? orderExpression? limitExpression? offsetExpression?
+expression? orderExpression? limitExpression? offsetExpression?      -- a filter query (implicit SELECT)
+SELECT f1, f2 [WHERE expression] [ORDER BY ...] [LIMIT n] [OFFSET t]
+DELETE [WHERE expression] [LIMIT n]
+UPDATE SET a = v, b.c = v [WHERE expression] [LIMIT n]
 ```
+
+Keywords are uppercase only: `select`, `delete`, `set`, `where`... in lowercase are field names.
 
 **Filter expressions** support:
 - Comparison: `field = value`, `field != value`, `field > value`, `field >= value`, `field < value`, `field <= value`
@@ -93,6 +98,22 @@ WebdaQL.bind("priority >= ? LIMIT ?", [2, 10]); // priority >= 2 LIMIT 10
 
 Placeholders are only allowed where a value is expected, values are escaped by type, and `= ?` / `!= ?` with `null` become `IS NULL` / `IS NOT NULL`. Template literals passed straight to a query method are escaped the same way at compile time by `webdac`. See [Parameters](../../docs/pages/Modules/ql/Parameters.md).
 
+### Statements: SELECT, DELETE, UPDATE
+
+WebdaQL parses `SELECT`, `DELETE` and `UPDATE` statements; the parsed `Query` carries `type` (`"SELECT"` for a plain filter), `fields` (SELECT) and `assignments` (UPDATE), and `toString()` round-trips them.
+
+- **Field lists are parse-level only**: the Query operations (REST, gRPC, MCP, GraphQL) refuse a `SELECT` field list with a 400, and repositories refuse it in `query()`.
+- **DELETE and UPDATE are repository-level operations**: `useRepository(Model).deleteMany("DELETE WHERE ...")` and `updateMany("UPDATE SET ... WHERE ...")` run them in bulk and return the affected count. They **bypass events, hooks, validation and `canAct`**. The Query operations refuse them with a 400, and `query()` / `iterate()` refuse them.
+
+```typescript
+const q = WebdaQL.parse("UPDATE SET status = 'archived' WHERE owner = 'bob' LIMIT 10");
+q.type;        // "UPDATE"
+q.assignments; // [{ field: "status", value: "archived" }]
+await useRepository(Task).updateMany("UPDATE SET status = ? WHERE owner = ?", ["archived", "bob"]); // count
+```
+
+See [Statements](../../docs/pages/Modules/ql/Statements.md).
+
 ### API reference
 
 | Export | Description |
@@ -106,7 +127,10 @@ Placeholders are only allowed where a value is expected, values are escaped by t
 | `AndExpression` | Logic AND node |
 | `OrExpression` | Logic OR node |
 | `ComparisonExpression` | Comparison leaf node |
-| `Query` | Parsed query result: `{ filter, orderBy?, limit?, continuationToken? }` |
+| `parse(query, allowedFields?)` | Parses a filter or statement; `allowedFields` checks SELECT fields and SET targets |
+| `validateQueryFields(query, allowed)` | Checks SELECT fields and SET targets against a field list |
+| `assertFilterQuery(query)` | Refuses DELETE, UPDATE and SELECT field lists |
+| `Query` | Parsed query result: `{ type, filter, fields?, assignments?, orderBy?, limit?, continuationToken? }` |
 | `OrderBy` | `{ field: string; direction: "ASC" \| "DESC" }` |
 
 ### See also
@@ -114,6 +138,7 @@ Placeholders are only allowed where a value is expected, values are escaped by t
 - [WQL Syntax reference](../../docs/pages/Modules/ql/Syntax.md)
 - [Operators](../../docs/pages/Modules/ql/Operators.md)
 - [Parameters](../../docs/pages/Modules/ql/Parameters.md) — binding values safely
+- [Statements](../../docs/pages/Modules/ql/Statements.md) — SELECT, DELETE, UPDATE and repository bulk operations
 - [Store Translators](../../docs/pages/Modules/ql/Translators.md) — how each Store backend converts WQL
 
 <!-- README_FOOTER -->

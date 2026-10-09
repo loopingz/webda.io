@@ -459,11 +459,13 @@ class QueryTest {
     const parser = new WebdaQLParserParser(tokenStream);
     const tree = parser.webdaql();
 
-    // Access children of the parse tree
-    assert.ok(tree.expression());
-    const orderExpr = tree.orderExpression();
+    // Access children of the parse tree: a plain filter query, not a statement
+    assert.strictEqual(tree.statement(), undefined);
+    const filterQuery = tree.filterQuery();
+    assert.ok(filterQuery.expression());
+    const orderExpr = filterQuery.orderExpression();
     assert.ok(orderExpr);
-    assert.strictEqual(tree.limitExpression(), undefined);
+    assert.strictEqual(filterQuery.limitExpression(), undefined);
 
     // Exercise ruleIndex
     assert.strictEqual(typeof tree.ruleIndex, "number");

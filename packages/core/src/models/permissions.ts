@@ -390,7 +390,8 @@ export const CONTINUATION_TOKEN_TTL_MS = 60 * 60 * 1000;
 
 /**
  * Refuse a client query that reads private (`__`-prefixed) fields, at any depth, in its filter or ORDER BY: a filter
- * on a private field (a password hash...) would reveal its value through which rows match
+ * on a private field (a password hash...) would reveal its value through which rows match. The field list of a
+ * SELECT and the targets of an UPDATE SET are checked too.
  * @param query - the parsed client query
  * @throws WebdaError.BadRequest when a field path has a `__`-prefixed segment
  */
@@ -404,8 +405,35 @@ export function assertNoPrivateFields(query: QueryValidator): void {
     }
   };
   visit(query.getExpression());
-  if ((query.getQuery().orderBy ?? []).some(o => isPrivate(o.field.split(".")))) {
+  const parsed = query.getQuery();
+  if (
+    [
+      ...(parsed.orderBy ?? []).map(o => o.field),
+      ...(parsed.fields ?? []),
+      ...(parsed.assignments ?? []).map(a => a.field)
+    ]
+      .map(field => field.split("."))
+      .some(isPrivate)
+  ) {
     throw new WebdaError.BadRequest("Private fields cannot be queried");
+  }
+}
+
+/**
+ * Refuse what the Query operations do not run: DELETE and UPDATE statements, and SELECT field lists
+ *
+ * Statements are parsed by WebdaQL and run by the repositories (`deleteMany`, `updateMany`), never through the
+ * Query operations exposed to clients (REST, gRPC, MCP, GraphQL): those take a filter query only.
+ * @param query - the parsed client query
+ * @throws WebdaError.BadRequest for a DELETE or UPDATE statement, or a SELECT field list
+ */
+export function assertFilterOnly(query: QueryValidator): void {
+  const { type, fields } = query.getQuery();
+  if (type === "DELETE" || type === "UPDATE") {
+    throw new WebdaError.BadRequest(`${type} statements are not accepted by queries`);
+  }
+  if (fields !== undefined) {
+    throw new WebdaError.BadRequest("SELECT field lists are not accepted by queries");
   }
 }
 
@@ -513,6 +541,7 @@ function modelIdentifier(model: any): string {
  * Query a model as the caller
  *
  * - the client query may not read private (`__`) fields (400), and its LIMIT is lowered to {@link MAX_QUERY_LIMIT};
+ * - the client query is a filter: DELETE, UPDATE and SELECT field lists are refused (400, {@link assertFilterOnly});
  * - a model defining neither `canAct` form refuses every row: the store is not asked;
  * - the model's static `getPermissionQuery(context)` is ANDed into the query;
  * - every result is checked with the static `canAct(context, "get", row)` and refused ones are dropped. Refused rows
@@ -536,6 +565,7 @@ export async function queryModelWithPermissions<T = any>(
 ): Promise<{ results: T[]; continuationToken?: string }> {
   const client = new QueryValidator(query ?? "");
   assertNoPrivateFields(client);
+  assertFilterOnly(client);
   if (!hasModelPermissionCheck(model)) {
     // Deny by default: no row can be read, the store is not even asked
     return { results: [], continuationToken: undefined };

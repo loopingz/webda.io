@@ -34,37 +34,83 @@ export interface SQLResult<T> {
   rowCount: number;
 }
 
-/** Extends ComparisonExpression to emit SQL-compatible string literals for JSONB comparisons */
+/**
+ * Quote a string as a SQL literal: single quotes are doubled so a value can never close the literal. Backslashes
+ * stay literal: with `standard_conforming_strings` (PostgreSQL default) `\\` is not an escape character in '...'
+ * strings — only LIKE gives it a meaning.
+ * @param value - the string
+ * @returns the SQL literal
+ */
+function sqlString(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+/**
+ * Extends ComparisonExpression to emit SQL for JSONB comparisons
+ *
+ * With the JSON path of the attribute (`jsonAttribute`), comparisons follow the in-memory semantics:
+ * - a number or a boolean only matches a JSON number or boolean: a missing field, a null or another type never
+ *   matches, and never raises a cast error;
+ * - `!=` matches a missing field, a null or another type (`IS DISTINCT FROM`);
+ * - strings compare the text of the value, so a number field equals its text (`n = '1'`), as the loose `==` does;
+ * - `CONTAINS` only matches an array holding the value.
+ */
 export class SQLComparisonExpression extends WebdaQL.ComparisonExpression {
   /**
-   * Single quotes are doubled so a value can never close the literal. Backslashes stay
-   * literal: with `standard_conforming_strings` (PostgreSQL default) `\\` is not an
-   * escape character in '...' strings — only LIKE gives it a meaning.
-   *
+   * @param operator - the comparison operator
+   * @param attribute - the SQL text of the attribute (`data#>>'{a,b}'`)
+   * @param value - the value
+   * @param jsonAttribute - the SQL JSON of the attribute (`data#>'{a,b}'`), for typed comparisons
+   */
+  constructor(
+    operator: WebdaQL.ComparisonOperator,
+    attribute: string,
+    value: any,
+    protected readonly jsonAttribute?: string
+  ) {
+    super(operator, attribute, value);
+  }
+
+  /**
    * @override
    * @param value - the value to stringify
-   * @returns SQL-compatible string literal
+   * @returns SQL-compatible literal
    */
   toStringValue(value: (string | number | boolean) | (string | number | boolean)[]): string {
     if (typeof value === "string") {
-      return `'${value.replace(/'/g, "''")}'`;
+      return sqlString(value);
     }
     return super.toStringValue(value);
   }
 
   /**
    * @override
-   * @returns SQL attribute expression with type cast
+   * @returns SQL attribute expression, typed when the value is a number or a boolean
    */
   toStringAttribute(): string {
-    switch (typeof this.value) {
-      case "boolean":
-        return `COALESCE(${this.attribute[0]}, false) AS boolean`;
-      case "number":
-        return `COALESCE(${this.attribute[0]}, 0) AS bigint`;
-      default:
-        return this.attribute[0];
+    const text = this.attribute.join(".");
+    if (this.jsonAttribute && (typeof this.value === "number" || typeof this.value === "boolean")) {
+      const type = typeof this.value;
+      return `(CASE WHEN jsonb_typeof(${this.jsonAttribute}) = '${type}' THEN (${text})::${type === "number" ? "numeric" : "boolean"} END)`;
     }
+    return text;
+  }
+
+  /**
+   * @override
+   * @returns the SQL condition
+   */
+  toString(): string {
+    if (WebdaQL.UNARY_COMPARISON_OPERATORS.includes(this.operator)) {
+      return `${this.attribute.join(".")} ${this.operator}`;
+    }
+    if (this.operator === "CONTAINS" && this.jsonAttribute) {
+      return `(CASE WHEN jsonb_typeof(${this.jsonAttribute}) = 'array' THEN ${this.jsonAttribute} END) @> ${sqlString(JSON.stringify([this.value]))}::jsonb`;
+    }
+    if (this.operator === "!=") {
+      return `${this.toStringAttribute()} IS DISTINCT FROM ${this.toStringValue(this.value)}`;
+    }
+    return super.toString();
   }
 }
 
@@ -92,6 +138,8 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
    * @param table - the table name
    * @param separator - composite key separator
    * @param prepare - awaited before every statement (e.g. to ensure the table exists)
+   * @param tableModel - identifier of the model the table was declared for: rows without `__type` (written before
+   *   stamping) belong to it. Defaults to the topmost ancestor of `model` carrying metadata.
    */
   constructor(
     model: T,
@@ -99,10 +147,52 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     protected readonly client: SQLClient,
     protected readonly table: string,
     separator?: string,
-    protected readonly prepare?: () => Promise<void>
+    protected readonly prepare?: () => Promise<void>,
+    tableModel?: string
   ) {
     // Pass an empty Map — we do NOT use in-memory storage
     super(model, pks, separator, new Map<string, string>() as any);
+    this.tableModel = tableModel ?? PostgresRepository.rootIdentifier(model);
+  }
+
+  /**
+   * Identifier of the model the table was declared for: unstamped rows belong to it
+   */
+  protected readonly tableModel?: string;
+
+  /**
+   * @param model - a model class
+   * @returns the identifier of its topmost ancestor (itself included) carrying metadata
+   */
+  static rootIdentifier(model: any): string | undefined {
+    let root: string | undefined;
+    for (let clazz = model; clazz && clazz !== Function.prototype; clazz = Object.getPrototypeOf(clazz)) {
+      if (Object.prototype.hasOwnProperty.call(clazz, "Metadata") && clazz.Metadata?.Identifier) {
+        root = clazz.Metadata.Identifier;
+      }
+    }
+    return root;
+  }
+
+  /**
+   * Stamp the rows written before `__type` stamping with the table model: they keep belonging to it, and a later
+   * change of the table model cannot reassign them
+   *
+   * Idempotent; only the repository of the table model writes. Equivalent SQL:
+   * `UPDATE <table> SET data = data || jsonb_build_object('__type', '<table model>') WHERE data->>'__type' IS NULL`.
+   * @returns the number of rows stamped
+   */
+  async backfillTypes(): Promise<number> {
+    const own = (this.model as any)?.Metadata?.Identifier;
+    if (!own || own !== this.tableModel) {
+      return 0;
+    }
+    return (
+      await this.execute(
+        `UPDATE ${this.table} SET data = data || jsonb_build_object('__type', $1::text) WHERE data->>'__type' IS NULL`,
+        [own]
+      )
+    ).rowCount;
   }
 
   /**
@@ -142,7 +232,79 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
    * @returns the JSONB path expression
    */
   mapExpressionAttribute(attribute: string[]): string {
-    return `data#>>'{${attribute.join(",")}}'`;
+    return `data#>>'{${this.checkPath(attribute)}}'`;
+  }
+
+  /**
+   * Map an expression attribute path array to its JSONB value (not its text)
+   * @param attribute - the attribute path
+   * @returns the JSONB path expression
+   */
+  mapJsonAttribute(attribute: string[]): string {
+    return `data#>'{${this.checkPath(attribute)}}'`;
+  }
+
+  /**
+   * Check the segments of a path written inside a SQL literal: letters, digits and `_`, like WebdaQL identifiers
+   * @param attribute - the attribute path
+   * @returns the segments, comma separated
+   * @throws Error for any other character
+   */
+  protected checkPath(attribute: string[]): string {
+    if (attribute.some(segment => !/^[A-Za-z0-9_]+$/.test(segment))) {
+      throw new Error(`Invalid attribute path: ${JSON.stringify(attribute)}`);
+    }
+    return attribute.join(",");
+  }
+
+  /**
+   * SQL condition restricting rows to this model and its subclasses, as `__type` stamps them; rows without a stamp
+   * (written before stamping) belong to every model of the table
+   * @returns the condition, undefined for a model without metadata
+   */
+  protected getClassCondition(): string | undefined {
+    const ids = this.buildClassFilterIdentifiers();
+    if (!ids) {
+      return undefined;
+    }
+    const typed = `data->>'__type' IN (${ids.map(sqlString).join(", ")})`;
+    // Unstamped rows belong to the table model: its repository and its ancestors' see them, a subclass never does
+    return this.tableModel && ids.includes(this.tableModel) ? `(${typed} OR data->>'__type' IS NULL)` : `(${typed})`;
+  }
+
+  /**
+   * The type an object written by the application declares: the `__type` its row was read with (non-enumerable,
+   * set by {@link fromJSON}), else the identifier of its class. Plain data declares none, whatever its keys.
+   * @param item - the object
+   * @returns the model identifier, undefined for plain data
+   */
+  protected declaredType(item: any): string | undefined {
+    if (!item || typeof item !== "object") {
+      return undefined;
+    }
+    const own = Object.getOwnPropertyDescriptor(item, "__type");
+    if (own && !own.enumerable && typeof own.value === "string") {
+      return own.value;
+    }
+    const clazz = Object.getPrototypeOf(item)?.constructor;
+    return clazz && clazz !== Object ? clazz.Metadata?.Identifier : undefined;
+  }
+
+  /**
+   * The JSON stored for an object: its fields, and its declared type in `__type` (see {@link declaredType})
+   * @param item - the object
+   * @param fallbackType - the type to stamp when the object declares none
+   * @returns the JSON text
+   */
+  protected toStoredJSON(item: any, fallbackType?: string): string {
+    const data = JSON.parse(JSON.stringify(item));
+    // An enumerable `__type` key of plain data is never trusted
+    delete data.__type;
+    const type = this.declaredType(item) ?? fallbackType;
+    if (type) {
+      data.__type = type;
+    }
+    return JSON.stringify(data);
   }
 
   /**
@@ -173,15 +335,24 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
 
   /**
    * Deserialize a raw JSON object from the database into a model instance.
-   * @param data - the raw JSON object from the JSONB column
+   * @param stored - the raw JSON object from the JSONB column; its `__type` stamp becomes a non-enumerable property
    * @returns the model instance
    */
-  protected fromJSON(data: any): InstanceType<T> {
+  protected fromJSON(stored: any): InstanceType<T> {
+    const { __type, ...data } = stored ?? {};
     const instance = new this.model({}) as InstanceType<T>;
     if (typeof (instance as any).load === "function") {
       (instance as any).load(data);
     } else {
       Object.assign(instance as any, data);
+    }
+    if (__type !== undefined) {
+      Object.defineProperty(instance, "__type", {
+        value: __type,
+        enumerable: false,
+        configurable: true,
+        writable: true
+      });
     }
     return instance;
   }
@@ -203,7 +374,10 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     const item = this.buildItem(data);
     const key = this.getPrimaryKey(item).toString();
     try {
-      await this.execute(`INSERT INTO ${this.table}(uuid,data) VALUES($1, $2)`, [key, JSON.stringify(item)]);
+      await this.execute(`INSERT INTO ${this.table}(uuid,data) VALUES($1, $2)`, [
+        key,
+        this.toStoredJSON(item, (this.model as any).Metadata?.Identifier)
+      ]);
     } catch (err) {
       // unique_violation on the primary key: the object exists, never overwrite it
       if (err?.code === "23505") {
@@ -217,8 +391,11 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
   /** @override */
   async update(data: any, conditionField?: any, condition?: any): Promise<void> {
     const key = this.getPrimaryKey(data).toString();
-    const args: any[] = [JSON.stringify(data), key];
-    let q = `UPDATE ${this.table} SET data=$1 WHERE uuid=$2`;
+    const args: any[] = [this.toStoredJSON(data), key];
+    // Plain data keeps the stored type: a write through a parent repository never re-types a subclass row
+    let q = this.declaredType(data)
+      ? `UPDATE ${this.table} SET data=$1 WHERE uuid=$2`
+      : `UPDATE ${this.table} SET data = CASE WHEN data ? '__type' THEN $1::jsonb || jsonb_build_object('__type', data->'__type') ELSE $1::jsonb END WHERE uuid=$2`;
     if (conditionField) {
       q += this.getQueryCondition(condition, conditionField as string, args);
     }
@@ -389,32 +566,34 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     } else if (expression instanceof WebdaQL.ComparisonExpression) {
       if (expression.operator === "IN") {
         const attr = this.mapExpressionAttribute(expression.attribute);
+        const json = this.mapJsonAttribute(expression.attribute);
         return new WebdaQL.OrExpression(
-          (<string[]>expression.value).map(v => new SQLComparisonExpression("=", attr, v))
-        );
-      }
-      if (expression.operator === "CONTAINS") {
-        return new SQLComparisonExpression(
-          <any>"?",
-          "(" + this.mapExpressionAttribute(expression.attribute) + ")::jsonb",
-          expression.value
+          (<string[]>expression.value).map(v => new SQLComparisonExpression("=", attr, v, json))
         );
       }
       // IS NULL / IS NOT NULL map natively: `data#>>'{a}'` is NULL for a missing key and a JSON null
       return new SQLComparisonExpression(
         expression.operator,
         this.mapExpressionAttribute(expression.attribute),
-        expression.value
+        expression.value,
+        this.mapJsonAttribute(expression.attribute)
       );
     }
     return expression;
   }
 
   /** @override — use SQL WHERE clause instead of in-memory scan */
-  async query(queryStr: string): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
+  async query(queryStr: string | any): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
     const WebdaQLMod = await import("@webda/ql");
-    const parsed = WebdaQLMod.parse(queryStr);
+    // A query object built or changed by code goes back through the grammar before any SQL is written
+    const parsed = typeof queryStr === "string" ? WebdaQLMod.parse(queryStr) : WebdaQLMod.normalizeQuery(queryStr);
+    // DELETE / UPDATE go to deleteMany / updateMany; a field list is not a projection here
+    WebdaQLMod.assertFilterQuery(parsed);
     let sql = this.duplicateExpression(parsed.filter).toString();
+    const classCondition = this.getClassCondition();
+    if (classCondition) {
+      sql = `(${sql}) AND ${classCondition}`;
+    }
     const offset = parseInt((parsed as any).continuationToken || "0", 10);
     if ((parsed as any).orderBy && (parsed as any).orderBy.length) {
       sql +=
@@ -436,10 +615,82 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     };
   }
 
+  /**
+   * SQL condition selecting the rows a statement targets: its WHERE, restricted to the first LIMIT rows when the
+   * statement has a LIMIT (PostgreSQL DELETE and UPDATE have none)
+   * @param statement - the parsed statement
+   * @returns the condition
+   */
+  protected getStatementCondition(statement: WebdaQL.Query): string {
+    let where = `(${this.duplicateExpression(statement.filter).toString()})`;
+    const classCondition = this.getClassCondition();
+    if (classCondition) {
+      where += ` AND ${classCondition}`;
+    }
+    if (statement.limit === undefined) {
+      return where;
+    }
+    if (!Number.isSafeInteger(statement.limit) || statement.limit < 0) {
+      throw new Error(`Invalid LIMIT: ${statement.limit}`);
+    }
+    // The WHERE is kept on the outer statement: a row that stopped matching since the sub-select is left alone
+    return `${where} AND uuid IN (SELECT uuid FROM ${this.table} WHERE ${where} LIMIT ${statement.limit})`;
+  }
+
+  /**
+   * Delete in bulk with one `DELETE ... WHERE`: no per-object event (see `Repository.deleteMany`)
+   * @override
+   */
+  async deleteMany(statement: string | WebdaQL.Query, params?: WebdaQL.QueryParameters): Promise<number> {
+    const parsed = await this.parseStatement("DELETE", statement, params);
+    return (await this.execute(`DELETE FROM ${this.table} WHERE ${this.getStatementCondition(parsed)}`, [])).rowCount;
+  }
+
+  /**
+   * Update in bulk with one `UPDATE ... SET data = jsonb_set(...) WHERE`: no per-object event (see
+   * `Repository.updateMany`)
+   *
+   * SET paths and values are bound parameters (the statement went through the grammar, see `parseStatement`); the
+   * parents of a dotted target are created when missing, an existing array parent is indexed.
+   * @override
+   */
+  async updateMany(statement: string | WebdaQL.Query, params?: WebdaQL.QueryParameters): Promise<number> {
+    const parsed = await this.parseStatement("UPDATE", statement, params);
+    const values: any[] = [];
+    // One step per jsonb_set, each reading the previous one (d0 is the row data): the SQL stays linear in size
+    const steps: string[] = [];
+    const ensured = new Set<string>();
+    for (const { field, value } of parsed.assignments!) {
+      const segments = field.split(".");
+      // Make every parent of a dotted target an object, keeping an existing object or array (a numeric segment
+      // then indexes the array)
+      for (let i = 1; i < segments.length; i++) {
+        const parent = segments.slice(0, i);
+        if (ensured.has(parent.join("."))) continue;
+        ensured.add(parent.join("."));
+        values.push(parent);
+        const d = `d${steps.length}`;
+        const path = `$${values.length}::text[]`;
+        steps.push(
+          `jsonb_set(${d}, ${path}, CASE WHEN jsonb_typeof(${d} #> ${path}) IN ('object', 'array') THEN ${d} #> ${path} ELSE '{}'::jsonb END, true)`
+        );
+      }
+      values.push(segments, JSON.stringify(value));
+      steps.push(`jsonb_set(d${steps.length}, $${values.length - 1}::text[], $${values.length}::jsonb, true)`);
+    }
+    const data = `(SELECT d${steps.length} FROM (SELECT ${this.table}.data AS d0) s0${steps
+      .map((step, i) => ` CROSS JOIN LATERAL (SELECT ${step} AS d${i + 1}) s${i + 1}`)
+      .join("")})`;
+    return (
+      await this.execute(`UPDATE ${this.table} SET data = ${data} WHERE ${this.getStatementCondition(parsed)}`, values)
+    ).rowCount;
+  }
+
   /** @override — iterate via paginated SQL queries */
   async *iterate(queryStr: string): AsyncGenerator<InstanceType<T>, any, any> {
     const WebdaQLMod = await import("@webda/ql");
     const parsed: any = WebdaQLMod.parse(queryStr);
+    WebdaQLMod.assertFilterQuery(parsed);
     if (!parsed.limit) {
       parsed.limit = 100;
     }

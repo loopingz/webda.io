@@ -1,5 +1,5 @@
 import type { ArrayElement } from "@webda/tsc-esm";
-import type { QueryParameters, WebdaQLString } from "@webda/ql";
+import type { Query as WebdaQLQuery, QueryParameters, WebdaQLStatement, WebdaQLString } from "@webda/ql";
 import type {
   PrimaryKey,
   PrimaryKeyType,
@@ -108,6 +108,9 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
 
   /**
    * Query the store
+   *
+   * Takes a filter query (`a = 1 ORDER BY b LIMIT 10`): DELETE and UPDATE statements go to
+   * {@link deleteMany} / {@link updateMany}, and SELECT field lists are refused (objects are returned whole).
    * @param query - the WebdaQL query, optionally with `?` or `:name` placeholders
    * @param params - values for the placeholders: an array for `?`, an object for `:name`
    * @returns
@@ -122,11 +125,49 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
 
   /**
    * Iterate over the store
+   *
+   * Takes a filter query (`a = 1 ORDER BY b LIMIT 10`): DELETE and UPDATE statements go to
+   * {@link deleteMany} / {@link updateMany}, and SELECT field lists are refused (objects are returned whole).
    * @param query - the WebdaQL query, optionally with `?` or `:name` placeholders
    * @param params - values for the placeholders: an array for `?`, an object for `:name`
    * @returns
    */
   iterate(query: WebdaQLString<InstanceType<T>>, params?: QueryParameters): AsyncGenerator<InstanceType<T>>;
+
+  /**
+   * Delete every object matching a `DELETE [WHERE ...] [LIMIT n]` statement, in bulk
+   *
+   * **Bulk operations bypass the model layer:** no per-object repository event (`Delete`/`Deleted`), no model
+   * hook, no behaviour and no validation run, and no permission (`canAct`) is checked. Repositories are trusted
+   * internal APIs: application code exposing a bulk statement to clients must check permissions itself.
+   *
+   * Stores use their native batch operation when they have one, otherwise the matching keys are collected first
+   * (up to LIMIT) and deleted with the store's per-key primitive.
+   *
+   * @param statement - the DELETE statement, optionally with `?` or `:name` placeholders, or its parsed form
+   * @param params - values for the placeholders: an array for `?`, an object for `:name`
+   * @returns the number of objects deleted
+   * @throws if the statement is not a DELETE
+   */
+  deleteMany(statement: WebdaQLStatement<InstanceType<T>> | WebdaQLQuery, params?: QueryParameters): Promise<number>;
+
+  /**
+   * Update every object matching an `UPDATE SET a = v, ... [WHERE ...] [LIMIT n]` statement, in bulk
+   *
+   * **Bulk operations bypass the model layer:** no per-object repository event (`Patch`/`Patched`/`Updated`),
+   * no model hook, no behaviour and no validation run, and no permission (`canAct`) is checked. Repositories are
+   * trusted internal APIs: application code exposing a bulk statement to clients must check permissions itself.
+   *
+   * SET targets may not be a primary key field nor a private (`__`) field, and must be fields of the model
+   * when its metadata lists them. Dotted targets (`profile.verified`) set a nested value, creating the
+   * intermediate objects. Each matching object is updated once, even when the SET changes a field of the WHERE.
+   *
+   * @param statement - the UPDATE statement, optionally with `?` or `:name` placeholders, or its parsed form
+   * @param params - values for the placeholders: an array for `?`, an object for `:name`
+   * @returns the number of objects updated
+   * @throws if the statement is not an UPDATE, or a SET target is refused
+   */
+  updateMany(statement: WebdaQLStatement<InstanceType<T>> | WebdaQLQuery, params?: QueryParameters): Promise<number>;
 
   /**
    * Event listeners

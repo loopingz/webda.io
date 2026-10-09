@@ -602,9 +602,30 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
     return query;
   }
 
+  /**
+   * Delete in bulk: the generic fallback (matching keys collected up to LIMIT, then deleted one by one with
+   * this repository's `delete`), no per-object event. A native Firestore batch write is a follow-up.
+   * @override
+   */
+  async deleteMany(statement: string | WebdaQL.Query, params?: WebdaQL.QueryParameters): Promise<number> {
+    return this.deleteManyByKey(statement, params);
+  }
+
+  /**
+   * Update in bulk: the generic fallback (matching keys collected up to LIMIT, then patched one by one with
+   * this repository's `patch`), no per-object event. A native Firestore batch write is a follow-up.
+   * @override
+   */
+  async updateMany(statement: string | WebdaQL.Query, params?: WebdaQL.QueryParameters): Promise<number> {
+    return this.updateManyByKey(statement, params);
+  }
+
   /** @override */
   async query(query: string | any): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
-    const parsed: WebdaQL.Query = typeof query === "string" ? WebdaQL.parse(query) : query;
+    // A query object built or changed by code goes back through the grammar before reaching the backend
+    const parsed: WebdaQL.Query = typeof query === "string" ? WebdaQL.parse(query) : WebdaQL.normalizeQuery(query);
+    // DELETE / UPDATE go to deleteMany / updateMany; a field list is not a projection here
+    WebdaQL.assertFilterQuery(parsed);
     const { results, continuationToken } = await this.find(parsed);
     return { results, continuationToken };
   }
@@ -612,6 +633,7 @@ export class FireStoreRepository<T extends ModelClass> extends MemoryRepository<
   /** @override */
   async *iterate(query: string): AsyncGenerator<InstanceType<T>, any, any> {
     const parsed = WebdaQL.parse(query);
+    WebdaQL.assertFilterQuery(parsed);
     parsed.limit ??= 100;
     do {
       const res = await this.find(parsed);

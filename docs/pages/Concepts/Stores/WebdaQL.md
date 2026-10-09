@@ -34,3 +34,7 @@ Currently, `MongoDB`, `Postgres`, `File` and `Memory` have a full ORDER BY capab
 ## Limit and Offset
 
 To define the LIMIT just add LIMIT
+
+## Statements
+
+WebdaQL also parses `SELECT f1, f2 [WHERE ...]`, `DELETE [WHERE ...] [LIMIT n]` and `UPDATE SET a = v [WHERE ...] [LIMIT n]` (uppercase keywords only). The Query operations exposed to clients (REST, gRPC, MCP, GraphQL) take a filter only and refuse them with a 400. DELETE and UPDATE run through `useRepository(Model).deleteMany()` / `updateMany()`, which bypass events, hooks, validation and permissions. See [Statements](../../Modules/ql/Statements.md).

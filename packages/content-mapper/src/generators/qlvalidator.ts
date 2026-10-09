@@ -25,6 +25,23 @@ const QL_MODULE = "@webda/ql";
 const WQL_UNKNOWN_ATTRIBUTE = 9001;
 /** Query text does not parse. */
 const WQL_GRAMMAR_ERROR = 9002;
+/** A DELETE / UPDATE / SELECT field list where a filter query is expected. */
+const WQL_STATEMENT_NOT_ALLOWED = 9003;
+
+/**
+ * A statement head: DELETE, UPDATE or SELECT (keywords are uppercase only, so `delete = 1` is a filter)
+ */
+const STATEMENT_HEAD = /^\s*(DELETE|UPDATE|SELECT)(?=\s|$)(?!\s*(?:=|!=|<|>|IN\b|LIKE\b|CONTAINS\b|IS\b))/;
+
+/**
+ * The statement keyword a query starts with, if any: `UPDATE.x = 1` or `DELETE = 1` are filters on fields named
+ * like a keyword
+ * @param query - the query text
+ * @returns DELETE, UPDATE or SELECT, undefined for a filter query
+ */
+export function statementHead(query: string): string | undefined {
+  return STATEMENT_HEAD.exec(query)?.[1];
+}
 
 /** Options for the WebdaQL generator. */
 export interface QlValidatorOptions {
@@ -40,7 +57,24 @@ export interface QlValidatorOptions {
 }
 
 /**
- * Unwrap `WebdaQLString<T>` to `T`.
+ * Whether a branded query parameter takes statements: `WebdaQLStatement<T>` (as `deleteMany` / `updateMany`),
+ * rather than the filter queries of `WebdaQLString<T>`
+ * @param ctx - analysis context
+ * @param type - the parameter type
+ * @returns true for a statement parameter
+ */
+function isStatementParameter(ctx: AnalysisContext, type: any): boolean {
+  if (!type) return false;
+  const aliasSymbol = type.getAliasSymbol?.() ?? type.aliasSymbol;
+  if (aliasSymbol?.name === "WebdaQLStatement") return true;
+  if (type.isUnionOrIntersection?.()) {
+    return (type.types ?? []).some((member: any) => isStatementParameter(ctx, member));
+  }
+  return !!ctx.checker.getPropertyOfType(type, "__webdaQLStatement");
+}
+
+/**
+ * Unwrap `WebdaQLString<T>` or `WebdaQLStatement<T>` to `T`.
  *
  * The brand is an alias, so the alias arguments are checked first; a value that
  * has flowed through a union keeps the brand as a property, which is the
@@ -53,7 +87,7 @@ function peelWebdaQLString(ctx: AnalysisContext, type: any): any {
   if (!type) return undefined;
 
   const aliasSymbol = type.getAliasSymbol?.() ?? type.aliasSymbol;
-  if (aliasSymbol?.name === "WebdaQLString") {
+  if (aliasSymbol?.name === "WebdaQLString" || aliasSymbol?.name === "WebdaQLStatement") {
     const args = type.getAliasTypeArguments?.() ?? type.aliasTypeArguments;
     if (args?.[0]) return args[0];
   }
@@ -82,11 +116,27 @@ function queryableAttributes(ctx: AnalysisContext, type: any): string[] {
 }
 
 /**
+ * Field list of a `SELECT f1, f2.g [WHERE ...]` statement: everything between `SELECT` and the first clause
+ * keyword (keywords are uppercase only, so a lowercase `where` is a field)
+ * @param query - raw query text
+ * @returns the raw field list, or undefined when the query is not a SELECT statement
+ */
+function selectFields(query: string): string | undefined {
+  // Two linear scans instead of one lazy pattern, which backtracks quadratically on long runs of spaces
+  const head = /^\s*SELECT\s/.exec(query);
+  if (!head) return undefined;
+  const rest = query.slice(head[0].length);
+  const end = rest.search(/\s(?:WHERE|ORDER BY|LIMIT|OFFSET)\b/);
+  return (end === -1 ? rest : rest.slice(0, end)).trim();
+}
+
+/**
  * Attribute paths referenced by a query, as written.
  *
  * Deliberately syntactic: the compile-time check only needs the head of each
  * comparison, and reusing the full query AST would tie this generator to the
- * parser's shape.
+ * parser's shape. Statements are covered too: the fields of a `SELECT` list, and
+ * the targets of an `UPDATE SET` (written `field = value`, like a comparison).
  * @param query - raw query text
  * @returns referenced attribute heads
  */
@@ -97,6 +147,10 @@ export function referencedAttributes(query: string): string[] {
   )) {
     const head = match[1].split(".")[0];
     if (!/^(AND|OR|NOT|TRUE|FALSE|IN|LIKE|IS|NULL)$/i.test(head)) names.add(head);
+  }
+  for (const field of selectFields(query)?.split(",") ?? []) {
+    const head = field.trim().split(".")[0];
+    if (head) names.add(head);
   }
   return [...names];
 }
@@ -204,7 +258,7 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
             const parameterType = ctx.checker.getParameterType(signature, index);
             const target = peelWebdaQLString(ctx, parameterType);
             if (!target) return;
-            inspectArgument(argument, target);
+            inspectArgument(argument, target, isStatementParameter(ctx, parameterType));
           });
         }
 
@@ -212,10 +266,11 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
          * Validate a query argument, rewriting template literals.
          * @param argument - the argument expression
          * @param target - the type attributes are checked against
+         * @param statement - whether the parameter takes statements
          */
-        function inspectArgument(argument: any, target: any): void {
+        function inspectArgument(argument: any, target: any, statement: boolean): void {
           if (is.isStringLiteral(argument) || is.isNoSubstitutionTemplateLiteral(argument)) {
-            validateQuery(argument.text, argument, target);
+            validateQuery(argument.text, argument, target, statement);
             return;
           }
 
@@ -223,7 +278,7 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
             // Static parts are validated with a placeholder standing in for each
             // interpolation, so a hole cannot hide an unknown attribute.
             const parts = [argument.head.text, ...argument.templateSpans.map((span: any) => span.literal.text)];
-            validateQuery(parts.join("?"), argument, target);
+            validateQuery(parts.join("?"), argument, target, statement);
 
             const values = argument.templateSpans.map((span: any) => ctx.textOf(sf, span.expression)).join(", ");
             const partsLiteral = parts.map(part => JSON.stringify(part)).join(", ");
@@ -242,10 +297,24 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
          * @param query - query text
          * @param node - node used for diagnostic position
          * @param target - the type attributes are checked against
+         * @param statement - whether the parameter takes statements
          */
-        function validateQuery(query: string, node: any, target: any): void {
+        function validateQuery(query: string, node: any, target: any, statement: boolean): void {
           const start = (node as any).getStart();
           const length = node.end - start;
+
+          const head = statementHead(query);
+          if (head && !statement) {
+            diagnostics.push({
+              start,
+              length,
+              code: WQL_STATEMENT_NOT_ALLOWED,
+              messageText:
+                head === "SELECT"
+                  ? "WebdaQL SELECT field lists are not accepted here: pass a filter query"
+                  : `WebdaQL ${head} statements are not accepted here: use deleteMany / updateMany`
+            });
+          }
 
           if (options.parse) {
             try {
@@ -284,6 +353,10 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
 }
 
 /** Re-exported so hosts can label diagnostics consistently. */
-export const WQL_CODES = { UNKNOWN_ATTRIBUTE: WQL_UNKNOWN_ATTRIBUTE, GRAMMAR_ERROR: WQL_GRAMMAR_ERROR };
+export const WQL_CODES = {
+  UNKNOWN_ATTRIBUTE: WQL_UNKNOWN_ATTRIBUTE,
+  GRAMMAR_ERROR: WQL_GRAMMAR_ERROR,
+  STATEMENT_NOT_ALLOWED: WQL_STATEMENT_NOT_ALLOWED
+};
 
 export type { SourceFile };

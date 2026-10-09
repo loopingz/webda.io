@@ -54,6 +54,7 @@ describe("DebugDashboard", () => {
     await screen.findByText("sample-app");
     screen.getByText("~/sample-app");
     screen.getByText("Connected, live updates reconnecting…");
+    await waitFor(() => assert.ok(FakeWebSocket.instances.length > 0, "websocket not opened"));
     await act(async () => {
       FakeWebSocket.instances[0].open();
     });
@@ -183,6 +184,7 @@ describe("DebugDashboard", () => {
   it("marks the header disconnected when the websocket drops", async () => {
     const { container } = renderDashboard(healthyRoutes());
     await screen.findByText("Server started");
+    await waitFor(() => assert.ok(FakeWebSocket.instances.length > 0, "websocket not opened"));
     await act(async () => {
       FakeWebSocket.instances[0].open();
     });
@@ -199,6 +201,7 @@ describe("DebugDashboard", () => {
     const fetchMock = renderDashboard(routes) && (globalThis.fetch as ReturnType<typeof vi.fn>);
     await screen.findByText("Server started");
     const before = fetchMock.mock.calls.length;
+    await waitFor(() => assert.ok(FakeWebSocket.instances.length > 0, "websocket not opened"));
     await act(async () => {
       FakeWebSocket.instances[0].open();
       FakeWebSocket.instances[0].emit({ type: "restart" });

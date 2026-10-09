@@ -4,7 +4,7 @@ import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS, WEBDA_LEGACY_UID } from "../storable.j
 import { ModelRefWithCreate } from "../relations.js";
 import { Repository } from "./repository.js";
 import type { ArrayElement } from "@webda/tsc-esm";
-import type { QueryParameters } from "@webda/ql";
+import type { Assignment, Query as WebdaQLQuery, QueryParameters } from "@webda/ql";
 
 /**
  * Base repository implementation providing shared logic for key management,
@@ -264,6 +264,231 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     _conditionField?: K | null,
     _condition?: any
   ): Promise<void | Record<string, number>>;
+
+  /**
+   * Field paths of the model, from its metadata (`Reflection` and the stored, input and output schemas)
+   *
+   * Used to validate UPDATE SET targets.
+   * @returns the field names, undefined when the model carries no field metadata (no validation then)
+   */
+  getAllowedFields(): string[] | undefined {
+    const meta: any = (this.model as any)?.Metadata;
+    const fields = new Set<string>([
+      ...Object.keys(meta?.Reflection ?? {}),
+      ...Object.keys(meta?.Schemas?.Stored?.properties ?? {}),
+      ...Object.keys(meta?.Schemas?.Input?.properties ?? {}),
+      ...Object.keys(meta?.Schemas?.Output?.properties ?? {})
+    ]);
+    return fields.size ? [...fields] : undefined;
+  }
+
+  /**
+   * Parse a bulk statement and check it is of the expected type
+   *
+   * For an UPDATE, every SET target is checked: no primary key field, no private (`__`) segment, no
+   * `constructor`/`prototype` segment, and a field of the model when its metadata lists them.
+   * @param type - the expected statement type
+   * @param statement - the statement string or its parsed form
+   * @param params - values for the placeholders of a statement string
+   * @returns the parsed statement
+   * @throws WebdaQLError when the statement has another type or a SET target is refused
+   * @throws SyntaxError when the statement does not parse, or a SET target is not a field of the model
+   */
+  protected async parseStatement(
+    type: "DELETE" | "UPDATE",
+    statement: string | WebdaQLQuery,
+    params?: QueryParameters
+  ): Promise<WebdaQLQuery> {
+    const WebdaQL = await import("@webda/ql");
+    let parsed: WebdaQLQuery;
+    if (typeof statement === "string") {
+      parsed = WebdaQL.parse(params !== undefined ? WebdaQL.bind(statement, params) : statement);
+    } else {
+      if (params !== undefined) {
+        throw new WebdaQL.WebdaQLError("Parameters can only be bound to a statement string");
+      }
+      // A query object built or changed by code goes back through the grammar: no forged path, operator or value
+      // reaches a backend
+      parsed = WebdaQL.normalizeQuery(statement);
+    }
+    if (parsed.type !== type) {
+      throw new WebdaQL.WebdaQLError(
+        `${type === "DELETE" ? "deleteMany needs a" : "updateMany needs an"} ${type} statement, not ${parsed.type ?? "a filter"}`
+      );
+    }
+    if (type === "UPDATE") {
+      if (!parsed.assignments?.length) {
+        throw new WebdaQL.WebdaQLError("UPDATE needs at least one SET assignment");
+      }
+      const targets = parsed.assignments.map(a => a.field);
+      for (const field of targets) {
+        const segments = field.split(".");
+        if (segments.some(s => !/^[A-Za-z0-9_]+$/.test(s))) {
+          throw new WebdaQL.WebdaQLError(`UPDATE cannot set the field '${field}': empty or invalid path segment`);
+        }
+        if (this.pks.includes(segments[0])) {
+          throw new WebdaQL.WebdaQLError(`UPDATE cannot change the primary key field '${field}'`);
+        }
+        if (segments.some(s => s.startsWith("__") || s in Object.prototype || s === "prototype")) {
+          throw new WebdaQL.WebdaQLError(`UPDATE cannot set the private field '${field}'`);
+        }
+        // The same field twice, or a field and one of its children: the result would depend on the store
+        if (
+          targets.some(other => other !== field && other.startsWith(`${field}.`)) ||
+          targets.indexOf(field) !== targets.lastIndexOf(field)
+        ) {
+          throw new WebdaQL.WebdaQLError(`UPDATE sets '${field}' more than once`);
+        }
+      }
+      const allowed = this.getAllowedFields();
+      if (allowed) {
+        WebdaQL.validateQueryFields(parsed, allowed);
+      }
+    }
+    return parsed;
+  }
+
+  /**
+   * Set the assignments of an UPDATE on an object, creating the intermediate objects of dotted paths
+   *
+   * Targets were checked by {@link parseStatement}: letters, digits and `_` only, no `__` segment, no
+   * `Object.prototype` member name.
+   * @param target - the object to change in place
+   * @param assignments - the SET assignments
+   * @returns the target
+   */
+  protected applyAssignments<O>(target: O, assignments: Assignment[]): O {
+    for (const { field, value } of assignments) {
+      const segments = field.split(".");
+      let current: any = target;
+      for (const segment of segments.slice(0, -1)) {
+        if (current[segment] === null || typeof current[segment] !== "object") {
+          current[segment] = {};
+        }
+        current = current[segment];
+      }
+      current[segments[segments.length - 1]] = value;
+    }
+    return target;
+  }
+
+  /**
+   * Keys of the objects matching the WHERE of a statement, collected before any change so an update changing a
+   * WHERE field cannot meet the same object twice; at most LIMIT keys
+   * @param statement - the parsed statement
+   * @returns the primary keys
+   */
+  protected async collectStatementKeys(statement: WebdaQLQuery): Promise<PrimaryKeyType<InstanceType<T>>[]> {
+    const keys: PrimaryKeyType<InstanceType<T>>[] = [];
+    if (statement.limit !== undefined && statement.limit <= 0) {
+      return keys;
+    }
+    for await (const object of this.iterate(statement.filter.toString())) {
+      keys.push(this.getPrimaryKey(object));
+      if (statement.limit && keys.length >= statement.limit) {
+        break;
+      }
+    }
+    return keys;
+  }
+
+  /**
+   * Run one write of the generic fallback; an object deleted since the keys were collected is skipped
+   * @param key - the primary key
+   * @param write - the write
+   * @returns true when written, false when the object is gone
+   * @throws the write error when the object still exists
+   */
+  protected async writeIfPresent(key: PrimaryKeyType<InstanceType<T>>, write: () => Promise<void>): Promise<boolean> {
+    try {
+      await write();
+      return true;
+    } catch (err) {
+      if (await this.exists(key)) {
+        throw err;
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Generic `deleteMany`: collect the matching keys (up to LIMIT), then delete them one by one with this
+   * repository's `delete` primitive
+   *
+   * Used by stores without a native bulk delete. On a store repository the primitive emits no event.
+   * @param statement - the DELETE statement or its parsed form
+   * @param params - values for the placeholders
+   * @returns the number of objects deleted
+   */
+  protected async deleteManyByKey(statement: string | WebdaQLQuery, params?: QueryParameters): Promise<number> {
+    const parsed = await this.parseStatement("DELETE", statement, params);
+    const keys = await this.collectStatementKeys(parsed);
+    let count = 0;
+    for (const key of keys) {
+      if (await this.writeIfPresent(key, () => this.delete(key))) count++;
+    }
+    return count;
+  }
+
+  /**
+   * Generic `updateMany`: collect the matching keys (up to LIMIT), then patch them one by one with this
+   * repository's `patch` primitive. A dotted target reads the object to rewrite its top-level field.
+   *
+   * Used by stores without a native bulk update. On a store repository the primitive emits no event.
+   * @param statement - the UPDATE statement or its parsed form
+   * @param params - values for the placeholders
+   * @returns the number of objects updated
+   */
+  protected async updateManyByKey(statement: string | WebdaQLQuery, params?: QueryParameters): Promise<number> {
+    const parsed = await this.parseStatement("UPDATE", statement, params);
+    const keys = await this.collectStatementKeys(parsed);
+    const nested = parsed.assignments!.some(a => a.field.includes("."));
+    let count = 0;
+    for (const key of keys) {
+      const patch: any = {};
+      if (nested) {
+        let current: any;
+        try {
+          current = await this.get(key);
+        } catch (err) {
+          if (await this.exists(key)) throw err;
+          // Deleted since the keys were collected
+          continue;
+        }
+        for (const { field } of parsed.assignments!) {
+          const top = field.split(".")[0];
+          // A deep copy of the current value, so the nested assignments keep its other fields
+          patch[top] ??= current?.[top] === undefined ? undefined : JSON.parse(JSON.stringify(current[top]));
+        }
+      }
+      if (await this.writeIfPresent(key, () => this.patch(key, this.applyAssignments(patch, parsed.assignments!)))) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /**
+   * Delete in bulk: see {@link Repository.deleteMany}
+   *
+   * The generic implementation collects the matching keys then deletes them with `delete`; stores override it
+   * with their native batch operation.
+   * @override
+   */
+  async deleteMany(statement: string | WebdaQLQuery, params?: QueryParameters): Promise<number> {
+    return this.deleteManyByKey(statement, params);
+  }
+
+  /**
+   * Update in bulk: see {@link Repository.updateMany}
+   *
+   * The generic implementation collects the matching keys then patches them with `patch`; stores override it
+   * with their native batch operation.
+   * @override
+   */
+  async updateMany(statement: string | WebdaQLQuery, params?: QueryParameters): Promise<number> {
+    return this.updateManyByKey(statement, params);
+  }
 
   abstract query(
     query: string,

@@ -88,6 +88,12 @@ export function bind<T = unknown>(query: string, params?: QueryParameters): Webd
   validateSyntax(query);
 
   const values = named ? namedValues(placeholders, params) : positionalValues(placeholders, params);
+  const assigned = assignedPlaceholders(query);
+  placeholders.forEach((token, i) => {
+    if ((values[i] === null || values[i] === undefined) && assigned.has(token.startIndex)) {
+      throw new WebdaQLError(`A null value cannot be assigned in UPDATE SET ('${token.text}')`);
+    }
+  });
   const parts: string[] = [];
   let position = 0;
   for (const token of placeholders) {
@@ -104,6 +110,30 @@ export function bind<T = unknown>(query: string, params?: QueryParameters): Webd
     throw new WebdaQLError(`Invalid parameter value in WebdaQL query: ${(err as Error).message}`);
   }
   return bound;
+}
+
+/**
+ * Placeholders standing for the value of an `UPDATE SET` assignment, by start index: from `SET` to the
+ * `WHERE` or `LIMIT` closing the assignment list
+ * @param query - the query string
+ * @returns the start indexes of those placeholders
+ */
+function assignedPlaceholders(query: string): Set<number> {
+  const res = new Set<number>();
+  let inSet = false;
+  for (const token of tokenize(query)) {
+    if (token.type === WebdaQLLexer.SET) {
+      inSet = true;
+    } else if (token.type === WebdaQLLexer.WHERE || token.type === WebdaQLLexer.LIMIT) {
+      inSet = false;
+    } else if (
+      inSet &&
+      (token.type === WebdaQLLexer.POSITIONAL_PARAMETER || token.type === WebdaQLLexer.NAMED_PARAMETER)
+    ) {
+      res.add(token.startIndex);
+    }
+  }
+  return res;
 }
 
 /**

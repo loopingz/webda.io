@@ -175,6 +175,43 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
   }
 
   /**
+   * The model a table was declared for, owner of the rows written before `__type` stamping:
+   * the configured model of a single-model `table`, otherwise the model itself (its own or explicit table)
+   * @param model - the model class
+   * @returns the model identifier
+   */
+  resolveTableModel(model: ModelClass): string | undefined {
+    const meta = useModelMetadata(model);
+    if (!meta) {
+      return undefined;
+    }
+    if (
+      !this.parameters.tables?.[meta.Identifier] &&
+      this.parameters.models?.length === 1 &&
+      this.parameters.table &&
+      (this.parameters.models[0] === meta.Identifier || this.handleModel(model) >= 0)
+    ) {
+      return this.parameters.models[0];
+    }
+    return meta.Identifier;
+  }
+
+  /**
+   * Stamp `__type` on the rows written before stamping, with the model each table was declared for
+   *
+   * Idempotent: run it once after upgrading, before relying on the class filter of shared tables (rows without
+   * `__type` are read as the table model until then).
+   * @returns the number of rows stamped
+   */
+  async backfillTypes(): Promise<number> {
+    let count = 0;
+    for (const repo of this.getRepositories()) {
+      count += await repo.backfillTypes();
+    }
+    return count;
+  }
+
+  /**
    * Ensure all managed model tables exist (one per model in the hierarchy).
    * When `autoCreateTable` is false, this is a no-op.
    */
@@ -238,7 +275,8 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
       this.client as any,
       table,
       meta.PrimaryKeySeparator,
-      () => this.ensureTable(inner)
+      () => this.ensureTable(inner),
+      this.resolveTableModel(model)
     );
     // Wrap in EventRepository so typed CRUD events fire; consumers reach them
     // via useRepository(model).on(...).

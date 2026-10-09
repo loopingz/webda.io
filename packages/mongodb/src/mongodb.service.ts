@@ -98,9 +98,10 @@ export function mapExpression(expression: WebdaQL.Expression): any {
     const attribute = expression.attribute.join(".");
     switch (expression.operator) {
       case "=":
-      case "CONTAINS":
-        // MongoDB use same syntax for exact match or contains for an array
         return { [attribute]: expression.value };
+      case "CONTAINS":
+        // Only an array holding the value (a plain `{a: v}` would also match a scalar equal to v)
+        return { [attribute]: { $elemMatch: { $eq: expression.value } } };
       case "<":
         return { [attribute]: { $lt: expression.value } };
       case ">":
@@ -154,16 +155,41 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
    * Convert an object to the document stored in MongoDB
    * @param item - the model instance or raw data
    * @param key - the primary key
+   * @param fallbackType - the type to stamp when the object declares none (null: none)
    * @returns the document
    */
-  protected toDocument(item: any, key: string): any {
+  protected toDocument(
+    item: any,
+    key: string,
+    fallbackType: string | undefined = (this.model as any).Metadata?.Identifier
+  ): any {
     const doc = JSON.parse(JSON.stringify(item));
     doc._id = key;
-    const type = item?.constructor?.Metadata?.Identifier ?? (this.model as any).Metadata?.Identifier;
+    // An enumerable `__type` key of plain data is never trusted
+    delete doc.__type;
+    const type = this.declaredType(item) ?? fallbackType;
     if (type) {
       doc.__type = type;
     }
     return doc;
+  }
+
+  /**
+   * The type an object written by the application declares: the `__type` its document was read with
+   * (non-enumerable, set by {@link fromDocument}), else the identifier of its class. Plain data declares none.
+   * @param item - the object
+   * @returns the model identifier, undefined for plain data
+   */
+  protected declaredType(item: any): string | undefined {
+    if (!item || typeof item !== "object") {
+      return undefined;
+    }
+    const own = Object.getOwnPropertyDescriptor(item, "__type");
+    if (own && !own.enumerable && typeof own.value === "string") {
+      return own.value;
+    }
+    const clazz = Object.getPrototypeOf(item)?.constructor;
+    return clazz && clazz !== Object ? clazz.Metadata?.Identifier : undefined;
   }
 
   /**
@@ -235,9 +261,20 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
   /** @override */
   async update(data: any, conditionField?: any, condition?: any): Promise<void> {
     const key = this.getPrimaryKey(data).toString();
-    const res = await (
-      await this.getCollection()
-    ).replaceOne(this.getFilter(key, conditionField, condition), this.toDocument(data, key));
+    const collection = await this.getCollection();
+    const filter = this.getFilter(key, conditionField, condition);
+    let res;
+    if (this.declaredType(data)) {
+      res = await collection.replaceOne(filter, this.toDocument(data, key));
+    } else {
+      // Plain data (ModelRef.update) keeps the stored type, in one atomic write: a write through a parent
+      // repository never re-types a subclass document. `$literal` keeps `$`-prefixed values as data.
+      res = await collection.updateOne(filter, [
+        {
+          $replaceWith: { $mergeObjects: [{ $literal: this.toDocument(data, key, null) }, { __type: "$__type" }] }
+        }
+      ]);
+    }
     if (res.matchedCount === 0) {
       throw new UpdateConditionFailError(key as any, conditionField as string, condition);
     }
@@ -394,7 +431,10 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
 
   /** @override — translate the WebdaQL query to a MongoDB find */
   async query(query: string | any): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
-    const parsed: any = typeof query === "string" ? WebdaQL.parse(query) : query;
+    // A query object built or changed by code goes back through the grammar: no forged operator reaches MongoDB
+    const parsed: any = typeof query === "string" ? WebdaQL.parse(query) : WebdaQL.normalizeQuery(query);
+    // DELETE / UPDATE go to deleteMany / updateMany; a field list is not a projection here
+    WebdaQL.assertFilterQuery(parsed);
     let offset = parseInt(parsed.continuationToken);
     if (isNaN(offset)) {
       offset = 0;
@@ -415,6 +455,64 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
       results,
       continuationToken: results.length >= limit ? (offset + limit).toString() : undefined
     };
+  }
+
+  /**
+   * MongoDB filter of the objects a statement targets: its WHERE and the class filter, restricted to the first
+   * LIMIT documents when the statement has a LIMIT (MongoDB bulk writes have none)
+   * @param statement - the parsed statement
+   * @returns the filter, undefined when LIMIT is 0
+   */
+  protected async getStatementFilter(statement: WebdaQL.Query): Promise<any | undefined> {
+    let filter = mapExpression(statement.filter);
+    const classFilter = this.getClassFilter();
+    if (classFilter) {
+      filter = Object.keys(filter).length ? { $and: [classFilter, filter] } : classFilter;
+    }
+    if (statement.limit === undefined) {
+      return filter;
+    }
+    if (statement.limit <= 0) {
+      return undefined;
+    }
+    // Collect the keys first: the update cannot meet an object twice, and LIMIT is honoured
+    const ids = (
+      await (
+        await this.getCollection()
+      )
+        .find(filter, { projection: { _id: 1 } })
+        .limit(statement.limit)
+        .toArray()
+    ).map(doc => doc._id);
+    // The WHERE is kept: a document that stopped matching since the find is left alone
+    return { $and: [filter, { _id: { $in: ids } }] };
+  }
+
+  /**
+   * Delete in bulk with one `deleteMany`: no per-object event (see `Repository.deleteMany`)
+   * @override
+   */
+  async deleteMany(statement: string | WebdaQL.Query, params?: WebdaQL.QueryParameters): Promise<number> {
+    const parsed = await this.parseStatement("DELETE", statement, params);
+    const filter = await this.getStatementFilter(parsed);
+    if (!filter) return 0;
+    return (await (await this.getCollection()).deleteMany(filter)).deletedCount;
+  }
+
+  /**
+   * Update in bulk with one `updateMany` and `$set` (dotted targets create their parents): no per-object event
+   * (see `Repository.updateMany`)
+   * @override
+   */
+  async updateMany(statement: string | WebdaQL.Query, params?: WebdaQL.QueryParameters): Promise<number> {
+    const parsed = await this.parseStatement("UPDATE", statement, params);
+    const filter = await this.getStatementFilter(parsed);
+    if (!filter) return 0;
+    const $set: Record<string, any> = {};
+    for (const { field, value } of parsed.assignments!) {
+      $set[field] = value;
+    }
+    return (await (await this.getCollection()).updateMany(filter, { $set })).matchedCount;
   }
 
   /**

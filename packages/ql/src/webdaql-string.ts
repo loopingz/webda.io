@@ -13,6 +13,13 @@
 export type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
 
 /**
+ * Marker brand for WebdaQL statement strings (`DELETE ...`, `UPDATE SET ...`), as taken by
+ * `Repository.deleteMany` / `updateMany`. `@webda/content-mapper` checks their fields against `T` and,
+ * unlike {@link WebdaQLString}, does not flag them as statements where a filter query is expected.
+ */
+export type WebdaQLStatement<T = unknown> = string & { readonly __webdaQL?: T; readonly __webdaQLStatement?: true };
+
+/**
  * Thrown by `escape` when an interpolated value is not representable as a
  * WebdaQL literal (object, function, symbol, NaN, Infinity, a number needing an
  * exponent, an empty or nested array, or a null value anywhere but after `=` /
@@ -63,12 +70,6 @@ export function escape<T = unknown>(
 }
 
 /**
- * `=` or `!=` right before an interpolated value, with its surrounding spaces
- * (`>=` and `<=` are not equalities)
- */
-const TRAILING_EQUALITY = /\s*(!=|(?<![<>!])=)\s*$/;
-
-/**
  * Append a `null`/`undefined` value to the query built so far
  *
  * WebdaQL has no `NULL` literal, only `IS NULL` and `IS NOT NULL`, so `x = ${null}`
@@ -79,11 +80,17 @@ const TRAILING_EQUALITY = /\s*(!=|(?<![<>!])=)\s*$/;
  * @returns the query with the null comparison
  */
 function appendNull(out: string): string {
-  const match = TRAILING_EQUALITY.exec(out);
-  if (!match) {
+  // `=` or `!=` right before the value (`>=` and `<=` are not equalities); trimEnd keeps this linear
+  const head = out.trimEnd();
+  const operator = head.endsWith("!=")
+    ? "!="
+    : head.endsWith("=") && !/[<>!]/.test(head.charAt(head.length - 2))
+      ? "="
+      : "";
+  if (!operator) {
     throw new WebdaQLError("A null value can only be compared with = or != in a WebdaQL query");
   }
-  return `${out.substring(0, match.index)} ${match[1] === "=" ? "IS NULL" : "IS NOT NULL"}`;
+  return `${head.slice(0, -operator.length).trimEnd()} ${operator === "=" ? "IS NULL" : "IS NOT NULL"}`;
 }
 
 /**

@@ -19,6 +19,15 @@ import { StringAtomContext } from "./WebdaQLParserParser.js";
 import { ValuesAtomContext } from "./WebdaQLParserParser.js";
 import { IdentifierAtomContext } from "./WebdaQLParserParser.js";
 import { WebdaqlContext } from "./WebdaQLParserParser.js";
+import { StatementContext } from "./WebdaQLParserParser.js";
+import { DeleteStatementContext } from "./WebdaQLParserParser.js";
+import { UpdateStatementContext } from "./WebdaQLParserParser.js";
+import { SelectStatementContext } from "./WebdaQLParserParser.js";
+import { FilterQueryContext } from "./WebdaQLParserParser.js";
+import { WhereClauseContext } from "./WebdaQLParserParser.js";
+import { AssignmentListContext } from "./WebdaQLParserParser.js";
+import { AssignmentContext } from "./WebdaQLParserParser.js";
+import { FieldListContext } from "./WebdaQLParserParser.js";
 import { LimitExpressionContext } from "./WebdaQLParserParser.js";
 import { OffsetExpressionContext } from "./WebdaQLParserParser.js";
 import { OrderFieldExpressionContext } from "./WebdaQLParserParser.js";
@@ -176,6 +185,69 @@ export interface WebdaQLParserVisitor<Result> extends ParseTreeVisitor<Result> {
    * @return the visitor result
    */
   visitWebdaql?: (ctx: WebdaqlContext) => Result;
+
+  /**
+   * Visit a parse tree produced by `WebdaQLParserParser.statement`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitStatement?: (ctx: StatementContext) => Result;
+
+  /**
+   * Visit a parse tree produced by `WebdaQLParserParser.deleteStatement`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitDeleteStatement?: (ctx: DeleteStatementContext) => Result;
+
+  /**
+   * Visit a parse tree produced by `WebdaQLParserParser.updateStatement`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitUpdateStatement?: (ctx: UpdateStatementContext) => Result;
+
+  /**
+   * Visit a parse tree produced by `WebdaQLParserParser.selectStatement`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitSelectStatement?: (ctx: SelectStatementContext) => Result;
+
+  /**
+   * Visit a parse tree produced by `WebdaQLParserParser.filterQuery`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitFilterQuery?: (ctx: FilterQueryContext) => Result;
+
+  /**
+   * Visit a parse tree produced by `WebdaQLParserParser.whereClause`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitWhereClause?: (ctx: WhereClauseContext) => Result;
+
+  /**
+   * Visit a parse tree produced by `WebdaQLParserParser.assignmentList`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitAssignmentList?: (ctx: AssignmentListContext) => Result;
+
+  /**
+   * Visit a parse tree produced by `WebdaQLParserParser.assignment`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitAssignment?: (ctx: AssignmentContext) => Result;
+
+  /**
+   * Visit a parse tree produced by `WebdaQLParserParser.fieldList`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitFieldList?: (ctx: FieldListContext) => Result;
 
   /**
    * Visit a parse tree produced by `WebdaQLParserParser.limitExpression`.

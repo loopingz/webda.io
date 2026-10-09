@@ -10,10 +10,14 @@ WebdaQL (WQL) is a structured query language for filtering, ordering, and pagina
 ## Grammar overview
 
 ```
-webdaql : expression? orderExpression? limitExpression? offsetExpression? EOF ;
+webdaql     : (statement | filterQuery) EOF ;
+filterQuery : expression? orderExpression? limitExpression? offsetExpression? ;
+statement   : SELECT fieldList whereClause? orderExpression? limitExpression? offsetExpression?
+            | DELETE whereClause? limitExpression?
+            | UPDATE SET assignmentList whereClause? limitExpression? ;
 ```
 
-A complete WQL query is composed of four optional sections, always in this order:
+The statements (`SELECT`, `DELETE`, `UPDATE`) are described in [Statements](./Statements.md): field lists are parse-level only and DELETE / UPDATE run through the repository `deleteMany` / `updateMany`, never through the Query operations. A plain filter query is an implicit SELECT of every field; it is composed of four optional sections, always in this order:
 
 | Section | Syntax | Purpose |
 |---------|--------|---------|
@@ -182,5 +186,6 @@ npx vitest run packages/ql/src/query.spec.ts
 ## See also
 
 - [Operators](./Operators.md) — full operator reference with examples
+- [Statements](./Statements.md) — SELECT, DELETE, UPDATE and repository bulk operations
 - [Store Translators](./Translators.md) — how MongoDB, PostgreSQL, DynamoDB translate WQL
 - [@webda/ql README](./README.md) — package overview and API summary

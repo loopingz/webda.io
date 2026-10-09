@@ -1,3 +1,4 @@
+import { AndExpression, WebdaQLError } from "@webda/ql";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as fs from "fs";
@@ -43,7 +44,9 @@ class FileStoreMultiModelTest extends WebdaApplicationTest {
     );
     // store level find uses the same filtered listing
     const store: any = this.getService("Files");
-    const found = await store.find({ filter: { eval: () => true }, limit: 10 } as any);
+    // A query object must be expressible in WebdaQL: it is normalized through the grammar
+    const found = await store.find({ filter: new AndExpression([]), limit: 10 } as any);
+    await assert.rejects(() => store.find({ filter: { eval: () => true }, limit: 10 } as any), WebdaQLError);
     assert.deepStrictEqual(
       found.results.map((u: any) => u.getUUID()),
       [user.getUUID()]

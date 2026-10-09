@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { openSession } from "./context.ts";
 import { applyEdits, mergePlan } from "./plan.ts";
-import { qlValidatorGenerator, referencedAttributes, WQL_CODES } from "./generators/qlvalidator.ts";
+import { qlValidatorGenerator, referencedAttributes, statementHead, WQL_CODES } from "./generators/qlvalidator.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixture = join(here, "..", "test", "fixture");
@@ -14,11 +14,11 @@ const fixture = join(here, "..", "test", "fixture");
  * @param parse - optional parser, to exercise grammar validation
  * @returns generated text and diagnostics
  */
-function run(parse?: (query: string) => unknown) {
+function run(parse?: (query: string) => unknown, service: string = "query.service.ts") {
   const session = openSession(join(fixture, "tsconfig.json"), join(fixture, "src"));
   try {
     const produced = qlValidatorGenerator({ qlModule: "./runtime.js", parse }).analyze(session.ctx);
-    const file = produced.find(f => f.fileName.endsWith("query.service.ts"))!;
+    const file = produced.find(f => f.fileName.endsWith(service))!;
     const { plan } = mergePlan([file]);
     return {
       text: applyEdits(readFileSync(file.fileName, "utf8"), plan.get(file.fileName) ?? []),
@@ -79,6 +79,64 @@ describe("WebdaQL referenced attributes", () => {
       "owner",
       "tags"
     ]);
+  });
+});
+
+describe("WebdaQL statements", () => {
+  it("checks SELECT fields and UPDATE SET targets against the model, as filter attributes", () => {
+    const { diagnostics } = run(undefined, "statement.service.ts");
+    const unknown = diagnostics
+      .filter(d => d.code === WQL_CODES.UNKNOWN_ATTRIBUTE)
+      .map(d => d.messageText.match(/'([^']+)' in/)?.[1])
+      .sort();
+    expect(unknown).toEqual(["autor", "craetedAt", "statsu", "titel"]);
+    expect(diagnostics.find(d => d.messageText.includes("'titel'"))?.messageText).toContain("Did you mean 'title'?");
+  });
+
+  it("flags a statement where a filter query is expected", () => {
+    const { diagnostics } = run(undefined, "statement.service.ts");
+    const flagged = diagnostics.filter(d => d.code === WQL_CODES.STATEMENT_NOT_ALLOWED).map(d => d.messageText);
+    expect(flagged).toHaveLength(3);
+    expect(flagged[0]).toContain("DELETE");
+    expect(flagged[2]).toContain("SELECT");
+  });
+
+  it("tells a statement head from a field named like a keyword", () => {
+    expect(statementHead("DELETE")).toBe("DELETE");
+    expect(statementHead("  DELETE WHERE a = 1")).toBe("DELETE");
+    expect(statementHead("UPDATE SET a = 1")).toBe("UPDATE");
+    expect(statementHead("SELECT a, b")).toBe("SELECT");
+    for (const filter of [
+      "UPDATE.x = 1",
+      "SELECT.a = 1",
+      "DELETE.flag = TRUE",
+      "SELECTED = 1",
+      "SELECT_x = 1",
+      "UPDATEd = 1",
+      "select = 1",
+      "DELETE = 1",
+      "UPDATE IN [1]"
+    ]) {
+      expect(statementHead(filter), filter).toBeUndefined();
+    }
+  });
+
+  it("lists the SELECT fields, SET targets and WHERE attributes of a statement", () => {
+    expect(referencedAttributes("SELECT title, author.name WHERE status = 'x' ORDER BY title DESC LIMIT 5")).toEqual([
+      "status",
+      "title",
+      "author"
+    ]);
+    expect(referencedAttributes("SELECT title")).toEqual(["title"]);
+    expect(referencedAttributes("UPDATE SET title = 'x', meta.a = ? WHERE uuid = :u LIMIT ?").sort()).toEqual([
+      "meta",
+      "title",
+      "uuid"
+    ]);
+    expect(referencedAttributes("DELETE WHERE titel = 1 LIMIT 5")).toEqual(["titel"]);
+    expect(referencedAttributes("DELETE")).toEqual([]);
+    // Keywords are uppercase only: lowercase words are fields
+    expect(referencedAttributes("SELECT where, set WHERE delete = 1").sort()).toEqual(["delete", "set", "where"]);
   });
 });
 

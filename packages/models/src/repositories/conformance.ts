@@ -240,7 +240,21 @@ export const AGGREGATION_CASES: { name: string; spec: any; rows: Record<string, 
       { kind: "bug", lo: 5 },
       { kind: "chore", lo: null }
     ]
+  },
+  {
+    name: "order by a max alias, number before string",
+    spec: {
+      filter: "uuid IN ['a1', 'a3', 'a4']",
+      groupBy: ["kind"],
+      metrics: { m: { max: "mixed" } },
+      orderBy: [{ key: "m", direction: "ASC" }]
+    },
+    rows: [
+      { kind: "bug", m: 5 },
+      { kind: "feature", m: "B" }
+    ]
   }
+
 ];
 
 /**

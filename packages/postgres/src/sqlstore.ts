@@ -672,13 +672,20 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
           const n = `${metric.fn}(${num(x)})`;
           const t = `${metric.fn}(${str(x)})`;
           columns.push(`${n} AS "n_${alias}"`, `${t} AS "s_${alias}"`);
-          // numbers rank below strings: MIN prefers a number, MAX prefers a string
-          const [first, second] = metric.fn === "MIN" ? [n, t] : [t, n];
-          sortKeys[alias] = [
-            `CASE WHEN ${first} IS NOT NULL THEN 1 WHEN ${second} IS NOT NULL THEN 2 END`,
-            first,
-            second
-          ];
+          // The rank follows the type of the decoded value (number 1 < string 2), not the preference:
+          // MIN prefers a number, MAX prefers a string. The other candidate only matters when it is the result.
+          sortKeys[alias] =
+            metric.fn === "MIN"
+              ? [
+                  `CASE WHEN ${n} IS NOT NULL THEN 1 WHEN ${t} IS NOT NULL THEN 2 END`,
+                  n,
+                  `CASE WHEN ${n} IS NULL THEN ${t} END`
+                ]
+              : [
+                  `CASE WHEN ${t} IS NOT NULL THEN 2 WHEN ${n} IS NOT NULL THEN 1 END`,
+                  `CASE WHEN ${t} IS NULL THEN ${n} END`,
+                  t
+                ];
           break;
         }
       }

@@ -93,6 +93,14 @@ describe("WebdaQL statements", () => {
     expect(diagnostics.find(d => d.messageText.includes("'titel'"))?.messageText).toContain("Did you mean 'title'?");
   });
 
+  it("flags a statement where a filter query is expected", () => {
+    const { diagnostics } = run(undefined, "statement.service.ts");
+    const flagged = diagnostics.filter(d => d.code === WQL_CODES.STATEMENT_NOT_ALLOWED).map(d => d.messageText);
+    expect(flagged).toHaveLength(3);
+    expect(flagged[0]).toContain("DELETE");
+    expect(flagged[2]).toContain("SELECT");
+  });
+
   it("lists the SELECT fields, SET targets and WHERE attributes of a statement", () => {
     expect(referencedAttributes("SELECT title, author.name WHERE status = 'x' ORDER BY title DESC LIMIT 5")).toEqual([
       "status",

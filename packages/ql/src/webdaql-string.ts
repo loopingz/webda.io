@@ -13,6 +13,13 @@
 export type WebdaQLString<T = unknown> = string & { readonly __webdaQL?: T };
 
 /**
+ * Marker brand for WebdaQL statement strings (`DELETE ...`, `UPDATE SET ...`), as taken by
+ * `Repository.deleteMany` / `updateMany`. `@webda/content-mapper` checks their fields against `T` and,
+ * unlike {@link WebdaQLString}, does not flag them as statements where a filter query is expected.
+ */
+export type WebdaQLStatement<T = unknown> = string & { readonly __webdaQL?: T; readonly __webdaQLStatement?: true };
+
+/**
  * Thrown by `escape` when an interpolated value is not representable as a
  * WebdaQL literal (object, function, symbol, NaN, Infinity, a number needing an
  * exponent, an empty or nested array, or a null value anywhere but after `=` /

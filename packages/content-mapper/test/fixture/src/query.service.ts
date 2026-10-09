@@ -3,6 +3,9 @@ import { Service, ServiceParameters } from "./runtime.js";
 /** Branded query string, mirroring @webda/ql's WebdaQLString<T>. */
 export type WebdaQLString<T> = string & { __webdaQL?: T };
 
+/** Branded statement string, mirroring @webda/ql's WebdaQLStatement<T>. */
+export type WebdaQLStatement<T> = string & { __webdaQL?: T; __webdaQLStatement?: true };
+
 /** A queryable shape. */
 export class Doc {
   uuid: string = "";

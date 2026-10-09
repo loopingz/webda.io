@@ -1,5 +1,5 @@
 import type { ArrayElement } from "@webda/tsc-esm";
-import type { Query as WebdaQLQuery, QueryParameters, WebdaQLString } from "@webda/ql";
+import type { Query as WebdaQLQuery, QueryParameters, WebdaQLStatement, WebdaQLString } from "@webda/ql";
 import type {
   PrimaryKey,
   PrimaryKeyType,
@@ -149,7 +149,7 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
    * @returns the number of objects deleted
    * @throws if the statement is not a DELETE
    */
-  deleteMany(statement: WebdaQLString<InstanceType<T>> | WebdaQLQuery, params?: QueryParameters): Promise<number>;
+  deleteMany(statement: WebdaQLStatement<InstanceType<T>> | WebdaQLQuery, params?: QueryParameters): Promise<number>;
 
   /**
    * Update every object matching an `UPDATE SET a = v, ... [WHERE ...] [LIMIT n]` statement, in bulk
@@ -167,7 +167,7 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
    * @returns the number of objects updated
    * @throws if the statement is not an UPDATE, or a SET target is refused
    */
-  updateMany(statement: WebdaQLString<InstanceType<T>> | WebdaQLQuery, params?: QueryParameters): Promise<number>;
+  updateMany(statement: WebdaQLStatement<InstanceType<T>> | WebdaQLQuery, params?: QueryParameters): Promise<number>;
 
   /**
    * Event listeners

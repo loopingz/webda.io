@@ -98,9 +98,10 @@ export function mapExpression(expression: WebdaQL.Expression): any {
     const attribute = expression.attribute.join(".");
     switch (expression.operator) {
       case "=":
-      case "CONTAINS":
-        // MongoDB use same syntax for exact match or contains for an array
         return { [attribute]: expression.value };
+      case "CONTAINS":
+        // Only an array holding the value (a plain `{a: v}` would also match a scalar equal to v)
+        return { [attribute]: { $elemMatch: { $eq: expression.value } } };
       case "<":
         return { [attribute]: { $lt: expression.value } };
       case ">":
@@ -394,7 +395,8 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
 
   /** @override — translate the WebdaQL query to a MongoDB find */
   async query(query: string | any): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
-    const parsed: any = typeof query === "string" ? WebdaQL.parse(query) : query;
+    // A query object built or changed by code goes back through the grammar: no forged operator reaches MongoDB
+    const parsed: any = typeof query === "string" ? WebdaQL.parse(query) : WebdaQL.normalizeQuery(query);
     // DELETE / UPDATE go to deleteMany / updateMany; a field list is not a projection here
     WebdaQL.assertFilterQuery(parsed);
     let offset = parseInt(parsed.continuationToken);
@@ -446,7 +448,8 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
         .limit(statement.limit)
         .toArray()
     ).map(doc => doc._id);
-    return { _id: { $in: ids } };
+    // The WHERE is kept: a document that stopped matching since the find is left alone
+    return { $and: [filter, { _id: { $in: ids } }] };
   }
 
   /**

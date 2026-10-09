@@ -1,10 +1,54 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import * as WebdaQL from "@webda/ql";
+import { parse } from "@webda/ql";
 import { MongoClient } from "mongodb";
 import { checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
-import { EventRepository, StoreNotFoundError, UpdateConditionFailError, useModel } from "@webda/core";
+import { EventRepository, MemoryRepository, StoreNotFoundError, UpdateConditionFailError, useModel } from "@webda/core";
 import { MongoParameters, MongoRepository, MongoStore, mapExpression } from "./mongodb.service.js";
+
+/** A model without metadata */
+class Row {
+  uuid: string;
+  [key: string]: any;
+  /**
+   * @param data - initial data
+   */
+  constructor(data?: any) {
+    Object.assign(this, data);
+  }
+}
+
+/** Rows covering numbers, booleans, strings, missing fields, nulls and type mismatches (as the Postgres spec) */
+const PARITY_ROWS = [
+  { uuid: "r1", n: 1, s: "x", b: true, tags: ["x", 1] },
+  { uuid: "r2", n: 5, s: "abc", b: false, tags: ["y"] },
+  { uuid: "r3" },
+  { uuid: "r4", n: "abc", s: 1, b: "true", tags: "x" },
+  { uuid: "r5", s: null }
+];
+/** Queries whose results must be the same on every store */
+const PARITY_QUERIES = [
+  "n < 2",
+  "n <= 1",
+  "n = 1",
+  "n != 1",
+  "n > 1",
+  "n >= 5",
+  "n IN [1, 5]",
+  "n = 'abc'",
+  "b = TRUE",
+  "b = FALSE",
+  "b != TRUE",
+  "s = 'x'",
+  "s != 'x'",
+  "s = 1",
+  "s LIKE 'a%'",
+  "s IS NULL",
+  "n IS NOT NULL",
+  "tags CONTAINS 'x'",
+  "n < 2 OR b = TRUE"
+];
 
 const MONGO_URL = "mongodb://root:webda.io@localhost:37017";
 
@@ -84,7 +128,7 @@ export class MongoParametersTest {
   mapComparisons() {
     const map = (q: string) => mapExpression(WebdaQL.parse(q).filter);
     assert.deepStrictEqual(map("a = 1"), { a: 1 });
-    assert.deepStrictEqual(map("a.b CONTAINS 'x'"), { "a.b": "x" });
+    assert.deepStrictEqual(map("a.b CONTAINS 'x'"), { "a.b": { $elemMatch: { $eq: "x" } } });
     assert.deepStrictEqual(map("a < 1"), { a: { $lt: 1 } });
     assert.deepStrictEqual(map("a > 1"), { a: { $gt: 1 } });
     assert.deepStrictEqual(map("a <= 1"), { a: { $lte: 1 } });
@@ -271,6 +315,62 @@ export class MongoStoreTest extends WebdaApplicationTest {
     assert.strictEqual((await this.repo.query("")).results.length, 1);
     assert.strictEqual(await events.deleteMany("DELETE LIMIT 0"), 0);
     assert.deepStrictEqual(seen, [], "bulk statements emit no per-object event");
+  }
+
+  @test
+  async queryParityWithMemory() {
+    const getCollection = () => this.store._connect();
+    const repo = new MongoRepository(Row as any, ["uuid"], getCollection);
+    const memory = new MemoryRepository<any>(Row as any, ["uuid"]);
+    for (const row of PARITY_ROWS) {
+      await repo.create({ ...row });
+      await memory.create(new Row({ ...row }));
+    }
+    const uuids = async (r: any, q: string) => (await r.query(q)).results.map((o: any) => o.uuid).sort();
+    for (const query of PARITY_QUERIES) {
+      assert.deepStrictEqual(await uuids(repo, query), await uuids(memory, query), query);
+    }
+  }
+
+  @test
+  async forgedStatementObjectsCannotInject() {
+    for (const uuid of ["a", "b", "c"]) {
+      await this.repo.create({ uuid, name: uuid });
+    }
+    const forged: [string, (q: any) => void][] = [
+      ["DELETE WHERE uuid = 'nope'", q => ((q.filter.attribute = ["$where"]), (q.filter.value = "true"))],
+      ["DELETE WHERE uuid = 'nope'", q => (q.filter.value = { $ne: "nope" })],
+      ["DELETE WHERE uuid IN ['nope']", q => (q.filter.value = [{ $ne: "nope" }])],
+      ["DELETE WHERE uuid = 'nope'", q => (q.filter.attribute = ["name", "$"])],
+      ["UPDATE SET name = 'x'", q => (q.assignments = [{ field: "$inc", value: 1 }])],
+      ["UPDATE SET name = 'x'", q => (q.assignments = [{ field: "name", value: { $gt: "" } }])]
+    ];
+    for (const [statement, change] of forged) {
+      const q: any = parse(statement);
+      change(q);
+      await assert.rejects(
+        () => (q.type === "DELETE" ? this.repo.deleteMany(q) : this.repo.updateMany(q)),
+        WebdaQL.WebdaQLError,
+        `${statement} ${change}`
+      );
+      if (q.type === "DELETE") {
+        await assert.rejects(() => this.repo.query({ ...q, type: "SELECT" }), WebdaQL.WebdaQLError, statement);
+      }
+    }
+    assert.strictEqual((await this.repo.query("")).results.length, 3, "nothing was deleted");
+    // LIMIT 0 affects nothing, also through PrependCondition
+    assert.strictEqual(await this.repo.deleteMany(WebdaQL.PrependCondition("DELETE LIMIT 0", "name = 'a'")), 0);
+    assert.strictEqual(await this.repo.updateMany("UPDATE SET name = 'z' LIMIT 0"), 0);
+    // A child repository never reaches its parent's rows
+    await this.sub.create({ uuid: "s1", name: "a" });
+    assert.strictEqual(await this.sub.updateMany("UPDATE SET name = 'sub'"), 1);
+    assert.strictEqual(((await this.repo.get("a")) as any).name, "a");
+    assert.strictEqual(await this.sub.deleteMany("DELETE WHERE name = 'sub' LIMIT 5"), 1);
+    assert.strictEqual((await this.repo.query("")).results.length, 3);
+    // Arrays are indexed
+    await this.repo.create({ uuid: "t", tags: ["t1", "t2"] });
+    assert.strictEqual(await this.repo.updateMany("UPDATE SET tags.0 = 'n' WHERE uuid = 't'"), 1);
+    assert.deepStrictEqual(((await this.repo.get("t")) as any).tags, ["n", "t2"]);
   }
 
   @test

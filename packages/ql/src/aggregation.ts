@@ -110,6 +110,17 @@ function checkPath(path: string, what: string): void {
 }
 
 /**
+ * Check a metric alias
+ * @param alias - the alias
+ * @throws WebdaQLError when invalid or reserved
+ */
+function checkAlias(alias: string): void {
+  if (!AGGREGATION_ALIAS.test(alias) || FORBIDDEN_SEGMENTS.has(alias)) {
+    throw new WebdaQLError(`Invalid metric alias '${alias}'`);
+  }
+}
+
+/**
  * Validate an aggregation query
  *
  * Paths and aliases that pass are safe to interpolate in native queries.
@@ -128,9 +139,7 @@ export function validateAggregation(query: AggregationQuery): AggregationQuery {
     throw new WebdaQLError("An aggregation needs at least one metric");
   }
   for (const alias of aliases) {
-    if (!AGGREGATION_ALIAS.test(alias) || FORBIDDEN_SEGMENTS.has(alias)) {
-      throw new WebdaQLError(`Invalid metric alias '${alias}'`);
-    }
+    checkAlias(alias);
     if (groupBy.includes(alias)) {
       throw new WebdaQLError(`Metric alias '${alias}' collides with a group by path`);
     }
@@ -404,6 +413,8 @@ export function toAggregationQuery(input: AggregationInput, params?: QueryParame
   }
   const metrics: Record<string, Metric> = {};
   for (const [alias, spec] of Object.entries(input.metrics ?? {})) {
+    // Before assigning: an own `__proto__` key would otherwise change the prototype of `metrics`
+    checkAlias(alias);
     const entries = Object.entries(spec ?? {});
     if (entries.length !== 1 || !Object.prototype.hasOwnProperty.call(METRIC_KEYS, entries[0][0])) {
       throw new WebdaQLError(`Metric '${alias}' must define exactly one of ${Object.keys(METRIC_KEYS).join(", ")}`);

@@ -262,5 +262,10 @@ class ToAggregationQueryTest {
     assert.throws(() => toAggregationQuery({ metrics: { n: { count: "*", sum: "a" } as any } }), WebdaQLError);
     assert.throws(() => toAggregationQuery({ metrics: { n: { toString: "a" } as any } }), WebdaQLError);
     assert.throws(() => toAggregationQuery({ metrics: { n: { sum: "*" } } }), WebdaQLError, "* only for count");
+    assert.throws(
+      () => toAggregationQuery({ metrics: JSON.parse('{"__proto__": {"count": "*"}}') }),
+      /Invalid metric alias/,
+      "reserved alias is rejected, not dropped"
+    );
   }
 }

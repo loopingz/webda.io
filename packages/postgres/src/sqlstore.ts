@@ -628,13 +628,17 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
   /**
    * Translate an aggregation to SQL
    *
-   * Paths and aliases were validated with the aggregation, and paths are checked again, so they are safe to
-   * interpolate. MIN / MAX select a numeric and a text candidate, merged by decode.
-   * @param query - the validated aggregation
+   * The query is validated again here and paths are checked once more, so they are safe to interpolate.
+   * Columns get positional names (`gN` per group path, `mN` / `nN` / `sN` per metric index), mapped back to
+   * the aliases by decode: alias length or shared prefixes never meet PostgreSQL's 63-byte identifier limit.
+   * MIN / MAX select a numeric and a text candidate, merged by decode.
+   * @param query - the aggregation
    * @param where - extra WHERE condition (class condition), optional
    * @returns the statement and the row decoder
    */
   buildAggregationSQL(query: AggregationQuery, where?: string): { sql: string; decode: (row: any) => any } {
+    WebdaQL.validateAggregation(query);
+    const metrics = Object.entries(query.metrics);
     const columns: string[] = [];
     const groupColumns: string[] = [];
     // Sort keys of each groupBy path / metric alias: type rank, then number, then text in code unit order, then jsonb
@@ -652,26 +656,26 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
         x
       ];
     });
-    for (const [alias, metric] of Object.entries(query.metrics)) {
+    metrics.forEach(([alias, metric], i) => {
       const x = metric.field ? this.jsonPath(metric.field) : "";
       switch (metric.fn) {
         case "COUNT":
-          columns.push(`${metric.field ? `COUNT(${x})` : "COUNT(*)"} AS "m_${alias}"`);
+          columns.push(`${metric.field ? `COUNT(${x})` : "COUNT(*)"} AS "m${i}"`);
           break;
         case "COUNT_DISTINCT":
-          columns.push(`COUNT(DISTINCT ${x}) AS "m_${alias}"`);
+          columns.push(`COUNT(DISTINCT ${x}) AS "m${i}"`);
           break;
         case "SUM":
-          columns.push(`COALESCE(SUM(${num(x)}), 0) AS "m_${alias}"`);
+          columns.push(`COALESCE(SUM(${num(x)}), 0) AS "m${i}"`);
           break;
         case "AVG":
-          columns.push(`AVG(${num(x)}) AS "m_${alias}"`);
+          columns.push(`AVG(${num(x)}) AS "m${i}"`);
           break;
         case "MIN":
         case "MAX": {
           const n = `${metric.fn}(${num(x)})`;
           const t = `${metric.fn}(${str(x)})`;
-          columns.push(`${n} AS "n_${alias}"`, `${t} AS "s_${alias}"`);
+          columns.push(`${n} AS "n${i}"`, `${t} AS "s${i}"`);
           // The rank follows the type of the decoded value (number 1 < string 2), not the preference:
           // MIN prefers a number, MAX prefers a string. The other candidate only matters when it is the result.
           sortKeys[alias] =
@@ -689,8 +693,8 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
           break;
         }
       }
-      sortKeys[alias] ??= [`"m_${alias}"`];
-    }
+      sortKeys[alias] ??= [`"m${i}"`];
+    });
     const filter = this.duplicateExpression(query.filter).toString();
     let sql = `SELECT ${columns.join(", ")} FROM ${this.table} WHERE ${where ? `${where} AND (${filter})` : filter}`;
     if (groupColumns.length) {
@@ -712,17 +716,17 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     const decode = (row: any) => {
       const out: Record<string, unknown> = {};
       query.groupBy.forEach((path, i) => (out[path] = row[`g${i}`] ?? null));
-      for (const [alias, metric] of Object.entries(query.metrics)) {
+      metrics.forEach(([alias, metric], i) => {
         if (metric.fn === "MIN" || metric.fn === "MAX") {
-          const raw = row[`n_${alias}`];
+          const raw = row[`n${i}`];
           const n = raw === null || raw === undefined ? null : Number(raw);
-          const t = row[`s_${alias}`] ?? null;
+          const t = row[`s${i}`] ?? null;
           out[alias] = metric.fn === "MIN" ? (n ?? t) : (t ?? n);
         } else {
-          const v = row[`m_${alias}`];
+          const v = row[`m${i}`];
           out[alias] = v === null || v === undefined ? null : Number(v);
         }
-      }
+      });
       return out;
     };
     return { sql, decode };

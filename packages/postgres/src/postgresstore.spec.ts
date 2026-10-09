@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
-import { WebdaQLError, PrependCondition, parse, toAggregationQuery } from "@webda/ql";
+import { AndExpression, WebdaQLError, PrependCondition, parse, toAggregationQuery } from "@webda/ql";
 import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import { EventRepository, MemoryRepository, useModel } from "@webda/core";
 import PostgresStore, { PostgresParameters } from "./postgresstore.service.js";
@@ -324,13 +324,60 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     const x = `NULLIF(data #> '{team,name}', 'null'::jsonb)`;
     assert.strictEqual(
       sql,
-      `SELECT ${x} AS "g0", COUNT(*) AS "m_n" FROM t WHERE TRUE GROUP BY 1 ORDER BY ` +
+      `SELECT ${x} AS "g0", COUNT(*) AS "m0" FROM t WHERE TRUE GROUP BY 1 ORDER BY ` +
         `CASE WHEN ${x} IS NULL THEN NULL WHEN jsonb_typeof(${x}) = 'number' THEN 1 ` +
         `WHEN jsonb_typeof(${x}) = 'string' THEN 2 ELSE 3 END ASC NULLS FIRST, ` +
         `CASE WHEN jsonb_typeof(${x}) = 'number' THEN (${x})::numeric END ASC NULLS FIRST, ` +
         `(CASE WHEN jsonb_typeof(${x}) = 'string' THEN ${x} #>> '{}' END) COLLATE "C" ASC NULLS FIRST, ` +
         `${x} ASC NULLS FIRST LIMIT 3`
     );
+  }
+
+  @test
+  aggregationSQLValidatesTheQuery() {
+    const repo: any = new PostgresRepository<any>(class {} as any, ["uuid"], {} as any, "t");
+    // A hand-built AST, not from toAggregationQuery: the alias would otherwise reach the SQL
+    assert.throws(
+      () =>
+        repo.buildAggregationSQL({
+          filter: new AndExpression([]),
+          groupBy: [],
+          metrics: { 'n" FROM t; DROP TABLE t; --': { fn: "COUNT" } }
+        }),
+      WebdaQLError
+    );
+  }
+
+  @test
+  async aggregationLongAliases() {
+    const client = this.store!.getClient();
+    await client.query("DROP TABLE IF EXISTS agg_long");
+    try {
+      const repo = new PostgresRepository<any>(Row as any, ["uuid"], client, "agg_long");
+      await repo.setupTable();
+      await repo.create({ uuid: "l1", kind: "a", points: 3 });
+      await repo.create({ uuid: "l2", kind: "a", points: 5 });
+      await repo.create({ uuid: "l3", kind: "b", points: 7 });
+      // Beyond the 63 bytes PostgreSQL keeps of an identifier
+      const long = "a" + "x".repeat(69);
+      const prefix = "b".repeat(61);
+      const res = await repo.aggregate({
+        groupBy: ["kind"],
+        metrics: {
+          [long]: { count: "*" },
+          [`${prefix}_sum`]: { sum: "points" },
+          [`${prefix}_max`]: { max: "points" }
+        },
+        orderBy: [{ key: `${prefix}_max`, direction: "DESC" }]
+      } as any);
+      assert.strictEqual(long.length, 70);
+      assert.deepStrictEqual(res.rows, [
+        { kind: "b", [long]: 1, [`${prefix}_sum`]: 7, [`${prefix}_max`]: 7 },
+        { kind: "a", [long]: 2, [`${prefix}_sum`]: 8, [`${prefix}_max`]: 5 }
+      ]);
+    } finally {
+      await client.query("DROP TABLE IF EXISTS agg_long");
+    }
   }
 
   @test

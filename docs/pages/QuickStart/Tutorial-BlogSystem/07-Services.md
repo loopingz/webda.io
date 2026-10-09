@@ -5,47 +5,33 @@ sidebar_label: "07 — Service Layer"
 
 # 07 — Service Layer
 
-**Goal:** Add a `Publisher` service that wraps cross-cutting business logic, expose its methods over HTTP with `@Operation`, and wire it into the application without manual instantiation.
+**Goal:** Add behaviour that does not belong to one model: a configurable `Publisher` service and an auto-instantiated `@Bean`, both exposing methods with `@Operation`.
 
-**Files touched:** `src/services/Publisher.ts`, `webda.config.json` (add `Publisher`).
+**Files touched:** `src/services/publisher.service.ts`, `src/services/bean.service.ts`, `webda.config.json`.
 
-**Concepts:** `@Bean` decorator, `Service.Parameters`, `@Operation` on instance methods, `useLog` for structured logging, service lifecycle (`resolve` → `init` → `stop`).
+**Concepts:** `Service.Parameters`, `@WebdaModda`, `@Bean`, `@Operation` on service methods, custom REST routes, `useLog`, service lifecycle.
 
 ## Walkthrough
 
-### 1. Create `src/services/Publisher.ts`
+### 1. Create `src/services/publisher.service.ts`
 
-```typescript title="src/services/Publisher.ts"
+```typescript title="src/services/publisher.service.ts"
 import { Operation, Service, useLog } from "@webda/core";
 
 export class PublisherParameters extends Service.Parameters {}
 
 /**
- * Publisher service — demonstrates a minimal @Bean service with @Operation.
- *
  * @WebdaModda
  */
-export class Publisher<
-  T extends PublisherParameters = PublisherParameters
-> extends Service<T> {
+export class Publisher<T extends PublisherParameters = PublisherParameters> extends Service<T> {
   static Parameters = PublisherParameters;
 
-  /**
-   * Publish a raw message to an external channel.
-   *
-   * Exposed as: PUT /publisher/publish  { "message": "..." }
-   */
   @Operation()
   publish(message: string): string {
     useLog("INFO", "Publishing message:", message);
     return "customid";
   }
 
-  /**
-   * Publish a blog post to an external channel.
-   *
-   * Exposed as: PUT /publisher/publishpost  { "postId": "..." }
-   */
   @Operation()
   async publishPost(postId: string): Promise<{ postId: string; status: string }> {
     useLog("INFO", "Publishing post with ID:", postId);
@@ -54,122 +40,111 @@ export class Publisher<
 }
 ```
 
-#### Key concepts
+- **File name** — services live in `*.service.ts` files; the build fails on a service file without that suffix.
+- **`@WebdaModda`** — this JSDoc tag registers the class in `webda.module.json` as `MyBlog/Publisher`, so `webda.config.json` can instantiate it.
+- **`Service.Parameters`** — the typed parameters of the service. Each field becomes part of the configuration schema (`.webda/config.schema.json`) and is read as `this.parameters.<field>`. Use JSDoc tags for validation and a default value for optional fields, e.g. `delayHours: number = 24;`.
+- **`@Operation()`** — the operation id is the configured service name, capitalized, then the method name: `Publisher.Publish`, `Publisher.PublishPost`. REST exposes it as `PUT /publisher/publish` with the parameters read from the body; GraphQL and gRPC transports read the same operations.
+- **`useLog`** — log through Webda's logger, never `console.log`.
 
-**`@Bean` is not needed here — `@WebdaModda` is the JSDoc alternative**
+### 2. Enable it in `webda.config.json`
 
-The sample app uses `@WebdaModda` in the JSDoc comment instead of the `@Bean` decorator directly on the class. Both work identically — the compiler picks up whichever convention you use. `@Bean` is the decorator form; `@WebdaModda` is the legacy JSDoc form supported for compatibility.
-
-**`Service.Parameters`**
-
-Every service has a typed `Parameters` class. Extending `Service.Parameters` means your config block in `webda.config.json` will be validated against this schema. If you add a `channel: string` field to `PublisherParameters`, it becomes required in the config — the framework enforces it before `init()` is called.
-
-**`@Operation()`**
-
-Decorating an instance method (or static method) with `@Operation()` makes it callable over REST (`PUT /<service-name-lowercase>/<method-name-lowercase>`) and gRPC (`<ServiceName>Service/<MethodName>`). The framework reads parameter types from the compiled TypeScript to generate the request/response schema.
-
-**`useLog`**
-
-Always use `useLog` from `@webda/core` (or `@webda/workout`) instead of `console.log`. It attaches the current request context (trace ID, user ID) and routes output to the configured logging sink.
-
-### 2. Wire the service in `webda.config.json`
-
-Add a `Publisher` entry. The `type` key uses the class name — the framework looks it up in `webda.module.json` under the `MyBlog` namespace:
-
-```json title="webda.config.json (new entry)"
+```json title="webda.config.json (services excerpt)"
 {
-  "Publisher": {
-    "type": "Publisher"
+  "services": {
+    "Publisher": {
+      "type": "Publisher"
+    }
   }
 }
 ```
 
-:::note Namespace resolution
-`"type": "Publisher"` resolves to `"MyBlog/Publisher"` because the namespace is `"MyBlog"` (set in `package.json`). You can also write `"type": "MyBlog/Publisher"` for explicitness.
-:::
+`"type": "Publisher"` resolves to `MyBlog/Publisher`: types of your own application can omit the namespace. Services are always created by the framework from this configuration; never `new Publisher(...)` them yourself. Another service reaches it with `useService("Publisher")`.
 
-### 3. Rebuild and restart
+### 3. A `@Bean` with a custom route
 
-```bash
-pnpm exec webdac build
-# restart webda debug
+A `@Bean` is a service of the application that is instantiated automatically, without a configuration entry:
+
+```typescript title="src/services/bean.service.ts"
+import { Bean, Operation, RestParameters, Service, useApplication, useLog } from "@webda/core";
+
+@Bean
+export class TestBean extends Service {
+  /**
+   * Get the version of the application
+   * @returns version of the application
+   */
+  @Operation<RestParameters>({
+    id: "Version.Get",
+    rest: { method: "get", path: "/version" },
+    description: "Get the version of the application"
+  })
+  async version(): Promise<string> {
+    return useApplication().getPackageDescription().name;
+  }
+
+  @Operation()
+  async testOperation(counter: number): Promise<string> {
+    useLog("INFO", `Test operation called with counter: ${counter}`);
+    return counter.toString(16);
+  }
+}
 ```
 
-### 4. Call the service operations via REST
+`@Operation` options override the defaults: `id` renames the operation (`Version.Get` instead of `TestBean.Version`), and `rest` sets the HTTP method and path. Without options, `testOperation` is exposed as `PUT /testbean/testoperation`.
 
-```bash
-# PUT /publisher/publish
-curl -sk -X PUT https://localhost:18080/publisher/publish \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Hello from REST"}' | jq
-```
+The sample's `TestBean` also memoizes `getVersion()` with `@InstanceCache` and has a `demonstrateTypeSafety` operation; see `sample-apps/blog-system/src/services/bean.service.ts`.
 
-```json
-"customid"
-```
+### 4. Lifecycle hooks (when you need them)
 
-```bash
-# PUT /publisher/publishpost
-curl -sk -X PUT https://localhost:18080/publisher/publishpost \
-  -H "Content-Type: application/json" \
-  -d '{"postId":"hello-world"}' | jq
-```
-
-```json
-{"postId":"hello-world","status":"published"}
-```
-
-### 5. Adding lifecycle hooks (optional extension)
-
-If the `Publisher` needs to connect to an external message broker, use the lifecycle hooks:
+A service connecting to an external system uses the lifecycle hooks:
 
 ```typescript
 resolve(): this {
   super.resolve();
-  // Validate config — throw here if required fields are missing.
-  // resolve() is synchronous; defer any async work to init().
+  // Synchronous: read and check the configuration, resolve dependencies
   return this;
 }
 
 async init(): Promise<this> {
   await super.init();
-  // Establish connections — async work goes here.
+  // Asynchronous: open connections, start timers
   return this;
 }
 
 async stop(): Promise<void> {
-  // Graceful shutdown — close connections, flush buffers
+  // Release what init created
   await super.stop();
 }
 ```
 
-The framework calls these in order: `resolve()` (sync) → `init()` (async) → (running) → `stop()` (async). Never bypass the chain — always call `super`.
+The framework calls them in order: constructor → `resolve()` → `init()` → running → `stop()`. Always call `super`.
 
-### 6. The TestBean service (reference implementation)
+### 5. Rebuild and restart
 
-The reference implementation in `sample-apps/blog-system/src/services/bean.ts` includes a `TestBean` service with additional scenario methods and a `GET /version` operation. It shows:
-
-- `@InstanceCache` for memoizing expensive computations
-- `@Operation<RestParameters>({ id: "Version.Get", rest: { method: "get", path: "/version" } })` for custom route paths
-- Dependency injection via standard TypeScript field injection
-- Working with model repositories directly in a service context
-
-Browse [sample-apps/blog-system/src/services/bean.ts](https://github.com/loopingz/webda.io/blob/main/sample-apps/blog-system/src/services/bean.ts) for the full implementation.
+```bash
+npm run debug   # or npm run serve
+```
 
 ## Verify
 
-:::warning Could not fully verify locally
-The server was not started during doc generation. The curl commands above match assertions from `rest.sh`. To verify:
-
 ```bash
-cd sample-apps/blog-system
-pnpm exec webda debug &
-curl -sk -X PUT https://localhost:18080/publisher/publish \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Hello from REST"}' | jq
-# Expected: "customid"
+curl -s -X PUT http://localhost:18080/publisher/publish \
+  -H "Content-Type: application/json" -d '{"message":"Hello from REST"}'
+# → customid
+
+curl -s -X PUT http://localhost:18080/publisher/publishpost \
+  -H "Content-Type: application/json" -d '{"postId":"hello-world"}'
+# → {"postId":"hello-world","status":"published"}
+
+curl -s http://localhost:18080/version
+# → my-blog   (the "name" of package.json)
+
+curl -s -X PUT http://localhost:18080/testbean/testoperation \
+  -H "Content-Type: application/json" -d '{"counter":42}'
+# → 2a
 ```
-:::
+
+Service operations have no model, so no `canAct` applies: they are open to every caller. Check `useContext().getCurrentUserId()` inside the method when an operation must be restricted.
 
 ## What's next
 

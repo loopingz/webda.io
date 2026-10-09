@@ -5,45 +5,68 @@ sidebar_label: "09 — GraphQL"
 
 # 09 — GraphQL
 
-**Goal:** Add `@webda/graphql`, configure the `GraphQLService`, and exercise schema introspection, queries, and mutations against the blog domain.
+**Goal:** Add `@webda/graphql`, configure the `GraphQLService`, and query the blog domain with GraphQL.
 
 **Files touched:** `package.json` (add `@webda/graphql`), `webda.config.json` (add `GraphQLService`).
 
-**Concepts:** Automatic schema generation from models, `Query`/`Mutation` auto-CRUD, `__schema` introspection.
+**Concepts:** schema generated from the models, query and mutation naming, the same permissions as REST.
 
 ## Walkthrough
 
 ### 1. Install `@webda/graphql`
 
 ```bash
-pnpm add @webda/graphql
+npm install @webda/graphql
 ```
 
 ### 2. Add the `GraphQLService` to `webda.config.json`
 
-```json title="webda.config.json (new entry)"
+```json title="webda.config.json (services excerpt)"
 {
-  "GraphQLService": {
-    "type": "Webda/GraphQLService"
+  "services": {
+    "GraphQLService": {
+      "type": "Webda/GraphQLService"
+    }
   }
 }
 ```
 
-The service mounts a GraphQL endpoint at `/graphql`. No further configuration is required — it discovers all registered models automatically from `DomainService`.
+The service serves `/graphql` on the existing `HttpServer` and builds its schema from every model `DomainService` exposes. No other configuration is needed. (`npm create @webda my-blog -- --transports rest,graphql` adds the same entry.)
 
 ### 3. Rebuild and restart
 
 ```bash
-pnpm exec webdac build
-# restart webda debug
+npm run debug   # or npm run serve
 ```
 
-### 4. Introspect the schema
+With `npm run debug`, open `http://localhost:18080/graphql` in a browser for the GraphiQL explorer (`exposeGraphiQL` defaults to on in debug mode).
+
+### 4. What the schema contains
+
+For each model, with `Post` as the example:
+
+| GraphQL                                                            | Kind         | Same as REST      |
+| ------------------------------------------------------------------ | ------------ | ----------------- |
+| `Post(slug: String)`                                               | query        | `Post.Get`        |
+| `Posts(query: String)` → `PostQueryResult`                         | query        | `Posts.Query`     |
+| `createPost(Post: PostInput)`                                      | mutation     | `Post.Create`     |
+| `updatePost(uuid: String, Post: PostInput)`                        | mutation     | `Post.Update`     |
+| `deletePost(uuid: String)` → `{ success }`                         | mutation     | `Post.Delete`     |
+| `Post(slug:)`, `Posts(query:)`, `PostEvents(slug:)`, `PostsEvents` | subscription | repository events |
+
+- The single-object query takes the primary key field (`Post(slug:)`, `User(uuid:)`); the `update`/`delete` mutations name the key argument `uuid`, whatever the key is.
+- `Posts(query:)` takes a WebdaQL query, like `PUT /posts`, and returns `results` and `continuationToken`.
+- `Me` returns the logged-in user.
+- The root types are named `Query`, `Mutations` and `Subscription`.
+- Model and service `@Operation`s (`register`, `login`, `publish`, `Publisher.*`) are not part of the GraphQL schema: call them over REST or gRPC.
+
+## Verify
+
+**Introspect the root types:**
 
 ```bash
-curl -sk -X POST https://localhost:18080/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"{ __schema { queryType { name } mutationType { name } subscriptionType { name } } }"}' | jq
+curl -s -X POST http://localhost:18080/graphql -H "Content-Type: application/json" \
+  -d '{"query":"{ __schema { queryType { name } mutationType { name } subscriptionType { name } } }"}' | jq -c
 ```
 
 ```json
@@ -51,240 +74,72 @@ curl -sk -X POST https://localhost:18080/graphql \
   "data": {
     "__schema": {
       "queryType": { "name": "Query" },
-      "mutationType": { "name": "Mutation" },
-      "subscriptionType": null
+      "mutationType": { "name": "Mutations" },
+      "subscriptionType": { "name": "Subscription" }
     }
   }
 }
 ```
 
-List all types:
+**List users** (public profiles, as over REST):
 
 ```bash
-curl -sk -X POST https://localhost:18080/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"{ __schema { types { name kind } } }"}' | jq '.data.__schema.types[] | select(.kind == "OBJECT") | .name'
-```
-
-```
-"Query"
-"Mutation"
-"Post"
-"User"
-"Comment"
-"Tag"
-"PostTag"
-"UserFollow"
-"PostResults"
-"UserResults"
-...
-```
-
-Every model gets a corresponding GraphQL type. Collections are wrapped in `<Model>Results` objects that include a `continuationToken` for cursor-based pagination.
-
-### 5. Seed some data via REST
-
-GraphQL operates on the same in-memory stores. Seed data first:
-
-```bash
-# Create a tag
-curl -sk -X POST https://localhost:18080/tags \
-  -H "Content-Type: application/json" \
-  -d '{"slug":"graphql-tag","name":"GraphQL","description":"GraphQL testing","color":"#e535ab"}' > /dev/null
-
-# Create a user
-curl -sk -X POST https://localhost:18080/users \
-  -H "Content-Type: application/json" \
-  -d '{"uuid":"550e8400-e29b-41d4-a716-446655440010","username":"gqluser","email":"gql@example.com","name":"GQL User"}' > /dev/null
-
-# Create a post
-curl -sk -X POST https://localhost:18080/posts \
-  -H "Content-Type: application/json" \
-  -d '{"title":"GraphQL Test Post","slug":"graphql-test","content":"Testing GraphQL queries with enough content here.","status":"draft","viewCount":0}' > /dev/null
-```
-
-### 6. Run queries
-
-**List all posts:**
-
-```bash
-curl -sk -X POST https://localhost:18080/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"{ Posts { results { slug title status } } }"}' | jq
+curl -s -X POST http://localhost:18080/graphql -H "Content-Type: application/json" \
+  -d '{"query":"{ Users { results { uuid username name } } }"}' | jq
 ```
 
 ```json
 {
   "data": {
-    "Posts": {
-      "results": [
-        { "slug": "graphql-test", "title": "GraphQL Test Post", "status": "draft" }
-      ]
+    "Users": {
+      "results": [{ "uuid": "096a4874-4b98-4001-a108-fac5d3e1efd3", "username": "alice", "name": "Alice Smith" }]
     }
   }
 }
 ```
 
-**Single post:**
+**Query published posts** — the WebdaQL query goes in the `query` argument:
 
 ```bash
-curl -sk -X POST https://localhost:18080/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"{ Post(slug: \"graphql-test\") { slug title content status viewCount } }"}' | jq '.data.Post'
+curl -s -X POST http://localhost:18080/graphql -H "Content-Type: application/json" \
+  -d "{\"query\":\"{ Posts(query: \\\"status = 'published' ORDER BY title\\\") { results { slug title author } } }\"}" | jq
 ```
 
-```json
-{
-  "slug": "graphql-test",
-  "title": "GraphQL Test Post",
-  "content": "Testing GraphQL queries with enough content here.",
-  "status": "draft",
-  "viewCount": 0
-}
-```
-
-**List all users:**
+**Read one post by its slug:**
 
 ```bash
-curl -sk -X POST https://localhost:18080/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"{ Users { results { uuid username email } } }"}' | jq '.data.Users.results'
+curl -s -X POST http://localhost:18080/graphql -H "Content-Type: application/json" \
+  -d '{"query":"{ Post(slug: \"hello-world\") { slug title content status viewCount } }"}' | jq .data.Post
+```
+
+**Mutations follow the model permissions.** Anonymous, `createTag` is refused:
+
+```bash
+curl -s -X POST http://localhost:18080/graphql -H "Content-Type: application/json" \
+  -d '{"query":"mutation { createTag(Tag: {slug: \"graphql\", name: \"GraphQL\"}) { slug name } }"}' | jq -c .errors
 ```
 
 ```json
 [
   {
-    "uuid": "550e8400-e29b-41d4-a716-446655440010",
-    "username": "gqluser",
-    "email": "gql@example.com"
+    "message": "Permission denied",
+    "locations": [{ "line": 1, "column": 12 }],
+    "path": ["createTag"],
+    "extensions": { "code": "PERMISSION_DENIED" }
   }
 ]
 ```
 
-**Single user:**
+With the session cookie (`-b cookies.txt`), the same request returns the tag. Update and delete work the same way:
 
 ```bash
-curl -sk -X POST https://localhost:18080/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"{ User(uuid: \"550e8400-e29b-41d4-a716-446655440010\") { uuid username name bio } }"}' | jq '.data.User'
+curl -s -b cookies.txt -X POST http://localhost:18080/graphql -H "Content-Type: application/json" \
+  -d '{"query":"mutation { updatePost(uuid: \"hello-world\", Post: {title: \"Hello GraphQL\"}) { slug title } }"}' | jq
 ```
 
-```json
-{
-  "uuid": "550e8400-e29b-41d4-a716-446655440010",
-  "username": "gqluser",
-  "name": "GQL User",
-  "bio": null
-}
-```
+Errors are reported in `errors[].extensions.code`: `NOT_FOUND` for a missing (or unreadable) object, `PERMISSION_DENIED` when `canAct` refuses.
 
-### 7. Run mutations
-
-**Create a post:**
-
-```bash
-curl -sk -X POST https://localhost:18080/graphql \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "mutation { createPost(Post: {title: \"GQL Created\", slug: \"gql-created\", content: \"Created via GraphQL mutation with enough text.\", status: \"draft\", viewCount: 0}) { slug title } }"
-  }' | jq '.data.createPost'
-```
-
-```json
-{
-  "slug": "gql-created",
-  "title": "GQL Created"
-}
-```
-
-**Update a post:**
-
-```bash
-curl -sk -X POST https://localhost:18080/graphql \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "mutation { updatePost(uuid: \"gql-created\", Post: {title: \"GQL Updated\", slug: \"gql-created\", content: \"Updated via GraphQL mutation with enough text.\", status: \"draft\", viewCount: 5}) { slug title viewCount } }"
-  }' | jq '.data.updatePost'
-```
-
-```json
-{
-  "slug": "gql-created",
-  "title": "GQL Updated",
-  "viewCount": 5
-}
-```
-
-**Delete a post:**
-
-```bash
-curl -sk -X POST https://localhost:18080/graphql \
-  -H "Content-Type: application/json" \
-  -d '{"query":"mutation { deletePost(uuid: \"gql-created\") { success } }"}' | jq '.data.deletePost'
-```
-
-```json
-{ "success": true }
-```
-
-### 8. Schema auto-generation rules
-
-The `GraphQLService` derives the schema from your models following these rules:
-
-| Model aspect | GraphQL equivalent |
-|---|---|
-| Class `Post` | Type `Post`, query `Post(slug:…)`, collection `Posts` |
-| `WEBDA_PRIMARY_KEY = ["slug"]` | Argument name `slug` in `Post(slug:…)` |
-| Field `title: string` | `title: String` |
-| Field `status: "draft" \| "published"` | `status: String` (enums become strings) |
-| `@Operation() async publish(destination)` | Not auto-exposed as GraphQL mutation — operations become gRPC/REST only; use `@GraphQLOperation` to add them to the schema |
-| Relations `BelongTo<User>` | Resolver field `author: User` |
-| Relations `Contains<Comment>` | Resolver field `comments: CommentResults` |
-
-### 9. Running the full GraphQL test suite
-
-```bash
-./graphql.sh
-```
-
-```
-── Setup (REST) ──
-  (Created test data via REST)
-── Queries ──
-  PASS Query all posts
-  PASS Query single post
-  PASS Query all tags
-  PASS Query single tag
-  PASS Query all users
-  PASS Query single user
-  PASS Query all comments
-── Mutations ──
-  PASS Create post via mutation
-  PASS Update post via mutation
-  PASS Delete post via mutation
-  PASS Create tag via mutation
-  PASS Delete tag via mutation
-── Introspection ──
-  PASS Schema introspection
-  PASS List types
-── Cleanup (REST) ──
-  (Cleaned up test data)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  ALL PASSED 14/14 tests
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-## Verify
-
-:::warning Could not fully verify locally
-The server was not started during doc generation. The curl and graphql.sh output above matches the reference implementation. To verify:
-
-```bash
-cd sample-apps/blog-system
-pnpm exec webda debug &
-./graphql.sh
-```
-:::
+See the [@webda/graphql module](../../Modules/graphql/README.md) for subscriptions and the service parameters.
 
 ## What's next
 

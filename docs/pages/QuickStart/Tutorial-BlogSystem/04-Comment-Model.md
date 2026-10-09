@@ -5,23 +5,26 @@ sidebar_label: "04 — Comment Model"
 
 # 04 — Comment Model
 
-**Goal:** Add the `Comment` model, which belongs to both a `Post` and a `User`, then verify that creating a post and a comment and fetching comments by post works.
+**Goal:** Add the `Comment` model, which belongs to both a `Post` and a `User`, with the same "the author is the caller" rule as posts.
 
-**Files touched:** `src/models/Comment.ts`, `webda.config.json` (add `commentStore`).
+**Files touched:** `src/models/Comment.model.ts`, `src/models/Post.model.ts`, `src/models/User.model.ts`.
 
-**Concepts:** `UuidModel` for UUID-keyed child records, multiple `BelongTo` relations on a single model, `Contains` cascade from the parent's perspective.
+**Concepts:** `UuidModel` for child records, several `BelongTo` relations on one model, `Contains`.
 
 ## Walkthrough
 
-### 1. Create `src/models/Comment.ts`
+### 1. Create `src/models/Comment.model.ts`
 
-```typescript title="src/models/Comment.ts"
+```typescript title="src/models/Comment.model.ts"
 import { UuidModel, BelongTo } from "@webda/models";
-import type { User } from "./User";
-import type { Post } from "./Post";
+import type { User } from "./User.model.js";
+import type { Post } from "./Post.model.js";
+import type { IOperationContext } from "@webda/core";
 
 /**
  * Comment model for post comments
+ *
+ * Anyone reads, logged-in users comment, the author edits and deletes.
  */
 export class Comment extends UuidModel {
   /**
@@ -32,176 +35,146 @@ export class Comment extends UuidModel {
   content!: string;
 
   /**
-   * Comment creation date
    * @readonly
    */
   createdAt!: Date;
 
   /**
-   * Last update date
    * @readonly
    */
   updatedAt!: Date;
 
   /**
-   * Whether comment was edited after creation
+   * Whether comment is edited
    */
   isEdited!: boolean;
 
   // Relations
-  post!: BelongTo<Post>;     // The post this comment belongs to
-  author!: BelongTo<User>;   // The user who wrote the comment
+  post!: BelongTo<Post>;
+  author!: BelongTo<User>;
 
-  /** Public sample — permissive for all actions. */
-  async canAct(_context: any, _action: string): Promise<boolean> {
-    return true;
+  /**
+   * The author is server-managed: never taken from client input
+   */
+  static getProtectedAttributes(): string[] {
+    return ["author"];
   }
+
+  /**
+   * Called on a new comment built from client input, before the "create" check: the caller is the author
+   */
+  prepareCreate(context: IOperationContext): void {
+    (this as any).author = context.getCurrentUserId();
+    this.createdAt ??= new Date();
+    this.updatedAt ??= this.createdAt;
+    this.isEdited ??= false;
+  }
+
+  /**
+   * Permission rule: "get" for anyone, "create" for any logged-in user, "update" and "delete" for the author
+   */
+  async canAct(context: IOperationContext, action: string): Promise<boolean | string> {
+    const userId = context.getCurrentUserId();
+    if (action === "get") {
+      return true;
+    }
+    if (!userId) {
+      return "Login required";
+    }
+    if (action === "create") {
+      return true;
+    }
+    return this.author?.toString() === userId ? true : "Only the author";
+  }
+}
+```
+
+### 2. Declare the other sides
+
+```typescript title="src/models/Post.model.ts (additions)"
+import { BelongTo, Contains, Model, WEBDA_PRIMARY_KEY } from "@webda/models";
+import type { Comment } from "./Comment.model.js";
+
+export class Post extends Model {
+  // ...
+  author!: BelongTo<User>;
+  comments!: Contains<Comment>;
+}
+```
+
+```typescript title="src/models/User.model.ts (additions)"
+import type { Comment } from "./Comment.model.js";
+
+export class User extends UuidModel {
+  // ...
+  posts!: OneToMany<Post, User, "author">;
+  comments!: OneToMany<Comment, User, "author">;
 }
 ```
 
 #### Relations explained
 
-`Comment` has **two** `BelongTo` relations:
+| Field            | Type                                 | Stored as                                       |
+| ---------------- | ------------------------------------ | ----------------------------------------------- |
+| `Comment.post`   | `BelongTo<Post>`                     | the post's key (its slug) in `post`             |
+| `Comment.author` | `BelongTo<User>`                     | the user's uuid in `author`                     |
+| `User.comments`  | `OneToMany<Comment, User, "author">` | nothing: a query on `Comment.author`            |
+| `Post.comments`  | `Contains<Comment>`                  | a list of links to comments, stored on the post |
 
-| Field | Relation | Foreign key stored |
-|-------|----------|--------------------|
-| `post` | `BelongTo<Post>` | `postSlug` (Post's PK is `slug`) |
-| `author` | `BelongTo<User>` | `authorUuid` (User's PK is `uuid`) |
+A `BelongTo` field holds the primary key of its target, whatever its name: `"post": "hello-world"` for a post, a uuid for a user. `Contains<T>` is an alias of `ManyToMany<T>`: an array of links kept on the owning object.
 
-The framework derives the foreign key column name from the target model's primary key. Because `Post` uses `slug` as its primary key, the foreign key becomes `postSlug`. Because `User` uses `uuid`, the key is `authorUuid`.
-
-The `Contains<Comment>` declared on `Post.comments` (page 03) is the complementary view — from the post's perspective it "contains" many comments. Contains implies ownership: when a post is deleted, all its comments are also deleted.
-
-### 2. Add a store in `webda.config.json`
-
-```json title="webda.config.json (services excerpt)"
-{
-  "commentStore": {
-    "type": "Webda/MemoryStore",
-    "model": "MyBlog/Comment"
-  }
-}
-```
-
-Full config at this point:
-
-```json title="webda.config.json"
-{
-  "$schema": ".webda/config.schema.json",
-  "parameters": {
-    "website": "http://localhost:18080"
-  },
-  "services": {
-    "HttpServer":    { "type": "Webda/HttpServer", "autoTls": true },
-    "DomainService": { "type": "Webda/DomainService" },
-    "RESTService":   { "type": "Webda/RESTOperationsTransport" },
-    "userStore": {
-      "type": "Webda/MemoryStore",
-      "model": "MyBlog/User"
-    },
-    "postStore": {
-      "type": "Webda/MemoryStore",
-      "model": "MyBlog/Post"
-    },
-    "commentStore": {
-      "type": "Webda/MemoryStore",
-      "model": "MyBlog/Comment"
-    }
-  }
-}
-```
+:::note No cascade delete
+Deleting a post does not delete its comments. Delete the children yourself (for example in a service listening to the `Deleted` event of `useRepository(Post)`) when you need it.
+:::
 
 ### 3. Rebuild and restart
 
 ```bash
-pnpm exec webdac build
-# restart webda debug
+npm run debug   # or npm run serve
 ```
-
-### 4. Exercise the Comment endpoints
-
-**Create a user and a post first** (reuse the curl commands from pages 02–03), then:
-
-**Create a comment:**
-
-```bash
-# USER_UUID and POST_SLUG from previous steps
-USER_UUID="550e8400-e29b-41d4-a716-446655440001"
-COMMENT_UUID="660e8400-e29b-41d4-a716-446655440001"
-
-curl -sk -X POST https://localhost:18080/comments \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"uuid\": \"$COMMENT_UUID\",
-    \"content\": \"Great post!\",
-    \"post\": \"hello-world\",
-    \"author\": \"$USER_UUID\",
-    \"isEdited\": false
-  }" | jq
-```
-
-```json
-{
-  "uuid": "660e8400-e29b-41d4-a716-446655440001",
-  "content": "Great post!",
-  "postSlug": "hello-world",
-  "authorUuid": "550e8400-e29b-41d4-a716-446655440001",
-  "isEdited": false
-}
-```
-
-Note that `post` and `author` in the request body are resolved to their primary keys (`postSlug`, `authorUuid`) in the stored document.
-
-**List all comments:**
-
-```bash
-curl -sk -X PUT https://localhost:18080/comments \
-  -H "Content-Type: application/json" \
-  -d '{"q":""}' | jq '.results | length'
-```
-
-```
-1
-```
-
-**Patch a comment (mark as edited):**
-
-```bash
-curl -sk -X PATCH https://localhost:18080/comments/$COMMENT_UUID \
-  -H "Content-Type: application/json" \
-  -d "{\"uuid\":\"$COMMENT_UUID\",\"content\":\"Great post! (edited)\",\"isEdited\":true}" | jq
-```
-
-```json
-{
-  "uuid": "660e8400-e29b-41d4-a716-446655440001",
-  "content": "Great post! (edited)",
-  "isEdited": true
-}
-```
-
-**Delete the comment:**
-
-```bash
-curl -sk -X DELETE https://localhost:18080/comments/$COMMENT_UUID
-# → HTTP 204 No Content
-```
-
-**Delete cascade: what happens when the post is deleted?**
-
-Because `Post.comments` is typed as `Contains<Comment>`, deleting a post also deletes all its comments. You do not need to implement this logic yourself — `DomainService` handles it.
 
 ## Verify
 
-:::warning Could not fully verify locally
-The server was not started during doc generation. The commands above match `rest.sh` assertions. Run against a live server:
+**Comment on the post** (logged in as Alice, see page 02):
 
 ```bash
-cd sample-apps/blog-system
-pnpm exec webda debug &
-./rest.sh
+curl -s -b cookies.txt -X POST http://localhost:18080/comments \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Great post!","post":"hello-world"}' | jq
 ```
-:::
+
+The response contains the generated `uuid`, `"post": "hello-world"` and `"author"` set to Alice's uuid. Keep the uuid:
+
+```bash
+COMMENT=<uuid from the response>
+```
+
+**Anonymous comments are refused** (`403`):
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:18080/comments \
+  -H "Content-Type: application/json" -d '{"content":"anon","post":"hello-world"}'
+# → 403
+```
+
+**Query the comments of the post:**
+
+```bash
+curl -s -X PUT http://localhost:18080/comments \
+  -H "Content-Type: application/json" \
+  -d "{\"q\":\"post = 'hello-world'\"}" | jq '.results | length'
+# → 1
+```
+
+**Edit, then delete the comment** (the author only; another user gets `403`):
+
+```bash
+curl -s -b cookies.txt -X PATCH http://localhost:18080/comments/$COMMENT \
+  -H "Content-Type: application/json" -d '{"content":"Great post! (edited)","isEdited":true}' | jq .content
+
+curl -s -b cookies.txt -o /dev/null -w "%{http_code}\n" -X DELETE http://localhost:18080/comments/$COMMENT
+# → 204
+```
 
 ## What's next
 

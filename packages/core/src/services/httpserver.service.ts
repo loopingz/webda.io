@@ -22,7 +22,6 @@ import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { AsyncResource } from "node:async_hooks";
 import { join } from "node:path";
-import { serialize as cookieSerialize } from "cookie";
 
 /**
  * How long a connection to a TLS port may stay silent before it is dropped,
@@ -200,7 +199,8 @@ export class HttpServer<
     if (res.headersSent) return;
 
     const headers = ctx.getResponseHeaders();
-    const cookies = ctx.getResponseCookies?.() || {};
+    // One Set-Cookie header per cookie
+    const setCookies = ctx.getSetCookieHeaders();
 
     if (this.isHttp2) {
       // HTTP/2: use setHeader individually, filter HTTP/1.1-only headers
@@ -208,14 +208,14 @@ export class HttpServer<
         if (HTTP1_ONLY_HEADERS.includes(name.toLowerCase())) continue;
         res.setHeader(name, value as string | string[]);
       }
-      for (const i in cookies) {
-        res.setHeader("Set-Cookie", cookieSerialize(cookies[i].name, cookies[i].value, cookies[i].options));
+      if (setCookies.length) {
+        res.setHeader("Set-Cookie", setCookies);
       }
       res.statusCode = ctx.getResponseCode();
     } else {
       // HTTP/1.1: use writeHead
-      for (const i in cookies) {
-        headers["Set-Cookie"] = cookieSerialize(cookies[i].name, cookies[i].value, cookies[i].options);
+      if (setCookies.length) {
+        headers["Set-Cookie"] = setCookies;
       }
       res.writeHead(ctx.getResponseCode(), headers);
     }
@@ -297,6 +297,8 @@ export class HttpServer<
             }
           }
         }
+        // The SessionManager writes the session cookie: save the session before the headers are flushed
+        await webCtx.saveSession();
         // Always emit the Result event — both success and error paths converge
         // here so that subscribers see every request reach a terminal state.
         try { emitCoreEvent("Webda.Result", { context: webCtx }); } catch { /* listener error */ }

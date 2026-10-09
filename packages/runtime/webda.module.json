@@ -180,6 +180,16 @@
         },
         "description": "Configuration for MigrationStore — specifies the source and destination stores",
         "properties": {
+          "aggregationFallback": {
+            "default": "warn",
+            "description": "What to do when an aggregation on this store cannot run natively and must\nstream every matching object through memory",
+            "enum": [
+              "allow",
+              "warn",
+              "deny"
+            ],
+            "type": "string"
+          },
           "defaultModel": {
             "default": true,
             "description": "When __type model not found, use the model\nIf strict is setup this parameter is not used",
@@ -193,6 +203,11 @@
           "from": {
             "description": "From store",
             "type": "string"
+          },
+          "maxGroups": {
+            "default": 10000,
+            "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
+            "type": "number"
           },
           "modelAliases": {
             "$ref": "#/definitions/modelAliases",
@@ -550,12 +565,14 @@
         "Update",
         "Patch",
         "Query",
+        "Aggregate",
         "Created",
         "PartialUpdated",
         "Deleted",
         "Patched",
         "Updated",
-        "Queried"
+        "Queried",
+        "Aggregated"
       ],
       "PrimaryKey": [
         "uuid"

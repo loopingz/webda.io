@@ -252,6 +252,16 @@
         },
         "description": "MongoDB store parameters",
         "properties": {
+          "aggregationFallback": {
+            "default": "warn",
+            "description": "What to do when an aggregation on this store cannot run natively and must\nstream every matching object through memory",
+            "enum": [
+              "allow",
+              "warn",
+              "deny"
+            ],
+            "type": "string"
+          },
           "collection": {
             "description": "Which collection to use\n\nAll the models managed by the store share this collection, the `__type`\nfield is used to differentiate them",
             "type": "string"
@@ -274,6 +284,11 @@
             "default": false,
             "description": "If set, Store will ignore the __type",
             "type": "boolean"
+          },
+          "maxGroups": {
+            "default": 10000,
+            "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
+            "type": "number"
           },
           "modelAliases": {
             "$ref": "#/definitions/modelAliases",

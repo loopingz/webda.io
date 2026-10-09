@@ -881,12 +881,14 @@
         "Update",
         "Patch",
         "Query",
+        "Aggregate",
         "Created",
         "PartialUpdated",
         "Deleted",
         "Patched",
         "Updated",
-        "Queried"
+        "Queried",
+        "Aggregated"
       ],
       "PrimaryKey": [
         "uuid"
@@ -1304,12 +1306,14 @@
         "Update",
         "Patch",
         "Query",
+        "Aggregate",
         "Created",
         "PartialUpdated",
         "Deleted",
         "Patched",
         "Updated",
-        "Queried"
+        "Queried",
+        "Aggregated"
       ],
       "PrimaryKey": [
         "uuid"
@@ -1724,12 +1728,14 @@
         "Update",
         "Patch",
         "Query",
+        "Aggregate",
         "Created",
         "PartialUpdated",
         "Deleted",
         "Patched",
         "Updated",
-        "Queried"
+        "Queried",
+        "Aggregated"
       ],
       "PrimaryKey": [
         "uuid"

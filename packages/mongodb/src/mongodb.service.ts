@@ -155,16 +155,41 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
    * Convert an object to the document stored in MongoDB
    * @param item - the model instance or raw data
    * @param key - the primary key
+   * @param fallbackType - the type to stamp when the object declares none (null: none)
    * @returns the document
    */
-  protected toDocument(item: any, key: string): any {
+  protected toDocument(
+    item: any,
+    key: string,
+    fallbackType: string | undefined = (this.model as any).Metadata?.Identifier
+  ): any {
     const doc = JSON.parse(JSON.stringify(item));
     doc._id = key;
-    const type = item?.constructor?.Metadata?.Identifier ?? (this.model as any).Metadata?.Identifier;
+    // An enumerable `__type` key of plain data is never trusted
+    delete doc.__type;
+    const type = this.declaredType(item) ?? fallbackType;
     if (type) {
       doc.__type = type;
     }
     return doc;
+  }
+
+  /**
+   * The type an object written by the application declares: the `__type` its document was read with
+   * (non-enumerable, set by {@link fromDocument}), else the identifier of its class. Plain data declares none.
+   * @param item - the object
+   * @returns the model identifier, undefined for plain data
+   */
+  protected declaredType(item: any): string | undefined {
+    if (!item || typeof item !== "object") {
+      return undefined;
+    }
+    const own = Object.getOwnPropertyDescriptor(item, "__type");
+    if (own && !own.enumerable && typeof own.value === "string") {
+      return own.value;
+    }
+    const clazz = Object.getPrototypeOf(item)?.constructor;
+    return clazz && clazz !== Object ? clazz.Metadata?.Identifier : undefined;
   }
 
   /**
@@ -236,9 +261,20 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
   /** @override */
   async update(data: any, conditionField?: any, condition?: any): Promise<void> {
     const key = this.getPrimaryKey(data).toString();
-    const res = await (
-      await this.getCollection()
-    ).replaceOne(this.getFilter(key, conditionField, condition), this.toDocument(data, key));
+    const collection = await this.getCollection();
+    const filter = this.getFilter(key, conditionField, condition);
+    let res;
+    if (this.declaredType(data)) {
+      res = await collection.replaceOne(filter, this.toDocument(data, key));
+    } else {
+      // Plain data (ModelRef.update) keeps the stored type, in one atomic write: a write through a parent
+      // repository never re-types a subclass document. `$literal` keeps `$`-prefixed values as data.
+      res = await collection.updateOne(filter, [
+        {
+          $replaceWith: { $mergeObjects: [{ $literal: this.toDocument(data, key, null) }, { __type: "$__type" }] }
+        }
+      ]);
+    }
     if (res.matchedCount === 0) {
       throw new UpdateConditionFailError(key as any, conditionField as string, condition);
     }

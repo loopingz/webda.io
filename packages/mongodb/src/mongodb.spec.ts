@@ -374,6 +374,34 @@ export class MongoStoreTest extends WebdaApplicationTest {
   }
 
   @test
+  async parentWritesKeepTheChildType() {
+    await this.sub.create({ uuid: "s1", name: "a" });
+    await this.sub.create({ uuid: "s2", name: "b" });
+    await this.sub.create({ uuid: "s3", name: "c" });
+    // Plain data (ModelRef.update), with a forged `__type` key, and an instance read through the parent
+    await this.repo.update({ uuid: "s1", name: "plain" });
+    await this.repo.update({ uuid: "s2", name: "forged", __type: "Test/Item" });
+    await this.repo.update(await this.repo.get("s3"));
+    assert.deepStrictEqual((await this.sub.query("")).results.map((r: any) => r.uuid).sort(), ["s1", "s2", "s3"]);
+    assert.strictEqual(((await this.sub.get("s1")) as any).name, "plain");
+    const docs = await (await this.store._connect()).find({}).toArray();
+    assert.deepStrictEqual(
+      docs.map(d => d.__type),
+      ["Test/SubItem", "Test/SubItem", "Test/SubItem"]
+    );
+    // A legacy document stays unstamped, a `$` value stays data
+    await (await this.store._connect()).insertOne({ _id: <any>"legacy", uuid: "legacy" });
+    await this.repo.update({ uuid: "legacy", name: "$name" });
+    const legacy: any = await (await this.store._connect()).findOne({ _id: <any>"legacy" });
+    assert.strictEqual(legacy.__type, undefined);
+    assert.strictEqual(legacy.name, "$name");
+    await (await this.store._connect()).deleteOne({ _id: <any>"legacy" });
+    // An instance of a class writes its own type
+    await this.repo.update(new Item({ uuid: "s1" }));
+    assert.deepStrictEqual((await this.sub.query("")).results.map((r: any) => r.uuid).sort(), ["s2", "s3"]);
+  }
+
+  @test
   async query() {
     for (let i = 0; i < 10; i++) {
       await this.repo.create({ uuid: `q${i}`, name: `name${i}`, count: i, tags: i % 2 ? ["odd"] : ["even"] });

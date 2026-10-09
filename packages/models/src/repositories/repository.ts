@@ -1,5 +1,12 @@
 import type { ArrayElement } from "@webda/tsc-esm";
-import type { Query as WebdaQLQuery, QueryParameters, WebdaQLStatement, WebdaQLString } from "@webda/ql";
+import type {
+  AggregationResult,
+  Query as WebdaQLQuery,
+  QueryParameters,
+  WebdaQLStatement,
+  WebdaQLString
+} from "@webda/ql";
+import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
 import type {
   PrimaryKey,
   PrimaryKeyType,
@@ -133,6 +140,30 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
    * @returns
    */
   iterate(query: WebdaQLString<InstanceType<T>>, params?: QueryParameters): AsyncGenerator<InstanceType<T>>;
+
+  /**
+   * Aggregate the store
+   *
+   * ```ts
+   * repo.aggregate({ filter: "done = FALSE", groupBy: ["status"], metrics: { n: { count: "*" } } });
+   * ```
+   * @param spec - filter, group by paths, metrics, ordering and limit
+   * @param params - values for the placeholders of `spec.filter`
+   * @returns the aggregated rows and whether the backend computed them natively
+   */
+  aggregate<
+    const G extends readonly PropertyPaths<InstanceType<T>>[] = [],
+    const M extends Record<string, MetricSpec<InstanceType<T>>> = Record<string, MetricSpec<InstanceType<T>>>
+  >(
+    spec: AggregationSpec<InstanceType<T>, G, M>,
+    params?: QueryParameters
+  ): Promise<AggregationResult<AggregatedRow<InstanceType<T>, G, M>>>;
+
+  /**
+   * Configure the aggregation fallback policy, called by the owning store
+   * @param options - options to override
+   */
+  configureAggregation(options: Partial<AggregationOptions>): void;
 
   /**
    * Delete every object matching a `DELETE [WHERE ...] [LIMIT n]` statement, in bulk

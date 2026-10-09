@@ -9,6 +9,7 @@ Besides a plain filter query, WebdaQL parses three statements:
 
 ```
 SELECT f1, f2.g [WHERE <filter>] [ORDER BY ...] [LIMIT n] [OFFSET "token"]
+SELECT g1, COUNT(*) AS n, SUM(f) AS s [WHERE <filter>] [GROUP BY g1] [ORDER BY ...] [LIMIT n]
 DELETE [WHERE <filter>] [LIMIT n]
 UPDATE SET a = <value>, b.c = <value> [WHERE <filter>] [LIMIT n]
 ```
@@ -24,10 +25,10 @@ The parsed `Query` carries the statement:
 import { parse } from "@webda/ql";
 
 const q = parse("UPDATE SET status = 'active', age = 30 WHERE name = 'John' LIMIT 10");
-q.type;        // "UPDATE"  ("SELECT" for a plain filter or a SELECT, "DELETE")
+q.type; // "UPDATE"  ("SELECT" for a plain filter or a SELECT, "DELETE")
 q.assignments; // [{ field: "status", value: "active" }, { field: "age", value: 30 }]
 q.filter.eval({ name: "John" }); // true
-q.toString();  // 'UPDATE SET status = "active", age = 30 WHERE name = "John" LIMIT 10'
+q.toString(); // 'UPDATE SET status = "active", age = 30 WHERE name = "John" LIMIT 10'
 
 parse("SELECT name, profile.email WHERE age > 18").fields; // ["name", "profile.email"]
 ```
@@ -36,15 +37,48 @@ parse("SELECT name, profile.email WHERE age > 18").fields; // ["name", "profile.
 
 `parse(query, allowedFields)` checks the SELECT fields and the SET targets against a list of fields (a dotted path is allowed when it or one of its parents is listed) and throws a `SyntaxError` otherwise; `validateQueryFields(query, allowedFields)` does the same on a parsed query. `assertFilterQuery(query)` refuses anything but a plain filter.
 
+## Aggregation: SELECT … GROUP BY
+
+A `SELECT` with aggregate functions or a `GROUP BY` is an aggregation, parsed into the same AST as the object form
+of [`Model.aggregate()`](../../Concepts/Stores/Repositories.md#aggregation):
+
+```typescript
+const q = parse(
+  "SELECT status, owner.uuid, COUNT(*) AS n, COUNT(DISTINCT tag) AS tags, SUM(points) AS total, " +
+    "AVG(points) AS mean, MIN(createdAt) AS first, MAX(points) AS top " +
+    "WHERE completed = FALSE GROUP BY status, owner.uuid ORDER BY total DESC, status LIMIT 10"
+);
+q.fields; // ["status", "owner.uuid"]
+q.aggregation; // { filter, groupBy: ["status", "owner.uuid"], metrics: { n: { fn: "COUNT" }, ... }, orderBy, limit }
+
+parse("SELECT COUNT(*) AS n WHERE status = 'open'").aggregation; // one global row, no GROUP BY
+```
+
+Functions are `COUNT(*)`, `COUNT(f)`, `COUNT(DISTINCT f)`, `SUM(f)`, `AVG(f)`, `MIN(f)` and `MAX(f)`. Rules:
+
+- The selected fields must be exactly the `GROUP BY` paths: `SELECT status, COUNT(*) AS n` without `GROUP BY status`
+  is refused, and so is a `GROUP BY` without any metric.
+- Every metric needs a unique alias (`AS n`), which cannot clash with a group path or be `__proto__`, `constructor`
+  or `prototype`. Path segments cannot be all digits (`tags.0`).
+- `ORDER BY` takes a group path or an alias; `OFFSET` is refused (aggregations have no pagination).
+- `parse(query, allowedFields)` also checks every metric field (`SUM(secret)`); `COUNT(*)` has none.
+- `assertFilterQuery` refuses an aggregation, so `query()` / `iterate()` never run one.
+
+### Reserved keywords
+
+The uppercase words `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, `AS`, `DISTINCT` and `GROUP BY` are keywords (`GROUP` or `BY` alone stay names). **Breaking
+change:** a filter on an attribute named in uppercase like one of them (`COUNT = 1`) no longer parses. Lowercase
+names stay attributes: `count = 1 AND min = 2` is still a filter.
+
 ## Where statements are accepted
 
-| Entry point | Plain filter | `SELECT` field list | `DELETE` / `UPDATE` |
-|-------------|--------------|---------------------|---------------------|
-| Query operations (REST, gRPC, MCP), `Audit.Query` | yes | **400** | **400** |
-| GraphQL query and `filter` arguments, subscriptions, links and maps | yes | **BAD_USER_INPUT** | **BAD_USER_INPUT** |
-| `Repository.query()` / `iterate()`, `Model.query()` | yes | refused (`WebdaQLError`) | refused (`WebdaQLError`) |
-| `Repository.deleteMany()` | no | no | `DELETE` only |
-| `Repository.updateMany()` | no | no | `UPDATE` only |
+| Entry point                                                         | Plain filter | `SELECT` field list      | `DELETE` / `UPDATE`      |
+| ------------------------------------------------------------------- | ------------ | ------------------------ | ------------------------ |
+| Query operations (REST, gRPC, MCP), `Audit.Query`                   | yes          | **400**                  | **400**                  |
+| GraphQL query and `filter` arguments, subscriptions, links and maps | yes          | **BAD_USER_INPUT**       | **BAD_USER_INPUT**       |
+| `Repository.query()` / `iterate()`, `Model.query()`                 | yes          | refused (`WebdaQLError`) | refused (`WebdaQLError`) |
+| `Repository.deleteMany()`                                           | no           | no                       | `DELETE` only            |
+| `Repository.updateMany()`                                           | no           | no                       | `UPDATE` only            |
 
 **Field lists are a parse-level feature**: nothing projects results on them yet (GraphQL selection sets already choose the fields). **DELETE and UPDATE are repository-level operations**: they never run through the Query operations exposed to clients. A `__` field in a field list or a SET target is refused like a `__` filter.
 
@@ -74,12 +108,12 @@ Rules:
 
 How each store runs them:
 
-| Store | DELETE | UPDATE |
-|-------|--------|--------|
-| Memory, File | directly on the storage map, in one synchronous pass | same |
-| MongoDB | `deleteMany` with the translated filter | `updateMany` with `$set` (dotted targets create their parents) |
-| PostgreSQL | one `DELETE ... WHERE` | one `UPDATE ... SET data = jsonb_set(...) WHERE`; SET paths and values are bound, the WHERE is written from the parsed query |
-| DynamoDB, Firestore | generic fallback: keys collected first (up to LIMIT), then deleted one by one | generic fallback: keys collected first, then patched one by one |
+| Store               | DELETE                                                                        | UPDATE                                                                                                                       |
+| ------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Memory, File        | directly on the storage map, in one synchronous pass                          | same                                                                                                                         |
+| MongoDB             | `deleteMany` with the translated filter                                       | `updateMany` with `$set` (dotted targets create their parents)                                                               |
+| PostgreSQL          | one `DELETE ... WHERE`                                                        | one `UPDATE ... SET data = jsonb_set(...) WHERE`; SET paths and values are bound, the WHERE is written from the parsed query |
+| DynamoDB, Firestore | generic fallback: keys collected first (up to LIMIT), then deleted one by one | generic fallback: keys collected first, then patched one by one                                                              |
 
 An object deleted while the fallback runs is skipped and left out of the count. With a `LIMIT`, MongoDB and PostgreSQL first select the matching keys (the WHERE is kept on the write too) (backends have no LIMIT on bulk writes). The generic fallback (`AbstractRepository.deleteManyByKey` / `updateManyByKey`) uses the repository's own `delete` / `patch` primitives, which emit no event on a store repository; native DynamoDB and Firestore batch writes are a follow-up.
 

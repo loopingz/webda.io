@@ -2,7 +2,8 @@ import { PK, PrimaryKeyType, ModelClass, WEBDA_PRIMARY_KEY } from "../storable.j
 import type { SelfJSONed, JSONed, Helpers, PropertyPaths, NumericPropertyPaths, PropertyPathType } from "../types.js";
 import { AbstractRepository } from "./abstract.js";
 import { ArrayElement } from "@webda/tsc-esm";
-import type { Query as WebdaQLQuery, QueryParameters } from "@webda/ql";
+import type { Query as WebdaQLQuery, QueryParameters, AggregationResult } from "@webda/ql";
+import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
 import { WEBDA_TEST } from "./repository.js";
 
 /**
@@ -89,6 +90,40 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       query = (await import("@webda/ql")).bind(query, params);
     }
     yield* this.repository.iterate(query);
+  }
+
+  /**
+   * Aggregate with event emission
+   *
+   * Parameters are bound here, so the events carry the bound filter and the underlying
+   * repository receives a plain spec and keeps its native implementation.
+   * @param spec - the aggregation spec
+   * @param params - values for the placeholders of `spec.filter`
+   * @returns the aggregated rows
+   */
+  async aggregate<
+    const G extends readonly PropertyPaths<InstanceType<T>>[] = [],
+    const M extends Record<string, MetricSpec<InstanceType<T>>> = Record<string, MetricSpec<InstanceType<T>>>
+  >(
+    spec: AggregationSpec<InstanceType<T>, G, M>,
+    params?: QueryParameters
+  ): Promise<AggregationResult<AggregatedRow<InstanceType<T>, G, M>>> {
+    if (params !== undefined && spec.filter) {
+      spec = { ...spec, filter: (await import("@webda/ql")).bind(spec.filter, params) as any };
+    }
+    await this.emit("Aggregate", { query: spec } as any);
+    const res = await this.repository.aggregate(spec);
+    await this.emit("Aggregated", { query: spec, ...res } as any);
+    return res;
+  }
+
+  /**
+   * Configure both this wrapper and the underlying repository
+   * @override
+   */
+  configureAggregation(options: Partial<AggregationOptions>): void {
+    super.configureAggregation(options);
+    this.repository.configureAggregation(options);
   }
 
   /**

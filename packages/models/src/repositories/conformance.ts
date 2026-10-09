@@ -65,3 +65,293 @@ export async function checkCreateWithoutPrimaryKey(
   assert.strictEqual(await options.readStored("undefined"), undefined, "nothing should be stored under 'undefined'");
   assert.strictEqual(await options.readStored("null"), undefined, "nothing should be stored under 'null'");
 }
+
+/**
+ * Dataset of {@link checkAggregation}: nulls, missing attributes, a non-numeric `points`,
+ * nested `team.name`, booleans. The `mixed` field mixes numbers and strings, with upper and lower case, to pin type ranking and code unit order.
+ * The `at` field holds `Date` objects: in-memory engines read them as ISO strings, JSON backends store them so.
+ */
+export const AGGREGATION_DATASET: Record<string, any>[] = [
+  {
+    uuid: "a1",
+    kind: "bug",
+    team: { name: "core" },
+    points: 3,
+    score: 10,
+    label: "delta",
+    done: true,
+    mixed: 5,
+    at: new Date("2026-01-05T10:00:00.000Z")
+  },
+  {
+    uuid: "a2",
+    kind: "bug",
+    team: { name: "core" },
+    points: 5,
+    score: null,
+    label: "alpha",
+    done: false,
+    mixed: "b",
+    at: new Date("2026-03-01T00:00:00.000Z")
+  },
+  {
+    uuid: "a3",
+    kind: "feature",
+    team: { name: "web" },
+    points: null,
+    score: 7,
+    label: "charlie",
+    done: false,
+    mixed: 10,
+    at: new Date("2026-01-05T10:00:00.000Z")
+  },
+  {
+    uuid: "a4",
+    kind: "feature",
+    team: { name: "web" },
+    points: "8",
+    score: 2,
+    label: "bravo",
+    done: true,
+    mixed: "B",
+    at: new Date("2025-12-31T23:59:59.000Z")
+  },
+  { uuid: "a5", kind: "chore", points: 1, label: "echo", done: false },
+  {
+    uuid: "a6",
+    kind: null,
+    team: { name: "core" },
+    points: 2,
+    score: 4,
+    label: "alpha",
+    done: false,
+    mixed: "a",
+    at: null
+  },
+  {
+    uuid: "a7",
+    team: { name: "ops" },
+    points: 13,
+    score: 1,
+    label: "foxtrot",
+    done: true,
+    at: new Date("2026-02-14T12:30:00.000Z")
+  }
+];
+
+/**
+ * Hand-computed expectations over {@link AGGREGATION_DATASET}; every backend must return exactly these rows
+ */
+export const AGGREGATION_CASES: { name: string; spec: any; rows: Record<string, unknown>[] }[] = [
+  { name: "global count", spec: { metrics: { n: { count: "*" } } }, rows: [{ n: 7 }] },
+  {
+    name: "global over nothing",
+    spec: {
+      filter: "label = 'zulu'",
+      metrics: { n: { count: "*" }, total: { sum: "points" }, mean: { avg: "points" }, lo: { min: "score" } }
+    },
+    rows: [{ n: 0, total: 0, mean: null, lo: null }]
+  },
+  {
+    name: "count of a field skips null and missing",
+    spec: { metrics: { withScore: { count: "score" }, withTeam: { count: "team.name" } } },
+    rows: [{ withScore: 5, withTeam: 6 }]
+  },
+  {
+    name: "null and missing keys form one group, first in ASC",
+    spec: { groupBy: ["kind"], metrics: { n: { count: "*" } }, orderBy: [{ key: "kind", direction: "ASC" }] },
+    rows: [
+      { kind: null, n: 2 },
+      { kind: "bug", n: 2 },
+      { kind: "chore", n: 1 },
+      { kind: "feature", n: 2 }
+    ]
+  },
+  {
+    name: "sum and avg ignore null and non-numeric",
+    spec: {
+      groupBy: ["kind"],
+      metrics: { total: { sum: "points" }, mean: { avg: "points" } },
+      orderBy: [{ key: "kind", direction: "ASC" }]
+    },
+    rows: [
+      { kind: null, total: 15, mean: 7.5 },
+      { kind: "bug", total: 8, mean: 4 },
+      { kind: "chore", total: 1, mean: 1 },
+      { kind: "feature", total: 0, mean: null }
+    ]
+  },
+  {
+    name: "min and max on numbers and strings, nested group",
+    spec: {
+      groupBy: ["team.name"],
+      metrics: { lo: { min: "score" }, hi: { max: "score" }, first: { min: "label" } },
+      orderBy: [{ key: "team.name", direction: "ASC" }]
+    },
+    rows: [
+      { "team.name": null, lo: null, hi: null, first: "echo" },
+      { "team.name": "core", lo: 4, hi: 10, first: "alpha" },
+      { "team.name": "ops", lo: 1, hi: 1, first: "foxtrot" },
+      { "team.name": "web", lo: 2, hi: 7, first: "bravo" }
+    ]
+  },
+  {
+    name: "count distinct grouped by boolean",
+    spec: {
+      groupBy: ["done"],
+      metrics: { labels: { countDistinct: "label" }, n: { count: "*" } },
+      orderBy: [{ key: "done", direction: "ASC" }]
+    },
+    rows: [
+      { done: false, labels: 3, n: 4 },
+      { done: true, labels: 3, n: 3 }
+    ]
+  },
+  {
+    name: "filter, order by alias and limit",
+    spec: {
+      filter: "label IN ['alpha', 'charlie', 'echo']",
+      groupBy: ["team.name"],
+      metrics: { n: { count: "*" } },
+      orderBy: [{ key: "n", direction: "DESC" }],
+      limit: 1
+    },
+    rows: [{ "team.name": "core", n: 2 }]
+  },
+  {
+    name: "several group paths",
+    spec: {
+      groupBy: ["kind", "done"],
+      metrics: { n: { count: "*" } },
+      orderBy: [
+        { key: "kind", direction: "ASC" },
+        { key: "done", direction: "ASC" }
+      ]
+    },
+    rows: [
+      { kind: null, done: false, n: 1 },
+      { kind: null, done: true, n: 1 },
+      { kind: "bug", done: false, n: 1 },
+      { kind: "bug", done: true, n: 1 },
+      { kind: "chore", done: false, n: 1 },
+      { kind: "feature", done: false, n: 1 },
+      { kind: "feature", done: true, n: 1 }
+    ]
+  },
+  {
+    name: "order by metric then group, null last in DESC",
+    spec: {
+      groupBy: ["kind"],
+      metrics: { n: { count: "*" } },
+      orderBy: [
+        { key: "n", direction: "DESC" },
+        { key: "kind", direction: "DESC" }
+      ],
+      limit: 2
+    },
+    rows: [
+      { kind: "feature", n: 2 },
+      { kind: "bug", n: 2 }
+    ]
+  },
+  {
+    name: "min and max across numbers and strings",
+    spec: { metrics: { lo: { min: "mixed" }, hi: { max: "mixed" } } },
+    rows: [{ lo: 5, hi: "b" }]
+  },
+  {
+    name: "group keys order numbers before strings, code unit order",
+    spec: { groupBy: ["mixed"], metrics: { n: { count: "*" } }, orderBy: [{ key: "mixed", direction: "ASC" }] },
+    rows: [
+      { mixed: null, n: 2 },
+      { mixed: 5, n: 1 },
+      { mixed: 10, n: 1 },
+      { mixed: "B", n: 1 },
+      { mixed: "a", n: 1 },
+      { mixed: "b", n: 1 }
+    ]
+  },
+  {
+    name: "order by a max alias across types",
+    spec: { groupBy: ["kind"], metrics: { m: { max: "mixed" } }, orderBy: [{ key: "m", direction: "ASC" }] },
+    rows: [
+      { kind: "chore", m: null },
+      { kind: "feature", m: "B" },
+      { kind: null, m: "a" },
+      { kind: "bug", m: "b" }
+    ]
+  },
+  {
+    name: "order by a min alias across types, descending",
+    spec: { groupBy: ["kind"], metrics: { lo: { min: "mixed" } }, orderBy: [{ key: "lo", direction: "DESC" }] },
+    rows: [
+      { kind: null, lo: "a" },
+      { kind: "feature", lo: 10 },
+      { kind: "bug", lo: 5 },
+      { kind: "chore", lo: null }
+    ]
+  },
+  {
+    name: "order by a max alias, number before string",
+    spec: {
+      filter: "uuid IN ['a1', 'a3', 'a4']",
+      groupBy: ["kind"],
+      metrics: { m: { max: "mixed" } },
+      orderBy: [{ key: "m", direction: "ASC" }]
+    },
+    rows: [
+      { kind: "bug", m: 5 },
+      { kind: "feature", m: "B" }
+    ]
+  },
+  {
+    name: "min, max and count distinct on dates return ISO strings",
+    spec: {
+      groupBy: ["team.name"],
+      metrics: { lo: { min: "at" }, hi: { max: "at" }, days: { countDistinct: "at" } },
+      orderBy: [{ key: "team.name", direction: "ASC" }]
+    },
+    rows: [
+      { "team.name": null, lo: null, hi: null, days: 0 },
+      { "team.name": "core", lo: "2026-01-05T10:00:00.000Z", hi: "2026-03-01T00:00:00.000Z", days: 2 },
+      { "team.name": "ops", lo: "2026-02-14T12:30:00.000Z", hi: "2026-02-14T12:30:00.000Z", days: 1 },
+      { "team.name": "web", lo: "2025-12-31T23:59:59.000Z", hi: "2026-01-05T10:00:00.000Z", days: 2 }
+    ]
+  },
+  {
+    name: "group by a date returns ISO string keys",
+    spec: { groupBy: ["at"], metrics: { n: { count: "*" } }, orderBy: [{ key: "at", direction: "ASC" }] },
+    rows: [
+      { at: null, n: 2 },
+      { at: "2025-12-31T23:59:59.000Z", n: 1 },
+      { at: "2026-01-05T10:00:00.000Z", n: 2 },
+      { at: "2026-02-14T12:30:00.000Z", n: 1 },
+      { at: "2026-03-01T00:00:00.000Z", n: 1 }
+    ]
+  }
+];
+
+/**
+ * Check a repository aggregates {@link AGGREGATION_DATASET} exactly like {@link AGGREGATION_CASES}
+ *
+ * The repository must be empty and keyed by `uuid`; the dataset is created in it.
+ * @param repo - the repository to check
+ * @param options - expected native flag, and case names to skip with a documented reason
+ * @param options.native - the expected `native` flag of every result
+ * @param options.skip - names of the cases to skip
+ */
+export async function checkAggregation(
+  repo: Repository<any>,
+  options: { native: boolean; skip?: string[] }
+): Promise<void> {
+  repo.configureAggregation({ fallback: "allow" });
+  for (const item of AGGREGATION_DATASET) {
+    await repo.create(structuredClone(item) as any);
+  }
+  for (const { name, spec, rows } of AGGREGATION_CASES) {
+    if (options.skip?.includes(name)) continue;
+    const res = await repo.aggregate(spec);
+    assert.deepStrictEqual(res.rows, rows, name);
+    assert.strictEqual(res.native, options.native, `${name}: native flag`);
+  }
+}

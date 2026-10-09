@@ -429,6 +429,116 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
     return { $or: [{ __type: { $in: ids } }, { __type: { $exists: false } }] };
   }
 
+  /**
+   * Translate a WebdaQL filter to a MongoDB filter restricted to this model
+   * @param expression - the WebdaQL expression
+   * @returns the MongoDB filter
+   */
+  protected buildFilter(expression: WebdaQL.Expression): any {
+    const filter = mapExpression(expression);
+    const classFilter = this.getClassFilter();
+    if (classFilter) {
+      return Object.keys(filter).length ? { $and: [classFilter, filter] } : classFilter;
+    }
+    return filter;
+  }
+
+  /**
+   * Translate an aggregation to a MongoDB pipeline
+   *
+   * Group keys live in `_id.gN` and are flattened by executeAggregation, since MongoDB
+   * cannot project dotted output names. The query is validated again first: paths and aliases become
+   * field references and output names.
+   * @param query - the aggregation
+   * @returns the pipeline
+   */
+  buildAggregationPipeline(query: WebdaQL.AggregationQuery): any[] {
+    WebdaQL.validateAggregation(query);
+    const id: Record<string, any> = {};
+    const sortKeys: Record<string, string> = {};
+    query.groupBy.forEach((path, i) => {
+      // $ifNull: a missing field and an explicit null always share one group
+      id[`g${i}`] = { $ifNull: [`$${path}`, null] };
+      sortKeys[path] = `_id.g${i}`;
+    });
+    const group: Record<string, any> = { _id: query.groupBy.length ? id : null };
+    const sizes: Record<string, any> = {};
+    for (const [alias, metric] of Object.entries(query.metrics)) {
+      const field = `$${metric.field}`;
+      sortKeys[alias] = alias;
+      switch (metric.fn) {
+        case "COUNT":
+          group[alias] = metric.field
+            ? { $sum: { $cond: [{ $ne: [{ $ifNull: [field, null] }, null] }, 1, 0] } }
+            : { $sum: 1 };
+          break;
+        case "COUNT_DISTINCT":
+          group[alias] = { $addToSet: field };
+          sizes[alias] = { $size: { $filter: { input: `$${alias}`, cond: { $ne: ["$$this", null] } } } };
+          break;
+        case "SUM":
+          group[alias] = { $sum: field };
+          break;
+        case "AVG":
+          group[alias] = { $avg: field };
+          break;
+        case "MIN":
+          group[alias] = { $min: field };
+          break;
+        case "MAX":
+          group[alias] = { $max: field };
+          break;
+      }
+    }
+    const pipeline: any[] = [{ $match: this.buildFilter(query.filter) }, { $group: group }];
+    if (Object.keys(sizes).length) {
+      pipeline.push({ $addFields: sizes });
+    }
+    const sort: Record<string, 1 | -1> = {};
+    for (const order of query.orderBy ?? []) {
+      sort[sortKeys[order.key]] = order.direction === "ASC" ? 1 : -1;
+    }
+    if (!Object.keys(sort).length && query.groupBy.length) {
+      query.groupBy.forEach((_, i) => (sort[`_id.g${i}`] = 1));
+    }
+    if (Object.keys(sort).length) {
+      pipeline.push({ $sort: sort });
+    }
+    const limit = query.limit ?? (query.groupBy.length ? this.aggregationOptions.maxGroups + 1 : undefined);
+    if (limit) {
+      pipeline.push({ $limit: limit });
+    }
+    return pipeline;
+  }
+
+  /** @override — MongoDB aggregation pipeline */
+  protected async executeAggregation(query: WebdaQL.AggregationQuery): Promise<WebdaQL.AggregationResult<any>> {
+    const docs = await (
+      await this.getCollection()
+    )
+      .aggregate(this.buildAggregationPipeline(query), { allowDiskUse: true })
+      .toArray();
+    if (query.limit === undefined && docs.length > this.aggregationOptions.maxGroups) {
+      throw new WebdaQL.AggregationError(
+        "AGGREGATION_TOO_MANY_GROUPS",
+        `Aggregation exceeds ${this.aggregationOptions.maxGroups} groups`
+      );
+    }
+    const rows = docs.map(doc => {
+      const row: Record<string, unknown> = {};
+      query.groupBy.forEach((path, i) => (row[path] = doc._id?.[`g${i}`] ?? null));
+      for (const [alias, metric] of Object.entries(query.metrics)) {
+        row[alias] = doc[alias] ?? (metric.fn === "SUM" || metric.fn.startsWith("COUNT") ? 0 : null);
+      }
+      return row;
+    });
+    if (!rows.length && !query.groupBy.length) {
+      // MongoDB returns no document for an empty global aggregation, SQL and the spec return one row
+      return { rows: new WebdaQL.Aggregator(query).rows(), native: true };
+    }
+    return { rows, native: true };
+  }
+
   /** @override — translate the WebdaQL query to a MongoDB find */
   async query(query: string | any): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
     // A query object built or changed by code goes back through the grammar: no forged operator reaches MongoDB
@@ -444,11 +554,7 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
       sort[order.field] = order.direction === "ASC" ? 1 : -1;
     }
     const limit = parsed.limit || 1000;
-    let filter = mapExpression(parsed.filter);
-    const classFilter = this.getClassFilter();
-    if (classFilter) {
-      filter = Object.keys(filter).length ? { $and: [classFilter, filter] } : classFilter;
-    }
+    const filter = this.buildFilter(parsed.filter);
     const docs = await (await this.getCollection()).find(filter).sort(sort).skip(offset).limit(limit).toArray();
     const results = docs.map(doc => this.fromDocument(doc));
     return {
@@ -464,11 +570,7 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
    * @returns the filter, undefined when LIMIT is 0
    */
   protected async getStatementFilter(statement: WebdaQL.Query): Promise<any | undefined> {
-    let filter = mapExpression(statement.filter);
-    const classFilter = this.getClassFilter();
-    if (classFilter) {
-      filter = Object.keys(filter).length ? { $and: [classFilter, filter] } : classFilter;
-    }
+    const filter = this.buildFilter(statement.filter);
     if (statement.limit === undefined) {
       return filter;
     }

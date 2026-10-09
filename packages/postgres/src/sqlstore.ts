@@ -1,6 +1,7 @@
 import { MemoryRepository, Store, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "@webda/core";
 import type { ModelClass, Repository } from "@webda/core";
 import * as WebdaQL from "@webda/ql";
+import type { AggregationQuery, AggregationResult } from "@webda/ql";
 
 /** Database connection metadata */
 export interface SQLDatabase {
@@ -613,6 +614,136 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
       results,
       continuationToken: limit <= results.length ? (offset + limit).toString() : undefined
     };
+  }
+
+  /**
+   * JSONB expression of a dotted path, JSON null folded into SQL NULL
+   * @param path - validated dotted path
+   * @returns the SQL expression
+   */
+  protected jsonPath(path: string): string {
+    return `NULLIF(data #> '{${this.checkPath(path.split("."))}}', 'null'::jsonb)`;
+  }
+
+  /**
+   * Translate an aggregation to SQL
+   *
+   * The query is validated again here and paths are checked once more, so they are safe to interpolate.
+   * Columns get positional names (`gN` per group path, `mN` / `nN` / `sN` per metric index), mapped back to
+   * the aliases by decode: alias length or shared prefixes never meet PostgreSQL's 63-byte identifier limit.
+   * MIN / MAX select a numeric and a text candidate, merged by decode.
+   * @param query - the aggregation
+   * @param where - extra WHERE condition (class condition), optional
+   * @returns the statement and the row decoder
+   */
+  buildAggregationSQL(query: AggregationQuery, where?: string): { sql: string; decode: (row: any) => any } {
+    WebdaQL.validateAggregation(query);
+    const metrics = Object.entries(query.metrics);
+    const columns: string[] = [];
+    const groupColumns: string[] = [];
+    // Sort keys of each groupBy path / metric alias: type rank, then number, then text in code unit order, then jsonb
+    const sortKeys: Record<string, string[]> = {};
+    const num = (x: string) => `CASE WHEN jsonb_typeof(${x}) = 'number' THEN (${x})::numeric END`;
+    const str = (x: string) => `(CASE WHEN jsonb_typeof(${x}) = 'string' THEN ${x} #>> '{}' END) COLLATE "C"`;
+    query.groupBy.forEach((path, i) => {
+      const x = this.jsonPath(path);
+      columns.push(`${x} AS "g${i}"`);
+      groupColumns.push(String(i + 1));
+      sortKeys[path] = [
+        `CASE WHEN ${x} IS NULL THEN NULL WHEN jsonb_typeof(${x}) = 'number' THEN 1 WHEN jsonb_typeof(${x}) = 'string' THEN 2 ELSE 3 END`,
+        num(x),
+        str(x),
+        x
+      ];
+    });
+    metrics.forEach(([alias, metric], i) => {
+      const x = metric.field ? this.jsonPath(metric.field) : "";
+      switch (metric.fn) {
+        case "COUNT":
+          columns.push(`${metric.field ? `COUNT(${x})` : "COUNT(*)"} AS "m${i}"`);
+          break;
+        case "COUNT_DISTINCT":
+          columns.push(`COUNT(DISTINCT ${x}) AS "m${i}"`);
+          break;
+        case "SUM":
+          columns.push(`COALESCE(SUM(${num(x)}), 0) AS "m${i}"`);
+          break;
+        case "AVG":
+          columns.push(`AVG(${num(x)}) AS "m${i}"`);
+          break;
+        case "MIN":
+        case "MAX": {
+          const n = `${metric.fn}(${num(x)})`;
+          const t = `${metric.fn}(${str(x)})`;
+          columns.push(`${n} AS "n${i}"`, `${t} AS "s${i}"`);
+          // The rank follows the type of the decoded value (number 1 < string 2), not the preference:
+          // MIN prefers a number, MAX prefers a string. The other candidate only matters when it is the result.
+          sortKeys[alias] =
+            metric.fn === "MIN"
+              ? [
+                  `CASE WHEN ${n} IS NOT NULL THEN 1 WHEN ${t} IS NOT NULL THEN 2 END`,
+                  n,
+                  `CASE WHEN ${n} IS NULL THEN ${t} END`
+                ]
+              : [
+                  `CASE WHEN ${t} IS NOT NULL THEN 2 WHEN ${n} IS NOT NULL THEN 1 END`,
+                  `CASE WHEN ${t} IS NULL THEN ${n} END`,
+                  t
+                ];
+          break;
+        }
+      }
+      sortKeys[alias] ??= [`"m${i}"`];
+    });
+    const filter = this.duplicateExpression(query.filter).toString();
+    let sql = `SELECT ${columns.join(", ")} FROM ${this.table} WHERE ${where ? `${where} AND (${filter})` : filter}`;
+    if (groupColumns.length) {
+      sql += ` GROUP BY ${groupColumns.join(", ")}`;
+    }
+    const order = (keys: string[], direction: "ASC" | "DESC") =>
+      keys.map(key => `${key} ${direction} NULLS ${direction === "ASC" ? "FIRST" : "LAST"}`);
+    const orders = (query.orderBy ?? []).flatMap(o => order(sortKeys[o.key], o.direction));
+    if (!orders.length) {
+      orders.push(...query.groupBy.flatMap(path => order(sortKeys[path], "ASC")));
+    }
+    if (orders.length) {
+      sql += ` ORDER BY ${orders.join(", ")}`;
+    }
+    const limit = query.limit ?? (query.groupBy.length ? this.aggregationOptions.maxGroups + 1 : undefined);
+    if (limit) {
+      sql += ` LIMIT ${limit}`;
+    }
+    const decode = (row: any) => {
+      const out: Record<string, unknown> = {};
+      query.groupBy.forEach((path, i) => (out[path] = row[`g${i}`] ?? null));
+      metrics.forEach(([alias, metric], i) => {
+        if (metric.fn === "MIN" || metric.fn === "MAX") {
+          const raw = row[`n${i}`];
+          const n = raw === null || raw === undefined ? null : Number(raw);
+          const t = row[`s${i}`] ?? null;
+          out[alias] = metric.fn === "MIN" ? (n ?? t) : (t ?? n);
+        } else {
+          const v = row[`m${i}`];
+          out[alias] = v === null || v === undefined ? null : Number(v);
+        }
+      });
+      return out;
+    };
+    return { sql, decode };
+  }
+
+  /** @override GROUP BY over the data jsonb column */
+  protected async executeAggregation(query: AggregationQuery): Promise<AggregationResult<any>> {
+    const { sql, decode } = this.buildAggregationSQL(query, this.getClassCondition());
+    const res = await this.execute(sql);
+    if (query.limit === undefined && res.rows.length > this.aggregationOptions.maxGroups) {
+      const { AggregationError } = await import("@webda/ql");
+      throw new AggregationError(
+        "AGGREGATION_TOO_MANY_GROUPS",
+        `Aggregation exceeds ${this.aggregationOptions.maxGroups} groups`
+      );
+    }
+    return { rows: res.rows.map(decode), native: true };
   }
 
   /**

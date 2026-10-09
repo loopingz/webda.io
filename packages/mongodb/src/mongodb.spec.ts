@@ -3,7 +3,7 @@ import * as assert from "node:assert";
 import * as WebdaQL from "@webda/ql";
 import { parse } from "@webda/ql";
 import { MongoClient } from "mongodb";
-import { checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
+import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import { EventRepository, MemoryRepository, StoreNotFoundError, UpdateConditionFailError, useModel } from "@webda/core";
 import { MongoParameters, MongoRepository, MongoStore, mapExpression } from "./mongodb.service.js";
 
@@ -170,6 +170,74 @@ export class MongoStoreTest extends WebdaApplicationTest {
 
   async afterEach() {
     await this.store?.stop();
+  }
+
+  @test
+  async aggregationConformance() {
+    const collection = (await this.store._connect()) as any;
+    await collection.deleteMany({});
+    await checkAggregation(new MongoRepository(Item as any, ["uuid"], () => this.store._connect()) as any, {
+      native: true
+    });
+    await collection.deleteMany({});
+  }
+
+  @test
+  async aggregationMissingAndNullGroupTogether() {
+    const collection = (await this.store._connect()) as any;
+    await collection.deleteMany({});
+    const repo: any = new MongoRepository(Item as any, ["uuid"], () => this.store._connect());
+    for (const [uuid, extra] of [
+      ["a", { name: null }],
+      ["b", {}],
+      ["c", {}],
+      ["d", { name: "x" }]
+    ] as const) {
+      await repo.create({ uuid, ...extra });
+    }
+    const result = await repo.aggregate({ groupBy: ["name"], metrics: { n: { count: "*" } } });
+    assert.deepStrictEqual(result.rows, [
+      { name: null, n: 3 },
+      { name: "x", n: 1 }
+    ]);
+    await collection.deleteMany({});
+  }
+
+  @test
+  aggregationPipeline() {
+    const repo: any = new MongoRepository(Item as any, ["uuid"], async () => undefined as any);
+    assert.deepStrictEqual(
+      repo.buildAggregationPipeline(
+        WebdaQL.toAggregationQuery({
+          groupBy: ["team.name"],
+          metrics: { n: { count: "*" }, d: { countDistinct: "label" } },
+          orderBy: [{ key: "n", direction: "DESC" }],
+          limit: 2
+        })
+      ),
+      [
+        { $match: { $or: [{ __type: { $in: ["Test/Item", "Test/SubItem"] } }, { __type: { $exists: false } }] } },
+        { $group: { _id: { g0: { $ifNull: ["$team.name", null] } }, n: { $sum: 1 }, d: { $addToSet: "$label" } } },
+        { $addFields: { d: { $size: { $filter: { input: "$d", cond: { $ne: ["$$this", null] } } } } } },
+        { $sort: { n: -1 } },
+        { $limit: 2 }
+      ]
+    );
+  }
+
+  @test
+  aggregationPipelineValidatesTheQuery() {
+    const repo: any = new MongoRepository(Item as any, ["uuid"], async () => undefined as any);
+    const query = (over: any) => ({
+      filter: new WebdaQL.AndExpression([]),
+      groupBy: [],
+      metrics: { n: { fn: "COUNT" } },
+      ...over
+    });
+    // Hand-built ASTs, not from toAggregationQuery: operator-like aliases or paths must not reach MongoDB
+    for (const over of [{ metrics: { $where: { fn: "COUNT" } } }, { groupBy: ["$expr"] }, { groupBy: ["tags.0"] }]) {
+      assert.throws(() => repo.buildAggregationPipeline(query(over)), WebdaQL.WebdaQLError, JSON.stringify(over));
+    }
   }
 
   @test

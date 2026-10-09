@@ -80,6 +80,17 @@ ORDER_BY: 'ORDER BY';
 ASC: 'ASC';
 DESC: 'DESC';
 
+// Aggregation
+GROUP_BY: 'GROUP BY';
+AS: 'AS';
+DISTINCT: 'DISTINCT';
+COUNT: 'COUNT';
+SUM: 'SUM';
+AVG: 'AVG';
+MIN: 'MIN';
+MAX: 'MAX';
+STAR: '*';
+
 // Literals
 
 DQUOTED_STRING_LITERAL:                      DQUOTA_STRING;

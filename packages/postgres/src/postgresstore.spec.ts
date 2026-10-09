@@ -1,8 +1,8 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
-import { WebdaQLError, PrependCondition, parse } from "@webda/ql";
-import { checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
+import { AndExpression, WebdaQLError, PrependCondition, parse, toAggregationQuery } from "@webda/ql";
+import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import { EventRepository, MemoryRepository, useModel } from "@webda/core";
 import PostgresStore, { PostgresParameters } from "./postgresstore.service.js";
 import { PostgresRepository } from "./sqlstore.js";
@@ -30,6 +30,14 @@ class Cat extends Animal {
   static Metadata = { Identifier: "Test/Cat", Subclasses: [] as any[] };
 }
 Animal.Metadata.Subclasses.push(Dog, Cat);
+
+/** Two unrelated models sharing a table */
+class AggA extends Row {
+  static Metadata = { Identifier: "Test/AggA", Subclasses: [] as any[] };
+}
+class AggB extends Row {
+  static Metadata = { Identifier: "Test/AggB", Subclasses: [] as any[] };
+}
 
 /** Rows covering numbers, booleans, strings, missing fields, nulls and type mismatches */
 export const PARITY_ROWS = [
@@ -292,6 +300,145 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     await assert.rejects(() => events.updateMany("UPDATE SET unknown = 1"), /Unknown assignment field/);
     assert.strictEqual(await events.deleteMany("DELETE WHERE public = TRUE"), 1);
     assert.deepStrictEqual(seen, [], "bulk statements emit no per-object event");
+  }
+
+  @test
+  async aggregationConformance() {
+    const client = this.store!.getClient();
+    await client.query("DROP TABLE IF EXISTS agg_rows");
+    try {
+      const repo = new PostgresRepository<any>(Row as any, ["uuid"], client, "agg_rows");
+      await repo.setupTable();
+      await checkAggregation(repo as any, { native: true });
+    } finally {
+      await client.query("DROP TABLE IF EXISTS agg_rows");
+    }
+  }
+
+  @test
+  aggregationSQLIsSafe() {
+    const repo: any = new PostgresRepository<any>(class {} as any, ["uuid"], {} as any, "t");
+    const { sql } = repo.buildAggregationSQL(
+      toAggregationQuery({ groupBy: ["team.name"], metrics: { n: { count: "*" } }, limit: 3 } as any)
+    );
+    const x = `NULLIF(data #> '{team,name}', 'null'::jsonb)`;
+    assert.strictEqual(
+      sql,
+      `SELECT ${x} AS "g0", COUNT(*) AS "m0" FROM t WHERE TRUE GROUP BY 1 ORDER BY ` +
+        `CASE WHEN ${x} IS NULL THEN NULL WHEN jsonb_typeof(${x}) = 'number' THEN 1 ` +
+        `WHEN jsonb_typeof(${x}) = 'string' THEN 2 ELSE 3 END ASC NULLS FIRST, ` +
+        `CASE WHEN jsonb_typeof(${x}) = 'number' THEN (${x})::numeric END ASC NULLS FIRST, ` +
+        `(CASE WHEN jsonb_typeof(${x}) = 'string' THEN ${x} #>> '{}' END) COLLATE "C" ASC NULLS FIRST, ` +
+        `${x} ASC NULLS FIRST LIMIT 3`
+    );
+  }
+
+  @test
+  aggregationSQLValidatesTheQuery() {
+    const repo: any = new PostgresRepository<any>(class {} as any, ["uuid"], {} as any, "t");
+    // A hand-built AST, not from toAggregationQuery: the alias would otherwise reach the SQL
+    assert.throws(
+      () =>
+        repo.buildAggregationSQL({
+          filter: new AndExpression([]),
+          groupBy: [],
+          metrics: { 'n" FROM t; DROP TABLE t; --': { fn: "COUNT" } }
+        }),
+      WebdaQLError
+    );
+  }
+
+  @test
+  async aggregationLongAliases() {
+    const client = this.store!.getClient();
+    await client.query("DROP TABLE IF EXISTS agg_long");
+    try {
+      const repo = new PostgresRepository<any>(Row as any, ["uuid"], client, "agg_long");
+      await repo.setupTable();
+      await repo.create({ uuid: "l1", kind: "a", points: 3 });
+      await repo.create({ uuid: "l2", kind: "a", points: 5 });
+      await repo.create({ uuid: "l3", kind: "b", points: 7 });
+      // Beyond the 63 bytes PostgreSQL keeps of an identifier
+      const long = "a" + "x".repeat(69);
+      const prefix = "b".repeat(61);
+      const res = await repo.aggregate({
+        groupBy: ["kind"],
+        metrics: {
+          [long]: { count: "*" },
+          [`${prefix}_sum`]: { sum: "points" },
+          [`${prefix}_max`]: { max: "points" }
+        },
+        orderBy: [{ key: `${prefix}_max`, direction: "DESC" }]
+      } as any);
+      assert.strictEqual(long.length, 70);
+      assert.deepStrictEqual(res.rows, [
+        { kind: "b", [long]: 1, [`${prefix}_sum`]: 7, [`${prefix}_max`]: 7 },
+        { kind: "a", [long]: 2, [`${prefix}_sum`]: 8, [`${prefix}_max`]: 5 }
+      ]);
+    } finally {
+      await client.query("DROP TABLE IF EXISTS agg_long");
+    }
+  }
+
+  @test
+  async aggregationStaysInTheModelHierarchy() {
+    const client = this.store!.getClient();
+    await client.query("DROP TABLE IF EXISTS agg_iso");
+    try {
+      const a = new PostgresRepository<any>(
+        AggA as any,
+        ["uuid"],
+        client,
+        "agg_iso",
+        undefined,
+        undefined,
+        "Test/AggA"
+      );
+      const b = new PostgresRepository<any>(
+        AggB as any,
+        ["uuid"],
+        client,
+        "agg_iso",
+        undefined,
+        undefined,
+        "Test/AggA"
+      );
+      await a.setupTable();
+      await a.create({ uuid: "x", kind: "k1" });
+      await a.create({ uuid: "y", kind: "k2" });
+      await b.create({ uuid: "z", kind: "k1" });
+      await b.create({ uuid: "w", kind: "k3" });
+      // Written before stamping: belongs to the table model
+      await client.query(`INSERT INTO agg_iso(uuid,data) VALUES($1, $2)`, [
+        "old",
+        JSON.stringify({ uuid: "old", kind: "k1" })
+      ]);
+      for (const filter of [undefined, "uuid = 'x' OR uuid = 'z' OR uuid = 'old'"]) {
+        const total = await a.aggregate({ filter, metrics: { n: { count: "*" } } } as any);
+        assert.deepStrictEqual(total.rows, [{ n: filter ? 2 : 3 }], String(filter));
+        const grouped = await a.aggregate({
+          filter,
+          groupBy: ["kind"],
+          metrics: { n: { count: "*" } },
+          orderBy: [{ key: "kind", direction: "ASC" }]
+        } as any);
+        assert.deepStrictEqual(
+          grouped.rows,
+          filter
+            ? [{ kind: "k1", n: 2 }]
+            : [
+                { kind: "k1", n: 2 },
+                { kind: "k2", n: 1 }
+              ],
+          String(filter)
+        );
+        assert.strictEqual(total.native, true);
+      }
+      const other = await b.aggregate({ metrics: { n: { count: "*" } } } as any);
+      assert.deepStrictEqual(other.rows, [{ n: 2 }]);
+    } finally {
+      await client.query("DROP TABLE IF EXISTS agg_iso");
+    }
   }
 
   @test

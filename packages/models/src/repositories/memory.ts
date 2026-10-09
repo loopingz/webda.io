@@ -1,5 +1,5 @@
 import type { ArrayElement } from "@webda/tsc-esm";
-import type { Query as WebdaQLQuery, QueryParameters } from "@webda/ql";
+import type { AggregationQuery, AggregationResult, Query as WebdaQLQuery, QueryParameters } from "@webda/ql";
 import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable.js";
 import type { Helpers, JSONed, SelfJSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";
 import { deserialize, serialize, serializeRaw } from "@webda/serialize";
@@ -508,6 +508,18 @@ export class MemoryRepository<
     }
 
     return result;
+  }
+
+  /**
+   * A plain MemoryRepository (MemoryStore, FileStore) aggregates its own local data: that is native.
+   * Subclasses backed by a remote database (Firestore, Dynamo, ...) inherit the fallback instead.
+   * @override
+   */
+  protected async executeAggregation(query: AggregationQuery): Promise<AggregationResult<any>> {
+    if (Object.getPrototypeOf(this) !== MemoryRepository.prototype) {
+      return super.executeAggregation(query);
+    }
+    return { rows: await this.aggregateInMemory(query), native: true };
   }
 
   /**

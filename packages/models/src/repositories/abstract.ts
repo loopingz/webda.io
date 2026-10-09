@@ -4,7 +4,14 @@ import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS, WEBDA_LEGACY_UID } from "../storable.j
 import { ModelRefWithCreate } from "../relations.js";
 import { Repository } from "./repository.js";
 import type { ArrayElement } from "@webda/tsc-esm";
-import type { Assignment, Query as WebdaQLQuery, QueryParameters } from "@webda/ql";
+import type {
+  AggregationQuery,
+  AggregationResult,
+  Assignment,
+  Query as WebdaQLQuery,
+  QueryParameters
+} from "@webda/ql";
+import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
 
 /**
  * Base repository implementation providing shared logic for key management,
@@ -18,6 +25,11 @@ import type { Assignment, Query as WebdaQLQuery, QueryParameters } from "@webda/
 export abstract class AbstractRepository<T extends ModelClass> implements Repository<T> {
   /** Registered event listeners keyed by event name */
   protected events: Map<keyof InstanceType<T>[typeof WEBDA_EVENTS], Set<(data: any) => void>> = new Map();
+
+  /** Aggregation fallback policy, set by the owning store through configureAggregation */
+  protected aggregationOptions: AggregationOptions = { fallback: "warn", maxGroups: 10000 };
+  /** Fallback shapes already warned about */
+  protected warnedAggregations: Set<string> = new Set();
 
   /**
    * @param model - The model class constructor
@@ -495,6 +507,89 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     params?: QueryParameters
   ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
   abstract iterate(query: string, params?: QueryParameters): AsyncGenerator<InstanceType<T>, any, any>;
+
+  /**
+   * Copy the known options (fallback, maxGroups, warn); undefined values keep the current ones
+   * @override
+   * @throws Error when maxGroups is not a positive integer or fallback is unknown
+   */
+  configureAggregation(options: Partial<AggregationOptions>): void {
+    const { fallback, maxGroups, warn } = options ?? {};
+    if (maxGroups !== undefined && !(Number.isInteger(maxGroups) && maxGroups > 0)) {
+      throw new Error(`Invalid aggregation maxGroups '${maxGroups}': expected a positive integer`);
+    }
+    if (fallback !== undefined && !["allow", "warn", "deny"].includes(fallback)) {
+      throw new Error(`Invalid aggregation fallback '${fallback}': expected allow, warn or deny`);
+    }
+    if (fallback !== undefined) this.aggregationOptions.fallback = fallback;
+    if (maxGroups !== undefined) this.aggregationOptions.maxGroups = maxGroups;
+    if (warn !== undefined) this.aggregationOptions.warn = warn;
+  }
+
+  /**
+   * Keep the full generic signature here (not `spec: any`): concrete repositories are used
+   * directly in code and tests, and must expose the typed rows.
+   * @override
+   */
+  async aggregate<
+    const G extends readonly PropertyPaths<InstanceType<T>>[] = [],
+    const M extends Record<string, MetricSpec<InstanceType<T>>> = Record<string, MetricSpec<InstanceType<T>>>
+  >(
+    spec: AggregationSpec<InstanceType<T>, G, M>,
+    params?: QueryParameters
+  ): Promise<AggregationResult<AggregatedRow<InstanceType<T>, G, M>>> {
+    const { toAggregationQuery } = await import("@webda/ql");
+    return this.executeAggregation(toAggregationQuery(spec as any, params));
+  }
+
+  /**
+   * Run a validated aggregation
+   *
+   * Backends override it to aggregate natively, and call super for the shapes they cannot translate.
+   * The default streams iterate() into the in-memory Aggregator, under the fallback policy.
+   * @param query - the validated aggregation
+   * @returns the rows
+   */
+  protected async executeAggregation(query: AggregationQuery): Promise<AggregationResult<any>> {
+    await this.checkAggregationFallback(query, "the backend has no native aggregation");
+    return { rows: await this.aggregateInMemory(query), native: false };
+  }
+
+  /**
+   * Apply the fallback policy before aggregating in memory
+   * @param query - the aggregation
+   * @param reason - why it cannot run natively
+   * @throws AggregationError AGGREGATION_NOT_NATIVE when the policy is deny
+   */
+  protected async checkAggregationFallback(query: AggregationQuery, reason: string): Promise<void> {
+    const { fallback, warn } = this.aggregationOptions;
+    if (fallback === "allow") return;
+    const model = (this.model as any)?.Metadata?.Identifier ?? this.model?.name;
+    const message = `Aggregation on ${model} grouped by [${query.groupBy.join(", ")}] runs in memory: ${reason}`;
+    if (fallback === "deny") {
+      const { AggregationError } = await import("@webda/ql");
+      throw new AggregationError("AGGREGATION_NOT_NATIVE", message);
+    }
+    const shape = `${query.groupBy.join(",")}|${reason}`;
+    if (!this.warnedAggregations.has(shape)) {
+      this.warnedAggregations.add(shape);
+      warn?.(message);
+    }
+  }
+
+  /**
+   * Aggregate by streaming the filtered items
+   * @param query - the aggregation
+   * @returns the rows
+   */
+  protected async aggregateInMemory(query: AggregationQuery): Promise<Record<string, unknown>[]> {
+    const { Aggregator } = await import("@webda/ql");
+    const aggregator = new Aggregator(query, this.aggregationOptions.maxGroups);
+    for await (const item of this.iterate(query.filter.toString())) {
+      aggregator.add(item);
+    }
+    return aggregator.rows();
+  }
   abstract deleteItemFromCollection<
     K extends Extract<PropertyPaths<InstanceType<T>, any[]>, keyof InstanceType<T>>,
     L extends keyof ArrayElement<InstanceType<T>[K]>

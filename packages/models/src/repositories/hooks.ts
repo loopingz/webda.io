@@ -1,8 +1,9 @@
 import type { ModelRefWithCreate } from "../relations.js";
 import { PrimaryKeyType, SettablePrimaryKey, WEBDA_PRIMARY_KEY, type Storable, type ModelClass } from "../storable.js";
-import { Helpers } from "../types.js";
+import { Helpers, PropertyPaths } from "../types.js";
 import type { Repository } from "./repository.js";
-import type { QueryParameters, WebdaQLString } from "@webda/ql";
+import type { AggregationResult, QueryParameters, WebdaQLString } from "@webda/ql";
+import type { AggregatedRow, AggregationSpec, MetricSpec } from "../aggregation.js";
 
 /**
  * Global registry mapping ModelClass constructors to their Repository instances.
@@ -110,6 +111,29 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
       for await (const item of useRepository(this).iterate(query, params)) {
         yield item as InstanceType<T>;
       }
+    }
+
+    /**
+     * Aggregate the objects directly
+     *
+     * ```ts
+     * Task.aggregate({ groupBy: ["status"], metrics: { n: { count: "*" } } });
+     * ```
+     * @param this - the model class constructor
+     * @param spec - filter, group by paths, metrics, ordering and limit
+     * @param params - values for the placeholders of `spec.filter`
+     * @returns the aggregated rows
+     */
+    static aggregate<
+      T extends ModelClass,
+      const G extends readonly PropertyPaths<InstanceType<T>>[] = [],
+      const M extends Record<string, MetricSpec<InstanceType<T>>> = Record<string, MetricSpec<InstanceType<T>>>
+    >(
+      this: T,
+      spec: AggregationSpec<InstanceType<T>, G, M>,
+      params?: QueryParameters
+    ): Promise<AggregationResult<AggregatedRow<InstanceType<T>, G, M>>> {
+      return useRepository(this).aggregate(spec, params);
     }
 
     /**

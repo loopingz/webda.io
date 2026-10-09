@@ -2,6 +2,10 @@
 
 import { ParseTreeVisitor } from "antlr4ts/tree/ParseTreeVisitor.js";
 
+import { BooleanAtomContext } from "./WebdaQLParserParser.js";
+import { IntegerAtomContext } from "./WebdaQLParserParser.js";
+import { NumberAtomContext } from "./WebdaQLParserParser.js";
+import { StringAtomContext } from "./WebdaQLParserParser.js";
 import { LikeExpressionContext } from "./WebdaQLParserParser.js";
 import { InExpressionContext } from "./WebdaQLParserParser.js";
 import { ContainsExpressionContext } from "./WebdaQLParserParser.js";
@@ -12,10 +16,10 @@ import { AndLogicExpressionContext } from "./WebdaQLParserParser.js";
 import { OrLogicExpressionContext } from "./WebdaQLParserParser.js";
 import { SubExpressionContext } from "./WebdaQLParserParser.js";
 import { AtomExpressionContext } from "./WebdaQLParserParser.js";
-import { BooleanAtomContext } from "./WebdaQLParserParser.js";
-import { IntegerAtomContext } from "./WebdaQLParserParser.js";
-import { NumberAtomContext } from "./WebdaQLParserParser.js";
-import { StringAtomContext } from "./WebdaQLParserParser.js";
+import { FieldItemContext } from "./WebdaQLParserParser.js";
+import { CountAllItemContext } from "./WebdaQLParserParser.js";
+import { CountDistinctItemContext } from "./WebdaQLParserParser.js";
+import { MetricItemContext } from "./WebdaQLParserParser.js";
 import { ValuesAtomContext } from "./WebdaQLParserParser.js";
 import { IdentifierAtomContext } from "./WebdaQLParserParser.js";
 import { WebdaqlContext } from "./WebdaQLParserParser.js";
@@ -28,6 +32,8 @@ import { WhereClauseContext } from "./WebdaQLParserParser.js";
 import { AssignmentListContext } from "./WebdaQLParserParser.js";
 import { AssignmentContext } from "./WebdaQLParserParser.js";
 import { FieldListContext } from "./WebdaQLParserParser.js";
+import { SelectItemContext } from "./WebdaQLParserParser.js";
+import { GroupByExpressionContext } from "./WebdaQLParserParser.js";
 import { LimitExpressionContext } from "./WebdaQLParserParser.js";
 import { OffsetExpressionContext } from "./WebdaQLParserParser.js";
 import { OrderFieldExpressionContext } from "./WebdaQLParserParser.js";
@@ -51,6 +57,38 @@ import { SetExpressionContext } from "./WebdaQLParserParser.js";
  * operations with no return type.
  */
 export interface WebdaQLParserVisitor<Result> extends ParseTreeVisitor<Result> {
+  /**
+   * Visit a parse tree produced by the `booleanAtom`
+   * labeled alternative in `WebdaQLParserParser.values`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitBooleanAtom?: (ctx: BooleanAtomContext) => Result;
+
+  /**
+   * Visit a parse tree produced by the `integerAtom`
+   * labeled alternative in `WebdaQLParserParser.values`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitIntegerAtom?: (ctx: IntegerAtomContext) => Result;
+
+  /**
+   * Visit a parse tree produced by the `numberAtom`
+   * labeled alternative in `WebdaQLParserParser.values`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitNumberAtom?: (ctx: NumberAtomContext) => Result;
+
+  /**
+   * Visit a parse tree produced by the `stringAtom`
+   * labeled alternative in `WebdaQLParserParser.values`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitStringAtom?: (ctx: StringAtomContext) => Result;
+
   /**
    * Visit a parse tree produced by the `likeExpression`
    * labeled alternative in `WebdaQLParserParser.expression`.
@@ -132,36 +170,36 @@ export interface WebdaQLParserVisitor<Result> extends ParseTreeVisitor<Result> {
   visitAtomExpression?: (ctx: AtomExpressionContext) => Result;
 
   /**
-   * Visit a parse tree produced by the `booleanAtom`
-   * labeled alternative in `WebdaQLParserParser.values`.
+   * Visit a parse tree produced by the `fieldItem`
+   * labeled alternative in `WebdaQLParserParser.selectItem`.
    * @param ctx the parse tree
    * @return the visitor result
    */
-  visitBooleanAtom?: (ctx: BooleanAtomContext) => Result;
+  visitFieldItem?: (ctx: FieldItemContext) => Result;
 
   /**
-   * Visit a parse tree produced by the `integerAtom`
-   * labeled alternative in `WebdaQLParserParser.values`.
+   * Visit a parse tree produced by the `countAllItem`
+   * labeled alternative in `WebdaQLParserParser.selectItem`.
    * @param ctx the parse tree
    * @return the visitor result
    */
-  visitIntegerAtom?: (ctx: IntegerAtomContext) => Result;
+  visitCountAllItem?: (ctx: CountAllItemContext) => Result;
 
   /**
-   * Visit a parse tree produced by the `numberAtom`
-   * labeled alternative in `WebdaQLParserParser.values`.
+   * Visit a parse tree produced by the `countDistinctItem`
+   * labeled alternative in `WebdaQLParserParser.selectItem`.
    * @param ctx the parse tree
    * @return the visitor result
    */
-  visitNumberAtom?: (ctx: NumberAtomContext) => Result;
+  visitCountDistinctItem?: (ctx: CountDistinctItemContext) => Result;
 
   /**
-   * Visit a parse tree produced by the `stringAtom`
-   * labeled alternative in `WebdaQLParserParser.values`.
+   * Visit a parse tree produced by the `metricItem`
+   * labeled alternative in `WebdaQLParserParser.selectItem`.
    * @param ctx the parse tree
    * @return the visitor result
    */
-  visitStringAtom?: (ctx: StringAtomContext) => Result;
+  visitMetricItem?: (ctx: MetricItemContext) => Result;
 
   /**
    * Visit a parse tree produced by the `valuesAtom`
@@ -250,6 +288,20 @@ export interface WebdaQLParserVisitor<Result> extends ParseTreeVisitor<Result> {
   visitFieldList?: (ctx: FieldListContext) => Result;
 
   /**
+   * Visit a parse tree produced by `WebdaQLParserParser.selectItem`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitSelectItem?: (ctx: SelectItemContext) => Result;
+
+  /**
+   * Visit a parse tree produced by `WebdaQLParserParser.groupByExpression`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitGroupByExpression?: (ctx: GroupByExpressionContext) => Result;
+
+  /**
    * Visit a parse tree produced by `WebdaQLParserParser.limitExpression`.
    * @param ctx the parse tree
    * @return the visitor result
@@ -286,7 +338,7 @@ export interface WebdaQLParserVisitor<Result> extends ParseTreeVisitor<Result> {
 
   /**
    * Visit a parse tree produced by the `values`
-   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesvaluesatomatom`.
+   * labeled alternative in `WebdaQLParserParser.selectItemselectItemselectItemselectItemexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesvaluesatomatom`.
    * @param ctx the parse tree
    * @return the visitor result
    */

@@ -277,12 +277,14 @@
         "Update",
         "Patch",
         "Query",
+        "Aggregate",
         "Created",
         "PartialUpdated",
         "Deleted",
         "Patched",
         "Updated",
-        "Queried"
+        "Queried",
+        "Aggregated"
       ],
       "PrimaryKey": [
         "uuid"
@@ -906,12 +908,14 @@
         "Update",
         "Patch",
         "Query",
+        "Aggregate",
         "Created",
         "PartialUpdated",
         "Deleted",
         "Patched",
         "Updated",
         "Queried",
+        "Aggregated",
         "Publish"
       ],
       "PrimaryKey": [
@@ -1039,12 +1043,14 @@
         "Update",
         "Patch",
         "Query",
+        "Aggregate",
         "Created",
         "PartialUpdated",
         "Deleted",
         "Patched",
         "Updated",
-        "Queried"
+        "Queried",
+        "Aggregated"
       ],
       "PrimaryKey": [
         "post",
@@ -1198,12 +1204,14 @@
         "Update",
         "Patch",
         "Query",
+        "Aggregate",
         "Created",
         "PartialUpdated",
         "Deleted",
         "Patched",
         "Updated",
-        "Queried"
+        "Queried",
+        "Aggregated"
       ],
       "PrimaryKey": [
         "slug"
@@ -1420,12 +1428,14 @@
         "Update",
         "Patch",
         "Query",
+        "Aggregate",
         "Created",
         "PartialUpdated",
         "Deleted",
         "Patched",
         "Updated",
         "Queried",
+        "Aggregated",
         "Login",
         "Follow",
         "Unfollow",
@@ -1562,12 +1572,14 @@
         "Update",
         "Patch",
         "Query",
+        "Aggregate",
         "Created",
         "PartialUpdated",
         "Deleted",
         "Patched",
         "Updated",
-        "Queried"
+        "Queried",
+        "Aggregated"
       ],
       "PrimaryKey": [
         "follower",

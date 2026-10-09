@@ -358,4 +358,48 @@ class StatementsTest {
       assert.throws(forge(query, change), WebdaQLError, `${query} ${change}`);
     }
   }
+
+  @test
+  normalizeQueryReadsEachPartOnce() {
+    // A Proxy answering one thing to the check and another to the print
+    const twoFaced = (safe: any[], hostile: any[]) => {
+      let reads = 0;
+      return new Proxy(safe, {
+        get: (target, prop, receiver) => {
+          if (prop === "join" || prop === "map") {
+            reads++;
+          }
+          return Reflect.get(reads > 0 ? hostile : target, prop, receiver);
+        }
+      });
+    };
+    const q: any = WebdaQL.parse("DELETE WHERE name = 'nope'");
+    q.filter.attribute = twoFaced(["name"], ["uuid IS NOT NULL OR name"]);
+    const normalized = (() => {
+      try {
+        return WebdaQL.normalizeQuery(q);
+      } catch (err) {
+        return err;
+      }
+    })();
+    if (!(normalized instanceof WebdaQLError)) {
+      assert.strictEqual(normalized.toString(), 'DELETE WHERE name = "nope"');
+    }
+    // Arrays of a query object are copied before they are checked
+    const fields: any = WebdaQL.parse("SELECT a");
+    fields.fields = twoFaced(["a"], ["a, b WHERE TRUE"]);
+    assert.strictEqual(WebdaQL.normalizeQuery(fields).toString(), "SELECT a");
+    const set: any = WebdaQL.parse("UPDATE SET a = 1");
+    set.assignments = twoFaced(
+      [{ field: "a", value: 1 }],
+      [
+        { field: "a", value: 1 },
+        { field: "uuid", value: "x" }
+      ]
+    );
+    assert.strictEqual(WebdaQL.normalizeQuery(set).toString(), "UPDATE SET a = 1");
+    const values: any = WebdaQL.parse("DELETE WHERE a IN [1]");
+    values.filter.value = twoFaced([1], [1, 2]);
+    assert.strictEqual(WebdaQL.normalizeQuery(values).toString(), "DELETE WHERE a IN [1]");
+  }
 }

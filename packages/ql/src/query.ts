@@ -1502,11 +1502,26 @@ const FIELD_SEGMENT = /^[A-Za-z0-9_]+$/;
  * @throws {WebdaQLError} when a segment is empty or holds anything but letters, digits and `_`
  */
 function checkFieldPath(field: unknown): string {
-  const segments = Array.isArray(field) ? field : typeof field === "string" ? field.split(".") : undefined;
+  // Copy first: what is checked is what is printed, whatever the object does on later reads
+  const segments = Array.isArray(field) ? snapshot(field) : typeof field === "string" ? field.split(".") : undefined;
   if (!segments?.length || segments.some(segment => typeof segment !== "string" || !FIELD_SEGMENT.test(segment))) {
-    throw new WebdaQLError(`Invalid field path in WebdaQL query: ${JSON.stringify(field)}`);
+    throw new WebdaQLError("Invalid field path in WebdaQL query");
   }
   return segments.join(".");
+}
+
+/**
+ * Copy an array of a query object into a plain array, reading each element once
+ * @param value - the array
+ * @returns the copy
+ */
+function snapshot<V>(value: readonly V[]): V[] {
+  const length = value.length;
+  const copy: V[] = [];
+  for (let i = 0; i < length; i++) {
+    copy.push(value[i]);
+  }
+  return copy;
 }
 
 /**
@@ -1523,47 +1538,59 @@ function checkScalar(value: unknown): string {
 }
 
 /**
- * Print an expression of a query object from its data only (never its own toString)
+ * Print an expression of a query object from its data only (never its own toString); every property and array is
+ * read once, so what is checked is what is printed
  * @param expression - the expression
  * @param nested - whether the expression is inside a logical expression
  * @returns the WebdaQL text
  * @throws {WebdaQLError} for an expression the grammar cannot produce
  */
 function printExpression(expression: unknown, nested: boolean): string {
-  if (expression instanceof BooleanExpression && typeof expression.value === "boolean") {
-    return expression.value ? "TRUE" : "FALSE";
+  if (expression instanceof BooleanExpression) {
+    const value = expression.value;
+    if (typeof value === "boolean") {
+      return value ? "TRUE" : "FALSE";
+    }
+    throw new WebdaQLError("Invalid expression in WebdaQL query");
   }
-  if (
-    (expression instanceof AndExpression || expression instanceof OrExpression) &&
-    Array.isArray(expression.children)
-  ) {
+  if (expression instanceof AndExpression || expression instanceof OrExpression) {
     const operator = expression instanceof AndExpression ? "AND" : "OR";
-    if (expression.children.length === 0) {
+    const children = expression.children;
+    if (!Array.isArray(children)) {
+      throw new WebdaQLError("Invalid expression in WebdaQL query");
+    }
+    const copy = snapshot(children);
+    if (copy.length === 0) {
       // An empty AND or OR matches everything
       return nested ? "TRUE" : "";
     }
-    const text = expression.children.map(child => printExpression(child, true)).join(` ${operator} `);
+    const text = copy.map(child => printExpression(child, true)).join(` ${operator} `);
     return nested ? `( ${text} )` : text;
   }
   if (expression instanceof ComparisonExpression) {
     const attribute = checkFieldPath(expression.attribute);
-    const operator = expression.operator as string;
+    const operator: unknown = expression.operator;
+    const value: unknown = expression.value;
+    if (typeof operator !== "string") {
+      throw new WebdaQLError("Invalid operator in WebdaQL query");
+    }
     if (UNARY_COMPARISON_OPERATORS.includes(operator as ComparisonOperator)) {
       return `${attribute} ${operator}`;
     }
     if (operator === "IN") {
-      if (!Array.isArray(expression.value) || expression.value.length === 0) {
+      const values = Array.isArray(value) ? snapshot(value) : undefined;
+      if (!values?.length) {
         throw new WebdaQLError("Invalid IN values in WebdaQL query");
       }
-      return `${attribute} IN [${expression.value.map(checkScalar).join(", ")}]`;
+      return `${attribute} IN [${values.map(checkScalar).join(", ")}]`;
     }
     if (!["=", "!=", "<", "<=", ">", ">=", "LIKE", "CONTAINS"].includes(operator)) {
       throw new WebdaQLError(`Invalid operator in WebdaQL query: ${JSON.stringify(operator)}`);
     }
-    if ((operator === "LIKE" || operator === "CONTAINS") && typeof expression.value !== "string") {
+    if ((operator === "LIKE" || operator === "CONTAINS") && typeof value !== "string") {
       throw new WebdaQLError(`${operator} takes a string in WebdaQL query`);
     }
-    return `${attribute} ${operator} ${checkScalar(expression.value)}`;
+    return `${attribute} ${operator} ${checkScalar(value)}`;
   }
   throw new WebdaQLError("Invalid expression in WebdaQL query");
 }
@@ -1584,53 +1611,68 @@ export function normalizeQuery(query: Partial<Query>): Query {
   if (!query || typeof query !== "object") {
     throw new WebdaQLError("Invalid WebdaQL query object");
   }
-  const type = query.type ?? "SELECT";
-  if (!["SELECT", "DELETE", "UPDATE"].includes(type)) {
+  const type: unknown = query.type ?? "SELECT";
+  if (typeof type !== "string" || !["SELECT", "DELETE", "UPDATE"].includes(type)) {
     throw new WebdaQLError(`Invalid statement type in WebdaQL query: ${JSON.stringify(type)}`);
   }
-  const filter = printExpression(query.filter ?? new AndExpression([]), false);
+  const filterObject: unknown = query.filter;
+  const filter = printExpression(filterObject ?? new AndExpression([]), false);
   let head = "";
   if (type === "DELETE") {
     head = "DELETE";
   } else if (type === "UPDATE") {
-    if (!Array.isArray(query.assignments) || query.assignments.length === 0) {
+    const assignments = Array.isArray(query.assignments) ? snapshot(query.assignments) : [];
+    if (assignments.length === 0) {
       throw new WebdaQLError("UPDATE needs at least one SET assignment");
     }
-    head = `UPDATE SET ${query.assignments.map(a => `${checkFieldPath(a?.field)} = ${checkScalar(a?.value)}`).join(", ")}`;
+    head = `UPDATE SET ${assignments
+      .map(a => {
+        const field = a?.field;
+        const value = a?.value;
+        return `${checkFieldPath(field)} = ${checkScalar(value)}`;
+      })
+      .join(", ")}`;
   } else if (query.fields !== undefined) {
-    if (!Array.isArray(query.fields) || query.fields.length === 0) {
+    const fields = Array.isArray(query.fields) ? snapshot(query.fields) : [];
+    if (fields.length === 0) {
       throw new WebdaQLError("Invalid SELECT field list in WebdaQL query");
     }
-    head = `SELECT ${query.fields.map(checkFieldPath).join(", ")}`;
+    head = `SELECT ${fields.map(checkFieldPath).join(", ")}`;
   }
   let res = head ? `${head}${filter ? ` WHERE ${filter}` : ""}` : filter;
-  if (query.orderBy !== undefined) {
-    if (!Array.isArray(query.orderBy)) {
+  const orderBy: unknown = query.orderBy;
+  if (orderBy !== undefined) {
+    if (!Array.isArray(orderBy)) {
       throw new WebdaQLError("Invalid ORDER BY in WebdaQL query");
     }
-    if (query.orderBy.length) {
-      res += ` ORDER BY ${query.orderBy
+    const orders = snapshot(orderBy);
+    if (orders.length) {
+      res += ` ORDER BY ${orders
         .map(o => {
-          if (o?.direction !== "ASC" && o?.direction !== "DESC") {
+          const field = o?.field;
+          const direction = o?.direction;
+          if (direction !== "ASC" && direction !== "DESC") {
             throw new WebdaQLError("Invalid ORDER BY direction in WebdaQL query");
           }
-          return `${checkFieldPath(o.field)} ${o.direction}`;
+          return `${checkFieldPath(field)} ${direction}`;
         })
         .join(", ")}`;
     }
   }
-  if (query.limit !== undefined) {
-    if (!Number.isSafeInteger(query.limit) || query.limit < 0) {
-      throw new WebdaQLError(`Invalid LIMIT in WebdaQL query: ${JSON.stringify(query.limit)}`);
+  const limit: unknown = query.limit;
+  if (limit !== undefined) {
+    if (typeof limit !== "number" || !Number.isSafeInteger(limit) || limit < 0) {
+      throw new WebdaQLError("Invalid LIMIT in WebdaQL query");
     }
-    res += ` LIMIT ${query.limit}`;
+    res += ` LIMIT ${limit}`;
   }
-  if (query.continuationToken !== undefined && query.continuationToken !== null) {
-    if (typeof query.continuationToken !== "string") {
+  const token: unknown = query.continuationToken;
+  if (token !== undefined && token !== null) {
+    if (typeof token !== "string") {
       throw new WebdaQLError("Invalid OFFSET in WebdaQL query");
     }
-    if (query.continuationToken) {
-      res += ` OFFSET ${escapeValue(query.continuationToken)}`;
+    if (token) {
+      res += ` OFFSET ${escapeValue(token)}`;
     }
   }
   try {

@@ -31,7 +31,17 @@ const WQL_STATEMENT_NOT_ALLOWED = 9003;
 /**
  * A statement head: DELETE, UPDATE or SELECT (keywords are uppercase only, so `delete = 1` is a filter)
  */
-const STATEMENT_HEAD = /^\s*(DELETE|UPDATE|SELECT)\b(?!\s*(?:=|!=|<|>|IN\b|LIKE\b|CONTAINS\b|IS\b))/;
+const STATEMENT_HEAD = /^\s*(DELETE|UPDATE|SELECT)(?=\s|$)(?!\s*(?:=|!=|<|>|IN\b|LIKE\b|CONTAINS\b|IS\b))/;
+
+/**
+ * The statement keyword a query starts with, if any: `UPDATE.x = 1` or `DELETE = 1` are filters on fields named
+ * like a keyword
+ * @param query - the query text
+ * @returns DELETE, UPDATE or SELECT, undefined for a filter query
+ */
+export function statementHead(query: string): string | undefined {
+  return STATEMENT_HEAD.exec(query)?.[1];
+}
 
 /** Options for the WebdaQL generator. */
 export interface QlValidatorOptions {
@@ -285,16 +295,16 @@ export function qlValidatorGenerator(options: QlValidatorOptions = {}): Generato
           const start = (node as any).getStart();
           const length = node.end - start;
 
-          const head = STATEMENT_HEAD.exec(query);
+          const head = statementHead(query);
           if (head && !statement) {
             diagnostics.push({
               start,
               length,
               code: WQL_STATEMENT_NOT_ALLOWED,
               messageText:
-                head[1] === "SELECT"
+                head === "SELECT"
                   ? "WebdaQL SELECT field lists are not accepted here: pass a filter query"
-                  : `WebdaQL ${head[1]} statements are not accepted here: use deleteMany / updateMany`
+                  : `WebdaQL ${head} statements are not accepted here: use deleteMany / updateMany`
             });
           }
 

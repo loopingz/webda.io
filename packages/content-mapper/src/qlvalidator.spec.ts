@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { openSession } from "./context.ts";
 import { applyEdits, mergePlan } from "./plan.ts";
-import { qlValidatorGenerator, referencedAttributes, WQL_CODES } from "./generators/qlvalidator.ts";
+import { qlValidatorGenerator, referencedAttributes, statementHead, WQL_CODES } from "./generators/qlvalidator.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixture = join(here, "..", "test", "fixture");
@@ -99,6 +99,26 @@ describe("WebdaQL statements", () => {
     expect(flagged).toHaveLength(3);
     expect(flagged[0]).toContain("DELETE");
     expect(flagged[2]).toContain("SELECT");
+  });
+
+  it("tells a statement head from a field named like a keyword", () => {
+    expect(statementHead("DELETE")).toBe("DELETE");
+    expect(statementHead("  DELETE WHERE a = 1")).toBe("DELETE");
+    expect(statementHead("UPDATE SET a = 1")).toBe("UPDATE");
+    expect(statementHead("SELECT a, b")).toBe("SELECT");
+    for (const filter of [
+      "UPDATE.x = 1",
+      "SELECT.a = 1",
+      "DELETE.flag = TRUE",
+      "SELECTED = 1",
+      "SELECT_x = 1",
+      "UPDATEd = 1",
+      "select = 1",
+      "DELETE = 1",
+      "UPDATE IN [1]"
+    ]) {
+      expect(statementHead(filter), filter).toBeUndefined();
+    }
   });
 
   it("lists the SELECT fields, SET targets and WHERE attributes of a statement", () => {

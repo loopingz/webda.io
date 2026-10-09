@@ -402,4 +402,21 @@ class BulkStatementsTest {
     assert.strictEqual(await animals.deleteMany("DELETE"), 2);
     assert.strictEqual(storage.size, 0);
   }
+
+  @test
+  async parentWritesKeepTheChildType() {
+    const storage = new Map<string, string>();
+    const animals = new MemoryRepository<typeof Animal>(Animal, ["uuid"], undefined, storage);
+    const dogs = new MemoryRepository<typeof Dog>(Dog, ["uuid"], undefined, storage);
+    await dogs.create(new Dog({ uuid: "d1", kind: "dog" }));
+    await dogs.create(new Dog({ uuid: "d2", kind: "dog" }));
+    // A plain object (ModelRef.update) and an instance read through the parent
+    await animals.update({ uuid: "d1", kind: "plain" } as any);
+    await animals.update((await animals.get("d2")) as any);
+    for (const uuid of ["d1", "d2"]) {
+      assert.ok((await dogs.get(uuid)) instanceof Dog, uuid);
+    }
+    assert.deepStrictEqual((await dogs.query("")).results.map(d => d.uuid).sort(), ["d1", "d2"]);
+    assert.strictEqual(((await dogs.get("d1")) as any).kind, "plain");
+  }
 }

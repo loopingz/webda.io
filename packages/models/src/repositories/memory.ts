@@ -101,7 +101,10 @@ export class MemoryRepository<
   ): Promise<void> {
     const item = this.getSync(this.getPrimaryKey(data));
     this.checkCondition(item, conditionField, condition);
-    this.storage.set(this.getPrimaryKey(data).toString(), this.serialize(new this.model(data) as InstanceType<T>));
+    // Plain data (ModelRef.update) keeps the stored class: a write through a parent repository never re-types a
+    // subclass row. Only an instance of a class sets its own type.
+    const clazz: any = data instanceof this.model ? (data as any).constructor : item.constructor;
+    this.storage.set(this.getPrimaryKey(data).toString(), this.serialize(new clazz(data) as InstanceType<T>));
   }
 
   /**

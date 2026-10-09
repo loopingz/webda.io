@@ -46,7 +46,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@faker-js/faker": "^9.5.1",
+    "@faker-js/faker": "^10.6.0",
     "@webda/models": "workspace:*"
   },
   "peerDependencies": {

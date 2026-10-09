@@ -813,6 +813,24 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
   }
 
   /**
+   * Delete in bulk: the generic fallback (matching keys collected up to LIMIT, then deleted one by one with
+   * this repository's `delete`), no per-object event. A native DynamoDB batch write is a follow-up.
+   * @override
+   */
+  async deleteMany(statement: string | WebdaQL.Query, params?: WebdaQL.QueryParameters): Promise<number> {
+    return this.deleteManyByKey(statement, params);
+  }
+
+  /**
+   * Update in bulk: the generic fallback (matching keys collected up to LIMIT, then patched one by one with
+   * this repository's `patch`), no per-object event. A native DynamoDB batch write is a follow-up.
+   * @override
+   */
+  async updateMany(statement: string | WebdaQL.Query, params?: WebdaQL.QueryParameters): Promise<number> {
+    return this.updateManyByKey(statement, params);
+  }
+
+  /**
    * Query the table
    *
    * Pages are retrieved until the limit is reached, applying the part of the
@@ -823,6 +841,8 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
    */
   async query(query: string | any): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
     const parsed: WebdaQL.Query = typeof query === "string" ? WebdaQL.parse(query) : query;
+    // DELETE / UPDATE go to deleteMany / updateMany; a field list is not a projection here
+    WebdaQL.assertFilterQuery(parsed);
     const limit = parsed.limit ?? 1000;
     const ids = this.buildClassFilterIdentifiers();
     const results: InstanceType<T>[] = [];
@@ -858,6 +878,7 @@ export class DynamoRepository<T extends ModelClass> extends MemoryRepository<T> 
    */
   async *iterate(query: string): AsyncGenerator<InstanceType<T>, any, any> {
     const parsed: WebdaQL.Query = WebdaQL.parse(query);
+    WebdaQL.assertFilterQuery(parsed);
     if (!parsed.limit) {
       parsed.limit = 100;
     }

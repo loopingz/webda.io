@@ -395,6 +395,8 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
   /** @override — translate the WebdaQL query to a MongoDB find */
   async query(query: string | any): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
     const parsed: any = typeof query === "string" ? WebdaQL.parse(query) : query;
+    // DELETE / UPDATE go to deleteMany / updateMany; a field list is not a projection here
+    WebdaQL.assertFilterQuery(parsed);
     let offset = parseInt(parsed.continuationToken);
     if (isNaN(offset)) {
       offset = 0;
@@ -415,6 +417,63 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
       results,
       continuationToken: results.length >= limit ? (offset + limit).toString() : undefined
     };
+  }
+
+  /**
+   * MongoDB filter of the objects a statement targets: its WHERE and the class filter, restricted to the first
+   * LIMIT documents when the statement has a LIMIT (MongoDB bulk writes have none)
+   * @param statement - the parsed statement
+   * @returns the filter, undefined when LIMIT is 0
+   */
+  protected async getStatementFilter(statement: WebdaQL.Query): Promise<any | undefined> {
+    let filter = mapExpression(statement.filter);
+    const classFilter = this.getClassFilter();
+    if (classFilter) {
+      filter = Object.keys(filter).length ? { $and: [classFilter, filter] } : classFilter;
+    }
+    if (statement.limit === undefined) {
+      return filter;
+    }
+    if (statement.limit <= 0) {
+      return undefined;
+    }
+    // Collect the keys first: the update cannot meet an object twice, and LIMIT is honoured
+    const ids = (
+      await (
+        await this.getCollection()
+      )
+        .find(filter, { projection: { _id: 1 } })
+        .limit(statement.limit)
+        .toArray()
+    ).map(doc => doc._id);
+    return { _id: { $in: ids } };
+  }
+
+  /**
+   * Delete in bulk with one `deleteMany`: no per-object event (see `Repository.deleteMany`)
+   * @override
+   */
+  async deleteMany(statement: string | WebdaQL.Query, params?: WebdaQL.QueryParameters): Promise<number> {
+    const parsed = await this.parseStatement("DELETE", statement, params);
+    const filter = await this.getStatementFilter(parsed);
+    if (!filter) return 0;
+    return (await (await this.getCollection()).deleteMany(filter)).deletedCount;
+  }
+
+  /**
+   * Update in bulk with one `updateMany` and `$set` (dotted targets create their parents): no per-object event
+   * (see `Repository.updateMany`)
+   * @override
+   */
+  async updateMany(statement: string | WebdaQL.Query, params?: WebdaQL.QueryParameters): Promise<number> {
+    const parsed = await this.parseStatement("UPDATE", statement, params);
+    const filter = await this.getStatementFilter(parsed);
+    if (!filter) return 0;
+    const $set: Record<string, any> = {};
+    for (const { field, value } of parsed.assignments!) {
+      $set[field] = value;
+    }
+    return (await (await this.getCollection()).updateMany(filter, { $set })).matchedCount;
   }
 
   /**

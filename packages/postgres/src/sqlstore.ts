@@ -58,10 +58,11 @@ export class SQLComparisonExpression extends WebdaQL.ComparisonExpression {
    */
   toStringAttribute(): string {
     switch (typeof this.value) {
+      // The JSONB path yields text: cast it to compare as a boolean or a number (a missing value is false / 0)
       case "boolean":
-        return `COALESCE(${this.attribute[0]}, false) AS boolean`;
+        return `COALESCE((${this.attribute[0]})::boolean, false)`;
       case "number":
-        return `COALESCE(${this.attribute[0]}, 0) AS bigint`;
+        return `COALESCE((${this.attribute[0]})::numeric, 0)`;
       default:
         return this.attribute[0];
     }
@@ -414,6 +415,8 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
   async query(queryStr: string): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
     const WebdaQLMod = await import("@webda/ql");
     const parsed = WebdaQLMod.parse(queryStr);
+    // DELETE / UPDATE go to deleteMany / updateMany; a field list is not a projection here
+    WebdaQLMod.assertFilterQuery(parsed);
     let sql = this.duplicateExpression(parsed.filter).toString();
     const offset = parseInt((parsed as any).continuationToken || "0", 10);
     if ((parsed as any).orderBy && (parsed as any).orderBy.length) {
@@ -436,10 +439,72 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     };
   }
 
+  /**
+   * SQL condition selecting the rows a statement targets: its WHERE, restricted to the first LIMIT rows when the
+   * statement has a LIMIT (PostgreSQL DELETE and UPDATE have none)
+   * @param statement - the parsed statement
+   * @returns the condition
+   */
+  protected getStatementCondition(statement: WebdaQL.Query): string {
+    const where = this.duplicateExpression(statement.filter).toString();
+    if (statement.limit === undefined) {
+      return where;
+    }
+    return `uuid IN (SELECT uuid FROM ${this.table} WHERE ${where} LIMIT ${Math.max(0, Math.floor(statement.limit))})`;
+  }
+
+  /**
+   * Delete in bulk with one `DELETE ... WHERE`: no per-object event (see `Repository.deleteMany`)
+   * @override
+   */
+  async deleteMany(statement: string | WebdaQL.Query, params?: WebdaQL.QueryParameters): Promise<number> {
+    const parsed = await this.parseStatement("DELETE", statement, params);
+    return (await this.execute(`DELETE FROM ${this.table} WHERE ${this.getStatementCondition(parsed)}`, [])).rowCount;
+  }
+
+  /**
+   * Update in bulk with one `UPDATE ... SET data = jsonb_set(...) WHERE`: no per-object event (see
+   * `Repository.updateMany`)
+   *
+   * Paths and values are bound parameters; the parents of a dotted target are created when missing.
+   * @override
+   */
+  async updateMany(statement: string | WebdaQL.Query, params?: WebdaQL.QueryParameters): Promise<number> {
+    const parsed = await this.parseStatement("UPDATE", statement, params);
+    const values: any[] = [];
+    // One step per jsonb_set, each reading the previous one (d0 is the row data): the SQL stays linear in size
+    const steps: string[] = [];
+    const ensured = new Set<string>();
+    for (const { field, value } of parsed.assignments!) {
+      const segments = field.split(".");
+      // Make every parent of a dotted target an object, keeping an existing one
+      for (let i = 1; i < segments.length; i++) {
+        const parent = segments.slice(0, i);
+        if (ensured.has(parent.join("."))) continue;
+        ensured.add(parent.join("."));
+        values.push(parent);
+        const d = `d${steps.length}`;
+        const path = `$${values.length}::text[]`;
+        steps.push(
+          `jsonb_set(${d}, ${path}, CASE WHEN jsonb_typeof(${d} #> ${path}) = 'object' THEN ${d} #> ${path} ELSE '{}'::jsonb END, true)`
+        );
+      }
+      values.push(segments, JSON.stringify(value));
+      steps.push(`jsonb_set(d${steps.length}, $${values.length - 1}::text[], $${values.length}::jsonb, true)`);
+    }
+    const data = `(SELECT d${steps.length} FROM (SELECT ${this.table}.data AS d0) s0${steps
+      .map((step, i) => ` CROSS JOIN LATERAL (SELECT ${step} AS d${i + 1}) s${i + 1}`)
+      .join("")})`;
+    return (
+      await this.execute(`UPDATE ${this.table} SET data = ${data} WHERE ${this.getStatementCondition(parsed)}`, values)
+    ).rowCount;
+  }
+
   /** @override — iterate via paginated SQL queries */
   async *iterate(queryStr: string): AsyncGenerator<InstanceType<T>, any, any> {
     const WebdaQLMod = await import("@webda/ql");
     const parsed: any = WebdaQLMod.parse(queryStr);
+    WebdaQLMod.assertFilterQuery(parsed);
     if (!parsed.limit) {
       parsed.limit = 100;
     }

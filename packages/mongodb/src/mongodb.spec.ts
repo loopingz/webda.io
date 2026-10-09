@@ -229,6 +229,51 @@ export class MongoStoreTest extends WebdaApplicationTest {
   }
 
   @test
+  async bulkStatements() {
+    for (let i = 0; i < 6; i++) {
+      await this.repo.create({ uuid: `b${i}`, name: i % 2 ? "odd" : "even", count: i });
+    }
+    await this.sub.create({ uuid: "s1", name: "odd", count: 100 });
+    const events = new EventRepository(Item as any, ["uuid"], this.repo as any);
+    const seen: string[] = [];
+    for (const name of ["Delete", "Deleted", "Patch", "Patched", "Update", "Updated", "PartialUpdated"]) {
+      events.on(name as any, () => seen.push(name));
+    }
+    // query / iterate are SELECT only
+    for (const statement of ["DELETE", "UPDATE SET name = 'x'", "SELECT name"]) {
+      await assert.rejects(() => this.repo.query(statement), WebdaQL.WebdaQLError, statement);
+    }
+    // UPDATE: several fields, dotted target, bound parameters; the WHERE field changes
+    assert.strictEqual(
+      await events.updateMany("UPDATE SET name = :n, profile.level = :l WHERE name = 'odd' AND count < :max", {
+        n: "even",
+        l: 3,
+        max: 10
+      }),
+      3
+    );
+    const b1: any = await this.repo.get("b1");
+    assert.strictEqual(b1.name, "even");
+    assert.deepStrictEqual(b1.profile, { level: 3 });
+    // The subclass row is reached through the parent repository (class filter), only by the WHERE
+    assert.strictEqual(((await this.sub.get("s1")) as any).name, "odd");
+    // LIMIT
+    assert.strictEqual(await events.updateMany("UPDATE SET count = 0 WHERE count > 0 AND count < 3 LIMIT 5"), 2);
+    assert.strictEqual(await events.updateMany("UPDATE SET name = 'limited' WHERE count < 100 LIMIT 1"), 1);
+    assert.strictEqual((await this.repo.query("name = 'limited'")).results.length, 1);
+    assert.strictEqual((await this.repo.query("count = 0")).results.length, 3);
+    await assert.rejects(() => events.updateMany("UPDATE SET uuid = 'x'"), /primary key/);
+    await assert.rejects(() => events.updateMany("UPDATE SET __type = 'x'"), /private field/);
+    // DELETE with LIMIT, with WHERE, without WHERE (the subclass repository only sees its own rows)
+    assert.strictEqual(await events.deleteMany("DELETE WHERE count = ? LIMIT 2", [0]), 2);
+    assert.strictEqual(await events.deleteMany("DELETE WHERE count >= 3 AND count < 100"), 3);
+    assert.strictEqual(await this.sub.deleteMany("DELETE"), 1);
+    assert.strictEqual((await this.repo.query("")).results.length, 1);
+    assert.strictEqual(await events.deleteMany("DELETE LIMIT 0"), 0);
+    assert.deepStrictEqual(seen, [], "bulk statements emit no per-object event");
+  }
+
+  @test
   async query() {
     for (let i = 0; i < 10; i++) {
       await this.repo.create({ uuid: `q${i}`, name: `name${i}`, count: i, tags: i % 2 ? ["odd"] : ["even"] });

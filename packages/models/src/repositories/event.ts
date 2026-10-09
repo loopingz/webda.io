@@ -2,7 +2,7 @@ import { PK, PrimaryKeyType, ModelClass, WEBDA_PRIMARY_KEY } from "../storable.j
 import type { SelfJSONed, JSONed, Helpers, PropertyPaths, NumericPropertyPaths, PropertyPathType } from "../types.js";
 import { AbstractRepository } from "./abstract.js";
 import { ArrayElement } from "@webda/tsc-esm";
-import type { QueryParameters } from "@webda/ql";
+import type { Query as WebdaQLQuery, QueryParameters } from "@webda/ql";
 import { WEBDA_TEST } from "./repository.js";
 
 /**
@@ -89,6 +89,30 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       query = (await import("@webda/ql")).bind(query, params);
     }
     yield* this.repository.iterate(query);
+  }
+
+  /**
+   * Delete in bulk through the underlying repository
+   *
+   * Bulk operations emit no per-object event: see {@link Repository.deleteMany}.
+   * @param statement - the DELETE statement or its parsed form
+   * @param params - values for the placeholders
+   * @returns the number of objects deleted
+   */
+  async deleteMany(statement: string | WebdaQLQuery, params?: QueryParameters): Promise<number> {
+    return this.repository.deleteMany(statement, params);
+  }
+
+  /**
+   * Update in bulk through the underlying repository
+   *
+   * Bulk operations emit no per-object event: see {@link Repository.updateMany}.
+   * @param statement - the UPDATE statement or its parsed form
+   * @param params - values for the placeholders
+   * @returns the number of objects updated
+   */
+  async updateMany(statement: string | WebdaQLQuery, params?: QueryParameters): Promise<number> {
+    return this.repository.updateMany(statement, params);
   }
 
   /**

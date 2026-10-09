@@ -1,6 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
+import { WebdaQLError } from "@webda/ql";
 import { checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import { EventRepository, useModel } from "@webda/core";
 import PostgresStore, { PostgresParameters } from "./postgresstore.service.js";
@@ -171,6 +172,71 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     assert.deepStrictEqual(await uuids("email IS NULL"), ["missing", "null"]);
     assert.deepStrictEqual(await uuids("email IS NOT NULL"), ["set"]);
     assert.deepStrictEqual(await uuids("email IS NULL AND uuid = 'null'"), ["null"]);
+  }
+
+  @test
+  async bulkStatements() {
+    /** A model without metadata: no field list to validate against */
+    class Row {
+      uuid: string;
+      name?: string;
+      count?: number;
+      profile?: any;
+      /**
+       * @param data - initial data
+       */
+      constructor(data?: any) {
+        Object.assign(this, data);
+      }
+    }
+    const repo = new PostgresRepository<any>(Row as any, ["uuid"], this.store!.getClient(), "smoke_idents");
+    for (let i = 0; i < 6; i++) {
+      await repo.create({ uuid: `b${i}`, name: i % 2 ? "odd" : "even", count: i, profile: { keep: i } });
+    }
+    // query / iterate are SELECT only
+    for (const statement of ["DELETE", "UPDATE SET name = 'x'", "SELECT name"]) {
+      await assert.rejects(() => repo.query(statement), WebdaQLError, statement);
+    }
+    // UPDATE: several fields, dotted targets (existing and missing parents), bound parameters, quotes
+    assert.strictEqual(
+      await repo.updateMany(
+        "UPDATE SET name = :n, profile.level = :l, profile.deep.flag = TRUE, extra.a.b = 'it''s' WHERE name = 'odd' AND count < :max",
+        { n: "even", l: 3, max: 10 }
+      ),
+      3
+    );
+    const b1: any = await repo.get("b1");
+    assert.strictEqual(b1.name, "even");
+    assert.deepStrictEqual(b1.profile, { keep: 1, level: 3, deep: { flag: true } });
+    assert.deepStrictEqual(b1.extra, { a: { b: "it's" } });
+    assert.deepStrictEqual(((await repo.get("b0")) as any).profile, { keep: 0 });
+    // LIMIT
+    assert.strictEqual(await repo.updateMany("UPDATE SET count = 0 WHERE count > 0 AND count < 3 LIMIT 5"), 2);
+    assert.strictEqual(await repo.updateMany("UPDATE SET name = 'limited' LIMIT 1"), 1);
+    assert.strictEqual((await repo.query("name = 'limited'")).results.length, 1);
+    await assert.rejects(() => repo.updateMany("UPDATE SET uuid = 'x'"), /primary key/);
+    await assert.rejects(() => repo.updateMany("UPDATE SET profile.__h = 'x'"), /private field/);
+    // DELETE with LIMIT, with WHERE, without WHERE
+    assert.strictEqual(await repo.deleteMany("DELETE WHERE count = ? LIMIT 2", [0]), 2);
+    assert.strictEqual(await repo.deleteMany("DELETE WHERE count >= 3"), 3);
+    assert.strictEqual(await repo.deleteMany("DELETE LIMIT 0"), 0);
+    assert.strictEqual(await repo.deleteMany("DELETE"), 1);
+    assert.strictEqual((await repo.query("")).results.length, 0);
+
+    // Through the store repository: no per-object event, SET targets checked against the model fields
+    const events = this.store!.getRepository(useModel("Webda/OwnerModel"));
+    const seen: string[] = [];
+    for (const name of ["Delete", "Deleted", "Patch", "Patched", "Update", "Updated", "PartialUpdated"]) {
+      events.on(name as any, () => seen.push(name));
+    }
+    await events.create({ uuid: "o1", _user: "alice" } as any);
+    await events.create({ uuid: "o2", _user: "bob" } as any);
+    seen.length = 0;
+    assert.strictEqual(await events.updateMany("UPDATE SET public = TRUE WHERE _user = ?", ["alice"]), 1);
+    assert.strictEqual(((await events.get("o1" as any)) as any).public, true);
+    await assert.rejects(() => events.updateMany("UPDATE SET unknown = 1"), /Unknown assignment field/);
+    assert.strictEqual(await events.deleteMany("DELETE WHERE public = TRUE"), 1);
+    assert.deepStrictEqual(seen, [], "bulk statements emit no per-object event");
   }
 
   @test

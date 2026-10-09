@@ -1,5 +1,5 @@
 import type { ArrayElement } from "@webda/tsc-esm";
-import type { QueryParameters } from "@webda/ql";
+import type { Query as WebdaQLQuery, QueryParameters } from "@webda/ql";
 import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable.js";
 import type { Helpers, JSONed, SelfJSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";
 import { deserialize, serialize, serializeRaw } from "@webda/serialize";
@@ -14,6 +14,8 @@ import { Repository, WEBDA_TEST } from "./repository.js";
  */
 export type Query = {
   limit: number;
+  type?: "SELECT" | "DELETE" | "UPDATE";
+  fields?: string[];
   orderBy?: { field: string; direction: "ASC" | "DESC" }[];
   continuationToken?: string;
   filter: {
@@ -376,8 +378,11 @@ export class MemoryRepository<
     if (typeof query === "string") {
       const merged = ids ? WebdaQL.PrependCondition(query, this.buildClassFilter()!) : query;
       parsed = WebdaQL.parse(merged);
+      // DELETE / UPDATE go to deleteMany / updateMany; a field list is not a projection here
+      WebdaQL.assertFilterQuery(parsed);
     } else {
       parsed = query as Query;
+      WebdaQL.assertFilterQuery(parsed);
       if (ids) {
         // Merge the class filter directly into the AST so callers like
         // `iterate()` keep their per-page mutations on the parsed Query
@@ -513,6 +518,7 @@ export class MemoryRepository<
     }
     /* c8 ignore next */
     const q: Query = WebdaQL.parse(query); // Ensure it is valid
+    WebdaQL.assertFilterQuery(q);
     if (!q.limit) {
       q.limit = 100; // Default pagination size
     }
@@ -523,6 +529,62 @@ export class MemoryRepository<
       }
       q.continuationToken = res.continuationToken;
     } while (q.continuationToken);
+  }
+
+  /**
+   * Keys of the stored objects of this model matching a statement's WHERE, at most LIMIT
+   *
+   * Synchronous: the statement then runs without yielding, so no other write interleaves and an object is
+   * never met twice.
+   * @param statement - the parsed statement
+   * @returns the storage keys and their objects
+   */
+  protected matchStorage(statement: WebdaQLQuery): { key: string; item: InstanceType<T> }[] {
+    const matches: { key: string; item: InstanceType<T> }[] = [];
+    if (statement.limit !== undefined && statement.limit <= 0) {
+      return matches;
+    }
+    for (const key of this.listKeysOfModel(this.buildClassFilterIdentifiers())) {
+      const raw = this.storage.get(key);
+      if (raw === undefined) continue;
+      const item = this.deserialize(raw) as InstanceType<T>;
+      if (statement.filter.eval(item)) {
+        matches.push({ key, item });
+        if (statement.limit && matches.length >= statement.limit) {
+          break;
+        }
+      }
+    }
+    return matches;
+  }
+
+  /**
+   * Delete in bulk, directly in the storage map: no event (see {@link Repository.deleteMany})
+   * @override
+   */
+  async deleteMany(statement: string | WebdaQLQuery, params?: QueryParameters): Promise<number> {
+    const parsed = await this.parseStatement("DELETE", statement, params);
+    const matches = this.matchStorage(parsed);
+    for (const { key } of matches) {
+      this.storage.delete(key);
+    }
+    return matches.length;
+  }
+
+  /**
+   * Update in bulk, directly in the storage map: no event (see {@link Repository.updateMany})
+   *
+   * Matches are collected first, then rewritten without yielding: an object whose WHERE field changes is
+   * updated once.
+   * @override
+   */
+  async updateMany(statement: string | WebdaQLQuery, params?: QueryParameters): Promise<number> {
+    const parsed = await this.parseStatement("UPDATE", statement, params);
+    const matches = this.matchStorage(parsed);
+    for (const { key, item } of matches) {
+      this.storage.set(key, this.serialize(this.applyAssignments(item, parsed.assignments!)));
+    }
+    return matches.length;
   }
 
   /** @override */

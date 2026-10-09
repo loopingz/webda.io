@@ -59,11 +59,29 @@ class ValidateAggregationTest {
       ["unknown order key", { orderBy: [{ key: "nope", direction: "ASC" }] }],
       ["bad direction", { orderBy: [{ key: "n", direction: "UP" as any }] }],
       ["zero limit", { limit: 0 }],
-      ["float limit", { limit: 1.5 }]
+      ["float limit", { limit: 1.5 }],
+      ["digit group segment", { groupBy: ["tags.0"] }],
+      ["digit field segment", { metrics: { n: { fn: "MAX", field: "items.12.price" } } }]
     ];
     for (const [name, over] of bad) {
       assert.throws(() => validateAggregation(q(over)), WebdaQLError, name);
     }
+  }
+
+  @test
+  digitsInsideSegments() {
+    // Only all-digit segments are rejected: MongoDB `$a.0` does not index arrays
+    validateAggregation(q({ groupBy: ["a1", "b.c2d"] }));
+  }
+
+  @test
+  missingGroupBy() {
+    const query: any = { filter: new AndExpression([]), metrics: { n: { fn: "COUNT" } } };
+    validateAggregation(query);
+    assert.deepStrictEqual(query.groupBy, [], "a missing groupBy is normalized to []");
+    const agg = new Aggregator({ filter: new AndExpression([]), metrics: { n: { fn: "COUNT" } } } as any);
+    agg.add({});
+    assert.deepStrictEqual(agg.rows(), [{ n: 1 }]);
   }
 
   @test
@@ -191,6 +209,45 @@ class AggregatorTest {
         { "owner.uuid": null, n: 2 }
       ],
       "null sorts last in DESC"
+    );
+  }
+
+  @test
+  dates() {
+    const items = [
+      { day: new Date("2026-01-05T10:00:00.000Z"), at: new Date("2026-01-05T10:00:00.000Z") },
+      { day: "2026-01-05T10:00:00.000Z", at: new Date("2025-12-31T23:59:59.000Z") },
+      { day: new Date("2026-03-01T00:00:00.000Z"), at: "2026-03-01T00:00:00.000Z" }
+    ];
+    // Group keys: a Date and its ISO string are one group, returned as the ISO string
+    assert.deepStrictEqual(
+      run(
+        {
+          groupBy: ["day"],
+          metrics: { n: { fn: "COUNT" } },
+          orderBy: [{ key: "day", direction: "ASC" }]
+        },
+        items
+      ),
+      [
+        { day: "2026-01-05T10:00:00.000Z", n: 2 },
+        { day: "2026-03-01T00:00:00.000Z", n: 1 }
+      ]
+    );
+    // MIN / MAX return ISO strings; COUNT_DISTINCT treats a Date and its ISO string alike
+    assert.deepStrictEqual(
+      run(
+        {
+          groupBy: [],
+          metrics: {
+            lo: { fn: "MIN", field: "at" },
+            hi: { fn: "MAX", field: "at" },
+            days: { fn: "COUNT_DISTINCT", field: "day" }
+          }
+        },
+        items
+      ),
+      [{ lo: "2025-12-31T23:59:59.000Z", hi: "2026-03-01T00:00:00.000Z", days: 2 }]
     );
   }
 

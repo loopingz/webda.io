@@ -92,6 +92,10 @@ export const AGGREGATION_PATH = /^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)*$/;
 export const AGGREGATION_ALIAS = /^[a-zA-Z][a-zA-Z0-9_]*$/;
 
 const FORBIDDEN_SEGMENTS = new Set(["__proto__", "prototype", "constructor"]);
+/**
+ * All-digit segment: MongoDB `$a.0` does not index arrays, so such paths would differ across backends
+ */
+const DIGITS = /^[0-9]+$/;
 const FUNCTIONS = new Set<string>(["COUNT", "COUNT_DISTINCT", "SUM", "AVG", "MIN", "MAX"]);
 
 /**
@@ -103,7 +107,7 @@ function checkPath(path: string, what: string): void {
   if (
     typeof path !== "string" ||
     !AGGREGATION_PATH.test(path) ||
-    path.split(".").some(segment => FORBIDDEN_SEGMENTS.has(segment))
+    path.split(".").some(segment => FORBIDDEN_SEGMENTS.has(segment) || DIGITS.test(segment))
   ) {
     throw new WebdaQLError(`Invalid ${what} '${path}'`);
   }
@@ -123,13 +127,15 @@ export function checkAlias(alias: string): void {
 /**
  * Validate an aggregation query
  *
- * Paths and aliases that pass are safe to interpolate in native queries.
+ * Paths and aliases that pass are safe to interpolate in native queries. Path segments cannot be
+ * all digits (array indexes are not portable). A missing `groupBy` is normalized to `[]`.
  * @param query - the query to validate
  * @returns the same query
  * @throws WebdaQLError when the query is invalid
  */
 export function validateAggregation(query: AggregationQuery): AggregationQuery {
-  const groupBy = query.groupBy ?? [];
+  query.groupBy ??= [];
+  const groupBy = query.groupBy;
   groupBy.forEach(path => checkPath(path, "group by path"));
   if (new Set(groupBy).size !== groupBy.length) {
     throw new WebdaQLError("Duplicate group by path");
@@ -206,12 +212,19 @@ interface Accumulator {
 
 /**
  * Read a dotted path, undefined when any segment is missing
+ *
+ * A Date is returned as its ISO string, the form JSON backends store: group keys, MIN / MAX and
+ * COUNT_DISTINCT then match on every backend.
  * @param item - the object
  * @param path - dotted path
  * @returns the value
  */
 function readPath(item: any, path: string): unknown {
-  return ComparisonExpression.getAttributeValue(item, path.split("."));
+  const value = ComparisonExpression.getAttributeValue(item, path.split("."));
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  }
+  return value;
 }
 
 /**

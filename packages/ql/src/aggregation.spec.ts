@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { AggregationError, validateAggregation, type AggregationQuery } from "./aggregation.js";
+import { Aggregator, AggregationError, compareValues, validateAggregation, type AggregationQuery } from "./aggregation.js";
 import { AndExpression } from "./query.js";
 import { WebdaQLError } from "./webdaql-string.js";
 
@@ -65,5 +65,138 @@ class ValidateAggregationTest {
     assert.ok(err instanceof WebdaQLError);
     assert.strictEqual(err.code, "AGGREGATION_NOT_NATIVE");
     assert.strictEqual(err.name, "AggregationError");
+  }
+}
+
+
+/**
+ * Run an aggregation over items
+ * @param over - query overrides
+ * @param items - items, already filtered
+ * @returns the rows
+ */
+function run(over: Partial<AggregationQuery>, items: any[]): Record<string, unknown>[] {
+  const agg = new Aggregator(q(over));
+  items.forEach(item => agg.add(item));
+  return agg.rows();
+}
+
+const ITEMS = [
+  { status: "open", points: 3, tag: "a", owner: { uuid: "u1" }, label: "delta" },
+  { status: "open", points: "8", tag: "a", owner: { uuid: "u2" }, label: "alpha" },
+  { status: "done", points: null, tag: "b", label: "charlie" },
+  { status: null, points: 5, tag: null, owner: { uuid: "u1" } },
+  { points: 2, tag: "c" }
+];
+
+@suite
+class AggregatorTest {
+  @test
+  compare() {
+    assert.ok(compareValues(null, 0) < 0, "null first");
+    assert.ok(compareValues(undefined, "a") < 0, "undefined is null");
+    assert.strictEqual(compareValues(null, undefined), 0);
+    assert.ok(compareValues(2, 10) < 0, "numeric, not lexical");
+    assert.ok(compareValues("B", "a") < 0, "code unit order");
+    assert.ok(compareValues(false, true) < 0);
+    assert.ok(compareValues(1, "1") < 0, "numbers before strings");
+    assert.ok(compareValues("2026-01-02", "2026-01-10") < 0, "ISO dates as strings");
+  }
+
+  @test
+  groupedCounts() {
+    assert.deepStrictEqual(
+      run({ metrics: { n: { fn: "COUNT" } }, orderBy: [{ key: "status", direction: "ASC" }] }, ITEMS),
+      [
+        { status: null, n: 2 },
+        { status: "done", n: 1 },
+        { status: "open", n: 2 }
+      ],
+      "missing and null keys share one group, sorted first"
+    );
+  }
+
+  @test
+  metricSemantics() {
+    assert.deepStrictEqual(
+      run(
+        {
+          groupBy: [],
+          metrics: {
+            all: { fn: "COUNT" },
+            withTag: { fn: "COUNT", field: "tag" },
+            tags: { fn: "COUNT_DISTINCT", field: "tag" },
+            total: { fn: "SUM", field: "points" },
+            mean: { fn: "AVG", field: "points" },
+            lo: { fn: "MIN", field: "label" },
+            hi: { fn: "MAX", field: "points" }
+          }
+        },
+        ITEMS
+      ),
+      [{ all: 5, withTag: 4, tags: 3, total: 10, mean: 10 / 3, lo: "alpha", hi: "8" }]
+    );
+  }
+
+  @test
+  emptyGroups() {
+    assert.deepStrictEqual(
+      run(
+        {
+          groupBy: [],
+          metrics: {
+            n: { fn: "COUNT" },
+            total: { fn: "SUM", field: "points" },
+            mean: { fn: "AVG", field: "points" },
+            lo: { fn: "MIN", field: "points" },
+            d: { fn: "COUNT_DISTINCT", field: "tag" }
+          }
+        },
+        []
+      ),
+      [{ n: 0, total: 0, mean: null, lo: null, d: 0 }],
+      "a global aggregation always returns one row"
+    );
+    assert.deepStrictEqual(run({}, []), [], "a grouped aggregation over nothing has no row");
+    assert.deepStrictEqual(
+      run({ groupBy: ["status"], metrics: { total: { fn: "SUM", field: "points" } } }, [{ status: "x", points: "1" }]),
+      [{ status: "x", total: 0 }],
+      "non-numeric values are ignored by SUM"
+    );
+  }
+
+  @test
+  nestedGroupAndOrderLimit() {
+    assert.deepStrictEqual(
+      run(
+        {
+          groupBy: ["owner.uuid"],
+          metrics: { n: { fn: "COUNT" } },
+          orderBy: [
+            { key: "n", direction: "DESC" },
+            { key: "owner.uuid", direction: "DESC" }
+          ],
+          limit: 2
+        },
+        ITEMS
+      ),
+      [
+        { "owner.uuid": "u1", n: 2 },
+        { "owner.uuid": null, n: 2 }
+      ],
+      "null sorts last in DESC"
+    );
+  }
+
+  @test
+  maxGroups() {
+    const agg = new Aggregator(q({ groupBy: ["tag"] }), 2);
+    agg.add({ tag: "a" });
+    agg.add({ tag: "b" });
+    agg.add({ tag: "a" });
+    assert.throws(
+      () => agg.add({ tag: "c" }),
+      (err: AggregationError) => err.code === "AGGREGATION_TOO_MANY_GROUPS"
+    );
   }
 }

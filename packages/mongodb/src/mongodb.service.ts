@@ -452,10 +452,11 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
    * @returns the pipeline
    */
   buildAggregationPipeline(query: WebdaQL.AggregationQuery): any[] {
-    const id: Record<string, string> = {};
+    const id: Record<string, any> = {};
     const sortKeys: Record<string, string> = {};
     query.groupBy.forEach((path, i) => {
-      id[`g${i}`] = `$${path}`;
+      // $ifNull: a missing field and an explicit null always share one group
+      id[`g${i}`] = { $ifNull: [`$${path}`, null] };
       sortKeys[path] = `_id.g${i}`;
     });
     const group: Record<string, any> = { _id: query.groupBy.length ? id : null };

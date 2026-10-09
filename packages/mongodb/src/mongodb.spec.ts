@@ -183,6 +183,27 @@ export class MongoStoreTest extends WebdaApplicationTest {
   }
 
   @test
+  async aggregationMissingAndNullGroupTogether() {
+    const collection = (await this.store._connect()) as any;
+    await collection.deleteMany({});
+    const repo: any = new MongoRepository(Item as any, ["uuid"], () => this.store._connect());
+    for (const [uuid, extra] of [
+      ["a", { name: null }],
+      ["b", {}],
+      ["c", {}],
+      ["d", { name: "x" }]
+    ] as const) {
+      await repo.create({ uuid, ...extra });
+    }
+    const result = await repo.aggregate({ groupBy: ["name"], metrics: { n: { count: "*" } } });
+    assert.deepStrictEqual(result.rows, [
+      { name: null, n: 3 },
+      { name: "x", n: 1 }
+    ]);
+    await collection.deleteMany({});
+  }
+
+  @test
   aggregationPipeline() {
     const repo: any = new MongoRepository(Item as any, ["uuid"], async () => undefined as any);
     assert.deepStrictEqual(
@@ -196,7 +217,7 @@ export class MongoStoreTest extends WebdaApplicationTest {
       ),
       [
         { $match: { $or: [{ __type: { $in: ["Test/Item", "Test/SubItem"] } }, { __type: { $exists: false } }] } },
-        { $group: { _id: { g0: "$team.name" }, n: { $sum: 1 }, d: { $addToSet: "$label" } } },
+        { $group: { _id: { g0: { $ifNull: ["$team.name", null] } }, n: { $sum: 1 }, d: { $addToSet: "$label" } } },
         { $addFields: { d: { $size: { $filter: { input: "$d", cond: { $ne: ["$$this", null] } } } } } },
         { $sort: { n: -1 } },
         { $limit: 2 }

@@ -10,6 +10,7 @@ import { WebdaApplicationTest } from "../test/application.js";
 import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store.js";
 import { UuidModel, useRepository } from "@webda/models";
 import { checkAggregation } from "../test/index.js";
+import { useCore } from "../core/hooks.js";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 
 /**
@@ -862,5 +863,26 @@ class StoreAggregationTest extends WebdaApplicationTest {
     repo.configureAggregation(store.getAggregationOptions());
     assert.strictEqual(repo.repository.aggregationOptions.fallback, "deny");
     assert.strictEqual(repo.repository.aggregationOptions.maxGroups, 5);
+  }
+
+  @test
+  async registrationToleratesRepositoriesWithoutAggregation() {
+    // A third-party store may return a repository that predates configureAggregation
+    const stores = Object.values(useCore().getServices()).filter(s => s instanceof Store) as Store[];
+    const stubs = stores.map(store => {
+      const original = store.getRepository.bind(store);
+      return stub(store, "getRepository").callsFake((model: any) => {
+        const repository: any = original(model);
+        return new Proxy(repository, {
+          get: (target, prop) => (prop === "configureAggregation" ? undefined : Reflect.get(target, prop))
+        });
+      });
+    });
+    try {
+      assert.doesNotThrow(() => Store.computeStores());
+    } finally {
+      stubs.forEach(s => s.restore());
+      Store.computeStores();
+    }
   }
 }

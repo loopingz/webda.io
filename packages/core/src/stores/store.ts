@@ -276,6 +276,7 @@ export class StoreParameters extends ServiceParameters {
   /**
    * Maximum number of groups an aggregation may produce without LIMIT (or in memory)
    *
+   * @minimum 1
    * @default 10000
    */
   maxGroups?: number;
@@ -447,7 +448,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       }
       // Register the repository
       const repository = currentStore.getRepository(model);
-      repository.configureAggregation(currentStore.getAggregationOptions());
+      // Optional: repositories of third-party stores may predate aggregation
+      repository.configureAggregation?.(currentStore.getAggregationOptions());
       registerRepository(model, repository as any);
       useLog("DEBUG", `${useModelId(model)} using store ${currentStore.getName()}`);
     }

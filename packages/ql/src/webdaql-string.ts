@@ -82,7 +82,11 @@ export function escape<T = unknown>(
 function appendNull(out: string): string {
   // `=` or `!=` right before the value (`>=` and `<=` are not equalities); trimEnd keeps this linear
   const head = out.trimEnd();
-  const operator = head.endsWith("!=") ? "!=" : head.endsWith("=") && !/[<>!]/.test(head.at(-2) ?? "") ? "=" : "";
+  const operator = head.endsWith("!=")
+    ? "!="
+    : head.endsWith("=") && !/[<>!]/.test(head.charAt(head.length - 2))
+      ? "="
+      : "";
   if (!operator) {
     throw new WebdaQLError("A null value can only be compared with = or != in a WebdaQL query");
   }

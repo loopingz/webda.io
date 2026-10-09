@@ -72,6 +72,30 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/runtime-v4.0.0-beta.5...runtime-v4.0.0-beta.6) (2026-10-09)
+
+
+### Features
+
+* store-agnostic aggregations (Model.aggregate, SELECT … GROUP BY) ([#820](https://github.com/loopingz/webda.io/issues/820)) ([9eca947](https://github.com/loopingz/webda.io/commit/9eca947fdd0cbf456690cb61c9a30c66c22be1ad))
+
+
+### Bug Fixes
+
+* **deps:** upgrade nodemailer, deepmerge-ts, jsondiffpatch, faker and OpenTelemetry (security) ([#816](https://github.com/loopingz/webda.io/issues/816)) ([f082ab8](https://github.com/loopingz/webda.io/commit/f082ab8926ae1b54e0da009d8ebd9ce6d5d33158))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.6
+    * @webda/models bumped to 4.0.0-beta.6
+    * @webda/ql bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.6
+    * @webda/test bumped to 4.0.0-beta.6
+
 ## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/runtime-v4.0.0-beta.4...runtime-v4.0.0-beta.5) (2026-10-08)
 
 

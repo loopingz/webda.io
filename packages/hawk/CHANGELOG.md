@@ -144,6 +144,23 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/hawk-v4.0.0-beta.5...hawk-v4.0.0-beta.6) (2026-10-09)
+
+
+### Features
+
+* store-agnostic aggregations (Model.aggregate, SELECT … GROUP BY) ([#820](https://github.com/loopingz/webda.io/issues/820)) ([9eca947](https://github.com/loopingz/webda.io/commit/9eca947fdd0cbf456690cb61c9a30c66c22be1ad))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.6
+    * @webda/test bumped to 4.0.0-beta.6
+
 ## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/hawk-v4.0.0-beta.4...hawk-v4.0.0-beta.5) (2026-10-08)
 
 

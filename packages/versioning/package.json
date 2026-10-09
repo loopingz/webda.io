@@ -1,6 +1,6 @@
 {
   "name": "@webda/versioning",
-  "version": "4.0.0-beta.5",
+  "version": "4.0.0-beta.6",
   "description": "Diff, patch, and 3-way merge for JSON-serializable objects with git-style conflicts",
   "keywords": [
     "diff",

@@ -1,6 +1,6 @@
 {
   "name": "@webda/utils",
-  "version": "4.0.0-beta.5",
+  "version": "4.0.0-beta.6",
   "description": "Utils function for NodeJS projects",
   "keywords": [],
   "author": "Remi Cattiau <remi@cattiau.com>",

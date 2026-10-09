@@ -1,6 +1,6 @@
 {
   "name": "@webda/tsc-esm",
-  "version": "4.0.0-beta.5",
+  "version": "4.0.0-beta.6",
   "description": "Shared TypeScript utility types and decorator helpers for Webda",
   "keywords": [
     "webda"

@@ -3,6 +3,42 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.5...core-v4.0.0-beta.6) (2026-10-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **ql:** DELETE, UPDATE, SELECT, SET and WHERE are reserved uppercase keywords; Query.type is required; parse().toString() prints the canonical query instead of the source tokens; the root parse rule is now `(statement | filterQuery) EOF` for code walking the ANTLR tree.
+
+### Features
+
+* **core:** webda -d &lt;deployment&gt; package ([#819](https://github.com/loopingz/webda.io/issues/819)) ([7cb5677](https://github.com/loopingz/webda.io/commit/7cb5677a6e55b239d1165cbeafa9e297113fcbe0))
+* **ql:** WebdaQL DELETE/UPDATE/SELECT statements, bulk deleteMany/updateMany, filter-only Query operations ([#818](https://github.com/loopingz/webda.io/issues/818)) ([add9503](https://github.com/loopingz/webda.io/commit/add95031aff982cd69a635c519b4ddaa6874ecbe))
+* store-agnostic aggregations (Model.aggregate, SELECT … GROUP BY) ([#820](https://github.com/loopingz/webda.io/issues/820)) ([9eca947](https://github.com/loopingz/webda.io/commit/9eca947fdd0cbf456690cb61c9a30c66c22be1ad))
+
+
+### Bug Fixes
+
+* **core:** make @Bean work with configuration service and services config ([#821](https://github.com/loopingz/webda.io/issues/821)) ([607c317](https://github.com/loopingz/webda.io/commit/607c317c6815f9fe5ba2261173085553e9177a23))
+* **deps:** upgrade nodemailer, deepmerge-ts, jsondiffpatch, faker and OpenTelemetry (security) ([#816](https://github.com/loopingz/webda.io/issues/816)) ([f082ab8](https://github.com/loopingz/webda.io/commit/f082ab8926ae1b54e0da009d8ebd9ce6d5d33158))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.6
+    * @webda/models bumped to 4.0.0-beta.6
+    * @webda/ql bumped to 4.0.0-beta.6
+    * @webda/tsc-esm bumped to 4.0.0-beta.6
+    * @webda/utils bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.6
+    * @webda/content-mapper bumped to 4.0.0-beta.6
+    * @webda/test bumped to 4.0.0-beta.6
+  * peerDependencies
+    * @webda/test bumped to 4.0.0-beta.6
+
 ## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.4...core-v4.0.0-beta.5) (2026-10-08)
 
 

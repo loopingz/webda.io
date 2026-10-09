@@ -137,6 +137,20 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/kubernetes-v4.0.0-beta.5...kubernetes-v4.0.0-beta.6) (2026-10-09)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped to 4.0.0-beta.6
+    * @webda/core bumped to 4.0.0-beta.6
+    * @webda/utils bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.6
+    * @webda/test bumped to 4.0.0-beta.6
+
 ## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/kubernetes-v4.0.0-beta.4...kubernetes-v4.0.0-beta.5) (2026-10-08)
 
 

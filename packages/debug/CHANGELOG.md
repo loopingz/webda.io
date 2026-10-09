@@ -1,5 +1,29 @@
 # Changelog
 
+## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/debug-v4.0.0-beta.5...debug-v4.0.0-beta.6) (2026-10-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **debug:** shared debug dashboard hosted on webda.io/debug with token-secured local server ([#815](https://github.com/loopingz/webda.io/issues/815))
+
+### Features
+
+* **debug:** shared debug dashboard hosted on webda.io/debug with token-secured local server ([#815](https://github.com/loopingz/webda.io/issues/815)) ([1b33ee0](https://github.com/loopingz/webda.io/commit/1b33ee099bc2dcd5c7019de9599a0b5c77c6714a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/utils bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.6
+    * @webda/core bumped to 4.0.0-beta.6
+    * @webda/test bumped to 4.0.0-beta.6
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.6
+
 ## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/debug-v4.0.0-beta.4...debug-v4.0.0-beta.5) (2026-10-08)
 
 

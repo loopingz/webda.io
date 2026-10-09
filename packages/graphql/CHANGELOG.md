@@ -134,6 +134,28 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.5...graphql-v4.0.0-beta.6) (2026-10-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **ql:** DELETE, UPDATE, SELECT, SET and WHERE are reserved uppercase keywords; Query.type is required; parse().toString() prints the canonical query instead of the source tokens; the root parse rule is now `(statement | filterQuery) EOF` for code walking the ANTLR tree.
+
+### Features
+
+* **ql:** WebdaQL DELETE/UPDATE/SELECT statements, bulk deleteMany/updateMany, filter-only Query operations ([#818](https://github.com/loopingz/webda.io/issues/818)) ([add9503](https://github.com/loopingz/webda.io/commit/add95031aff982cd69a635c519b4ddaa6874ecbe))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.6
+    * @webda/ql bumped to 4.0.0-beta.6
+    * @webda/runtime bumped to 4.0.0-beta.6
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.6
+
 ## [4.0.0-beta.5](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.4...graphql-v4.0.0-beta.5) (2026-10-08)
 
 

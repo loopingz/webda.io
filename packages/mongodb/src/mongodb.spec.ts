@@ -226,6 +226,21 @@ export class MongoStoreTest extends WebdaApplicationTest {
   }
 
   @test
+  aggregationPipelineValidatesTheQuery() {
+    const repo: any = new MongoRepository(Item as any, ["uuid"], async () => undefined as any);
+    const query = (over: any) => ({
+      filter: new WebdaQL.AndExpression([]),
+      groupBy: [],
+      metrics: { n: { fn: "COUNT" } },
+      ...over
+    });
+    // Hand-built ASTs, not from toAggregationQuery: operator-like aliases or paths must not reach MongoDB
+    for (const over of [{ metrics: { $where: { fn: "COUNT" } } }, { groupBy: ["$expr"] }, { groupBy: ["tags.0"] }]) {
+      assert.throws(() => repo.buildAggregationPipeline(query(over)), WebdaQL.WebdaQLError, JSON.stringify(over));
+    }
+  }
+
+  @test
   async crud() {
     const item = await this.repo.create({ uuid: "i1", name: "first", count: 1 });
     assert.ok(item instanceof Item);

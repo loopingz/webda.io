@@ -447,11 +447,13 @@ export class MongoRepository<T extends ModelClass> extends MemoryRepository<T> {
    * Translate an aggregation to a MongoDB pipeline
    *
    * Group keys live in `_id.gN` and are flattened by executeAggregation, since MongoDB
-   * cannot project dotted output names.
-   * @param query - the validated aggregation
+   * cannot project dotted output names. The query is validated again first: paths and aliases become
+   * field references and output names.
+   * @param query - the aggregation
    * @returns the pipeline
    */
   buildAggregationPipeline(query: WebdaQL.AggregationQuery): any[] {
+    WebdaQL.validateAggregation(query);
     const id: Record<string, any> = {};
     const sortKeys: Record<string, string> = {};
     query.groupBy.forEach((path, i) => {

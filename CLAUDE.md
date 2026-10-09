@@ -354,8 +354,7 @@ import { myService } from "./my-service";  // ❌ Don't import service instances
 ### Service Template
 
 ```typescript
-import { Service, ServiceParameters } from "@webda/core";
-import { Bean } from "@webda/decorators";
+import { Bean, Service, ServiceParameters } from "@webda/core";
 import { useLog } from "@webda/workout";
 
 interface MyServiceParameters extends ServiceParameters {

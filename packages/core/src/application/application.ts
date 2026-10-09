@@ -498,7 +498,16 @@ export class Application {
    * @returns the result
    */
   getModda(name: string): Modda {
-    return this.getWebdaObject("moddas", name);
+    try {
+      return this.getWebdaObject("moddas", name);
+    } catch (err) {
+      // Beans can be configured as regular services
+      try {
+        return this.getWebdaObject("beans", name);
+      } catch {
+        throw err;
+      }
+    }
   }
 
   /**

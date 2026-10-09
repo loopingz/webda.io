@@ -3,7 +3,7 @@ import type { SelfJSONed, JSONed, Helpers, PropertyPaths, NumericPropertyPaths, 
 import { AbstractRepository } from "./abstract.js";
 import { ArrayElement } from "@webda/tsc-esm";
 import type { Query as WebdaQLQuery, QueryParameters, AggregationResult } from "@webda/ql";
-import type { AggregationOptions } from "../aggregation.js";
+import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
 import { WEBDA_TEST } from "./repository.js";
 
 /**
@@ -101,12 +101,18 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
    * @param params - values for the placeholders of `spec.filter`
    * @returns the aggregated rows
    */
-  async aggregate(spec: any, params?: QueryParameters): Promise<any> {
+  async aggregate<
+    const G extends readonly PropertyPaths<InstanceType<T>>[] = [],
+    const M extends Record<string, MetricSpec<InstanceType<T>>> = Record<string, MetricSpec<InstanceType<T>>>
+  >(
+    spec: AggregationSpec<InstanceType<T>, G, M>,
+    params?: QueryParameters
+  ): Promise<AggregationResult<AggregatedRow<InstanceType<T>, G, M>>> {
     if (params !== undefined && spec.filter) {
-      spec = { ...spec, filter: (await import("@webda/ql")).bind(spec.filter, params) };
+      spec = { ...spec, filter: (await import("@webda/ql")).bind(spec.filter, params) as any };
     }
     await this.emit("Aggregate", { query: spec } as any);
-    const res: AggregationResult<any> = await this.repository.aggregate(spec);
+    const res = await this.repository.aggregate(spec);
     await this.emit("Aggregated", { query: spec, ...res } as any);
     return res;
   }

@@ -4,6 +4,7 @@ import { UuidModel } from "../model.model.js";
 import type { ModelClass } from "../storable.js";
 import { MemoryRepository } from "./memory.js";
 import { EventRepository } from "./event.js";
+import { registerRepository, Repositories } from "./hooks.js";
 
 /**
  * Model with typed attributes for aggregation tests (same fixture style as memory-classfilter.spec.ts)
@@ -128,8 +129,8 @@ class EventRepositoryAggregationTest {
     await fill(inner);
     await inner.create({ uuid: "t4", status: "open", points: 1, owner: { uuid: "what?" } } as any);
     const events: [string, any][] = [];
-    repo.on("Aggregate", evt => events.push(["Aggregate", evt]));
-    repo.on("Aggregated", evt => events.push(["Aggregated", evt]));
+    (repo as any).on("Aggregate", (evt: any) => events.push(["Aggregate", evt]));
+    (repo as any).on("Aggregated", (evt: any) => events.push(["Aggregated", evt]));
     const res = await repo.aggregate({ filter: "owner.uuid = ?", metrics: { n: { count: "*" } } }, ["what?"]);
     assert.deepStrictEqual(res, { rows: [{ n: 1 }], native: true }, "bound once, inner stays native");
     assert.deepStrictEqual(
@@ -146,5 +147,39 @@ class EventRepositoryAggregationTest {
     const repo = new EventRepository(Task, ["uuid"], inner);
     repo.configureAggregation({ fallback: "deny" });
     await assert.rejects(() => repo.aggregate({ metrics: { n: { count: "*" } } }), /runs in memory/);
+  }
+
+  @test
+  async eventRepositoryRowsAreTyped() {
+    const repo = new EventRepository(Task, ["uuid"], new MemoryRepository(Task, ["uuid"]));
+    const res = await repo.aggregate({ groupBy: ["status"], metrics: { total: { sum: "points" } } });
+    const total: number = res.rows[0]?.total ?? 0;
+    assert.strictEqual(total, 0);
+    // @ts-expect-error sum needs a numeric path
+    void (() => repo.aggregate({ metrics: { bad: { sum: "status" } } }));
+  }
+}
+
+@suite
+class ModelAggregateTest {
+  @test
+  async staticAggregate() {
+    const repo = new MemoryRepository(Task, ["uuid"]);
+    registerRepository(Task, repo);
+    try {
+      assert.strictEqual(typeof Task.aggregate, "function");
+      await fill(repo);
+      const res = await Task.aggregate(
+        { filter: "points > ?", groupBy: ["status"], metrics: { total: { sum: "points" } } },
+        [2]
+      );
+      assert.deepStrictEqual(res, { rows: [{ status: "open", total: 8 }], native: true });
+      const total: number = res.rows[0].total;
+      assert.strictEqual(total, 8);
+      // @ts-expect-error sum needs a numeric path
+      void (() => Task.aggregate({ metrics: { bad: { sum: "status" } } }));
+    } finally {
+      Repositories.delete(Task);
+    }
   }
 }

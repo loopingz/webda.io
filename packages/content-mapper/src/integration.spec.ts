@@ -58,9 +58,10 @@ describe("content mapper under tsgo", () => {
     const output = check("tsconfig.mapper.json", true);
     // The widened setter accepts the string assignment in consumer.ts, and
     // every generated accessor and behaviour member type-checks. The only
-    // thing reported is the deliberately wrong query in query.service.ts.
+    // thing reported is the deliberately wrong queries in query.service.ts and
+    // statement.service.ts.
     const lines = output.split("\n").filter(Boolean);
-    for (const line of lines) expect(line).toMatch(/query\.service\.ts/);
+    for (const line of lines) expect(line).toMatch(/(query|statement)\.service\.ts/);
   }, 60_000);
 
   it("reports generator diagnostics against the authored file", () => {

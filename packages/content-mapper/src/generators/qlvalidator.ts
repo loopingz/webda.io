@@ -82,11 +82,18 @@ function queryableAttributes(ctx: AnalysisContext, type: any): string[] {
 }
 
 /**
+ * Field list of a `SELECT f1, f2.g [WHERE ...]` statement: everything between `SELECT` and the first clause
+ * keyword (keywords are uppercase only, so a lowercase `where` is a field)
+ */
+const SELECT_FIELDS = /^\s*SELECT\s+(.+?)(?=\s+(?:WHERE|ORDER BY|LIMIT|OFFSET)\b|\s*$)/s;
+
+/**
  * Attribute paths referenced by a query, as written.
  *
  * Deliberately syntactic: the compile-time check only needs the head of each
  * comparison, and reusing the full query AST would tie this generator to the
- * parser's shape.
+ * parser's shape. Statements are covered too: the fields of a `SELECT` list, and
+ * the targets of an `UPDATE SET` (written `field = value`, like a comparison).
  * @param query - raw query text
  * @returns referenced attribute heads
  */
@@ -97,6 +104,11 @@ export function referencedAttributes(query: string): string[] {
   )) {
     const head = match[1].split(".")[0];
     if (!/^(AND|OR|NOT|TRUE|FALSE|IN|LIKE|IS|NULL)$/i.test(head)) names.add(head);
+  }
+  const select = SELECT_FIELDS.exec(query);
+  for (const field of select?.[1].split(",") ?? []) {
+    const head = field.trim().split(".")[0];
+    if (head) names.add(head);
   }
   return [...names];
 }

@@ -14,11 +14,11 @@ const fixture = join(here, "..", "test", "fixture");
  * @param parse - optional parser, to exercise grammar validation
  * @returns generated text and diagnostics
  */
-function run(parse?: (query: string) => unknown) {
+function run(parse?: (query: string) => unknown, service: string = "query.service.ts") {
   const session = openSession(join(fixture, "tsconfig.json"), join(fixture, "src"));
   try {
     const produced = qlValidatorGenerator({ qlModule: "./runtime.js", parse }).analyze(session.ctx);
-    const file = produced.find(f => f.fileName.endsWith("query.service.ts"))!;
+    const file = produced.find(f => f.fileName.endsWith(service))!;
     const { plan } = mergePlan([file]);
     return {
       text: applyEdits(readFileSync(file.fileName, "utf8"), plan.get(file.fileName) ?? []),
@@ -79,6 +79,36 @@ describe("WebdaQL referenced attributes", () => {
       "owner",
       "tags"
     ]);
+  });
+});
+
+describe("WebdaQL statements", () => {
+  it("checks SELECT fields and UPDATE SET targets against the model, as filter attributes", () => {
+    const { diagnostics } = run(undefined, "statement.service.ts");
+    const unknown = diagnostics
+      .filter(d => d.code === WQL_CODES.UNKNOWN_ATTRIBUTE)
+      .map(d => d.messageText.match(/'([^']+)' in/)?.[1])
+      .sort();
+    expect(unknown).toEqual(["autor", "craetedAt", "statsu", "titel"]);
+    expect(diagnostics.find(d => d.messageText.includes("'titel'"))?.messageText).toContain("Did you mean 'title'?");
+  });
+
+  it("lists the SELECT fields, SET targets and WHERE attributes of a statement", () => {
+    expect(referencedAttributes("SELECT title, author.name WHERE status = 'x' ORDER BY title DESC LIMIT 5")).toEqual([
+      "status",
+      "title",
+      "author"
+    ]);
+    expect(referencedAttributes("SELECT title")).toEqual(["title"]);
+    expect(referencedAttributes("UPDATE SET title = 'x', meta.a = ? WHERE uuid = :u LIMIT ?").sort()).toEqual([
+      "meta",
+      "title",
+      "uuid"
+    ]);
+    expect(referencedAttributes("DELETE WHERE titel = 1 LIMIT 5")).toEqual(["titel"]);
+    expect(referencedAttributes("DELETE")).toEqual([]);
+    // Keywords are uppercase only: lowercase words are fields
+    expect(referencedAttributes("SELECT where, set WHERE delete = 1").sort()).toEqual(["delete", "set", "where"]);
   });
 });
 

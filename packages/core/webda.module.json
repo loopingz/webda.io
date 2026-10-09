@@ -3,6 +3,48 @@
   "beans": {},
   "deployers": {},
   "moddas": {
+    "Webda/ApplicationPackager": {
+      "Import": "lib/deployers/packager.service:ApplicationPackager",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Interface to specify the Service parameters",
+        "properties": {
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "ApplicationPackager"
+      },
+      "Configuration": "lib/services/serviceparameters:ServiceParameters",
+      "commands": {
+        "package": {
+          "description": "Package the application with its deployment applied",
+          "method": "package",
+          "args": {
+            "output": {
+              "type": "string",
+              "alias": "o",
+              "description": "Package folder, or JSON file with --config-only (stdout if omitted)"
+            },
+            "configOnly": {
+              "type": "boolean",
+              "description": "Only output the deployed configuration"
+            }
+          },
+          "phase": "resolved"
+        }
+      }
+    },
     "Webda/AuditService": {
       "Import": "lib/services/audit.model:AuditService",
       "Schema": {

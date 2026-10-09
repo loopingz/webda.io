@@ -7,6 +7,7 @@ import { vi } from "vitest";
 import {
   buildCli,
   createCommandShutdown,
+  exitAfterFlush,
   onInterrupt,
   reportServiceCommand,
   settleServiceCommand,
@@ -25,7 +26,10 @@ import {
 /**
  * Helper to create a minimal OperationsFile for testing
  */
-function makeOps(operations: Record<string, OperationEntry>, schemas: Record<string, JSONSchema7> = {}): OperationsFile {
+function makeOps(
+  operations: Record<string, OperationEntry>,
+  schemas: Record<string, JSONSchema7> = {}
+): OperationsFile {
   return { operations, schemas };
 }
 
@@ -347,6 +351,24 @@ class CliLoggingOptionsTest {
 @suite
 class CliCommandShutdownTest {
   @test
+  async exitWaitsForStdoutFlush() {
+    // A piped stdout is asynchronous: exiting before it drains truncates large outputs
+    const calls: string[] = [];
+    let flush: () => void;
+    const stdout = {
+      write: (chunk: string, callback: () => void) => {
+        calls.push(`write '${chunk}'`);
+        flush = callback;
+        return false;
+      }
+    };
+    exitAfterFlush(0, stdout as any, code => void calls.push(`exit ${code}`));
+    assert.deepStrictEqual(calls, ["write ''"], "no exit while stdout is pending");
+    flush();
+    assert.deepStrictEqual(calls, ["write ''", "exit 0"]);
+  }
+
+  @test
   async stopsCoreThenExitsOnce() {
     const calls: string[] = [];
     const core = { stop: async () => void calls.push("stop") };
@@ -387,6 +409,8 @@ class CliCommandShutdownTest {
     const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
     try {
       await createCommandShutdown({ stop: async () => {} }).shutdown(3);
+      // The exit happens once stdout is flushed
+      await new Promise<void>(resolve => process.stdout.write("", () => resolve()));
       assert.deepStrictEqual(exit.mock.calls, [[3]]);
     } finally {
       exit.mockRestore();
@@ -606,7 +630,8 @@ class CliDeploymentTest {
       /Command 'deploy' is run by deployers: select a deployment with -d <name>/
     );
     assert.throws(
-      () => prepareDeploymentUnits(deploymentApp({ units: [{ name: "Image", type: "ImageBuilder" }] }), "deploy", cmdInfo),
+      () =>
+        prepareDeploymentUnits(deploymentApp({ units: [{ name: "Image", type: "ImageBuilder" }] }), "deploy", cmdInfo),
       /Deployment 'Production' has no unit of type Webda\/CloudFormationDeployer for command 'deploy'/
     );
     // Deployers are never injected by default
@@ -621,6 +646,9 @@ class CliDeploymentTest {
     const cmdInfo: any = {
       services: [{ name: "Webda/CloudFormationDeployer", method: "deploy", type: "Webda/CloudFormationDeployer" }]
     };
-    assert.throws(() => prepareDeploymentUnits(app, "deploy", cmdInfo), /conflicts with the application service 'store'/);
+    assert.throws(
+      () => prepareDeploymentUnits(app, "deploy", cmdInfo),
+      /conflicts with the application service 'store'/
+    );
   }
 }

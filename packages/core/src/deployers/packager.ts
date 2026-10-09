@@ -1,8 +1,20 @@
 import { useLog } from "@webda/workout";
-import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync
+} from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import type { Application } from "../application/application.js";
 import type { Configuration } from "../application/iconfiguration.js";
+import * as WebdaError from "../errors/errors.js";
 import { getGitInformation } from "./git.js";
 
 /**
@@ -74,6 +86,24 @@ export interface PackageOptions {
     includes?: string[];
     excludes?: string[];
   };
+  /**
+   * Services to remove from the packaged configuration, like the ones injected by the CLI to run a command
+   */
+  excludeServices?: string[];
+}
+
+/**
+ * Options of {@link getDeployedConfiguration}
+ */
+export interface DeployedConfigurationOptions {
+  /**
+   * Services to remove from the configuration, in addition to the deployment units
+   */
+  excludeServices?: string[];
+  /**
+   * Rewrite the `Import` and `Configuration` paths of the cached modules, kept as is when omitted
+   */
+  rewriteImport?: (value: string) => string;
 }
 
 /**
@@ -236,6 +266,71 @@ function rewriteImport(value: string, appPath: string, realAppPath: string, plac
 }
 
 /**
+ * Compute the configuration of the application with its current deployment applied
+ *
+ * It is a copy of the current configuration without the deployment units and the excluded services,
+ * with the deployment name and the git information baked in the cached project.
+ *
+ * @param app - the loaded application
+ * @param options - excluded services and import rewriting
+ * @returns the deployed configuration
+ */
+export function getDeployedConfiguration(app: Application, options: DeployedConfigurationOptions = {}): Configuration {
+  const configuration: Configuration = JSON.parse(JSON.stringify(app.getConfiguration()));
+  for (const name of [
+    ...(app.getDeployment()?.units ?? []).map(unit => unit.name),
+    ...(options.excludeServices ?? [])
+  ]) {
+    delete configuration.services?.[name];
+  }
+  const modules: any = configuration.cachedModules ?? {};
+  if (options.rewriteImport) {
+    for (const section of ["moddas", "beans", "deployers", "models", "behaviors"]) {
+      for (const definition of Object.values<any>(modules[section] ?? {})) {
+        for (const key of ["Import", "Configuration"]) {
+          if (typeof definition?.[key] === "string" && definition[key]) {
+            definition[key] = options.rewriteImport(definition[key]);
+          }
+        }
+      }
+    }
+  }
+  if (modules.project) {
+    const realAppPath = realpathSync(app.applicationPath);
+    const description = readPackage(realAppPath);
+    modules.project.deployment = { ...modules.project.deployment, name: app.getCurrentDeployment() ?? "" };
+    modules.project.git = getGitInformation(realAppPath, description.name, description.version);
+  }
+  return configuration;
+}
+
+/**
+ * Write a packaged application into a folder
+ *
+ * The folder is created if needed and must be empty: a previous package is never overwritten.
+ *
+ * @param pkg - the package from {@link packageApplication}
+ * @param output - the target folder
+ * @throws CodeError PACKAGE_OUTPUT_NOT_EMPTY if the folder already contains files
+ */
+export function writeApplicationPackage(pkg: ApplicationPackage, output: string): void {
+  if (existsSync(output) && readdirSync(output).length) {
+    throw new WebdaError.CodeError("PACKAGE_OUTPUT_NOT_EMPTY", `Package folder ${output} is not empty`);
+  }
+  for (const file of pkg.files) {
+    const target = join(output, ...file.target.split("/"));
+    mkdirSync(dirname(target), { recursive: true });
+    if (file.source) {
+      copyFileSync(file.source, target);
+    } else {
+      writeFileSync(target, file.content ?? "");
+    }
+    // Only keep the executable bit, like the container layers
+    chmodSync(target, (file.mode ?? 0o644) & 0o111 ? 0o755 : 0o644);
+  }
+}
+
+/**
  * Compute the content of a deployable application: its files, its production dependencies and
  * its packaged configuration
  *
@@ -319,25 +414,12 @@ export async function packageApplication(app: Application, options: PackageOptio
   }
 
   // Packaged configuration
-  const configuration: Configuration = JSON.parse(JSON.stringify(app.getConfiguration()));
-  for (const unit of app.getDeployment()?.units ?? []) {
-    delete configuration.services?.[unit.name];
-  }
   const byLength = [...placed].sort((a, b) => b.real.length - a.real.length);
+  const configuration = getDeployedConfiguration(app, {
+    excludeServices: options.excludeServices,
+    rewriteImport: value => rewriteImport(value, appPath, realAppPath, byLength)
+  });
   const modules: any = configuration.cachedModules ?? {};
-  for (const section of ["moddas", "beans", "deployers", "models", "behaviors"]) {
-    for (const definition of Object.values<any>(modules[section] ?? {})) {
-      for (const key of ["Import", "Configuration"]) {
-        if (typeof definition?.[key] === "string" && definition[key]) {
-          definition[key] = rewriteImport(definition[key], appPath, realAppPath, byLength);
-        }
-      }
-    }
-  }
-  if (modules.project) {
-    modules.project.deployment = { ...modules.project.deployment, name: app.getCurrentDeployment() ?? "" };
-    modules.project.git = getGitInformation(realAppPath, description.name, description.version);
-  }
   files.push({ target: PACKAGED_CONFIGURATION, content: JSON.stringify(configuration, undefined, 2) });
   files.push({
     target: PACKAGED_MARKER,

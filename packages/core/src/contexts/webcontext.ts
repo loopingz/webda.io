@@ -42,6 +42,10 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
   _route: any;
 
   _ended: Promise<any> = undefined;
+  /**
+   * Whether the session was already saved
+   */
+  protected _sessionSaved: boolean = false;
 
   /**
    * If headers were flushed
@@ -232,6 +236,24 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
   }
 
   /**
+   * Save the session through the SessionManager, once
+   *
+   * The SessionManager writes the session cookie: call it before the headers are flushed
+   */
+  async saveSession(): Promise<void> {
+    if (this._sessionSaved || !this.getExtension("http") || !this.session) {
+      return;
+    }
+    this._sessionSaved = true;
+    try {
+      const sm = useDynamicService("SessionManager");
+      if (sm) await (sm as any).save(this, this.session);
+    } catch {
+      // SessionManager may not be available
+    }
+  }
+
+  /**
    * Flush the request
    *
    * @emits 'finish' event
@@ -244,14 +266,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
       return this._ended;
     }
     this._ended = (async () => {
-      if (this.getExtension("http") && this.session) {
-        try {
-          const sm = useDynamicService("SessionManager");
-          if (sm) await (sm as any).save(this, this.session);
-        } catch {
-          // SessionManager may not be available
-        }
-      }
+      await this.saveSession();
       await super.end();
       if (this._stream instanceof WritableStreamBuffer && (<WritableStreamBuffer>this._stream).size()) {
         this._body = (<WritableStreamBuffer>this._stream).getContents().toString();

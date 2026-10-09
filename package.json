@@ -52,7 +52,8 @@
   "pnpm": {
     "overrides": {
       "whatwg-url": "^14.0.0",
-      "webpackbar": "^7.0.0"
+      "webpackbar": "^7.0.0",
+      "nodemailer@<10.0.6": "^10.0.16"
     },
     "onlyBuiltDependencies": [
       "@parcel/watcher",

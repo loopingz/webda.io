@@ -248,7 +248,8 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
    * @override
    */
   async init(): Promise<this> {
-    this._transporter = nodemailer.createTransport(this.parameters);
+    // Service parameters carry the nodemailer transport options (SMTP, SES, ...) next to the Mailer settings
+    this._transporter = nodemailer.createTransport(<nodemailer.TransportConfig>this.parameters);
     return this;
   }
 

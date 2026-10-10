@@ -39,6 +39,7 @@ export class RestStreamingOperationContext extends StreamingOperationContext {
   private beginning?: Promise<void>;
   private queued: string[] = [];
   private needDrain = false;
+  private aborted = false;
 
   /**
    * @param httpContext - the request
@@ -121,6 +122,14 @@ export class RestStreamingOperationContext extends StreamingOperationContext {
   }
 
   /**
+   * The operation failed before the response head was sent: it will never be written, so the caller can answer with a
+   * normal HTTP error
+   */
+  abortBeforeStart(): void {
+    if (!this.started) this.aborted = true;
+  }
+
+  /**
    * Save the session (its cookie leaves with the headers, so changes made until now are kept), send the headers, then
    * what was written meanwhile. Once.
    * @returns a promise resolved when the response head is out
@@ -129,7 +138,8 @@ export class RestStreamingOperationContext extends StreamingOperationContext {
     this.beginning ??= (async () => {
       this._sessionSaved = false;
       await this.saveSession();
-      if (this.finished || this.connectionEnded) return;
+      // Gone, over, or failed before anything was sent: the head is not ours to write anymore
+      if (this.finished || this.aborted || this.connectionEnded) return;
       this.start();
       for (const text of this.queued.splice(0)) {
         if (!this.response.write(text)) this.needDrain = true;
@@ -172,7 +182,11 @@ export class RestStreamingOperationContext extends StreamingOperationContext {
   protected sendChunk(chunk: any): boolean {
     const json = JSONUtils.stringify(chunk, undefined, 0, true) ?? "null";
     const text = this.format === "sse" ? `data: ${json}\n\n` : `${json}\n`;
-    if (this.started) return this.response.write(text);
+    if (this.started) {
+      const flushed = this.response.write(text);
+      if (!flushed) this.needDrain = true;
+      return flushed;
+    }
     this.queued.push(text);
     this.begin().catch(() => undefined);
     return false;
@@ -184,6 +198,8 @@ export class RestStreamingOperationContext extends StreamingOperationContext {
    */
   protected async waitForDrain(signal: AbortSignal): Promise<void> {
     await this.beginning;
+    // The client left while the head was being prepared: nothing will ever drain
+    this.assertAlive();
     if (this.started && !this.needDrain) return;
     this.needDrain = false;
     await Promise.race([

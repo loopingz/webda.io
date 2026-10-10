@@ -532,7 +532,10 @@ export class RESTOperationsTransport<
       // The client went away: nothing to tell
       if (stream.isCancelled || stream.disconnected) return stream.finish();
       // Nothing sent yet: a normal HTTP error response
-      if (!stream.hasStarted) throw err;
+      if (!stream.hasStarted) {
+        stream.abortBeforeStart();
+        throw err;
+      }
       const status = typeof err?.getResponseCode === "function" ? err.getResponseCode() : undefined;
       const clientError = status >= 400 && status < 500;
       if (!clientError) useLog("ERROR", `[REST ${operationId}] streamed operation threw:`, err);

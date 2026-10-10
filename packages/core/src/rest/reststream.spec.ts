@@ -16,8 +16,9 @@ import { useContext } from "../index.js";
 import { registerSchema } from "../schemas/hooks.js";
 import { useApplication } from "../application/hooks.js";
 import * as http2 from "node:http2";
+import * as http from "node:http";
 
-const state = { closed: false, started: 0, gate: Promise.resolve() as Promise<void> };
+const state = { closed: false, started: 0, produced: 0, gate: Promise.resolve() as Promise<void> };
 
 /** Gate every test can open */
 function closeGate(): () => void {
@@ -78,6 +79,25 @@ class RsFixtureService extends Service {
   async *stamp() {
     useContext<any>().getSession().marker = "changed";
     yield { stamped: true };
+  }
+
+  /** Produces big chunks until its client stops reading or it reaches the cap */
+  async *flood() {
+    try {
+      for (let i = 0; i < 2000; i++) {
+        state.produced++;
+        yield { data: "x".repeat(256 * 1024) };
+      }
+    } finally {
+      state.closed = true;
+    }
+  }
+
+  /** Fails before its first chunk, once the gate opens */
+  async *slowFail() {
+    await state.gate;
+    throw new WebdaError.NotFound("Too late");
+    yield 1;
   }
 
   async *empty() {
@@ -155,7 +175,17 @@ class RestStreamBase extends WebdaApplicationTest {
         output: "void",
         streaming: "server"
       });
-      const ops = ["gated", "stamp", "failEarly", "failInternal", "failClient", "failCancel", "empty"];
+      const ops = [
+        "gated",
+        "flood",
+        "slowFail",
+        "stamp",
+        "failEarly",
+        "failInternal",
+        "failClient",
+        "failCancel",
+        "empty"
+      ];
       for (const method of ops) {
         registerOperation(`Rs.${method[0].toUpperCase()}${method.slice(1)}`, {
           service: "Rs",
@@ -422,6 +452,87 @@ class RestStreamTest extends RestStreamBase {
     const doc: any = (useService("Router" as any) as any).exportOpenAPI(true);
     const content = doc.paths["/things/act"].put.responses["200"].content;
     assert.deepStrictEqual(Object.keys(content), ["application/x-ndjson", "text/event-stream"]);
+  }
+
+  @test
+  async slowClientStopsTheGeneratorUntilItReads() {
+    state.closed = false;
+    state.produced = 0;
+    const url = await this.url();
+    const response = await new Promise<http.IncomingMessage>(resolve => {
+      const req = http.request(`${url}/rs/flood`, { method: "PUT" }, resolve);
+      req.end();
+    });
+    // The client does not read
+    response.pause();
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const stalled = state.produced;
+    await new Promise(resolve => setTimeout(resolve, 300));
+    assert.strictEqual(state.produced, stalled, "no production while the client does not read");
+    assert.ok(stalled < 400, `bounded buffering, produced ${stalled} chunks of 256 KiB`);
+    // It reads again: the generator resumes
+    response.resume();
+    await until(() => state.produced > stalled + 5);
+    response.destroy();
+    await until(() => state.closed);
+  }
+
+  @test
+  async clientLeavingWhileTheSessionIsSavedEndsTheGenerator() {
+    state.closed = false;
+    const release = closeGate();
+    release();
+    const sessions = useService("SessionManager" as any) as any;
+    const save = sessions.save;
+    let releaseSave!: () => void;
+    const saveGate = new Promise<void>(resolve => (releaseSave = resolve));
+    let saves = 0;
+    sessions.save = async () => {
+      if (saves++ === 0) await saveGate;
+    };
+    try {
+      const controller = new AbortController();
+      const pending = fetch(`${await this.url()}/rs/gated`, { method: "PUT", signal: controller.signal }).catch(
+        () => undefined
+      );
+      await until(() => saves > 0);
+      controller.abort();
+      await pending;
+      await new Promise(resolve => setTimeout(resolve, 100));
+      releaseSave();
+      await until(() => state.closed);
+    } finally {
+      sessions.save = save;
+    }
+  }
+
+  @test
+  async failureBeforeTheFirstChunkWinsOverAKeepAliveHead() {
+    const release = closeGate();
+    const sessions = useService("SessionManager" as any) as any;
+    const save = sessions.save;
+    let releaseSave!: () => void;
+    const saveGate = new Promise<void>(resolve => (releaseSave = resolve));
+    let saves = 0;
+    sessions.save = async () => {
+      if (saves++ === 0) await saveGate;
+    };
+    try {
+      const pending = fetch(`${await this.url()}/rs/slowfail`, {
+        method: "PUT",
+        headers: { accept: "text/event-stream" }
+      });
+      // The first keep-alive starts saving the session for the head
+      await until(() => saves > 0);
+      release();
+      await new Promise(resolve => setTimeout(resolve, 100));
+      releaseSave();
+      const res = await pending;
+      assert.strictEqual(res.status, 404);
+      assert.strictEqual((await res.json()).error.message, "Too late");
+    } finally {
+      sessions.save = save;
+    }
   }
 }
 

@@ -529,6 +529,183 @@
           "type": "object"
         }
       }
+    },
+    "SyncService.push.input": {
+      "type": "object",
+      "properties": {
+        "mutations": {
+          "items": {
+            "$ref": "#/definitions/Mutation"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "mutations"
+      ],
+      "definitions": {
+        "Mutation": {
+          "additionalProperties": false,
+          "properties": {
+            "baseRev": {
+              "description": "Revision the change was made on, 0 for a create",
+              "type": "number"
+            },
+            "mutationId": {
+              "description": "Client-generated id, kept across retries so a replayed mutation is answered `ok`",
+              "type": "string"
+            },
+            "op": {
+              "enum": [
+                "create",
+                "patch",
+                "delete"
+              ],
+              "type": "string"
+            },
+            "patch": {
+              "description": "The full object for \"create\", a `@webda/versioning` Delta for \"patch\""
+            },
+            "ref": {
+              "$ref": "#/definitions/SyncRef"
+            }
+          },
+          "required": [
+            "baseRev",
+            "mutationId",
+            "op",
+            "ref"
+          ],
+          "type": "object"
+        },
+        "SyncRef": {
+          "additionalProperties": false,
+          "description": "Reference to one object: model identifier and canonical key (see {@link serializeKey})",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "key",
+            "model"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "SyncService.push.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "results": {
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/results%5B%5D%231"
+              },
+              {
+                "$ref": "#/definitions/results%5B%5D%232"
+              },
+              {
+                "$ref": "#/definitions/results%5B%5D%233"
+              }
+            ]
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "results"
+      ],
+      "type": "object",
+      "definitions": {
+        "results[]#1": {
+          "additionalProperties": false,
+          "properties": {
+            "mutationId": {
+              "type": "string"
+            },
+            "object": {},
+            "rev": {
+              "type": "number"
+            },
+            "status": {
+              "const": "ok",
+              "type": "string"
+            }
+          },
+          "required": [
+            "mutationId",
+            "rev",
+            "status"
+          ],
+          "type": "object"
+        },
+        "results[]#2": {
+          "additionalProperties": false,
+          "properties": {
+            "mutationId": {
+              "type": "string"
+            },
+            "object": {},
+            "rev": {
+              "type": "number"
+            },
+            "status": {
+              "const": "conflict",
+              "type": "string"
+            }
+          },
+          "required": [
+            "mutationId",
+            "object",
+            "rev",
+            "status"
+          ],
+          "type": "object"
+        },
+        "results[]#3": {
+          "additionalProperties": false,
+          "properties": {
+            "error": {
+              "$ref": "#/definitions/results%5B%5D%233%24error"
+            },
+            "mutationId": {
+              "type": "string"
+            },
+            "status": {
+              "const": "rejected",
+              "type": "string"
+            }
+          },
+          "required": [
+            "error",
+            "mutationId",
+            "status"
+          ],
+          "type": "object"
+        },
+        "results[]#3$error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      }
     }
   },
   "behaviors": {}

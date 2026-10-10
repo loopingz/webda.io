@@ -13,15 +13,27 @@ import {
   useModel,
   useContext,
   useModelMetadata,
-  useRepository
+  useRepository,
+  sanitizeModelInput,
+  validateModelSchema
 } from "@webda/core";
+import { patch as applyDelta } from "@webda/versioning";
 import { escape, QueryValidator } from "@webda/ql";
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
 import { SyncChange } from "./syncchange.model.js";
 import { parseDuration } from "./duration.js";
 import { refId } from "../protocol/index.js";
-import type { PullResponse, SnapshotResponse, SyncedObject, SyncRef, SyncScope } from "../protocol/index.js";
+import type {
+  Mutation,
+  MutationResult,
+  PullResponse,
+  PushResponse,
+  SnapshotResponse,
+  SyncedObject,
+  SyncRef,
+  SyncScope
+} from "../protocol/index.js";
 
 /**
  * Parameters of the SyncService
@@ -488,5 +500,169 @@ export class SyncService extends Service<SyncServiceParameters> {
       objects,
       continuationToken: res.continuationToken || undefined
     };
+  }
+
+  /**
+   * Apply client mutations, each on its own, in order
+   * @param mutations - the mutations
+   * @returns one result per mutation
+   */
+  @Operation({
+    id: "Sync.Push",
+    input: "SyncService.push.input",
+    output: "SyncService.push.output",
+    rest: { method: "post", path: "sync/push" }
+  })
+  async push(mutations: Mutation[]): Promise<PushResponse> {
+    if (!Array.isArray(mutations)) {
+      throw new WebdaError.BadRequest("mutations must be an array");
+    }
+    if (mutations.length > this.parameters.pageSize) {
+      throw new WebdaError.BadRequest(`At most ${this.parameters.pageSize} mutations are accepted`);
+    }
+    const results: MutationResult[] = [];
+    for (const mutation of mutations) {
+      results.push(await this.applyMutation(mutation));
+    }
+    return { results };
+  }
+
+  /**
+   * @param mutationId - the mutation
+   * @param code - error code
+   * @param message - error message
+   * @returns a rejected result
+   */
+  protected rejected(mutationId: string, code: string, message: string): MutationResult {
+    return { mutationId, status: "rejected", error: { code, message } };
+  }
+
+  /**
+   * @param mutationId - the mutation
+   * @param modelId - the model
+   * @param object - the current server object, undefined when deleted
+   * @returns a conflict result
+   */
+  protected conflict(mutationId: string, modelId: string, object?: any): MutationResult {
+    if (!object) return { mutationId, status: "conflict", rev: 0, object: null };
+    const synced = this.toSynced(modelId, object);
+    return { mutationId, status: "conflict", rev: synced.rev, object: synced.object };
+  }
+
+  /**
+   * Validate a candidate object against the model schema
+   * @param modelId - the model
+   * @param candidate - the full object
+   * @returns undefined when valid, the error message otherwise
+   */
+  protected invalid(modelId: string, candidate: any): string | undefined {
+    try {
+      const res: any = validateModelSchema(modelId, candidate);
+      return res === true || res === null || res === undefined ? undefined : String(res?.message ?? res);
+    } catch (err) {
+      return (err as Error).message;
+    }
+  }
+
+  /**
+   * Apply one mutation
+   * @param m - the mutation
+   * @returns its result
+   */
+  protected async applyMutation(m: Mutation): Promise<MutationResult> {
+    const mutationId = typeof m?.mutationId === "string" ? m.mutationId : "";
+    if (!mutationId || !m.ref || typeof m.ref.key !== "string") {
+      return this.rejected(mutationId, "INVALID", "mutationId and ref are required");
+    }
+    const modelId = m.ref.model;
+    if (!this.parameters.models.includes(modelId)) {
+      return this.rejected(mutationId, "NOT_SYNCED", `Model ${modelId} is not synced`);
+    }
+    const model: any = useModel(modelId);
+    const fields = this.pkFields(modelId);
+    const pk = parseSubjectKey(fields, m.ref.key);
+    if (pk === undefined) {
+      return this.rejected(mutationId, "INVALID_KEY", "Invalid key");
+    }
+    const context = useContext<OperationContext>();
+    const id = refId(m.ref);
+    try {
+      // Replay of a mutation already applied (lost response)
+      const done = (await SyncChange.query(escape(["mutationId = ", " LIMIT 1"], [mutationId]))).results[0];
+      if (done && done.subjectModel === modelId && done.subjectKey === m.ref.key) {
+        const object = await this.load(modelId, m.ref.key);
+        return object
+          ? { mutationId, status: "ok", rev: object._rev ?? 0, object: this.toSynced(modelId, object).object }
+          : { mutationId, status: "ok", rev: 0 };
+      }
+      const current = await this.load(modelId, m.ref.key);
+      if (m.op === "create") {
+        if (current) {
+          return (await this.canRead(current, modelId))
+            ? this.conflict(mutationId, modelId, current)
+            : this.rejected(mutationId, "KEY_IN_USE", "Key already in use");
+        }
+        const keyFields = typeof pk === "object" ? pk : { [fields[0] ?? "uuid"]: pk };
+        const input = { ...sanitizeModelInput(model, m.patch ?? {}), ...keyFields };
+        const candidate = new model();
+        candidate["load"](input);
+        await checkModelPermission(candidate, context, "create", model);
+        const error = this.invalid(modelId, { ...input, _rev: 1 });
+        if (error) return this.rejected(mutationId, "VALIDATION", error);
+        this.mutationIds.set(id, mutationId);
+        await model.create(input);
+      } else if (m.op === "patch" || m.op === "delete") {
+        if (!current) {
+          return m.op === "delete" ? { mutationId, status: "ok", rev: 0 } : this.conflict(mutationId, modelId);
+        }
+        if ((current._rev ?? 0) !== m.baseRev) {
+          return this.conflict(mutationId, modelId, current);
+        }
+        await checkModelPermission(current, context, m.op === "patch" ? "update" : "delete", model);
+        this.mutationIds.set(id, mutationId);
+        if (m.op === "delete") {
+          await useRepository(model).delete(pk as any, "_rev" as any, current._rev);
+          return { mutationId, status: "ok", rev: 0 };
+        }
+        const before = this.toSynced(modelId, current).object;
+        const after = applyDelta(before, m.patch);
+        // Server-managed attributes keep their stored value; client-writable ones come from `after`
+        const writable = sanitizeModelInput(model, after);
+        const writableBefore = sanitizeModelInput(model, before);
+        const managed = Object.fromEntries(Object.entries(before).filter(([key]) => !(key in writableBefore)));
+        const data: any = { ...managed, ...writable, _rev: m.baseRev + 1 };
+        const error = this.invalid(modelId, data);
+        if (error) {
+          this.mutationIds.delete(id);
+          return this.rejected(mutationId, "VALIDATION", error);
+        }
+        this.revved.add(data);
+        try {
+          // patch, not update: MemoryRepository.update rebuilds the row with `new Model(data)`, which drops every field
+          // for models whose constructor ignores its argument. Removed attributes are cleared explicitly.
+          const removed = Object.fromEntries(
+            Object.keys(writableBefore)
+              .filter(key => !(key in data))
+              .map(key => [key, undefined])
+          );
+          await useRepository(model).patch(pk as any, { ...removed, ...data }, "_rev" as any, current._rev);
+        } catch (err) {
+          this.mutationIds.delete(id);
+          const reloaded = await this.load(modelId, m.ref.key);
+          if ((reloaded?._rev ?? 0) !== m.baseRev) return this.conflict(mutationId, modelId, reloaded);
+          throw err;
+        }
+      } else {
+        return this.rejected(mutationId, "INVALID", `Unknown op ${(m as any).op}`);
+      }
+      const saved = await this.load(modelId, m.ref.key);
+      return { mutationId, status: "ok", rev: saved?._rev ?? 0, object: saved && this.toSynced(modelId, saved).object };
+    } catch (err) {
+      this.mutationIds.delete(id);
+      if (err instanceof WebdaError.NotFound) return this.rejected(mutationId, "NOT_FOUND", "Object not found");
+      if (err instanceof WebdaError.Forbidden) return this.rejected(mutationId, "FORBIDDEN", err.message);
+      this.log("ERROR", "Sync.Push mutation failed", err);
+      return this.rejected(mutationId, "INTERNAL", "Internal error");
+    }
   }
 }

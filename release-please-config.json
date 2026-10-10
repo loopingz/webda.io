@@ -33,6 +33,7 @@
     "packages/models": {},
     "packages/mongodb": {},
     "packages/oci": {},
+    "packages/offline": {},
     "packages/otel": {},
     "packages/postgres": {},
     "packages/ql": {},

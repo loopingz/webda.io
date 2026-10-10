@@ -24,6 +24,7 @@
   "packages/models": "4.0.0-beta.6",
   "packages/mongodb": "4.0.0-beta.6",
   "packages/oci": "4.0.0-beta.6",
+  "packages/offline": "4.0.0-beta.6",
   "packages/otel": "4.0.0-beta.6",
   "packages/postgres": "4.0.0-beta.6",
   "packages/ql": "4.0.0-beta.6",

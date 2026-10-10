@@ -1,6 +1,6 @@
 {
   "name": "@webda/offline",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0-beta.6",
   "description": "Offline replicas of Webda models with revision-checked sync and 3-way merge conflicts",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",

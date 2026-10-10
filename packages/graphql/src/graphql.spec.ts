@@ -69,8 +69,14 @@ class Course extends CoreModel {
   teacher?: string;
   classroom?: string;
   students?: string[];
-  static canAct(): boolean {
-    return true;
+  /**
+   * @param _context - the caller
+   * @param action - the action
+   * @param object - the object, when there is one
+   * @returns true, except to read a course named "secret"
+   */
+  static canAct(_context?: any, action?: string, object?: any): boolean {
+    return !(action === "get" && object?.name === "secret");
   }
 }
 
@@ -759,17 +765,26 @@ class GraphQLServiceTest extends WebdaApplicationTest {
       );
       // The class of objects sends the subscribed events of every object, with the time of the latest one
       const before = Date.now();
+      await Course.ref("another").create({ name: "another" } as any);
+      await Course.ref("hidden").create({ name: "secret" } as any);
+      const received: any[] = [];
       await this.subscribe(client, `subscription { CoursesEvents { test2 latestEventTime } }`, async (data, i) => {
         if (i === 1) {
           // Not subscribed: nothing is sent for it
-          await emit("test", { object_id: "any", type: "unsubscribed" });
+          await emit("test", { object_id: "another", type: "unsubscribed" });
+          // The subscriber cannot read "hidden": its event is never delivered, nor is an unknown object's
+          await emit("test2", { object_id: "hidden", type: "denied" });
+          await emit("test2", { object_id: "unknown", type: "gone" });
           await emit("test2", { object_id: "another", type: "class" });
         } else {
-          assert.deepStrictEqual(data.CoursesEvents.test2, { object_id: "another", type: "class" });
+          received.push(data.CoursesEvents.test2);
           assert.ok(data.CoursesEvents.latestEventTime >= before);
+          // Bounded wait for a late event of the denied objects
+          await new Promise(resolve => setTimeout(resolve, 100));
           return true;
         }
       });
+      assert.deepStrictEqual(received, [{ object_id: "another", type: "class" }]);
     } finally {
       await client.dispose();
     }

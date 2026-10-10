@@ -1454,6 +1454,18 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     const updatedCallback = eventName => async evt => {
       // A class-wide subscription (uuid null) receives the events of every object of the model
       if (uuid !== null && evt.object_id !== uuid) return;
+      if (uuid === null) {
+        // Only the events of objects the subscriber can read: an object that is gone or unreadable is skipped
+        let object = evt.object;
+        if (!object) {
+          try {
+            object = await model.ref(evt.object_id).get();
+          } catch {
+            return;
+          }
+        }
+        if (!object || !(await isModelActionAllowed(object, context, "get", model))) return;
+      }
       return { latestEventTime: Date.now(), [eventName]: evt };
     };
     const eventsMap = {};

@@ -348,6 +348,34 @@ class AsyncJobServiceTest extends AsyncTest {
   }
 
   @test
+  async handleEventMissingAction() {
+    const service = this.getValidService();
+    let launched = false;
+    // @ts-ignore
+    service.runners = [
+      // @ts-ignore
+      {
+        handleType: () => true,
+        launchAction: async () => {
+          launched = true;
+          return { mocked: true };
+        }
+      }
+    ];
+    // Must resolve so the queue deletes the message instead of redelivering it forever
+    // @ts-ignore
+    await service.handleEvent({ uuid: "missing", type: "Async", isInternal: () => false });
+    assert.strictEqual(launched, false);
+    assert.strictEqual(await AsyncAction.ref("missing").exists(), false);
+    // Same without any runner able to handle it
+    // @ts-ignore
+    service.runners = [];
+    // @ts-ignore
+    await service.handleEvent({ uuid: "missing", type: "Async", isInternal: () => false });
+    assert.strictEqual(await AsyncAction.ref("missing").exists(), false);
+  }
+
+  @test
   async handleEvent() {
     const service = this.getValidService();
     // @ts-ignore

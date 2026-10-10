@@ -1,22 +1,23 @@
 import {
+  AsyncQueue,
+  BuildCommand,
+  HttpContext,
+  OperationDefinition,
   OperationsTransport,
   OperationsTransportParameters,
-  OperationDefinition,
+  WebdaError,
   callOperation,
-  OperationContext,
-  SimpleOperationContext,
-  WebContext,
+  getOperationStreaming,
+  runWithInstanceStorage,
   useApplication,
   useCore,
-  BuildCommand,
-  ServiceParameters,
-  runWithInstanceStorage,
   useInstanceStorage
 } from "@webda/core";
 import { useLog } from "@webda/workout";
 import * as protoLoader from "@grpc/proto-loader";
 import { existsSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { GrpcOperationContext, toGrpcMessage } from "./grpc-context.js";
 import { GrpcStream, GrpcStatus } from "./grpc-stream.js";
 import { generateProto } from "./proto-generator.js";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -61,15 +62,21 @@ export class GrpcServiceParameters extends OperationsTransportParameters {
  *
  * @WebdaModda
  */
-export class GrpcService<
-  T extends GrpcServiceParameters = GrpcServiceParameters
-> extends OperationsTransport<T> {
+export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters> extends OperationsTransport<T> {
   /** Loaded protobuf definitions */
   private definitions: protoLoader.PackageDefinition;
   /** Map of gRPC path → operation ID */
   private rpcToOperation: Map<string, string> = new Map();
   /** Map of gRPC path → method definition */
   private rpcMethods: Map<string, protoLoader.MethodDefinition<any, any>> = new Map();
+
+  /**
+   * @param params - raw service parameters
+   * @returns the loaded parameters (with the operations include/exclude filter)
+   */
+  static createConfiguration(params: any = {}): GrpcServiceParameters {
+    return new GrpcServiceParameters().load(params);
+  }
 
   /**
    * Generate a .proto file from the current operation registry.
@@ -125,36 +132,41 @@ export class GrpcService<
   }
 
   /**
+   * Load the .proto file and map its RPC methods to operations (also callable after registering operations late)
+   */
+  loadDefinitions(): void {
+    if (!existsSync(this.parameters.protoFile)) {
+      useLog("WARN", `Proto file not found: ${this.parameters.protoFile}. Run 'webdac build' to generate it.`);
+      return;
+    }
+    try {
+      this.definitions = protoLoader.loadSync(this.parameters.protoFile, {
+        keepCase: true,
+        longs: String,
+        enums: String,
+        defaults: true,
+        oneofs: true
+      });
+      this.rpcToOperation.clear();
+      this.rpcMethods.clear();
+      this.buildRpcMap();
+      useLog(
+        "INFO",
+        `Loaded gRPC definitions from ${this.parameters.protoFile} — ${this.rpcToOperation.size} RPC methods mapped`
+      );
+    } catch (err: any) {
+      useLog("WARN", `Failed to load proto file: ${err.message}`);
+    }
+  }
+
+  /**
    * Initialize the gRPC transport: load proto, build RPC map, hook into HTTP/2.
    * @returns a promise resolving to this service instance once initialization is complete
    */
   async init(): Promise<this> {
     await super.init();
 
-    // Load proto file if it exists
-    if (existsSync(this.parameters.protoFile)) {
-      try {
-        this.definitions = protoLoader.loadSync(this.parameters.protoFile, {
-          keepCase: true,
-          longs: String,
-          enums: String,
-          defaults: true,
-          oneofs: true
-        });
-        this.buildRpcMap();
-        useLog(
-          "INFO",
-          `Loaded gRPC definitions from ${this.parameters.protoFile} — ${this.rpcToOperation.size} RPC methods mapped`
-        );
-      } catch (err: any) {
-        useLog("WARN", `Failed to load proto file: ${err.message}`);
-      }
-    } else {
-      useLog(
-        "WARN",
-        `Proto file not found: ${this.parameters.protoFile}. Run 'webdac build' to generate it.`
-      );
-    }
+    this.loadDefinitions();
 
     // Plug the gRPC dispatcher into every HttpServer instance in the app.
     // Serving both REST (HTTP/1.1 or TLS+ALPN) and plaintext gRPC (h2c) means
@@ -226,7 +238,21 @@ export class GrpcService<
   }
 
   /**
-   * Handle an incoming gRPC request.
+   * The request line and metadata of a gRPC call as an HttpContext (HTTP/2 pseudo-headers removed)
+   * @param req - the HTTP/2 request
+   * @returns the http context
+   */
+  private httpContextOf(req: IncomingMessage): HttpContext {
+    const raw = req.headers as Record<string, string | string[]>;
+    const authority = (raw[":authority"] as string) || (raw.host as string) || "localhost";
+    const [hostname, port] = authority.split(":");
+    const headers = Object.fromEntries(Object.entries(raw).filter(([key]) => !key.startsWith(":")));
+    return new HttpContext(hostname, "POST", req.url || "/", "http", port || "80", headers as any);
+  }
+
+  /**
+   * Handle an incoming gRPC request: one path for the four modes. Incoming messages feed the operation (as its
+   * input, or as the stream in `operationInputStream`), streamed output is sent as it is produced.
    *
    * Called by the HttpServer when content-type is application/grpc.
    *
@@ -250,179 +276,67 @@ export class GrpcService<
     }
 
     const stream = new GrpcStream(req, res, methodDef);
-    const operation = this.getOperations()[opId];
-    const grpc = operation?.grpc;
-    const streaming = (typeof grpc === "object" && grpc ? grpc.streaming : undefined) || "none";
+    const streaming = getOperationStreaming(this.getOperations()[opId]);
+    const ctx = new GrpcOperationContext(this.httpContextOf(req), stream, res);
+    const input = new AsyncQueue<unknown>();
+    // Handlers first: data may arrive while the session loads
+    stream.onMessage(message => input.push(this.cleanMessage(message)));
+    stream.onEnd(() => input.end());
+    stream.onCancel(() => {
+      ctx.cancel();
+      input.end();
+    });
+    // The stream may fail itself (bad frame, ...): it then ends the response, nothing more must be written
+    const finished = () => ctx.isCancelled || (res as any).writableEnded;
 
     try {
-      if (streaming === "bidi" || streaming === "client") {
-        // Client/bidi streaming — collect messages and process
-        await this.handleStreamingRequest(stream, opId, streaming);
-      } else if (streaming === "server") {
-        // Server streaming — single request, stream responses
-        await this.handleServerStreaming(stream, opId, methodDef);
+      await ctx.init();
+      if (streaming === "client" || streaming === "bidi") {
+        ctx.setExtension("operationInputStream", input);
       } else {
-        // Unary — single request, single response
-        await this.handleUnary(stream, opId, methodDef);
+        const first = await input.next();
+        if (finished()) return;
+        ctx.setMessage(first.done ? {} : first.value);
       }
-    } catch (err) {
-      const status = this.errorToGrpcStatus(err);
-      stream.sendError(status, err.message || "Internal error");
+      if (finished()) return;
+      await callOperation(ctx, opId);
+      if (finished()) return;
+      if (ctx.getExtension("operationStreaming")) {
+        stream.end(GrpcStatus.OK);
+      } else {
+        stream.sendUnary(this.unaryResponse(ctx.getOutput()));
+      }
+    } catch (err: any) {
+      if (err instanceof WebdaError.OperationCancelledError || finished()) return;
+      if (!(err?.getResponseCode?.() < 500)) useLog("ERROR", `[gRPC ${opId}] handler threw:`, err);
+      stream.sendError(this.errorToGrpcStatus(err), err?.message || "Internal error");
     }
   }
 
   /**
-   * Handle a unary gRPC call (single request → single response).
-   * @param stream - the active GrpcStream for this request
-   * @param opId - the Webda operation ID to invoke
-   * @param methodDef - the protobuf method definition with serializer functions
-   * @returns a promise that resolves when the unary response has been sent
+   * Proto3 `optional` fields deserialize with an extra `_field: "field"` marker (synthetic oneof tracking): drop
+   * those so the payload matches the backing JSON schema
+   * @param message - decoded message
+   * @returns the message without markers
    */
-  private handleUnary(
-    stream: GrpcStream,
-    opId: string,
-    methodDef: protoLoader.MethodDefinition<any, any>
-  ): Promise<void> {
-    // AsyncLocalStorage doesn't always propagate through the HTTP/2 'data'
-    // event that drives GrpcStream.onMessage, so capture the storage here and
-    // re-enter it inside the callback.
-    const instanceStorage = useInstanceStorage();
-    return new Promise<void>((resolve, reject) => {
-      stream.onMessage(message => {
-        runWithInstanceStorage(instanceStorage, async () => {
-          try {
-            const ctx = new SimpleOperationContext();
-            await ctx.init();
-            // Proto3 `optional` fields deserialize with an extra `_field: "field"`
-            // marker (synthetic oneof tracking). Drop those so the payload matches
-            // the backing JSON schema which forbids additional properties.
-            const cleaned =
-              typeof message === "object" && message !== null && !Array.isArray(message)
-                ? Object.fromEntries(Object.entries(message).filter(([k]) => !k.startsWith("_")))
-                : message;
-            ctx.setInput(Buffer.from(JSON.stringify(cleaned)));
-            await callOperation(ctx, opId);
-            const output = ctx.getOutput();
-            // Operation return values may be plain strings/numbers (e.g. version
-            // strings, publish ids). Wrap them in a `{value: ...}` object so the
-            // proto response is always a valid message shape.
-            let response: any = {};
-            if (output !== undefined && output !== null && output !== "") {
-              try {
-                response = JSON.parse(output);
-                if (typeof response !== "object" || response === null) {
-                  response = { value: response };
-                }
-              } catch {
-                response = { value: output };
-              }
-            }
-            stream.sendUnary(response);
-            resolve();
-          } catch (err: any) {
-            useLog("ERROR", `[gRPC ${opId}] handler threw:`, err);
-            const status = this.errorToGrpcStatus(err);
-            stream.sendError(status, err.message);
-            resolve(); // Don't reject — error was sent via gRPC status
-          }
-        });
-      });
-    });
+  private cleanMessage(message: unknown): unknown {
+    return typeof message === "object" && message !== null && !Array.isArray(message)
+      ? Object.fromEntries(Object.entries(message).filter(([key]) => !key.startsWith("_")))
+      : message;
   }
 
   /**
-   * Handle server streaming (single request → stream of responses).
-   * Maps to AsyncGenerator operations.
-   * @param stream - the active GrpcStream for this request
-   * @param opId - the Webda operation ID to invoke
-   * @param methodDef - the protobuf method definition with serializer functions
-   * @returns a promise that resolves when all response frames have been sent
+   * The unary response for an operation output (a plain string/number is wrapped as `{ value }`)
+   * @param output - the context output
+   * @returns the response message
    */
-  private handleServerStreaming(
-    stream: GrpcStream,
-    opId: string,
-    methodDef: protoLoader.MethodDefinition<any, any>
-  ): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      stream.onMessage(async message => {
-        try {
-          const ctx = new SimpleOperationContext();
-          await ctx.init();
-          ctx.setInput(Buffer.from(JSON.stringify(message)));
-          await callOperation(ctx, opId);
-          // callOperation writes chunks to ctx for AsyncGenerators
-          // For now, send the full output as a single response
-          const output = ctx.getOutput();
-          if (output) {
-            // Try to parse as NDJSON (multiple JSON objects)
-            const lines = output.split("\n").filter(Boolean);
-            for (const line of lines) {
-              try {
-                stream.send(JSON.parse(line));
-              } catch {
-                stream.send({ data: line });
-              }
-            }
-          }
-          stream.end(GrpcStatus.OK);
-          resolve();
-        } catch (err: any) {
-          const status = this.errorToGrpcStatus(err);
-          stream.sendError(status, err.message);
-          resolve();
-        }
-      });
-    });
-  }
-
-  /**
-   * Handle client or bidirectional streaming.
-   * @param stream - the active GrpcStream for this request
-   * @param opId - the Webda operation ID to invoke
-   * @param streaming - streaming mode, either "client" or "bidi"
-   * @returns a promise that resolves when the operation completes and the response is sent
-   */
-  private handleStreamingRequest(
-    stream: GrpcStream,
-    opId: string,
-    streaming: string
-  ): Promise<void> {
-    return new Promise<void>((resolve) => {
-      const messages: any[] = [];
-
-      stream.onMessage(message => {
-        messages.push(message);
-      });
-
-      stream.onEnd(async () => {
-        try {
-          // For client streaming: process all collected messages
-          const ctx = new SimpleOperationContext();
-          await ctx.init();
-          ctx.setInput(Buffer.from(JSON.stringify(messages)));
-          await callOperation(ctx, opId);
-          const output = ctx.getOutput();
-          const response = output ? JSON.parse(output) : {};
-
-          if (streaming === "bidi") {
-            // Bidi: send response for each input message
-            stream.send(response);
-          } else {
-            // Client streaming: single response
-            stream.sendUnary(response);
-          }
-          resolve();
-        } catch (err: any) {
-          const status = this.errorToGrpcStatus(err);
-          stream.sendError(status, err.message);
-          resolve();
-        }
-      });
-
-      stream.onCancel(() => {
-        resolve();
-      });
-    });
+  private unaryResponse(output: string | undefined): Record<string, unknown> {
+    if (output === undefined || output === null || output === "") return {};
+    try {
+      return toGrpcMessage(JSON.parse(output));
+    } catch {
+      return { value: output };
+    }
   }
 
   /**

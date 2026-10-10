@@ -175,6 +175,12 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
     if (message) {
       trailers["grpc-message"] = encodeURIComponent(message);
     }
+    if (this.response.headersSent === false) {
+      // Trailers-Only response: nothing was sent, the status goes in the headers
+      for (const [name, value] of Object.entries(trailers)) this.response.setHeader(name, value);
+      this.response.end();
+      return;
+    }
     (this.response as any).addTrailers?.(trailers);
     this.response.end();
   }

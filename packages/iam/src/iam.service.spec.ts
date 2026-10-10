@@ -22,7 +22,7 @@ import { IAMService, IAMServiceParameters } from "./iam.service.js";
  */
 class IAMContext extends OperationContext {
   constructor(
-    protected user?: { uuid: string; groups?: string[]; broken?: boolean },
+    protected user?: { uuid: string; groups?: string[]; broken?: boolean; missing?: boolean },
     protected body?: any
   ) {
     super();
@@ -33,6 +33,9 @@ class IAMContext extends OperationContext {
   async getCurrentUser(): Promise<any> {
     if (this.user?.broken) {
       throw new Error("user store down");
+    }
+    if (this.user?.missing) {
+      return undefined;
     }
     return this.user ? { getGroups: () => this.user.groups ?? [], getRoles: () => [] } : undefined;
   }
@@ -191,9 +194,18 @@ class IAMServiceTest extends IAMTest {
   }
 
   @test
-  async userLoadFailureKeepsUserPrincipal() {
-    // OwnNotes is attached to `authenticated`: a caller whose user cannot be loaded is still authenticated
-    await this.call(new IAMContext({ uuid: "u4", broken: true }, { meta: { owner: "u4" } }), "Tasks.Note");
+  async userLoadFailureIsRefused() {
+    // Without its groups a group deny could be skipped: a caller whose user cannot be loaded is refused
+    await assert.rejects(
+      () => this.call(new IAMContext({ uuid: "u4", broken: true }, { meta: { owner: "u4" } }), "Tasks.Note"),
+      WebdaError.Forbidden
+    );
+    await assert.rejects(
+      () => this.call(new IAMContext({ uuid: "u4", missing: true }, { meta: { owner: "u4" } }), "Tasks.Note"),
+      WebdaError.Forbidden
+    );
+    // The control: the same call with a loadable user is allowed
+    await this.call(new IAMContext({ uuid: "u4" }, { meta: { owner: "u4" } }), "Tasks.Note");
   }
 
   @test

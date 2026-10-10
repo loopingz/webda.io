@@ -249,7 +249,12 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
     if (!this.engine) {
       return "IAM policies are not loaded";
     }
-    const { principals, ctx } = await this.buildRequest(context, operationId, options);
+    const request = await this.buildRequest(context, operationId, options);
+    if (typeof request === "string") {
+      useLog("DEBUG", `IAM refused ${operationId}`, request);
+      return request;
+    }
+    const { principals, ctx } = request;
     const decision = await this.engine.decide(principals, operationId, ctx);
     if (decision !== true) {
       useLog("DEBUG", `IAM refused ${operationId} for ${principals.join(", ")}`, decision);
@@ -293,13 +298,13 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
    * @param options - input and probe mode
    * @param options.input - the resolved operation input
    * @param options.probe - true for a listing probe (no input)
-   * @returns principals and request context
+   * @returns principals and request context, or the refusal reason when the current user cannot be loaded
    */
   protected async buildRequest(
     context: OperationContext,
     operationId: string,
     options: { input?: any; probe: boolean }
-  ): Promise<{ principals: string[]; ctx: IAMRequestContext }> {
+  ): Promise<{ principals: string[]; ctx: IAMRequestContext } | string> {
     const userId = context.getCurrentUserId?.();
     let user: IAMRequestContext["user"];
     if (userId) {
@@ -311,7 +316,11 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
         } catch (err) {
           useLog("WARN", "IAM could not load the current user", err);
         }
-        user = { uuid: userId, groups: model?.getGroups?.() ?? [], roles: model?.getRoles?.() ?? [] };
+        if (!model) {
+          // Without its groups, a deny attached to a group would be skipped: refuse, and do not cache
+          return "current user could not be loaded";
+        }
+        user = { uuid: userId, groups: model.getGroups?.() ?? [], roles: model.getRoles?.() ?? [] };
         context.setExtension?.("iamUser", user);
       }
     }

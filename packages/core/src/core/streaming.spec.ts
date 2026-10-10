@@ -86,10 +86,20 @@ class StreamingOperationTest extends WebdaApplicationTest {
   }
 
   register() {
-    const text = { type: "object", properties: { text: { type: "string" } }, required: ["text"], "x-webda-stream": true };
+    const text = {
+      type: "object",
+      properties: { text: { type: "string" } },
+      required: ["text"],
+      "x-webda-stream": true
+    };
     schema("Stream.Text", text);
     schema("Stream.TextOut", { ...text, required: [] });
-    schema("Stream.Value", { type: "object", properties: { value: { type: "number" } }, required: ["value"], "x-webda-stream": true });
+    schema("Stream.Value", {
+      type: "object",
+      properties: { value: { type: "number" } },
+      required: ["value"],
+      "x-webda-stream": true
+    });
     const op = (id: string, method: string, extra: any = {}) =>
       registerOperation(id, { service: "Stream", method, input: "void", output: "void", ...extra });
     op("Stream.Relay", "relay", { input: "Stream.Text", output: "Stream.TextOut" });
@@ -147,11 +157,14 @@ class StreamingOperationTest extends WebdaApplicationTest {
   async rejectsAnInvalidStreamedMessage() {
     this.register();
     const ctx = await this.context([{ value: 1 }, { value: "two" }]);
-    await assert.rejects(() => callOperation(ctx, "Stream.Sum"), (err: any) => {
-      assert.ok(err instanceof WebdaError.BadRequest);
-      assert.match(err.message, /InvalidInput/);
-      return true;
-    });
+    await assert.rejects(
+      () => callOperation(ctx, "Stream.Sum"),
+      (err: any) => {
+        assert.ok(err instanceof WebdaError.BadRequest);
+        assert.match(err.message, /InvalidInput/);
+        return true;
+      }
+    );
   }
 
   @test

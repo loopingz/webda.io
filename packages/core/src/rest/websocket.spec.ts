@@ -195,7 +195,10 @@ class WebSocketOperationTest extends WebdaApplicationTest {
     } finally {
       rest.addRoute = addRoute;
     }
-    assert.ok(added.some(path => path.endsWith("ws/plain")), `a normal operation keeps its route: ${added}`);
+    assert.ok(
+      added.some(path => path.endsWith("ws/plain")),
+      `a normal operation keeps its route: ${added}`
+    );
     assert.ok(!added.some(path => path.endsWith("ws/sum")), `no route for a client stream: ${added}`);
   }
 

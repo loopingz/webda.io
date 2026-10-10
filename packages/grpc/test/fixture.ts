@@ -157,7 +157,7 @@ export function registerGrpcFixture(): void {
   op("Fixture.Echo", "echo", { input: "Fixture.Echo.input", output: "Fixture.Echo.output" });
   op("Fixture.Leak", "leak", { input: "Fixture.Echo.input", output: "Fixture.Echo.output" });
   op("Fixture.Flood", "flood", { input: "Fixture.Frame", output: "Fixture.FrameOut" });
-  op("Fixture.Abort","abort", { input: "Fixture.Echo.input", output: "Fixture.Echo.output" });
+  op("Fixture.Abort", "abort", { input: "Fixture.Echo.input", output: "Fixture.Echo.output" });
   op("Fixture.Ticks", "ticks", { input: "Fixture.Ticks.input", output: "Fixture.Tick" });
   op("Fixture.Sum", "sum", { input: "Fixture.Value", output: "Fixture.Total" });
   op("Fixture.Connect", "connect", { input: "Fixture.Frame", output: "Fixture.FrameOut" });

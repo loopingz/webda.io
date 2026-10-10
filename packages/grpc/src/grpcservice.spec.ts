@@ -10,10 +10,10 @@ import { EventEmitter } from "node:events";
 const mockOperations: Record<string, any> = {};
 const mockSchemas: Record<string, any> = {};
 const coreEventCallbacks: Record<string, Function> = {};
-let mockCallOperationResult: any = {};
-let mockCallOperationError: any = null;
+const mockCallOperationResult: any = {};
+const mockCallOperationError: any = null;
 /** If set, callOperation will use this as the raw _output string (instead of JSON.stringify(mockCallOperationResult)) */
-let mockCallOperationRawOutput: string | undefined = undefined;
+const mockCallOperationRawOutput: string | undefined = undefined;
 /** Services returned by the mocked useCore().getServices() — set per test to inject HttpServer stubs */
 let mockCoreServices: Record<string, any> = {};
 /** Models returned by the mocked useApplication().getModels() — used by build() */

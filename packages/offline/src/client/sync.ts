@@ -1,0 +1,287 @@
+import { diff, merge3 } from "@webda/versioning";
+import { refId, type Mutation, type MutationResult, type SyncedObject, type SyncRef } from "../protocol/index.js";
+import type { OfflineClient } from "./client.js";
+import { rebase } from "./conflicts.js";
+import { clone, deepEqual, type LocalRecord } from "./record.js";
+
+const PUSH_ROUNDS = 3;
+const REBASE_RETRIES = 3;
+
+/**
+ * The server asked for a second resync within one pull: the cursor it handed back with the first one is itself
+ * below its retention horizon, so pulling again would snapshot every scope forever
+ */
+export class ResyncLoopError extends Error {
+  /**
+   * A server fault, not a network failure: `OfflineClient` reports it as the `error` status and backs off
+   */
+  readonly status = 500;
+
+  /**
+   * @param cursor - the cursor the server answered the first resync with
+   */
+  constructor(cursor: string | undefined) {
+    super(`Server requested a second resync in one pull: its resync cursor ${JSON.stringify(cursor)} is too old`);
+    this.name = "ResyncLoopError";
+  }
+}
+
+/**
+ * Push / pull / resync logic of an OfflineClient
+ */
+export class SyncEngine {
+  /**
+   * @param client - the client
+   */
+  constructor(protected client: OfflineClient) {}
+
+  /**
+   *
+   * @returns the client storage
+   */
+  protected get storage() {
+    return this.client.storage;
+  }
+
+  /**
+   *
+   * @returns the client transport
+   */
+  protected get transport() {
+    return this.client.options.transport;
+  }
+
+  /**
+   * @param record - a pending record
+   * @returns its mutation
+   */
+  protected mutation(record: LocalRecord): Mutation {
+    const base = { mutationId: record.pendingMutationId!, ref: record.ref, baseRev: record.baseRev };
+    // Never confirmed by the server: always a create, whatever the local state
+    // Always built from `sent`: a retry carries the exact payload the mutation id was first used with
+    if (record.base === null) return { ...base, op: "create", baseRev: 0, patch: record.sent };
+    if (record.sent === null) return { ...base, op: "delete" };
+    return { ...base, op: "patch", patch: diff(record.base, record.sent, this.client.options.versioning) };
+  }
+
+  /**
+   * Push the pending records, re-pushing clean rebases up to PUSH_ROUNDS times
+   */
+  async push(): Promise<void> {
+    for (let round = 0; round < PUSH_ROUNDS; round++) {
+      const pending = (await this.storage.scanPending()).filter(r => r.state !== "conflict" && r.state !== "error");
+      if (pending.length === 0) return;
+      let again = false;
+      const size = Math.max(1, this.client.options.pushBatchSize);
+      for (let i = 0; i < pending.length; i += size) {
+        const batch = pending.slice(i, i + size);
+        // Persist the mutation ids before sending: a retry after a lost response reuses them
+        for (const record of batch) {
+          if (record.pendingMutationId === undefined) {
+            record.pendingMutationId = globalThis.crypto.randomUUID();
+            record.sent = clone(record.current);
+          }
+        }
+        await this.storage.putRecords(batch);
+        const res = await this.transport.push({ mutations: batch.map(r => this.mutation(r)) });
+        for (const result of res.results) {
+          const sent = batch.find(r => r.pendingMutationId === result.mutationId);
+          if (!sent) continue;
+          // Re-read: the app may have edited the record while the push was in flight
+          const latest = await this.storage.getRecord(sent.id);
+          if (latest) {
+            if (await this.settle(latest, result)) again = true;
+          } else if (sent.base === null && result.status === "ok") {
+            // Forgotten or discarded while its create was in flight: the server has it, so delete it there too
+            const server = result.object ?? sent.sent;
+            await this.storage.putRecords([
+              { id: sent.id, ref: sent.ref, base: server, baseRev: result.rev, current: null, state: "deleted" }
+            ]);
+            again = true;
+          }
+        }
+      }
+      if (!again) return;
+    }
+  }
+
+  /**
+   * Apply one push result
+   * @param record - the latest local record
+   * @param result - the server answer
+   * @returns true when the record needs another push
+   */
+  protected async settle(record: LocalRecord, result: MutationResult): Promise<boolean> {
+    // Settled or discarded meanwhile
+    if (record.pendingMutationId !== result.mutationId) return false;
+    const editedMeanwhile = !deepEqual(record.current, record.sent);
+    if (result.status === "ok") {
+      const settled = { pendingMutationId: undefined, sent: undefined, error: undefined };
+      if (record.sent === null) {
+        // A delete was acknowledged
+        if (record.current === null) {
+          await this.storage.deleteRecords([record.id]);
+          return false;
+        }
+        // Re-created while the delete was in flight: a new object for the server
+        await this.storage.putRecords([{ ...record, ...settled, base: null, baseRev: 0, state: "created" }]);
+        return true;
+      }
+      const server = result.object ?? record.sent;
+      if (editedMeanwhile && record.current === null) {
+        // Deleted while the change was in flight: the delete is pushed next
+        await this.storage.putRecords([{ ...record, ...settled, base: server, baseRev: result.rev, state: "deleted" }]);
+        return true;
+      }
+      let current = server;
+      let state: LocalRecord["state"] = "synced";
+      if (editedMeanwhile) {
+        current = merge3(record.sent, record.current, server, this.client.options.versioning).merged;
+        state = deepEqual(current, server) ? "synced" : "dirty";
+      }
+      await this.storage.putRecords([{ ...record, ...settled, base: server, baseRev: result.rev, current, state }]);
+      if (!deepEqual(current, record.current))
+        this.client.notify({ ref: record.ref, object: clone(current), origin: "remote" });
+      return false;
+    }
+    if (result.status === "rejected") {
+      await this.storage.putRecords([
+        { ...record, state: "error", error: result.error, pendingMutationId: undefined, sent: undefined }
+      ]);
+      return false;
+    }
+    // A conflict answer settles the mutation (it was not applied): a delete or discard made while the strategy
+    // awaits is then a plain local change, not a tombstone of a create the server may hold
+    const answered = { ...record, pendingMutationId: undefined, sent: undefined };
+    await this.storage.putRecords([answered]);
+    const rebased = await this.rebaseAndApply(answered, result.object ?? null, result.rev);
+    return (
+      rebased !== null && (rebased.state === "dirty" || rebased.state === "created" || rebased.state === "deleted")
+    );
+  }
+
+  /**
+   * Apply one server object
+   * @param synced - the server object
+   * @param seen - ids collected during a resync
+   */
+  protected async upsert(synced: SyncedObject, seen?: Set<string>): Promise<void> {
+    const id = refId(synced.ref);
+    seen?.add(id);
+    const record = await this.storage.getRecord(id);
+    // No `rev < baseRev` guard: pulls and snapshots always load the current object, and a key deleted then
+    // re-created on the server restarts at _rev 1
+    if (!record || record.state === "synced") {
+      if (record && record.baseRev === synced.rev && deepEqual(record.current, synced.object)) return;
+      await this.storage.putRecords([
+        {
+          id,
+          ref: synced.ref,
+          base: synced.object,
+          baseRev: synced.rev,
+          current: clone(synced.object),
+          state: "synced"
+        }
+      ]);
+      this.client.notify({ ref: synced.ref, object: clone(synced.object), origin: "remote" });
+      return;
+    }
+    if (record.baseRev === synced.rev && deepEqual(record.base, synced.object)) return;
+    await this.rebaseAndApply(record, synced.object, synced.rev);
+  }
+
+  /**
+   * Rebase a record on a server value and store the outcome (strategy applied), removing it when rebase says so
+   * @param record - the local record
+   * @param theirs - the server value, null when deleted
+   * @param theirsRev - the server revision
+   * @returns the stored record, null when removed
+   */
+  protected async rebaseAndApply(
+    record: LocalRecord,
+    theirs: any | null,
+    theirsRev: number
+  ): Promise<LocalRecord | null> {
+    let current = record;
+    for (let attempt = 0; ; attempt++) {
+      const last = attempt >= REBASE_RETRIES;
+      const rebased = rebase(current, theirs, theirsRev, this.client.options.versioning);
+      // The strategy may await (UI, network): the app can edit the record meanwhile
+      const out = await this.client.resolveStrategy(rebased, !last);
+      const stored = await this.storage.getRecord(current.id);
+      // Removed meanwhile (forgotten by the app): it stays removed
+      if (!stored) return null;
+      if (!last && !deepEqual(stored.current, current.current)) {
+        current = stored;
+        continue;
+      }
+      return this.client.storeOutcome(rebased ?? current, out);
+    }
+  }
+
+  /**
+   * @param ref - evicted reference
+   */
+  protected async evict(ref: SyncRef): Promise<void> {
+    const id = refId(ref);
+    const record = await this.storage.getRecord(id);
+    if (record?.state !== "synced") return;
+    await this.storage.deleteRecords([id]);
+    this.client.notify({ ref, object: null, origin: "remote" });
+  }
+
+  /**
+   * Snapshot every scope, drop synced records no scope returned
+   */
+  protected async resync(): Promise<void> {
+    const scopes = await this.client.getScopes();
+    const seen = new Set<string>();
+    for (const scope of scopes) {
+      let continuationToken: string | undefined;
+      do {
+        const page = await this.transport.snapshot({ scope, continuationToken });
+        for (const object of page.objects) await this.upsert(object, seen);
+        continuationToken = page.continuationToken;
+      } while (continuationToken);
+    }
+    for (const model of new Set(scopes.map(s => s.model))) {
+      for (const record of await this.storage.scan(model)) {
+        if (record.state === "synced" && !seen.has(record.id)) await this.evict(record.ref);
+      }
+    }
+  }
+
+  /**
+   * Pull until the server has nothing more
+   */
+  async pull(): Promise<void> {
+    const scopes = await this.client.getScopes();
+    if (scopes.length === 0) return;
+    const epoch = (await this.storage.getMeta<number>("scopesEpoch")) ?? 0;
+    /** @returns true when setScopes ran since this pull started */
+    const changed = async () => ((await this.storage.getMeta<number>("scopesEpoch")) ?? 0) !== epoch;
+    // A null cursor persisted by an older version is sent as an absent one
+    let cursor = (await this.storage.getMeta<string>("cursor")) ?? undefined;
+    let resynced = false;
+    for (let page = 0; page < 10000; page++) {
+      const res = await this.transport.pull({ scopes, cursor });
+      if (await changed()) return;
+      if (res.resync) {
+        // One resync per pull: a server whose resync cursor is itself too old must not make us snapshot forever
+        if (resynced) throw new ResyncLoopError(cursor);
+        resynced = true;
+        await this.resync();
+        if (await changed()) return;
+        cursor = res.cursor;
+        await this.storage.setMeta("cursor", cursor);
+        continue;
+      }
+      for (const synced of res.upserts) await this.upsert(synced);
+      for (const ref of res.evicts) await this.evict(ref);
+      if (await changed()) return;
+      cursor = res.cursor;
+      await this.storage.setMeta("cursor", cursor);
+      if (!res.hasMore) return;
+    }
+  }
+}

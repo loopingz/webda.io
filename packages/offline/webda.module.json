@@ -1,0 +1,776 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/SyncService": {
+      "Import": "lib/server/sync.service:SyncService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Parameters of the SyncService",
+        "properties": {
+          "maxMutations": {
+            "default": 100,
+            "description": "Maximum mutations accepted per Sync.Push request (clients batch with `pushBatchSize`, 100 by default)",
+            "type": "number"
+          },
+          "maxQueryLength": {
+            "default": 1024,
+            "description": "Maximum length of a scope query",
+            "type": "number"
+          },
+          "maxScopes": {
+            "default": 20,
+            "description": "Maximum scopes per request",
+            "type": "number"
+          },
+          "models": {
+            "description": "Models clients can sync; each must implement `Syncable`",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "overlap": {
+            "default": "5s",
+            "description": "Window re-read by the next pull, covering clock skew between servers",
+            "type": "string"
+          },
+          "pageSize": {
+            "default": 500,
+            "description": "Maximum change-log entries or objects returned per Sync.Pull / Sync.Snapshot page",
+            "type": "number"
+          },
+          "retention": {
+            "default": "30d",
+            "description": "How long change-log entries are kept; older cursors trigger a resync",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "watchDebounce": {
+            "default": 250,
+            "description": "Debounce of the watch hints, in milliseconds",
+            "type": "number"
+          },
+          "watchKeepAlive": {
+            "default": 25000,
+            "description": "Interval of the heartbeats yielded by an idle Sync.Watch, in milliseconds (0 disables them).\nThey let the transport notice a closed client and release the watcher.",
+            "type": "number"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "models",
+          "type"
+        ],
+        "type": "object",
+        "title": "SyncService"
+      },
+      "Configuration": "lib/server/sync.service:SyncServiceParameters"
+    }
+  },
+  "models": {
+    "Webda/SyncChange": {
+      "Plural": "SyncChanges",
+      "Import": "lib/server/syncchange.model:SyncChange",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "seq": {
+          "type": "string"
+        },
+        "subjectModel": {
+          "type": "string"
+        },
+        "subjectKey": {
+          "type": "string"
+        },
+        "rev": {
+          "type": "number"
+        },
+        "op": {
+          "type": "\"upsert\" | \"delete\""
+        },
+        "mutationId": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "Date"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "SyncChanges",
+          "additionalProperties": false,
+          "description": "One write to a synced object, read by `Sync.Pull`\n\nInternal: never exposed through the DomainService operations",
+          "properties": {
+            "mutationId": {
+              "description": "Mutation of a `Sync.Push` that made the write",
+              "type": "string"
+            },
+            "op": {
+              "description": "Kind of write",
+              "enum": [
+                "upsert",
+                "delete"
+              ],
+              "type": "string"
+            },
+            "rev": {
+              "description": "Revision after the write, when known",
+              "type": "number"
+            },
+            "seq": {
+              "description": "Sortable sequence: zero-padded epoch ms, per-process counter, instance id",
+              "type": "string"
+            },
+            "subjectKey": {
+              "description": "Canonical primary key (`serializeSubjectKey`)",
+              "type": "string"
+            },
+            "subjectModel": {
+              "description": "Model identifier, e.g. `MyApp/Task`",
+              "type": "string"
+            },
+            "timestamp": {
+              "description": "Time of the write",
+              "format": "date-time",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "op",
+            "seq",
+            "subjectKey",
+            "subjectModel",
+            "timestamp",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "SyncChanges",
+          "additionalProperties": false,
+          "description": "One write to a synced object, read by `Sync.Pull`\n\nInternal: never exposed through the DomainService operations",
+          "properties": {
+            "mutationId": {
+              "description": "Mutation of a `Sync.Push` that made the write",
+              "type": "string"
+            },
+            "op": {
+              "description": "Kind of write",
+              "enum": [
+                "upsert",
+                "delete"
+              ],
+              "type": "string"
+            },
+            "rev": {
+              "description": "Revision after the write, when known",
+              "type": "number"
+            },
+            "seq": {
+              "description": "Sortable sequence: zero-padded epoch ms, per-process counter, instance id",
+              "type": "string"
+            },
+            "subjectKey": {
+              "description": "Canonical primary key (`serializeSubjectKey`)",
+              "type": "string"
+            },
+            "subjectModel": {
+              "description": "Model identifier, e.g. `MyApp/Task`",
+              "type": "string"
+            },
+            "timestamp": {
+              "description": "Time of the write",
+              "format": "date-time",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "op",
+            "seq",
+            "subjectKey",
+            "subjectModel",
+            "timestamp",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "SyncChanges",
+          "additionalProperties": false,
+          "description": "One write to a synced object, read by `Sync.Pull`\n\nInternal: never exposed through the DomainService operations",
+          "properties": {
+            "mutationId": {
+              "description": "Mutation of a `Sync.Push` that made the write",
+              "type": "string"
+            },
+            "op": {
+              "description": "Kind of write",
+              "enum": [
+                "upsert",
+                "delete"
+              ],
+              "type": "string"
+            },
+            "rev": {
+              "description": "Revision after the write, when known",
+              "type": "number"
+            },
+            "seq": {
+              "description": "Sortable sequence: zero-padded epoch ms, per-process counter, instance id",
+              "type": "string"
+            },
+            "subjectKey": {
+              "description": "Canonical primary key (`serializeSubjectKey`)",
+              "type": "string"
+            },
+            "subjectModel": {
+              "description": "Model identifier, e.g. `MyApp/Task`",
+              "type": "string"
+            },
+            "timestamp": {
+              "description": "Time of the write",
+              "format": "date-time",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "op",
+            "seq",
+            "subjectKey",
+            "subjectModel",
+            "timestamp",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/SyncChange"
+    }
+  },
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    },
+    "SyncService.pull.input": {
+      "type": "object",
+      "properties": {
+        "scopes": {
+          "items": {
+            "$ref": "#/definitions/SyncScope"
+          },
+          "type": "array"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "scopes"
+      ],
+      "definitions": {
+        "SyncScope": {
+          "additionalProperties": false,
+          "description": "A sync scope: the objects of `model` matching the WebdaQL filter `query` (all of them when omitted)",
+          "properties": {
+            "model": {
+              "type": "string"
+            },
+            "query": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "SyncService.pull.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "type": "string"
+        },
+        "evicts": {
+          "items": {
+            "$ref": "#/definitions/SyncRef"
+          },
+          "type": "array"
+        },
+        "hasMore": {
+          "default": false,
+          "type": "boolean"
+        },
+        "resync": {
+          "default": false,
+          "description": "The cursor is missing or older than the retention: snapshot every scope, then pull from `cursor`",
+          "type": "boolean"
+        },
+        "upserts": {
+          "items": {
+            "$ref": "#/definitions/SyncedObject"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "cursor",
+        "evicts",
+        "upserts"
+      ],
+      "type": "object",
+      "definitions": {
+        "SyncRef": {
+          "additionalProperties": false,
+          "description": "Reference to one object: model identifier and canonical key (see {@link serializeKey})",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "key",
+            "model"
+          ],
+          "type": "object"
+        },
+        "SyncedObject": {
+          "additionalProperties": false,
+          "description": "An object as sent by the server",
+          "properties": {
+            "object": {},
+            "ref": {
+              "$ref": "#/definitions/SyncRef"
+            },
+            "rev": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "object",
+            "ref",
+            "rev"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "SyncService.snapshot.input": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "additionalProperties": false,
+          "description": "A sync scope: the objects of `model` matching the WebdaQL filter `query` (all of them when omitted)",
+          "properties": {
+            "model": {
+              "type": "string"
+            },
+            "query": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "type": "object"
+        },
+        "continuationToken": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "scope"
+      ]
+    },
+    "SyncService.snapshot.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "continuationToken": {
+          "type": "string"
+        },
+        "objects": {
+          "items": {
+            "$ref": "#/definitions/SyncedObject"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "objects"
+      ],
+      "type": "object",
+      "definitions": {
+        "SyncRef": {
+          "additionalProperties": false,
+          "description": "Reference to one object: model identifier and canonical key (see {@link serializeKey})",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "key",
+            "model"
+          ],
+          "type": "object"
+        },
+        "SyncedObject": {
+          "additionalProperties": false,
+          "description": "An object as sent by the server",
+          "properties": {
+            "object": {},
+            "ref": {
+              "$ref": "#/definitions/SyncRef"
+            },
+            "rev": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "object",
+            "ref",
+            "rev"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "SyncService.push.input": {
+      "type": "object",
+      "properties": {
+        "mutations": {
+          "items": {
+            "$ref": "#/definitions/Mutation"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "mutations"
+      ],
+      "definitions": {
+        "Mutation": {
+          "additionalProperties": false,
+          "properties": {
+            "baseRev": {
+              "description": "Revision the change was made on, 0 for a create",
+              "type": "number"
+            },
+            "mutationId": {
+              "description": "Client-generated id, kept across retries so a replayed mutation is answered `ok`",
+              "type": "string"
+            },
+            "op": {
+              "enum": [
+                "create",
+                "patch",
+                "delete"
+              ],
+              "type": "string"
+            },
+            "patch": {
+              "description": "The full object for \"create\", a `@webda/versioning` Delta for \"patch\""
+            },
+            "ref": {
+              "$ref": "#/definitions/SyncRef"
+            }
+          },
+          "required": [
+            "baseRev",
+            "mutationId",
+            "op",
+            "ref"
+          ],
+          "type": "object"
+        },
+        "SyncRef": {
+          "additionalProperties": false,
+          "description": "Reference to one object: model identifier and canonical key (see {@link serializeKey})",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "key",
+            "model"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "SyncService.push.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "results": {
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/results%5B%5D%231"
+              },
+              {
+                "$ref": "#/definitions/results%5B%5D%232"
+              },
+              {
+                "$ref": "#/definitions/results%5B%5D%233"
+              }
+            ]
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "results"
+      ],
+      "type": "object",
+      "definitions": {
+        "results[]#1": {
+          "additionalProperties": false,
+          "properties": {
+            "mutationId": {
+              "type": "string"
+            },
+            "object": {},
+            "rev": {
+              "type": "number"
+            },
+            "status": {
+              "const": "ok",
+              "type": "string"
+            }
+          },
+          "required": [
+            "mutationId",
+            "rev",
+            "status"
+          ],
+          "type": "object"
+        },
+        "results[]#2": {
+          "additionalProperties": false,
+          "properties": {
+            "mutationId": {
+              "type": "string"
+            },
+            "object": {},
+            "rev": {
+              "type": "number"
+            },
+            "status": {
+              "const": "conflict",
+              "type": "string"
+            }
+          },
+          "required": [
+            "mutationId",
+            "object",
+            "rev",
+            "status"
+          ],
+          "type": "object"
+        },
+        "results[]#3": {
+          "additionalProperties": false,
+          "properties": {
+            "error": {
+              "$ref": "#/definitions/results%5B%5D%233%24error"
+            },
+            "mutationId": {
+              "type": "string"
+            },
+            "status": {
+              "const": "rejected",
+              "type": "string"
+            }
+          },
+          "required": [
+            "error",
+            "mutationId",
+            "status"
+          ],
+          "type": "object"
+        },
+        "results[]#3$error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "SyncService.watch.input": {
+      "type": "object",
+      "properties": {
+        "scopes": {
+          "items": {
+            "$ref": "#/definitions/SyncScope"
+          },
+          "type": "array"
+        },
+        "_cursor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "scopes"
+      ],
+      "definitions": {
+        "SyncScope": {
+          "additionalProperties": false,
+          "description": "A sync scope: the objects of `model` matching the WebdaQL filter `query` (all of them when omitted)",
+          "properties": {
+            "model": {
+              "type": "string"
+            },
+            "query": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "SyncService.watch.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "type": "string"
+        },
+        "heartbeat": {
+          "default": false,
+          "description": "Keep-alive of an idle watch: clients must not pull on it",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "cursor"
+      ],
+      "type": "object",
+      "x-webda-stream": true
+    }
+  },
+  "behaviors": {}
+}

@@ -193,7 +193,8 @@ class PushTest extends SyncTest {
     const original = repo.delete;
     repo.delete = async (...args: any[]) => {
       repo.delete = original;
-      await Note.ref(note.uuid).patch({ title: "concurrent" } as any);
+      // another writer: outside the push write context
+      await (this.sync as any).pushContext.exit(() => Note.ref(note.uuid).patch({ title: "concurrent" } as any));
       // MemoryRepository.delete ignores its condition: fail like a conditional backend would
       throw new Error("Condition failed: _rev");
     };
@@ -203,6 +204,11 @@ class PushTest extends SyncTest {
       ]);
       assert.strictEqual(res.status, "conflict");
       assert.strictEqual(res.rev, 2);
+      assert.ok(!(await this.changes()).some(c => c.mutationId === "m1"), "m1 never attached to the other writer");
+      const [retry] = await this.push([
+        { mutationId: "m1", ref: { model: "Test/Note", key: note.uuid }, baseRev: 1, op: "delete" }
+      ]);
+      assert.strictEqual(retry.status, "conflict");
     } finally {
       repo.delete = original;
     }
@@ -215,7 +221,7 @@ class PushTest extends SyncTest {
     const original = repo.create;
     repo.create = async (...args: any[]) => {
       repo.create = original;
-      await original.call(repo, { uuid, title: "winner" });
+      await (this.sync as any).pushContext.exit(() => original.call(repo, { uuid, title: "winner" }));
       return original.apply(repo, args);
     };
     try {
@@ -230,6 +236,18 @@ class PushTest extends SyncTest {
       ]);
       assert.strictEqual(res.status, "conflict");
       assert.strictEqual(res.object.title, "winner");
+      assert.ok(!(await this.changes()).some(c => c.mutationId === "m1"), "m1 never attached to the other writer");
+      const [retry] = await this.push([
+        {
+          mutationId: "m1",
+          ref: { model: "Test/Note", key: uuid },
+          baseRev: 0,
+          op: "create",
+          patch: { title: "loser" }
+        }
+      ]);
+      assert.strictEqual(retry.status, "conflict");
+      assert.strictEqual(retry.object.title, "winner");
     } finally {
       repo.create = original;
     }

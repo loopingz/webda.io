@@ -21,6 +21,7 @@ import { patch as applyDelta } from "@webda/versioning";
 import { escape, QueryValidator } from "@webda/ql";
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { SyncChange } from "./syncchange.model.js";
 import { parseDuration } from "./duration.js";
 import { refId } from "../protocol/index.js";
@@ -116,9 +117,9 @@ export class SyncService extends Service<SyncServiceParameters> {
    */
   protected ownBumps = new WeakSet<object>();
   /**
-   * refId → mutationId of the Sync.Push write in progress
+   * The Sync.Push write in progress: only the events it raises carry its mutationId
    */
-  protected mutationIds = new Map<string, string>();
+  protected pushContext = new AsyncLocalStorage<{ id: string; mutationId: string }>();
   /**
    * Instance id used in seq
    */
@@ -234,8 +235,8 @@ export class SyncService extends Service<SyncServiceParameters> {
    */
   protected async append(modelId: string, key: string, op: "upsert" | "delete", rev?: number): Promise<void> {
     const id = refId({ model: modelId, key });
-    const mutationId = this.mutationIds.get(id);
-    this.mutationIds.delete(id);
+    const store = this.pushContext.getStore();
+    const mutationId = store?.id === id ? store.mutationId : undefined;
     const seq = this.nextSeq();
     await SyncChange.create({
       seq,
@@ -637,11 +638,9 @@ export class SyncService extends Service<SyncServiceParameters> {
         await checkModelPermission(candidate, context, "create", model);
         const error = this.invalid(modelId, { ...input, _rev: 1 });
         if (error) return this.rejected(mutationId, "VALIDATION", error);
-        this.mutationIds.set(id, mutationId);
         try {
-          await model.create(input);
+          await this.pushContext.run({ id, mutationId }, () => model.create(input));
         } catch (err) {
-          this.mutationIds.delete(id);
           const existing = await this.load(modelId, m.ref.key);
           if (existing) return this.keyInUse(mutationId, modelId, existing);
           throw err;
@@ -654,12 +653,12 @@ export class SyncService extends Service<SyncServiceParameters> {
         if ((current._rev ?? 0) !== m.baseRev) {
           return this.guardedConflict(mutationId, modelId, current);
         }
-        this.mutationIds.set(id, mutationId);
         if (m.op === "delete") {
           try {
-            await useRepository(model).delete(pk as any, "_rev" as any, current._rev);
+            await this.pushContext.run({ id, mutationId }, () =>
+              useRepository(model).delete(pk as any, "_rev" as any, current._rev)
+            );
           } catch (err) {
-            this.mutationIds.delete(id);
             const reloaded = await this.load(modelId, m.ref.key);
             if (!reloaded) return { mutationId, status: "ok", rev: 0 };
             if ((reloaded._rev ?? 0) !== m.baseRev) return this.guardedConflict(mutationId, modelId, reloaded);
@@ -676,7 +675,6 @@ export class SyncService extends Service<SyncServiceParameters> {
         const data: any = { ...managed, ...writable, ...keyFields, _rev: m.baseRev + 1 };
         const error = this.invalid(modelId, data);
         if (error) {
-          this.mutationIds.delete(id);
           return this.rejected(mutationId, "VALIDATION", error);
         }
         this.revved.add(data);
@@ -688,9 +686,10 @@ export class SyncService extends Service<SyncServiceParameters> {
               .filter(key => !(key in data))
               .map(key => [key, undefined])
           );
-          await useRepository(model).patch(pk as any, { ...removed, ...data }, "_rev" as any, current._rev);
+          await this.pushContext.run({ id, mutationId }, () =>
+            useRepository(model).patch(pk as any, { ...removed, ...data }, "_rev" as any, current._rev)
+          );
         } catch (err) {
-          this.mutationIds.delete(id);
           const reloaded = await this.load(modelId, m.ref.key);
           if ((reloaded?._rev ?? 0) !== m.baseRev) return this.guardedConflict(mutationId, modelId, reloaded);
           throw err;
@@ -701,7 +700,6 @@ export class SyncService extends Service<SyncServiceParameters> {
       const saved = await this.load(modelId, m.ref.key);
       return { mutationId, status: "ok", rev: saved?._rev ?? 0, object: saved && this.toSynced(modelId, saved).object };
     } catch (err) {
-      this.mutationIds.delete(id);
       if (err instanceof WebdaError.NotFound) return this.rejected(mutationId, "NOT_FOUND", "Object not found");
       if (err instanceof WebdaError.Forbidden) return this.rejected(mutationId, "FORBIDDEN", err.message);
       this.log("ERROR", "Sync.Push mutation failed", err);

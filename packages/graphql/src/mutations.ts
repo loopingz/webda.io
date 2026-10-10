@@ -11,6 +11,7 @@ import {
   WebdaError
 } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
+import { useLog } from "@webda/workout";
 import { GraphQLError } from "graphql";
 
 /**
@@ -52,6 +53,33 @@ export async function asGraphQL<T>(check: () => Promise<T>): Promise<T> {
     }
     throw err;
   }
+}
+
+/**
+ * The GraphQL error of a failed operation: NotFound → NOT_FOUND, Forbidden/Unauthorized → PERMISSION_DENIED,
+ * BadRequest → BAD_USER_INPUT, any other 4xx WebdaError keeps its message (OPERATION_REFUSED); everything else is
+ * logged and reported as a generic INTERNAL_SERVER_ERROR so internal details never reach the client
+ * @param err - what the operation threw
+ * @returns the error to report
+ */
+export function operationError(err: unknown): GraphQLError {
+  if (err instanceof GraphQLError) {
+    return err;
+  }
+  if (err instanceof WebdaError.NotFound) {
+    return notFound();
+  }
+  if (err instanceof WebdaError.Forbidden || err instanceof WebdaError.Unauthorized) {
+    return permissionDenied();
+  }
+  if (err instanceof WebdaError.BadRequest) {
+    return new GraphQLError(err.message, { extensions: { code: "BAD_USER_INPUT" } });
+  }
+  if (err instanceof WebdaError.CodeError && err.getResponseCode() >= 400 && err.getResponseCode() < 500) {
+    return new GraphQLError(err.message, { extensions: { code: "OPERATION_REFUSED" } });
+  }
+  useLog("ERROR", "GraphQL operation failed:", err);
+  return new GraphQLError("Internal server error", { extensions: { code: "INTERNAL_SERVER_ERROR" } });
 }
 
 /**

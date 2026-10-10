@@ -30,12 +30,12 @@ An operation streams when its signature says so: an `async *` method (or one ret
 `AsyncIterable<T>`) produces a stream of `T`, and a single parameter typed `AsyncIterable<T>` consumes one. The
 compiler describes each side by `T` and marks it `x-webda-stream`; the mode follows:
 
-| Signature                                               | Mode   | gRPC                | REST                               | GraphQL          | MCP                    |
-| ------------------------------------------------------- | ------ | ------------------- | ---------------------------------- | ---------------- | ---------------------- |
-| `op(args): Promise<R>`                                  | none   | unary               | as usual                           | Query / Mutation | tool                   |
-| `async *op(args): AsyncGenerator<T>`                    | server | server stream, live | buffered (live NDJSON/SSE planned) | not yet          | progress notifications |
-| `op(items: AsyncIterable<T>): Promise<R>`               | client | client stream       | not exposed                        | not exposed      | not exposed            |
-| `async *op(items: AsyncIterable<T>): AsyncGenerator<U>` | bidi   | bidi stream         | WebSocket on the operation URL     | skipped          | skipped                |
+| Signature                                               | Mode   | gRPC                | REST                               | GraphQL                      | MCP                    |
+| ------------------------------------------------------- | ------ | ------------------- | ---------------------------------- | ---------------------------- | ---------------------- |
+| `op(args): Promise<R>`                                  | none   | unary               | as usual                           | Query (read-only) / Mutation | tool                   |
+| `async *op(args): AsyncGenerator<T>`                    | server | server stream, live | buffered (live NDJSON/SSE planned) | Subscription                 | progress notifications |
+| `op(items: AsyncIterable<T>): Promise<R>`               | client | client stream       | not exposed                        | not exposed                  | not exposed            |
+| `async *op(items: AsyncIterable<T>): AsyncGenerator<U>` | bidi   | bidi stream         | WebSocket on the operation URL     | skipped                      | skipped                |
 
 ```ts
 @Operation()
@@ -86,6 +86,41 @@ listener is only attached when at least one such route exists.
 | ---------------------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
 | `webSocketMaxPayload`        | `1048576` (1 MiB) | Largest incoming message in bytes; a larger one closes the socket                                  |
 | `webSocketMaxQueuedMessages` | `1000`            | Most received messages waiting to be read by the operation; above it the socket closes with `4413` |
+
+### GraphQL
+
+`GraphQLService` exposes every operation next to the model schema, except the model CRUD operations the model
+schema already serves (`X`, `Xs`, `createX`, `updateX`, `deleteX`):
+
+- read-only operations (REST `GET`, or `mcp: { readOnly: true }`) are `Query` fields, the others `Mutation` fields,
+  server-streaming operations `Subscription` fields; client and bidirectional streams are not exposed;
+- the field name is the operation id in lower camel case (`TaskService.Summary` → `taskServiceSummary`);
+  `@Operation({ graphql: { query | mutation | subscription: "name" } })` renames it, `graphql: false` hides it;
+- arguments are the input schema properties (`uuid` for an instance model action), the result a model type for a
+  model output, `Boolean` for void, else the output schema;
+- errors are `NOT_FOUND`, `PERMISSION_DENIED` and `BAD_USER_INPUT` like the model fields; any other 4xx error keeps its
+  message (`OPERATION_REFUSED`), everything else is logged and reported as `Internal server error`
+  (`INTERNAL_SERVER_ERROR`) without its internal message;
+- leaving a subscription cancels the operation, so the generator's `finally` blocks run;
+- the `exposeOperations` parameter filters them with the transports' patterns (`["*", "!User.Delete"]`).
+
+```graphql
+query {
+  taskServiceSummary(project: "p1") {
+    open
+    done
+  }
+}
+mutation {
+  userFollow(uuid: "u1")
+}
+subscription {
+  sessionEvents(session: "s1") {
+    seq
+    type
+  }
+}
+```
 
 ## See also
 

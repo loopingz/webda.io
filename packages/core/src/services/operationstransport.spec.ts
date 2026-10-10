@@ -1,9 +1,14 @@
-
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
 import { OperationDefinition } from "../core/icore.js";
-import { OperationsTransport, OperationsTransportParameters } from "./operationstransport.js";
+import { describe, it } from "vitest";
+import {
+  OperationsTransport,
+  OperationsTransportParameters,
+  createOperationFilter,
+  operationPatternMatches
+} from "./operationstransport.js";
 import { registerOperation } from "../core/operations.js";
 import { Service } from "./service.js";
 import { ServiceParameters } from "./serviceparameters.js";
@@ -66,7 +71,9 @@ class OperationsTransportTest extends WebdaApplicationTest {
     registerOperation("Transport.OpA", { service: "DummyAll", method: "doSomething", input: "void", output: "void" });
     registerOperation("Transport.OpB", { service: "DummyAll", method: "doSomething", input: "void", output: "void" });
 
-    const transport = this.registerService(new TestTransport("testTransport", new OperationsTransportParameters().load({})));
+    const transport = this.registerService(
+      new TestTransport("testTransport", new OperationsTransportParameters().load({}))
+    );
     await transport.resolve();
     await transport.init();
 
@@ -85,7 +92,10 @@ class OperationsTransportTest extends WebdaApplicationTest {
     registerOperation("Other.Op", { service: "DummyFilter", method: "doSomething", input: "void", output: "void" });
 
     const transport = this.registerService(
-      new TestTransport("filterTransport", new OperationsTransportParameters().load({ operations: ["User.*", "Users.*"] }))
+      new TestTransport(
+        "filterTransport",
+        new OperationsTransportParameters().load({ operations: ["User.*", "Users.*"] })
+      )
     );
     await transport.resolve();
     await transport.init();
@@ -101,11 +111,24 @@ class OperationsTransportTest extends WebdaApplicationTest {
     const dummy = this.registerService(new DummyService("DummyExclude", new ServiceParameters().load({})));
     await dummy.resolve();
 
-    registerOperation("UserExcl.Create", { service: "DummyExclude", method: "doSomething", input: "void", output: "void" });
-    registerOperation("UserExcl.Delete", { service: "DummyExclude", method: "doSomething", input: "void", output: "void" });
+    registerOperation("UserExcl.Create", {
+      service: "DummyExclude",
+      method: "doSomething",
+      input: "void",
+      output: "void"
+    });
+    registerOperation("UserExcl.Delete", {
+      service: "DummyExclude",
+      method: "doSomething",
+      input: "void",
+      output: "void"
+    });
 
     const transport = this.registerService(
-      new TestTransport("excludeTransport", new OperationsTransportParameters().load({ operations: ["*", "!UserExcl.Delete"] }))
+      new TestTransport(
+        "excludeTransport",
+        new OperationsTransportParameters().load({ operations: ["*", "!UserExcl.Delete"] })
+      )
     );
     await transport.resolve();
     await transport.init();
@@ -120,7 +143,12 @@ class OperationsTransportTest extends WebdaApplicationTest {
     const dummy = this.registerService(new DummyService("DummyHidden", new ServiceParameters().load({})));
     await dummy.resolve();
 
-    registerOperation("Hidden.Visible", { service: "DummyHidden", method: "doSomething", input: "void", output: "void" });
+    registerOperation("Hidden.Visible", {
+      service: "DummyHidden",
+      method: "doSomething",
+      input: "void",
+      output: "void"
+    });
     registerOperation("Hidden.Secret", { service: "DummyHidden", method: "doSomething", hidden: true });
 
     const transport = this.registerService(
@@ -183,3 +211,19 @@ class OperationsTransportTest extends WebdaApplicationTest {
     assert.ok(!ops["GetOps.Beta"], "GetOps.Beta should NOT be in getOperations()");
   }
 }
+
+describe("createOperationFilter", () => {
+  it("matches like the operation transports", () => {
+    assert.ok(operationPatternMatches("A.B", "*"));
+    assert.ok(operationPatternMatches("Svc.Run", "Svc.*"));
+    assert.ok(!operationPatternMatches("Other.Run", "Svc.*"));
+    assert.ok(operationPatternMatches("Svc.Run", "Svc.Run"));
+    const filter = createOperationFilter(["Svc.*", "Thing.*", "!Svc.Secret"]);
+    assert.ok(filter("Svc.Run"));
+    assert.ok(filter("Thing.Follow"));
+    assert.ok(!filter("Svc.Secret"));
+    assert.ok(!filter("Other.Run"));
+    assert.ok(createOperationFilter()("Anything.Here"));
+    assert.ok(createOperationFilter(["!Svc.Secret"])("Other.Run"), "only excludes: everything else is included");
+  });
+});

@@ -5,7 +5,8 @@ vi.mock("@webda/core", async importOriginal => ({
   ...(await importOriginal<any>()),
   useModelMetadata: (model: any) => model.__meta,
   getClientWritableAttributes: () => undefined,
-  useCore: () => ({ getServices: () => ({}) })
+  useCore: () => ({ getServices: () => ({}) }),
+  useInstanceStorage: () => ({ operations: {} })
 }));
 
 import {

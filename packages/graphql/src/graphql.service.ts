@@ -16,7 +16,12 @@ import {
   queryModelWithPermissions,
   getClientWritableAttributes,
   assertNoPrivateFields,
-  assertFilterOnly
+  assertFilterOnly,
+  callOperation,
+  canCallOperation,
+  createOperationFilter,
+  useInstanceStorage,
+  type OperationDefinition
 } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
 import * as WebdaQL from "@webda/ql";
@@ -26,9 +31,13 @@ import {
   GraphQLBoolean,
   GraphQLError,
   GraphQLFieldConfig,
+  GraphQLFieldConfigArgumentMap,
   GraphQLInputObjectType,
+  GraphQLInputType,
   GraphQLList,
+  GraphQLNonNull,
   GraphQLObjectType,
+  GraphQLOutputType,
   GraphQLResolveInfo,
   GraphQLSchema,
   GraphQLString,
@@ -45,7 +54,14 @@ import { WebSocketServer } from "ws";
 import { AnyScalarType } from "./types/any.js";
 import { DateScalar } from "./types/date.js";
 import { GraphQLLong } from "./types/long.js";
-import { createFromInput, isInputAttribute, loadForAction, updateFromInput } from "./mutations.js";
+import { createFromInput, isInputAttribute, loadForAction, operationError, updateFromInput } from "./mutations.js";
+import {
+  GRAPHQL_NAME,
+  GraphQLOperationContext,
+  graphqlPlacement,
+  operationTypeName,
+  publicCopy
+} from "./operations.js";
 
 const GraphIQL = `
 <!doctype html>
@@ -167,6 +183,12 @@ export class GraphQLParameters extends DomainServiceParameters {
    * Expose a aggregation of all available subscriptions
    */
   globalSubscription: boolean;
+  /**
+   * Operations exposed as GraphQL fields next to the model schema, with the operation transports' patterns:
+   * `"*"`, `"Service.*"`, an exact id, `"!Id"` to exclude
+   * @default ["*"]
+   */
+  exposeOperations: string[];
 
   /**
    * Load parameters with defaults
@@ -180,6 +202,7 @@ export class GraphQLParameters extends DomainServiceParameters {
     this.userModel ??= "User";
     this.exposeMe ??= true;
     this.globalSubscription ??= true;
+    this.exposeOperations ??= ["*"];
     return this;
   }
 }
@@ -978,6 +1001,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     for (const i in rootFields) {
       subscriptions[i] ??= { ...rootFields[i], resolve: undefined };
     }
+    // Operations (service operations, model and behaviour actions) next to the model schema; added after the copy
+    // above on purpose: a query operation is not a subscription
+    this.addOperationFields(rootFields, mutations, subscriptions);
     if (this.parameters.globalSubscription) {
       // Create global type based on all previous subscriptions
       subscriptions["Aggregate"] = {
@@ -1016,6 +1042,171 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       };
     }
     this.schema = this.getGraphQLSchema(rootFields, mutations, subscriptions);
+  }
+
+  /**
+   * Expose the registered operations, except the model CRUD the model schema already serves: read-only ones as
+   * queries, the others as mutations, server-streaming ones as subscriptions
+   * @param rootFields - query fields
+   * @param mutations - mutation fields
+   * @param subscriptions - subscription fields
+   * @throws Error when a field name is already defined
+   */
+  addOperationFields(
+    rootFields: ThunkObjMap<GraphQLFieldConfig<any, any, any>>,
+    mutations: ThunkObjMap<GraphQLFieldConfig<any, any, any>>,
+    subscriptions: ThunkObjMap<GraphQLFieldConfig<any, any, any>>
+  ): void {
+    const exposed = createOperationFilter(this.parameters.exposeOperations);
+    const targets = { query: rootFields, mutation: mutations, subscription: subscriptions };
+    const owners = new Map<string, string>();
+    const operations = useInstanceStorage().operations;
+    for (const id of Object.keys(operations).sort()) {
+      const op = operations[id];
+      if (!exposed(id)) continue;
+      const placement = graphqlPlacement(id, op);
+      if (!placement) continue;
+      const target = targets[placement.kind];
+      const key = `${placement.kind}.${placement.name}`;
+      if (target[placement.name]) {
+        throw new Error(
+          `GraphQL ${placement.kind} field ${placement.name} of operation ${id} is already defined by ${owners.get(key) ?? "the model schema"}: rename it with @Operation({ graphql: { ${placement.kind}: "…" } })`
+        );
+      }
+      owners.set(key, `operation ${id}`);
+      const base = operationTypeName(id);
+      const { args, toInput } = this.operationArgs(op, base);
+      const type = this.operationOutputType(op, base);
+      const description = op.description || op.summary;
+      target[placement.name] =
+        placement.kind === "subscription"
+          ? {
+              type,
+              args,
+              description,
+              subscribe: async (_source, fieldArgs, context) =>
+                this.subscribeOperation(id, op, toInput(fieldArgs), context),
+              resolve: (chunk: unknown) => chunk
+            }
+          : {
+              type,
+              args,
+              description,
+              resolve: async (_source, fieldArgs, context) => this.runOperation(id, op, toInput(fieldArgs), context)
+            };
+      this.log("INFO", `Add GraphQL ${placement.kind}`, placement.name, "for operation", id);
+    }
+  }
+
+  /**
+   * GraphQL arguments of an operation: one per input schema property, or a single `input` argument
+   * @param op - operation
+   * @param base - type name prefix
+   * @returns the arguments and how to turn them back into the operation input
+   */
+  operationArgs(
+    op: OperationDefinition,
+    base: string
+  ): { args: GraphQLFieldConfigArgumentMap; toInput: (args: Record<string, unknown>) => unknown } {
+    const schema = op.input && op.input !== "void" ? (this.app.getSchema(op.input) as JSONSchema7) : undefined;
+    if (!schema) {
+      return { args: {}, toInput: () => undefined };
+    }
+    const resolved = this.getJsonSchemaDefinition(schema, schema.definitions);
+    const names = Object.keys(resolved.properties ?? {}).filter(name => !name.startsWith("__"));
+    if (resolved.type === "object" && names.length > 0 && names.every(name => GRAPHQL_NAME.test(name))) {
+      const required = new Set(resolved.required ?? []);
+      const args: GraphQLFieldConfigArgumentMap = {};
+      for (const name of names) {
+        const converted = this.getGraphQLSchemaFromSchema(
+          this.getJsonSchemaDefinition(
+            resolved.properties[name] as JSONSchema7,
+            resolved.definitions ?? schema.definitions
+          ),
+          `${base}Input_${name}`,
+          true
+        );
+        if (!converted) continue;
+        const type = converted.type as GraphQLInputType;
+        args[name] = { type: required.has(name) ? new GraphQLNonNull(type) : type, description: converted.description };
+      }
+      return { args, toInput: fieldArgs => ({ ...fieldArgs }) };
+    }
+    const converted = this.getGraphQLSchemaFromSchema(resolved, `${base}Input`, true);
+    return {
+      args: { input: { type: (converted?.type ?? AnyScalarType) as GraphQLInputType } },
+      toInput: fieldArgs => fieldArgs.input
+    };
+  }
+
+  /**
+   * GraphQL type of an operation result
+   * @param op - operation
+   * @param base - type name prefix
+   * @returns the model type for a model output, Boolean for void, else the converted output schema
+   */
+  operationOutputType(op: OperationDefinition, base: string): GraphQLOutputType {
+    if (!op.output || op.output === "void") {
+      return GraphQLBoolean;
+    }
+    if (this.modelsMap[op.output]) {
+      return this.modelsMap[op.output];
+    }
+    const schema = this.app.getSchema(op.output) as JSONSchema7;
+    const converted =
+      schema &&
+      this.getGraphQLSchemaFromSchema(this.getJsonSchemaDefinition(schema, schema.definitions), `${base}Output`);
+    return (converted?.type ?? AnyScalarType) as GraphQLOutputType;
+  }
+
+  /**
+   * Run an operation for a query or mutation field
+   * @param id - operation id
+   * @param op - operation
+   * @param input - operation input
+   * @param context - the GraphQL request context
+   * @returns the field value
+   */
+  async runOperation(id: string, op: OperationDefinition, input: unknown, context: WebContext): Promise<unknown> {
+    this.countOperation(context);
+    const ctx = new GraphQLOperationContext(context, input);
+    await ctx.init();
+    try {
+      await callOperation(ctx, id);
+    } catch (err) {
+      throw operationError(err);
+    }
+    if (!op.output || op.output === "void") {
+      return true;
+    }
+    return this.modelsMap[op.output] ? ctx.result : publicCopy(ctx.result);
+  }
+
+  /**
+   * Start a server-streaming operation for a subscription field
+   * @param id - operation id
+   * @param op - operation
+   * @param input - operation input
+   * @param context - the GraphQL request context
+   * @returns the chunks; leaving the subscription cancels the operation
+   */
+  async subscribeOperation(
+    id: string,
+    op: OperationDefinition,
+    input: unknown,
+    context: WebContext
+  ): Promise<AsyncIterableIterator<unknown>> {
+    this.countOperation(context);
+    const ctx = new GraphQLOperationContext(context, input, this.modelsMap[op.output] ? chunk => chunk : publicCopy);
+    await ctx.init();
+    if (!canCallOperation(ctx, id)) {
+      throw operationError(new WebdaError.Forbidden(`${id} PermissionDenied`));
+    }
+    callOperation(ctx, id).then(
+      () => ctx.finish(),
+      err => ctx.fail(err)
+    );
+    return ctx.chunks();
   }
 
   /**

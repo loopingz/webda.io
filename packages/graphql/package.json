@@ -29,6 +29,8 @@
     "@webda/core": "workspace:*",
     "@webda/ql": "workspace:*",
     "@webda/runtime": "workspace:*",
+    "@webda/utils": "workspace:*",
+    "@webda/workout": "workspace:*",
     "graphql": "^16.13.2",
     "graphql-http": "^1.22.4",
     "graphql-ws": "^6.0.8",

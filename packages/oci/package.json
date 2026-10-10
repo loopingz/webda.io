@@ -1,6 +1,6 @@
 {
   "name": "@webda/oci",
-  "version": "4.0.0-beta.6",
+  "version": "4.0.0-beta.7",
   "description": "Build and push OCI container images of a Webda application without Docker",
   "keywords": [
     "webda-module",

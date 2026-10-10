@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/debug-v4.0.0-beta.6...debug-v4.0.0-beta.7) (2026-10-10)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/utils bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.7
+    * @webda/core bumped to 4.0.0-beta.7
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/debug-v4.0.0-beta.5...debug-v4.0.0-beta.6) (2026-10-09)
 
 

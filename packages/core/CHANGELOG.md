@@ -3,6 +3,39 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.6...core-v4.0.0-beta.7) (2026-10-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* GraphQL now exposes every non-CRUD operation by default (opt out with exposeOperations: []); titled nested input types are renamed <title>Input; the Object scalar no longer JSON-parses string variables; duplicate GraphQL type/field names are startup errors; operations declaring grpc.streaming: "client" | "bidi" now receive an async iterable of messages instead of a collected array.
+* **iam:** canCallOperation() from @webda/core now returns Promise<boolean> so awaited operation authorizers can run. Callers must await it: a non-awaited Promise is truthy and would allow every operation.
+
+### Features
+
+* **iam:** IAM policies for operations, evaluated with Casbin ([#830](https://github.com/loopingz/webda.io/issues/830)) ([32a84db](https://github.com/loopingz/webda.io/commit/32a84dbbe7b534ecba557fff4c4b6e3ea172ea9b))
+* **oci:** reproducible image builds ([#825](https://github.com/loopingz/webda.io/issues/825)) ([845cd5b](https://github.com/loopingz/webda.io/commit/845cd5ba24db80c7e3b2804dd28a1c3c717887a9))
+* streaming operations on gRPC, WebSocket and GraphQL ([#829](https://github.com/loopingz/webda.io/issues/829)) ([e67bfea](https://github.com/loopingz/webda.io/commit/e67bfea1984e32ad7172e486602cb532369e62f5))
+
+
+### Bug Fixes
+
+* **core:** save the session and send every cookie on HTTP responses ([#824](https://github.com/loopingz/webda.io/issues/824)) ([c1ae0b0](https://github.com/loopingz/webda.io/commit/c1ae0b0530f3b68b61e355347ad986c9439cce47))
+* support Windows paths when loading and building modules ([#827](https://github.com/loopingz/webda.io/issues/827)) ([0d88747](https://github.com/loopingz/webda.io/commit/0d8874761196fcf09ac72bf9dc5bb31f8cfb87e1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.7
+    * @webda/models bumped to 4.0.0-beta.7
+    * @webda/tsc-esm bumped to 4.0.0-beta.7
+    * @webda/utils bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.7
+    * @webda/content-mapper bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.5...core-v4.0.0-beta.6) (2026-10-09)
 
 

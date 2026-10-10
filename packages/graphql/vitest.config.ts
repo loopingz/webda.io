@@ -14,6 +14,10 @@ export default defineConfig({
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",
-    include: ["src/**/*.spec.ts"]
+    include: ["src/**/*.spec.ts"],
+    exclude: ["node_modules/**"],
+    // graphql-http and graphql-ws must share the ESM build of graphql with the sources (two builds of graphql
+    // refuse each other's schemas: "from another module or realm")
+    server: { deps: { inline: [/graphql-http/, /graphql-ws/] } }
   }
 });

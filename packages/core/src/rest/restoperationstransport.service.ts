@@ -5,16 +5,34 @@ import { OperationDefinition } from "../core/icore.js";
 import { OpenAPIWebdaDefinition } from "./irest.js";
 import * as WebdaError from "../errors/errors.js";
 import { useRouter } from "./hooks.js";
-import { useApplication } from "../application/hooks.js";
+import { useLog } from "@webda/workout";
+import { HttpContext, type HttpMethodType } from "../contexts/httpcontext.js";
+import { runWithContext } from "../contexts/execution.js";
+import { emitCoreEvent, useCoreEvents } from "../events/events.js";
+import { useApplication, useParameters } from "../application/hooks.js";
 import { useCore, useModelMetadata } from "../core/hooks.js";
-import { useInstanceStorage } from "../core/instancestorage.js";
-import { callOperation } from "../core/operations.js";
+import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
+import { callOperation, canCallOperation, getOperationStreaming } from "../core/operations.js";
+import { AsyncQueue } from "../core/asyncqueue.js";
 import { WebContext } from "../contexts/webcontext.js";
-import type { HttpMethodType } from "../contexts/httpcontext.js";
+import { WebSocketOperationContext } from "../contexts/websocketcontext.js";
+import { RestStreamingOperationContext, type RestStreamFormat } from "../contexts/restcontext.js";
+import type { IncomingMessage, Server, ServerResponse } from "node:http";
+import type { Duplex } from "node:stream";
+import { WebSocketServer, type WebSocket } from "ws";
 import { hasSchema } from "../schemas/hooks.js";
 import type { ModelClass } from "@webda/models";
 import type { ModelAction } from "../models/types.js";
 import type { ModelGraphBehaviorDefinition, ModelMetadata } from "@webda/compiler";
+
+/**
+ * @param data - a raw WebSocket message
+ * @returns its length in bytes
+ */
+function rawLength(data: Buffer | ArrayBuffer | Buffer[]): number {
+  if (Array.isArray(data)) return data.reduce((sum, chunk) => sum + chunk.length, 0);
+  return data instanceof ArrayBuffer ? data.byteLength : data.length;
+}
 
 /**
  * Swagger static html
@@ -96,6 +114,31 @@ export class RESTOperationsTransportParameters extends OperationsTransportParame
    * @default "PUT"
    */
   queryMethod?: "PUT" | "GET";
+  /**
+   * Largest message (bytes) a client may send on a bidirectional WebSocket operation; a bigger one closes the socket
+   *
+   * @default 1048576
+   */
+  webSocketMaxPayload?: number;
+  /**
+   * Most unconsumed messages a bidirectional operation may have queued; above it the socket closes with 4413
+   *
+   * @default 1000
+   */
+  webSocketMaxQueuedMessages?: number;
+  /**
+   * Most bytes of unconsumed messages a bidirectional operation may have queued; above it the socket closes with 4413
+   *
+   * @default 16777216
+   */
+  webSocketMaxQueuedBytes?: number;
+  /**
+   * Milliseconds between two keep-alive comments on an open `text/event-stream` response of a server-streaming
+   * operation (0 disables them)
+   *
+   * @default 20000
+   */
+  streamKeepAliveInterval?: number;
 
   /**
    * Load parameters with defaults
@@ -106,12 +149,30 @@ export class RESTOperationsTransportParameters extends OperationsTransportParame
     super.load(params);
     this.nameTransformer ??= "camelCase";
     this.queryMethod ??= "PUT";
+    this.webSocketMaxPayload ??= 1024 * 1024;
+    this.webSocketMaxQueuedMessages ??= 1000;
+    this.webSocketMaxQueuedBytes ??= 16 * 1024 * 1024;
+    this.streamKeepAliveInterval ??= 20000;
     // Ensure url ends with /
     if (this.url && !this.url.endsWith("/")) {
       this.url += "/";
     }
     return this;
   }
+}
+
+/**
+ * Truncate a string to a number of UTF-8 bytes without cutting a character (a close reason holds 123 bytes)
+ * @param text - the text
+ * @param max - the maximum byte length
+ * @returns the truncated text
+ */
+export function truncateUtf8(text: string, max: number): string {
+  const buffer = Buffer.from(text, "utf8");
+  if (buffer.length <= max) return text;
+  let end = max;
+  while (end > 0 && (buffer[end] & 0xc0) === 0x80) end--;
+  return buffer.subarray(0, end).toString("utf8");
 }
 
 /**
@@ -130,6 +191,14 @@ export class RESTOperationsTransport<
    * OpenAPI cache
    */
   openapiContent: string;
+
+  /** Bidirectional operations served as WebSocket upgrades: path → operation id */
+  webSocketRoutes: Map<string, string> = new Map();
+  /** Shared WebSocket server (noServer: upgrades come from the HttpServer) */
+  private webSocketServer?: WebSocketServer;
+  /** HTTP servers the upgrade listener is already attached to */
+  private webSocketServers: WeakSet<Server> = new WeakSet();
+  private webSocketEvents = false;
 
   /**
    * Transform name using configured casing
@@ -150,7 +219,162 @@ export class RESTOperationsTransport<
     if (this.parameters.exposeOpenAPI) {
       this.addRoute(".", ["GET"], this.openapi, { hidden: true });
     }
+    // Bidirectional operations: accept WebSocket upgrades on every HTTP server once it listens
+    if (!this.webSocketEvents) {
+      this.webSocketEvents = true;
+      const storage = useInstanceStorage();
+      useCoreEvents("Webda.Init.Http" as any, (server: any) => this.attachWebSockets(server, storage));
+    }
     return this;
+  }
+
+  /**
+   * Find the bidirectional operation served on a request URL, the way the router matches HTTP paths: relative to the
+   * HttpContext prefix, without the query string, with or without the global route prefix
+   * @param uri - the request URL
+   * @param prefix - the HttpContext prefix (a gateway stage...)
+   * @returns the operation id, if any
+   */
+  webSocketOperationOf(uri: string, prefix: string = ""): string | undefined {
+    const context = new HttpContext("localhost", "GET", uri);
+    if (prefix) context.setPrefix(prefix);
+    let path = context.getRelativeUri().split("?")[0];
+    const routePrefix = useParameters().routePrefix || "";
+    if (routePrefix && path.startsWith(routePrefix)) path = path.substring(routePrefix.length) || "/";
+    return this.webSocketRoutes.get(path);
+  }
+
+  /**
+   * Serve the bidirectional operations' upgrades on an HTTP server (once per server, only if there are any)
+   * @param server - the server emitted by Webda.Init.Http
+   * @param storage - the instance storage to run requests in
+   */
+  protected attachWebSockets(server: Server, storage: ReturnType<typeof useInstanceStorage>): void {
+    if (this.webSocketRoutes.size === 0 || this.webSocketServers.has(server)) return;
+    this.webSocketServers.add(server);
+    server.on("upgrade", (req: IncomingMessage, socket: Duplex, head: Buffer) => {
+      runWithInstanceStorage(storage, () => {
+        const opId = this.webSocketOperationOf(req.url ?? "/");
+        // Not ours (GraphQL subscriptions...): leave the socket to the other listeners
+        if (!opId) return;
+        this.upgradeOperation(opId, server, req, socket, head).catch(err => {
+          useLog("ERROR", "WebSocket upgrade failed", opId, err);
+          socket.destroy();
+        });
+      });
+    });
+  }
+
+  /**
+   * Answer an upgrade with an HTTP error
+   * @param socket - the raw socket
+   * @param status - HTTP status
+   * @param message - reason phrase
+   */
+  private refuseUpgrade(socket: Duplex, status: number, message: string): void {
+    socket.end(`HTTP/1.1 ${status} ${message}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
+  }
+
+  /**
+   * Check the caller like a normal request (Webda.Request, router request filters, permission) and accept the WebSocket
+   * @param opId - the bidirectional operation
+   * @param server - the HTTP server
+   * @param req - the upgrade request
+   * @param socket - the raw socket
+   * @param head - first packet of the upgraded stream
+   * @returns a promise settled once the upgrade is accepted or refused
+   */
+  protected async upgradeOperation(
+    opId: string,
+    server: Server,
+    req: IncomingMessage,
+    socket: Duplex,
+    head: Buffer
+  ): Promise<void> {
+    const http = Object.values(useCore().getServices()).find(
+      s => (s as any).server === server && typeof (s as any).getContextFromRequest === "function"
+    ) as any;
+    const base: WebContext | undefined = http && (await http.getContextFromRequest(req));
+    if (!base) return this.refuseUpgrade(socket, 400, "Bad Request");
+    await base.init();
+    const allowed = await runWithContext(base, async () => {
+      try {
+        emitCoreEvent("Webda.Request", { context: base });
+      } catch {
+        // listener error
+      }
+      return (await useRouter().checkRequest(base)) && canCallOperation(base, opId);
+    });
+    if (!allowed) return this.refuseUpgrade(socket, 403, "Forbidden");
+    const storage = useInstanceStorage();
+    this.webSocketServer ??= new WebSocketServer({
+      noServer: true,
+      maxPayload: this.parameters.webSocketMaxPayload
+    });
+    this.webSocketServer.handleUpgrade(req, socket, head, ws => {
+      runWithInstanceStorage(storage, () => {
+        this.runWebSocketOperation(opId, base.getHttpContext(), ws, base.getSession()).catch(err => {
+          useLog("ERROR", "WebSocket operation failed", opId, err);
+          ws.close(1011, "Internal server error");
+        });
+      });
+    });
+  }
+
+  /**
+   * Run a bidirectional operation over an accepted WebSocket: messages in, chunks out
+   * @param opId - the operation
+   * @param httpContext - the upgrade request
+   * @param ws - the socket
+   * @param session - the session loaded when the upgrade was authorized
+   */
+  protected async runWebSocketOperation(opId: string, httpContext: any, ws: WebSocket, session?: any): Promise<void> {
+    const ctx = new WebSocketOperationContext(httpContext, ws, session);
+    await ctx.init();
+    const input = new AsyncQueue<unknown>();
+    ctx.setExtension("operationInputStream", input);
+    const maxQueued = this.parameters.webSocketMaxQueuedMessages;
+    const maxQueuedBytes = this.parameters.webSocketMaxQueuedBytes;
+    ws.on("message", data => {
+      let message: unknown;
+      try {
+        message = JSON.parse(String(data));
+      } catch {
+        ws.close(4400, "Invalid JSON message");
+        return;
+      }
+      input.push(message, rawLength(data));
+      if (input.pending > maxQueued || input.pendingBytes > maxQueuedBytes) {
+        // The operation does not keep up: stop it rather than buffering without limit
+        const bytes = input.pendingBytes > maxQueuedBytes;
+        ctx.cancel();
+        input.end(true);
+        ws.close(4413, bytes ? "Too many queued bytes" : "Too many queued messages");
+      }
+    });
+    ws.on("error", err => useLog("DEBUG", "WebSocket error", opId, err));
+    // The client is gone: the operation's writes throw and its pending read ends so its finally blocks run
+    ws.on("close", () => {
+      ctx.cancel();
+      input.end();
+    });
+    try {
+      await callOperation(ctx, opId);
+      if (ctx.isCancelled) return;
+      const output = ctx.getExtension("operationStreaming") ? undefined : ctx.getOutput();
+      if (output) ws.send(output);
+      ws.close(1000);
+    } catch (err: any) {
+      // Only a client that went away is a silent cancel: an operation raising it while connected is an error
+      if (ctx.isCancelled) return;
+      const status = typeof err?.getResponseCode === "function" ? err.getResponseCode() : undefined;
+      if (status >= 400 && status < 500) {
+        ws.close(4000 + status, truncateUtf8(String(err.message ?? "Error"), 123));
+        return;
+      }
+      useLog("ERROR", `[WebSocket ${opId}] operation threw:`, err);
+      ws.close(status ? 4000 + status : 1011, "Internal server error");
+    }
   }
 
   /**
@@ -200,6 +424,8 @@ export class RESTOperationsTransport<
   protected exposeServiceOperations(operations: Record<string, OperationDefinition>): void {
     for (const [opId, op] of Object.entries(operations)) {
       if (op.hidden) continue;
+      // A client stream cannot be carried by a plain HTTP request: reachable over gRPC only
+      if (getOperationStreaming(op) === "client") continue;
       // Skip if this operation was already handled by model tree walk
       if (op.context?.model) continue;
 
@@ -216,22 +442,138 @@ export class RESTOperationsTransport<
         methods = ["PUT"];
       }
 
+      if (getOperationStreaming(op) === "bidi") {
+        // Served as a WebSocket upgrade on this path; a plain request cannot carry a bidirectional stream
+        if (path.includes("{")) {
+          this.log("WARN", `${opId} is bidirectional but its path ${path} has parameters: not served over WebSocket`);
+        } else {
+          this.webSocketRoutes.set(path, opId);
+        }
+        this.addRoute(
+          path,
+          [...new Set<HttpMethodType>(["GET", ...methods])],
+          async () => {
+            throw new WebdaError.HttpError("Upgrade Required: open a WebSocket on this URL", 426);
+          },
+          { get: { tags: op.tags || [], summary: `${op.summary || opId} (WebSocket)`, operationId: opId } }
+        );
+        continue;
+      }
+
       const openapi: OpenAPIWebdaDefinition = {
         [methods[0].toLowerCase()]: {
           tags: op.tags || [],
           summary: op.summary || opId,
-          operationId: opId
+          operationId: opId,
+          ...(getOperationStreaming(op) === "server" ? { responses: this.streamedResponses() } : {})
         }
       };
       this.addRoute(
         path,
         methods,
         async (context: WebContext) => {
-          await callOperation(context, opId);
+          await this.runOperation(context, opId);
         },
         openapi
       );
     }
+  }
+
+  /**
+   * The OpenAPI responses of a server-streaming operation
+   * @returns the 200 response with both stream formats
+   */
+  protected streamedResponses(): Record<string, any> {
+    return {
+      "200": {
+        description:
+          "Stream of chunks: one JSON line each (application/x-ndjson), or one `data:` event each when `Accept` is " +
+          "text/event-stream, ended by an `end` event. An error after the first chunk is a last `error` event or " +
+          '`{"error": {"message", "code"}}` line.',
+        content: {
+          "application/x-ndjson": { schema: { type: "string", description: "One JSON value per line" } },
+          "text/event-stream": { schema: { type: "string", description: "Server-sent events with a JSON `data`" } }
+        }
+      }
+    };
+  }
+
+  /**
+   * Run an operation for a route: a server-streaming one is streamed to the client as its generator yields, any other
+   * is called and its result flushed with the response
+   * @param context - the request context
+   * @param operationId - the operation
+   * @returns a promise settled once the operation is done (a stream: once the response is over)
+   */
+  protected async runOperation(context: WebContext, operationId: string): Promise<void> {
+    const response = context._stream as any;
+    if (
+      getOperationStreaming(useInstanceStorage().operations?.[operationId]) !== "server" ||
+      typeof response?.writeHead !== "function"
+    ) {
+      return callOperation(context, operationId);
+    }
+    return this.streamOperation(context, operationId, response);
+  }
+
+  /**
+   * Stream a server-streaming operation: NDJSON, or server-sent events when the client accepts them
+   *
+   * The streaming context is built here, from the request's context, rather than by the HttpServer: only these routes
+   * need it, and permissions, validation and events still go through `callOperation` on the request's input. Until the
+   * first chunk an error is a normal HTTP error (thrown to the HttpServer); after it, the error is the last event or
+   * line of the stream.
+   * @param context - the request context
+   * @param operationId - the operation
+   * @param response - the HTTP response
+   * @returns a promise settled once the response is over
+   */
+  protected async streamOperation(context: WebContext, operationId: string, response: ServerResponse): Promise<void> {
+    const accept = context.getHttpContext().getUniqueHeader("accept", "") ?? "";
+    const format: RestStreamFormat = accept.includes("text/event-stream") ? "sse" : "ndjson";
+    const stream = new RestStreamingOperationContext(
+      context.getHttpContext(),
+      response,
+      format,
+      context.getSession(),
+      this.parameters.streamKeepAliveInterval,
+      context.getResponseHeaders(),
+      context.getSetCookieHeaders()
+    );
+    await stream.init();
+    stream.setParameters(context.getParameters());
+    stream.startKeepAlive();
+    try {
+      await callOperation(stream, operationId);
+    } catch (err: any) {
+      stream.stopKeepAlive();
+      // The client went away: nothing to tell
+      if (stream.isCancelled || stream.disconnected) return stream.finish();
+      // Nothing sent yet: a normal HTTP error response
+      if (!stream.hasStarted) {
+        stream.abortBeforeStart();
+        throw err;
+      }
+      const status = typeof err?.getResponseCode === "function" ? err.getResponseCode() : undefined;
+      const clientError = status >= 400 && status < 500;
+      if (!clientError) useLog("ERROR", `[REST ${operationId}] streamed operation threw:`, err);
+      await stream.writeError(clientError ? String(err.message ?? "Error") : "Internal server error", status || 500);
+      return stream.finish();
+    }
+    stream.stopKeepAlive();
+    if (stream.isCancelled) return stream.finish();
+    if (!stream.getExtension("operationStreaming")) {
+      // Not a generator after all: a normal response, with the status and headers the operation set
+      if (stream.statusCode && stream.statusCode !== 204) context.statusCode = stream.statusCode;
+      for (const [name, value] of Object.entries(stream.getResponseHeaders())) context.setHeader(name, <any>value);
+      const output = stream.getOutput();
+      if (output !== undefined) {
+        context.setHeader("Content-type", "application/json");
+        context.write(output);
+      }
+      return;
+    }
+    return stream.finish(true);
   }
 
   /**
@@ -741,6 +1083,13 @@ export class RESTOperationsTransport<
         ...(action.openapi?.[method.toLowerCase()] ?? {})
       };
     });
+    if (getOperationStreaming(useInstanceStorage().operations?.[operationId]) === "server") {
+      Object.keys(openapi)
+        .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
+        .forEach(k => {
+          openapi[k].responses = { ...this.streamedResponses(), ...openapi[k].responses };
+        });
+    }
     if (hasSchema(`${identifier}.${actionName}.input`)) {
       Object.keys(openapi)
         .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
@@ -756,7 +1105,10 @@ export class RESTOperationsTransport<
           };
         });
     }
-    if (hasSchema(`${identifier}.${actionName}.output`)) {
+    if (
+      hasSchema(`${identifier}.${actionName}.output`) &&
+      getOperationStreaming(useInstanceStorage().operations?.[operationId]) !== "server"
+    ) {
       Object.keys(openapi)
         .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
         .forEach(k => {
@@ -779,7 +1131,7 @@ export class RESTOperationsTransport<
           context.getParameters()[injectAttribute] = context.parameter(`pid.${depth - 1}`);
           context.getParameters()[`pid.${depth - 1}`] = undefined;
         }
-        await callOperation(context, operationId);
+        await this.runOperation(context, operationId);
       },
       openapi
     );
@@ -864,7 +1216,9 @@ export class RESTOperationsTransport<
           }
         };
       }
-      if (hasSchema(outputSchema)) {
+      if (getOperationStreaming(op) === "server") {
+        openapi[methodKey].responses = this.streamedResponses();
+      } else if (hasSchema(outputSchema)) {
         openapi[methodKey].responses = {
           "200": {
             description: "Operation success",
@@ -882,7 +1236,7 @@ export class RESTOperationsTransport<
       this.addRoute(
         fullPath,
         [httpMethod],
-        async (context: WebContext) => callOperation(context, operationId),
+        async (context: WebContext) => this.runOperation(context, operationId),
         openapi
       );
     });

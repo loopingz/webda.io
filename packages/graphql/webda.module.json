@@ -20,6 +20,16 @@
             "description": "Expose current user in the context with me",
             "type": "boolean"
           },
+          "exposeOperations": {
+            "default": [
+              "*"
+            ],
+            "description": "Operations exposed as GraphQL fields next to the model schema, with the operation transports' patterns:\n`\"*\"`, `\"Service.*\"`, an exact id, `\"!Id\"` to exclude; `[]` exposes no operation",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "globalSubscription": {
             "default": false,
             "description": "Expose a aggregation of all available subscriptions",

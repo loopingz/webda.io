@@ -73,6 +73,7 @@
     "ts-json-schema-generator": "^2.9.0",
     "ts-method-cache": "^3.3.1",
     "uri-templates": "^0.2.0",
+    "ws": "^8.20.0",
     "yaml": "^2.8.3",
     "yargs": "^18.0.0"
   },
@@ -95,6 +96,7 @@
   "devDependencies": {
     "@types/node": "25.5.0",
     "@types/sanitize-html": "^2.16.1",
+    "@types/ws": "^8.5.12",
     "@types/yargs": "^17.0.35",
     "@vitest/coverage-istanbul": "^4.1.2",
     "@vitest/coverage-v8": "^4.1.2",
@@ -114,8 +116,7 @@
     "tsx": "^4.21.0",
     "typescript": "7.1.0-dev.20260929.1",
     "vite": "^6.0.0",
-    "vitest": "^4.1.2",
-    "ws": "^8.20.0"
+    "vitest": "^4.1.2"
   },
   "files": [
     "lib",

@@ -111,7 +111,7 @@ export function generateProto(
     for (const { opId, op, rpcName } of ops) {
       const inputType = getInputType(op, schemas, messages);
       const outputType = getOutputType(op, schemas, messages);
-      const streaming = op.grpc?.streaming || "none";
+      const streaming = op.streaming || (typeof op.grpc === "object" && op.grpc?.streaming) || "none";
 
       const inputMod = streaming === "client" || streaming === "bidi" ? "stream " : "";
       const outputMod = streaming === "server" || streaming === "bidi" ? "stream " : "";

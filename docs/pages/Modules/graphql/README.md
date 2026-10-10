@@ -98,6 +98,7 @@ Set `exposeGraphiQL: true` (the default) to enable the in-browser GraphiQL IDE a
 | `exposeMe` | `true` | Expose `{ me { ... } }` query for current user |
 | `globalSubscription` | `true` | Expose aggregate `AggregateSubscriptions` subscription |
 | `userModel` | `User` | Short name of the User model for `me` query |
+| `exposeOperations` | `["*"]` | Operations exposed as Query, Mutation or Subscription fields (`!` excludes). `[]` exposes none |
 
 ### See also
 

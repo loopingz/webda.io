@@ -1,5 +1,9 @@
 import type { Http2ServerRequest, Http2ServerResponse } from "node:http2";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { useLog } from "@webda/workout";
+
+/** Largest accepted gRPC message (declared frame length), same as the gRPC default of 4 MiB */
+export const GRPC_MAX_MESSAGE_SIZE = 4 * 1024 * 1024;
 
 /**
  * Parsed gRPC method definition with serializer/deserializer functions.
@@ -29,11 +33,11 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
   /** Sentinel value indicating successful stream setup */
   static OK = Symbol("OK");
 
-  private onMessageHandler: (message: RequestType) => void | Promise<void>;
+  private onMessageHandler: (message: RequestType, size: number) => void | Promise<void>;
   private onEndHandler?: () => void;
   private onCancelHandler?: () => void;
   private chunk: Buffer | null = null;
-  private messageLength = 0;
+  private failed = false;
   private request: IncomingMessage | Http2ServerRequest;
   private response: ServerResponse | Http2ServerResponse;
   private definition: GrpcMethodDef<RequestType, ResponseType>;
@@ -58,36 +62,64 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
     this.response.setHeader("Grpc-Accept-Encoding", "identity");
     this.response.setHeader("Grpc-Encoding", "identity");
 
-    // Parse incoming gRPC frames
+    // Parse incoming gRPC frames (1-byte flag + 4-byte big-endian length + payload); a chunk may hold part of a
+    // header, several frames, or both
     req.on("data", (data: Buffer) => {
-      if (this.chunk === null) {
-        this.messageLength = data.readUInt32BE(1);
-        this.chunk = data;
-      } else {
-        this.chunk = Buffer.concat([this.chunk, data]);
-      }
-      // Check if we have a complete message
-      while (this.chunk && this.chunk.length >= 5 + this.messageLength) {
-        const message = this.chunk.subarray(5, 5 + this.messageLength);
-        const deserialized = this.definition.requestDeserialize(message);
-        this.onMessageHandler?.(deserialized);
-        // Advance to next frame
-        this.chunk = this.chunk.subarray(5 + this.messageLength);
-        if (this.chunk.length >= 5) {
-          this.messageLength = this.chunk.readUInt32BE(1);
-        } else if (this.chunk.length === 0) {
-          this.chunk = null;
+      if (this.failed) return;
+      this.chunk = this.chunk ? Buffer.concat([this.chunk, data]) : data;
+      while (this.chunk.length >= 5) {
+        const compressed = this.chunk.readUInt8(0);
+        const length = this.chunk.readUInt32BE(1);
+        // Reject on the header alone: never buffer an oversized or compressed body
+        if (compressed) return this.fail(GrpcStatus.UNIMPLEMENTED, "compressed messages are not supported");
+        if (length > GRPC_MAX_MESSAGE_SIZE) {
+          return this.fail(GrpcStatus.RESOURCE_EXHAUSTED, `message exceeds ${GRPC_MAX_MESSAGE_SIZE} bytes`);
+        }
+        if (this.chunk.length < 5 + length) break;
+        const message = this.chunk.subarray(5, 5 + length);
+        this.chunk = this.chunk.subarray(5 + length);
+        let decoded: RequestType;
+        try {
+          decoded = this.definition.requestDeserialize(message);
+        } catch (err) {
+          return this.fail(GrpcStatus.INVALID_ARGUMENT, `cannot decode message: ${(err as Error)?.message}`);
+        }
+        try {
+          const result = this.onMessageHandler?.(decoded, length);
+          if (result && typeof (result as Promise<void>).catch === "function") {
+            (result as Promise<void>).catch(err => this.fail(GrpcStatus.INTERNAL, "message handler failed", err));
+          }
+        } catch (err) {
+          return this.fail(GrpcStatus.INTERNAL, "message handler failed", err);
         }
       }
+      if (this.chunk.length === 0) this.chunk = null;
     });
 
     req.on("end", () => {
       this.onEndHandler?.();
     });
 
+    // "close" also fires after a normal end: only a close before the response ended is a cancellation
     req.on("close", () => {
-      this.onCancelHandler?.();
+      if (!(this.response as any).writableEnded) this.onCancelHandler?.();
     });
+  }
+
+  /**
+   * Stop processing the stream and end it with an error status
+   * @param status - gRPC status code
+   * @param message - status message
+   * @param err - optional underlying error to log
+   */
+  private fail(status: number, message: string, err?: unknown): void {
+    if (err) useLog("ERROR", `gRPC stream: ${message}`, err);
+    if (this.failed) return;
+    this.failed = true;
+    this.chunk = null;
+    this.end(status, message);
+    // The response is over whatever the client does next: whoever feeds on this stream must stop
+    this.onCancelHandler?.();
   }
 
   /**
@@ -95,7 +127,7 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
    * @param handler - callback invoked with each deserialized request message
    * @returns this instance for chaining
    */
-  onMessage(handler: (message: RequestType) => void | Promise<void>): this {
+  onMessage(handler: (message: RequestType, size: number) => void | Promise<void>): this {
     this.onMessageHandler = handler;
     return this;
   }
@@ -123,15 +155,15 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
   /**
    * Send a response message with gRPC framing.
    * @param message - the response message to serialize and send
-   * @returns void
+   * @returns false when the response buffer is full (wait for "drain")
    */
-  send(message: ResponseType): void {
+  send(message: ResponseType): boolean {
     const responseBuffer = this.definition.responseSerialize(message);
     const frame = Buffer.alloc(5 + responseBuffer.length);
     frame.writeUInt8(0, 0); // Not compressed
     frame.writeUInt32BE(responseBuffer.length, 1);
     responseBuffer.copy(frame, 5);
-    this.response.write(frame);
+    return this.response.write(frame) !== false;
   }
 
   /**
@@ -144,6 +176,12 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
     const trailers: Record<string, string> = { "grpc-status": String(status) };
     if (message) {
       trailers["grpc-message"] = encodeURIComponent(message);
+    }
+    if (this.response.headersSent === false) {
+      // Trailers-Only response: nothing was sent, the status goes in the headers
+      for (const [name, value] of Object.entries(trailers)) this.response.setHeader(name, value);
+      this.response.end();
+      return;
     }
     (this.response as any).addTrailers?.(trailers);
     this.response.end();

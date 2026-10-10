@@ -14,13 +14,16 @@
  *   resolved return type.
  *
  * Both are then flattened by {@link normalizeDefinitions}.
+ *
+ * A streamed parameter (`AsyncIterable<T>`, only parameter) or return
+ * (`AsyncGenerator<T>`) is described by `T` and marked `x-webda-stream`.
  */
 import { SignatureKind, SymbolFlags } from "typescript/unstable/sync";
 import type { Checker, Project, Symbol as TsSymbol, Type } from "typescript/unstable/sync";
 import type { MethodDeclaration } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
 import { SchemaConverter } from "./converter.ts";
-import type { JSONSchema7 } from "./types.ts";
+import { SchemaConversionError, type JSONSchema7 } from "./types.ts";
 
 /** What is needed to convert an action. */
 export interface ActionSchemaOptions {
@@ -28,6 +31,33 @@ export interface ActionSchemaOptions {
   project: Project;
   /** The resident checker. */
   checker: Checker;
+}
+
+/** Keyword marking a `.input`/`.output` schema whose side of the operation is a stream of that schema. */
+export const STREAM_KEYWORD = "x-webda-stream";
+
+/** Generic interfaces whose first type argument is the element of a stream. */
+const STREAM_TYPES = new Set(["AsyncIterable", "AsyncIterableIterator", "AsyncGenerator"]);
+
+/**
+ * The element type of an async stream type.
+ * @param type - a parameter or (Promise-unwrapped) return type
+ * @param checker - the resident checker
+ * @returns `T` for `AsyncIterable<T>`, `AsyncIterableIterator<T>` or `AsyncGenerator<T, …>`, else undefined
+ */
+export function streamElementType(type: Type, checker: Checker): Type | undefined {
+  if (!STREAM_TYPES.has(type.getSymbol()?.name ?? "") || !type.isTypeReference()) return undefined;
+  return checker.getTypeArguments(type)[0];
+}
+
+/**
+ * Mark a converted element schema as a stream.
+ * @param schema - the element schema
+ * @returns the same schema
+ */
+function markStream(schema: JSONSchema7): JSONSchema7 {
+  (schema as Record<string, unknown>)[STREAM_KEYWORD] = true;
+  return schema;
 }
 
 /**
@@ -44,13 +74,33 @@ export interface ActionSchemaOptions {
 export function generateActionInput(method: MethodDeclaration, options: ActionSchemaOptions): JSONSchema7 {
   const { checker, project } = options;
   const signature = callSignatureOf(method, options);
+  const parameters = signature?.getParameters() ?? [];
+
+  // A streamed parameter is the whole input: its element type describes each message
+  const streamed = parameters.map(parameter =>
+    streamElementType(checker.getTypeOfSymbolAtLocation(parameter, method.parent), checker)
+  );
+  const at = streamed.findIndex(element => element !== undefined);
+  if (at >= 0) {
+    if (parameters.length !== 1) {
+      throw new SchemaConversionError(
+        "A streamed parameter (AsyncIterable<T>) must be the only parameter of an operation",
+        `/${parameters[at].name}`,
+        checker.typeToString(checker.getTypeOfSymbolAtLocation(parameters[at], method.parent))
+      );
+    }
+    const converter = new SchemaConverter({ project, checker, mode: "input" });
+    const element = converter.fromType(streamed[at]!, method.parent);
+    delete element.$schema;
+    return normalizeDefinitions(markStream(element));
+  }
 
   // Hand-built, not converted: this root is why `.input` carries no
   // `$schema` and keeps its keys in declaration order.
   const schema: JSONSchema7 = { type: "object", properties: {} };
   const required: string[] = [];
 
-  for (const parameter of signature?.getParameters() ?? []) {
+  for (const parameter of parameters) {
     const converter = new SchemaConverter({ project, checker, mode: "input" });
     const parameterType = checker.getTypeOfSymbolAtLocation(parameter, method.parent);
     const parameterSchema = converter.fromType(parameterType, method.parent);
@@ -81,8 +131,11 @@ export function generateActionOutput(method: MethodDeclaration, options: ActionS
   const resolved = unwrapPromise(returned, checker);
   if (!resolved) return undefined;
 
+  // A streamed return is described by its element type
+  const element = streamElementType(resolved, checker);
   const converter = new SchemaConverter({ project, checker, mode: "output" });
-  return normalizeDefinitions(converter.fromType(resolved, method.parent));
+  const schema = converter.fromType(element ?? resolved, method.parent);
+  return normalizeDefinitions(element ? markStream(schema) : schema);
 }
 
 /**

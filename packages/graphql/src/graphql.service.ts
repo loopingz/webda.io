@@ -16,7 +16,16 @@ import {
   queryModelWithPermissions,
   getClientWritableAttributes,
   assertNoPrivateFields,
-  assertFilterOnly
+  assertFilterOnly,
+  callOperation,
+  canCallOperation,
+  createOperationFilter,
+  useInstanceStorage,
+  runWithInstanceStorage,
+  emitCoreEvent,
+  runWithContext,
+  useRouter,
+  type OperationDefinition
 } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
 import * as WebdaQL from "@webda/ql";
@@ -26,9 +35,13 @@ import {
   GraphQLBoolean,
   GraphQLError,
   GraphQLFieldConfig,
+  GraphQLFieldConfigArgumentMap,
   GraphQLInputObjectType,
+  GraphQLInputType,
   GraphQLList,
+  GraphQLNonNull,
   GraphQLObjectType,
+  GraphQLOutputType,
   GraphQLResolveInfo,
   GraphQLSchema,
   GraphQLString,
@@ -41,11 +54,18 @@ import { CloseCode, Server as GraphQLWSServer, makeServer } from "graphql-ws";
 import { JSONSchema7 } from "json-schema";
 import { nextTick } from "process";
 import { EventEmitter } from "stream";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, type WebSocket } from "ws";
 import { AnyScalarType } from "./types/any.js";
 import { DateScalar } from "./types/date.js";
 import { GraphQLLong } from "./types/long.js";
-import { createFromInput, isInputAttribute, loadForAction, updateFromInput } from "./mutations.js";
+import { createFromInput, isInputAttribute, loadForAction, operationError, updateFromInput } from "./mutations.js";
+import {
+  GRAPHQL_NAME,
+  GraphQLOperationContext,
+  graphqlPlacement,
+  operationTypeName,
+  publicCopy
+} from "./operations.js";
 
 const GraphIQL = `
 <!doctype html>
@@ -167,6 +187,12 @@ export class GraphQLParameters extends DomainServiceParameters {
    * Expose a aggregation of all available subscriptions
    */
   globalSubscription: boolean;
+  /**
+   * Operations exposed as GraphQL fields next to the model schema, with the operation transports' patterns:
+   * `"*"`, `"Service.*"`, an exact id, `"!Id"` to exclude; `[]` exposes no operation
+   * @default ["*"]
+   */
+  exposeOperations: string[];
 
   /**
    * Load parameters with defaults
@@ -180,6 +206,7 @@ export class GraphQLParameters extends DomainServiceParameters {
     this.userModel ??= "User";
     this.exposeMe ??= true;
     this.globalSubscription ??= true;
+    this.exposeOperations ??= ["*"];
     return this;
   }
 }
@@ -196,6 +223,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   schema: GraphQLSchema;
   handler: Handler;
   modelsMap: { [key: string]: GraphQLObjectType };
+  /**
+   * Generated named types, by name: a name is generated once per shape (reset by generateSchema)
+   */
+  namedTypes: Map<string, { type: GraphQLType; shape: string }> = new Map();
   app: Application;
   wss: WebSocketServer;
   wsHandler: GraphQLWSServer;
@@ -206,6 +237,15 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * @returns initialized GraphQLParameters
    */
   loadParameters(params: any): GraphQLParameters {
+    return new GraphQLParameters().load(params);
+  }
+
+  /**
+   * Parameters with their defaults (the core builds a service configuration through this, not loadParameters)
+   * @param params - raw partial configuration
+   * @returns initialized GraphQLParameters
+   */
+  static createConfiguration(params: any = {}): GraphQLParameters {
     return new GraphQLParameters().load(params);
   }
 
@@ -229,6 +269,47 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
+   * One GraphQL type per name: reuse the type already generated for this name and shape
+   * @param name - type name
+   * @param shape - what makes two types of this name the same (kind and field names)
+   * @param create - builds the type the first time
+   * @returns the type
+   * @throws Error when the name was generated for another shape
+   */
+  namedType<T extends GraphQLType>(name: string, shape: string, create: () => T): T {
+    this.namedTypes ??= new Map();
+    const known = this.namedTypes.get(name);
+    if (known) {
+      if (known.shape !== shape) {
+        throw new Error(
+          `GraphQL type ${name} is generated for two different schemas (${known.shape} / ${shape}): give one of them another title`
+        );
+      }
+      return known.type as T;
+    }
+    const type = create();
+    this.namedTypes.set(name, { type, shape });
+    return type;
+  }
+
+  /**
+   * Reserve a type name for a type built later (its entry gets the type once built)
+   * @param name - type name
+   * @param shape - identity of the reserving type
+   * @throws Error when the name is already taken by another shape
+   */
+  reserveName(name: string, shape: string): void {
+    this.namedTypes ??= new Map();
+    const known = this.namedTypes.get(name);
+    if (known && known.shape !== shape) {
+      throw new Error(
+        `GraphQL type ${name} is generated for two different schemas (${known.shape} / ${shape}): give one of them another title`
+      );
+    }
+    this.namedTypes.set(name, known || { type: undefined, shape });
+  }
+
+  /**
    * Convert a JSON Schema to a GraphQL type definition
    * @param schema - JSON Schema to convert
    * @param defaultName - fallback name for anonymous types
@@ -240,6 +321,17 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     defaultName: string,
     input?: boolean
   ): { type: GraphQLType; description?: string } {
+    // `type: ["string", "null"]`: the nullable form of one type (GraphQL fields are nullable already)
+    if (Array.isArray(schema?.type)) {
+      const types = (schema.type as string[]).filter(t => t !== "null");
+      if (types.length === 0) {
+        return undefined;
+      }
+      if (types.length > 1) {
+        return { type: AnyScalarType, description: schema.description };
+      }
+      return this.getGraphQLSchemaFromSchema({ ...schema, type: types[0] as any }, defaultName, input);
+    }
     let type: GraphQLType;
     if (!schema || !schema.type) {
       type = AnyScalarType;
@@ -284,10 +376,16 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         this.log("DEBUG", "Return map for", defaultName, "because no fields");
         return { type: AnyScalarType, description: "Map" };
       }
-      type = new (input ? GraphQLInputObjectType : GraphQLObjectType)({
-        fields,
-        name: schema.title || defaultName
-      });
+      // A titled input type gets its own name: the output type of the same title already uses the title
+      const name = schema.title ? (input ? `${schema.title}Input` : schema.title) : defaultName;
+      type = this.namedType(
+        name,
+        `${input ? "input" : "output"}:${Object.keys(fields)
+          .sort()
+          .map(k => `${k}:${fields[k].type}`)
+          .join(",")}`,
+        () => (input ? new GraphQLInputObjectType({ fields, name }) : new GraphQLObjectType({ fields, name }))
+      );
     }
     return { type, description: schema.description };
   }
@@ -602,17 +700,40 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     super.resolve();
     // Set-up ws server
     this.wss = new WebSocketServer({ noServer: true });
+    // The HTTP server events fire outside the instance storage: re-enter it
+    const storage = useInstanceStorage();
     useCoreEvents("Webda.Init.Http" as any, (http: any) => {
       http.on("upgrade", (req, socket, head) => {
-        if (req.url === this.parameters.url) {
+        runWithInstanceStorage(storage, () => {
+          if (req.url !== this.parameters.url) return;
           (async () => {
-            req.webdaContext ??= await (<any>useCore()).getContextFromRequest(req);
-            await req.webdaContext.init();
+            const httpServer: any = Object.values(useCore().getServices()).find(
+              s => (s as any).server === http && typeof (s as any).getContextFromRequest === "function"
+            );
+            req.webdaContext ??= await (httpServer ?? <any>useCore()).getContextFromRequest(req);
+            const context: WebContext = req.webdaContext;
+            await context.init();
+            // Same checks as a normal request: Webda.Request listeners and the router request filters
+            const allowed = await runWithContext(context, async () => {
+              try {
+                emitCoreEvent("Webda.Request", { context });
+              } catch {
+                // listener error
+              }
+              return useRouter().checkRequest(context);
+            });
+            if (!allowed) {
+              socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
+              return;
+            }
             this.wss.handleUpgrade(req, socket, head, ws => {
               this.wss.emit("connection", ws, req);
             });
-          })();
-        }
+          })().catch(err => {
+            this.log("ERROR", "GraphQL WebSocket upgrade failed", err);
+            socket.destroy();
+          });
+        });
       });
     });
 
@@ -628,6 +749,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     const subscriptions: ThunkObjMap<GraphQLFieldConfig<any, any, any>> = {};
     const models = this.app.getModels();
     this.modelsMap = {};
+    this.namedTypes = new Map();
+    // First pass: reserve every exposed model name (and its Input) before any type is built, so a nested
+    // titled type of the same name fails whatever the model order
+    const exposed: { i: string; model: any; metadata: any; schema: any; name: string }[] = [];
     for (const i in models) {
       const model = models[i];
       const metadata = useModelMetadata(model);
@@ -643,6 +768,11 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       const schema = this.app.getSchema(i);
       if (!schema) continue;
       const name = (metadata.ShortName || i.split("/").pop()).replace("/", "_");
+      this.reserveName(name, `model ${i}`);
+      this.reserveName(`${name}Input`, `model input ${i}`);
+      exposed.push({ i, model, metadata, schema, name });
+    }
+    for (const { i, model, metadata, schema, name } of exposed) {
       this.log("INFO", "Add GraphQL type", name);
       const modelGraph = metadata.Relations;
       this.modelsMap[i] = new GraphQLObjectType({
@@ -659,6 +789,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         ),
         name: name + "Input"
       });
+      this.namedTypes.get(name).type = this.modelsMap[i];
+      this.namedTypes.get(`${name}Input`).type = input;
       const actionsName = Object.keys(metadata.Actions);
       if (!actionsName.includes("create")) {
         mutations[`create${name}`] = {
@@ -734,7 +866,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         },
         subscribe: async (_source, args, context) => {
           this.log("DEBUG", "Subscription called on", args);
-          return this.registerAsyncIterator(model, args[uuidField], context);
+          // The payload is keyed by the field name: the default resolver reads it from there
+          return this.registerAsyncIterator(model, args[uuidField], context, this.transformName(i.split("/").pop()));
         }
       };
       const events = metadata.Events || [];
@@ -905,6 +1038,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     for (const i in rootFields) {
       subscriptions[i] ??= { ...rootFields[i], resolve: undefined };
     }
+    // Operations (service operations, model and behaviour actions) next to the model schema; added after the copy
+    // above on purpose: a query operation is not a subscription
+    this.addOperationFields(rootFields, mutations, subscriptions);
     if (this.parameters.globalSubscription) {
       // Create global type based on all previous subscriptions
       subscriptions["Aggregate"] = {
@@ -943,6 +1079,179 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       };
     }
     this.schema = this.getGraphQLSchema(rootFields, mutations, subscriptions);
+  }
+
+  /**
+   * Expose the registered operations, except the model CRUD the model schema already serves: read-only ones as
+   * queries, the others as mutations, server-streaming ones as subscriptions
+   * @param rootFields - query fields
+   * @param mutations - mutation fields
+   * @param subscriptions - subscription fields
+   * @throws Error when a field name is already defined
+   */
+  addOperationFields(
+    rootFields: ThunkObjMap<GraphQLFieldConfig<any, any, any>>,
+    mutations: ThunkObjMap<GraphQLFieldConfig<any, any, any>>,
+    subscriptions: ThunkObjMap<GraphQLFieldConfig<any, any, any>>
+  ): void {
+    const exposed = createOperationFilter(this.parameters.exposeOperations);
+    const targets = { query: rootFields, mutation: mutations, subscription: subscriptions };
+    const owners = new Map<string, string>();
+    const operations = useInstanceStorage().operations;
+    for (const id of Object.keys(operations).sort()) {
+      const op = operations[id];
+      if (!exposed(id)) continue;
+      const placement = graphqlPlacement(id, op);
+      if (!placement) continue;
+      const target = targets[placement.kind];
+      const key = `${placement.kind}.${placement.name}`;
+      if (placement.kind === "subscription" && placement.name === "Aggregate" && this.parameters.globalSubscription) {
+        throw new Error(
+          `GraphQL subscription field Aggregate of operation ${id} is already defined by the global Aggregate subscription (globalSubscription): rename it with @Operation({ graphql: { subscription: "…" } })`
+        );
+      }
+      if (target[placement.name]) {
+        throw new Error(
+          `GraphQL ${placement.kind} field ${placement.name} of operation ${id} is already defined by ${owners.get(key) ?? "the model schema"}: rename it with @Operation({ graphql: { ${placement.kind}: "…" } })`
+        );
+      }
+      owners.set(key, `operation ${id}`);
+      const base = operationTypeName(id);
+      const { args, toInput } = this.operationArgs(op, base);
+      const type = this.operationOutputType(op, base);
+      const description = op.description || op.summary;
+      target[placement.name] =
+        placement.kind === "subscription"
+          ? {
+              type,
+              args,
+              description,
+              subscribe: async (_source, fieldArgs, context) =>
+                this.subscribeOperation(id, op, toInput(fieldArgs), context),
+              resolve: (chunk: unknown) => chunk
+            }
+          : {
+              type,
+              args,
+              description,
+              resolve: async (_source, fieldArgs, context) => this.runOperation(id, op, toInput(fieldArgs), context)
+            };
+      this.log("INFO", `Add GraphQL ${placement.kind}`, placement.name, "for operation", id);
+    }
+  }
+
+  /**
+   * GraphQL arguments of an operation: one per input schema property, or a single `input` argument
+   * @param op - operation
+   * @param base - type name prefix
+   * @returns the arguments and how to turn them back into the operation input
+   */
+  operationArgs(
+    op: OperationDefinition,
+    base: string
+  ): { args: GraphQLFieldConfigArgumentMap; toInput: (args: Record<string, unknown>) => unknown } {
+    const schema = op.input && op.input !== "void" ? (this.app.getSchema(op.input) as JSONSchema7) : undefined;
+    if (!schema) {
+      return { args: {}, toInput: () => undefined };
+    }
+    const resolved = this.getJsonSchemaDefinition(schema, schema.definitions);
+    const names = Object.keys(resolved.properties ?? {}).filter(name => !name.startsWith("__"));
+    if (resolved.type === "object" && names.length > 0 && names.every(name => GRAPHQL_NAME.test(name))) {
+      const required = new Set(resolved.required ?? []);
+      const args: GraphQLFieldConfigArgumentMap = {};
+      for (const name of names) {
+        const converted = this.getGraphQLSchemaFromSchema(
+          this.getJsonSchemaDefinition(
+            resolved.properties[name] as JSONSchema7,
+            resolved.definitions ?? schema.definitions
+          ),
+          `${base}Input_${name}`,
+          true
+        );
+        // A property the converter cannot map still is an argument: the Object scalar takes anything
+        const type = (converted?.type ?? AnyScalarType) as GraphQLInputType;
+        args[name] = {
+          type: required.has(name) ? new GraphQLNonNull(type) : type,
+          description: converted?.description
+        };
+      }
+      return { args, toInput: fieldArgs => ({ ...fieldArgs }) };
+    }
+    const converted = this.getGraphQLSchemaFromSchema(resolved, `${base}Input`, true);
+    return {
+      args: { input: { type: (converted?.type ?? AnyScalarType) as GraphQLInputType } },
+      toInput: fieldArgs => fieldArgs.input
+    };
+  }
+
+  /**
+   * GraphQL type of an operation result
+   * @param op - operation
+   * @param base - type name prefix
+   * @returns the model type for a model output, Boolean for void, else the converted output schema
+   */
+  operationOutputType(op: OperationDefinition, base: string): GraphQLOutputType {
+    if (!op.output || op.output === "void") {
+      return GraphQLBoolean;
+    }
+    if (this.modelsMap[op.output]) {
+      return this.modelsMap[op.output];
+    }
+    const schema = this.app.getSchema(op.output) as JSONSchema7;
+    const converted =
+      schema &&
+      this.getGraphQLSchemaFromSchema(this.getJsonSchemaDefinition(schema, schema.definitions), `${base}Output`);
+    return (converted?.type ?? AnyScalarType) as GraphQLOutputType;
+  }
+
+  /**
+   * Run an operation for a query or mutation field
+   * @param id - operation id
+   * @param op - operation
+   * @param input - operation input
+   * @param context - the GraphQL request context
+   * @returns the field value
+   */
+  async runOperation(id: string, op: OperationDefinition, input: unknown, context: WebContext): Promise<unknown> {
+    this.countOperation(context);
+    const ctx = new GraphQLOperationContext(context, input);
+    await ctx.init();
+    try {
+      await callOperation(ctx, id);
+    } catch (err) {
+      throw operationError(err);
+    }
+    if (!op.output || op.output === "void") {
+      return true;
+    }
+    return this.modelsMap[op.output] ? ctx.result : publicCopy(ctx.result);
+  }
+
+  /**
+   * Start a server-streaming operation for a subscription field
+   * @param id - operation id
+   * @param op - operation
+   * @param input - operation input
+   * @param context - the GraphQL request context
+   * @returns the chunks; leaving the subscription cancels the operation
+   */
+  async subscribeOperation(
+    id: string,
+    op: OperationDefinition,
+    input: unknown,
+    context: WebContext
+  ): Promise<AsyncIterableIterator<unknown>> {
+    this.countOperation(context);
+    const ctx = new GraphQLOperationContext(context, input, this.modelsMap[op.output] ? chunk => chunk : publicCopy);
+    await ctx.init();
+    if (!canCallOperation(ctx, id)) {
+      throw operationError(new WebdaError.Forbidden(`${id} PermissionDenied`));
+    }
+    callOperation(ctx, id).then(
+      () => ctx.finish(),
+      err => ctx.fail(err)
+    );
+    return ctx.chunks();
   }
 
   /**
@@ -1143,10 +1452,21 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     identifier: string
   ): Promise<AsyncIterator<any>> {
     const updatedCallback = eventName => async evt => {
-      if (uuid === null || evt.object_id !== uuid) return;
-      // We rely on the cache of the store to get the full object
-      // We let the other listeners finish before returning the object
-      return { latestEventTime: Date.now(), [eventName]: evt };
+      // A class-wide subscription (uuid null) receives the events of every object of the model
+      if (uuid !== null && evt.object_id !== uuid) return;
+      if (uuid === null) {
+        // Only the events of objects the subscriber can read: an object that is gone or unreadable is skipped
+        let object = evt.object;
+        if (!object) {
+          try {
+            object = await model.ref(evt.object_id).get();
+          } catch {
+            return;
+          }
+        }
+        if (!object || !(await isModelActionAllowed(object, context, "get", model))) return;
+      }
+      return { latestEventTime: Date.now(), [eventName]: publicCopy(evt) };
     };
     const eventsMap = {};
     if (uuid !== null) {
@@ -1170,6 +1490,35 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     return new EventIterator(useRepository(model as any) as any, eventsMap, identifier, {
       logout: { evt: "nok?" }
     }).iterate();
+  }
+
+  /**
+   * Hand a WebSocket message to graphql-ws; a failure is logged and closes the socket without leaking details
+   * @param socket - the WebSocket
+   * @param cb - the graphql-ws message handler
+   * @param data - the message
+   * @param storage - the instance storage to re-enter for the resolvers
+   * @returns a promise settled once the message is handled
+   */
+  async handleSocketMessage(
+    socket: Pick<WebSocket, "close">,
+    cb: (data: string) => Promise<void>,
+    data: string,
+    storage: ReturnType<typeof useInstanceStorage>
+  ): Promise<void> {
+    try {
+      // wait for the the operation to complete
+      // - if init message, waits for connect
+      // - if query/mutation, waits for result
+      // - if subscription, waits for complete
+      // The socket events fire outside the instance storage: re-enter it for the resolvers
+      await runWithInstanceStorage(storage, () => cb(data));
+    } catch (err) {
+      // all errors that could be thrown during the execution of operations will be caught here
+      this.log("ERROR", "GraphQL websocket message failed", err);
+      // A close reason is limited to 123 bytes and must not leak internal details
+      socket.close(CloseCode.InternalServerError, "Internal server error");
+    }
   }
 
   /**
@@ -1230,6 +1579,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         return req.extra?.context || {};
       }
     });
+    const storage = useInstanceStorage();
     this.wss.on("connection", async (socket, request) => {
       // a new socket opened, let graphql-ws take over
       const closed = this.wsHandler.opened(
@@ -1241,19 +1591,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }), // control your data flow by timing the promise resolve
           close: (code, reason) => socket.close(code, reason), // there are protocol standard closures
           onMessage: cb =>
-            socket.on("message", async event => {
-              try {
-                // wait for the the operation to complete
-                // - if init message, waits for connect
-                // - if query/mutation, waits for result
-                // - if subscription, waits for complete
-                await cb(event.toString());
-              } catch (err) {
-                // all errors that could be thrown during the
-                // execution of operations will be caught here
-                socket.close(CloseCode.InternalServerError, err.message);
-              }
-            })
+            socket.on("message", event => this.handleSocketMessage(socket, cb, event.toString(), storage))
         },
         // pass values to the `extra` field in the context
         <any>{ socket, request, context: (<any>request).webdaContext }

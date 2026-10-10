@@ -182,3 +182,15 @@ export class Redirect extends HttpError {
     super(message, 302);
   }
 }
+
+/**
+ * Raised inside a streaming operation when its client went away: thrown by the context's write() so the
+ * operation's generator is closed (its `finally` blocks run)
+ */
+export class OperationCancelledError extends Error {
+  /** Create the cancellation error */
+  constructor() {
+    super("Cancelled");
+    this.name = "OperationCancelledError";
+  }
+}

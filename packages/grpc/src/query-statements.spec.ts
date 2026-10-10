@@ -11,7 +11,8 @@ import {
   useApplication
 } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
-import { GrpcService } from "./grpcservice.service.js";
+import { EventEmitter } from "node:events";
+import { GrpcService, GrpcServiceParameters } from "./grpcservice.service.js";
 import { GrpcStatus } from "./grpc-stream.js";
 
 /**
@@ -38,23 +39,48 @@ class GrpcQueryStatementsTest extends WebdaApplicationTest {
   }
 
   /**
-   * Send one message through the gRPC unary handler
+   * Send one message through the gRPC handler
    * @param query - the query field of the request
    * @returns the response or the gRPC error status
    */
   async unary(query: string): Promise<{ response?: any; status?: number; message?: string }> {
     const service: any = Object.create(GrpcService.prototype);
-    const result: { response?: any; status?: number; message?: string } = {};
-    const stream = {
-      onMessage: (callback: (message: any) => void) => callback({ query }),
-      sendUnary: (response: any) => (result.response = response),
-      sendError: (status: number, message: string) => {
-        result.status = status;
-        result.message = message;
-      }
-    };
-    await service.handleUnary(stream, "GrpcNotes.Query", {});
-    return result;
+    service.parameters = new GrpcServiceParameters().load({});
+    service.rpcToOperation = new Map([["/webda.GrpcNotes/Query", "GrpcNotes.Query"]]);
+    service.rpcMethods = new Map([
+      [
+        "/webda.GrpcNotes/Query",
+        {
+          path: "/webda.GrpcNotes/Query",
+          requestDeserialize: (buf: Buffer) => JSON.parse(buf.toString()),
+          responseSerialize: (msg: any) => Buffer.from(JSON.stringify(msg))
+        }
+      ]
+    ]);
+    const req: any = new EventEmitter();
+    req.url = "/webda.GrpcNotes/Query";
+    req.headers = { "content-type": "application/grpc" };
+    const written: Buffer[] = [];
+    const headers: Record<string, string> = {};
+    let trailers: Record<string, string> = {};
+    const res: any = new EventEmitter();
+    res.headersSent = false;
+    res.setHeader = (key: string, value: string) => (headers[key.toLowerCase()] = value);
+    res.write = (data: Buffer) => (written.push(Buffer.from(data)), true);
+    res.addTrailers = (t: Record<string, string>) => (trailers = t);
+    res.end = () => (res.writableEnded = true);
+    const done = service.handleGrpcRequest(req, res);
+    const payload = Buffer.from(JSON.stringify({ query }));
+    const frame = Buffer.alloc(5 + payload.length);
+    frame.writeUInt32BE(payload.length, 1);
+    payload.copy(frame, 5);
+    req.emit("data", frame);
+    req.emit("end");
+    await done;
+    const status = Number({ ...headers, ...trailers }["grpc-status"]);
+    return status === GrpcStatus.OK
+      ? { response: JSON.parse(written[0].subarray(5).toString()) }
+      : { status, message: decodeURIComponent({ ...headers, ...trailers }["grpc-message"]) };
   }
 
   @test

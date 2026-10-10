@@ -10,10 +10,10 @@ import { EventEmitter } from "node:events";
 const mockOperations: Record<string, any> = {};
 const mockSchemas: Record<string, any> = {};
 const coreEventCallbacks: Record<string, Function> = {};
-let mockCallOperationResult: any = {};
-let mockCallOperationError: any = null;
+const mockCallOperationResult: any = {};
+const mockCallOperationError: any = null;
 /** If set, callOperation will use this as the raw _output string (instead of JSON.stringify(mockCallOperationResult)) */
-let mockCallOperationRawOutput: string | undefined = undefined;
+const mockCallOperationRawOutput: string | undefined = undefined;
 /** Services returned by the mocked useCore().getServices() — set per test to inject HttpServer stubs */
 let mockCoreServices: Record<string, any> = {};
 /** Models returned by the mocked useApplication().getModels() — used by build() */
@@ -83,6 +83,10 @@ vi.mock("@webda/core", () => {
       }
     },
     OperationContext: class {},
+    AsyncQueue: class {},
+    HttpContext: class {},
+    WebdaError: { OperationCancelledError: class extends Error {} },
+    getOperationStreaming: (op: any) => op?.streaming ?? op?.grpc?.streaming ?? "none",
     SimpleOperationContext: class {
       _input: Buffer;
       _output: string;
@@ -100,6 +104,8 @@ vi.mock("@webda/core", () => {
       }
     },
     WebContext: class {},
+    StreamingOperationContext: class {},
+    toPublicChunk: (value: unknown) => (value === undefined ? undefined : JSON.parse(JSON.stringify(value))),
     useCoreEvents: (eventName: string, callback: Function) => {
       coreEventCallbacks[eventName] = callback;
       return () => {
@@ -113,6 +119,9 @@ vi.mock("@webda/core", () => {
     useCore: () => ({ getServices: () => mockCoreServices }),
     useInstanceStorage: () => ({}),
     runWithInstanceStorage: (_storage: any, fn: () => any) => fn(),
+    runWithContext: (_ctx: any, fn: () => any) => fn(),
+    emitCoreEvent: () => {},
+    useRouter: () => ({ checkRequest: async () => true }),
     Command: () => () => {},
     BuildCommand: () => () => {}
   };
@@ -357,7 +366,10 @@ class GrpcServiceGenerateProtoTest {
     mockOperations["Test.Ping"] = {};
 
     const outPath = join(this.tmpDir, "test.proto");
-    const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: outPath, packageName: "myapp" }));
+    const service = new GrpcService(
+      "testGrpc",
+      new GrpcServiceParameters().load({ protoFile: outPath, packageName: "myapp" })
+    );
 
     await service.build();
 
@@ -410,128 +422,8 @@ class GrpcServiceGenerateProtoTest {
   }
 }
 
-/**
- * Create a gRPC frame from a JSON message
- */
-function createGrpcFrame(data: any): Buffer {
-  const payload = Buffer.from(JSON.stringify(data));
-  const frame = Buffer.alloc(5 + payload.length);
-  frame.writeUInt8(0, 0);
-  frame.writeUInt32BE(payload.length, 1);
-  payload.copy(frame, 5);
-  return frame;
-}
-
-/**
- * Create a mock request EventEmitter that simulates an HTTP request with gRPC data
- */
-function createMockReq(url: string, frameData?: any): EventEmitter & { url: string; headers: Record<string, string> } {
-  const req = new EventEmitter() as any;
-  req.url = url;
-  req.headers = { "content-type": "application/grpc" };
-
-  if (frameData !== undefined) {
-    // Schedule data emission on next tick so handlers can be registered
-    process.nextTick(() => {
-      const frame = createGrpcFrame(frameData);
-      req.emit("data", frame);
-      // For client/bidi streaming, also emit end
-      req.emit("end");
-    });
-  }
-
-  return req;
-}
-
-/**
- * Create a mock response that captures what was written
- */
-function createMockRes(): {
-  res: any;
-  written: Buffer[];
-  trailers: Record<string, string> | null;
-  ended: boolean;
-  headStatus: number;
-  headHeaders: Record<string, string>;
-  headers: Record<string, string>;
-} {
-  const state = {
-    written: [] as Buffer[],
-    trailers: null as Record<string, string> | null,
-    ended: false,
-    headStatus: 0,
-    headHeaders: {} as Record<string, string>,
-    headers: {} as Record<string, string>,
-    res: null as any
-  };
-
-  state.res = {
-    setHeader(key: string, value: string) {
-      state.headers[key] = value;
-    },
-    writeHead(status: number, headers: any) {
-      state.headStatus = status;
-      state.headHeaders = headers || {};
-    },
-    write(data: Buffer) {
-      state.written.push(Buffer.from(data));
-    },
-    addTrailers(t: Record<string, string>) {
-      state.trailers = t;
-    },
-    end() {
-      state.ended = true;
-    }
-  };
-
-  return state;
-}
-
-/**
- * Create a JSON-based method definition mock
- */
-function createJsonMethodDef() {
-  return {
-    path: "/webda.TestService/TestMethod",
-    requestSerialize: (msg: any) => Buffer.from(JSON.stringify(msg)),
-    requestDeserialize: (buf: Buffer) => JSON.parse(buf.toString()),
-    responseSerialize: (msg: any) => Buffer.from(JSON.stringify(msg)),
-    responseDeserialize: (buf: Buffer) => JSON.parse(buf.toString()),
-    requestStream: false,
-    responseStream: false
-  };
-}
-
-/**
- * Set up a service with a mapped rpc method
- */
-function setupServiceWithRpc(opId: string, opDef: any = {}): InstanceType<typeof GrpcService> {
-  const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({}));
-  const methodDef = createJsonMethodDef();
-  const grpcPath = `/webda.TestService/${opId.split(".").pop()}`;
-
-  // Manually set up the rpcToOperation and rpcMethods maps
-  (service as any).rpcToOperation.set(grpcPath, opId);
-  (service as any).rpcMethods.set(grpcPath, methodDef);
-
-  // Set up the mock operation
-  mockOperations[opId] = opDef;
-
-  return service;
-}
-
 @suite
-class GrpcServiceHandleGrpcRequestTest {
-  beforeEach() {
-    // Clear operations
-    for (const key of Object.keys(mockOperations)) {
-      delete mockOperations[key];
-    }
-    mockCallOperationResult = {};
-    mockCallOperationError = null;
-    mockCallOperationRawOutput = undefined;
-  }
-
+class GrpcServiceUnknownMethodTest {
   @test
   async unimplementedMethodReturns12() {
     const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({}));
@@ -554,320 +446,6 @@ class GrpcServiceHandleGrpcRequestTest {
     const decodedMessage = decodeURIComponent(writtenHeaders["grpc-message"]);
     assert.ok(decodedMessage.includes("Method not found"), `Expected 'Method not found' in: ${decodedMessage}`);
     assert.ok(ended);
-  }
-
-  @test
-  async unaryRequestReturnsResponse() {
-    const service = setupServiceWithRpc("Test.DoSomething", {});
-    mockCallOperationResult = { success: true, id: "123" };
-
-    const grpcPath = "/webda.TestService/DoSomething";
-    const req = createMockReq(grpcPath, { input: "hello" });
-    const mock = createMockRes();
-
-    await service.handleGrpcRequest(req as any, mock.res);
-
-    // Should have written a response frame
-    assert.strictEqual(mock.written.length, 1);
-    const payload = mock.written[0].subarray(5);
-    const response = JSON.parse(payload.toString());
-    assert.deepStrictEqual(response, { success: true, id: "123" });
-
-    // Should have ended with status 0
-    assert.ok(mock.trailers !== null);
-    assert.strictEqual(mock.trailers!["grpc-status"], "0");
-    assert.ok(mock.ended);
-  }
-
-  @test
-  async unaryWrapsScalarOutputInValueField() {
-    // When the operation returns a JSON-parsed scalar (not an object), wrap in {value}
-    const service = setupServiceWithRpc("Test.GetVersion", {});
-    mockCallOperationRawOutput = '"1.2.3"';
-
-    const grpcPath = "/webda.TestService/GetVersion";
-    const req = createMockReq(grpcPath, {});
-    const mock = createMockRes();
-    await service.handleGrpcRequest(req as any, mock.res);
-    assert.strictEqual(mock.written.length, 1);
-    const response = JSON.parse(mock.written[0].subarray(5).toString());
-    assert.deepStrictEqual(response, { value: "1.2.3" });
-  }
-
-  @test
-  async unaryWrapsUnparseableOutputInValueField() {
-    // When the operation output isn't valid JSON, fall through to {value: rawString}
-    const service = setupServiceWithRpc("Test.Raw", {});
-    mockCallOperationRawOutput = "not-json-at-all";
-
-    const grpcPath = "/webda.TestService/Raw";
-    const req = createMockReq(grpcPath, {});
-    const mock = createMockRes();
-    await service.handleGrpcRequest(req as any, mock.res);
-    assert.strictEqual(mock.written.length, 1);
-    const response = JSON.parse(mock.written[0].subarray(5).toString());
-    assert.deepStrictEqual(response, { value: "not-json-at-all" });
-  }
-
-  @test
-  async unaryRequestHandlesOperationError() {
-    const service = setupServiceWithRpc("Test.FailOp", {});
-    mockCallOperationError = {
-      getResponseCode: () => 404,
-      message: "Resource not found"
-    };
-
-    const grpcPath = "/webda.TestService/FailOp";
-    const req = createMockReq(grpcPath, { id: "missing" });
-    const mock = createMockRes();
-
-    await service.handleGrpcRequest(req as any, mock.res);
-
-    // Should have ended with error status
-    assert.ok(mock.trailers !== null);
-    assert.strictEqual(mock.trailers!["grpc-status"], String(GrpcStatus.NOT_FOUND));
-    assert.ok(mock.ended);
-  }
-
-  @test
-  async serverStreamingReturnsMultipleMessages() {
-    const service = setupServiceWithRpc("Test.StreamItems", {
-      grpc: { streaming: "server" }
-    });
-    mockCallOperationRawOutput = '{"id":1}\n{"id":2}\n{"id":3}';
-
-    const grpcPath = "/webda.TestService/StreamItems";
-    const req = createMockReq(grpcPath, { query: "all" });
-    const mock = createMockRes();
-
-    await service.handleGrpcRequest(req as any, mock.res);
-
-    // Should have written 3 response frames (one per NDJSON line)
-    assert.strictEqual(mock.written.length, 3, `Expected 3 frames, got ${mock.written.length}`);
-
-    const msg1 = JSON.parse(mock.written[0].subarray(5).toString());
-    const msg2 = JSON.parse(mock.written[1].subarray(5).toString());
-    const msg3 = JSON.parse(mock.written[2].subarray(5).toString());
-    assert.deepStrictEqual(msg1, { id: 1 });
-    assert.deepStrictEqual(msg2, { id: 2 });
-    assert.deepStrictEqual(msg3, { id: 3 });
-
-    // Should end with OK
-    assert.strictEqual(mock.trailers!["grpc-status"], "0");
-  }
-
-  @test
-  async serverStreamingHandlesNonJsonLines() {
-    const service = setupServiceWithRpc("Test.StreamRaw", {
-      grpc: { streaming: "server" }
-    });
-    mockCallOperationRawOutput = 'not-json-line\n{"valid":true}';
-
-    const grpcPath = "/webda.TestService/StreamRaw";
-    const req = createMockReq(grpcPath, {});
-    const mock = createMockRes();
-
-    await service.handleGrpcRequest(req as any, mock.res);
-
-    // First line is not valid JSON, should be wrapped in { data: ... }
-    assert.strictEqual(mock.written.length, 2);
-    const msg1 = JSON.parse(mock.written[0].subarray(5).toString());
-    assert.deepStrictEqual(msg1, { data: "not-json-line" });
-    const msg2 = JSON.parse(mock.written[1].subarray(5).toString());
-    assert.deepStrictEqual(msg2, { valid: true });
-  }
-
-  @test
-  async serverStreamingHandlesNoOutput() {
-    const service = setupServiceWithRpc("Test.StreamEmpty", {
-      grpc: { streaming: "server" }
-    });
-    // Set rawOutput to empty string to simulate no output
-    mockCallOperationRawOutput = "";
-
-    const grpcPath = "/webda.TestService/StreamEmpty";
-    const req = createMockReq(grpcPath, {});
-    const mock = createMockRes();
-
-    await service.handleGrpcRequest(req as any, mock.res);
-
-    // No data frames should be written (empty string filtered by split+filter)
-    assert.strictEqual(mock.written.length, 0);
-    assert.strictEqual(mock.trailers!["grpc-status"], "0");
-  }
-
-  @test
-  async serverStreamingHandlesOperationError() {
-    const service = setupServiceWithRpc("Test.StreamFail", {
-      grpc: { streaming: "server" }
-    });
-    const err: any = new Error("Stream failed");
-    err.getResponseCode = () => 400;
-    mockCallOperationError = err;
-
-    const grpcPath = "/webda.TestService/StreamFail";
-    const req = createMockReq(grpcPath, {});
-    const mock = createMockRes();
-
-    await service.handleGrpcRequest(req as any, mock.res);
-
-    assert.strictEqual(mock.trailers!["grpc-status"], String(GrpcStatus.INVALID_ARGUMENT));
-  }
-
-  @test
-  async clientStreamingCollectsMessagesAndResponds() {
-    const service = setupServiceWithRpc("Test.Upload", {
-      grpc: { streaming: "client" }
-    });
-
-    const grpcPath = "/webda.TestService/Upload";
-
-    // Create mock req that will emit multiple messages then end
-    const req = new EventEmitter() as any;
-    req.url = grpcPath;
-    req.headers = { "content-type": "application/grpc" };
-
-    const mock = createMockRes();
-
-    mockCallOperationResult = { count: 2, status: "received" };
-
-    const promise = service.handleGrpcRequest(req as any, mock.res);
-
-    // Emit two messages
-    process.nextTick(() => {
-      req.emit("data", createGrpcFrame({ item: "a" }));
-      req.emit("data", createGrpcFrame({ item: "b" }));
-      // End the stream
-      req.emit("end");
-    });
-
-    await promise;
-
-    // Should respond with a unary response (sendUnary)
-    assert.strictEqual(mock.written.length, 1);
-    const response = JSON.parse(mock.written[0].subarray(5).toString());
-    assert.deepStrictEqual(response, { count: 2, status: "received" });
-    assert.strictEqual(mock.trailers!["grpc-status"], "0");
-  }
-
-  @test
-  async bidiStreamingCollectsAndSendsResponse() {
-    const service = setupServiceWithRpc("Test.Chat", {
-      grpc: { streaming: "bidi" }
-    });
-
-    const grpcPath = "/webda.TestService/Chat";
-    const req = new EventEmitter() as any;
-    req.url = grpcPath;
-    req.headers = { "content-type": "application/grpc" };
-
-    const mock = createMockRes();
-
-    mockCallOperationResult = { reply: "ack" };
-
-    const promise = service.handleGrpcRequest(req as any, mock.res);
-
-    process.nextTick(() => {
-      req.emit("data", createGrpcFrame({ msg: "hello" }));
-      req.emit("end");
-    });
-
-    await promise;
-
-    // Bidi uses stream.send (not sendUnary), so no trailers with end
-    // The current implementation sends once then resolves
-    assert.strictEqual(mock.written.length, 1);
-    const response = JSON.parse(mock.written[0].subarray(5).toString());
-    assert.deepStrictEqual(response, { reply: "ack" });
-  }
-
-  @test
-  async clientStreamingHandlesOperationError() {
-    const service = setupServiceWithRpc("Test.UploadFail", {
-      grpc: { streaming: "client" }
-    });
-    const err: any = new Error("Upload failed");
-    err.getResponseCode = () => 401;
-    mockCallOperationError = err;
-
-    const grpcPath = "/webda.TestService/UploadFail";
-    const req = new EventEmitter() as any;
-    req.url = grpcPath;
-    req.headers = { "content-type": "application/grpc" };
-
-    const mock = createMockRes();
-
-    const promise = service.handleGrpcRequest(req as any, mock.res);
-
-    process.nextTick(() => {
-      req.emit("data", createGrpcFrame({ item: "x" }));
-      req.emit("end");
-    });
-
-    await promise;
-
-    assert.strictEqual(mock.trailers!["grpc-status"], String(GrpcStatus.UNAUTHENTICATED));
-  }
-
-  @test
-  async clientStreamingHandlesCancellation() {
-    const service = setupServiceWithRpc("Test.CancelUpload", {
-      grpc: { streaming: "client" }
-    });
-
-    const grpcPath = "/webda.TestService/CancelUpload";
-    const req = new EventEmitter() as any;
-    req.url = grpcPath;
-    req.headers = { "content-type": "application/grpc" };
-
-    const mock = createMockRes();
-
-    const promise = service.handleGrpcRequest(req as any, mock.res);
-
-    // Emit close (cancellation) instead of end
-    process.nextTick(() => {
-      req.emit("close");
-    });
-
-    await promise;
-
-    // Should resolve without writing data
-    assert.strictEqual(mock.written.length, 0);
-  }
-
-  @test
-  async unaryWithNoGrpcFieldUsesNoneStreaming() {
-    // Operation without grpc field should default to unary
-    const service = setupServiceWithRpc("Test.Simple", {
-      // no grpc field at all
-    });
-
-    mockCallOperationResult = { ok: true };
-
-    const grpcPath = "/webda.TestService/Simple";
-    const req = createMockReq(grpcPath, { query: "test" });
-    const mock = createMockRes();
-
-    await service.handleGrpcRequest(req as any, mock.res);
-
-    assert.strictEqual(mock.written.length, 1);
-    assert.strictEqual(mock.trailers!["grpc-status"], "0");
-  }
-
-  @test
-  async unaryWithNullOutputReturnsEmptyObject() {
-    const service = setupServiceWithRpc("Test.NoOutput", {});
-    mockCallOperationRawOutput = "";
-
-    const grpcPath = "/webda.TestService/NoOutput";
-    const req = createMockReq(grpcPath, {});
-    const mock = createMockRes();
-
-    await service.handleGrpcRequest(req as any, mock.res);
-
-    assert.strictEqual(mock.written.length, 1);
-    const response = JSON.parse(mock.written[0].subarray(5).toString());
-    assert.deepStrictEqual(response, {});
   }
 }
 
@@ -997,7 +575,10 @@ class GrpcServiceBuildRpcMapTest {
 class GrpcServiceInitTest {
   @test
   async initWithoutProtoFileLogsWarning() {
-    const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: "/nonexistent/path/app.proto" }));
+    const service = new GrpcService(
+      "testGrpc",
+      new GrpcServiceParameters().load({ protoFile: "/nonexistent/path/app.proto" })
+    );
 
     // Should not throw
     await service.init();
@@ -1030,7 +611,10 @@ class GrpcServiceInitTest {
       Plain: {} // no registerRequestInterceptor — must be skipped
     };
 
-    const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: "/nonexistent/file.proto" }));
+    const service = new GrpcService(
+      "testGrpc",
+      new GrpcServiceParameters().load({ protoFile: "/nonexistent/file.proto" })
+    );
     await service.init();
 
     assert.strictEqual(interceptorsA.length, 1, "HttpServer should get the interceptor");
@@ -1063,7 +647,10 @@ class GrpcServiceInitTest {
   async initLogsWarningWhenNoHttpServer() {
     // No services registered → init should log a warning but not throw.
     mockCoreServices = {};
-    const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: "/nonexistent/file.proto" }));
+    const service = new GrpcService(
+      "testGrpc",
+      new GrpcServiceParameters().load({ protoFile: "/nonexistent/file.proto" })
+    );
     await service.init();
     mockCoreServices = {};
   }

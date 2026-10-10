@@ -12,20 +12,23 @@
     "lint:fix": "eslint --fix src/"
   },
   "dependencies": {
-    "@webda/workout": "workspace:*",
-    "@grpc/proto-loader": "^0.7.0"
+    "@grpc/proto-loader": "^0.7.0",
+    "@webda/utils": "workspace:*",
+    "@webda/workout": "workspace:*"
   },
   "peerDependencies": {
     "@webda/core": "^4.0.0-beta.1"
   },
   "devDependencies": {
+    "@grpc/grpc-js": "^1.12.0",
+    "@types/ws": "^8.18.2",
+    "@vitest/coverage-v8": "^4.1.2",
     "@webda/compiler": "workspace:^",
     "@webda/core": "workspace:^",
     "@webda/test": "workspace:^",
-    "@webda/utils": "workspace:^",
-    "@vitest/coverage-v8": "^4.1.2",
     "vite": "^6.0.0",
-    "vitest": "^4.0.0"
+    "vitest": "^4.0.0",
+    "ws": "^8.22.0"
   },
   "webda": {
     "namespace": "Webda",

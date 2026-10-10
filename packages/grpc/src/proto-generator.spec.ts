@@ -693,4 +693,21 @@ class ProtoGeneratorTest {
     // leading-letter guard.
     assert.ok(result.includes("_1Metadata value = 1;"), "leading-digit sanitized name is prefixed with `_`");
   }
+
+  @test
+  async streamsFromTheOperationStreamingMode() {
+    const schemas = {
+      "Relay.Frame": { type: "object", properties: { frame: { type: "string" } }, "x-webda-stream": true }
+    } as any;
+    const proto = generateProto(
+      {
+        "Relay.Connect": { id: "Relay.Connect", input: "Relay.Frame", output: "Relay.Frame", streaming: "bidi" },
+        "Relay.Watch": { id: "Relay.Watch", input: "void", output: "Relay.Frame", streaming: "server" }
+      } as any,
+      schemas,
+      "webda"
+    );
+    assert.match(proto, /rpc Connect\(stream \w+\) returns \(stream \w+\);/);
+    assert.match(proto, /rpc Watch\(google\.protobuf\.Empty\) returns \(stream \w+\);/);
+  }
 }

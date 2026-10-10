@@ -1,8 +1,36 @@
-
 import { Service } from "./service.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { OperationDefinition } from "../core/icore.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
+
+/**
+ * Whether an operation id matches a transport pattern
+ * @param operationId - the operation identifier
+ * @param pattern - `*`, a prefix such as `Service.*`, or an exact id
+ * @returns true when it matches
+ */
+export function operationPatternMatches(operationId: string, pattern: string): boolean {
+  if (pattern === "*") return true;
+  if (pattern.endsWith(".*")) {
+    return operationId.startsWith(pattern.slice(0, -1));
+  }
+  return operationId === pattern;
+}
+
+/**
+ * Build an operation filter from transport patterns: `!` entries exclude, the others include (all when only exclusions, none when empty)
+ * @param patterns - e.g. `["*", "!User.Delete"]`
+ * @returns the filter
+ */
+export function createOperationFilter(patterns: string[] = ["*"]): (operationId: string) => boolean {
+  const excluded = patterns.filter(p => p.startsWith("!")).map(p => p.substring(1));
+  const included = patterns.filter(p => !p.startsWith("!"));
+  // An empty list exposes nothing; a list of exclusions only means "everything but those"
+  const includes = patterns.length > 0 && included.length === 0 ? ["*"] : included;
+  return operationId =>
+    !excluded.some(p => operationPatternMatches(operationId, p)) &&
+    includes.some(p => operationPatternMatches(operationId, p));
+}
 
 /**
  * Parameters for transports that selectively expose operations based on include/exclude patterns
@@ -48,11 +76,7 @@ export class OperationsTransportParameters extends ServiceParameters {
    * @returns true if the operation matches the pattern
    */
   private matchesPattern(operationId: string, pattern: string): boolean {
-    if (pattern === "*") return true;
-    if (pattern.endsWith(".*")) {
-      return operationId.startsWith(pattern.slice(0, -1));
-    }
-    return operationId === pattern;
+    return operationPatternMatches(operationId, pattern);
   }
 
   /**

@@ -87,6 +87,17 @@ class ToolMappingTest {
     assert.strictEqual(operationToTool("A.B", { id: "A.B", input: "void", output: "void", method: "m", hidden: true }, resolve), undefined);
     assert.strictEqual(operationToTool("A.C", { id: "A.C", input: "void", output: "void", method: "m", mcp: false }, resolve), undefined);
   }
+
+  @test
+  skipsStreamedInputOperations() {
+    const op = (extra: any) => ({ id: "S.Op", input: "void", output: "void", method: "m", ...extra }) as any;
+    for (const streaming of ["client", "bidi"]) {
+      assert.strictEqual(operationToTool("S.Op", op({ streaming }), resolve), undefined);
+    }
+    assert.strictEqual(operationToTool("S.Op", op({ grpc: { streaming: "bidi" } }), resolve), undefined);
+    // Server streaming stays exposed
+    assert.ok(operationToTool("S.Op", op({ streaming: "server" }), resolve));
+  }
 }
 
 @suite

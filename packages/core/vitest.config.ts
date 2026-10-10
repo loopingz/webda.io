@@ -40,6 +40,8 @@ export default defineConfig({
       "src/rest/restoperationstransport.spec.ts",
       "src/rest/rest-behaviors.spec.ts",
       "src/rest/router-prefix.spec.ts",
+      "src/rest/websocket.spec.ts",
+      "src/rest/reststream.spec.ts",
       "src/schemas/*.spec.ts",
       "src/services/cloudbinary.spec.ts",
       "src/services/cron.spec.ts",

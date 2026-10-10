@@ -316,6 +316,15 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
   }
 
   /**
+   * Resolves when the client can take more streamed output. callOperation awaits it whenever write() returned
+   * false; transports with a real connection override it (backpressure, cancellation).
+   * @returns when more output can be written
+   */
+  async drained(): Promise<void> {
+    // In-memory output never fills up
+  }
+
+  /**
    * Initialize the operation context
    * @returns this for chaining
    */

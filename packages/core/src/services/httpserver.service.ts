@@ -303,10 +303,14 @@ export class HttpServer<
         // here so that subscribers see every request reach a terminal state.
         try { emitCoreEvent("Webda.Result", { context: webCtx }); } catch { /* listener error */ }
       });
-      // Flush response — skip if pipeline/streaming already handled it
-      if (!res.writableEnded && !res.headersSent) {
+      // Flush response — skip if pipeline/streaming already handled it (a streamed response is ended by its
+      // operation, or gone with its client)
+      if (res.writableEnded || res.destroyed || (res as any).stream?.destroyed) {
+        return;
+      }
+      if (!res.headersSent) {
         this.flush(webCtx);
-      } else if (!res.writableEnded) {
+      } else {
         // Headers sent (by flushHeaders in pipeline path) but body not ended
         res.end(webCtx.getOutput() || "");
       }

@@ -9,7 +9,7 @@ import {
 } from "@webda/core";
 import { useRepository } from "@webda/models";
 import { useLog } from "@webda/workout";
-import { IAM_AUTHORIZER } from "./active.js";
+import { IAM_ALLOWED_OPERATION, IAM_AUTHORIZER } from "./active.js";
 import {
   attachmentsFromConfig,
   compileAttachments,
@@ -30,6 +30,14 @@ import { IAMPolicyAttachment } from "./iampolicyattachment.model.js";
  * Operations of the IAM models: always governed by IAM
  */
 export const IAM_OPERATIONS = ["IAMPolicy.*", "IAMPolicies.*", "IAMPolicyAttachment.*", "IAMPolicyAttachments.*"];
+
+/**
+ * @param operationId - the operation id
+ * @returns true for an operation of the IAM models
+ */
+export function isIAMOperation(operationId: string): boolean {
+  return IAM_OPERATIONS.some(pattern => iamGlobMatch(operationId, pattern));
+}
 
 /**
  * Repository events that trigger a rebuild
@@ -263,7 +271,8 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
   }
 
   /**
-   * Authorize an operation call
+   * Authorize an operation call; an allowed (non-probe) IAM model operation is recorded on the context
+   * ({@link IAM_ALLOWED_OPERATION}) for the IAM models' canAct
    * @param context - the caller context
    * @param operationId - the operation id
    * @param options - input and probe mode
@@ -273,6 +282,33 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
    * @throws WebdaError.BadRequest for an invalid IAMPolicy input
    */
   async authorize(
+    context: OperationContext,
+    operationId: string,
+    options: { input?: any; probe: boolean }
+  ): Promise<true | string> {
+    // The IAM models' canAct only allows an operation recorded here: a probe neither records nor clears
+    const record = !options.probe && isIAMOperation(operationId);
+    if (record) {
+      context.setExtension?.(IAM_ALLOWED_OPERATION, undefined);
+    }
+    const allowed = await this.decide(context, operationId, options);
+    if (record && allowed === true) {
+      context.setExtension?.(IAM_ALLOWED_OPERATION, operationId);
+    }
+    return allowed;
+  }
+
+  /**
+   * Decide on an operation call
+   * @param context - the caller context
+   * @param operationId - the operation id
+   * @param options - input and probe mode
+   * @param options.input - the resolved operation input
+   * @param options.probe - true for a listing probe (no input)
+   * @returns true or the refusal reason
+   * @throws WebdaError.BadRequest for an invalid IAMPolicy input
+   */
+  protected async decide(
     context: OperationContext,
     operationId: string,
     options: { input?: any; probe: boolean }

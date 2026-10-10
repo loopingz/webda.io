@@ -1,5 +1,5 @@
 import { CoreModel } from "@webda/core";
-import { isIAMActive } from "./active.js";
+import { canActInIAMOperation } from "./active.js";
 
 /**
  * Attachment of a policy to a principal
@@ -29,10 +29,12 @@ export class IAMPolicyAttachment extends CoreModel {
   }
 
   /**
-   * The IAMService authorizer already decided on the operation; refuse when IAM is not running
+   * Allowed only inside an operation the IAMService authorizer allowed: any other path (no IAM running, a context
+   * that did not go through `callOperation`, such as GraphQL CRUD) is refused
+   * @param context - the caller context
    * @returns true or the refusal reason
    */
-  static canAct(): true | string {
-    return isIAMActive() ? true : "IAMService is not running";
+  static canAct(context?: any): true | string {
+    return canActInIAMOperation(context);
   }
 }

@@ -131,5 +131,6 @@ Deployers package your application for cloud execution environments.
 | [utils](./utils/README.md) | Shared helpers: deep-merge, retry, stream utilities, and path manipulation. |
 | [serialize](./serialize/README.md) | JSON serializers and deserializers with support for `Date`, `Buffer`, `Map`, `Set`, and circular references. |
 | [versioning](./versioning/README.md) | Object-level patch and diff library — compute and apply JSON-Patch-compatible deltas between model versions. |
+| [offline](./offline/README.md) | Offline replicas of models — scoped sync, revision-checked pushes, and 3-way merge conflicts on the client. |
 | [cache](./cache/README.md) | Pluggable in-process and distributed cache adapters (`MemoryCache`, Redis …). |
 | [runtime](./runtime/README.md) | Runtime detection helpers: environment probing, ESM/CJS bridge utilities, and process lifecycle hooks. |

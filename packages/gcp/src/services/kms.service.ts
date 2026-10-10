@@ -7,6 +7,11 @@ import { CryptoService, Service, ServiceParameters } from "@webda/core";
 const encrypter = {
   encrypt: async (data: string, key?: string): Promise<string> => {
     key ??= process.env.WEBDA_GCP_KMS_KEY;
+    if (!/^projects\/[^/]+\/locations\/[^/]+\/keyRings\/[^/]+\/cryptoKeys\/[^/]+$/.test(key || "")) {
+      throw new Error(
+        "A GCP KMS key 'projects/<project>/locations/<location>/keyRings/<ring>/cryptoKeys/<key>' is required, set WEBDA_GCP_KMS_KEY"
+      );
+    }
     // Only the odd elements are dynamic
     const infos = key.split("/").filter((i, ind) => ind % 2 === 1);
     const client = new KeyManagementServiceClient();

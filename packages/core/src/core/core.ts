@@ -19,6 +19,31 @@ import { CustomConstructor } from "@webda/tsc-esm";
 import { AsyncLocalStorage } from "node:async_hooks";
 import * as jsondiffpatch from "jsondiffpatch";
 import { ConfigurationService } from "../configurations/configuration.service.js";
+import { CryptoService, SecretString } from "../services/cryptoservice.service.js";
+import { createHmac, randomBytes } from "node:crypto";
+
+/**
+ * Per-process key to compare secrets in configuration diffs without exposing them
+ */
+const SECRET_DIFF_KEY = randomBytes(32);
+
+/**
+ * Replace the SecretString of a configuration by a fingerprint, so a diff detects secret changes
+ * @param value - the configuration
+ * @returns a copy safe to diff
+ */
+function fingerprintSecrets(value: any): any {
+  if (value instanceof SecretString) {
+    return { $secret: createHmac("sha256", new Uint8Array(SECRET_DIFF_KEY)).update(value.getValue()).digest("base64") };
+  }
+  if (Array.isArray(value)) {
+    return value.map(fingerprintSecrets);
+  }
+  if (value !== null && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, fingerprintSecrets(v)]));
+  }
+  return value;
+}
 
 export type CoreStates =
   | "initial"
@@ -98,7 +123,6 @@ export class Core implements ICore {
     this.application = application || new UnpackedApplication(".");
 
     // Load the configuration and migrate
-    this.configuration = {};
     this.applicationConfiguration = this.application.getConfiguration();
     for (const [key, value] of Object.entries(this.applicationConfiguration.services)) {
       try {
@@ -106,13 +130,8 @@ export class Core implements ICore {
       } catch (err) {
         this.log("ERROR", `Cannot load modda ${value.type || key} for service ${key}`, err);
       }
-      this.configuration[key] = Object.freeze(
-        (this.moddas[key]?.filterParameters || (p => p))({
-          ...this.applicationConfiguration.parameters,
-          ...(value as object)
-        })
-      );
     }
+    this.computeServicesConfiguration();
     if (
       this.applicationConfiguration.application?.configurationService &&
       this.configuration[this.applicationConfiguration.application.configurationService]
@@ -121,6 +140,42 @@ export class Core implements ICore {
       // Freeze the configuration service parameters to avoid changes at runtime
       Object.freeze(this.configuration[this.applicationConfiguration.application.configurationService]);
     }
+  }
+
+  /**
+   * Compute each service configuration from the application configuration
+   *
+   * The service configuration is the global parameters merged with the service own configuration.
+   */
+  protected computeServicesConfiguration() {
+    this.configuration = {};
+    for (const [key, value] of Object.entries(this.applicationConfiguration.services)) {
+      this.configuration[key] = Object.freeze(
+        (this.moddas[key]?.filterParameters || (p => p))({
+          ...this.applicationConfiguration.parameters,
+          ...(value as object)
+        })
+      );
+    }
+  }
+
+  /**
+   * Decrypt the encrypted values of the application configuration
+   *
+   * `crypt:<encrypter>:<data>` values become {@link SecretString} and `scrypt:<encrypter>:<data>`
+   * plain strings. It runs before any service is created: the encrypters must be
+   * registered by the loaded modules.
+   */
+  protected async decryptConfiguration() {
+    // Only the services and parameters can hold secrets, not the cached modules
+    const { services, parameters } = this.applicationConfiguration;
+    const decrypted = await CryptoService.decryptConfiguration({ services, parameters }, []);
+    // Keep the configuration untouched when nothing was encrypted
+    if (JSON.stringify(decrypted) === JSON.stringify({ services, parameters })) {
+      return;
+    }
+    this.applicationConfiguration = { ...this.applicationConfiguration, ...decrypted };
+    this.computeServicesConfiguration();
   }
 
   /**
@@ -296,6 +351,8 @@ export class Core implements ICore {
   @CoreState({ start: "resolving", end: "resolved" })
   @InstanceCache()
   async resolve() {
+    // Decrypt the configuration secrets before any service reads them
+    await this.decryptConfiguration();
     // Declare application beans before the configuration service bootstraps,
     // so dynamic configuration applies to them like any configured service
     this.registerBeans();
@@ -458,7 +515,8 @@ export class Core implements ICore {
       newConfiguration[key].type = this.configuration[key].type;
     }
     Object.freeze(newConfiguration);
-    const delta = jsondiffpatch.diff(this.configuration, newConfiguration);
+    // Secrets are compared through a fingerprint: their value is not enumerable
+    const delta = jsondiffpatch.diff(fingerprintSecrets(this.configuration), fingerprintSecrets(newConfiguration));
     if (!delta) {
       this.log("DEBUG", "No configuration changes");
       return;

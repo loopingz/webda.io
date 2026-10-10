@@ -16,7 +16,12 @@ ConfigurationService based on the configuration service you can alter your servi
 
 At runtime you cannot add new services, nor you can change the services types. It is done for security reason.
 
+## Secrets
+
+Secrets can be committed encrypted in any of these layers with `webda config encrypt`, see [Configuration Secrets](../Security/ConfigurationSecrets.md).
+
 ## See also
 
 - [Core Architecture](../Modules/core/Architecture.md)
 - [webda.config.json reference](./Webda.config.json.md)
+- [Configuration Secrets](../Security/ConfigurationSecrets.md)

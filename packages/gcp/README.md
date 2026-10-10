@@ -35,7 +35,7 @@ pnpm add @webda/gcp
 - `Storage` — Cloud Storage-backed Binary service for file uploads/downloads ([source](./src/services/storage.ts))
 - `GCPQueue` — Cloud Pub/Sub-backed Queue for reliable task delivery ([source](./src/services/queue.ts))
 - `GCPPubSubService` — Cloud Pub/Sub fan-out pub/sub messaging ([source](./src/services/pubsub.ts))
-- `GCPKMSService` — Cloud KMS-based encryption/decryption ([source](./src/services/kms.ts))
+- `GCPKMSService` — Cloud KMS-based encryption/decryption ([source](./src/services/kms.service.ts)); also registers the `gcp` encrypter for [configuration secrets](https://docs.webda.io/Security/ConfigurationSecrets) (`encrypt:gcp:<value>`, key from `WEBDA_GCP_KMS_KEY`)
 
 ## Quick config example
 
@@ -74,6 +74,7 @@ GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json webda serve
 - Related: [`@webda/core`](../core) for the `Store`, `Binary`, and `Queue` base classes; [`@webda/async`](../async) for job orchestration on top of GCPQueue; [`@webda/aws`](../aws) for the AWS equivalent.
 
 <!-- README_FOOTER -->
+
 ## Sponsors
 
 <!--

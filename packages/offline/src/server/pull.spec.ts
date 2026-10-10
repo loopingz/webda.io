@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { vi } from "vitest";
-import { Note, SyncTest } from "../../test/fixture.js";
+import { Note, SyncTest, Tag } from "../../test/fixture.js";
 
 const MINE = [{ model: "Test/Note", query: "status = 'open'" }];
 
@@ -170,6 +170,41 @@ class PullTest extends SyncTest {
     );
     const many = Array.from({ length: 21 }, () => ({ model: "Test/Note" }));
     await assert.rejects(() => this.op("Sync.Pull", { scopes: many }), /scopes/);
+  }
+
+  @test
+  async rejectsLongOrNonStringQueries() {
+    const long = `title = '${"x".repeat(1024)}'`;
+    await assert.rejects(() => this.op("Sync.Pull", { scopes: [{ model: "Test/Note", query: long }] }), /too long/);
+    await assert.rejects(() => this.op("Sync.Snapshot", { scope: { model: "Test/Note", query: long } }), /too long/);
+    // Bypassing the operation input schema
+    await assert.rejects(() => this.sync.pull([{ model: "Test/Note", query: 5 as any }]), /too long/);
+    await assert.rejects(() => this.sync.pull([null as any]), /not synced/);
+  }
+
+  @test
+  async scopesOverSeveralModels() {
+    const scopes = [...MINE, { model: "Test/Tag" }];
+    // Other tests of the suite shrink the shared page size
+    this.sync.getParameters().pageSize = 500;
+    const cursor = await this.start(scopes);
+    const note = await Note.create({ title: "a", status: "open" } as any);
+    const tag = await Tag.create({ name: "t" } as any);
+    const res = await this.op("Sync.Pull", { scopes, cursor });
+    assert.deepStrictEqual(
+      res.upserts.map(u => [u.ref.model, u.ref.key, u.rev]).sort(),
+      [
+        ["Test/Note", note.uuid, 1],
+        ["Test/Tag", tag.uuid, 1]
+      ].sort()
+    );
+    // Only the scoped models are read
+    const notesOnly = await this.op("Sync.Pull", { scopes: MINE, cursor });
+    assert.deepStrictEqual(
+      notesOnly.upserts.map(u => u.ref.model),
+      ["Test/Note"]
+    );
+    assert.ok(!notesOnly.evicts.some(e => e.model === "Test/Tag"));
   }
 
   @test

@@ -3,6 +3,8 @@ import { OfflineClient, type OfflineClientOptions } from "./client.js";
 import { FakeServer } from "./fake-transport.js";
 import { MemoryStorage } from "./storage/memory.js";
 import { ResyncLoopError } from "./sync.js";
+import { rebase } from "./conflicts.js";
+import type { LocalRecord } from "./record.js";
 
 const SCOPES = [{ model: "App/Task", query: "archived = FALSE" }];
 
@@ -668,6 +670,445 @@ describe("push failures", () => {
   it("pushBatchSize defaults to 100", async () => {
     const { client } = await setup();
     expect(client.options.pushBatchSize).toBe(100);
+  });
+});
+
+describe("delete-modify strategies through push", () => {
+  /**
+   * @param onConflict - the strategy
+   * @returns a replica holding a synced "a" with a change event log
+   */
+  async function synced(onConflict: OfflineClientOptions["onConflict"]) {
+    const ctx = await setup({ onConflict });
+    ctx.server.serverWrite("App/Task", "a", { uuid: "a", title: "A", archived: false });
+    await ctx.client.sync();
+    const events: any[] = [];
+    ctx.client.on("change", e => events.push([e.origin, e.object?.title ?? null]));
+    return { ...ctx, events };
+  }
+
+  it("server-wins accepts a server delete of a locally edited object", async () => {
+    const { server, client, tasks, storage, events } = await synced("server-wins");
+    await tasks.patch("a", { title: "mine" });
+    server.serverWrite("App/Task", "a", null);
+    await client.sync();
+    expect(server.received).toHaveLength(1);
+    expect(await storage.getRecord("App/Task|a")).toBeUndefined();
+    expect(events).toEqual([
+      ["local", "mine"],
+      ["remote", null]
+    ]);
+  });
+
+  it("client-wins re-creates a server-deleted object", async () => {
+    const { server, client, tasks, storage } = await synced("client-wins");
+    await tasks.patch("a", { title: "mine" });
+    server.serverWrite("App/Task", "a", null);
+    await client.sync();
+    expect(server.received.map(r => [r.mutations[0].op, r.mutations[0].baseRev])).toEqual([
+      ["patch", 1],
+      ["create", 0]
+    ]);
+    expect(server.objects.get("App/Task|a")?.object.title).toBe("mine");
+    expect((await storage.getRecord("App/Task|a"))?.state).toBe("synced");
+    expect(await client.conflicts()).toEqual([]);
+  });
+
+  it("client-wins keeps a local delete over a server edit", async () => {
+    const { server, client, tasks, storage } = await synced("client-wins");
+    await tasks.delete("a");
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "theirs", archived: false });
+    await client.sync();
+    expect(server.received.map(r => [r.mutations[0].op, r.mutations[0].baseRev])).toEqual([
+      ["delete", 1],
+      ["delete", 2]
+    ]);
+    expect(server.objects.has("App/Task|a")).toBe(false);
+    expect(await storage.getRecord("App/Task|a")).toBeUndefined();
+  });
+
+  it("server-wins drops a local delete when the server edited the object", async () => {
+    const { server, client, tasks, storage, events } = await synced("server-wins");
+    await tasks.delete("a");
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "theirs", archived: false });
+    await client.sync();
+    expect(server.received).toHaveLength(1);
+    expect((await storage.getRecord("App/Task|a"))?.state).toBe("synced");
+    expect((await tasks.get("a")).title).toBe("theirs");
+    expect(events).toEqual([
+      ["local", null],
+      ["remote", "theirs"]
+    ]);
+  });
+
+  it("a new server value rebases an open conflict on its original ancestor", async () => {
+    const { server, client, tasks } = await setup();
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "A", body: "1", archived: false });
+    await client.sync();
+    await tasks.patch("a", { title: "mine" });
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "theirs", body: "1", archived: false });
+    await client.sync();
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "theirs2", body: "2", archived: false });
+    await client.sync();
+    const [open] = await client.conflicts();
+    expect(open.ancestor.title).toBe("A");
+    expect(open.ours.title).toBe("mine");
+    expect(open.theirs).toMatchObject({ title: "theirs2", body: "2" });
+    expect(open.result.conflicts.map(c => c.path)).toEqual(["/title"]);
+    await client.resolve(open.ref, new Map([["/title", { choose: "ours" }]]));
+    await client.sync();
+    expect(server.objects.get("App/Task|a")?.object).toMatchObject({ title: "mine", body: "2" });
+  });
+});
+
+describe("push settle edge cases", () => {
+  /**
+   * @returns a synced task "a"
+   */
+  async function synced() {
+    const ctx = await setup();
+    ctx.server.serverWrite("App/Task", "a", { uuid: "a", title: "A", archived: false });
+    await ctx.client.sync();
+    return ctx;
+  }
+
+  it("ignores results for unknown mutation ids", async () => {
+    const { server, client, tasks, storage } = await synced();
+    await tasks.patch("a", { title: "B" });
+    const push = server.push.bind(server);
+    server.push = async req => {
+      const res = await push(req);
+      res.results.unshift({ mutationId: "ghost", status: "ok", rev: 9 });
+      return res;
+    };
+    await client.sync();
+    expect((await storage.getRecord("App/Task|a"))?.state).toBe("synced");
+    expect(server.objects.get("App/Task|a")?.object.title).toBe("B");
+  });
+
+  it("an ok answer without the object settles on the sent value", async () => {
+    const { server, client, tasks, storage } = await synced();
+    await tasks.patch("a", { title: "B" });
+    const push = server.push.bind(server);
+    server.push = async req => {
+      const res = await push(req);
+      for (const result of res.results) delete (result as any).object;
+      return res;
+    };
+    await client.sync();
+    const record = (await storage.getRecord("App/Task|a"))!;
+    expect(record.state).toBe("synced");
+    expect(record.baseRev).toBe(2);
+    expect(record.base).toEqual({ uuid: "a", title: "B", archived: false });
+    expect(record.sent).toBeUndefined();
+  });
+
+  it("an in-flight edit equal to the server answer settles synced", async () => {
+    const { server, client, tasks, storage } = await synced();
+    await tasks.patch("a", { title: "B" });
+    const push = server.push.bind(server);
+    server.push = async req => {
+      server.push = push;
+      // The app sets the field the server computes during the write as well
+      await tasks.patch("a", { done: true });
+      const res = await push(req);
+      const stored = server.objects.get("App/Task|a")!;
+      stored.object.done = true;
+      for (const result of res.results) (result as any).object = structuredClone(stored.object);
+      return res;
+    };
+    await client.sync();
+    expect((await storage.getRecord("App/Task|a"))?.state).toBe("synced");
+    expect(await tasks.get("a")).toMatchObject({ title: "B", done: true });
+    await client.sync();
+    expect(server.received).toHaveLength(1);
+  });
+
+  it("a record removed from storage during its create push is deleted on the server", async () => {
+    const { server, client, tasks, storage } = await setup();
+    const t = await tasks.create({ title: "x", archived: false });
+    const id = `App/Task|${t.uuid}`;
+    const push = server.push.bind(server);
+    server.push = async req => {
+      server.push = push;
+      // Another tab cleaned the store while the create was in flight; this server answers without the object
+      await storage.deleteRecords([id]);
+      const res = await push(req);
+      for (const result of res.results) delete (result as any).object;
+      return res;
+    };
+    await client.sync();
+    expect(server.received.map(r => [r.mutations[0].op, r.mutations[0].baseRev])).toEqual([
+      ["create", 0],
+      ["delete", 1]
+    ]);
+    expect(server.objects.has(id)).toBe(false);
+    expect(await storage.getRecord(id)).toBeUndefined();
+  });
+
+  it("a record removed from storage during its patch push is left to the next pull", async () => {
+    const { server, client, tasks, storage } = await synced();
+    await tasks.patch("a", { title: "B" });
+    const push = server.push.bind(server);
+    server.push = async req => {
+      server.push = push;
+      await storage.deleteRecords(["App/Task|a"]);
+      return push(req);
+    };
+    await client.sync();
+    // The patch was applied, nothing else is pushed, the pull brings the server value back
+    expect(server.received).toHaveLength(1);
+    expect(server.objects.get("App/Task|a")?.object.title).toBe("B");
+    const record = (await storage.getRecord("App/Task|a"))!;
+    expect(record.state).toBe("synced");
+    expect(record.current.title).toBe("B");
+  });
+
+  it("a pull re-delivering the same revision leaves a dirty record alone", async () => {
+    const { server, client, tasks, storage } = await synced();
+    await tasks.patch("a", { title: "mine" });
+    const events: any[] = [];
+    client.on("change", e => events.push(e));
+    // The push is refused, the pull replays the log from the start: "a" comes back at the known revision
+    server.failNext(Object.assign(new Error("read-only"), { status: 403 }));
+    await storage.setMeta("cursor", "0");
+    await expect(client.sync()).rejects.toThrow(/read-only/);
+    const record = (await storage.getRecord("App/Task|a"))!;
+    expect(record.state).toBe("dirty");
+    expect(record.current.title).toBe("mine");
+    expect(events).toEqual([]);
+  });
+
+  it("a never-sent create is kept when its response names it", async () => {
+    // A conflict answer never carries an object the strategy could not handle
+    const { server, client, tasks, storage } = await setup({ onConflict: "server-wins" });
+    server.serverWrite("App/Task", "k", { uuid: "k", title: "server", archived: false });
+    await tasks.create({ uuid: "k", title: "mine", archived: false });
+    await client.sync();
+    expect((await storage.getRecord("App/Task|k"))?.state).toBe("synced");
+    expect((await tasks.get("k")).title).toBe("server");
+  });
+});
+
+describe("pull paging and scopes", () => {
+  it("pulls every page when the server has more", async () => {
+    const requests: any[] = [];
+    const pages = [
+      {
+        upserts: [{ ref: { model: "App/Task", key: "a" }, rev: 1, object: { uuid: "a", title: "A" } }],
+        evicts: [],
+        cursor: "1",
+        hasMore: true
+      },
+      {
+        upserts: [{ ref: { model: "App/Task", key: "b" }, rev: 1, object: { uuid: "b", title: "B" } }],
+        evicts: [{ model: "App/Task", key: "zzz" }],
+        cursor: "2",
+        hasMore: false
+      }
+    ];
+    const storage = new MemoryStorage();
+    const client = new OfflineClient({
+      storage,
+      scopes: [{ model: "App/Task" }],
+      syncInterval: 0,
+      transport: {
+        pull: async req => {
+          requests.push(req.cursor);
+          return pages.shift()!;
+        },
+        push: async () => ({ results: [] }),
+        snapshot: async () => ({ objects: [] })
+      }
+    });
+    await client.sync();
+    expect(requests).toEqual([undefined, "1"]);
+    expect((await client.collection("App/Task").query()).map(t => t.uuid)).toEqual(["a", "b"]);
+    expect(await storage.getMeta("cursor")).toBe("2");
+  });
+
+  it("a client without scopes neither pulls nor pushes", async () => {
+    const { server, client, tasks } = await setup({ scopes: [] });
+    await client.sync();
+    expect(server.pullCalls).toBe(0);
+    await tasks.create({ title: "local only", archived: false });
+    await client.sync();
+    expect(server.received).toHaveLength(1);
+    expect(server.pullCalls).toBe(0);
+  });
+
+  it("setScopes during the snapshot of a resync is not undone", async () => {
+    const { server, client, tasks, storage } = await setup();
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "A", archived: false });
+    const snapshot = server.snapshot.bind(server);
+    server.snapshot = async req => {
+      server.snapshot = snapshot;
+      const res = await snapshot(req);
+      await client.setScopes([{ model: "App/Task", query: "archived = TRUE" }]);
+      return res;
+    };
+    await client.sync();
+    expect(await storage.getMeta("cursor")).toBeUndefined();
+    server.serverWrite("App/Task", "z", { uuid: "z", title: "Z", archived: true });
+    await client.sync();
+    expect((await tasks.query()).map(t => t.uuid)).toEqual(["z"]);
+  });
+
+  it("setScopes while a page is applied is not undone", async () => {
+    const { server, client, tasks, storage } = await setup();
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "A", archived: false });
+    await client.sync();
+    server.serverWrite("App/Task", "b", { uuid: "b", title: "B", archived: false });
+    const put = storage.putRecords.bind(storage);
+    storage.putRecords = async records => {
+      storage.putRecords = put;
+      await put(records);
+      await client.setScopes([{ model: "App/Task", query: "archived = TRUE" }]);
+    };
+    await client.sync();
+    expect(await storage.getMeta("cursor")).toBeUndefined();
+    server.serverWrite("App/Task", "z", { uuid: "z", title: "Z", archived: true });
+    await client.sync();
+    expect((await tasks.query()).map(t => t.uuid)).toEqual(["z"]);
+  });
+
+  it("a replica synced before its scopes were recorded is resynced", async () => {
+    const { server, client, tasks, storage } = await setup();
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "A", archived: false });
+    await client.sync();
+    // Written by an older client version: a cursor but no syncedScopes
+    await storage.setMeta("syncedScopes", undefined);
+    const cursors: any[] = [];
+    const pull = server.pull.bind(server);
+    server.pull = async req => {
+      cursors.push(req.cursor);
+      return pull(req);
+    };
+    server.serverWrite("App/Task", "b", { uuid: "b", title: "B", archived: false });
+    await client.sync();
+    expect(cursors[0]).toBeUndefined();
+    expect((await tasks.query()).map(t => t.uuid).sort()).toEqual(["a", "b"]);
+    expect(await storage.getMeta("syncedScopes")).toEqual(SCOPES);
+  });
+});
+
+describe("client API", () => {
+  /**
+   * @param options - client overrides
+   * @returns a replica with a synced "a" edited locally while the server deleted it, conflict open
+   */
+  async function serverDeleted(options: Partial<OfflineClientOptions> = {}) {
+    const ctx = await setup(options);
+    ctx.server.serverWrite("App/Task", "a", { uuid: "a", title: "A", archived: false });
+    await ctx.client.sync();
+    await ctx.tasks.patch("a", { title: "mine" });
+    ctx.server.serverWrite("App/Task", "a", null);
+    await ctx.client.sync();
+    const [open] = await ctx.client.conflicts();
+    expect(open.theirs).toBeNull();
+    return { ...ctx, open };
+  }
+
+  it("resolve needs an open conflict", async () => {
+    const { client, tasks } = await setup();
+    await tasks.create({ uuid: "a", title: "x", archived: false });
+    await expect(client.resolve({ model: "App/Task", key: "a" }, new Map())).rejects.toThrow(/No open conflict/);
+    await expect(client.resolve({ model: "App/Task", key: "nope" }, new Map())).rejects.toThrow(/No open conflict/);
+  });
+
+  it("resolve accepting a server delete removes the record", async () => {
+    const { client, tasks, storage, open } = await serverDeleted();
+    const events: any[] = [];
+    client.on("change", e => events.push([e.origin, e.object]));
+    await client.resolve(open.ref, new Map([["", { choose: "theirs" }]]));
+    expect(await storage.getRecord("App/Task|a")).toBeUndefined();
+    expect(await tasks.get("a")).toBeUndefined();
+    expect(events).toEqual([["local", null]]);
+  });
+
+  it("resolve with a typed value re-creates the object", async () => {
+    const { server, client, tasks, open } = await serverDeleted();
+    await client.resolve(open.ref, new Map([["", { value: { uuid: "a", title: "typed", archived: false } }]]));
+    expect((await tasks.get("a")).title).toBe("typed");
+    await client.sync();
+    expect(server.objects.get("App/Task|a")?.object.title).toBe("typed");
+    expect(server.received.at(-1)!.mutations[0].op).toBe("create");
+  });
+
+  it("discard of an unknown object is a no-op", async () => {
+    const { client } = await setup();
+    const events: any[] = [];
+    client.on("change", e => events.push(e));
+    await client.discard({ model: "App/Task", key: "nope" });
+    expect(events).toEqual([]);
+  });
+
+  it("applyConflictStrategy stores a rebased record through the strategy", async () => {
+    const { client, storage, tasks } = await setup({ onConflict: "server-wins" });
+    const events: any[] = [];
+    client.on("change", e => events.push([e.origin, e.object?.title]));
+    const record: LocalRecord = {
+      id: "App/Task|a",
+      ref: { model: "App/Task", key: "a" },
+      base: { uuid: "a", title: "A" },
+      baseRev: 1,
+      current: { uuid: "a", title: "mine" },
+      state: "dirty"
+    };
+    await storage.putRecords([record]);
+    const out = await client.applyConflictStrategy(rebase(record, { uuid: "a", title: "theirs" }, 2, {}));
+    expect(out?.state).toBe("synced");
+    expect((await tasks.get("a")).title).toBe("theirs");
+    expect(events).toEqual([["remote", "theirs"]]);
+    expect(await client.applyConflictStrategy(null)).toBeNull();
+    expect(await client.conflicts()).toEqual([]);
+  });
+
+  it("concurrent sync calls share one run and run once more", async () => {
+    const { server, client } = await setup();
+    await client.sync();
+    const before = server.pullCalls;
+    let release!: () => void;
+    const gate = new Promise<void>(r => (release = r));
+    const pull = server.pull.bind(server);
+    server.pull = async req => {
+      server.pull = pull;
+      await gate;
+      return pull(req);
+    };
+    const first = client.sync();
+    const second = client.sync();
+    expect(second).toBe(first);
+    release();
+    await first;
+    // The run in progress, then one more for the call that joined it
+    expect(server.pullCalls).toBe(before + 2);
+    await client.sync();
+    expect(server.pullCalls).toBe(before + 3);
+  });
+
+  it("a strategy that keeps losing to local edits leaves the conflict open", async () => {
+    let calls = 0;
+    const { server, client, tasks, storage } = await setup({
+      onConflict: async info => {
+        calls++;
+        await tasks.patch("a", { body: `edit${calls}` });
+        return new Map(info.result.conflicts.map(c => [c.path, { choose: "theirs" as const }]));
+      }
+    });
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "A", body: "0", archived: false });
+    await client.sync();
+    await tasks.patch("a", { title: "mine" });
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "theirs", body: "0", archived: false });
+    const conflicts: any[] = [];
+    client.on("conflict", c => conflicts.push(c.ours.body));
+    await client.sync();
+    expect(calls).toBe(3);
+    expect(conflicts).toEqual(["edit3"]);
+    const record = (await storage.getRecord("App/Task|a"))!;
+    expect(record.state).toBe("conflict");
+    expect(record.current).toMatchObject({ title: "mine", body: "edit3" });
+    expect(record.base.title).toBe("theirs");
   });
 });
 

@@ -68,6 +68,23 @@ describe("rebase", () => {
     const out = rebase(rec({ current: null, state: "deleted" }), { uuid: "t", title: "theirs", body: "x" }, 2, {})!;
     expect(out.conflict?.result.conflicts[0]).toMatchObject({ path: "", kind: "delete-modify", ours: undefined });
   });
+
+  it("an open conflict is rebased on its original ancestor", () => {
+    const open = rebase(
+      rec({ current: { uuid: "t", title: "mine", body: "x" } }),
+      { uuid: "t", title: "theirs", body: "x" },
+      2,
+      {}
+    )!;
+    const again = rebase(open, { uuid: "t", title: "theirs2", body: "y" }, 3, {})!;
+    expect(again.state).toBe("conflict");
+    expect(again.conflict?.ancestor).toEqual({ uuid: "t", title: "a", body: "x" });
+    expect(again.base).toEqual({ uuid: "t", title: "theirs2", body: "y" });
+    expect(again.baseRev).toBe(3);
+    // Still ours vs theirs on the title; the body was only changed on the server
+    expect(again.conflict?.result.conflicts.map(c => c.path)).toEqual(["/title"]);
+    expect(again.conflict?.result.merged.body).toBe("y");
+  });
 });
 
 describe("settleConflict", () => {
@@ -106,6 +123,26 @@ describe("settleConflict", () => {
   it("accept server delete", () => {
     const conflicted = rebase(rec({ current: { uuid: "t", title: "mine", body: "x" } }), null, 0, {})!;
     expect(settleConflict(conflicted, new Map([["", { choose: "theirs" }]]))).toBeNull();
+  });
+
+  it("a root conflict needs a root resolution", () => {
+    const conflicted = rebase(rec({ current: { uuid: "t", title: "mine", body: "x" } }), null, 0, {})!;
+    expect(() => settleConflict(conflicted, new Map([["/title", { choose: "ours" }]]))).toThrow(/object root/);
+  });
+
+  it("a root conflict accepts an explicit value", () => {
+    const conflicted = rebase(rec({ current: { uuid: "t", title: "mine", body: "x" } }), null, 0, {})!;
+    const out = settleConflict(conflicted, new Map([["", { value: { uuid: "t", title: "typed", body: "x" } }]]))!;
+    expect(out.state).toBe("created");
+    expect(out.current.title).toBe("typed");
+    // A value equal to the server one needs no push, a different one is pushed
+    const edited = rebase(rec({ current: null, state: "deleted" }), { uuid: "t", title: "s", body: "x" }, 2, {})!;
+    const same = settleConflict(edited, new Map([["", { value: { uuid: "t", title: "s", body: "x" } }]]))!;
+    expect(same.state).toBe("synced");
+    const other = settleConflict(edited, new Map([["", { value: { uuid: "t", title: "typed", body: "x" } }]]))!;
+    expect(other.state).toBe("dirty");
+    expect(other.baseRev).toBe(2);
+    expect(other.current.title).toBe("typed");
   });
 
   it("keep local delete over server edit", () => {

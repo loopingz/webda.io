@@ -6,11 +6,20 @@
   "services": {
     "SyncStore": {
       "type": "Webda/MemoryStore",
-      "models": ["Webda/SyncChange", "Test/Note"]
+      "models": [
+        "Webda/SyncChange",
+        "Test/Note",
+        "Test/Tag",
+        "Test/Member"
+      ]
     },
     "sync": {
       "type": "Webda/SyncService",
-      "models": ["Test/Note"],
+      "models": [
+        "Test/Note",
+        "Test/Tag",
+        "Test/Member"
+      ],
       "overlap": "0ms"
     }
   }

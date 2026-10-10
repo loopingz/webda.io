@@ -1,8 +1,10 @@
-import { useRepository } from "@webda/core";
+import { runWithContext, useRepository } from "@webda/core";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import { vi } from "vitest";
 import { diff } from "@webda/versioning";
-import { Note, SyncTest } from "../../test/fixture.js";
+import { Member, Note, SyncTest, Tag, UserContext } from "../../test/fixture.js";
+import { serializeKey } from "../protocol/index.js";
 
 @suite
 class PushTest extends SyncTest {
@@ -310,6 +312,302 @@ class PushTest extends SyncTest {
     } finally {
       repo.patch = original;
     }
+  }
+
+  /**
+   * Call push() directly, bypassing the operation input schema (a transport without schema validation)
+   * @param mutations - the mutations
+   * @param userId - the caller
+   * @returns the results
+   */
+  async rawPush(mutations: any, userId?: string) {
+    const ctx = new UserContext(userId);
+    await ctx.init();
+    return runWithContext(ctx, () => this.sync.push(mutations));
+  }
+
+  @test
+  async malformedMutationsAreRejectedOneByOne() {
+    await assert.rejects(() => this.rawPush("nope"), /mutations must be an array/);
+    const uuid = "44444444-4444-4444-8444-444444444444";
+    const { results } = await this.rawPush([
+      {},
+      { mutationId: "m2" },
+      { mutationId: "m3", ref: { model: "Test/Note", key: 7 } },
+      { mutationId: "m4", ref: { model: "Test/Note", key: "" }, op: "create", baseRev: 0, patch: { title: "x" } },
+      { mutationId: "m5", ref: { model: "Test/Note", key: uuid }, op: "upsert", baseRev: 0 },
+      { mutationId: "m6", ref: { model: "Test/Note", key: uuid }, op: "create", baseRev: 0, patch: { title: "ok" } }
+    ]);
+    assert.deepStrictEqual(
+      results.map(r => [r.mutationId, r.status, (r as any).error?.code]),
+      [
+        ["", "rejected", "INVALID"],
+        ["m2", "rejected", "INVALID"],
+        ["m3", "rejected", "INVALID"],
+        ["m4", "rejected", "INVALID_KEY"],
+        ["m5", "rejected", "INVALID"],
+        ["m6", "ok", undefined]
+      ]
+    );
+    assert.match((results[4] as any).error.message, /Unknown op upsert/);
+    assert.strictEqual((await Note.ref(uuid).get()).title, "ok", "the valid mutation of the batch is applied");
+  }
+
+  @test
+  async createValidationAndPermissions() {
+    const uuid = "55555555-5555-4555-8555-555555555555";
+    const [noPatch] = await this.push([
+      { mutationId: "m1", ref: { model: "Test/Note", key: uuid }, baseRev: 0, op: "create" }
+    ]);
+    assert.strictEqual(noPatch.status, "rejected");
+    assert.strictEqual(noPatch.error.code, "VALIDATION");
+    const [badType] = await this.push([
+      { mutationId: "m2", ref: { model: "Test/Note", key: uuid }, baseRev: 0, op: "create", patch: { title: 5 } }
+    ]);
+    assert.strictEqual(badType.error.code, "VALIDATION");
+    assert.strictEqual(await Note.ref(uuid).exists(), false);
+    // A create refused by canAct is Forbidden: there is no object to hide
+    const [forbidden] = await this.push(
+      [
+        {
+          mutationId: "m3",
+          ref: { model: "Test/Note", key: uuid },
+          baseRev: 0,
+          op: "create",
+          patch: { title: "x", owner: "bob" }
+        }
+      ],
+      "alice"
+    );
+    assert.strictEqual(forbidden.status, "rejected");
+    assert.strictEqual(forbidden.error.code, "FORBIDDEN");
+    assert.match(forbidden.error.message, /not allowed/);
+    // A model without a JSON schema skips the validation
+    const [tag] = await this.push([
+      { mutationId: "m4", ref: { model: "Test/Tag", key: uuid }, baseRev: 0, op: "create", patch: { name: "t" } }
+    ]);
+    assert.strictEqual(tag.status, "ok");
+    assert.strictEqual(tag.rev, 1);
+    assert.strictEqual((await Tag.ref(uuid).get()).name, "t");
+  }
+
+  @test
+  async readableButLockedIsForbidden() {
+    const note = await Note.create({ title: "a", status: "locked" } as any);
+    const delta = diff(note.toDTO(), { ...note.toDTO(), title: "b" });
+    const [patch, del] = await this.push([
+      { mutationId: "m1", ref: { model: "Test/Note", key: note.uuid }, baseRev: 1, op: "patch", patch: delta },
+      { mutationId: "m2", ref: { model: "Test/Note", key: note.uuid }, baseRev: 1, op: "delete" }
+    ]);
+    for (const res of [patch, del]) {
+      assert.strictEqual(res.status, "rejected");
+      assert.strictEqual(res.error.code, "FORBIDDEN");
+    }
+    assert.strictEqual((await Note.ref(note.uuid).get()).title, "a");
+  }
+
+  @test
+  async replayAfterTheObjectIsGone() {
+    const note = await Note.create({ title: "a" } as any);
+    const m = {
+      mutationId: "m1",
+      ref: { model: "Test/Note", key: note.uuid },
+      baseRev: 1,
+      op: "patch",
+      patch: diff(note.toDTO(), { ...note.toDTO(), title: "b" })
+    };
+    assert.strictEqual((await this.push([m]))[0].status, "ok");
+    await Note.ref(note.uuid).delete();
+    const [replay] = await this.push([m]);
+    assert.deepStrictEqual(replay, { mutationId: "m1", status: "ok", rev: 0 });
+  }
+
+  @test
+  async deleteOfAMissingObjectIsOk() {
+    const [res] = await this.push([
+      {
+        mutationId: "m1",
+        ref: { model: "Test/Note", key: "66666666-6666-4666-8666-666666666666" },
+        baseRev: 3,
+        op: "delete"
+      }
+    ]);
+    assert.deepStrictEqual(res, { mutationId: "m1", status: "ok", rev: 0 });
+    assert.strictEqual((await this.changes()).length, 0, "nothing is logged");
+  }
+
+  /**
+   * Make the next repository call of `method` run `race` outside the push context, then throw like a conditional
+   * backend would
+   * @param method - repository method
+   * @param race - the concurrent writer
+   */
+  raceOn(method: string, race: () => Promise<void>): () => void {
+    const repo: any = useRepository(Note);
+    const original = repo[method];
+    repo[method] = async () => {
+      repo[method] = original;
+      await (this.sync as any).pushContext.exit(race);
+      throw new Error("Condition failed: _rev");
+    };
+    return () => (repo[method] = original);
+  }
+
+  @test
+  async patchRaces() {
+    const note = await Note.create({ title: "a" } as any);
+    const m = (id: string) => ({
+      mutationId: id,
+      ref: { model: "Test/Note", key: note.uuid },
+      baseRev: 1,
+      op: "patch",
+      patch: diff(note.toDTO(), { ...note.toDTO(), title: "b" })
+    });
+    // Another writer patched first: conflict with its value
+    let restore = this.raceOn("patch", async () => {
+      await Note.ref(note.uuid).patch({ title: "concurrent" } as any);
+    });
+    try {
+      const [res] = await this.push([m("m1")]);
+      assert.strictEqual(res.status, "conflict");
+      assert.strictEqual(res.rev, 2);
+      assert.strictEqual(res.object.title, "concurrent");
+    } finally {
+      restore();
+    }
+    // Another writer deleted first: conflict without object
+    const other = await Note.create({ title: "a" } as any);
+    restore = this.raceOn("patch", async () => {
+      await Note.ref(other.uuid).delete();
+    });
+    try {
+      const [res] = await this.push([{ ...m("m2"), ref: { model: "Test/Note", key: other.uuid } }]);
+      assert.deepStrictEqual(res, { mutationId: "m2", status: "conflict", rev: 0, object: null });
+    } finally {
+      restore();
+    }
+    // Nothing changed: a backend failure is internal and logged, never leaked
+    const third = await Note.create({ title: "a" } as any);
+    const log = vi.spyOn(this.sync as any, "log");
+    restore = this.raceOn("patch", async () => {});
+    try {
+      const [res] = await this.push([{ ...m("m3"), ref: { model: "Test/Note", key: third.uuid } }]);
+      assert.deepStrictEqual(res, {
+        mutationId: "m3",
+        status: "rejected",
+        error: { code: "INTERNAL", message: "Internal error" }
+      });
+      assert.ok(log.mock.calls.some(c => c[0] === "ERROR" && /mutation failed/.test(String(c[1]))));
+    } finally {
+      restore();
+      log.mockRestore();
+    }
+  }
+
+  @test
+  async raceMovingTheObjectOutOfReachHidesIt() {
+    const note = await Note.create({ title: "a", owner: "bob" } as any);
+    const restore = this.raceOn("patch", async () => {
+      await Note.ref(note.uuid).patch({ owner: "alice", title: "secret" } as any);
+    });
+    try {
+      const [res] = await this.push(
+        [
+          {
+            mutationId: "m1",
+            ref: { model: "Test/Note", key: note.uuid },
+            baseRev: 1,
+            op: "patch",
+            patch: diff(note.toDTO(), { ...note.toDTO(), title: "b" })
+          }
+        ],
+        "bob"
+      );
+      assert.strictEqual(res.status, "rejected");
+      assert.strictEqual(res.error.code, "NOT_FOUND");
+      assert.ok(!JSON.stringify(res).includes("secret"));
+    } finally {
+      restore();
+    }
+  }
+
+  @test
+  async deleteRaces() {
+    const note = await Note.create({ title: "a" } as any);
+    // Another writer deleted first: the delete is still a success
+    let restore = this.raceOn("delete", async () => {
+      await Note.ref(note.uuid).delete();
+    });
+    try {
+      const [res] = await this.push([
+        { mutationId: "m1", ref: { model: "Test/Note", key: note.uuid }, baseRev: 1, op: "delete" }
+      ]);
+      assert.deepStrictEqual(res, { mutationId: "m1", status: "ok", rev: 0 });
+    } finally {
+      restore();
+    }
+    const other = await Note.create({ title: "a" } as any);
+    restore = this.raceOn("delete", async () => {});
+    try {
+      const [res] = await this.push([
+        { mutationId: "m2", ref: { model: "Test/Note", key: other.uuid }, baseRev: 1, op: "delete" }
+      ]);
+      assert.strictEqual(res.status, "rejected");
+      assert.strictEqual(res.error.code, "INTERNAL");
+      assert.strictEqual(await Note.ref(other.uuid).exists(), true);
+    } finally {
+      restore();
+    }
+  }
+
+  @test
+  async createFailureIsInternal() {
+    const uuid = "77777777-7777-4777-8777-777777777777";
+    const restore = this.raceOn("create", async () => {});
+    try {
+      const [res] = await this.push([
+        { mutationId: "m1", ref: { model: "Test/Note", key: uuid }, baseRev: 0, op: "create", patch: { title: "x" } }
+      ]);
+      assert.strictEqual(res.status, "rejected");
+      assert.strictEqual(res.error.code, "INTERNAL");
+      assert.strictEqual(await Note.ref(uuid).exists(), false);
+    } finally {
+      restore();
+    }
+  }
+
+  @test
+  async compositeKeys() {
+    const scopes = [{ model: "Test/Member" }];
+    const start = (await this.op("Sync.Pull", { scopes })).cursor;
+    const key = serializeKey(["org", "user"], { org: "acme", user: "bob" })!;
+    const ref = { model: "Test/Member", key };
+    const [created] = await this.push([
+      { mutationId: "m1", ref, baseRev: 0, op: "create", patch: { role: "admin", org: "evil" } }
+    ]);
+    assert.strictEqual(created.status, "ok");
+    assert.strictEqual(created.rev, 1);
+    assert.deepStrictEqual([created.object.org, created.object.user, created.object.role], ["acme", "bob", "admin"]);
+    const stored = await Member.ref({ org: "acme", user: "bob" } as any).get();
+    assert.strictEqual(stored.role, "admin");
+    const dto = stored.toDTO();
+    const [patched] = await this.push([
+      { mutationId: "m2", ref, baseRev: 1, op: "patch", patch: diff(dto, { ...dto, role: "member" }) }
+    ]);
+    assert.strictEqual(patched.status, "ok");
+    assert.strictEqual(patched.rev, 2);
+    assert.strictEqual((await Member.ref({ org: "acme", user: "bob" } as any).get()).role, "member");
+    const res = await this.op("Sync.Pull", { scopes, cursor: start });
+    assert.deepStrictEqual(
+      res.upserts.map(u => [u.ref.key, u.rev]),
+      [[key, 2]]
+    );
+    const [malformed, short] = await this.push([
+      { mutationId: "m3", ref: { model: "Test/Member", key: "not-json" }, baseRev: 0, op: "create", patch: {} },
+      { mutationId: "m4", ref: { model: "Test/Member", key: '["acme"]' }, baseRev: 0, op: "create", patch: {} }
+    ]);
+    assert.strictEqual(malformed.error.code, "INVALID_KEY");
+    assert.strictEqual(short.error.code, "INVALID_KEY");
   }
 
   @test

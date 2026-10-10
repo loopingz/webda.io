@@ -147,6 +147,60 @@ describe("HttpTransport", () => {
     expect(cancelled).toBe(true);
   });
 
+  it("holds a trailing CR split across chunks", async () => {
+    const chunks = ["data: a\r", "\ndata: b\r", "\n\r", "\ndata: c\n\n"].map(c => new TextEncoder().encode(c));
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        chunks.forEach(c => controller.enqueue(c));
+        controller.close();
+      }
+    });
+    const events = [];
+    for await (const e of parseSse(body)) events.push(e);
+    expect(events).toEqual([
+      { event: "message", data: "a\nb" },
+      { event: "message", data: "c" }
+    ]);
+  });
+
+  it("falls back to the status text when the body is empty or unreadable", async () => {
+    const empty = new HttpTransport({
+      baseUrl: "https://api.test",
+      fetch: (async () => new Response("", { status: 503, statusText: "Service Unavailable" })) as any
+    });
+    await expect(empty.snapshot({ scope: { model: "A" } })).rejects.toMatchObject({
+      status: 503,
+      message: "Service Unavailable"
+    });
+    const unreadable = new HttpTransport({
+      baseUrl: "https://api.test",
+      fetch: (async () => ({
+        ok: false,
+        status: 502,
+        statusText: "Bad Gateway",
+        text: () => Promise.reject(new Error("stream broken"))
+      })) as any
+    });
+    await expect(unreadable.snapshot({ scope: { model: "A" } })).rejects.toMatchObject({
+      status: 502,
+      message: "Bad Gateway"
+    });
+  });
+
+  it("watch without a response body yields nothing", async () => {
+    const transport = new HttpTransport({
+      baseUrl: "https://api.test",
+      paths: { watch: "custom/watch" },
+      fetch: (async (url: string) => {
+        expect(url).toBe("https://api.test/custom/watch");
+        return new Response(null, { status: 200 });
+      }) as any
+    });
+    const hints = [];
+    for await (const hint of transport.watch({ scopes: [] }, new AbortController().signal)) hints.push(hint);
+    expect(hints).toEqual([]);
+  });
+
   it("reports status and message of failures", async () => {
     const transport = new HttpTransport({
       baseUrl: "https://api.test",

@@ -10,7 +10,15 @@ export default defineConfig({
       enabled: true,
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.spec.ts", "src/index.ts"],
+      exclude: [
+        "src/**/*.spec.ts",
+        // Barrels
+        "src/index.ts",
+        "src/client/index.ts",
+        // Test helpers: the in-memory server of the client tests and the storage conformance suite
+        "src/client/fake-transport.ts",
+        "src/client/storage/conformance.ts"
+      ],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",

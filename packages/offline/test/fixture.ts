@@ -1,4 +1,5 @@
 import { callOperation, CoreModel, OperationContext, useCore } from "@webda/core";
+import { WEBDA_PRIMARY_KEY } from "@webda/models";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import type { TestApplication } from "@webda/core/lib/test/objects.js";
 import { SyncChange } from "../src/server/syncchange.model.js";
@@ -20,13 +21,48 @@ export class Note extends CoreModel implements Syncable {
 
   /**
    * @param context - the caller
-   * @param _action - the action
+   * @param action - the action
    * @param object - the object
    * @returns true or the refusal reason
    */
-  static canAct(context: any, _action: string, object?: Note): true | string {
+  static canAct(context: any, action: string, object?: Note): true | string {
+    // A locked note stays readable but nobody writes it: refusals are Forbidden, not NotFound
+    if (object?.status === "locked" && action !== "get") return "locked";
     if (!object?.owner) return true;
     return object.owner === context?.getCurrentUserId?.() ? true : "not the owner";
+  }
+}
+
+/**
+ * Synced model with a composite primary key, open to everyone
+ */
+export class Member extends CoreModel implements Syncable {
+  [WEBDA_PRIMARY_KEY] = ["org", "user"] as const;
+  org: string;
+  user: string;
+  role?: string;
+  _rev?: number;
+
+  /**
+   * @returns true
+   */
+  static canAct(): true {
+    return true;
+  }
+}
+
+/**
+ * Second synced model, without a JSON schema, open to everyone
+ */
+export class Tag extends CoreModel implements Syncable {
+  name: string;
+  _rev?: number;
+
+  /**
+   * @returns true
+   */
+  static canAct(): true {
+    return true;
   }
 }
 
@@ -110,6 +146,34 @@ export class SyncTest extends WebdaApplicationTest {
       Reflection: {}
     } as any);
     (Note as any).registerSerializer(true, "Test/Note");
+    app.addModel("Test/Tag", Tag, {
+      Identifier: "Test/Tag",
+      Ancestors: [],
+      Subclasses: [],
+      Relations: {},
+      PrimaryKey: ["uuid"],
+      Events: [],
+      Schemas: {},
+      Actions: {},
+      Import: "",
+      Plural: "Tags",
+      Reflection: {}
+    } as any);
+    (Tag as any).registerSerializer(true, "Test/Tag");
+    app.addModel("Test/Member", Member, {
+      Identifier: "Test/Member",
+      Ancestors: [],
+      Subclasses: [],
+      Relations: {},
+      PrimaryKey: ["org", "user"],
+      Events: [],
+      Schemas: {},
+      Actions: {},
+      Import: "",
+      Plural: "Members",
+      Reflection: {}
+    } as any);
+    (Member as any).registerSerializer(true, "Test/Member");
     (SyncService as any).createConfiguration = (params: any = {}) => new SyncServiceParameters().load(params);
     app.addModda("Webda/SyncService", SyncService);
   }
@@ -149,6 +213,8 @@ export class SyncTest extends WebdaApplicationTest {
    */
   async afterEach() {
     for (const note of (await Note.query("")).results) await note.delete();
+    for (const tag of (await Tag.query("")).results) await tag.delete();
+    for (const member of (await Member.query("")).results) await member.delete();
     for (const change of await this.changes()) await change.delete();
     await super.afterEach();
   }

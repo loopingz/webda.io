@@ -197,6 +197,11 @@ describe("OfflineClient lifecycle", () => {
       await vi.advanceTimersByTimeAsync(0);
       expect(added.map(a => a[0])).toEqual(["online"]);
       expect(signal.aborted).toBe(false);
+      // Back online: the browser event triggers a sync
+      const before = calls;
+      added[0][1]();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(calls).toBe(before + 1);
       client.stop();
       expect(signal.aborted).toBe(true);
       expect(removed).toEqual(added);
@@ -300,6 +305,147 @@ describe("OfflineClient lifecycle", () => {
       await vi.advanceTimersByTimeAsync(100); // back to base
       expect(connections).toBe(5);
       client.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a failure without status is offline, concurrent runs emit one status change", async () => {
+    vi.useFakeTimers();
+    try {
+      let failing = true;
+      const client = new OfflineClient({
+        storage: new MemoryStorage(),
+        transport: transportOf(async () => {
+          if (failing) throw new Error("boom");
+          return ok;
+        }),
+        scopes: [{ model: "A" }],
+        syncInterval: 0,
+        retry: { base: 100, max: 300 }
+      });
+      const statuses: string[] = [];
+      client.on("status", s => statuses.push(s));
+      await client.start();
+      expect(client.status).toBe("offline");
+      client.stop();
+      failing = false;
+      statuses.length = 0;
+      await Promise.all([(client as any).run(), (client as any).run()]);
+      expect(statuses).toEqual(["syncing", "idle"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("stop during a failing sync schedules no retry", async () => {
+    vi.useFakeTimers();
+    try {
+      let calls = 0;
+      let release!: () => void;
+      const gate = new Promise<void>(r => (release = r));
+      const client = new OfflineClient({
+        storage: new MemoryStorage(),
+        transport: transportOf(async () => {
+          calls++;
+          await gate;
+          throw Object.assign(new Error("down"), { status: 0 });
+        }),
+        scopes: [{ model: "A" }],
+        syncInterval: 0,
+        retry: { base: 100, max: 300 }
+      });
+      const started = client.start();
+      client.stop();
+      release();
+      await started;
+      expect(client.status).toBe("offline");
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(calls).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("stop during the initial sync starts neither the timer nor the watch", async () => {
+    vi.useFakeTimers();
+    try {
+      let calls = 0;
+      let connections = 0;
+      let release!: () => void;
+      const gate = new Promise<void>(r => (release = r));
+      const transport = transportOf(async () => {
+        calls++;
+        await gate;
+        return ok;
+      });
+      transport.watch = async function* watchStub() {
+        connections++;
+        await new Promise(() => {});
+      };
+      const client = new OfflineClient({
+        storage: new MemoryStorage(),
+        transport,
+        scopes: [{ model: "A" }],
+        syncInterval: 1000
+      });
+      const started = client.start();
+      client.stop();
+      release();
+      await started;
+      expect(client.status).toBe("idle");
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(calls).toBe(1);
+      expect(connections).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a hint delivered after stop is ignored", async () => {
+    const server = new FakeServer();
+    let push!: (v: any) => void;
+    // This transport ignores the abort signal
+    server.watch = async function* watchStub() {
+      yield await new Promise<any>(resolve => (push = resolve));
+    } as any;
+    const client = new OfflineClient({
+      storage: new MemoryStorage(),
+      transport: server,
+      scopes: [{ model: "A" }],
+      syncInterval: 0
+    });
+    await client.start();
+    await vi.waitFor(() => expect(push).toBeTypeOf("function"));
+    const before = server.pullCalls;
+    client.stop();
+    push({ cursor: "1" });
+    await new Promise(resolve => setTimeout(resolve, 20));
+    expect(server.pullCalls).toBe(before);
+  });
+
+  it("a watch stream ending on abort is not reconnected", async () => {
+    vi.useFakeTimers();
+    try {
+      let connections = 0;
+      const transport = transportOf(async () => ok);
+      transport.watch = async function* watchStub(_req: any, signal: AbortSignal) {
+        connections++;
+        await new Promise<void>(resolve => signal.addEventListener("abort", () => resolve()));
+      };
+      const client = new OfflineClient({
+        storage: new MemoryStorage(),
+        transport,
+        scopes: [{ model: "A" }],
+        syncInterval: 0,
+        retry: { base: 100, max: 300 }
+      });
+      await client.start();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(connections).toBe(1);
+      client.stop();
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(connections).toBe(1);
     } finally {
       vi.useRealTimers();
     }

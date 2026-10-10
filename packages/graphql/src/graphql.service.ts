@@ -257,6 +257,23 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
+   * Reserve a type name for a type built later (its entry gets the type once built)
+   * @param name - type name
+   * @param shape - identity of the reserving type
+   * @throws Error when the name is already taken by another shape
+   */
+  reserveName(name: string, shape: string): void {
+    this.namedTypes ??= new Map();
+    const known = this.namedTypes.get(name);
+    if (known && known.shape !== shape) {
+      throw new Error(
+        `GraphQL type ${name} is generated for two different schemas (${known.shape} / ${shape}): give one of them another title`
+      );
+    }
+    this.namedTypes.set(name, known || { type: undefined, shape });
+  }
+
+  /**
    * Convert a JSON Schema to a GraphQL type definition
    * @param schema - JSON Schema to convert
    * @param defaultName - fallback name for anonymous types
@@ -325,8 +342,13 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       }
       // A titled input type gets its own name: the output type of the same title already uses the title
       const name = schema.title ? (input ? `${schema.title}Input` : schema.title) : defaultName;
-      type = this.namedType(name, `${input ? "input" : "output"}:${Object.keys(fields).sort().join(",")}`, () =>
-        input ? new GraphQLInputObjectType({ fields, name }) : new GraphQLObjectType({ fields, name })
+      type = this.namedType(
+        name,
+        `${input ? "input" : "output"}:${Object.keys(fields)
+          .sort()
+          .map(k => `${k}:${fields[k].type}`)
+          .join(",")}`,
+        () => (input ? new GraphQLInputObjectType({ fields, name }) : new GraphQLObjectType({ fields, name }))
       );
     }
     return { type, description: schema.description };
@@ -669,6 +691,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     const models = this.app.getModels();
     this.modelsMap = {};
     this.namedTypes = new Map();
+    // First pass: reserve every exposed model name (and its Input) before any type is built, so a nested
+    // titled type of the same name fails whatever the model order
+    const exposed: { i: string; model: any; metadata: any; schema: any; name: string }[] = [];
     for (const i in models) {
       const model = models[i];
       const metadata = useModelMetadata(model);
@@ -684,6 +709,11 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       const schema = this.app.getSchema(i);
       if (!schema) continue;
       const name = (metadata.ShortName || i.split("/").pop()).replace("/", "_");
+      this.reserveName(name, `model ${i}`);
+      this.reserveName(`${name}Input`, `model input ${i}`);
+      exposed.push({ i, model, metadata, schema, name });
+    }
+    for (const { i, model, metadata, schema, name } of exposed) {
       this.log("INFO", "Add GraphQL type", name);
       const modelGraph = metadata.Relations;
       this.modelsMap[i] = new GraphQLObjectType({
@@ -700,8 +730,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         ),
         name: name + "Input"
       });
-      this.namedTypes.set(name, { type: this.modelsMap[i], shape: `model ${i}` });
-      this.namedTypes.set(`${name}Input`, { type: input, shape: `model input ${i}` });
+      this.namedTypes.get(name).type = this.modelsMap[i];
+      this.namedTypes.get(`${name}Input`).type = input;
       const actionsName = Object.keys(metadata.Actions);
       if (!actionsName.includes("create")) {
         mutations[`create${name}`] = {

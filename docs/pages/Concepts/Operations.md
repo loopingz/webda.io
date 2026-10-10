@@ -30,12 +30,12 @@ An operation streams when its signature says so: an `async *` method (or one ret
 `AsyncIterable<T>`) produces a stream of `T`, and a single parameter typed `AsyncIterable<T>` consumes one. The
 compiler describes each side by `T` and marks it `x-webda-stream`; the mode follows:
 
-| Signature                                               | Mode   | gRPC                | REST                               | GraphQL                      | MCP                    |
-| ------------------------------------------------------- | ------ | ------------------- | ---------------------------------- | ---------------------------- | ---------------------- |
-| `op(args): Promise<R>`                                  | none   | unary               | as usual                           | Query (read-only) / Mutation | tool                   |
-| `async *op(args): AsyncGenerator<T>`                    | server | server stream, live | buffered (live NDJSON/SSE planned) | Subscription                 | progress notifications |
-| `op(items: AsyncIterable<T>): Promise<R>`               | client | client stream       | not exposed                        | not exposed                  | not exposed            |
-| `async *op(items: AsyncIterable<T>): AsyncGenerator<U>` | bidi   | bidi stream         | WebSocket on the operation URL     | skipped                      | skipped                |
+| Signature                                               | Mode   | gRPC                | REST                           | GraphQL                      | MCP                    |
+| ------------------------------------------------------- | ------ | ------------------- | ------------------------------ | ---------------------------- | ---------------------- |
+| `op(args): Promise<R>`                                  | none   | unary               | as usual                       | Query (read-only) / Mutation | tool                   |
+| `async *op(args): AsyncGenerator<T>`                    | server | server stream, live | live NDJSON / SSE              | Subscription                 | progress notifications |
+| `op(items: AsyncIterable<T>): Promise<R>`               | client | client stream       | not exposed                    | not exposed (see below)      | not exposed            |
+| `async *op(items: AsyncIterable<T>): AsyncGenerator<U>` | bidi   | bidi stream         | WebSocket on the operation URL | not exposed (see below)      | skipped                |
 
 ```ts
 @Operation()
@@ -63,6 +63,29 @@ async *connect(frames: AsyncIterable<Envelope>): AsyncGenerator<Envelope> {
 - When the client cancels, the generator's `return()` is called, so its `finally` blocks run.
 - An operation that throws `OperationCancelledError` while the client is still connected ends the call with
   `CANCELLED`.
+
+### REST: NDJSON and server-sent events
+
+A server-streaming operation is streamed live on its REST route by `Webda/RESTOperationsTransport`, each chunk sent
+as soon as the operation yields it:
+
+- `Accept: text/event-stream` answers `Content-Type: text/event-stream; charset=utf-8` with one `data: <json>` event
+  per chunk; any other request answers `Content-Type: application/x-ndjson` with one JSON line per chunk. Both send
+  `Cache-Control: no-cache`.
+- A chunk is its JSON value without `__`-prefixed keys; a chunk that is not an object is sent as is (`"text"`, `42`),
+  not wrapped.
+- SSE only: a `: keep-alive` comment is sent every `streamKeepAliveInterval` milliseconds (default `20000`, `0`
+  disables) while the response is open, and a normal end of the generator sends `event: end` with `data: {}` before
+  closing, so a client can tell it from a dropped connection. NDJSON just closes.
+- Permissions, input validation and events are those of a normal call. An error raised before the first chunk is the
+  usual HTTP error response. After it the status is already sent: SSE sends `event: error` with
+  `data: {"message": …, "code": <status>}`, NDJSON a last line `{"error": {"message": …, "code": <status>}}`, then the
+  response ends. A 4xx `WebdaError` keeps its message; anything else is reported as `Internal server error` and
+  logged at `ERROR`. An `OperationCancelledError` raised by the operation while the client is connected is such an
+  error.
+- When the client disconnects the generator is closed (`finally` blocks run) and nothing more is written. Output waits
+  while the client cannot keep up.
+- The OpenAPI document lists both content types for these routes.
 
 ### WebSocket (REST transport)
 
@@ -93,7 +116,9 @@ listener is only attached when at least one such route exists.
 schema already serves (`X`, `Xs`, `createX`, `updateX`, `deleteX`):
 
 - read-only operations (REST `GET`, or `mcp: { readOnly: true }`) are `Query` fields, the others `Mutation` fields,
-  server-streaming operations `Subscription` fields; client and bidirectional streams are not exposed;
+  server-streaming operations `Subscription` fields; client and bidirectional streams are not exposed: standard
+  GraphQL has no client-to-server stream (a subscription only streams server to client, and a mutation takes its
+  arguments once), so use gRPC or the WebSocket route for them;
 - the field name is the operation id in lower camel case (`TaskService.Summary` → `taskServiceSummary`);
   `@Operation({ graphql: { query | mutation | subscription: "name" } })` renames it, `graphql: false` hides it;
 - arguments are the input schema properties (`uuid` for an instance model action), the result a model type for a

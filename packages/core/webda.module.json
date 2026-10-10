@@ -1490,6 +1490,11 @@
             ],
             "type": "string"
           },
+          "streamKeepAliveInterval": {
+            "default": 20000,
+            "description": "Milliseconds between two keep-alive comments on an open `text/event-stream` response of a server-streaming\noperation (0 disables them)",
+            "type": "number"
+          },
           "swaggerVersion": {
             "default": "5.31.0",
             "description": "Swagger version to use\n\nhttps://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui.css\nhttps://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-bundle.js\nhttps://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-standalone-preset.js\n\nTODO Add renovatebot regex",

@@ -16,7 +16,8 @@ import { callOperation, canCallOperation, getOperationStreaming } from "../core/
 import { AsyncQueue } from "../core/asyncqueue.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { WebSocketOperationContext } from "../contexts/websocketcontext.js";
-import type { IncomingMessage, Server } from "node:http";
+import { RestStreamingOperationContext, type RestStreamFormat } from "../contexts/restcontext.js";
+import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
 import { hasSchema } from "../schemas/hooks.js";
@@ -116,6 +117,13 @@ export class RESTOperationsTransportParameters extends OperationsTransportParame
    * @default 1000
    */
   webSocketMaxQueuedMessages?: number;
+  /**
+   * Milliseconds between two keep-alive comments on an open `text/event-stream` response of a server-streaming
+   * operation (0 disables them)
+   *
+   * @default 20000
+   */
+  streamKeepAliveInterval?: number;
 
   /**
    * Load parameters with defaults
@@ -128,6 +136,7 @@ export class RESTOperationsTransportParameters extends OperationsTransportParame
     this.queryMethod ??= "PUT";
     this.webSocketMaxPayload ??= 1024 * 1024;
     this.webSocketMaxQueuedMessages ??= 1000;
+    this.streamKeepAliveInterval ??= 20000;
     // Ensure url ends with /
     if (this.url && !this.url.endsWith("/")) {
       this.url += "/";
@@ -257,6 +266,7 @@ export class RESTOperationsTransport<
    * @param req - the upgrade request
    * @param socket - the raw socket
    * @param head - first packet of the upgraded stream
+   * @returns a promise settled once the upgrade is accepted or refused
    */
   protected async upgradeOperation(
     opId: string,
@@ -436,18 +446,113 @@ export class RESTOperationsTransport<
         [methods[0].toLowerCase()]: {
           tags: op.tags || [],
           summary: op.summary || opId,
-          operationId: opId
+          operationId: opId,
+          ...(getOperationStreaming(op) === "server" ? { responses: this.streamedResponses() } : {})
         }
       };
       this.addRoute(
         path,
         methods,
         async (context: WebContext) => {
-          await callOperation(context, opId);
+          await this.runOperation(context, opId);
         },
         openapi
       );
     }
+  }
+
+  /**
+   * The OpenAPI responses of a server-streaming operation
+   * @returns the 200 response with both stream formats
+   */
+  protected streamedResponses(): Record<string, any> {
+    return {
+      "200": {
+        description:
+          "Stream of chunks: one JSON line each (application/x-ndjson), or one `data:` event each when `Accept` is " +
+          "text/event-stream, ended by an `end` event. An error after the first chunk is a last `error` event or " +
+          '`{"error": {"message", "code"}}` line.',
+        content: {
+          "application/x-ndjson": { schema: { type: "string", description: "One JSON value per line" } },
+          "text/event-stream": { schema: { type: "string", description: "Server-sent events with a JSON `data`" } }
+        }
+      }
+    };
+  }
+
+  /**
+   * Run an operation for a route: a server-streaming one is streamed to the client as its generator yields, any other
+   * is called and its result flushed with the response
+   * @param context - the request context
+   * @param operationId - the operation
+   * @returns a promise settled once the operation is done (a stream: once the response is over)
+   */
+  protected async runOperation(context: WebContext, operationId: string): Promise<void> {
+    const response = context._stream as any;
+    if (
+      getOperationStreaming(useInstanceStorage().operations?.[operationId]) !== "server" ||
+      typeof response?.writeHead !== "function"
+    ) {
+      return callOperation(context, operationId);
+    }
+    return this.streamOperation(context, operationId, response);
+  }
+
+  /**
+   * Stream a server-streaming operation: NDJSON, or server-sent events when the client accepts them
+   *
+   * The streaming context is built here, from the request's context, rather than by the HttpServer: only these routes
+   * need it, and permissions, validation and events still go through `callOperation` on the request's input. Until the
+   * first chunk an error is a normal HTTP error (thrown to the HttpServer); after it, the error is the last event or
+   * line of the stream.
+   * @param context - the request context
+   * @param operationId - the operation
+   * @param response - the HTTP response
+   * @returns a promise settled once the response is over
+   */
+  protected async streamOperation(context: WebContext, operationId: string, response: ServerResponse): Promise<void> {
+    const accept = context.getHttpContext().getUniqueHeader("accept", "") ?? "";
+    const format: RestStreamFormat = accept.includes("text/event-stream") ? "sse" : "ndjson";
+    const stream = new RestStreamingOperationContext(
+      context.getHttpContext(),
+      response,
+      format,
+      context.getSession(),
+      this.parameters.streamKeepAliveInterval,
+      context.getResponseHeaders(),
+      context.getSetCookieHeaders()
+    );
+    await stream.init();
+    stream.setParameters(context.getParameters());
+    // The session cookie leaves with the headers, which leave with the first chunk
+    await stream.saveSession();
+    stream.startKeepAlive();
+    try {
+      await callOperation(stream, operationId);
+    } catch (err: any) {
+      stream.stopKeepAlive();
+      // The client went away: nothing to tell
+      if (stream.isCancelled || response.destroyed) return stream.finish();
+      // Nothing sent yet: a normal HTTP error response
+      if (!stream.hasStarted) throw err;
+      const status = typeof err?.getResponseCode === "function" ? err.getResponseCode() : undefined;
+      const clientError = status >= 400 && status < 500;
+      if (!clientError) useLog("ERROR", `[REST ${operationId}] streamed operation threw:`, err);
+      stream.writeError(clientError ? String(err.message ?? "Error") : "Internal server error", status || 500);
+      return stream.finish();
+    }
+    stream.stopKeepAlive();
+    if (stream.isCancelled) return stream.finish();
+    if (!stream.getExtension("operationStreaming")) {
+      // Not a generator after all: a normal response
+      const output = stream.getOutput();
+      if (output !== undefined) {
+        context.setHeader("Content-type", "application/json");
+        context.write(output);
+      }
+      return;
+    }
+    stream.finish(true);
   }
 
   /**
@@ -995,7 +1100,7 @@ export class RESTOperationsTransport<
           context.getParameters()[injectAttribute] = context.parameter(`pid.${depth - 1}`);
           context.getParameters()[`pid.${depth - 1}`] = undefined;
         }
-        await callOperation(context, operationId);
+        await this.runOperation(context, operationId);
       },
       openapi
     );
@@ -1098,7 +1203,7 @@ export class RESTOperationsTransport<
       this.addRoute(
         fullPath,
         [httpMethod],
-        async (context: WebContext) => callOperation(context, operationId),
+        async (context: WebContext) => this.runOperation(context, operationId),
         openapi
       );
     });

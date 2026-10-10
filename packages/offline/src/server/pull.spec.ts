@@ -68,15 +68,41 @@ class PullTest extends SyncTest {
 
   @test
   async sameMillisecondWriteIsDelivered() {
-    const now = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 10_000);
+    this.sync.getParameters().overlap = "1h";
+    const base = Date.now() + 10_000;
+    const now = vi.spyOn(Date, "now").mockReturnValue(base);
     try {
       const cursor = await this.start();
+      // First note is newer than the settle point (now - overlap) and is served by the first pull
+      const a = await Note.create({ title: "a", status: "open" } as any);
       const first = await this.op("Sync.Pull", { scopes: MINE, cursor });
-      const a = await Note.create({ title: "same-ms", status: "open" } as any);
+      assert.ok(first.upserts.some(u => u.ref.key === a.uuid));
+      // Second note written by a server whose clock sits exactly on the previous pull's settle millisecond
+      now.mockReturnValue(base - 3_600_000);
+      (this.sync as any).lastMs = 0;
+      const b = await Note.create({ title: "b", status: "open" } as any);
       const res = await this.op("Sync.Pull", { scopes: MINE, cursor: first.cursor });
-      assert.ok(res.upserts.some(u => u.ref.key === a.uuid));
+      assert.ok(res.upserts.some(u => u.ref.key === b.uuid));
     } finally {
       now.mockRestore();
+    }
+  }
+
+  @test
+  async rejectsLimitOffsetOrderBy() {
+    for (const query of [
+      "status = 'open' LIMIT 5",
+      "status = 'open' ORDER BY title ASC",
+      "status = 'open' LIMIT 5 OFFSET 'x'"
+    ]) {
+      await assert.rejects(
+        () => this.op("Sync.Pull", { scopes: [{ model: "Test/Note", query }] }),
+        /LIMIT|ORDER|OFFSET/i
+      );
+      await assert.rejects(
+        () => this.op("Sync.Snapshot", { scope: { model: "Test/Note", query } }),
+        /LIMIT|ORDER|OFFSET/i
+      );
     }
   }
 

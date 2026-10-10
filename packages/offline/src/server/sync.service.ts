@@ -367,6 +367,10 @@ export class SyncService extends Service<SyncServiceParameters> {
       }
       assertFilterOnly(validator);
       assertNoPrivateFields(validator);
+      const parsed: any = validator.getQuery();
+      if (parsed.limit !== undefined || parsed.offset || parsed.orderBy?.length) {
+        throw new WebdaError.BadRequest("Scope query cannot contain LIMIT, OFFSET or ORDER BY");
+      }
       return { model: scope.model, query, validator };
     });
   }

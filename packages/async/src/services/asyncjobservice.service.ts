@@ -403,10 +403,10 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    */
   async listOperations(context: WebContext<void, { full?: boolean }>): Promise<void> {
     const filtered: typeof this.operations = JSONUtils.duplicate(this.operations);
-    // Filter operations based on permissions
-    Object.keys(filtered.operations)
-      .filter(key => filtered.operations[key].permission && !canCallOperation(context, key))
-      .forEach(key => delete filtered.operations[key]);
+    // Filter operations the caller may not call (session permission and authorizers, in probe mode)
+    const keys = Object.keys(filtered.operations);
+    const allowed = await Promise.all(keys.map(key => canCallOperation(context, key)));
+    keys.filter((_key, i) => !allowed[i]).forEach(key => delete filtered.operations[key]);
 
     // Remove permission definition
     Object.values(filtered.operations)
@@ -453,18 +453,25 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     if (!operation) {
       throw new WebdaError.NotFound(`${operationId} Unknown`);
     }
-    if (!canCallOperation(context, operationId)) {
+    // Probe first so a forbidden operation answers Forbidden before any input validation
+    if (!(await canCallOperation(context, operationId))) {
       throw new WebdaError.Forbidden(`${operationId} PermissionDenied`);
     }
+    let input: any;
     if (operation.input && operation.input !== "void") {
+      input = await context.getInput();
       try {
-        validateSchema(operation.input, await context.getInput());
+        validateSchema(operation.input, input);
       } catch (err) {
         if (err instanceof ValidationError) {
           throw new WebdaError.BadRequest(`${operationId} InvalidInput ${err.message}`);
         }
         throw err;
       }
+    }
+    // Exact check on the validated input
+    if (!(await canCallOperation(context, operationId, { input }))) {
+      throw new WebdaError.Forbidden(`${operationId} PermissionDenied`);
     }
   }
 

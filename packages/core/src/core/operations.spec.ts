@@ -9,8 +9,13 @@ import {
   RestParameters,
   GrpcParameters,
   GraphQLParameters,
-  canCallOperation
+  canCallOperation,
+  registerOperationAuthorizer,
+  unregisterOperationAuthorizer,
+  listOperationAuthorizers,
+  useCoreEvents
 } from "../index.js";
+import * as WebdaError from "../errors/errors.js";
 import type { OperationDefinition } from "../index.js";
 import { WebdaApplicationTest } from "../test/index.js";
 import { TestApplication } from "../test/objects.js";
@@ -804,10 +809,109 @@ class CallOperationReturnValueTest extends WebdaApplicationTest {
     await ctx.init();
     const session = new Session();
     ctx.setSession(session);
-    assert.strictEqual(canCallOperation(ctx, "ReturnSvc.Guarded"), false);
+    assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.Guarded"), false);
     session.login("alice", "alice");
-    assert.strictEqual(canCallOperation(ctx, "ReturnSvc.Guarded"), true);
-    assert.strictEqual(canCallOperation(ctx, "ReturnSvc.DoesNotExist"), false);
+    assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.Guarded"), true);
+    assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.DoesNotExist"), false);
+  }
+
+  @test
+  async authorizersGateCallOperation() {
+    const authzSchema = { type: "object", properties: { amount: { type: "number" } } };
+    useApplication<Application>().getSchemas()["authz.input"] = authzSchema;
+    registerSchema("authz.input", authzSchema);
+    registerOperation("ReturnSvc.Authorized", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "authz.input",
+      output: "void"
+    } as any);
+    const calls: any[] = [];
+    const before: string[] = [];
+    const off = useCoreEvents("Webda.BeforeOperation", evt => {
+      before.push(evt.operationId);
+    });
+    const authorizer = async (_ctx, operationId, _operation, options) => {
+      calls.push({ operationId, ...options });
+      return options.input?.amount < 10 ? true : "too much";
+    };
+    registerOperationAuthorizer(authorizer);
+    try {
+      assert.ok(listOperationAuthorizers().includes(authorizer));
+      const refused = new FakeOpContext();
+      refused.setInput(JSON.stringify({ amount: 50 }));
+      await refused.init();
+      await assert.rejects(() => callOperation(refused, "ReturnSvc.Authorized"), WebdaError.Forbidden);
+      assert.deepStrictEqual(calls[0], { operationId: "ReturnSvc.Authorized", input: { amount: 50 }, probe: false });
+      assert.deepStrictEqual(before, [], "BeforeOperation must not fire for a refused operation");
+      const allowed = new FakeOpContext();
+      allowed.setInput(JSON.stringify({ amount: 5 }));
+      await allowed.init();
+      await callOperation(allowed, "ReturnSvc.Authorized");
+      assert.deepStrictEqual(before, ["ReturnSvc.Authorized"]);
+    } finally {
+      unregisterOperationAuthorizer(authorizer);
+      off();
+    }
+    assert.ok(!listOperationAuthorizers().includes(authorizer));
+  }
+
+  @test
+  async authorizerErrors() {
+    registerOperation("ReturnSvc.Throwing", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void"
+    } as any);
+    let error: Error = new Error("boom");
+    const authorizer = async () => {
+      throw error;
+    };
+    registerOperationAuthorizer(authorizer);
+    try {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      // A plain error is a refusal (fail closed)
+      await assert.rejects(() => callOperation(ctx, "ReturnSvc.Throwing"), WebdaError.Forbidden);
+      // An HttpError propagates as is
+      error = new WebdaError.BadRequest("bad policy");
+      await assert.rejects(() => callOperation(ctx, "ReturnSvc.Throwing"), WebdaError.BadRequest);
+      // canCallOperation never throws
+      assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.Throwing", { input: undefined }), false);
+    } finally {
+      unregisterOperationAuthorizer(authorizer);
+    }
+  }
+
+  @test
+  async canCallOperationModes() {
+    registerOperation("ReturnSvc.Modes", {
+      service: "ReturnSvc",
+      method: "getString",
+      input: "void",
+      output: "void"
+    } as any);
+    const seen: any[] = [];
+    const authorizer = async (_ctx, _id, _op, options) => {
+      seen.push(options);
+      return true as const;
+    };
+    registerOperationAuthorizer(authorizer);
+    try {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.Modes"), true);
+      assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.Modes", { input: { a: 1 } }), true);
+      assert.strictEqual(await canCallOperation(ctx, "ReturnSvc.Modes", {}), true);
+      assert.deepStrictEqual(seen, [
+        { input: undefined, probe: true },
+        { input: { a: 1 }, probe: false },
+        { input: undefined, probe: false }
+      ]);
+    } finally {
+      unregisterOperationAuthorizer(authorizer);
+    }
   }
 
   @test

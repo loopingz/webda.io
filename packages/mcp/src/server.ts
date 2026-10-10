@@ -1,4 +1,4 @@
-import { canCallOperation, Session, WebdaError } from "@webda/core";
+import { canCallOperation, Session, SimpleOperationContext, WebdaError } from "@webda/core";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import {
@@ -96,12 +96,17 @@ export function createMcpServer(options: McpServerOptions): Server {
       ...(resources ? { resources: { listChanged: false, subscribe: false } } : {})
     }
   });
-  const allowed = (session: Session, operationId: string) => canCallOperation(sessionContext(session), operationId);
+  // One context per request: authorizers (such as IAM) cache the caller's user on it across a listing
+  const allowed = (context: SimpleOperationContext, operationId: string): Promise<boolean> =>
+    canCallOperation(context, operationId);
 
   server.setRequestHandler(ListToolsRequestSchema, async (request, extra) => {
     options.beforeRequest?.();
     const session = options.getSession(extra);
-    const visible = tools.list().filter(e => allowed(session, e.operationId));
+    const all = tools.list();
+    const context = sessionContext(session);
+    const flags = await Promise.all(all.map(e => allowed(context, e.operationId)));
+    const visible = all.filter((_e, i) => flags[i]);
     const offset = Number(request.params?.cursor ?? 0) || 0;
     const page = visible.slice(offset, offset + TOOLS_PAGE_SIZE);
     const next = offset + TOOLS_PAGE_SIZE < visible.length ? String(offset + TOOLS_PAGE_SIZE) : undefined;
@@ -112,7 +117,7 @@ export function createMcpServer(options: McpServerOptions): Server {
     options.beforeRequest?.();
     const session = options.getSession(extra);
     const entry = tools.get(request.params.name);
-    if (!entry || !allowed(session, entry.operationId)) {
+    if (!entry || !(await allowed(sessionContext(session), entry.operationId))) {
       throw new McpError(ErrorCode.InvalidParams, `Unknown tool: ${request.params.name}`);
     }
     const args = request.params.arguments ?? {};
@@ -166,7 +171,10 @@ export function createMcpServer(options: McpServerOptions): Server {
       throw new McpError(RESOURCE_NOT_FOUND, "Resource not found", { uri: request.params.uri });
     }
     try {
-      const { value } = await runOperation(match.model.getOperationId, { session: options.getSession(extra), input: match.key });
+      const { value } = await runOperation(match.model.getOperationId, {
+        session: options.getSession(extra),
+        input: match.key
+      });
       const cut = truncateUtf8(JSON.stringify(value ?? null), options.maxOutputBytes);
       const text = cut.truncated
         ? `${cut.text}\n[output truncated: ${cut.bytes} bytes exceeds maxOutputBytes ${options.maxOutputBytes}]`
@@ -180,7 +188,12 @@ export function createMcpServer(options: McpServerOptions): Server {
   server.setRequestHandler(ListResourcesRequestSchema, async (request, extra) => {
     options.beforeRequest?.();
     const session = options.getSession(extra);
-    const listable = resources.models().filter(m => m.queryOperationId && allowed(session, m.queryOperationId));
+    const models = resources.models();
+    const context = sessionContext(session);
+    const flags = await Promise.all(
+      models.map(m => (m.queryOperationId ? allowed(context, m.queryOperationId) : Promise.resolve(false)))
+    );
+    const listable = models.filter((_m, i) => flags[i]);
     const cursor = decodeCursor(request.params?.cursor);
     const index = cursor ? listable.findIndex(m => m.name === cursor.model) : 0;
     if (index < 0) {

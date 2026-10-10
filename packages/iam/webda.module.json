@@ -1,0 +1,549 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/IAMService": {
+      "Import": "lib/iam.service:IAMService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "PolicyDocument": {
+            "additionalProperties": false,
+            "description": "An IAM policy document",
+            "properties": {
+              "description": {
+                "description": "Human description",
+                "type": "string"
+              },
+              "name": {
+                "description": "Unique policy name",
+                "type": "string"
+              },
+              "statements": {
+                "description": "Statements of the policy",
+                "items": {
+                  "$ref": "#/definitions/PolicyStatement"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "name",
+              "statements"
+            ],
+            "type": "object"
+          },
+          "PolicyStatement": {
+            "additionalProperties": false,
+            "description": "One statement of a policy",
+            "properties": {
+              "condition": {
+                "description": "Casbin expression over `r.ctx`; omitted means always",
+                "type": "string"
+              },
+              "effect": {
+                "description": "Allow or deny: a matching deny wins",
+                "enum": [
+                  "allow",
+                  "deny"
+                ],
+                "type": "string"
+              },
+              "operations": {
+                "description": "Glob patterns on operation ids: \"Tasks.*\", \"*.Get\", \"*\"",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "sid": {
+                "description": "Optional statement identifier",
+                "type": "string"
+              }
+            },
+            "required": [
+              "effect",
+              "operations"
+            ],
+            "type": "object"
+          },
+          "Record<string, string[]>": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          }
+        },
+        "inheritdoc": true,
+        "properties": {
+          "attachments": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20string%5B%5D%3E",
+            "description": "Principal to policy names"
+          },
+          "policies": {
+            "description": "Policies defined in configuration (read-only)",
+            "items": {
+              "$ref": "#/definitions/PolicyDocument"
+            },
+            "type": "array"
+          },
+          "reloadDelay": {
+            "default": 100,
+            "description": "Debounce of a rebuild after a model change, in ms",
+            "type": "number"
+          },
+          "reloadInterval": {
+            "default": 300,
+            "description": "Periodic rebuild, in seconds; 0 disables",
+            "type": "number"
+          },
+          "scope": {
+            "default": [
+              "*"
+            ],
+            "description": "Operation id globs governed by IAM",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "attachments",
+          "policies",
+          "type"
+        ],
+        "type": "object",
+        "title": "IAMService"
+      },
+      "Configuration": "lib/iam.service:IAMServiceParameters"
+    }
+  },
+  "models": {
+    "Webda/IAMPolicy": {
+      "Plural": "IAMPolicies",
+      "Import": "lib/iampolicy.model:IAMPolicy",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "statements": {
+          "type": "Array",
+          "typeParameters": [
+            "PolicyStatement"
+          ]
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "IAMPolicies",
+          "additionalProperties": false,
+          "definitions": {
+            "PolicyStatement": {
+              "additionalProperties": false,
+              "description": "One statement of a policy",
+              "properties": {
+                "condition": {
+                  "description": "Casbin expression over `r.ctx`; omitted means always",
+                  "type": "string"
+                },
+                "effect": {
+                  "description": "Allow or deny: a matching deny wins",
+                  "enum": [
+                    "allow",
+                    "deny"
+                  ],
+                  "type": "string"
+                },
+                "operations": {
+                  "description": "Glob patterns on operation ids: \"Tasks.*\", \"*.Get\", \"*\"",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "sid": {
+                  "description": "Optional statement identifier",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "effect",
+                "operations"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "IAM policy managed at runtime\n\nIts operations are always governed by the IAMService: the class allows them only while IAM is enforcing",
+          "properties": {
+            "description": {
+              "description": "Human description",
+              "type": "string"
+            },
+            "name": {
+              "description": "Unique policy name",
+              "type": "string"
+            },
+            "statements": {
+              "description": "Statements of the policy",
+              "items": {
+                "$ref": "#/definitions/PolicyStatement"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "name",
+            "statements"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "IAMPolicies",
+          "additionalProperties": false,
+          "definitions": {
+            "PolicyStatement": {
+              "additionalProperties": false,
+              "description": "One statement of a policy",
+              "properties": {
+                "condition": {
+                  "description": "Casbin expression over `r.ctx`; omitted means always",
+                  "type": "string"
+                },
+                "effect": {
+                  "description": "Allow or deny: a matching deny wins",
+                  "enum": [
+                    "allow",
+                    "deny"
+                  ],
+                  "type": "string"
+                },
+                "operations": {
+                  "description": "Glob patterns on operation ids: \"Tasks.*\", \"*.Get\", \"*\"",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "sid": {
+                  "description": "Optional statement identifier",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "effect",
+                "operations"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "IAM policy managed at runtime\n\nIts operations are always governed by the IAMService: the class allows them only while IAM is enforcing",
+          "properties": {
+            "description": {
+              "description": "Human description",
+              "type": "string"
+            },
+            "name": {
+              "description": "Unique policy name",
+              "type": "string"
+            },
+            "statements": {
+              "description": "Statements of the policy",
+              "items": {
+                "$ref": "#/definitions/PolicyStatement"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "name",
+            "statements"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "IAMPolicies",
+          "additionalProperties": false,
+          "definitions": {
+            "PolicyStatement": {
+              "additionalProperties": false,
+              "description": "One statement of a policy",
+              "properties": {
+                "condition": {
+                  "description": "Casbin expression over `r.ctx`; omitted means always",
+                  "type": "string"
+                },
+                "effect": {
+                  "description": "Allow or deny: a matching deny wins",
+                  "enum": [
+                    "allow",
+                    "deny"
+                  ],
+                  "type": "string"
+                },
+                "operations": {
+                  "description": "Glob patterns on operation ids: \"Tasks.*\", \"*.Get\", \"*\"",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "sid": {
+                  "description": "Optional statement identifier",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "effect",
+                "operations"
+              ],
+              "type": "object"
+            }
+          },
+          "description": "IAM policy managed at runtime\n\nIts operations are always governed by the IAMService: the class allows them only while IAM is enforcing",
+          "properties": {
+            "description": {
+              "description": "Human description",
+              "type": "string"
+            },
+            "name": {
+              "description": "Unique policy name",
+              "type": "string"
+            },
+            "statements": {
+              "description": "Statements of the policy",
+              "items": {
+                "$ref": "#/definitions/PolicyStatement"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "name",
+            "statements"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "name"
+      ],
+      "Identifier": "Webda/IAMPolicy"
+    },
+    "Webda/IAMPolicyAttachment": {
+      "Plural": "IAMPolicyAttachments",
+      "Import": "lib/iampolicyattachment.model:IAMPolicyAttachment",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "principal": {
+          "type": "string"
+        },
+        "policy": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "IAMPolicyAttachments",
+          "additionalProperties": false,
+          "description": "Attachment of a policy to a principal\n\nIts operations are always governed by the IAMService: the class allows them only while IAM is enforcing",
+          "properties": {
+            "policy": {
+              "description": "Name of a configuration or model policy",
+              "type": "string"
+            },
+            "principal": {
+              "description": "`user:<uuid>`, `group:<name>`, `authenticated` or `anonymous`",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "policy",
+            "principal",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "IAMPolicyAttachments",
+          "additionalProperties": false,
+          "description": "Attachment of a policy to a principal\n\nIts operations are always governed by the IAMService: the class allows them only while IAM is enforcing",
+          "properties": {
+            "policy": {
+              "description": "Name of a configuration or model policy",
+              "type": "string"
+            },
+            "principal": {
+              "description": "`user:<uuid>`, `group:<name>`, `authenticated` or `anonymous`",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "policy",
+            "principal",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "IAMPolicyAttachments",
+          "additionalProperties": false,
+          "description": "Attachment of a policy to a principal\n\nIts operations are always governed by the IAMService: the class allows them only while IAM is enforcing",
+          "properties": {
+            "policy": {
+              "description": "Name of a configuration or model policy",
+              "type": "string"
+            },
+            "principal": {
+              "description": "`user:<uuid>`, `group:<name>`, `authenticated` or `anonymous`",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "policy",
+            "principal",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/IAMPolicyAttachment"
+    }
+  },
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    }
+  },
+  "behaviors": {}
+}

@@ -42,22 +42,121 @@ function checkOperationPermission(
 }
 
 /**
- * Check whether the context's session is allowed to call an operation
+ * An awaited check run on every operation call, after input validation and before `Webda.BeforeOperation`
  *
- * Unlike {@link checkOperation}, this never throws: unknown operations and
- * permission queries that cannot be evaluated return false.
+ * Return `true` to allow; anything else refuses (the reason is logged, never sent to the client). Throwing a
+ * `WebdaError.HttpError` propagates it; any other error is a refusal.
+ *
+ * In probe mode (`probe: true`, `input` undefined) the question is "could the caller call the operation with some
+ * input?", used to list operations.
+ */
+export type OperationAuthorizer = (
+  context: OperationContext,
+  operationId: string,
+  operation: OperationDefinition,
+  options: { input?: any; probe: boolean }
+) => Promise<true | string | false>;
+
+/**
+ * @returns the authorizers of the current instance
+ */
+function useAuthorizers(): Set<OperationAuthorizer> {
+  const storage = useInstanceStorage();
+  storage.operationAuthorizers ??= new Set();
+  return storage.operationAuthorizers as Set<OperationAuthorizer>;
+}
+
+/**
+ * Register an operation authorizer
+ * @param fn - the authorizer
+ */
+export function registerOperationAuthorizer(fn: OperationAuthorizer): void {
+  useAuthorizers().add(fn);
+}
+
+/**
+ * Unregister an operation authorizer
+ * @param fn - the authorizer
+ */
+export function unregisterOperationAuthorizer(fn: OperationAuthorizer): void {
+  useAuthorizers().delete(fn);
+}
+
+/**
+ * @returns the registered operation authorizers
+ */
+export function listOperationAuthorizers(): OperationAuthorizer[] {
+  return [...useAuthorizers()];
+}
+
+/**
+ * Run every authorizer; the first refusal wins
+ * @param context - the execution context
+ * @param operationId - the operation identifier
+ * @param operation - the operation definition
+ * @param options - input and probe mode
+ * @param options.input - the operation input
+ * @param options.probe - true to ask whether some input could be allowed
+ * @returns true when every authorizer allows, otherwise the refusal reason
+ * @throws WebdaError.HttpError thrown by an authorizer
+ */
+async function runAuthorizers(
+  context: OperationContext,
+  operationId: string,
+  operation: OperationDefinition,
+  options: { input?: any; probe: boolean }
+): Promise<true | string> {
+  for (const authorizer of useAuthorizers()) {
+    let allowed: true | string | false;
+    try {
+      allowed = await authorizer(context, operationId, operation, options);
+    } catch (err) {
+      if (err instanceof WebdaError.HttpError) {
+        throw err;
+      }
+      useLog("WARN", `Operation authorizer failed on ${operationId}`, err);
+      return err?.message ?? "authorizer error";
+    }
+    if (allowed !== true) {
+      return typeof allowed === "string" ? allowed : "refused";
+    }
+  }
+  return true;
+}
+
+/**
+ * Check whether the context is allowed to call an operation: the session `permission` then the authorizers
+ *
+ * Unlike {@link checkOperation}, this never throws: unknown operations, refusals and errors return false.
+ *
+ * Without `options` the authorizers are asked in probe mode ("could the caller call it with some input?"), for
+ * listings. With `options`, they decide on `options.input` exactly.
  *
  * @param context - the execution context holding the session
  * @param operationId - the operation identifier
- * @returns true if the operation exists and its permission (if any) accepts the session
+ * @param options - the operation input for an exact check
+ * @param options.input - the operation input
+ * @returns true if the operation exists and is allowed
  */
-export function canCallOperation(context: OperationContext, operationId: string): boolean {
+export async function canCallOperation(
+  context: OperationContext,
+  operationId: string,
+  options?: { input?: any }
+): Promise<boolean> {
   const operation = useInstanceStorage().operations[operationId];
   if (!operation) {
     return false;
   }
   try {
-    return checkOperationPermission(context, operationId, operation);
+    if (!checkOperationPermission(context, operationId, operation)) {
+      return false;
+    }
+    return (
+      (await runAuthorizers(context, operationId, operation, {
+        input: options?.input,
+        probe: options === undefined
+      })) === true
+    );
   } catch {
     return false;
   }
@@ -295,6 +394,7 @@ function coerceMergedToSchema(schema: any, merged: Record<string, any>): void {
  * @param operationId - the operation identifier
  */
 async function checkOperation(context: OperationContext, operationId: string) {
+  context.setExtension("operationResolvedInput", undefined);
   const operations = useInstanceStorage().operations;
   if (!checkOperationPermission(context, operationId, operations[operationId])) {
     throw new WebdaError.Forbidden(`${operationId} PermissionDenied`);
@@ -343,6 +443,14 @@ async function checkOperation(context: OperationContext, operationId: string) {
       });
     }
     throw err;
+  }
+  const authorized = await runAuthorizers(context, operationId, operations[operationId], {
+    input: context.getExtension("operationResolvedInput"),
+    probe: false
+  });
+  if (authorized !== true) {
+    useLog("DEBUG", `Operation ${operationId} refused by an authorizer`, authorized);
+    throw new WebdaError.Forbidden(`${operationId} PermissionDenied`);
   }
 }
 

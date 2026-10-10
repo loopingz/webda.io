@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { registerOperation, Session, useApplication, useInstanceStorage } from "@webda/core";
+import { registerOperation, registerOperationAuthorizer, Session, unregisterOperationAuthorizer, useApplication, useInstanceStorage } from "@webda/core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { BrokenModel, GadgetModel, WideModel, McpFixtureTest, registerFixture } from "../test/fixture.js";
@@ -41,6 +41,21 @@ class McpServerTest extends McpFixtureTest {
     assert.ok(!anonymous.includes("Fixture.NoMcp"));
     const alice = (await (await this.connect("alice")).listTools()).tools.map(t => t.name);
     assert.ok(alice.includes("Fixture.Secret"));
+  }
+
+  @test
+  async listsToolsFilteredByAuthorizers() {
+    const authorizer = async (_ctx, operationId) => operationId !== "Fixture.Echo";
+    registerOperationAuthorizer(authorizer as any);
+    try {
+      const client = await this.connect();
+      const names = (await client.listTools()).tools.map(t => t.name);
+      assert.ok(!names.includes("Fixture.Echo"));
+      assert.ok(names.includes("Fixture.Version"));
+      await assert.rejects(() => client.callTool({ name: "Fixture.Echo", arguments: { text: "hi" } }), /Unknown tool/);
+    } finally {
+      unregisterOperationAuthorizer(authorizer as any);
+    }
   }
 
   @test

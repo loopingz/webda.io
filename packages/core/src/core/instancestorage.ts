@@ -21,6 +21,8 @@ export type InstanceStorage = Partial<{
   router: IRouter;
   // Interruptable process
   interruptables: Set<{ cancel: () => Promise<void> }>;
+  // Awaited operation authorizers (see registerOperationAuthorizer)
+  operationAuthorizers: Set<(...args: any[]) => Promise<any>>;
 }>;
 
 // Test are transpiling and creating several instances of 'instancestorage.ts'
@@ -54,6 +56,7 @@ export function runWithInstanceStorage(instanceStorage: InstanceStorage = {}, fn
       contextProviders: [],
       router: undefined,
       interruptables: new Set(),
+      operationAuthorizers: new Set(),
       ...instanceStorage
     },
     fn

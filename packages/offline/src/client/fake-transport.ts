@@ -104,7 +104,20 @@ export class FakeServer implements Transport {
         this.serverWrite(m.ref.model, m.ref.key, m.patch);
       } else if (m.op === "patch") {
         if (!current || current.rev !== m.baseRev) return conflict();
-        this.serverWrite(m.ref.model, m.ref.key, applyDelta(current.object, m.patch));
+        let next: any;
+        try {
+          next = applyDelta(current.object, m.patch);
+        } catch {
+          next = null;
+        }
+        if (next === null || next === undefined) {
+          return {
+            mutationId: m.mutationId,
+            status: "rejected",
+            error: { code: "INVALID", message: "Patch removes the object" }
+          };
+        }
+        this.serverWrite(m.ref.model, m.ref.key, next);
       } else {
         if (!current) return { mutationId: m.mutationId, status: "ok", rev: 0 };
         if (current.rev !== m.baseRev) return conflict();

@@ -47,8 +47,7 @@ export class Collection<T = any> {
         ...existing,
         current: object,
         state: "dirty",
-        pendingMutationId: undefined,
-        sent: undefined,
+        // pendingMutationId / sent are kept: the delete may be in flight or already applied, its result must still be matched
         error: undefined
       };
     } else {

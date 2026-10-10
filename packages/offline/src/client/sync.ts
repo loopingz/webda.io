@@ -1,11 +1,12 @@
 import { diff, merge3 } from "@webda/versioning";
-import { refId, type Mutation, type SyncedObject, type SyncRef } from "../protocol/index.js";
+import { refId, type Mutation, type MutationResult, type SyncedObject, type SyncRef } from "../protocol/index.js";
 import type { OfflineClient } from "./client.js";
 import { rebase } from "./conflicts.js";
 import { clone, deepEqual, type LocalRecord } from "./record.js";
 
 const PUSH_BATCH = 100;
 const PUSH_ROUNDS = 3;
+const REBASE_RETRIES = 3;
 
 /**
  * Push / pull / resync logic of an OfflineClient
@@ -31,9 +32,10 @@ export class SyncEngine {
   protected mutation(record: LocalRecord): Mutation {
     const base = { mutationId: record.pendingMutationId!, ref: record.ref, baseRev: record.baseRev };
     // Never confirmed by the server: always a create, whatever the local state
-    if (record.base === null) return { ...base, op: "create", baseRev: 0, patch: record.current };
-    if (record.state === "deleted") return { ...base, op: "delete" };
-    return { ...base, op: "patch", patch: diff(record.base, record.current, this.client.options.versioning) };
+    // Always built from `sent`: a retry carries the exact payload the mutation id was first used with
+    if (record.base === null) return { ...base, op: "create", baseRev: 0, patch: record.sent };
+    if (record.sent === null) return { ...base, op: "delete" };
+    return { ...base, op: "patch", patch: diff(record.base, record.sent, this.client.options.versioning) };
   }
 
   /**
@@ -48,8 +50,10 @@ export class SyncEngine {
         const batch = pending.slice(i, i + PUSH_BATCH);
         // Persist the mutation ids before sending: a retry after a lost response reuses them
         for (const record of batch) {
-          record.pendingMutationId ??= globalThis.crypto.randomUUID();
-          record.sent = clone(record.current);
+          if (record.pendingMutationId === undefined) {
+            record.pendingMutationId = globalThis.crypto.randomUUID();
+            record.sent = clone(record.current);
+          }
         }
         await this.storage.putRecords(batch);
         const res = await this.transport.push({ mutations: batch.map(r => this.mutation(r)) });
@@ -71,32 +75,35 @@ export class SyncEngine {
    * @param result - the server answer
    * @returns true when the record needs another push
    */
-  protected async settle(record: LocalRecord, result: any): Promise<boolean> {
+  protected async settle(record: LocalRecord, result: MutationResult): Promise<boolean> {
+    // Settled or discarded meanwhile
+    if (record.pendingMutationId !== result.mutationId) return false;
     const editedMeanwhile = !deepEqual(record.current, record.sent);
     if (result.status === "ok") {
-      if (record.state === "deleted" && !editedMeanwhile) {
-        await this.storage.deleteRecords([record.id]);
-        return false;
+      const settled = { pendingMutationId: undefined, sent: undefined, error: undefined };
+      if (record.sent === null) {
+        // A delete was acknowledged
+        if (record.current === null) {
+          await this.storage.deleteRecords([record.id]);
+          return false;
+        }
+        // Re-created while the delete was in flight: a new object for the server
+        await this.storage.putRecords([{ ...record, ...settled, base: null, baseRev: 0, state: "created" }]);
+        return true;
       }
       const server = result.object ?? record.sent;
+      if (editedMeanwhile && record.current === null) {
+        // Deleted while the change was in flight: the delete is pushed next
+        await this.storage.putRecords([{ ...record, ...settled, base: server, baseRev: result.rev, state: "deleted" }]);
+        return true;
+      }
       let current = server;
       let state: LocalRecord["state"] = "synced";
       if (editedMeanwhile) {
         current = merge3(record.sent, record.current, server, this.client.options.versioning).merged;
         state = deepEqual(current, server) ? "synced" : "dirty";
       }
-      await this.storage.putRecords([
-        {
-          ...record,
-          base: server,
-          baseRev: result.rev,
-          current,
-          state,
-          pendingMutationId: undefined,
-          sent: undefined,
-          error: undefined
-        }
-      ]);
+      await this.storage.putRecords([{ ...record, ...settled, base: server, baseRev: result.rev, current, state }]);
       if (!deepEqual(current, record.current))
         this.client.notify({ ref: record.ref, object: clone(current), origin: "remote" });
       return false;
@@ -122,6 +129,7 @@ export class SyncEngine {
     const id = refId(synced.ref);
     seen?.add(id);
     const record = await this.storage.getRecord(id);
+    if (record && synced.rev < record.baseRev) return;
     if (!record || record.state === "synced") {
       if (record && record.baseRev === synced.rev && deepEqual(record.current, synced.object)) return;
       await this.storage.putRecords([
@@ -153,13 +161,19 @@ export class SyncEngine {
     theirs: any | null,
     theirsRev: number
   ): Promise<LocalRecord | null> {
-    const rebased = rebase(record, theirs, theirsRev, this.client.options.versioning);
-    if (rebased === null) {
-      await this.storage.deleteRecords([record.id]);
-      this.client.notify({ ref: record.ref, object: null, origin: "remote" });
-      return null;
+    let current = record;
+    for (let attempt = 0; ; attempt++) {
+      const last = attempt >= REBASE_RETRIES;
+      const rebased = rebase(current, theirs, theirsRev, this.client.options.versioning);
+      // The strategy may await (UI, network): the app can edit the record meanwhile
+      const out = await this.client.resolveStrategy(rebased, !last);
+      const stored = await this.storage.getRecord(current.id);
+      if (!last && stored && !deepEqual(stored.current, current.current)) {
+        current = stored;
+        continue;
+      }
+      return this.client.storeOutcome(rebased ?? current, out);
     }
-    return this.client.applyConflictStrategy(rebased);
   }
 
   /**
@@ -200,17 +214,23 @@ export class SyncEngine {
   async pull(): Promise<void> {
     const scopes = await this.client.getScopes();
     if (scopes.length === 0) return;
+    const epoch = (await this.storage.getMeta<number>("scopesEpoch")) ?? 0;
+    /** @returns true when setScopes ran since this pull started */
+    const changed = async () => ((await this.storage.getMeta<number>("scopesEpoch")) ?? 0) !== epoch;
     let cursor = (await this.storage.getMeta<string>("cursor")) ?? null;
     for (let page = 0; page < 10000; page++) {
       const res = await this.transport.pull({ scopes, cursor });
+      if (await changed()) return;
       if (res.resync) {
         await this.resync();
+        if (await changed()) return;
         cursor = res.cursor;
         await this.storage.setMeta("cursor", cursor);
         continue;
       }
       for (const synced of res.upserts) await this.upsert(synced);
       for (const ref of res.evicts) await this.evict(ref);
+      if (await changed()) return;
       cursor = res.cursor;
       await this.storage.setMeta("cursor", cursor);
       if (!res.hasMore) return;

@@ -131,8 +131,21 @@ export class OfflineClient extends Emitter<{
    * @param scopes - the new scopes
    */
   async setScopes(scopes: SyncScope[]): Promise<void> {
+    const kept = new Set(scopes.map(s => s.model));
+    const previous = await this.getScopes();
+    // Bump the epoch first: a running pull stops persisting its cursor
+    await this.storage.setMeta("scopesEpoch", ((await this.storage.getMeta<number>("scopesEpoch")) ?? 0) + 1);
     await this.storage.setMeta("scopes", scopes);
     await this.storage.setMeta("cursor", undefined);
+    // Synced records of models no scope covers any more are dropped, local changes are kept
+    for (const model of new Set(previous.map(s => s.model))) {
+      if (kept.has(model)) continue;
+      for (const record of await this.storage.scan(model)) {
+        if (record.state !== "synced") continue;
+        await this.storage.deleteRecords([record.id]);
+        this.notify({ ref: record.ref, object: null, origin: "remote" });
+      }
+    }
   }
 
   /**
@@ -177,16 +190,33 @@ export class OfflineClient extends Emitter<{
    * @returns the stored record, null when removed
    */
   async applyConflictStrategy(record: LocalRecord | null): Promise<LocalRecord | null> {
-    let out = record;
-    if (record?.state === "conflict") {
-      const info = this.info(record);
-      const resolutions = await strategyResolutions(this.options.onConflict, info);
-      if (resolutions === "defer") {
-        this.emit("conflict", info);
-      } else {
-        out = settleConflict(record, resolutions);
-      }
+    return this.storeOutcome(record, await this.resolveStrategy(record));
+  }
+
+  /**
+   * Run the conflict strategy on a rebased record without storing anything
+   * @param record - the rebased record, null when it is to be removed
+   * @param apply - false skips the strategy (conflict stays open and is announced)
+   * @returns the record to store, null to remove it
+   */
+  async resolveStrategy(record: LocalRecord | null, apply: boolean = true): Promise<LocalRecord | null> {
+    if (record?.state !== "conflict") return record;
+    const info = this.info(record);
+    const resolutions = apply ? await strategyResolutions(this.options.onConflict, info) : "defer";
+    if (resolutions === "defer") {
+      this.emit("conflict", info);
+      return record;
     }
+    return settleConflict(record, resolutions);
+  }
+
+  /**
+   * Write the outcome of a rebase
+   * @param record - the rebased record (identifies the stored one)
+   * @param out - the record to store, null to remove
+   * @returns the stored record, null when removed
+   */
+  async storeOutcome(record: LocalRecord | null, out: LocalRecord | null): Promise<LocalRecord | null> {
     if (out === null) {
       if (record) {
         await this.storage.deleteRecords([record.id]);

@@ -32,26 +32,46 @@ export async function* parseSse(stream: ReadableStream<Uint8Array>): AsyncGenera
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  /**
+   * @param block - lines of one event, already normalized to \n
+   * @returns the event, undefined when it carries no data
+   */
+  const parse = (block: string): { event: string; data: string } | undefined => {
+    let event = "message";
+    const data: string[] = [];
+    for (const line of block.split("\n")) {
+      if (line.startsWith(":")) continue;
+      if (line.startsWith("event:")) event = line.substring(6).trim();
+      else if (line.startsWith("data:")) data.push(line.substring(5).trimStart());
+    }
+    return data.length ? { event, data: data.join("\n") } : undefined;
+  };
   try {
     while (true) {
       const { value, done } = await reader.read();
-      if (done) return;
+      if (done) {
+        // Flush the decoder and a last event the server did not terminate
+        buffer = (buffer + decoder.decode()).replace(/\r\n?/g, "\n");
+        const last = parse(buffer);
+        if (last) yield last;
+        return;
+      }
       buffer += decoder.decode(value, { stream: true });
+      // A trailing \r may be the first half of a \r\n split across chunks
+      const held = buffer.endsWith("\r") ? "\r" : "";
+      buffer = buffer.substring(0, buffer.length - held.length).replace(/\r\n?/g, "\n");
       let index: number;
       while ((index = buffer.indexOf("\n\n")) >= 0) {
         const block = buffer.substring(0, index);
         buffer = buffer.substring(index + 2);
-        let event = "message";
-        const data: string[] = [];
-        for (const line of block.split("\n")) {
-          if (line.startsWith(":")) continue;
-          if (line.startsWith("event:")) event = line.substring(6).trim();
-          else if (line.startsWith("data:")) data.push(line.substring(5).trimStart());
-        }
-        if (data.length) yield { event, data: data.join("\n") };
+        const parsed = parse(block);
+        if (parsed) yield parsed;
       }
+      buffer += held;
     }
   } finally {
+    // Stop the underlying connection when the consumer leaves early
+    await reader.cancel().catch(() => {});
     reader.releaseLock();
   }
 }

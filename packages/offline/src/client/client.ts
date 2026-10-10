@@ -176,6 +176,8 @@ export class OfflineClient extends Emitter<{
   protected failures = 0;
   protected watchAbort?: AbortController;
   protected stopped = true;
+  protected starting?: Promise<void>;
+  protected generation = 0;
   protected onlineListener = () => void this.run();
 
   /**
@@ -216,13 +218,22 @@ export class OfflineClient extends Emitter<{
   }
 
   /**
-   * Initial sync, then the timer, `online` events and watch hints
+   * Initial sync, then the timer, `online` events and watch hints; concurrent calls share one start
    */
-  async start(): Promise<void> {
-    this.stop();
-    this.stopped = false;
+  start(): Promise<void> {
+    if (!this.starting) {
+      this.stopped = false;
+      this.starting = this.doStart(this.generation);
+    }
+    return this.starting;
+  }
+
+  /**
+   * @param generation - start generation, stale once stop() was called
+   */
+  protected async doStart(generation: number): Promise<void> {
     await this.run();
-    if (this.stopped) return;
+    if (generation !== this.generation) return;
     if (this.options.syncInterval > 0) {
       this.timer = setInterval(() => void this.run(), this.options.syncInterval);
     }
@@ -267,6 +278,8 @@ export class OfflineClient extends Emitter<{
    */
   stop(): void {
     this.stopped = true;
+    this.generation++;
+    this.starting = undefined;
     clearInterval(this.timer);
     clearTimeout(this.retryTimer);
     this.watchAbort?.abort();

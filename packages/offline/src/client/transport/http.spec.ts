@@ -76,4 +76,82 @@ describe("HttpTransport", () => {
     for await (const hint of transport.watch({ scopes: [] }, new AbortController().signal)) hints.push(hint);
     expect(hints).toEqual([{ cursor: "9" }]);
   });
+
+  it("parses CRLF and CR line endings and multi-line data", async () => {
+    const events = [];
+    for await (const e of parseSse(stream("data: a\r\ndata: b\r\n\r\nevent: x\rdata: c\r\r: note\r\n\r\n"))) {
+      events.push(e);
+    }
+    expect(events).toEqual([
+      { event: "message", data: "a\nb" },
+      { event: "x", data: "c" }
+    ]);
+  });
+
+  it("flushes a trailing event without blank line", async () => {
+    const events = [];
+    for await (const e of parseSse(stream('data: {"a":1}\n\nevent: error\ndata: boom'))) events.push(e);
+    expect(events).toEqual([
+      { event: "message", data: '{"a":1}' },
+      { event: "error", data: "boom" }
+    ]);
+  });
+
+  it("watch throws on an error event, even unterminated", async () => {
+    const transport = new HttpTransport({
+      baseUrl: "https://api.test",
+      fetch: (async () => new Response(stream('data: {"cursor":"1"}\n\nevent: error\ndata: {"m":1}'))) as any
+    });
+    const hints = [];
+    const run = async () => {
+      for await (const h of transport.watch({ scopes: [] }, new AbortController().signal)) hints.push(h);
+    };
+    await expect(run()).rejects.toBeInstanceOf(TransportError);
+    expect(hints).toEqual([{ cursor: "1" }]);
+  });
+
+  it("watch ends on abort", async () => {
+    const controller = new AbortController();
+    const transport = new HttpTransport({
+      baseUrl: "https://api.test",
+      fetch: (async (_u: string, init: any) => {
+        const body = new ReadableStream<Uint8Array>({
+          start(c) {
+            if (init.signal.aborted) return c.error(new Error("aborted"));
+            init.signal.addEventListener("abort", () => c.error(new Error("aborted")));
+          }
+        });
+        return new Response(body);
+      }) as any
+    });
+    const run = (async () => {
+      for await (const _h of transport.watch({ scopes: [] }, controller.signal)) {
+        // nothing
+      }
+    })();
+    controller.abort();
+    await expect(run).rejects.toThrow("aborted");
+  });
+
+  it("cancels the stream when the consumer stops early", async () => {
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(new TextEncoder().encode("data: 1\n\ndata: 2\n\n"));
+      },
+      cancel() {
+        cancelled = true;
+      }
+    });
+    for await (const _e of parseSse(body)) break;
+    expect(cancelled).toBe(true);
+  });
+
+  it("reports status and message of failures", async () => {
+    const transport = new HttpTransport({
+      baseUrl: "https://api.test",
+      fetch: (async () => new Response("nope", { status: 403 })) as any
+    });
+    await expect(transport.push({ mutations: [] })).rejects.toMatchObject({ status: 403, message: "nope" });
+  });
 });

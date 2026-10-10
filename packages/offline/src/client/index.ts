@@ -3,3 +3,7 @@ export * from "./record.js";
 export * from "./storage/storage.js";
 export * from "./storage/memory.js";
 export * from "./storage/indexeddb.js";
+export * from "./emitter.js";
+export * from "./transport/transport.js";
+export * from "./collection.js";
+export * from "./client.js";

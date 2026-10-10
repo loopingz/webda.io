@@ -1452,9 +1452,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     identifier: string
   ): Promise<AsyncIterator<any>> {
     const updatedCallback = eventName => async evt => {
-      if (uuid === null || evt.object_id !== uuid) return;
-      // We rely on the cache of the store to get the full object
-      // We let the other listeners finish before returning the object
+      // A class-wide subscription (uuid null) receives the events of every object of the model
+      if (uuid !== null && evt.object_id !== uuid) return;
       return { latestEventTime: Date.now(), [eventName]: evt };
     };
     const eventsMap = {};

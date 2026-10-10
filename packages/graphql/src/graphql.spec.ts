@@ -116,6 +116,10 @@ for (const model of [Teacher, Classroom, Course, Person, Company, Computer]) {
 }
 
 /**
+ * This store exists because `Core.getModelStoreCached` falls back to the Registry, whose `Service.authorizeClientEvent`
+ * returns false by default: model event subscriptions are refused in default applications (tracked as a follow-up,
+ * not fixed here).
+ *
  * The store of every model (the Registry: the core gives the events of a model to its fallback store): clients may
  * listen to the events of the models, except "ping" (the default store refuses them all)
  */
@@ -667,8 +671,10 @@ class GraphQLServiceTest extends WebdaApplicationTest {
             await Course.ref("test2").patch({ name: "test2b" } as any);
           } else if (i === 2) {
             assert.deepStrictEqual(names, ["test", "test2b"]);
-            // Matches the query so the results are computed again, the other one does not
+            // test3 matches the query so the results are computed again; test4 does not match: no event, and the
+            // next results (after the deletion below) do not hold it
             await Course.ref("test3").create({ name: "test3", value: 10 } as any);
+            await Course.ref("test4").create({ name: "test4", value: 1 } as any);
           } else if (i === 3) {
             assert.deepStrictEqual(names, ["test", "test2b", "test3"]);
             await Course.ref("test").delete();
@@ -746,14 +752,21 @@ class GraphQLServiceTest extends WebdaApplicationTest {
           return true;
         }
       });
-      // The class of objects only sends the events of an object it is given
+      // An object that does not exist cannot be listened to
       await assert.rejects(
         this.subscribe(client, `subscription { CourseEvents(uuid:"nope") { test } }`, () => true),
         (err: any) => (Array.isArray(err) ? err[0] : err).message === "Object not found"
       );
+      // The class of objects sends the subscribed events of every object, with the time of the latest one
+      const before = Date.now();
       await this.subscribe(client, `subscription { CoursesEvents { test2 latestEventTime } }`, async (data, i) => {
         if (i === 1) {
-          assert.ok(data.CoursesEvents);
+          // Not subscribed: nothing is sent for it
+          await emit("test", { object_id: "any", type: "unsubscribed" });
+          await emit("test2", { object_id: "another", type: "class" });
+        } else {
+          assert.deepStrictEqual(data.CoursesEvents.test2, { object_id: "another", type: "class" });
+          assert.ok(data.CoursesEvents.latestEventTime >= before);
           return true;
         }
       });
@@ -793,10 +806,11 @@ class GraphQLServiceTest extends WebdaApplicationTest {
       const fake = useService("Fake" as any) as any;
       await this.subscribe(client, `subscription { FakeEvents { test } }`, async (data, i) => {
         if (i === 1) {
-          setTimeout(() => fake.emit("test", { test: "test" }), 10);
+          // The service emits a payload that is not the event name
+          setTimeout(() => fake.emit("test", { test: { count: 3 }, other: "hidden" }), 10);
         } else {
-          // The payload of the event is the event type
-          assert.strictEqual(data.FakeEvents.test, "test");
+          // The emitted payload is the FakeEvents object: only the subscribed fields are selected from it
+          assert.deepStrictEqual(data.FakeEvents, { test: { count: 3 } });
           return true;
         }
       });

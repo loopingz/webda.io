@@ -118,6 +118,8 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
     this.failed = true;
     this.chunk = null;
     this.end(status, message);
+    // The response is over whatever the client does next: whoever feeds on this stream must stop
+    this.onCancelHandler?.();
   }
 
   /**

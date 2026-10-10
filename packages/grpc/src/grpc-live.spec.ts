@@ -12,7 +12,7 @@ import { HttpServer } from "@webda/core/lib/services/httpserver.service.js";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import { TestApplication } from "@webda/core/lib/test/objects.js";
 import { GRPC_FIXTURE_SERVICES, GrpcFixtureService, fixtureState, registerGrpcFixture } from "../test/fixture.js";
-import { GrpcOperationContext } from "./grpc-context.js";
+import { GrpcOperationContext, toGrpcMessage } from "./grpc-context.js";
 import { GrpcService } from "./grpcservice.service.js";
 
 const protoFile = join(mkdtempSync(join(tmpdir(), "grpc-live-")), "app.proto");
@@ -208,5 +208,104 @@ class GrpcLiveTest extends WebdaApplicationTest {
     ctx.cancel();
     assert.throws(() => ctx.write({ a: 2 }), WebdaError.OperationCancelledError);
     await assert.rejects(() => ctx.drained(), WebdaError.OperationCancelledError);
+  }
+
+  @test
+  async anOperationCancellationWithAConnectedClientEndsWithCancelled() {
+    const client = await this.connect();
+    const err: any = await new Promise(resolve => client.Abort({ text: "x" }, (e: Error) => resolve(e)));
+    assert.strictEqual(err.code, grpc.status.CANCELLED);
+  }
+
+  @test
+  async aStreamFailingMidCallEndsTheOperation() {
+    await this.connect();
+    fixtureState.connectClosed = false;
+    const http = useService("HttpServer" as any) as any;
+    const session = connect(`http://127.0.0.1:${http.server.address().port}`);
+    const request = session.request({
+      ":method": "POST",
+      ":path": "/webda.FixtureService/Connect",
+      "content-type": "application/grpc"
+    });
+    const received: Record<string, any> = {};
+    request.on("response", headers => Object.assign(received, headers));
+    request.on("trailers", trailers => Object.assign(received, trailers));
+    request.on("data", () => {});
+    const closed = new Promise(resolve => request.on("end", resolve)); // the response is over; the request side stays open
+    request.write(Buffer.from([0, 0, 0, 0, 3, 0x0a, 0x01, 0x61])); // { frame: "a" }
+    await new Promise(r => setTimeout(r, 100));
+    request.write(Buffer.from([1, 0, 0, 0, 0])); // compressed: the stream fails
+    await closed;
+    session.close();
+    assert.strictEqual(received["grpc-status"], String(grpc.status.UNIMPLEMENTED));
+    await until(() => fixtureState.connectClosed);
+  }
+
+  @test
+  async drainedLeavesNoListenerAndStopsWhenTheResponseIsOver() {
+    const response = new EventEmitter() as any;
+    const ctx = new GrpcOperationContext(
+      new HttpContext("localhost", "POST", "/x"),
+      { send: () => true } as any,
+      response
+    );
+    const baseline = ["drain", "close", "error"].map(name => response.listenerCount(name));
+    for (let i = 0; i < 25; i++) {
+      const wait = ctx.drained();
+      response.emit("drain");
+      await wait;
+    }
+    assert.deepStrictEqual(
+      ["drain", "close", "error"].map(name => response.listenerCount(name)),
+      baseline
+    );
+    const closing = ctx.drained();
+    response.destroyed = true;
+    response.emit("close");
+    await assert.rejects(() => closing, WebdaError.OperationCancelledError);
+    await assert.rejects(() => ctx.drained(), WebdaError.OperationCancelledError);
+    ctx.setExtension("operationStreaming", true);
+    assert.throws(() => ctx.write({ a: 1 }), WebdaError.OperationCancelledError);
+  }
+
+  @test
+  async drainedRejectsWithACancellationOnResponseError() {
+    const response = new EventEmitter() as any;
+    const ctx = new GrpcOperationContext(
+      new HttpContext("localhost", "POST", "/x"),
+      { send: () => true } as any,
+      response
+    );
+    const wait = ctx.drained();
+    response.emit("error", new Error("boom"));
+    await assert.rejects(() => wait, WebdaError.OperationCancelledError);
+  }
+
+  @test
+  messagesAreObjectsWithoutHiddenKeys() {
+    assert.deepStrictEqual(toGrpcMessage(3), { value: 3 });
+    assert.deepStrictEqual(toGrpcMessage("a"), { value: "a" });
+    assert.deepStrictEqual(toGrpcMessage([1]), { value: [1] });
+    assert.deepStrictEqual(toGrpcMessage({ a: 1, __b: 2, c: { __d: 1, e: 2 } }), { a: 1, c: { e: 2 } });
+    const sent: unknown[] = [];
+    const ctx = new GrpcOperationContext(
+      new HttpContext("localhost", "POST", "/x"),
+      { send: (m: unknown) => (sent.push(m), true) } as any,
+      new EventEmitter() as any
+    );
+    ctx.setExtension("operationStreaming", true);
+    ctx.write(7);
+    assert.deepStrictEqual(sent, [{ value: 7 }]);
+  }
+
+  @test
+  unaryResponsesAreWrapped() {
+    const service: any = Object.create(GrpcService.prototype);
+    assert.deepStrictEqual(service.unaryResponse(undefined), {});
+    assert.deepStrictEqual(service.unaryResponse(""), {});
+    assert.deepStrictEqual(service.unaryResponse('{"a":1,"__h":2}'), { a: 1 });
+    assert.deepStrictEqual(service.unaryResponse("12"), { value: 12 });
+    assert.deepStrictEqual(service.unaryResponse("not json"), { value: "not json" });
   }
 }

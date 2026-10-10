@@ -286,6 +286,11 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
       ctx.cancel();
       input.end();
     });
+    // Whatever ends the response (client gone, or the stream failing on a bad frame): stop the operation
+    res.on("close", () => {
+      ctx.cancel();
+      input.end();
+    });
     // The stream may fail itself (bad frame, ...): it then ends the response, nothing more must be written
     const finished = () => ctx.isCancelled || (res as any).writableEnded;
 
@@ -307,7 +312,12 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
         stream.sendUnary(this.unaryResponse(ctx.getOutput()));
       }
     } catch (err: any) {
-      if (err instanceof WebdaError.OperationCancelledError || finished()) return;
+      if (finished()) return;
+      if (err instanceof WebdaError.OperationCancelledError) {
+        // Raised by the operation itself while the client is still there
+        stream.sendError(GrpcStatus.CANCELLED, err.message || "Operation cancelled");
+        return;
+      }
       if (!(err?.getResponseCode?.() < 500)) useLog("ERROR", `[gRPC ${opId}] handler threw:`, err);
       stream.sendError(this.errorToGrpcStatus(err), err?.message || "Internal error");
     }

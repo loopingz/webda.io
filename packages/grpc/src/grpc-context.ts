@@ -79,16 +79,41 @@ export class GrpcOperationContext extends WebContext {
   // @ts-ignore same signature as WebContext.write
   public write(output: any, encoding?: string, cb?: (error: Error) => void): boolean {
     if (!this.getExtension("operationStreaming")) return super.write(output, encoding, cb);
-    if (this.cancelled) throw new WebdaError.OperationCancelledError();
+    this.assertAlive();
     return this.stream.send(toGrpcMessage(output));
   }
 
   /**
+   * @throws OperationCancelledError when the client went away or the response is over
+   */
+  private assertAlive(): void {
+    const response = this.response as { writableEnded?: boolean; destroyed?: boolean };
+    if (this.cancelled || response.writableEnded || response.destroyed) {
+      throw new WebdaError.OperationCancelledError();
+    }
+  }
+
+  /**
+   * Wait for the response buffer to empty, without leaving listeners behind
    * @override
    */
   async drained(): Promise<void> {
-    if (this.cancelled) throw new WebdaError.OperationCancelledError();
-    await Promise.race([once(this.response, "drain"), once(this.response, "close")]);
-    if (this.cancelled) throw new WebdaError.OperationCancelledError();
+    this.assertAlive();
+    const controller = new AbortController();
+    try {
+      await Promise.race([
+        once(this.response, "drain", { signal: controller.signal }),
+        once(this.response, "close", { signal: controller.signal }),
+        once(this.response, "error", { signal: controller.signal }).then(([error]) => {
+          throw error;
+        })
+      ]);
+    } catch (err) {
+      if (err instanceof WebdaError.OperationCancelledError) throw err;
+      throw new WebdaError.OperationCancelledError();
+    } finally {
+      controller.abort();
+    }
+    this.assertAlive();
   }
 }

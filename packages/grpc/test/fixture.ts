@@ -43,6 +43,15 @@ export class GrpcFixtureService extends Service {
   }
 
   /**
+   * An operation that raises a cancellation itself, the client being still there
+   * @param _text - unused
+   * @returns never
+   */
+  abort(_text: string): { text: string } {
+    throw new WebdaError.OperationCancelledError();
+  }
+
+  /**
    * Server stream gated after the first tick
    * @param n - ticks
    * @returns the ticks
@@ -118,6 +127,7 @@ export function registerGrpcFixture(): void {
   const op = (id: string, method: string, extra: any) =>
     registerOperation(id, { service: "Fixture", method, ...extra });
   op("Fixture.Echo", "echo", { input: "Fixture.Echo.input", output: "Fixture.Echo.output" });
+  op("Fixture.Abort", "abort", { input: "Fixture.Echo.input", output: "Fixture.Echo.output" });
   op("Fixture.Ticks", "ticks", { input: "Fixture.Ticks.input", output: "Fixture.Tick" });
   op("Fixture.Sum", "sum", { input: "Fixture.Value", output: "Fixture.Total" });
   op("Fixture.Connect", "connect", { input: "Fixture.Frame", output: "Fixture.FrameOut" });

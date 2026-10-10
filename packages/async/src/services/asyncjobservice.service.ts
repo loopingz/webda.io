@@ -337,6 +337,11 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @returns the job promise if any
    */
   protected async handleEvent(event: AsyncActionQueueItem): Promise<void> {
+    // Acknowledge events of deleted actions, throwing would leave the message in the queue forever
+    if (!(await this.model.ref(event.uuid).exists())) {
+      this.log("ERROR", `Action ${event.uuid} not found, skipping event`);
+      return;
+    }
     let selectedRunner;
     // Take first to acknowledge the job
     for (const runner of this.runners) {

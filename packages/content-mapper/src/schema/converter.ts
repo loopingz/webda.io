@@ -320,7 +320,16 @@ export class SchemaConverter {
       // accurate rather than best-effort.
       return KEEP;
     }
-    if (type.isClassOrInterface()) return this.objectLike(type, definition, path, typeName, node, depth);
+    if (type.isClassOrInterface()) {
+      // A class documented `@type string` (SecretString, Duration...) is
+      // written as that scalar in the configuration: its shape is irrelevant.
+      const scalar = this.scalarTypeTag(type);
+      if (scalar) {
+        definition.type = scalar.length === 1 ? scalar[0] : scalar;
+        return KEEP;
+      }
+      return this.objectLike(type, definition, path, typeName, node, depth);
+    }
     if (type.isUnionType()) return this.union(type, definition, path, node, depth);
     if (type.isIntersectionType()) return this.intersection(type, definition, path, depth);
     if (this.isArrayLike(type)) return this.array(type, definition, path, depth);
@@ -382,6 +391,26 @@ export class SchemaConverter {
       if (key === "schemaInherits") continue;
       (definition as Record<string, unknown>)[key] ??= value;
     }
+  }
+
+  /**
+   * The JSON types declared by a `@type` tag on the type's own declaration
+   *
+   * Only the leading type expression counts, so prose after it does not leak
+   * into the schema: `@type number | string` gives `["number", "string"]`.
+   * @param type - the class or interface type
+   * @returns the JSON types, or undefined when there is no valid `@type` tag
+   */
+  private scalarTypeTag(type: Type): string[] | undefined {
+    const tag = type
+      .getSymbol()
+      ?.getJsDocTags(this.checker)
+      .find(candidate => candidate.name === "type");
+    if (!tag?.text) return undefined;
+    const expression = /^\s*([a-z]+(?:\s*\|\s*[a-z]+)*)(?:\s|$)/.exec(tag.text);
+    if (!expression) return undefined;
+    const types = expression[1].split("|").map(part => part.trim());
+    return types.every(part => JSON_TYPES.includes(part)) ? types : undefined;
   }
 
   // -------------------------------------------------------------- objects --
@@ -1310,26 +1339,62 @@ function primitiveRank(type: Type): number | undefined {
 }
 
 /**
- * Whether a schema says nothing but `type`.
+ * Whether a schema says nothing but `type`, apart from annotations.
+ *
+ * Merging such branches into a `type` array drops their annotations, which
+ * documented the member types rather than the property.
  * @param schema - the schema to test
- * @returns true when `type` is its only keyword
+ * @returns true when `type` is its only constraining keyword
  */
 function isBareType(schema: JSONSchema7): boolean {
-  return Object.keys(schema).length === 1 && schema.type !== undefined;
+  const keys = Object.keys(withoutAnnotations(schema));
+  return keys.length === 1 && schema.type !== undefined;
+}
+
+/** The JSON Schema primitive types a `@type` tag can declare. */
+const JSON_TYPES = ["string", "number", "integer", "boolean", "null", "object", "array"];
+
+/**
+ * Keywords that document a schema without constraining it.
+ *
+ * A union member brings the documentation of its own type: a class tagged
+ * `@type string` makes a `{ type: "string", description }` branch.
+ */
+const ANNOTATION_KEYWORDS = ["description", "title", "$comment", "examples"];
+
+/**
+ * Remove the annotation keywords of a schema
+ * @param schema - the schema
+ * @returns a copy without annotations
+ */
+function withoutAnnotations(schema: JSONSchema7): JSONSchema7 {
+  const copy = { ...schema };
+  for (const keyword of ANNOTATION_KEYWORDS) delete copy[keyword];
+  return copy;
 }
 
 /**
- * Drop structurally identical branches from a union.
+ * Drop the branches of a union that accept the same values.
+ *
+ * Branches are compared without their annotations, so `string | SecretString`
+ * (the class tagged `@type string`) collapses to `string`. When duplicates
+ * merge, the annotations are dropped: they described a member type, not the
+ * property, and would otherwise leak onto it once the union collapses.
  * @param branches - the branch schemas
  * @returns the branches, deduplicated, in first-seen order
  */
 function dedupe(branches: JSONSchema7[]): JSONSchema7[] {
-  const seen = new Set<string>();
+  const seen = new Map<string, number>();
   const unique: JSONSchema7[] = [];
   for (const branch of branches) {
-    const key = JSON.stringify(branch);
-    if (seen.has(key)) continue;
-    seen.add(key);
+    const stripped = withoutAnnotations(branch);
+    const key = JSON.stringify(stripped);
+    const index = seen.get(key);
+    if (index !== undefined) {
+      unique[index] = stripped;
+      continue;
+    }
+    seen.set(key, unique.length);
     unique.push(branch);
   }
   return unique;

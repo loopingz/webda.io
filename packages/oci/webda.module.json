@@ -23,6 +23,13 @@
                 },
                 "type": "array"
               },
+              "excludeServices": {
+                "description": "Services to remove from the packaged configuration, like the ones injected by the CLI to run a command",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
               "ignores": {
                 "description": "Additional top-level entries of the application to skip",
                 "items": {
@@ -53,18 +60,18 @@
           },
           "RegistryCredentials": {
             "additionalProperties": false,
-            "description": "Credentials of a registry",
+            "description": "Credentials of a registry, as configured",
             "properties": {
               "identityToken": {
-                "description": "Identity token (OAuth2 refresh token) as stored by `docker login` for some registries",
+                "description": "Identity token (OAuth2 refresh token) as stored by `docker login` for some registries\n\nCan be encrypted with `webda config encrypt`",
                 "type": "string"
               },
               "password": {
-                "description": "Password or access token used with the user name",
+                "description": "Password or access token used with the user name\n\nCan be encrypted with `webda config encrypt`",
                 "type": "string"
               },
               "token": {
-                "description": "Registry bearer token sent as is, without token exchange",
+                "description": "Registry bearer token sent as is, without token exchange\n\nCan be encrypted with `webda config encrypt`",
                 "type": "string"
               },
               "username": {
@@ -114,7 +121,7 @@
           },
           "credentials": {
             "$ref": "#/definitions/Record%3Cstring%2C%20RegistryCredentials%3E",
-            "description": "Credentials per registry host, they take precedence over `~/.docker/config.json`\n\nUse templates to read them from the environment: `{ \"ghcr.io\": { \"username\": \"${env.GHCR_USER}\", \"password\": \"${env.GHCR_TOKEN}\" } }`"
+            "description": "Credentials per registry host, they take precedence over `~/.docker/config.json`\n\nUse templates to read them from the environment: `{ \"ghcr.io\": { \"username\": \"${env.GHCR_USER}\", \"password\": \"${env.GHCR_TOKEN}\" } }`\n\n`password`, `identityToken` and `token` can be encrypted with `webda config encrypt`"
           },
           "entrypoint": {
             "default": [

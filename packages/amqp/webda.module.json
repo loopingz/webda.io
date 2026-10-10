@@ -61,7 +61,7 @@
             "type": "string"
           },
           "url": {
-            "description": "AMQP connection url",
+            "description": "AMQP connection url\n\nCan be encrypted with `webda config encrypt`",
             "example": "amqp://localhost:5672",
             "type": "string"
           },
@@ -125,7 +125,7 @@
             "type": "string"
           },
           "url": {
-            "description": "AMQP connection url",
+            "description": "AMQP connection url\n\nCan be encrypted with `webda config encrypt`",
             "example": "amqp://localhost:5672",
             "type": "string"
           },

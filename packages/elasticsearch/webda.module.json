@@ -67,7 +67,7 @@
         "description": "Parameters for {@link ElasticSearchService}",
         "properties": {
           "client": {
-            "description": "ClientOptions is not usable for now\nts-json-schema error"
+            "description": "ClientOptions is not usable for now\nts-json-schema error\n\nCan be encrypted with `webda config encrypt`"
           },
           "indexes": {
             "$ref": "#/definitions/indexes",

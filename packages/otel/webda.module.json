@@ -11,7 +11,7 @@
         "definitions": {
           "loggerExporter": {
             "additionalProperties": false,
-            "description": "Logger export\nIf empty it is disabled",
+            "description": "Logger export\nIf empty it is disabled\n\nValues (url, headers...) can be encrypted with `webda config encrypt`",
             "properties": {
               "enable": {
                 "default": true,
@@ -24,6 +24,7 @@
               },
               "url": {
                 "default": "http://localhost:4317",
+                "description": "Can be encrypted with `webda config encrypt` (when it holds credentials)",
                 "type": "string"
               }
             },
@@ -94,7 +95,7 @@
           },
           "loggerExporter": {
             "$ref": "#/definitions/loggerExporter",
-            "description": "Logger export\nIf empty it is disabled"
+            "description": "Logger export\nIf empty it is disabled\n\nValues (url, headers...) can be encrypted with `webda config encrypt`"
           },
           "metricExporter": {
             "$ref": "#/definitions/metricExporter"

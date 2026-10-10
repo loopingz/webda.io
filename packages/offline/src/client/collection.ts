@@ -43,7 +43,14 @@ export class Collection<T = any> {
       throw new Error(`Object ${id} already exists`);
     } else if (existing) {
       // Re-creating a locally deleted server object is an update of it
-      record = { ...existing, current: object, state: "dirty" };
+      record = {
+        ...existing,
+        current: object,
+        state: "dirty",
+        pendingMutationId: undefined,
+        sent: undefined,
+        error: undefined
+      };
     } else {
       record = { id, ref: { model: this.model, key }, base: null, baseRev: 0, current: object, state: "created" };
     }
@@ -67,7 +74,14 @@ export class Collection<T = any> {
       throw new Error(`Object ${record.id} has an open conflict: resolve it first`);
     }
     record.current = { ...record.current, ...clone(data) };
-    if (record.state === "synced" || record.state === "error") record.state = "dirty";
+    if (record.base === null) {
+      // Never confirmed by the server: still a create
+      record.state = "created";
+      record.error = undefined;
+    } else if (record.state === "synced" || record.state === "error") {
+      record.state = "dirty";
+      record.error = undefined;
+    }
     await this.client.storage.putRecords([record]);
     this.client.notify({ ref: record.ref, object: clone(record.current), origin: "local" });
     return clone(record.current);
@@ -80,7 +94,7 @@ export class Collection<T = any> {
   async delete(key: unknown): Promise<void> {
     const record = await this.client.storage.getRecord(this.id(key));
     if (!record || record.current === null) return;
-    if (record.state === "created") {
+    if (record.base === null) {
       await this.client.storage.deleteRecords([record.id]);
     } else {
       await this.client.storage.putRecords([{ ...record, current: null, state: "deleted", conflict: undefined }]);

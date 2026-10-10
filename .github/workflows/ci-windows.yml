@@ -40,8 +40,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # Sample apps are loaded by core and content-mapper tests (including their generated .webda/module.d.ts)
       - name: Build
-        run: pnpm --workspace-concurrency=1 --filter "@webda/core..." run build
+        run: >-
+          pnpm --workspace-concurrency=1
+          --filter "@webda/core..."
+          --filter "@webda/sample-app..."
+          --filter "@webda/sample-blog-system..."
+          run build
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 

@@ -497,6 +497,7 @@ export class TestApplication extends UnpackedApplication {
    * @returns true if the condition is met
    */
   filterModule(filename: string): boolean {
+    filename = filename.replace(/\\/g, "/");
     return !filename.includes("/sample-app") && !filename.includes("/sample-apps/");
   }
 

@@ -1,8 +1,10 @@
+import { vi } from "vitest";
 import { serializeSubjectKey, useRepository } from "@webda/core";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Note, SyncTest } from "../../test/fixture.js";
 import { serializeKey } from "../protocol/index.js";
+import { SyncChange } from "./syncchange.model.js";
 
 @suite
 class RevisionsTest extends SyncTest {
@@ -52,6 +54,21 @@ class RevisionsTest extends SyncTest {
     const note = await Note.create({ title: "a" } as any);
     await this.sync.touch("Test/Note", [note.uuid]);
     assert.strictEqual((await this.changes()).length, 2);
+  }
+
+  @test
+  async failedLogDoesNotFailTheWrite() {
+    const spy = vi.spyOn(SyncChange, "create").mockRejectedValueOnce(new Error("log down"));
+    try {
+      const note = await Note.create({ title: "a" } as any);
+      assert.strictEqual((await Note.ref(note.uuid).get())._rev, 1);
+      assert.strictEqual((await this.changes()).length, 0);
+      await note.patch({ title: "b" } as any);
+      assert.strictEqual((await Note.ref(note.uuid).get()).title, "b");
+      assert.strictEqual((await this.changes()).length, 1);
+    } finally {
+      spy.mockRestore();
+    }
   }
 
   @test

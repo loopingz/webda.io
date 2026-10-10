@@ -228,6 +228,20 @@ export class SyncService extends Service<SyncServiceParameters> {
   }
 
   /**
+   * Run an after-event step without ever throwing into the caller's committed write
+   * @param modelId - the model identifier
+   * @param key - the canonical key
+   * @param step - the step to run
+   */
+  protected async safely(modelId: string, key: string, step: () => Promise<void>): Promise<void> {
+    try {
+      await step();
+    } catch (err) {
+      this.log("ERROR", `SyncService: change-log entry lost for ${modelId} ${key}`, err);
+    }
+  }
+
+  /**
    * Maintain `_rev` and log every write of a synced model
    * @param modelId - the model identifier
    * @param model - the model class
@@ -260,19 +274,25 @@ export class SyncService extends Service<SyncServiceParameters> {
         else increments._rev = 1;
         this.revved.add(increments);
       },
-      Created: async ({ object_id, object }) => this.append(modelId, keyOf(object_id), "upsert", object?._rev),
-      Updated: async ({ object_id, object }) => this.append(modelId, keyOf(object_id), "upsert", object?._rev),
-      Patched: async ({ object_id, object }) => this.append(modelId, keyOf(object_id), "upsert", object?._rev),
+      Created: ({ object_id, object }) =>
+        this.safely(modelId, keyOf(object_id), () => this.append(modelId, keyOf(object_id), "upsert", object?._rev)),
+      Updated: ({ object_id, object }) =>
+        this.safely(modelId, keyOf(object_id), () => this.append(modelId, keyOf(object_id), "upsert", object?._rev)),
+      Patched: ({ object_id, object }) =>
+        this.safely(modelId, keyOf(object_id), () => this.append(modelId, keyOf(object_id), "upsert", object?._rev)),
       PartialUpdated: async ({ object_id, partial_update }) => {
         if (this.ownBumps.has(partial_update?.increments)) return;
-        if (!partial_update?.increments) {
-          const bump = [{ property: "_rev", value: 1 }];
-          this.ownBumps.add(bump);
-          await repo.incrementAttributes(object_id, bump);
-        }
-        await this.append(modelId, keyOf(object_id), "upsert");
+        await this.safely(modelId, keyOf(object_id), async () => {
+          if (!partial_update?.increments) {
+            const bump = [{ property: "_rev", value: 1 }];
+            this.ownBumps.add(bump);
+            await repo.incrementAttributes(object_id, bump);
+          }
+          await this.append(modelId, keyOf(object_id), "upsert");
+        });
       },
-      Deleted: async ({ object_id }) => this.append(modelId, keyOf(object_id), "delete")
+      Deleted: ({ object_id }) =>
+        this.safely(modelId, keyOf(object_id), () => this.append(modelId, keyOf(object_id), "delete"))
     };
     for (const [event, listener] of Object.entries(listeners)) {
       repo.on(event, listener);

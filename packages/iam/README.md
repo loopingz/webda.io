@@ -74,6 +74,13 @@ are not literals are rejected. A condition that fails while evaluated refuses th
 - The result is coerced to a boolean (truthy/falsy), so `r.ctx.input.force` is a valid condition.
 - `input` and `session` are JSON copies: Dates become ISO strings. The full session is visible to conditions (only a
   boolean comes out), so policy authors are trusted with it.
+- `r.ctx.input` is the input validated against the operation's input schema. An operation **without an input
+  schema** exposes `r.ctx.input` as `{}`: conditions on its input see nothing (an allow on `r.ctx.input.x` never
+  matches, a deny on it never applies).
+- `globMatch` is IAM's own matcher, also used for statement `operations` and `scope`: `*` (any sequence) and `?` (one
+  character), not crossing `/`. No braces, extglob or character classes; arguments over 1024 (pattern) / 8192
+  (value) characters fail the condition. Statement `operations` and `scope` patterns may only contain
+  `A-Z a-z 0-9 _ . * ? -`.
 
 ## Runtime policies
 
@@ -82,6 +89,31 @@ policies at runtime; map them to a store. Their operations are always governed b
 `reloadDelay` ms, and every `reloadInterval` seconds for multi-instance deployments. A stored policy may not reuse a
 configuration policy name. An invalid stored policy keeps the previous policies in force.
 
+## Coverage
+
+IAM is an operation authorizer: it governs **only** calls that go through `callOperation` / `canCallOperation`.
+
+| Path                                                       | Governed by IAM                                                         |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------- |
+| REST operations (`RESTOperationsTransport`, model CRUD)    | yes                                                                     |
+| gRPC (`@webda/grpc`)                                       | yes                                                                     |
+| MCP tools and resources (`@webda/mcp`)                     | yes (listings in probe mode, calls with their input)                    |
+| Async jobs (`@webda/async`)                                | at submission, as the caller; the job itself runs **anonymous** (below) |
+| GraphQL (`@webda/graphql`)                                 | **no**: model `canAct` only                                             |
+| Plain `@Route` / `addRoute` handlers, direct service calls | **no**                                                                  |
+
+- **GraphQL** resolves models through their `canAct`, not through operations. The IAM models allow every action while
+  IAM is running (the authorizer is expected to have decided), so **exclude them from GraphQL**:
+  `"excludedModels": ["Webda/IAMPolicy", "Webda/IAMPolicyAttachment"]` (and any subclass you expose).
+- **Async jobs** execute through `callOperation` with a fresh context that carries no session: under IAM the job runs
+  as `anonymous`. The submission is checked with the caller's identity; for the execution, either keep the job
+  operations out of `scope`, or attach a policy allowing them to `anonymous` (which also opens them to anonymous
+  callers on other transports).
+- A **system context** (`runAsSystem`, user id `system`) has no loadable user: in-scope operations are refused.
+- Framework models stay internal unless the application namespace resolves to them, so `IAMPolicy` /
+  `IAMPolicyAttachment` are only exposed as operations when your application exposes them (namespace `Webda` or a
+  subclass in your namespace). Their operation ids (`IAMPolicy.*`, `IAMPolicies.*`, ...) are always in scope.
+
 ## Fail-closed behavior
 
 The call is refused when:
@@ -89,12 +121,24 @@ The call is refused when:
 - the authorizer throws, or a condition fails while evaluated;
 - the caller is logged in but the user record cannot be loaded;
 - `input` or `session` cannot be JSON-serialized;
-- the `IAMService` is stopped or not yet initialized (for in-scope operations);
+- the `IAMService` is stopped (the authorizer stays registered and refuses during and after a graceful shutdown), not
+  yet initialized, or its first policy load failed (it keeps retrying on changes and every `reloadInterval`);
 - no `allow` matches, or any `deny` matches.
 
-The client only sees `Forbidden`; reasons are logged at DEBUG.
+The client only sees `Forbidden`; reasons are logged at DEBUG. An authorizer that throws an `HttpError` is not turned
+into a refusal: the error propagates (for example `400 Bad Request` for an invalid `IAMPolicy` write, validated as a
+whole document on `IAMPolicy.Create`).
+
+Without an `IAMService` (or while it is stopped / not loaded), every operation on the IAM models is refused by their
+`canAct`.
 
 ## Listings
 
 `canCallOperation(context, operationId)` (MCP tool lists, async operation lists) asks in probe mode: an allow that
 depends on the input lists the operation; the actual call is always checked with its input.
+
+## Breaking change: `canCallOperation` is async
+
+To run awaited authorizers (`registerOperationAuthorizer`), `canCallOperation(context, operationId, options?)` from
+`@webda/core` now returns `Promise<boolean>`. Callers must `await` it: a non-awaited Promise is truthy, so
+`if (canCallOperation(ctx, id))` would allow every operation.

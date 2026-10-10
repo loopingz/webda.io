@@ -60,6 +60,23 @@ class ConditionsTest {
   }
 
   @test
+  rejectsConditionsCasbinWouldNotRewrite() {
+    for (const condition of [
+      "true?r.ctx.input.x:0",
+      "[r.ctx.input.x]",
+      "~r.ctx.input.x",
+      "r.ctx.input.x^r.ctx.input.x",
+      "r.ctx.input.x%r.ctx.input.x",
+      "r .ctx.input.x",
+      "(r).ctx.input.x",
+      "r['ctx'].input.x",
+      "r.ctx.input.s == ' r.ctx'"
+    ]) {
+      assert.throws(() => analyzeCondition(condition), PolicyCompileError, condition);
+    }
+  }
+
+  @test
   rejectsSyntaxErrors() {
     assert.throws(() => analyzeCondition("r.ctx.input.status =="), PolicyCompileError);
   }

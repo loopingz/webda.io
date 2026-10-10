@@ -510,7 +510,7 @@ export class TestApplication extends UnpackedApplication {
    */
   loadWebdaModule(moduleFile: string): CachedModule {
     // Test are using ts-node so local source should be loaded from .ts with ts-node aswell
-    if (process.cwd() === path.dirname(moduleFile) + "/") {
+    if (path.resolve(process.cwd()) === path.resolve(path.dirname(moduleFile))) {
       const module = FileUtils.load(moduleFile);
       Object.keys(SectionEnum)
         .filter(k => Number.isNaN(+k))

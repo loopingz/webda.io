@@ -13,6 +13,8 @@ import {
   WebdaError
 } from "../index.js";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 // Updated to use barrel index from test folder
 import { WebdaApplicationTest } from "../test/index.js";
 import { TestApplication } from "../test/objects.js";
@@ -815,7 +817,7 @@ class OpenAPICommandTest extends WebdaApplicationTest {
   @test
   async openapiToFile() {
     const router = useRouter();
-    const tmpFile = "/tmp/webda-openapi-test.json";
+    const tmpFile = join(tmpdir(), "webda-openapi-test.json");
     try {
       router.openapi(tmpFile);
       assert.ok(existsSync(tmpFile));

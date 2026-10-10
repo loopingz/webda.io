@@ -81,6 +81,12 @@ and input messages reach the operation as they are received. Request metadata is
 `useContext().getHttpContext()`. See [Operations](../../docs/pages/Concepts/Operations.md#streaming-operations) for the
 signatures, and for the same `async *connect(frames)` served as a WebSocket by the REST transport.
 
+Messages are the JSON-equivalent objects of the operation: a chunk that is not an object is sent as `{ value }` and
+`__`-prefixed keys never leave the server. A compressed message ends the call with `UNIMPLEMENTED`, a message over
+4 MiB (`GRPC_MAX_MESSAGE_SIZE`) with `RESOURCE_EXHAUSTED`, and one that cannot be decoded with `INVALID_ARGUMENT`. When
+the client cancels, the generator's `return()` is called so its `finally` runs; an operation that throws
+`OperationCancelledError` while the client is still connected ends with `CANCELLED`.
+
 ## Reference
 
 - API reference: see the auto-generated typedoc at `docs/pages/Modules/grpc/`.

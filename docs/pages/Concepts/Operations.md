@@ -54,6 +54,16 @@ async *connect(frames: AsyncIterable<Envelope>): AsyncGenerator<Envelope> {
   the client cannot keep up.
 - `grpc: { streaming }` in `@Operation` still overrides the mode.
 
+### gRPC
+
+- Messages are the JSON-equivalent objects of the operation; a chunk that is not an object is sent as `{ value }`, and
+  `__`-prefixed keys never leave the server.
+- A compressed message ends the call with `UNIMPLEMENTED`; a message over 4 MiB (`GRPC_MAX_MESSAGE_SIZE`) with
+  `RESOURCE_EXHAUSTED`; one that cannot be decoded with `INVALID_ARGUMENT`.
+- When the client cancels, the generator's `return()` is called, so its `finally` blocks run.
+- An operation that throws `OperationCancelledError` while the client is still connected ends the call with
+  `CANCELLED`.
+
 ### WebSocket (REST transport)
 
 A bidirectional operation is served as a WebSocket on its REST route by `Webda/RESTOperationsTransport`; the upgrade
@@ -63,10 +73,11 @@ listener is only attached when at least one such route exists.
 - The upgrade is checked like a normal request: the `Webda.Request` event and the router request filters run first,
   then the operation permission; a refused upgrade answers HTTP `403` (`400` when the request cannot be read).
 - A plain HTTP request to the URL answers `426 Upgrade Required`.
-- Close codes: `1000` when the generator returns; `4000 + status` for a `WebdaError` with a response code (e.g. `4404`,
-  the reason is the error message); `1011` for any other error, with a generic reason (`Internal server error`) so
-  internals do not leak; `4400` for a message that is not valid JSON or does not match `T`; `4413` when the client
-  sends faster than the operation reads (see `webSocketMaxQueuedMessages`).
+- Close codes: `1000` when the generator returns; `4000 + status` for any `WebdaError` with a response code (e.g.
+  `4404`); only a 4xx keeps its message as the reason (truncated to 123 bytes of UTF-8), a 5xx closes with the generic
+  reason `Internal server error`; `1011` with that same generic reason for any other error, so internals do not leak;
+  `4400` for a message that is not valid JSON or does not match `T`; `4413` when the client sends faster than the
+  operation reads (see `webSocketMaxQueuedMessages`).
 - Operations whose path has parameters (templated, e.g. `/items/{id}/connect`) are not served over WebSocket: a
   `WARN` is logged at startup.
 - Transport parameters:

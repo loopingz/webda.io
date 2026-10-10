@@ -1,0 +1,339 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/SyncService": {
+      "Import": "lib/server/sync.service:SyncService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Parameters of the SyncService",
+        "properties": {
+          "maxQueryLength": {
+            "default": 1024,
+            "description": "Maximum length of a scope query",
+            "type": "number"
+          },
+          "maxScopes": {
+            "default": 20,
+            "description": "Maximum scopes per request",
+            "type": "number"
+          },
+          "models": {
+            "description": "Models clients can sync; each must implement `Syncable`",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "overlap": {
+            "default": "5s",
+            "description": "Window re-read by the next pull, covering clock skew between servers",
+            "type": "string"
+          },
+          "pageSize": {
+            "default": 500,
+            "description": "Maximum entries, objects or mutations handled per request",
+            "type": "number"
+          },
+          "retention": {
+            "default": "30d",
+            "description": "How long change-log entries are kept; older cursors trigger a resync",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "watchDebounce": {
+            "default": 250,
+            "description": "Debounce of the watch hints, in milliseconds",
+            "type": "number"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "models",
+          "type"
+        ],
+        "type": "object",
+        "title": "SyncService"
+      },
+      "Configuration": "lib/server/sync.service:SyncServiceParameters"
+    }
+  },
+  "models": {
+    "Webda/SyncChange": {
+      "Plural": "SyncChanges",
+      "Import": "lib/server/syncchange.model:SyncChange",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "seq": {
+          "type": "string"
+        },
+        "subjectModel": {
+          "type": "string"
+        },
+        "subjectKey": {
+          "type": "string"
+        },
+        "rev": {
+          "type": "number"
+        },
+        "op": {
+          "type": "\"upsert\" | \"delete\""
+        },
+        "mutationId": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "Date"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "SyncChanges",
+          "additionalProperties": false,
+          "description": "One write to a synced object, read by `Sync.Pull`\n\nInternal: never exposed through the DomainService operations",
+          "properties": {
+            "mutationId": {
+              "description": "Mutation of a `Sync.Push` that made the write",
+              "type": "string"
+            },
+            "op": {
+              "description": "Kind of write",
+              "enum": [
+                "upsert",
+                "delete"
+              ],
+              "type": "string"
+            },
+            "rev": {
+              "description": "Revision after the write, when known",
+              "type": "number"
+            },
+            "seq": {
+              "description": "Sortable sequence: zero-padded epoch ms, per-process counter, instance id",
+              "type": "string"
+            },
+            "subjectKey": {
+              "description": "Canonical primary key (`serializeSubjectKey`)",
+              "type": "string"
+            },
+            "subjectModel": {
+              "description": "Model identifier, e.g. `MyApp/Task`",
+              "type": "string"
+            },
+            "timestamp": {
+              "description": "Time of the write",
+              "format": "date-time",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "op",
+            "seq",
+            "subjectKey",
+            "subjectModel",
+            "timestamp",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "SyncChanges",
+          "additionalProperties": false,
+          "description": "One write to a synced object, read by `Sync.Pull`\n\nInternal: never exposed through the DomainService operations",
+          "properties": {
+            "mutationId": {
+              "description": "Mutation of a `Sync.Push` that made the write",
+              "type": "string"
+            },
+            "op": {
+              "description": "Kind of write",
+              "enum": [
+                "upsert",
+                "delete"
+              ],
+              "type": "string"
+            },
+            "rev": {
+              "description": "Revision after the write, when known",
+              "type": "number"
+            },
+            "seq": {
+              "description": "Sortable sequence: zero-padded epoch ms, per-process counter, instance id",
+              "type": "string"
+            },
+            "subjectKey": {
+              "description": "Canonical primary key (`serializeSubjectKey`)",
+              "type": "string"
+            },
+            "subjectModel": {
+              "description": "Model identifier, e.g. `MyApp/Task`",
+              "type": "string"
+            },
+            "timestamp": {
+              "description": "Time of the write",
+              "format": "date-time",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "op",
+            "seq",
+            "subjectKey",
+            "subjectModel",
+            "timestamp",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "WebdaPlural": "SyncChanges",
+          "additionalProperties": false,
+          "description": "One write to a synced object, read by `Sync.Pull`\n\nInternal: never exposed through the DomainService operations",
+          "properties": {
+            "mutationId": {
+              "description": "Mutation of a `Sync.Push` that made the write",
+              "type": "string"
+            },
+            "op": {
+              "description": "Kind of write",
+              "enum": [
+                "upsert",
+                "delete"
+              ],
+              "type": "string"
+            },
+            "rev": {
+              "description": "Revision after the write, when known",
+              "type": "number"
+            },
+            "seq": {
+              "description": "Sortable sequence: zero-padded epoch ms, per-process counter, instance id",
+              "type": "string"
+            },
+            "subjectKey": {
+              "description": "Canonical primary key (`serializeSubjectKey`)",
+              "type": "string"
+            },
+            "subjectModel": {
+              "description": "Model identifier, e.g. `MyApp/Task`",
+              "type": "string"
+            },
+            "timestamp": {
+              "description": "Time of the write",
+              "format": "date-time",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "op",
+            "seq",
+            "subjectKey",
+            "subjectModel",
+            "timestamp",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Aggregate",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried",
+        "Aggregated"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/SyncChange"
+    }
+  },
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    }
+  },
+  "behaviors": {}
+}

@@ -1,0 +1,17 @@
+{
+  "version": 3,
+  "parameters": {
+    "apiUrl": "http://localhost:18080"
+  },
+  "services": {
+    "SyncStore": {
+      "type": "Webda/MemoryStore",
+      "models": ["Webda/SyncChange", "Test/Note"]
+    },
+    "sync": {
+      "type": "Webda/SyncService",
+      "models": ["Test/Note"],
+      "overlap": "0ms"
+    }
+  }
+}

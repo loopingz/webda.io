@@ -1,5 +1,9 @@
 import type { Http2ServerRequest, Http2ServerResponse } from "node:http2";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { useLog } from "@webda/workout";
+
+/** Largest accepted gRPC message (declared frame length), same as the gRPC default of 4 MiB */
+export const GRPC_MAX_MESSAGE_SIZE = 4 * 1024 * 1024;
 
 /**
  * Parsed gRPC method definition with serializer/deserializer functions.
@@ -33,6 +37,7 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
   private onEndHandler?: () => void;
   private onCancelHandler?: () => void;
   private chunk: Buffer | null = null;
+  private failed = false;
   private request: IncomingMessage | Http2ServerRequest;
   private response: ServerResponse | Http2ServerResponse;
   private definition: GrpcMethodDef<RequestType, ResponseType>;
@@ -60,13 +65,33 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
     // Parse incoming gRPC frames (1-byte flag + 4-byte big-endian length + payload); a chunk may hold part of a
     // header, several frames, or both
     req.on("data", (data: Buffer) => {
+      if (this.failed) return;
       this.chunk = this.chunk ? Buffer.concat([this.chunk, data]) : data;
       while (this.chunk.length >= 5) {
+        const compressed = this.chunk.readUInt8(0);
         const length = this.chunk.readUInt32BE(1);
+        // Reject on the header alone: never buffer an oversized or compressed body
+        if (compressed) return this.fail(GrpcStatus.UNIMPLEMENTED, "compressed messages are not supported");
+        if (length > GRPC_MAX_MESSAGE_SIZE) {
+          return this.fail(GrpcStatus.RESOURCE_EXHAUSTED, `message exceeds ${GRPC_MAX_MESSAGE_SIZE} bytes`);
+        }
         if (this.chunk.length < 5 + length) break;
         const message = this.chunk.subarray(5, 5 + length);
         this.chunk = this.chunk.subarray(5 + length);
-        this.onMessageHandler?.(this.definition.requestDeserialize(message));
+        let decoded: RequestType;
+        try {
+          decoded = this.definition.requestDeserialize(message);
+        } catch (err) {
+          return this.fail(GrpcStatus.INVALID_ARGUMENT, `cannot decode message: ${(err as Error)?.message}`);
+        }
+        try {
+          const result = this.onMessageHandler?.(decoded);
+          if (result && typeof (result as Promise<void>).catch === "function") {
+            (result as Promise<void>).catch(err => this.fail(GrpcStatus.INTERNAL, "message handler failed", err));
+          }
+        } catch (err) {
+          return this.fail(GrpcStatus.INTERNAL, "message handler failed", err);
+        }
       }
       if (this.chunk.length === 0) this.chunk = null;
     });
@@ -79,6 +104,20 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
     req.on("close", () => {
       if (!(this.response as any).writableEnded) this.onCancelHandler?.();
     });
+  }
+
+  /**
+   * Stop processing the stream and end it with an error status
+   * @param status - gRPC status code
+   * @param message - status message
+   * @param err - optional underlying error to log
+   */
+  private fail(status: number, message: string, err?: unknown): void {
+    if (err) useLog("ERROR", `gRPC stream: ${message}`, err);
+    if (this.failed) return;
+    this.failed = true;
+    this.chunk = null;
+    this.end(status, message);
   }
 
   /**

@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
-import { GrpcStream, GrpcStatus, GrpcMethodDef } from "./grpc-stream.js";
+import { GrpcStream, GrpcStatus, GrpcMethodDef, GRPC_MAX_MESSAGE_SIZE } from "./grpc-stream.js";
 
 /**
  * Create a mock IncomingMessage-like object (EventEmitter + readable stream)
@@ -426,6 +426,84 @@ class GrpcStreamTest {
     state.res.writableEnded = true;
     req.emit("close");
     assert.strictEqual(cancelled, 0);
+  }
+
+  @test
+  async closeBeforeTheResponseEndedIsACancel() {
+    const req = createMockRequest();
+    const state = createMockResponse();
+    let cancelled = 0;
+    const stream = new GrpcStream(req as any, state.res, createJsonMethodDef());
+    stream.onCancel(() => cancelled++);
+    req.emit("close");
+    assert.strictEqual(cancelled, 1);
+  }
+
+  @test
+  async sendReturnsTrueWhenWritable() {
+    const req = createMockRequest();
+    const state = createMockResponse();
+    state.res.write = () => true;
+    const stream = new GrpcStream(req as any, state.res, createJsonMethodDef());
+    assert.strictEqual(stream.send({ x: 1 }), true);
+  }
+
+  @test
+  async compressedFrameIsRejected() {
+    const req = createMockRequest();
+    const state = createMockResponse();
+    const def = createJsonMethodDef();
+    let decoded = 0;
+    def.requestDeserialize = () => {
+      decoded++;
+      return {};
+    };
+    const stream = new GrpcStream(req as any, state.res, def);
+    stream.onMessage(() => {});
+    const frame = createGrpcFrame(Buffer.from("{}"));
+    frame.writeUInt8(1, 0);
+    req.emit("data", frame);
+    assert.strictEqual(decoded, 0);
+    assert.strictEqual(state.trailers!["grpc-status"], "12");
+    assert.strictEqual(state.ended, true);
+  }
+
+  @test
+  async undecodableFrameIsRejected() {
+    const req = createMockRequest();
+    const state = createMockResponse();
+    const stream = new GrpcStream(req as any, state.res, createJsonMethodDef());
+    let received = 0;
+    stream.onMessage(() => received++);
+    req.emit("data", createGrpcFrame(Buffer.from("not json")));
+    assert.strictEqual(state.trailers!["grpc-status"], "3");
+    // further data is ignored
+    req.emit("data", createGrpcFrame(Buffer.from("{}")));
+    assert.strictEqual(received, 0);
+  }
+
+  @test
+  async oversizedFrameIsRejectedOnTheHeader() {
+    const req = createMockRequest();
+    const state = createMockResponse();
+    new GrpcStream(req as any, state.res, createJsonMethodDef());
+    const header = Buffer.alloc(5);
+    header.writeUInt32BE(GRPC_MAX_MESSAGE_SIZE + 1, 1);
+    req.emit("data", header);
+    assert.strictEqual(state.trailers!["grpc-status"], "8");
+  }
+
+  @test
+  async rejectedAsyncHandlerEndsWithInternal() {
+    const req = createMockRequest();
+    const state = createMockResponse();
+    const stream = new GrpcStream(req as any, state.res, createJsonMethodDef());
+    stream.onMessage(async () => {
+      throw new Error("boom");
+    });
+    req.emit("data", createGrpcFrame(Buffer.from("{}")));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.strictEqual(state.trailers!["grpc-status"], "13");
   }
 }
 

@@ -73,6 +73,7 @@ Decouple background work and fan-out events with these messaging adapters.
 |---------|-------------|
 | [google-auth](./google-auth/README.md) | Google OAuth 2.0 provider for `@webda/authentication`. |
 | [hawk](./hawk/README.md) | Hawk HMAC authentication middleware for machine-to-machine API calls. |
+| [iam](./iam/README.md) | AWS-IAM-like allow/deny policies on operations, with conditions, evaluated with Casbin. |
 
 ---
 

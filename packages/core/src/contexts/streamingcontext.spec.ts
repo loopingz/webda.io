@@ -149,6 +149,12 @@ class StreamingOperationContextTest {
     assert.strictEqual(toPublicChunk(null), null);
     assert.strictEqual(toPublicChunk(3), 3);
     assert.strictEqual(toPublicChunk("a"), "a");
+    // Not JSON-serializable: null, like the REST transport
+    assert.strictEqual(
+      toPublicChunk(() => 1),
+      null
+    );
+    assert.strictEqual(toPublicChunk(Symbol("s")), null);
     assert.deepStrictEqual(toPublicChunk([1, { __b: 1, c: 2 }]), [1, { c: 2 }]);
     assert.deepStrictEqual(toPublicChunk({ a: 1, __b: 2, c: { __d: 1, e: 2 } }), { a: 1, c: { e: 2 } });
   }

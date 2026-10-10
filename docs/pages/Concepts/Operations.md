@@ -50,8 +50,9 @@ async *connect(frames: AsyncIterable<Envelope>): AsyncGenerator<Envelope> {
   WebSocket close `4400`).
 - The request headers (gRPC metadata included) and the session are available through `useContext()`, also after a
   `yield`.
-- When the client goes away, the input ends and the generator is closed (`finally` blocks run). Output waits while
-  the client cannot keep up.
+- When the client goes away, the input ends and the generator is closed (`finally` blocks run) at its next write or
+  `drained()` call, on every transport: a generator suspended on an external `await` stays suspended until it yields
+  again. Output waits while the client cannot keep up.
 - `grpc: { streaming }` in `@Operation` still overrides the mode.
 
 ### gRPC
@@ -83,9 +84,13 @@ as soon as the operation yields it:
   `data: {"message": …, "code": <status>}`, NDJSON a last line `{"error": {"message": …, "code": <status>}}`, then the
   response ends. A 4xx `WebdaError` keeps its message; anything else is reported as `Internal server error` and
   logged at `ERROR`. An `OperationCancelledError` raised by the operation while the client is connected is such an
-  error.
-- When the client disconnects the generator is closed (`finally` blocks run) and nothing more is written. Output waits
-  while the client cannot keep up.
+  error. The last `{"error": …}` line is the stream's error marker: an operation that yields an `error` key at the top
+  level of a chunk is indistinguishable from it.
+- Changes made to the session after the first chunk was sent do not reach a cookie session (the cookie leaves with
+  the headers).
+- When the client disconnects the generator is closed (`finally` blocks run, see above) and nothing more is written.
+  Output waits while the client cannot keep up. A non-generator operation on such a route answers a normal JSON
+  response, without keep-alive.
 - The OpenAPI document lists both content types for these routes.
 
 ### WebSocket (REST transport)

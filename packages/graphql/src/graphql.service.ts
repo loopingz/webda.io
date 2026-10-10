@@ -54,7 +54,7 @@ import { CloseCode, Server as GraphQLWSServer, makeServer } from "graphql-ws";
 import { JSONSchema7 } from "json-schema";
 import { nextTick } from "process";
 import { EventEmitter } from "stream";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, type WebSocket } from "ws";
 import { AnyScalarType } from "./types/any.js";
 import { DateScalar } from "./types/date.js";
 import { GraphQLLong } from "./types/long.js";
@@ -1466,7 +1466,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         }
         if (!object || !(await isModelActionAllowed(object, context, "get", model))) return;
       }
-      return { latestEventTime: Date.now(), [eventName]: evt };
+      return { latestEventTime: Date.now(), [eventName]: publicCopy(evt) };
     };
     const eventsMap = {};
     if (uuid !== null) {
@@ -1490,6 +1490,35 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     return new EventIterator(useRepository(model as any) as any, eventsMap, identifier, {
       logout: { evt: "nok?" }
     }).iterate();
+  }
+
+  /**
+   * Hand a WebSocket message to graphql-ws; a failure is logged and closes the socket without leaking details
+   * @param socket - the WebSocket
+   * @param cb - the graphql-ws message handler
+   * @param data - the message
+   * @param storage - the instance storage to re-enter for the resolvers
+   * @returns a promise settled once the message is handled
+   */
+  async handleSocketMessage(
+    socket: Pick<WebSocket, "close">,
+    cb: (data: string) => Promise<void>,
+    data: string,
+    storage: ReturnType<typeof useInstanceStorage>
+  ): Promise<void> {
+    try {
+      // wait for the the operation to complete
+      // - if init message, waits for connect
+      // - if query/mutation, waits for result
+      // - if subscription, waits for complete
+      // The socket events fire outside the instance storage: re-enter it for the resolvers
+      await runWithInstanceStorage(storage, () => cb(data));
+    } catch (err) {
+      // all errors that could be thrown during the execution of operations will be caught here
+      this.log("ERROR", "GraphQL websocket message failed", err);
+      // A close reason is limited to 123 bytes and must not leak internal details
+      socket.close(CloseCode.InternalServerError, "Internal server error");
+    }
   }
 
   /**
@@ -1562,21 +1591,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }), // control your data flow by timing the promise resolve
           close: (code, reason) => socket.close(code, reason), // there are protocol standard closures
           onMessage: cb =>
-            socket.on("message", async event => {
-              try {
-                // wait for the the operation to complete
-                // - if init message, waits for connect
-                // - if query/mutation, waits for result
-                // - if subscription, waits for complete
-                // The socket events fire outside the instance storage: re-enter it for the resolvers
-                await runWithInstanceStorage(storage, () => cb(event.toString()));
-              } catch (err) {
-                // all errors that could be thrown during the
-                // execution of operations will be caught here
-                // A close reason is limited to 123 bytes and must not leak internal details
-                socket.close(CloseCode.InternalServerError, "Internal server error");
-              }
-            })
+            socket.on("message", event => this.handleSocketMessage(socket, cb, event.toString(), storage))
         },
         // pass values to the `extra` field in the context
         <any>{ socket, request, context: (<any>request).webdaContext }

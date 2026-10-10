@@ -100,6 +100,12 @@ class RsFixtureService extends Service {
     yield 1;
   }
 
+  /** Not a generator: answers after the keep-alive interval */
+  async plain() {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    return { ok: true, __hidden: "secret" };
+  }
+
   async *empty() {
     // nothing to say
   }
@@ -184,7 +190,8 @@ class RestStreamBase extends WebdaApplicationTest {
         "failInternal",
         "failClient",
         "failCancel",
-        "empty"
+        "empty",
+        "plain"
       ];
       for (const method of ops) {
         registerOperation(`Rs.${method[0].toUpperCase()}${method.slice(1)}`, {
@@ -272,6 +279,17 @@ class RestStreamTest extends RestStreamBase {
     await readUntil(reader, () => false, buffer);
     assert.ok(buffer.text.includes('data: {"n":3}\n\n'));
     assert.ok(buffer.text.endsWith("event: end\ndata: {}\n\n"), buffer.text);
+  }
+
+  @test
+  async plainMethodOnAServerRouteAnswersJsonDespiteKeepAlive() {
+    const res = await fetch(`${await this.url()}/rs/plain`, {
+      method: "PUT",
+      headers: { accept: "text/event-stream" }
+    });
+    assert.strictEqual(res.status, 200);
+    assert.ok(res.headers.get("content-type")?.startsWith("application/json"), res.headers.get("content-type")!);
+    assert.deepStrictEqual(await res.json(), { ok: true });
   }
 
   @test

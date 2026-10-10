@@ -563,7 +563,9 @@ export class RESTOperationsTransport<
     stream.stopKeepAlive();
     if (stream.isCancelled) return stream.finish();
     if (!stream.getExtension("operationStreaming")) {
-      // Not a generator after all: a normal response
+      // Not a generator after all: a normal response, with the status and headers the operation set
+      if (stream.statusCode && stream.statusCode !== 204) context.statusCode = stream.statusCode;
+      for (const [name, value] of Object.entries(stream.getResponseHeaders())) context.setHeader(name, <any>value);
       const output = stream.getOutput();
       if (output !== undefined) {
         context.setHeader("Content-type", "application/json");

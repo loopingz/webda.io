@@ -149,13 +149,15 @@ export class RestStreamingOperationContext extends StreamingOperationContext {
   }
 
   /**
-   * Send an SSE keep-alive comment every interval while the response is open. When the operation has not yielded
-   * anything yet the first one commits the response as a stream (an error after it is an error event).
+   * Send an SSE keep-alive comment every interval while the response is open and the operation is streaming. When the
+   * operation has not yielded anything yet the first one commits the response as a stream (an error after it is an
+   * error event). An operation that is not (yet) streaming, like a plain method awaiting its result, gets none.
    */
   startKeepAlive(): void {
     if (this.format !== "sse" || this.keepAliveInterval <= 0 || this.timer) return;
     this.timer = setInterval(() => {
       if (this.finished || this.connectionEnded) return;
+      if (!this.started && !this.getExtension("operationStreaming")) return;
       this.begin().then(
         () => {
           if (!this.finished && !this.connectionEnded) this.response.write(": keep-alive\n\n");

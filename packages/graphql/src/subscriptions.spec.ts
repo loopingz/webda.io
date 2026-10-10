@@ -1,6 +1,14 @@
-import { describe, it } from "vitest";
+import { describe, it, vi } from "vitest";
 import * as assert from "assert";
-import { EventRepository, MemoryRepository, OwnerModel, registerRepository, User } from "@webda/core";
+import {
+  EventRepository,
+  MemoryRepository,
+  OwnerModel,
+  registerRepository,
+  runWithInstanceStorage,
+  User
+} from "@webda/core";
+import { CloseCode } from "graphql-ws";
 import { GraphQLService } from "./graphql.service.js";
 
 /**
@@ -64,5 +72,62 @@ describe("GraphQL query subscriptions", () => {
     assert.notStrictEqual(update, "timeout");
     assert.deepStrictEqual(update.Secrets.results.map((r: any) => r.uuid).sort(), ["s-alice", "s-alice-2"]);
     await iterator.return?.(undefined);
+  });
+
+  it("model events never carry server-only fields, class-wide or per object", async () => {
+    registerRepository(User as any, new MemoryRepository(User as any, ["uuid"]) as any);
+    const repo = new EventRepository(Secret, ["uuid"], new MemoryRepository(Secret, ["uuid"]));
+    registerRepository(Secret, repo as any);
+    await Secret.create({ uuid: "s-alice", _user: "alice" } as any);
+    const service: GraphQLService = Object.create(GraphQLService.prototype);
+    (service as any).log = () => {};
+    await runWithInstanceStorage({ core: { getModelStore: () => undefined } } as any, async () => {
+      const object: any = await Secret.create({ uuid: "s-alice-2", _user: "alice" } as any);
+      object.name = "visible";
+      object.__secret = "hunter2";
+      for (const uuid of [null, "s-alice"]) {
+        const iterator = await service.registerAsyncEventIterator(
+          Secret as any,
+          uuid,
+          ["Updated"],
+          contextOf("alice"),
+          "SecretEvents"
+        );
+        const next = reader(iterator);
+        // The first value is the initial one
+        await next();
+        const pending = next();
+        await new Promise(resolve => setImmediate(resolve));
+        await (repo as any).emit("Updated", { object_id: "s-alice", object });
+        const evt = await pending;
+        assert.notStrictEqual(evt, "timeout", String(uuid));
+        const sent = evt.SecretEvents.Updated;
+        assert.strictEqual(sent.object.name, "visible");
+        assert.ok(!JSON.stringify(evt).includes("__secret"), JSON.stringify(evt));
+        assert.ok(!JSON.stringify(evt).includes("hunter2"), JSON.stringify(evt));
+        await iterator.return?.(undefined);
+      }
+    });
+  });
+});
+
+describe("GraphQL websocket messages", () => {
+  it("a failing message handler is logged and closes the socket without details", async () => {
+    const service: GraphQLService = Object.create(GraphQLService.prototype);
+    const log = vi.fn();
+    (service as any).log = log;
+    const socket = { close: vi.fn() };
+    const failure = new Error("database password is hunter2");
+    const storage: any = { core: {} };
+    await service.handleSocketMessage(
+      socket,
+      async () => {
+        throw failure;
+      },
+      "{}",
+      storage
+    );
+    assert.deepStrictEqual(socket.close.mock.calls, [[CloseCode.InternalServerError, "Internal server error"]]);
+    assert.deepStrictEqual(log.mock.calls, [["ERROR", "GraphQL websocket message failed", failure]]);
   });
 });

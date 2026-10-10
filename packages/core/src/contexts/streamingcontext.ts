@@ -5,10 +5,12 @@ import * as WebdaError from "../errors/errors.js";
 /**
  * A value as clients may see it: plain JSON without `__` keys
  * @param value - an operation result or streamed chunk
- * @returns the copy (undefined stays undefined)
+ * @returns the copy (undefined stays undefined), or null when the value is not JSON-serializable (function, symbol)
  */
 export function toPublicChunk(value: unknown): unknown {
-  return value === undefined ? undefined : JSON.parse(JSONUtils.stringify(value, undefined, 0, true));
+  if (value === undefined) return undefined;
+  const json = JSONUtils.stringify(value, undefined, 0, true);
+  return json === undefined ? null : JSON.parse(json);
 }
 
 /**

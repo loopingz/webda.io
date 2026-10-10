@@ -1,5 +1,6 @@
 import { generate, type GenerateOptions } from "../engine/generate.js";
 import { generateGraph } from "../engine/graph.js";
+import type { SecretString } from "@webda/core";
 
 type ModelClass<T> = new (...args: any[]) => T;
 
@@ -7,7 +8,12 @@ export type MockServiceParameters = {
   mode?: "test" | "dev" | "demo" | "load" | "custom";
   seed?: number;
   aiProvider?: "anthropic" | "openai" | "none";
-  aiApiKey?: string;
+  /**
+   * API key of the AI provider
+   *
+   * Can be encrypted with `webda config encrypt`
+   */
+  aiApiKey?: string | SecretString;
 };
 
 /**
@@ -25,7 +31,11 @@ export class MockService {
    * @param _name - reserved service name (unused in the v1 standalone class).
    * @param parameters - default mode/seed/AI configuration.
    */
-  constructor(_webda?: unknown, _name?: string, private parameters: MockServiceParameters = {}) {}
+  constructor(
+    _webda?: unknown,
+    _name?: string,
+    private parameters: MockServiceParameters = {}
+  ) {}
 
   /**
    * Generate instances using the service's defaults merged with per-call options.

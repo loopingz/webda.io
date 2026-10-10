@@ -36,6 +36,11 @@ export class YAMLProxy {
    * @returns The YAML string representation.
    */
   static stringify(obj: any): string {
+    // A parsed document proxy keeps its comments and formatting
+    const target = obj?.["$$target"];
+    if (target instanceof YAMLDocument) {
+      return nodesMap.get(target).toString();
+    }
     if (obj instanceof YAMLProxy) {
       return obj.toString();
     } else if (Array.isArray(obj)) {
@@ -283,7 +288,14 @@ class YAMLMap implements YAMLProxies {
         } else {
           target.getYAMLNodes().items.forEach((attr, ind) => {
             if (attr.key.value === prop) {
-              attr.value = createYAMLNode(value);
+              const node = createYAMLNode(value);
+              // Keep the comments of a replaced scalar
+              if (yaml.isScalar(attr.value) && yaml.isScalar(node)) {
+                node.comment = attr.value.comment;
+                node.commentBefore = attr.value.commentBefore;
+                node.spaceBefore = attr.value.spaceBefore;
+              }
+              attr.value = node;
             }
           });
         }

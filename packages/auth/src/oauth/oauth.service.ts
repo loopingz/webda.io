@@ -7,6 +7,7 @@ import {
   type ResolvedIdentity,
   registerOperation,
   Route,
+  SecretString,
   runAsSystem,
   runWithContext,
   SecureCookie,
@@ -100,8 +101,10 @@ export class OAuthProviderParameters extends ServiceParameters {
   client_id: string;
   /**
    * OAuth client secret
+   *
+   * Can be encrypted with `webda config encrypt`
    */
-  client_secret?: string;
+  client_secret?: string | SecretString;
   /**
    * Scopes requested from the provider (the default depends on the provider)
    */

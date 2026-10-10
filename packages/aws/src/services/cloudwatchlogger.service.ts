@@ -1,8 +1,8 @@
 import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
-import { Service, ServiceParameters, useCoreEvents } from "@webda/core";
+import { SecretString, Service, ServiceParameters, useCoreEvents } from "@webda/core";
 import { LogFilter, useWorkerOutput, WorkerLogLevel, WorkerMessage } from "@webda/workout";
 import { randomUUID } from "node:crypto";
-import { AWSServiceParameters, loadAWSParameters } from "./aws-parameters.js";
+import { AWSServiceParameters, getAWSClientConfig, loadAWSParameters } from "./aws-parameters.js";
 import type { CloudFormationContributor } from "./contributors.js";
 
 /**
@@ -15,8 +15,14 @@ export class CloudWatchLoggerParameters extends ServiceParameters implements AWS
   endpoint?: string;
   /**
    * Static credentials, default to the AWS environment variables
+   *
+   * Can be encrypted with `webda config encrypt`
    */
-  credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string };
+  credentials?: {
+    accessKeyId: string | SecretString;
+    secretAccessKey: string | SecretString;
+    sessionToken?: string | SecretString;
+  };
   /**
    * AWS region
    * @default "us-east-1"
@@ -105,7 +111,7 @@ export class CloudWatchLogger<T extends CloudWatchLoggerParameters = CloudWatchL
       throw Error("Require a log group `logGroupName` parameter");
     }
     this._logStreamName = (this.parameters.logStreamNamePrefix || "") + randomUUID();
-    this._cloudwatch = new CloudWatchLogs(this.parameters);
+    this._cloudwatch = new CloudWatchLogs(getAWSClientConfig(this.parameters));
     const res = await this._cloudwatch.describeLogGroups({
       logGroupNamePrefix: this._logGroupName
     });

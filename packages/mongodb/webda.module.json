@@ -306,7 +306,7 @@
             "type": "array"
           },
           "mongoUrl": {
-            "description": "Contains the URL to Mongo Server\n\nWill try to use WEBDA_MONGO_URL environment variable if not defined",
+            "description": "Contains the URL to Mongo Server\n\nWill try to use WEBDA_MONGO_URL environment variable if not defined\n\nCan be encrypted with `webda config encrypt`",
             "type": "string"
           },
           "noCache": {
@@ -315,7 +315,7 @@
             "type": "boolean"
           },
           "options": {
-            "description": "Additional options for Mongo connetion\n\nShould be typed with MongoClientOptions but not available due to bug in ts-json-schema-generator\nhttps://docs.mongodb.com/manual/reference/connection-string"
+            "description": "Additional options for Mongo connetion\n\nShould be typed with MongoClientOptions but not available due to bug in ts-json-schema-generator\nhttps://docs.mongodb.com/manual/reference/connection-string\n\nCan be encrypted with `webda config encrypt`"
           },
           "slowQueryThreshold": {
             "default": 30000,

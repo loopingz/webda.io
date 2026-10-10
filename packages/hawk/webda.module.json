@@ -266,8 +266,7 @@
                       "additionalProperties": false,
                       "type": "object"
                     }
-                  ],
-                  "description": "Get the primary key type of the object\n\nThe main difference with the PrimaryKey<T> type is that if the primary key is a not union type, it will\nbe returned as a single type, otherwise it will be returned as a Pick type\n\nThe PrimaryKey<T> will always return a Pick type"
+                  ]
                 }
               ],
               "description": "Default owner of the object"

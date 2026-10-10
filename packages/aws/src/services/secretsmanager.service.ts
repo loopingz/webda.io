@@ -1,6 +1,6 @@
 import { DeleteSecretRequest, SecretsManager } from "@aws-sdk/client-secrets-manager";
-import { ConfigurationProvider, Service, ServiceParameters } from "@webda/core";
-import { AWSServiceParameters, loadAWSParameters } from "./aws-parameters.js";
+import { ConfigurationProvider, SecretString, Service, ServiceParameters } from "@webda/core";
+import { AWSServiceParameters, getAWSClientConfig, loadAWSParameters } from "./aws-parameters.js";
 
 /**
  * AWS SecretsManager parameters
@@ -12,8 +12,14 @@ export class AWSSecretsManagerParameters extends ServiceParameters implements AW
   endpoint?: string;
   /**
    * Static credentials, default to the AWS environment variables
+   *
+   * Can be encrypted with `webda config encrypt`
    */
-  credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string };
+  credentials?: {
+    accessKeyId: string | SecretString;
+    secretAccessKey: string | SecretString;
+    sessionToken?: string | SecretString;
+  };
   /**
    * AWS region
    * @default "us-east-1"
@@ -49,7 +55,7 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
    */
   computeParameters() {
     super.computeParameters();
-    this._client = new SecretsManager(this.parameters);
+    this._client = new SecretsManager(getAWSClientConfig(this.parameters));
   }
 
   /**

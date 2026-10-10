@@ -9,7 +9,7 @@ import { BatchLogRecordProcessor, LogRecordExporter, LoggerProvider } from "@ope
 import { ConsoleMetricExporter, PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK, tracing } from "@opentelemetry/sdk-node";
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from "@opentelemetry/semantic-conventions";
-import { Service, ServiceParameters, WebContext, useApplication, useCore, useRouter } from "@webda/core";
+import { SecretString, Service, ServiceParameters, WebContext, useApplication, useCore, useRouter } from "@webda/core";
 import { WorkerLogger, WorkerMessage, WorkerOutput } from "@webda/workout";
 
 /**
@@ -71,6 +71,8 @@ export class OtelServiceParameters extends ServiceParameters {
   /**
    * Logger export
    * If empty it is disabled
+   *
+   * Values (url, headers...) can be encrypted with `webda config encrypt`
    */
   loggerExporter?: {
     /**
@@ -80,9 +82,11 @@ export class OtelServiceParameters extends ServiceParameters {
     enable?: boolean;
     type?: "otlp";
     /**
+     * Can be encrypted with `webda config encrypt` (when it holds credentials)
+     *
      * @default http://localhost:4317
      */
-    url?: string;
+    url?: string | SecretString;
   };
   /**
    * @default NONE
@@ -199,7 +203,10 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
 
     // Logger part
     if (this.parameters.loggerExporter?.enable !== false) {
-      this.loggerExporter ??= new OTLPLogExporter(this.parameters.loggerExporter);
+      this.loggerExporter ??= new OTLPLogExporter(
+        // Encrypted values are unwrapped to plain strings for the exporter
+        SecretString.unwrap({ ...this.parameters.loggerExporter }) as any
+      );
       this.loggerProvider ??= new LoggerProvider({
         resource,
         processors: [new BatchLogRecordProcessor({ exporter: this.loggerExporter })]

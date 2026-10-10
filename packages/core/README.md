@@ -47,7 +47,7 @@ All application logic lives in services. Every service extends `Service` which p
 
 - **Service** -- Base class for all application services. Provides `@Inject` decorator for DI, `@Route` for HTTP endpoints, logger per instance, metrics support, and lifecycle hooks (`init()`, `resolve()`, `stop()`).
 - **ServiceParameters** -- Base configuration class with change watching support. Services declare their config shape by extending this class.
-- **CryptoService** -- Encryption, JWT signing/verification, key management with rotation support. Pluggable encrypters.
+- **CryptoService** -- Encryption, JWT signing/verification, key management with rotation support. Pluggable encrypters for [configuration secrets](https://docs.webda.io/Security/ConfigurationSecrets) (`crypt:<encrypter>:<data>` values, `SecretString`, `webda config encrypt`).
 - **BinaryService** -- Abstract file/binary storage with metadata, integrity challenges, and model-attribute mapping.
 - **ConfigurationService** -- Dynamic configuration with hot-reload from external sources (files, Kubernetes ConfigMaps, other services).
 

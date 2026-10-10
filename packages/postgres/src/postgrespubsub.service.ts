@@ -1,4 +1,4 @@
-import { PubSubService, ServiceParameters } from "@webda/core";
+import { PubSubService, SecretString, ServiceParameters } from "@webda/core";
 import { CancelablePromise, JSONUtils } from "@webda/utils";
 import { useLog } from "@webda/workout";
 import pg, { ClientConfig, PoolConfig } from "pg";
@@ -28,6 +28,8 @@ export class PostgresPubSubParameters extends ServiceParameters {
   /**
    * Connection settings forwarded to `pg.Client`. By default `pg` reads
    * standard PG* environment variables.
+   *
+   * Can be encrypted with `webda config encrypt`
    */
   postgresqlServer?: ClientConfig;
   /**
@@ -127,7 +129,7 @@ export default class PostgresPubSubService<
     if (!/^[a-z_][a-z0-9_]*$/.test(ch)) {
       throw new Error(`Invalid channel name "${ch}" — must match /^[a-z_][a-z0-9_]*$/`);
     }
-    const client = new pg.Client(this.parameters.postgresqlServer);
+    const client = new pg.Client(SecretString.unwrap(this.parameters.postgresqlServer));
     client.on("notification", (msg: pg.Notification) => {
       if (msg.channel !== this.channel()) return;
       this.dispatch(msg.payload ?? "");

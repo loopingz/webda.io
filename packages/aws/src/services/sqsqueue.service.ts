@@ -1,7 +1,7 @@
 import { ReceiveMessageRequest, SendMessageCommandInput, SQS } from "@aws-sdk/client-sqs";
-import { MessageReceipt, Queue, QueueParameters, WebdaError } from "@webda/core";
+import { MessageReceipt, Queue, QueueParameters, SecretString, WebdaError } from "@webda/core";
 import { createHash } from "crypto";
-import { AWSServiceParameters, loadAWSParameters } from "./aws-parameters.js";
+import { AWSServiceParameters, getAWSClientConfig, loadAWSParameters } from "./aws-parameters.js";
 import type { CloudFormationContributor, CloudFormationDeployerInfo } from "./contributors.js";
 
 /**
@@ -14,8 +14,14 @@ export class SQSQueueParameters extends QueueParameters implements AWSServicePar
   endpoint?: string;
   /**
    * Static credentials, default to the AWS environment variables
+   *
+   * Can be encrypted with `webda config encrypt`
    */
-  credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string };
+  credentials?: {
+    accessKeyId: string | SecretString;
+    secretAccessKey: string | SecretString;
+    sessionToken?: string | SecretString;
+  };
   /**
    * AWS region
    * @default "us-east-1"
@@ -80,7 +86,7 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
    */
   async init(): Promise<this> {
     await super.init();
-    this.sqs = new SQS(this.parameters);
+    this.sqs = new SQS(getAWSClientConfig(this.parameters));
     return this;
   }
 

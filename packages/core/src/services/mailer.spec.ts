@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { MailerParameters, UnpackedConfiguration, User, useService, WebContext } from "../index.js";
+import { MailerParameters, SecretString, UnpackedConfiguration, User, useService, WebContext } from "../index.js";
 import { WebdaApplicationTest } from "../test/application.js";
 
 @suite
@@ -55,6 +55,20 @@ class MailerTest extends WebdaApplicationTest {
     });
     assert.strictEqual(params.templates, "ts/");
     assert.strictEqual(params.templatesEngine, "b");
+  }
+
+  @test
+  async encryptedTransportOptions() {
+    // An encrypted SMTP password reaches nodemailer as a plain string
+    this.mailer.parameters.transport = undefined;
+    this.mailer.parameters.host = "localhost";
+    this.mailer.parameters.auth = { user: "webda", pass: new SecretString("plainPassword", "test") };
+    await this.mailer.init();
+    const options = this.mailer._transporter.transporter.options;
+    assert.strictEqual(options.auth.user, "webda");
+    assert.strictEqual(options.auth.pass, "plainPassword");
+    // The service parameters keep the masked secret
+    assert.ok(this.mailer.parameters.auth.pass instanceof SecretString);
   }
 
   @test

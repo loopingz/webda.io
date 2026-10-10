@@ -5,6 +5,7 @@ import { useCore, useDynamicService } from "../core/hooks.js";
 import { deepmerge } from "deepmerge-ts";
 import type { Core } from "../core/core.js";
 import { Duration } from "@webda/utils";
+import { CryptoService } from "../services/cryptoservice.service.js";
 
 /**
  * Service that can store configuration
@@ -257,7 +258,7 @@ class ConfigurationService<
       this.log("DEBUG", "Apply new configuration");
       this.serializedConfiguration = serializedConfig;
       this.configuration = newConfig;
-      useCore().updateConfiguration(newConfig);
+      useCore().updateConfiguration(await CryptoService.decryptConfiguration(newConfig));
     }
     // If the ConfigurationProvider cannot trigger we check at interval
     if (this.interval) {
@@ -286,7 +287,7 @@ class ConfigurationService<
         // So you can have a configuration that is from file, then from a service
         // and the service configuration will be read from file too
         if (configuration) {
-          core.updateConfiguration(configuration);
+          core.updateConfiguration(await CryptoService.decryptConfiguration(configuration));
         }
         const [serviceName, sourceId] = source.split(":");
         const service = core.getService<ConfigurationProvider & Service>(serviceName);
@@ -297,7 +298,8 @@ class ConfigurationService<
     }
     // Store the configuration
     this.serializedConfiguration = JSON.stringify(configuration);
-    core.updateConfiguration(configuration);
+    // Encrypted values (crypt:/scrypt:) are decrypted like in the application configuration
+    core.updateConfiguration(await CryptoService.decryptConfiguration(configuration));
   }
 }
 

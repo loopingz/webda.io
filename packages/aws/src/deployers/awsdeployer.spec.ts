@@ -16,7 +16,7 @@ import {
   S3
 } from "@aws-sdk/client-s3";
 import { GetCallerIdentityCommand, STS } from "@aws-sdk/client-sts";
-import { InstanceCache, Service } from "@webda/core";
+import { InstanceCache, SecretString, Service } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/index.js";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
@@ -131,6 +131,36 @@ class AWSDeployerTest extends WebdaApplicationTest {
     }
     // Tags map are transformed to array
     assert.deepStrictEqual(this.deployer.resources.Tags, [{ Key: "Team", Value: "webda" }]);
+  }
+
+  @test
+  async prepareSecretCredentials() {
+    const env = { ...process.env };
+    try {
+      delete process.env.AWS_ACCESS_KEY_ID;
+      delete process.env.AWS_SECRET_ACCESS_KEY;
+      delete process.env.AWS_SESSION_TOKEN;
+      const deployer = new TestAWSDeployer(
+        "Stack",
+        new AWSDeployerParameters().load({
+          type: "Test/Deployer",
+          region: "eu-west-3",
+          accessKeyId: "KEY",
+          secretAccessKey: new SecretString("SECRET", "test"),
+          sessionToken: new SecretString("TOKEN", "test")
+        })
+      );
+      const resources = await deployer.prepare();
+      // Secrets survive the template resolution and stay masked in the resources
+      assert.ok(resources.secretAccessKey instanceof SecretString);
+      assert.ok(!JSON.stringify(resources).includes("SECRET"));
+      assert.deepStrictEqual(deployer.getClientConfig("S3"), {
+        region: "eu-west-3",
+        credentials: { accessKeyId: "KEY", secretAccessKey: "SECRET", sessionToken: "TOKEN" }
+      });
+    } finally {
+      process.env = env;
+    }
   }
 
   @test

@@ -4,6 +4,7 @@ import {
   Histogram,
   HttpContext,
   Route,
+  SecretString,
   Service,
   ServiceParameters,
   useCore,
@@ -53,8 +54,10 @@ export class ProxyParameters extends ServiceParameters {
   url?: string;
   /**
    * URL to proxy to
+   *
+   * Can be encrypted with `webda config encrypt` (when it holds credentials)
    */
-  backend: string;
+  backend: string | SecretString;
   /**
    * Helper to refuse any request if user is not auth
    */
@@ -73,7 +76,8 @@ export class ProxyParameters extends ServiceParameters {
   constructor(params?: any) {
     super();
     this.load(params);
-    if (this.backend?.endsWith("/")) {
+    // An encrypted backend is normalized when read, in getBackend
+    if (typeof this.backend === "string" && this.backend.endsWith("/")) {
       this.backend = this.backend.substring(0, this.backend.length - 1);
     }
     this.proxyHeaders ??= true;
@@ -417,8 +421,9 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @param _ctx - web context (unused in base implementation)
    * @returns the backend base URL to proxy to
    */
-  getBackend(_ctx: WebContext) {
-    return this.parameters.backend;
+  getBackend(_ctx: WebContext): string {
+    const backend = SecretString.unwrap(this.parameters.backend) as string;
+    return backend?.endsWith("/") ? backend.substring(0, backend.length - 1) : backend;
   }
 
   /**

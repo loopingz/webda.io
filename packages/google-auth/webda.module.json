@@ -74,7 +74,7 @@
             "type": "string"
           },
           "client_secret": {
-            "description": "Google OAuth client secret",
+            "description": "Google OAuth client secret\n\nCan be encrypted with `webda config encrypt`",
             "type": "string"
           },
           "hostedDomain": {

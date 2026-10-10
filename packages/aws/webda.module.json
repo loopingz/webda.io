@@ -105,7 +105,7 @@
         "definitions": {
           "credentials": {
             "additionalProperties": false,
-            "description": "Static credentials, default to the AWS environment variables",
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
             "properties": {
               "accessKeyId": {
                 "type": "string"
@@ -128,7 +128,7 @@
         "properties": {
           "credentials": {
             "$ref": "#/definitions/credentials",
-            "description": "Static credentials, default to the AWS environment variables"
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`"
           },
           "endpoint": {
             "description": "Custom endpoint (localstack, minio, ...)",
@@ -381,6 +381,13 @@
                   "\\.d\\.ts$"
                 ],
                 "description": "Regular expressions on the source path of the files to skip",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "excludeServices": {
+                "description": "Services to remove from the packaged configuration, like the ones injected by the CLI to run a command",
                 "items": {
                   "type": "string"
                 },
@@ -694,7 +701,7 @@
             "description": "Default Tags to use with resources created by deployers"
           },
           "accessKeyId": {
-            "description": "AWS_ACCESS_KEY_ID to use\n\nUsing static key is not recommended",
+            "description": "AWS_ACCESS_KEY_ID to use\n\nUsing static key is not recommended\n\nCan be encrypted with `webda config encrypt`",
             "type": "string"
           },
           "endpoints": {
@@ -711,11 +718,11 @@
             "type": "string"
           },
           "secretAccessKey": {
-            "description": "AWS_SECRET_ACCESS_KEY to use\n\nUsing static key is not recommended",
+            "description": "AWS_SECRET_ACCESS_KEY to use\n\nUsing static key is not recommended\n\nCan be encrypted with `webda config encrypt`",
             "type": "string"
           },
           "sessionToken": {
-            "description": "AWS_SESSION_TOKEN Token\n\nEven if it is possible to add it here\nIt is not sustainable as this token at its best will\nhave a lifetime of 12 hours",
+            "description": "AWS_SESSION_TOKEN Token\n\nEven if it is possible to add it here\nIt is not sustainable as this token at its best will\nhave a lifetime of 12 hours\n\nCan be encrypted with `webda config encrypt`",
             "type": "string"
           },
           "type": {
@@ -757,7 +764,7 @@
         "definitions": {
           "credentials": {
             "additionalProperties": false,
-            "description": "Static credentials, default to the AWS environment variables",
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
             "properties": {
               "accessKeyId": {
                 "type": "string"
@@ -788,7 +795,7 @@
           },
           "credentials": {
             "$ref": "#/definitions/credentials",
-            "description": "Static credentials, default to the AWS environment variables"
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`"
           },
           "endpoint": {
             "description": "Custom endpoint (localstack, minio, ...)",
@@ -864,7 +871,7 @@
           },
           "credentials": {
             "additionalProperties": false,
-            "description": "Static credentials, default to the AWS environment variables",
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
             "properties": {
               "accessKeyId": {
                 "type": "string"
@@ -936,7 +943,7 @@
           },
           "credentials": {
             "$ref": "#/definitions/credentials",
-            "description": "Static credentials, default to the AWS environment variables"
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`"
           },
           "defaultModel": {
             "default": true,
@@ -1034,7 +1041,7 @@
         "definitions": {
           "credentials": {
             "additionalProperties": false,
-            "description": "Static credentials, default to the AWS environment variables",
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
             "properties": {
               "accessKeyId": {
                 "type": "string"
@@ -1069,7 +1076,7 @@
           },
           "credentials": {
             "$ref": "#/definitions/credentials",
-            "description": "Static credentials, default to the AWS environment variables"
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`"
           },
           "endpoint": {
             "description": "Custom endpoint (localstack, minio, ...)",
@@ -1113,6 +1120,13 @@
                   "\\.d\\.ts$"
                 ],
                 "description": "Regular expressions on the source path of the files to skip",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "excludeServices": {
+                "description": "Services to remove from the packaged configuration, like the ones injected by the CLI to run a command",
                 "items": {
                   "type": "string"
                 },
@@ -1244,7 +1258,7 @@
         "definitions": {
           "credentials": {
             "additionalProperties": false,
-            "description": "Static credentials, default to the AWS environment variables",
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
             "properties": {
               "accessKeyId": {
                 "type": "string"
@@ -1289,7 +1303,7 @@
           },
           "credentials": {
             "$ref": "#/definitions/credentials",
-            "description": "Static credentials, default to the AWS environment variables"
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`"
           },
           "endpoint": {
             "description": "Custom endpoint (localstack, minio, ...)",
@@ -1364,7 +1378,7 @@
           },
           "credentials": {
             "additionalProperties": false,
-            "description": "Static credentials, default to the AWS environment variables",
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
             "properties": {
               "accessKeyId": {
                 "type": "string"
@@ -1404,7 +1418,7 @@
           },
           "credentials": {
             "$ref": "#/definitions/credentials",
-            "description": "Static credentials, default to the AWS environment variables"
+            "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`"
           },
           "endpoint": {
             "description": "Custom endpoint (localstack, minio, ...)",

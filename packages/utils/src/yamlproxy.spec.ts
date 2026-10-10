@@ -171,4 +171,13 @@ class YAMLProxyTest {
     const output = YAMLProxy.stringify(obj);
     assert.ok(output.includes("inserted"));
   }
+
+  @test
+  stringifyKeepsComments() {
+    const yaml = "# Header\nroot:\n  # Before\n  key: value # inline\n  other: 1\n";
+    const obj = YAMLProxy.parse(yaml);
+    assert.strictEqual(YAMLProxy.stringify(obj), yaml);
+    obj.root.key = "changed";
+    assert.strictEqual(YAMLProxy.stringify(obj), yaml.replace("value", "changed"));
+  }
 }

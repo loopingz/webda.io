@@ -182,6 +182,32 @@ describe("SchemaConverter", () => {
     expect(properties.channel.type).toBe("string");
   });
 
+  it("collapses union branches that differ only by annotations", () => {
+    // `string | SecretString` where the class is tagged `@type string`
+    expect(properties.masked).toEqual({ type: "string", description: "A string or a class documented as a string." });
+    expect(properties.maskedFirst).toEqual({
+      type: "string",
+      description: "The class first: the property keeps its own description."
+    });
+    expect(properties.maskedOrNumber).toEqual({
+      type: ["number", "string"],
+      description: "Distinct types still make a type array."
+    });
+    // The class is not hoisted: `@type` replaces its shape
+    expect(schema.definitions?.Masked).toBeUndefined();
+  });
+
+  it("reads only the leading type expression of a @type tag", () => {
+    expect(properties.span).toEqual({
+      type: ["number", "string"],
+      description: "A class tagged with several JSON types."
+    });
+    expect(schema.definitions?.Span).toBeUndefined();
+    // Not JSON types: the object shape and the raw tag are kept, as before
+    expect(properties.opaque.$ref).toBe("#/definitions/Opaque");
+    expect(schema.definitions!.Opaque.properties!.inner.type).toBe("string");
+  });
+
   it("excludes private members and methods", () => {
     expect(properties.secret).toBeUndefined();
     expect(properties.helper).toBeUndefined();

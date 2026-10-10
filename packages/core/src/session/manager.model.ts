@@ -1,4 +1,4 @@
-import type { CryptoService } from "../services/cryptoservice.service.js";
+import { type CryptoService, SecretString } from "../services/cryptoservice.service.js";
 import { JWTOptions } from "../services/icryptoservice.js";
 import { Inject, Service } from "../services/service.js";
 
@@ -90,6 +90,8 @@ export class SessionModel extends UuidModel {
 export class CookieSessionParameters extends ServiceParameters {
   /**
    * Options for issue JWT token
+   *
+   * `secretOrPublicKey` can be encrypted with `webda config encrypt`
    */
   jwt?: JWTOptions;
   /**
@@ -138,7 +140,12 @@ export class CookieSessionManager<
       return this.loadFromToken(context, authorization.substring(7).trim());
     }
     const session = new Session();
-    const cookie = await SecureCookie.load(this.parameters.cookie.name, session, context, this.parameters.jwt);
+    const cookie = await SecureCookie.load(
+      this.parameters.cookie.name,
+      session,
+      context,
+      SecretString.unwrap(this.parameters.jwt)
+    );
     if (this.sessionModel) {
       if (cookie.sub) {
         Object.assign(session, (await this.sessionModel.get(cookie.sub))?.session);
@@ -184,11 +191,17 @@ export class CookieSessionManager<
         this.parameters.cookie.name,
         context,
         {},
-        { ...this.parameters.jwt, subject: session.uuid.toString() },
+        SecretString.unwrap({ ...this.parameters.jwt, subject: session.uuid.toString() }),
         this.parameters.cookie
       );
       return;
     }
-    SecureCookie.save(this.parameters.cookie.name, context, session, this.parameters.jwt, this.parameters.cookie);
+    SecureCookie.save(
+      this.parameters.cookie.name,
+      context,
+      session,
+      SecretString.unwrap(this.parameters.jwt),
+      this.parameters.cookie
+    );
   }
 }

@@ -1,3 +1,4 @@
+import { SecretString } from "@webda/core";
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import { __resetPools, acquirePool, poolKey, releasePool } from "./pgpool.js";
@@ -65,5 +66,22 @@ class PgPoolTest {
   async releasingUnknownConfigIsNoop() {
     // Should not throw — `stop()` paths call this unconditionally.
     await releasePool({ host: "never-acquired", database: "x" });
+  }
+
+  @test
+  async secretStringPassword() {
+    const secretCfg: any = { ...cfg, password: new SecretString("webda.io", "test") };
+    // Keyed by the plain value: same pool as the plain config, distinct from another password
+    assert.strictEqual(poolKey(secretCfg), poolKey(cfg));
+    assert.notStrictEqual(poolKey(secretCfg), poolKey({ ...cfg, password: new SecretString("other", "test") }));
+    const a = acquirePool(secretCfg);
+    assert.strictEqual((a as any).options.password, "webda.io", "pg must receive the plain password");
+    assert.strictEqual(acquirePool(cfg), a);
+    await releasePool(secretCfg);
+    await releasePool(secretCfg);
+    // Fully released: a new pool is created
+    const b = acquirePool(secretCfg);
+    assert.notStrictEqual(a, b);
+    await releasePool(secretCfg);
   }
 }

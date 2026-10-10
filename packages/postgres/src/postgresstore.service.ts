@@ -1,4 +1,12 @@
-import { EventRepository, InstanceCache, useApplication, useCore, useModel, useModelMetadata } from "@webda/core";
+import {
+  EventRepository,
+  InstanceCache,
+  SecretString,
+  useApplication,
+  useCore,
+  useModel,
+  useModelMetadata
+} from "@webda/core";
 import type { ModelClass, Repository } from "@webda/core";
 import { JSONSchema7 } from "json-schema";
 import pg, { ClientConfig, PoolConfig } from "pg";
@@ -27,6 +35,8 @@ export class PostgresParameters extends SQLStoreParameters {
   usePool?: boolean;
   /**
    * By default use environment variables
+   *
+   * Can be encrypted with `webda config encrypt`
    */
   postgresqlServer?: ClientConfig | PoolConfig;
   /**
@@ -116,7 +126,7 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
       this.client = acquirePool(this.parameters.postgresqlServer as PoolConfig);
       this.ownsPool = true;
     } else {
-      this.client = new pg.Client(this.parameters.postgresqlServer);
+      this.client = new pg.Client(SecretString.unwrap(this.parameters.postgresqlServer as ClientConfig));
       await this.client.connect();
     }
     await this.checkTable();

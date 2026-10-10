@@ -1,3 +1,4 @@
+import { SecretString } from "@webda/core";
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -76,6 +77,16 @@ class AuthTest {
     assert.deepStrictEqual(resolveCredentials("ghcr.io", { "ghcr.io": { token: "t" } }, config, helper), {
       token: "t"
     });
+    // Encrypted explicit credentials are unwrapped
+    assert.deepStrictEqual(
+      resolveCredentials(
+        "ghcr.io",
+        { "ghcr.io": { username: "u", password: new SecretString("p", "test") } },
+        config,
+        helper
+      ),
+      { username: "u", password: "p" }
+    );
     assert.strictEqual(resolveCredentials("localhost:5000", {}, {}, helper), undefined);
   }
 

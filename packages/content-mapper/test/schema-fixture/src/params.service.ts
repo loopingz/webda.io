@@ -28,6 +28,38 @@ export interface Retryable {
   retries: number;
 }
 
+/**
+ * A class standing for a string in the schema, like `SecretString`.
+ *
+ * @type string
+ */
+export class Masked {
+  /** Not part of the schema: `@type` replaces the class shape. */
+  value: string;
+}
+
+/**
+ * A class written as a number or a string, like `Duration`.
+ *
+ * @type number | string
+ *
+ * Prose after the tag is not part of the type.
+ */
+export class Span {
+  /** Not part of the schema. */
+  seconds: number;
+}
+
+/**
+ * Not a JSON type: the class keeps its object shape.
+ *
+ * @type Masked
+ */
+export class Opaque {
+  /** Kept. */
+  inner: string;
+}
+
 /** Parameters covering primitives, defaults, enums and nesting. */
 export class BroadParameters extends ServiceParameters implements Retryable {
   /** A plain required string. */
@@ -84,6 +116,16 @@ export class BroadParameters extends ServiceParameters implements Retryable {
    * @enum ["a", "b"]
    */
   channel: string;
+  /** A string or a class documented as a string. */
+  masked: string | Masked;
+  /** The class first: the property keeps its own description. */
+  maskedFirst?: Masked | string;
+  /** Distinct types still make a type array. */
+  maskedOrNumber?: Masked | number;
+  /** A class tagged with several JSON types. */
+  span?: Span;
+  /** A class tagged with something else than JSON types. */
+  opaque?: Opaque;
   /** Never reaches the schema. */
   private secret: string;
   /** Nor does a method. */

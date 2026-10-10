@@ -7,6 +7,7 @@ import {
   getDeploymentVariables,
   InstanceCache,
   resolveDeploymentVariables,
+  SecretString,
   Service,
   ServiceParameters,
   useCore,
@@ -48,22 +49,28 @@ export class AWSDeployerParameters extends ServiceParameters {
    * AWS_ACCESS_KEY_ID to use
    *
    * Using static key is not recommended
+   *
+   * Can be encrypted with `webda config encrypt`
    */
-  accessKeyId?: string;
+  accessKeyId?: string | SecretString;
   /**
    * AWS_SECRET_ACCESS_KEY to use
    *
    * Using static key is not recommended
+   *
+   * Can be encrypted with `webda config encrypt`
    */
-  secretAccessKey?: string;
+  secretAccessKey?: string | SecretString;
   /**
    * AWS_SESSION_TOKEN Token
    *
    * Even if it is possible to add it here
    * It is not sustainable as this token at its best will
    * have a lifetime of 12 hours
+   *
+   * Can be encrypted with `webda config encrypt`
    */
-  sessionToken?: string;
+  sessionToken?: string | SecretString;
   /**
    * AWS_REGION to use
    *
@@ -133,14 +140,25 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
    * @returns the resources
    */
   async prepare(extra: Record<string, any> = {}): Promise<this["resources"]> {
-    this.resources = this.getRawParameters();
+    // Serializing the parameters masks the encrypted secrets: keep them aside
+    const secrets: Record<string, SecretString> = {};
+    const parameters: any = this.getParameters() ?? {};
+    for (const key of ["accessKeyId", "secretAccessKey", "sessionToken"]) {
+      if (parameters[key] instanceof SecretString) {
+        secrets[key] = parameters[key];
+      }
+    }
+    this.resources = { ...this.getRawParameters(), ...secrets };
     this.resources.name ??= this.getName();
     // Defaults can use the deployment variables too
     await this.defaultResources();
-    this.resources = resolveDeploymentVariables(
-      this.resources,
-      getDeploymentVariables(this, { resources: this.resources, ...extra })
-    );
+    this.resources = {
+      ...resolveDeploymentVariables(
+        this.resources,
+        getDeploymentVariables(this, { resources: this.resources, ...extra })
+      ),
+      ...secrets
+    };
     return this.resources;
   }
 
@@ -158,6 +176,9 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
    * Apply the default resources
    */
   async defaultResources(): Promise<void> {
+    // Warn once if static secrets are configured in clear text (environment variables are fine)
+    SecretString.from(this.resources.secretAccessKey, "secretAccessKey");
+    SecretString.from(this.resources.sessionToken, "sessionToken");
     this.resources.accessKeyId ??= process.env["AWS_ACCESS_KEY_ID"];
     this.resources.secretAccessKey ??= process.env["AWS_SECRET_ACCESS_KEY"];
     this.resources.sessionToken ??= process.env["AWS_SESSION_TOKEN"];
@@ -181,11 +202,11 @@ export abstract class AWSDeployer<T extends AWSDeployerParameters = AWSDeployerP
       config.endpoint = this.resources.endpoints[endpoint];
     }
     if (this.resources.accessKeyId && this.resources.secretAccessKey) {
-      config.credentials = {
+      config.credentials = SecretString.unwrap({
         accessKeyId: this.resources.accessKeyId,
         secretAccessKey: this.resources.secretAccessKey,
         sessionToken: this.resources.sessionToken
-      };
+      });
     }
     return config;
   }

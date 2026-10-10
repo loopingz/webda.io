@@ -118,70 +118,12 @@
                     "$ref": "#/definitions/DataView%3CArrayBufferLike%3E"
                   },
                   {
-                    "description": "A typed array of 64-bit signed integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated, an exception is raised.",
                     "items": {
                       "type": "integer"
                     },
                     "type": "array"
                   },
                   {
-                    "description": "A typed array of 64-bit unsigned integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated, an exception is raised.",
-                    "items": {
-                      "type": "integer"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 16-bit float values. The contents are initialized to 0. If the requested number\nof bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 32-bit float values. The contents are initialized to 0. If the requested number\nof bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 64-bit float values. The contents are initialized to 0. If the requested\nnumber of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 16-bit signed integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 32-bit signed integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 8-bit integer values. The contents are initialized to 0. If the requested\nnumber of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 16-bit unsigned integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 32-bit unsigned integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
                     "items": {
                       "type": "number"
                     },
@@ -192,13 +134,6 @@
                     "contentMediaType": "application/octet-stream",
                     "description": "A typed array of 8-bit unsigned integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
                     "type": "string"
-                  },
-                  {
-                    "description": "A typed array of 8-bit unsigned integer (clamped) values. The contents are initialized to 0.\nIf the requested number of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
                   }
                 ],
                 "description": "An array of strings, or a single `Buffer`, `TypedArray`, or `DataView` containing the supported\nALPN protocols. Buffers should have the format `[len][name][len][name]...`\ne.g. `'\\x08http/1.1\\x08http/1.0'`, where the `len` byte is the length of the\nnext protocol name. Passing an array is usually much simpler, e.g.\n`['http/1.1', 'http/1.0']`. Protocols earlier in the list have higher\npreference than those later."
@@ -641,7 +576,7 @@
           },
           "postgresqlServer": {
             "$ref": "#/definitions/ClientConfig",
-            "description": "Connection settings forwarded to `pg.Client`. By default `pg` reads\nstandard PG* environment variables."
+            "description": "Connection settings forwarded to `pg.Client`. By default `pg` reads\nstandard PG* environment variables.\n\nCan be encrypted with `webda config encrypt`"
           },
           "reconnectDelay": {
             "default": 500,
@@ -780,70 +715,12 @@
                     "$ref": "#/definitions/DataView%3CArrayBufferLike%3E"
                   },
                   {
-                    "description": "A typed array of 64-bit signed integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated, an exception is raised.",
                     "items": {
                       "type": "integer"
                     },
                     "type": "array"
                   },
                   {
-                    "description": "A typed array of 64-bit unsigned integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated, an exception is raised.",
-                    "items": {
-                      "type": "integer"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 16-bit float values. The contents are initialized to 0. If the requested number\nof bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 32-bit float values. The contents are initialized to 0. If the requested number\nof bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 64-bit float values. The contents are initialized to 0. If the requested\nnumber of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 16-bit signed integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 32-bit signed integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 8-bit integer values. The contents are initialized to 0. If the requested\nnumber of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 16-bit unsigned integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 32-bit unsigned integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
                     "items": {
                       "type": "number"
                     },
@@ -854,13 +731,6 @@
                     "contentMediaType": "application/octet-stream",
                     "description": "A typed array of 8-bit unsigned integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
                     "type": "string"
-                  },
-                  {
-                    "description": "A typed array of 8-bit unsigned integer (clamped) values. The contents are initialized to 0.\nIf the requested number of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
                   }
                 ],
                 "description": "An array of strings, or a single `Buffer`, `TypedArray`, or `DataView` containing the supported\nALPN protocols. Buffers should have the format `[len][name][len][name]...`\ne.g. `'\\x08http/1.1\\x08http/1.0'`, where the `len` byte is the length of the\nnext protocol name. Passing an array is usually much simpler, e.g.\n`['http/1.1', 'http/1.0']`. Protocols earlier in the list have higher\npreference than those later."
@@ -1460,7 +1330,7 @@
                 "$ref": "#/definitions/PoolConfig"
               }
             ],
-            "description": "Connection settings forwarded to the chosen pg client/pool. Defaults\nto PG* environment variables."
+            "description": "Connection settings forwarded to the chosen pg client/pool. Defaults\nto PG* environment variables.\n\nCan be encrypted with `webda config encrypt`"
           },
           "table": {
             "default": "webda_queue",
@@ -1625,70 +1495,12 @@
                     "$ref": "#/definitions/DataView%3CArrayBufferLike%3E"
                   },
                   {
-                    "description": "A typed array of 64-bit signed integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated, an exception is raised.",
                     "items": {
                       "type": "integer"
                     },
                     "type": "array"
                   },
                   {
-                    "description": "A typed array of 64-bit unsigned integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated, an exception is raised.",
-                    "items": {
-                      "type": "integer"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 16-bit float values. The contents are initialized to 0. If the requested number\nof bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 32-bit float values. The contents are initialized to 0. If the requested number\nof bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 64-bit float values. The contents are initialized to 0. If the requested\nnumber of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 16-bit signed integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 32-bit signed integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 8-bit integer values. The contents are initialized to 0. If the requested\nnumber of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 16-bit unsigned integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "description": "A typed array of 32-bit unsigned integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
                     "items": {
                       "type": "number"
                     },
@@ -1699,13 +1511,6 @@
                     "contentMediaType": "application/octet-stream",
                     "description": "A typed array of 8-bit unsigned integer values. The contents are initialized to 0. If the\nrequested number of bytes could not be allocated an exception is raised.",
                     "type": "string"
-                  },
-                  {
-                    "description": "A typed array of 8-bit unsigned integer (clamped) values. The contents are initialized to 0.\nIf the requested number of bytes could not be allocated an exception is raised.",
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
                   }
                 ],
                 "description": "An array of strings, or a single `Buffer`, `TypedArray`, or `DataView` containing the supported\nALPN protocols. Buffers should have the format `[len][name][len][name]...`\ne.g. `'\\x08http/1.1\\x08http/1.0'`, where the `len` byte is the length of the\nnext protocol name. Passing an array is usually much simpler, e.g.\n`['http/1.1', 'http/1.0']`. Protocols earlier in the list have higher\npreference than those later."
@@ -2350,7 +2155,7 @@
                 "$ref": "#/definitions/PoolConfig"
               }
             ],
-            "description": "By default use environment variables"
+            "description": "By default use environment variables\n\nCan be encrypted with `webda config encrypt`"
           },
           "slowQueryThreshold": {
             "default": 30000,

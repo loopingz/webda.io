@@ -1,4 +1,5 @@
 import { KeyManagementServiceClient } from "@google-cloud/kms";
+import { CryptoService } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
@@ -58,5 +59,13 @@ class KMSTest extends WebdaApplicationTest {
       () => service.decrypt(Buffer.from("test:plop").toString("base64") + ":test"),
       /Invalid KMS encryption/
     );
+  }
+
+  @test
+  async missingKey() {
+    delete process.env.WEBDA_GCP_KMS_KEY;
+    const encrypter = CryptoService.getEncrypter("gcp");
+    await assert.rejects(() => encrypter.encrypt("test"), /WEBDA_GCP_KMS_KEY/);
+    await assert.rejects(() => encrypter.encrypt("test", "projects/only"), /WEBDA_GCP_KMS_KEY/);
   }
 }

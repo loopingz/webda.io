@@ -5,7 +5,9 @@ import {
   Queue,
   runWithContext,
   Service,
+  registerOperationAuthorizer,
   ServiceParameters,
+  unregisterOperationAuthorizer,
   useApplication,
   useCore,
   useDynamicService,
@@ -737,5 +739,39 @@ class AsyncJobServiceTest extends AsyncTest {
     await assert.rejects(() => service.launchOperation(context), /Plop/);
     check.restore();
     delete useCore().getServices()["async"];
+  }
+
+  @test
+  async operationsHonorAuthorizers() {
+    const service = await this.addService(
+      AsyncJobService,
+      {
+        type: "Webda/AsyncJobService",
+        queue: "AsyncQueue",
+        runners: ["LocalRunner"],
+        asyncOperationDefinition: "./test/asyncOperations.json"
+      },
+      "async"
+    );
+    const seen: any[] = [];
+    const authorizer = async (_ctx, operationId, _op, options) => {
+      seen.push({ operationId, probe: options.probe });
+      return operationId !== "User.Revoke";
+    };
+    registerOperationAuthorizer(authorizer as any);
+    try {
+      const context = await this.newContext();
+      await context.newSession();
+      context.getSession<any>().role = "hr";
+      await service.listOperations(context);
+      // User.Revoke has no `permission` but is refused by the authorizer
+      assert.deepStrictEqual(JSON.parse(context.getOutput()), ["User.Onboard"]);
+      assert.ok(seen.every(s => s.probe === true));
+      context.getParameters().operationId = "User.Revoke";
+      await assert.rejects(() => service.launchOperation(context), WebdaError.Forbidden);
+    } finally {
+      unregisterOperationAuthorizer(authorizer as any);
+      delete useCore().getServices()["async"];
+    }
   }
 }

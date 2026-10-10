@@ -96,12 +96,15 @@ export function createMcpServer(options: McpServerOptions): Server {
       ...(resources ? { resources: { listChanged: false, subscribe: false } } : {})
     }
   });
-  const allowed = (session: Session, operationId: string) => canCallOperation(sessionContext(session), operationId);
+  const allowed = (session: Session, operationId: string): Promise<boolean> =>
+    canCallOperation(sessionContext(session), operationId);
 
   server.setRequestHandler(ListToolsRequestSchema, async (request, extra) => {
     options.beforeRequest?.();
     const session = options.getSession(extra);
-    const visible = tools.list().filter(e => allowed(session, e.operationId));
+    const all = tools.list();
+    const flags = await Promise.all(all.map(e => allowed(session, e.operationId)));
+    const visible = all.filter((_e, i) => flags[i]);
     const offset = Number(request.params?.cursor ?? 0) || 0;
     const page = visible.slice(offset, offset + TOOLS_PAGE_SIZE);
     const next = offset + TOOLS_PAGE_SIZE < visible.length ? String(offset + TOOLS_PAGE_SIZE) : undefined;
@@ -112,7 +115,7 @@ export function createMcpServer(options: McpServerOptions): Server {
     options.beforeRequest?.();
     const session = options.getSession(extra);
     const entry = tools.get(request.params.name);
-    if (!entry || !allowed(session, entry.operationId)) {
+    if (!entry || !(await allowed(session, entry.operationId))) {
       throw new McpError(ErrorCode.InvalidParams, `Unknown tool: ${request.params.name}`);
     }
     const args = request.params.arguments ?? {};
@@ -180,7 +183,11 @@ export function createMcpServer(options: McpServerOptions): Server {
   server.setRequestHandler(ListResourcesRequestSchema, async (request, extra) => {
     options.beforeRequest?.();
     const session = options.getSession(extra);
-    const listable = resources.models().filter(m => m.queryOperationId && allowed(session, m.queryOperationId));
+    const models = resources.models();
+    const flags = await Promise.all(
+      models.map(m => (m.queryOperationId ? allowed(session, m.queryOperationId) : Promise.resolve(false)))
+    );
+    const listable = models.filter((_m, i) => flags[i]);
     const cursor = decodeCursor(request.params?.cursor);
     const index = cursor ? listable.findIndex(m => m.name === cursor.model) : 0;
     if (index < 0) {

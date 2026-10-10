@@ -170,6 +170,109 @@ export class OfflineClient extends Emitter<{
     return this.running;
   }
 
+  protected _status: SyncStatus = "idle";
+  protected timer?: ReturnType<typeof setInterval>;
+  protected retryTimer?: ReturnType<typeof setTimeout>;
+  protected failures = 0;
+  protected watchAbort?: AbortController;
+  protected stopped = true;
+  protected onlineListener = () => void this.run();
+
+  /**
+   * @returns the current sync status
+   */
+  get status(): SyncStatus {
+    return this._status;
+  }
+
+  /**
+   * @param status - the new status
+   */
+  protected setStatus(status: SyncStatus): void {
+    if (status === this._status) return;
+    this._status = status;
+    this.emit("status", status);
+  }
+
+  /**
+   * Sync with status tracking and backoff; never throws
+   */
+  protected async run(): Promise<void> {
+    clearTimeout(this.retryTimer);
+    this.setStatus("syncing");
+    try {
+      await this.sync();
+      this.failures = 0;
+      this.setStatus("idle");
+    } catch (err) {
+      this.failures++;
+      const status = (err as any)?.status;
+      this.setStatus(status === undefined || status === 0 ? "offline" : "error");
+      this.emit("error", err);
+      if (this.stopped) return;
+      const { base, max } = this.options.retry;
+      this.retryTimer = setTimeout(() => void this.run(), Math.min(base * 2 ** (this.failures - 1), max));
+    }
+  }
+
+  /**
+   * Initial sync, then the timer, `online` events and watch hints
+   */
+  async start(): Promise<void> {
+    this.stop();
+    this.stopped = false;
+    await this.run();
+    if (this.stopped) return;
+    if (this.options.syncInterval > 0) {
+      this.timer = setInterval(() => void this.run(), this.options.syncInterval);
+    }
+    (globalThis as any).addEventListener?.("online", this.onlineListener);
+    if (this.options.transport.watch) {
+      this.watchAbort = new AbortController();
+      void this.watchLoop(this.watchAbort.signal);
+    }
+  }
+
+  /**
+   * Pull on every watch hint (heartbeats excepted), reconnecting after a delay when the stream ends
+   * @param signal - stops the loop
+   */
+  protected async watchLoop(signal: AbortSignal): Promise<void> {
+    while (!signal.aborted) {
+      try {
+        for await (const hint of this.options.transport.watch!({ scopes: await this.getScopes() }, signal)) {
+          if (signal.aborted) return;
+          // Heartbeats only keep the connection alive
+          if (hint.heartbeat) continue;
+          await this.run();
+        }
+      } catch {
+        // Polling still keeps the replica correct
+      }
+      if (signal.aborted) return;
+      await new Promise<void>(resolve => {
+        const done = () => {
+          clearTimeout(wait);
+          signal.removeEventListener("abort", done);
+          resolve();
+        };
+        const wait = setTimeout(done, this.options.retry.base);
+        signal.addEventListener("abort", done);
+      });
+    }
+  }
+
+  /**
+   * Stop the timers and the watch stream
+   */
+  stop(): void {
+    this.stopped = true;
+    clearInterval(this.timer);
+    clearTimeout(this.retryTimer);
+    this.watchAbort?.abort();
+    (globalThis as any).removeEventListener?.("online", this.onlineListener);
+  }
+
   /**
    * @param record - a record in conflict state
    * @returns the conflict description

@@ -866,7 +866,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         },
         subscribe: async (_source, args, context) => {
           this.log("DEBUG", "Subscription called on", args);
-          return this.registerAsyncIterator(model, args[uuidField], context);
+          // The payload is keyed by the field name: the default resolver reads it from there
+          return this.registerAsyncIterator(model, args[uuidField], context, this.transformName(i.split("/").pop()));
         }
       };
       const events = metadata.Events || [];
@@ -1538,6 +1539,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         return req.extra?.context || {};
       }
     });
+    const storage = useInstanceStorage();
     this.wss.on("connection", async (socket, request) => {
       // a new socket opened, let graphql-ws take over
       const closed = this.wsHandler.opened(
@@ -1555,11 +1557,13 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
                 // - if init message, waits for connect
                 // - if query/mutation, waits for result
                 // - if subscription, waits for complete
-                await cb(event.toString());
+                // The socket events fire outside the instance storage: re-enter it for the resolvers
+                await runWithInstanceStorage(storage, () => cb(event.toString()));
               } catch (err) {
                 // all errors that could be thrown during the
                 // execution of operations will be caught here
-                socket.close(CloseCode.InternalServerError, err.message);
+                // A close reason is limited to 123 bytes and must not leak internal details
+                socket.close(CloseCode.InternalServerError, "Internal server error");
               }
             })
         },

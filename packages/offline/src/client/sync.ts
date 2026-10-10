@@ -61,8 +61,17 @@ export class SyncEngine {
           const sent = batch.find(r => r.pendingMutationId === result.mutationId);
           if (!sent) continue;
           // Re-read: the app may have edited the record while the push was in flight
-          const latest = (await this.storage.getRecord(sent.id)) ?? sent;
-          if (await this.settle(latest, result)) again = true;
+          const latest = await this.storage.getRecord(sent.id);
+          if (latest) {
+            if (await this.settle(latest, result)) again = true;
+          } else if (sent.base === null && result.status === "ok") {
+            // Forgotten or discarded while its create was in flight: the server has it, so delete it there too
+            const server = result.object ?? sent.sent;
+            await this.storage.putRecords([
+              { id: sent.id, ref: sent.ref, base: server, baseRev: result.rev, current: null, state: "deleted" }
+            ]);
+            again = true;
+          }
         }
       }
       if (!again) return;
@@ -168,7 +177,9 @@ export class SyncEngine {
       // The strategy may await (UI, network): the app can edit the record meanwhile
       const out = await this.client.resolveStrategy(rebased, !last);
       const stored = await this.storage.getRecord(current.id);
-      if (!last && stored && !deepEqual(stored.current, current.current)) {
+      // Removed meanwhile (forgotten by the app): it stays removed
+      if (!stored) return null;
+      if (!last && !deepEqual(stored.current, current.current)) {
         current = stored;
         continue;
       }

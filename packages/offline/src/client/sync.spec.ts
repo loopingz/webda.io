@@ -427,4 +427,58 @@ describe("in-flight edge cases", () => {
     expect((await storage.getRecord("App/Task|a"))?.pendingMutationId).toBeUndefined();
     expect((await tasks.get("a")).title).toBe("B");
   });
+
+  it("a never-confirmed record deleted during an async strategy stays deleted", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>(r => (release = r));
+    let entered!: () => void;
+    const inside = new Promise<void>(r => (entered = r));
+    const { server, client, tasks, storage } = await setup({
+      onConflict: async info => {
+        entered();
+        await gate;
+        return new Map(info.result.conflicts.map(c => [c.path, { choose: "ours" as const }]));
+      }
+    });
+    server.serverWrite("App/Task", "k", { uuid: "k", title: "server", archived: false });
+    await tasks.create({ uuid: "k", title: "mine", archived: false });
+    const run = client.sync();
+    await inside;
+    await tasks.delete("k");
+    release();
+    await run;
+    // The local record is not written back with "mine"; the pull then brings the server value
+    expect(server.received).toHaveLength(1);
+    expect(server.objects.get("App/Task|k")?.object.title).toBe("server");
+    expect(await tasks.get("k")).toMatchObject({ title: "server" });
+    expect((await storage.getRecord("App/Task|k"))?.state).toBe("synced");
+  });
+
+  it("delete during the create push is pushed next", async () => {
+    const { server, client, tasks, storage } = await setup();
+    const t = await tasks.create({ title: "x", archived: false });
+    const push = server.push.bind(server);
+    server.push = async req => {
+      server.push = push;
+      await tasks.delete(t.uuid);
+      return push(req);
+    };
+    await client.sync();
+    expect(server.objects.has(`App/Task|${t.uuid}`)).toBe(false);
+    expect(await storage.getRecord(`App/Task|${t.uuid}`)).toBeUndefined();
+  });
+
+  it("discard during the create push is pushed as a delete", async () => {
+    const { server, client, tasks, storage } = await setup();
+    const t = await tasks.create({ title: "x", archived: false });
+    const push = server.push.bind(server);
+    server.push = async req => {
+      server.push = push;
+      await client.discard({ model: "App/Task", key: t.uuid });
+      return push(req);
+    };
+    await client.sync();
+    expect(server.objects.has(`App/Task|${t.uuid}`)).toBe(false);
+    expect(await storage.getRecord(`App/Task|${t.uuid}`)).toBeUndefined();
+  });
 });

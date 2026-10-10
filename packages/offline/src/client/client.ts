@@ -1,7 +1,10 @@
 import type { MergeResult, Resolution, VersioningConfig } from "@webda/versioning";
-import { serializeKey, type SyncRef, type SyncScope } from "../protocol/index.js";
+import { refId, serializeKey, type SyncRef, type SyncScope } from "../protocol/index.js";
 import { Collection } from "./collection.js";
+import { settleConflict, strategyResolutions } from "./conflicts.js";
 import { Emitter } from "./emitter.js";
+import { clone, type LocalRecord } from "./record.js";
+import { SyncEngine } from "./sync.js";
 import type { StorageAdapter } from "./storage/storage.js";
 import type { Transport } from "./transport/transport.js";
 
@@ -62,12 +65,14 @@ export class OfflineClient extends Emitter<{
   constructor(options: OfflineClientOptions) {
     super();
     this.options = {
-      onConflict: "manual",
-      syncInterval: 30000,
-      primaryKeys: {},
-      versioning: {},
-      retry: { base: 1000, max: 60000 },
-      ...options
+      storage: options.storage,
+      transport: options.transport,
+      scopes: options.scopes,
+      onConflict: options.onConflict ?? "manual",
+      syncInterval: options.syncInterval ?? 30000,
+      primaryKeys: options.primaryKeys ?? {},
+      versioning: options.versioning ?? {},
+      retry: options.retry ?? { base: 1000, max: 60000 }
     };
     this.storage = options.storage;
   }
@@ -108,5 +113,132 @@ export class OfflineClient extends Emitter<{
    */
   notify(event: ChangeEvent): void {
     this.emit("change", event);
+  }
+
+  protected engine = new SyncEngine(this);
+  protected running?: Promise<void>;
+  protected again = false;
+
+  /**
+   * @returns the current scopes (persisted ones win over the constructor's)
+   */
+  async getScopes(): Promise<SyncScope[]> {
+    return (await this.storage.getMeta<SyncScope[]>("scopes")) ?? this.options.scopes;
+  }
+
+  /**
+   * Replace the scopes: the next sync resyncs every scope
+   * @param scopes - the new scopes
+   */
+  async setScopes(scopes: SyncScope[]): Promise<void> {
+    await this.storage.setMeta("scopes", scopes);
+    await this.storage.setMeta("cursor", undefined);
+  }
+
+  /**
+   * Push then pull; concurrent calls share one run (and trigger one more if needed)
+   */
+  sync(): Promise<void> {
+    if (this.running) {
+      this.again = true;
+      return this.running;
+    }
+    this.running = (async () => {
+      try {
+        do {
+          this.again = false;
+          await this.engine.push();
+          await this.engine.pull();
+        } while (this.again);
+      } finally {
+        this.running = undefined;
+      }
+    })();
+    return this.running;
+  }
+
+  /**
+   * @param record - a record in conflict state
+   * @returns the conflict description
+   */
+  protected info(record: LocalRecord): ConflictInfo {
+    return {
+      ref: record.ref,
+      ancestor: clone(record.conflict!.ancestor),
+      ours: clone(record.current),
+      theirs: clone(record.base),
+      result: clone(record.conflict!.result)
+    };
+  }
+
+  /**
+   * Store a rebased record, applying the conflict strategy when it is in conflict
+   * @param record - the rebased record, null to remove it
+   * @returns the stored record, null when removed
+   */
+  async applyConflictStrategy(record: LocalRecord | null): Promise<LocalRecord | null> {
+    let out = record;
+    if (record?.state === "conflict") {
+      const info = this.info(record);
+      const resolutions = await strategyResolutions(this.options.onConflict, info);
+      if (resolutions === "defer") {
+        this.emit("conflict", info);
+      } else {
+        out = settleConflict(record, resolutions);
+      }
+    }
+    if (out === null) {
+      if (record) {
+        await this.storage.deleteRecords([record.id]);
+        this.notify({ ref: record.ref, object: null, origin: "remote" });
+      }
+      return null;
+    }
+    await this.storage.putRecords([out]);
+    this.notify({ ref: out.ref, object: clone(out.current), origin: "remote" });
+    return out;
+  }
+
+  /**
+   * @returns the open conflicts
+   */
+  async conflicts(): Promise<ConflictInfo[]> {
+    return (await this.storage.scanPending()).filter(r => r.state === "conflict").map(r => this.info(r));
+  }
+
+  /**
+   * Resolve an open conflict; the record is pushed by the next sync
+   * @param ref - the object
+   * @param resolutions - path → resolution for every conflict ("" for a delete-modify on the whole object)
+   */
+  async resolve(ref: SyncRef, resolutions: Map<string, Resolution>): Promise<void> {
+    const record = await this.storage.getRecord(refId(ref));
+    if (record?.state !== "conflict") throw new Error(`No open conflict on ${refId(ref)}`);
+    const settled = settleConflict(record, resolutions);
+    if (settled === null) {
+      await this.storage.deleteRecords([record.id]);
+      this.notify({ ref, object: null, origin: "local" });
+      return;
+    }
+    await this.storage.putRecords([settled]);
+    this.notify({ ref, object: clone(settled.current), origin: "local" });
+  }
+
+  /**
+   * Drop local changes of an object (error or conflict): back to the last server value
+   * @param ref - the object
+   */
+  async discard(ref: SyncRef): Promise<void> {
+    const record = await this.storage.getRecord(refId(ref));
+    if (!record) return;
+    if (record.base === null) {
+      await this.storage.deleteRecords([record.id]);
+      this.notify({ ref, object: null, origin: "local" });
+      return;
+    }
+    await this.storage.putRecords([
+      { id: record.id, ref, base: record.base, baseRev: record.baseRev, current: clone(record.base), state: "synced" }
+    ]);
+    this.notify({ ref, object: clone(record.base), origin: "local" });
   }
 }

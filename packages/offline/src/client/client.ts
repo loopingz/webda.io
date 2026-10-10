@@ -3,7 +3,7 @@ import { refId, serializeKey, type SyncRef, type SyncScope } from "../protocol/i
 import { Collection } from "./collection.js";
 import { settleConflict, strategyResolutions } from "./conflicts.js";
 import { Emitter } from "./emitter.js";
-import { clone, type LocalRecord } from "./record.js";
+import { clone, deepEqual, type LocalRecord } from "./record.js";
 import { SyncEngine } from "./sync.js";
 import type { StorageAdapter } from "./storage/storage.js";
 import type { Transport } from "./transport/transport.js";
@@ -42,8 +42,10 @@ export interface OfflineClientOptions {
   primaryKeys?: Record<string, string[]>;
   /** `@webda/versioning` config (arrayId, string strategies) */
   versioning?: VersioningConfig;
-  /** Retry backoff in milliseconds @default { base: 1000, max: 60000 } */
+  /** Retry backoff in milliseconds (sync retries and watch reconnections) @default { base: 1000, max: 60000 } */
   retry?: { base: number; max: number };
+  /** Mutations per push request, at most the server `maxMutations` @default 100 */
+  pushBatchSize?: number;
 }
 
 /**
@@ -72,7 +74,8 @@ export class OfflineClient extends Emitter<{
       syncInterval: options.syncInterval ?? 30000,
       primaryKeys: options.primaryKeys ?? {},
       versioning: options.versioning ?? {},
-      retry: options.retry ?? { base: 1000, max: 60000 }
+      retry: options.retry ?? { base: 1000, max: 60000 },
+      pushBatchSize: options.pushBatchSize ?? 100
     };
     this.storage = options.storage;
   }
@@ -120,22 +123,61 @@ export class OfflineClient extends Emitter<{
   protected again = false;
 
   /**
-   * @returns the current scopes (persisted ones win over the constructor's)
+   * Effective scopes: the last `setScopes()` call wins until the constructor scopes change (an app update shipping
+   * new scopes replaces them), otherwise the constructor scopes
+   * @returns the current scopes
    */
   async getScopes(): Promise<SyncScope[]> {
-    return (await this.storage.getMeta<SyncScope[]>("scopes")) ?? this.options.scopes;
+    const explicit = await this.storage.getMeta<SyncScope[]>("scopes");
+    if (explicit === undefined) return this.options.scopes;
+    const declared = await this.storage.getMeta<SyncScope[]>("declaredScopes");
+    return declared === undefined || deepEqual(declared, this.options.scopes) ? explicit : this.options.scopes;
   }
 
   /**
-   * Replace the scopes: the next sync resyncs every scope
+   * Replace the scopes: the next sync resyncs every scope. They are persisted and win over the constructor scopes
+   * until the app is started with different constructor scopes.
    * @param scopes - the new scopes
    */
   async setScopes(scopes: SyncScope[]): Promise<void> {
+    const previous = (await this.storage.getMeta<SyncScope[]>("syncedScopes")) ?? (await this.getScopes());
+    await this.storage.setMeta("declaredScopes", this.options.scopes);
+    await this.storage.setMeta("scopes", scopes);
+    await this.switchScopes(previous, scopes);
+  }
+
+  /**
+   * Run the scope change of `setScopes()` when the effective scopes differ from the ones the replica was synced with
+   * (constructor scopes changed by an app update, or a replica written before the scopes were recorded)
+   */
+  protected async reconcileScopes(): Promise<void> {
+    const effective = await this.getScopes();
+    const declared = await this.storage.getMeta<SyncScope[]>("declaredScopes");
+    if (!deepEqual(declared, this.options.scopes)) {
+      // New constructor scopes replace any explicit ones
+      if (declared !== undefined) await this.storage.setMeta("scopes", undefined);
+      await this.storage.setMeta("declaredScopes", this.options.scopes);
+    }
+    const synced = await this.storage.getMeta<SyncScope[]>("syncedScopes");
+    if (deepEqual(synced, effective)) return;
+    if (synced === undefined && (await this.storage.getMeta("cursor")) === undefined) {
+      // Fresh replica: nothing to reset
+      await this.storage.setMeta("syncedScopes", effective);
+      return;
+    }
+    await this.switchScopes(synced ?? [], effective);
+  }
+
+  /**
+   * Move the replica to new scopes: bump the epoch, reset the cursor, drop synced records of models no scope covers
+   * @param previous - the scopes the replica was synced with
+   * @param scopes - the new scopes
+   */
+  protected async switchScopes(previous: SyncScope[], scopes: SyncScope[]): Promise<void> {
     const kept = new Set(scopes.map(s => s.model));
-    const previous = await this.getScopes();
     // Bump the epoch first: a running pull stops persisting its cursor
     await this.storage.setMeta("scopesEpoch", ((await this.storage.getMeta<number>("scopesEpoch")) ?? 0) + 1);
-    await this.storage.setMeta("scopes", scopes);
+    await this.storage.setMeta("syncedScopes", scopes);
     await this.storage.setMeta("cursor", undefined);
     // Synced records of models no scope covers any more are dropped, local changes are kept
     for (const model of new Set(previous.map(s => s.model))) {
@@ -149,8 +191,9 @@ export class OfflineClient extends Emitter<{
   }
 
   /**
-   * Push then pull; concurrent calls share one run (and trigger one more if needed)
-   * @returns the result
+   * Push then pull; concurrent calls share one run (and trigger one more if needed).
+   * A push refused by the server (non-zero status) does not block the pull: the push error is thrown after it.
+   * @returns resolves when the replica is up to date, rejects with the first push or pull error
    */
   sync(): Promise<void> {
     if (this.running) {
@@ -161,7 +204,15 @@ export class OfflineClient extends Emitter<{
       try {
         do {
           this.again = false;
-          await this.engine.push();
+          await this.reconcileScopes();
+          try {
+            await this.engine.push();
+          } catch (err) {
+            const status = (err as any)?.status;
+            // Network failures stop here; a refusal (403 for a read-only user...) must not freeze the replica
+            if (typeof status === "number" && status !== 0) await this.engine.pull();
+            throw err;
+          }
           await this.engine.pull();
         } while (this.again);
       } finally {
@@ -220,7 +271,7 @@ export class OfflineClient extends Emitter<{
 
   /**
    * Initial sync, then the timer, `online` events and watch hints; concurrent calls share one start
-   * @returns the result
+   * @returns resolves after the initial sync (a failed one is retried, never rejected)
    */
   start(): Promise<void> {
     if (!this.starting) {
@@ -247,29 +298,39 @@ export class OfflineClient extends Emitter<{
   }
 
   /**
-   * Pull on every watch hint (heartbeats excepted), reconnecting after a delay when the stream ends
+   * Pull on every watch hint (heartbeats excepted), reconnecting with the retry backoff when the stream ends.
+   * The backoff resets after a connection that yielded an event; 401, 403 and 404 stop the loop (polling goes on).
    * @param signal - stops the loop
    */
   protected async watchLoop(signal: AbortSignal): Promise<void> {
+    let attempts = 0;
     while (!signal.aborted) {
       try {
         for await (const hint of this.options.transport.watch!({ scopes: await this.getScopes() }, signal)) {
           if (signal.aborted) return;
+          attempts = 0;
           // Heartbeats only keep the connection alive
           if (hint.heartbeat) continue;
           await this.run();
         }
-      } catch {
-        // Polling still keeps the replica correct
+      } catch (err) {
+        if (signal.aborted) return;
+        if ([401, 403, 404].includes((err as any)?.status)) {
+          // Retrying cannot succeed: report it, polling still keeps the replica correct
+          this.emit("error", err);
+          return;
+        }
       }
       if (signal.aborted) return;
+      const { base, max } = this.options.retry;
+      const delay = Math.min(base * 2 ** attempts++, max);
       await new Promise<void>(resolve => {
         const done = () => {
           clearTimeout(wait);
           signal.removeEventListener("abort", done);
           resolve();
         };
-        const wait = setTimeout(done, this.options.retry.base);
+        const wait = setTimeout(done, delay);
         signal.addEventListener("abort", done);
       });
     }
@@ -373,12 +434,21 @@ export class OfflineClient extends Emitter<{
   }
 
   /**
-   * Drop local changes of an object (error or conflict): back to the last server value
+   * Drop local changes of an object (error or conflict): back to the last server value.
+   * A never-confirmed create is forgotten; when it was already sent (its response may have been lost) a
+   * tombstone is kept instead, so the next sync deletes the object the server may have created.
    * @param ref - the object
    */
   async discard(ref: SyncRef): Promise<void> {
     const record = await this.storage.getRecord(refId(ref));
     if (!record) return;
+    if (record.base === null && record.pendingMutationId !== undefined) {
+      await this.storage.putRecords([
+        { ...record, current: null, state: "deleted", conflict: undefined, error: undefined }
+      ]);
+      this.notify({ ref, object: null, origin: "local" });
+      return;
+    }
     if (record.base === null) {
       await this.storage.deleteRecords([record.id]);
       this.notify({ ref, object: null, origin: "local" });

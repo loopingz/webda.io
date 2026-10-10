@@ -60,7 +60,7 @@ export class FakeServer implements Transport {
   /**
    *
    * @param req - the req
-   * @returns the result
+   * @returns the page of changes
    */
   async pull(req: PullRequest): Promise<PullResponse> {
     this.check();
@@ -85,7 +85,7 @@ export class FakeServer implements Transport {
   /**
    *
    * @param req - the req
-   * @returns the result
+   * @returns the page of objects
    */
   async snapshot(req: SnapshotRequest): Promise<SnapshotResponse> {
     this.check();
@@ -100,7 +100,7 @@ export class FakeServer implements Transport {
   /**
    *
    * @param req - the req
-   * @returns the result
+   * @returns one result per mutation
    */
   async push(req: PushRequest): Promise<PushResponse> {
     this.check();

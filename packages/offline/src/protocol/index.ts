@@ -31,7 +31,8 @@ export interface SyncedObject {
 
 export interface PullRequest {
   scopes: SyncScope[];
-  cursor?: string | null;
+  /** Cursor of the previous pull, absent for the first one */
+  cursor?: string;
   limit?: number;
 }
 

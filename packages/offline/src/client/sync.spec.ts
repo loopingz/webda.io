@@ -482,3 +482,170 @@ describe("in-flight edge cases", () => {
     expect(await storage.getRecord(`App/Task|${t.uuid}`)).toBeUndefined();
   });
 });
+
+describe("lost create response", () => {
+  /**
+   * Create a task whose create the server applied but whose response was lost
+   * @returns the context and the task
+   */
+  async function lostCreate() {
+    const ctx = await setup();
+    await ctx.client.sync();
+    const t = await ctx.tasks.create({ title: "x", archived: false });
+    const push = ctx.server.push.bind(ctx.server);
+    ctx.server.push = async req => {
+      await push(req);
+      throw new Error("reset");
+    };
+    await expect(ctx.client.sync()).rejects.toThrow(/reset/);
+    ctx.server.push = push;
+    expect(ctx.server.objects.has(`App/Task|${t.uuid}`)).toBe(true);
+    return { ...ctx, t };
+  }
+
+  it("delete after a lost create response deletes on the server", async () => {
+    const { server, client, tasks, storage, t } = await lostCreate();
+    await tasks.delete(t.uuid);
+    expect(await tasks.get(t.uuid)).toBeUndefined();
+    await client.sync();
+    expect(server.objects.has(`App/Task|${t.uuid}`)).toBe(false);
+    expect(await storage.getRecord(`App/Task|${t.uuid}`)).toBeUndefined();
+    expect(await tasks.get(t.uuid)).toBeUndefined();
+  });
+
+  it("discard after a lost create response deletes on the server", async () => {
+    const { server, client, tasks, storage, t } = await lostCreate();
+    await client.discard({ model: "App/Task", key: t.uuid });
+    expect(await tasks.get(t.uuid)).toBeUndefined();
+    await client.sync();
+    expect(server.objects.has(`App/Task|${t.uuid}`)).toBe(false);
+    expect(await storage.getRecord(`App/Task|${t.uuid}`)).toBeUndefined();
+  });
+});
+
+describe("server re-creates a key", () => {
+  it("a lower revision after a delete + re-create replaces the replica", async () => {
+    const { server, client, tasks } = await setup();
+    for (let i = 1; i <= 5; i++) server.serverWrite("App/Task", "a", { uuid: "a", title: `v${i}`, archived: false });
+    await client.sync();
+    expect((await tasks.get("a")).title).toBe("v5");
+    server.serverWrite("App/Task", "a", null);
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "new", archived: false });
+    expect(server.objects.get("App/Task|a")?.rev).toBe(1);
+    await client.sync();
+    expect((await tasks.get("a")).title).toBe("new");
+  });
+
+  it("a snapshot also loads the lower revision", async () => {
+    const { server, client, tasks } = await setup();
+    for (let i = 1; i <= 3; i++) server.serverWrite("App/Task", "a", { uuid: "a", title: `v${i}`, archived: false });
+    await client.sync();
+    server.serverWrite("App/Task", "a", null);
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "new", archived: false });
+    server.horizon = server.log.length + 1;
+    await client.sync();
+    expect((await tasks.get("a")).title).toBe("new");
+  });
+});
+
+describe("constructor scopes", () => {
+  it("new constructor scopes resync the replica", async () => {
+    const server = new FakeServer();
+    const storage = new MemoryStorage();
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "A", archived: false });
+    server.serverWrite("App/Task", "b", { uuid: "b", title: "B", archived: true });
+    const v1 = new OfflineClient({ storage, transport: server, scopes: SCOPES, syncInterval: 0 });
+    await v1.sync();
+    expect((await v1.collection("App/Task").query()).map(t => t.uuid)).toEqual(["a"]);
+    // The app ships new scopes: the persisted cursor belonged to the old ones
+    const v2 = new OfflineClient({
+      storage,
+      transport: server,
+      scopes: [{ model: "App/Task", query: "archived = TRUE" }],
+      syncInterval: 0
+    });
+    await v2.sync();
+    expect((await v2.collection("App/Task").query()).map(t => t.uuid)).toEqual(["b"]);
+  });
+
+  it("models leaving the constructor scopes are evicted", async () => {
+    const server = new FakeServer();
+    const storage = new MemoryStorage();
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "A", archived: false });
+    await new OfflineClient({ storage, transport: server, scopes: SCOPES, syncInterval: 0 }).sync();
+    const v2 = new OfflineClient({ storage, transport: server, scopes: [{ model: "App/Other" }], syncInterval: 0 });
+    await v2.sync();
+    expect(await storage.getRecord("App/Task|a")).toBeUndefined();
+  });
+
+  it("setScopes wins until the constructor scopes change", async () => {
+    const server = new FakeServer();
+    const storage = new MemoryStorage();
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "A", archived: false });
+    server.serverWrite("App/Task", "b", { uuid: "b", title: "B", archived: true });
+    const archived = [{ model: "App/Task", query: "archived = TRUE" }];
+    const first = new OfflineClient({ storage, transport: server, scopes: SCOPES, syncInterval: 0 });
+    await first.setScopes(archived);
+    await first.sync();
+    // Same constructor scopes (app restart): the explicit scopes are kept
+    const restarted = new OfflineClient({ storage, transport: server, scopes: SCOPES, syncInterval: 0 });
+    expect(await restarted.getScopes()).toEqual(archived);
+    await restarted.sync();
+    expect((await restarted.collection("App/Task").query()).map(t => t.uuid)).toEqual(["b"]);
+    // New constructor scopes: they replace the explicit ones
+    const all = [{ model: "App/Task" }];
+    const upgraded = new OfflineClient({ storage, transport: server, scopes: all, syncInterval: 0 });
+    expect(await upgraded.getScopes()).toEqual(all);
+    await upgraded.sync();
+    expect((await upgraded.collection("App/Task").query()).map(t => t.uuid).sort()).toEqual(["a", "b"]);
+  });
+});
+
+describe("push failures", () => {
+  it("a refused push still pulls, then reports the push error", async () => {
+    const { server, client, tasks } = await setup();
+    await client.sync();
+    await tasks.create({ title: "mine", archived: false });
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "A", archived: false });
+    server.failNext(Object.assign(new Error("forbidden"), { status: 403 }));
+    await expect(client.sync()).rejects.toThrow(/forbidden/);
+    expect((await tasks.get("a"))?.title).toBe("A");
+  });
+
+  it("a network push failure does not pull", async () => {
+    const { server, client, tasks } = await setup();
+    await client.sync();
+    await tasks.create({ title: "mine", archived: false });
+    const before = server.pullCalls;
+    server.failNext(Object.assign(new Error("offline"), { status: 0 }));
+    await expect(client.sync()).rejects.toThrow(/offline/);
+    expect(server.pullCalls).toBe(before);
+  });
+
+  it("pushes in batches of pushBatchSize", async () => {
+    const { server, client, tasks } = await setup({ pushBatchSize: 2 });
+    await client.sync();
+    for (let i = 0; i < 5; i++) await tasks.create({ title: `t${i}`, archived: false });
+    await client.sync();
+    expect(server.received.map(r => r.mutations.length)).toEqual([2, 2, 1]);
+  });
+
+  it("pushBatchSize defaults to 100", async () => {
+    const { client } = await setup();
+    expect(client.options.pushBatchSize).toBe(100);
+  });
+});
+
+describe("pull cursor", () => {
+  it("never sends a null cursor", async () => {
+    const { server, client } = await setup();
+    const requests: any[] = [];
+    const pull = server.pull.bind(server);
+    server.pull = async req => {
+      requests.push(req);
+      return pull(req);
+    };
+    await client.sync();
+    expect(requests[0].cursor).toBeUndefined();
+  });
+});

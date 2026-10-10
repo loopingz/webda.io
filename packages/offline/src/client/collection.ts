@@ -46,7 +46,7 @@ export class Collection<T = any> {
       record = {
         ...existing,
         current: object,
-        state: "dirty",
+        state: existing.base === null ? "created" : "dirty",
         // pendingMutationId / sent are kept: the delete may be in flight or already applied, its result must still be matched
         error: undefined
       };
@@ -93,9 +93,12 @@ export class Collection<T = any> {
   async delete(key: unknown): Promise<void> {
     const record = await this.client.storage.getRecord(this.id(key));
     if (!record || record.current === null) return;
-    if (record.base === null) {
+    if (record.base === null && record.pendingMutationId === undefined) {
+      // Never sent: the server cannot have it
       await this.client.storage.deleteRecords([record.id]);
     } else {
+      // A create in flight (or whose response was lost) may already exist on the server: keep a tombstone,
+      // the next push replays the create then deletes the object
       await this.client.storage.putRecords([{ ...record, current: null, state: "deleted", conflict: undefined }]);
     }
     this.client.notify({ ref: record.ref, object: null, origin: "local" });

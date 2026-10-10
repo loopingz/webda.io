@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { OfflineClient } from "./client.js";
 import { FakeServer } from "./fake-transport.js";
 import { MemoryStorage } from "./storage/memory.js";
+import { TransportError } from "./transport/transport.js";
 
 describe("OfflineClient lifecycle", () => {
   it("syncs on start and on the timer, reports status", async () => {
@@ -255,6 +256,79 @@ describe("OfflineClient lifecycle", () => {
       await vi.advanceTimersByTimeAsync(1000);
       expect(calls).toBe(before + 1);
       client.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it("backs off watch reconnections and resets after a connection that yielded", async () => {
+    vi.useFakeTimers();
+    try {
+      let connections = 0;
+      let yieldOnce = false;
+      const transport = transportOf(async () => ok);
+      transport.watch = async function* watchStub() {
+        connections++;
+        if (yieldOnce) {
+          yieldOnce = false;
+          yield { cursor: "1", heartbeat: true };
+          return;
+        }
+        throw Object.assign(new Error("down"), { status: 0 });
+      };
+      const client = new OfflineClient({
+        storage: new MemoryStorage(),
+        transport,
+        scopes: [{ model: "A" }],
+        syncInterval: 0,
+        retry: { base: 100, max: 300 }
+      });
+      await client.start();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(connections).toBe(1);
+      await vi.advanceTimersByTimeAsync(100);
+      expect(connections).toBe(2);
+      await vi.advanceTimersByTimeAsync(199);
+      expect(connections).toBe(2);
+      await vi.advanceTimersByTimeAsync(1); // +200
+      expect(connections).toBe(3);
+      await vi.advanceTimersByTimeAsync(299);
+      expect(connections).toBe(3);
+      yieldOnce = true;
+      await vi.advanceTimersByTimeAsync(1); // capped at 300, this connection yields
+      expect(connections).toBe(4);
+      await vi.advanceTimersByTimeAsync(100); // back to base
+      expect(connections).toBe(5);
+      client.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("stops reconnecting the watch on 401/403/404 and reports the error", async () => {
+    vi.useFakeTimers();
+    try {
+      for (const status of [401, 403, 404]) {
+        let connections = 0;
+        const transport = transportOf(async () => ok);
+        transport.watch = async function* watchStub() {
+          connections++;
+          throw new TransportError(status, "refused");
+        };
+        const client = new OfflineClient({
+          storage: new MemoryStorage(),
+          transport,
+          scopes: [{ model: "A" }],
+          syncInterval: 0,
+          retry: { base: 100, max: 300 }
+        });
+        const errors: any[] = [];
+        client.on("error", e => errors.push(e));
+        await client.start();
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(connections).toBe(1);
+        expect(errors.map(e => e.status)).toEqual([status]);
+        client.stop();
+      }
     } finally {
       vi.useRealTimers();
     }

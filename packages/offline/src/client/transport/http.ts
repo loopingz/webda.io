@@ -123,18 +123,16 @@ export class HttpTransport implements Transport {
   /**
    *
    * @param req - the req
-   * @returns the result
+   * @returns the page of changes
    */
   async pull(req: PullRequest): Promise<PullResponse> {
-    // The server input schema types cursor as an optional string: a null cursor is sent as an absent one
-    const { cursor, ...rest } = req;
-    return (await this.request("pull", cursor == null ? rest : { ...rest, cursor })).json();
+    return (await this.request("pull", req)).json();
   }
 
   /**
    *
    * @param req - the req
-   * @returns the result
+   * @returns one result per mutation
    */
   async push(req: PushRequest): Promise<PushResponse> {
     return (await this.request("push", req)).json();
@@ -143,7 +141,7 @@ export class HttpTransport implements Transport {
   /**
    *
    * @param req - the req
-   * @returns the result
+   * @returns the page of objects
    */
   async snapshot(req: SnapshotRequest): Promise<SnapshotResponse> {
     return (await this.request("snapshot", req)).json();

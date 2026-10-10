@@ -27,7 +27,7 @@ describe("HttpTransport", () => {
         return new Response(JSON.stringify({ upserts: [], evicts: [], cursor: "c", hasMore: false }), { status: 200 });
       }) as any
     });
-    const res = await transport.pull({ scopes: [{ model: "A" }], cursor: null });
+    const res = await transport.pull({ scopes: [{ model: "A" }] });
     expect(res.cursor).toBe("c");
     expect(calls[0][0]).toBe("https://api.test/sync/pull");
     expect(calls[0][1]).toBe("POST");

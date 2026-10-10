@@ -4,7 +4,6 @@ import type { OfflineClient } from "./client.js";
 import { rebase } from "./conflicts.js";
 import { clone, deepEqual, type LocalRecord } from "./record.js";
 
-const PUSH_BATCH = 100;
 const PUSH_ROUNDS = 3;
 const REBASE_RETRIES = 3;
 
@@ -19,7 +18,7 @@ export class SyncEngine {
 
   /**
    *
-   * @returns the result
+   * @returns the client storage
    */
   protected get storage() {
     return this.client.storage;
@@ -27,7 +26,7 @@ export class SyncEngine {
 
   /**
    *
-   * @returns the result
+   * @returns the client transport
    */
   protected get transport() {
     return this.client.options.transport;
@@ -54,8 +53,9 @@ export class SyncEngine {
       const pending = (await this.storage.scanPending()).filter(r => r.state !== "conflict" && r.state !== "error");
       if (pending.length === 0) return;
       let again = false;
-      for (let i = 0; i < pending.length; i += PUSH_BATCH) {
-        const batch = pending.slice(i, i + PUSH_BATCH);
+      const size = Math.max(1, this.client.options.pushBatchSize);
+      for (let i = 0; i < pending.length; i += size) {
+        const batch = pending.slice(i, i + size);
         // Persist the mutation ids before sending: a retry after a lost response reuses them
         for (const record of batch) {
           if (record.pendingMutationId === undefined) {
@@ -131,7 +131,11 @@ export class SyncEngine {
       ]);
       return false;
     }
-    const rebased = await this.rebaseAndApply(record, result.object ?? null, result.rev);
+    // A conflict answer settles the mutation (it was not applied): a delete or discard made while the strategy
+    // awaits is then a plain local change, not a tombstone of a create the server may hold
+    const answered = { ...record, pendingMutationId: undefined, sent: undefined };
+    await this.storage.putRecords([answered]);
+    const rebased = await this.rebaseAndApply(answered, result.object ?? null, result.rev);
     return (
       rebased !== null && (rebased.state === "dirty" || rebased.state === "created" || rebased.state === "deleted")
     );
@@ -146,7 +150,8 @@ export class SyncEngine {
     const id = refId(synced.ref);
     seen?.add(id);
     const record = await this.storage.getRecord(id);
-    if (record && synced.rev < record.baseRev) return;
+    // No `rev < baseRev` guard: pulls and snapshots always load the current object, and a key deleted then
+    // re-created on the server restarts at _rev 1
     if (!record || record.state === "synced") {
       if (record && record.baseRev === synced.rev && deepEqual(record.current, synced.object)) return;
       await this.storage.putRecords([
@@ -236,7 +241,8 @@ export class SyncEngine {
     const epoch = (await this.storage.getMeta<number>("scopesEpoch")) ?? 0;
     /** @returns true when setScopes ran since this pull started */
     const changed = async () => ((await this.storage.getMeta<number>("scopesEpoch")) ?? 0) !== epoch;
-    let cursor = (await this.storage.getMeta<string>("cursor")) ?? null;
+    // A null cursor persisted by an older version is sent as an absent one
+    let cursor = (await this.storage.getMeta<string>("cursor")) ?? undefined;
     for (let page = 0; page < 10000; page++) {
       const res = await this.transport.pull({ scopes, cursor });
       if (await changed()) return;

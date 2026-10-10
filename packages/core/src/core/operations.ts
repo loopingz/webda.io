@@ -1,5 +1,5 @@
 import { QueryValidator } from "@webda/ql";
-import { OperationDefinition, OperationDefinitionInfo } from "./icore.js";
+import { OperationDefinition, OperationDefinitionInfo, OperationStreaming } from "./icore.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { validateSchema, ValidationError } from "../schemas/hooks.js";
@@ -60,6 +60,92 @@ export function canCallOperation(context: OperationContext, operationId: string)
     return checkOperationPermission(context, operationId, operation);
   } catch {
     return false;
+  }
+}
+
+/**
+ * JSON Schema keyword the compiler sets on a streamed `.input` or `.output` schema
+ */
+export const STREAM_SCHEMA_KEYWORD = "x-webda-stream";
+
+/**
+ * Streaming mode of an operation
+ * @param operation - the operation definition
+ * @returns its mode, `none` when unknown
+ */
+export function getOperationStreaming(
+  operation?: Pick<OperationDefinition, "streaming" | "grpc">
+): OperationStreaming {
+  if (operation?.streaming) return operation.streaming;
+  const grpc = operation?.grpc;
+  return (typeof grpc === "object" && grpc?.streaming) || "none";
+}
+
+/**
+ * @param operation - the operation definition
+ * @returns true when the operation reads a stream of input messages
+ */
+function hasStreamedInput(operation?: OperationDefinition): boolean {
+  const streaming = getOperationStreaming(operation);
+  return streaming === "client" || streaming === "bidi";
+}
+
+/**
+ * Derive the streaming mode at registration: explicit grpc.streaming, else the schema markers and generator flag
+ * @param definition - the operation being registered (input/output already resolved)
+ * @returns the mode
+ */
+function computeStreaming(definition: OperationDefinition): OperationStreaming {
+  if (typeof definition.grpc === "object" && definition.grpc?.streaming) return definition.grpc.streaming;
+  const marked = (ref: string) =>
+    ref !== "void" && (useApplication().getSchema(ref) as any)?.[STREAM_SCHEMA_KEYWORD] === true;
+  const input = marked(definition.input);
+  const output = marked(definition.output) || definition.generator === true;
+  if (input && output) return "bidi";
+  if (input) return "client";
+  return output ? "server" : "none";
+}
+
+/**
+ * Turn an AJV validation error into the BadRequest an operation answers
+ * @param operationId - the operation
+ * @param err - the validation error
+ * @returns the error to throw
+ */
+function invalidInput(operationId: string, err: ValidationError): WebdaError.BadRequest {
+  // Include the failing attribute path (AJV `instancePath`) in the human
+  // message so the client can tell *which* field is invalid; attach the
+  // raw `errors[]` as structured `details` so consumers can map errors
+  // to fields without parsing the string.
+  const summary = err.errors
+    .map(e => {
+      const path =
+        e.instancePath ||
+        (e.params && (e.params as any).missingProperty ? `/${(e.params as any).missingProperty}` : "/");
+      return `${path} ${e.message}`;
+    })
+    .join("; ");
+  return new WebdaError.BadRequest(`${operationId} InvalidInput: ${summary}`, { errors: err.errors });
+}
+
+/**
+ * The streamed input of an operation, each message validated against its input schema as it is read
+ * @param operationId - the operation
+ * @param schema - its input schema name
+ * @param source - the messages from the transport
+ * @returns the validated messages
+ */
+async function* validatedStream(operationId: string, schema: string, source: AsyncIterable<unknown>) {
+  for await (const item of source) {
+    if (schema && schema !== "void") {
+      try {
+        validateSchema(schema, item);
+      } catch (err) {
+        if (err instanceof ValidationError) throw invalidInput(operationId, err);
+        throw err;
+      }
+    }
+    yield item;
   }
 }
 
@@ -299,6 +385,13 @@ async function checkOperation(context: OperationContext, operationId: string) {
   if (!checkOperationPermission(context, operationId, operations[operationId])) {
     throw new WebdaError.Forbidden(`${operationId} PermissionDenied`);
   }
+  if (hasStreamedInput(operations[operationId])) {
+    if (!context.getExtension("operationInputStream")) {
+      throw new WebdaError.BadRequest(`${operationId} expects a stream of messages (gRPC stream or WebSocket)`);
+    }
+    // Each message is validated as the operation reads it (resolveArguments)
+    return;
+  }
   try {
     if (operations[operationId].input && operations[operationId].input !== "void") {
       // Validate the merged (path params + request body) against the input schema.
@@ -326,21 +419,7 @@ async function checkOperation(context: OperationContext, operationId: string) {
     }
   } catch (err) {
     if (err instanceof ValidationError) {
-      // Include the failing attribute path (AJV `instancePath`) in the human
-      // message so the client can tell *which* field is invalid; attach the
-      // raw `errors[]` as structured `details` so consumers can map errors
-      // to fields without parsing the string.
-      const summary = err.errors
-        .map(e => {
-          const path =
-            e.instancePath ||
-            (e.params && (e.params as any).missingProperty ? `/${(e.params as any).missingProperty}` : "/");
-          return `${path} ${e.message}`;
-        })
-        .join("; ");
-      throw new WebdaError.BadRequest(`${operationId} InvalidInput: ${summary}`, {
-        errors: err.errors
-      });
+      throw invalidInput(operationId, err);
     }
     throw err;
   }
@@ -359,6 +438,10 @@ async function checkOperation(context: OperationContext, operationId: string) {
  * @returns an array of resolved arguments to pass to the operation method
  */
 export async function resolveArguments(context: OperationContext, operation: OperationDefinition): Promise<any[]> {
+  if (hasStreamedInput(operation)) {
+    const source = context.getExtension<AsyncIterable<unknown>>("operationInputStream");
+    return [validatedStream(operation.id, operation.input, source)];
+  }
   // Prefer the merged-and-coerced object that `checkOperation` left on the
   // context. Re-merging here would discard AJV's `coerceTypes` rewrites
   // (e.g. string `"0"` from a `{index}` URL slot back to a `number`).
@@ -459,11 +542,15 @@ export async function callOperation(context: OperationContext, operationId: stri
     if (result !== undefined && result !== null) {
       if (typeof result[Symbol.asyncIterator] === "function") {
         // AsyncGenerator — stream each yielded value; flag it so contexts
-        // (e.g. MCP) can tell streamed chunks from a single written result
+        // (e.g. MCP) can tell streamed chunks from a single written result.
+        // The generator body runs during iteration: iterate inside the context so useContext() keeps working
+        // after a yield, and wait whenever the client cannot take more (backpressure)
         context.setExtension("operationStreaming", true);
-        for await (const chunk of result) {
-          context.write(chunk);
-        }
+        await runWithContext(context, async () => {
+          for await (const chunk of result) {
+            if (context.write(chunk) === false) await context.drained();
+          }
+        });
       } else if (context.getOutput() === undefined) {
         // Normal return — write to context only if nothing written yet
         context.write(result);
@@ -564,6 +651,7 @@ export function registerOperation(
         operations[operationId][key] = "void";
       }
     });
+  operations[operationId].streaming = definition.streaming ?? computeStreaming(operations[operationId]);
 }
 
 /**

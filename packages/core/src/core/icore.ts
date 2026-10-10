@@ -39,13 +39,18 @@ export interface RestParameters {
 }
 
 /**
+ * How an operation streams: `client` takes a stream of messages, `server` produces one, `bidi` both
+ */
+export type OperationStreaming = "none" | "client" | "server" | "bidi";
+
+/**
  * gRPC transport parameters for use with `@Operation<GrpcParameters>()`
  */
 export interface GrpcParameters {
   grpc?:
     | false
     | {
-        streaming?: "none" | "client" | "server" | "bidi";
+        streaming?: OperationStreaming;
       };
 }
 
@@ -180,6 +185,15 @@ export interface OperationDefinition {
    * Provide an object to set the tool title or override the read-only/destructive hints.
    */
   mcp?: McpParameters["mcp"];
+  /**
+   * Streaming mode, set by registerOperation from the schemas (`x-webda-stream`), the `generator` flag or
+   * `grpc.streaming`
+   */
+  streaming?: OperationStreaming;
+  /**
+   * The method is an async generator (set by the @Operation decorator)
+   */
+  generator?: boolean;
   /**
    * Additional transport hints for future extensibility
    */

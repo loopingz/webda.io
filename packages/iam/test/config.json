@@ -1,0 +1,12 @@
+{
+  "version": 3,
+  "parameters": {
+    "apiUrl": "http://localhost:18080"
+  },
+  "services": {
+    "IAMStore": {
+      "type": "Webda/MemoryStore",
+      "models": ["Webda/IAMPolicy", "Webda/IAMPolicyAttachment"]
+    }
+  }
+}

@@ -333,6 +333,202 @@
       ],
       "type": "object",
       "title": "BinaryFile"
+    },
+    "SyncService.pull.input": {
+      "type": "object",
+      "properties": {
+        "scopes": {
+          "items": {
+            "$ref": "#/definitions/SyncScope"
+          },
+          "type": "array"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "scopes"
+      ],
+      "definitions": {
+        "SyncScope": {
+          "additionalProperties": false,
+          "description": "A sync scope: the objects of `model` matching the WebdaQL filter `query` (all of them when omitted)",
+          "properties": {
+            "model": {
+              "type": "string"
+            },
+            "query": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "SyncService.pull.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "type": "string"
+        },
+        "evicts": {
+          "items": {
+            "$ref": "#/definitions/SyncRef"
+          },
+          "type": "array"
+        },
+        "hasMore": {
+          "default": false,
+          "type": "boolean"
+        },
+        "resync": {
+          "default": false,
+          "description": "The cursor is missing or older than the retention: snapshot every scope, then pull from `cursor`",
+          "type": "boolean"
+        },
+        "upserts": {
+          "items": {
+            "$ref": "#/definitions/SyncedObject"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "cursor",
+        "evicts",
+        "upserts"
+      ],
+      "type": "object",
+      "definitions": {
+        "SyncRef": {
+          "additionalProperties": false,
+          "description": "Reference to one object: model identifier and canonical key (see {@link serializeKey})",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "key",
+            "model"
+          ],
+          "type": "object"
+        },
+        "SyncedObject": {
+          "additionalProperties": false,
+          "description": "An object as sent by the server",
+          "properties": {
+            "object": {},
+            "ref": {
+              "$ref": "#/definitions/SyncRef"
+            },
+            "rev": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "object",
+            "ref",
+            "rev"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "SyncService.snapshot.input": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "additionalProperties": false,
+          "description": "A sync scope: the objects of `model` matching the WebdaQL filter `query` (all of them when omitted)",
+          "properties": {
+            "model": {
+              "type": "string"
+            },
+            "query": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "type": "object"
+        },
+        "continuationToken": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "scope"
+      ]
+    },
+    "SyncService.snapshot.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "continuationToken": {
+          "type": "string"
+        },
+        "objects": {
+          "items": {
+            "$ref": "#/definitions/SyncedObject"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "objects"
+      ],
+      "type": "object",
+      "definitions": {
+        "SyncRef": {
+          "additionalProperties": false,
+          "description": "Reference to one object: model identifier and canonical key (see {@link serializeKey})",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "key",
+            "model"
+          ],
+          "type": "object"
+        },
+        "SyncedObject": {
+          "additionalProperties": false,
+          "description": "An object as sent by the server",
+          "properties": {
+            "object": {},
+            "ref": {
+              "$ref": "#/definitions/SyncRef"
+            },
+            "rev": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "object",
+            "ref",
+            "rev"
+          ],
+          "type": "object"
+        }
+      }
     }
   },
   "behaviors": {}

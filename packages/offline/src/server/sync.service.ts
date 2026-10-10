@@ -1,18 +1,27 @@
 import {
+  Operation,
+  OperationContext,
   Service,
   ServiceParameters,
+  WebdaError,
+  assertFilterOnly,
+  checkModelPermission,
+  queryModelWithPermissions,
   serializeSubjectKey,
   parseSubjectKey,
   useApplication,
   useModel,
+  useContext,
   useModelMetadata,
   useRepository
 } from "@webda/core";
+import { escape, QueryValidator } from "@webda/ql";
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
 import { SyncChange } from "./syncchange.model.js";
 import { parseDuration } from "./duration.js";
 import { refId } from "../protocol/index.js";
+import type { PullResponse, SnapshotResponse, SyncedObject, SyncRef, SyncScope } from "../protocol/index.js";
 
 /**
  * Parameters of the SyncService
@@ -130,6 +139,7 @@ export class SyncService extends Service<SyncServiceParameters> {
       }
       this.hook(id, model);
     }
+    await this.prune();
     return this;
   }
 
@@ -304,11 +314,170 @@ export class SyncService extends Service<SyncServiceParameters> {
       repo[method] = async (...args: any[]) => {
         if (!this.bulkWarned.has(modelId)) {
           this.bulkWarned.add(modelId);
-          this.log("WARN", `${method} on synced model ${modelId} is not logged: call SyncService.touch() or clients only see it after a resync`);
+          this.log(
+            "WARN",
+            `${method} on synced model ${modelId} is not logged: call SyncService.touch() or clients only see it after a resync`
+          );
         }
         return original.apply(repo, args);
       };
       this.unsubscribers.push(() => (repo[method] = original));
     }
+  }
+
+  /**
+   * Cursors below this seq may have missed pruned entries
+   */
+  protected horizon: string = "";
+
+  /**
+   * Delete the entries older than the retention and move the horizon
+   */
+  protected async prune(): Promise<void> {
+    const cutoff = this.seqAt(Date.now() - parseDuration(this.parameters.retention));
+    await (useRepository(SyncChange) as any).deleteMany(escape(["DELETE WHERE seq < ", ""], [cutoff]));
+    this.horizon = cutoff;
+  }
+
+  /**
+   * Validate client scopes
+   * @param scopes - the scopes
+   * @returns the scopes with their compiled filter
+   */
+  protected validateScopes(scopes: SyncScope[]): { model: string; query: string; validator: QueryValidator }[] {
+    if (!Array.isArray(scopes) || scopes.length === 0) {
+      throw new WebdaError.BadRequest("At least one scope is required");
+    }
+    if (scopes.length > this.parameters.maxScopes) {
+      throw new WebdaError.BadRequest(`At most ${this.parameters.maxScopes} scopes are accepted`);
+    }
+    return scopes.map(scope => {
+      if (!scope || !this.parameters.models.includes(scope.model)) {
+        throw new WebdaError.BadRequest(`Model ${scope?.model} is not synced`);
+      }
+      const query = scope.query ?? "";
+      if (typeof query !== "string" || query.length > this.parameters.maxQueryLength) {
+        throw new WebdaError.BadRequest("Scope query is too long");
+      }
+      let validator: QueryValidator;
+      try {
+        validator = new QueryValidator(query);
+      } catch {
+        throw new WebdaError.BadRequest("Query syntax error");
+      }
+      assertFilterOnly(validator);
+      return { model: scope.model, query, validator };
+    });
+  }
+
+  /**
+   * @param object - the object
+   * @param modelId - the model it is reached through
+   * @returns true when the current caller may read it
+   */
+  protected async canRead(object: any, modelId: string): Promise<boolean> {
+    try {
+      await checkModelPermission(object, useContext<OperationContext>(), "get", useModel(modelId));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * @param modelId - the model identifier
+   * @param object - the object
+   * @returns the object as sent to clients
+   */
+  protected toSynced(modelId: string, object: any): SyncedObject {
+    return {
+      ref: { model: modelId, key: serializeSubjectKey(this.pkFields(modelId), object) },
+      rev: object._rev ?? 0,
+      object: typeof object.toDTO === "function" ? object.toDTO() : object
+    };
+  }
+
+  /**
+   * Changes of the scoped objects since `cursor`
+   * @param scopes - the sync scopes
+   * @param cursor - the cursor of the previous pull, null for the first one
+   * @param limit - page size (capped by pageSize)
+   * @returns the page of changes
+   */
+  @Operation({
+    id: "Sync.Pull",
+    input: "SyncService.pull.input",
+    output: "SyncService.pull.output",
+    rest: { method: "post", path: "sync/pull" }
+  })
+  async pull(scopes: SyncScope[], cursor?: string | null, limit?: number): Promise<PullResponse> {
+    const validated = this.validateScopes(scopes);
+    // Bare millisecond: sorts before every seq of it, so a resync cursor never skips a write of the current ms
+    const settle = this.seqAt(Date.now() - parseDuration(this.parameters.overlap));
+    if (!cursor || cursor < this.horizon) {
+      return { upserts: [], evicts: [], cursor: settle, hasMore: false, resync: true };
+    }
+    const pageSize = Math.min(
+      Math.max(Math.floor(Number(limit)) || this.parameters.pageSize, 1),
+      this.parameters.pageSize
+    );
+    const models = [...new Set(validated.map(s => s.model))];
+    const filter = escape(
+      ["subjectModel IN [", ...models.slice(1).map(() => ", "), "] AND seq > ", ` ORDER BY seq ASC LIMIT ${pageSize}`],
+      [...models, cursor]
+    );
+    const entries: SyncChange[] = (await SyncChange.query(filter as any)).results;
+    const latest = new Map<string, SyncChange>();
+    for (const entry of entries) {
+      latest.set(refId({ model: entry.subjectModel, key: entry.subjectKey }), entry);
+    }
+    const upserts: SyncedObject[] = [];
+    const evicts: SyncRef[] = [];
+    for (const entry of latest.values()) {
+      const ref = { model: entry.subjectModel, key: entry.subjectKey };
+      const object = await this.load(ref.model, ref.key);
+      if (!object) {
+        evicts.push(ref);
+        continue;
+      }
+      const synced = this.toSynced(ref.model, object);
+      const inScope = validated.some(s => s.model === ref.model && s.validator.eval(synced.object));
+      if (inScope && (await this.canRead(object, ref.model))) {
+        upserts.push(synced);
+      } else {
+        evicts.push(ref);
+      }
+    }
+    const hasMore = entries.length === pageSize;
+    const last = entries[entries.length - 1]?.seq ?? cursor;
+    // Last page: re-read the overlap window next time; a full page always moves forward
+    const served = `${settle}-~`; // sorts after every seq of that ms: entries up to it count as served
+    const next = hasMore || last < served ? last : served;
+    return { upserts, evicts, cursor: next, hasMore };
+  }
+
+  /**
+   * Every object of a scope, paged: used by clients to resync
+   * @param scope - the scope
+   * @param continuationToken - token of the previous page
+   * @returns the page of objects
+   */
+  @Operation({
+    id: "Sync.Snapshot",
+    input: "SyncService.snapshot.input",
+    output: "SyncService.snapshot.output",
+    rest: { method: "post", path: "sync/snapshot" }
+  })
+  async snapshot(scope: SyncScope, continuationToken?: string): Promise<SnapshotResponse> {
+    const [valid] = this.validateScopes([scope]);
+    let query = `${valid.query} LIMIT ${this.parameters.pageSize}`;
+    if (continuationToken) {
+      query += escape([" OFFSET ", ""], [continuationToken]);
+    }
+    const res = await queryModelWithPermissions(useModel(valid.model), query, useContext<OperationContext>());
+    return {
+      objects: res.results.map(object => this.toSynced(valid.model, object)),
+      continuationToken: res.continuationToken || undefined
+    };
   }
 }

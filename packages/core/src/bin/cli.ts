@@ -18,7 +18,7 @@ import * as WebdaError from "../errors/errors.js";
 import { Core } from "../core/core.js";
 import { bootCoreForCommand } from "./cli-phase.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
-import { CancelablePromise } from "@webda/utils";
+import { CancelablePromise, parseImportDescriptor, toImportSpecifier } from "@webda/utils";
 import {
   ConsoleLogger,
   type ConsoleLogStream,
@@ -431,6 +431,18 @@ async function promptForMissingInput(input: Record<string, any>, schema: JSONSch
 }
 
 /**
+ * Import the export referenced by a module descriptor (`file[:exportName]`)
+ *
+ * @param descriptor - absolute import descriptor
+ * @returns the exported value
+ */
+async function importExport(descriptor: string): Promise<any> {
+  const { file, exportName } = parseImportDescriptor(descriptor);
+  const mod = await import(toImportSpecifier(file.endsWith(".js") ? file : file + ".js"));
+  return mod[exportName];
+}
+
+/**
  * Ensure a service is available in the app configuration, injecting it if necessary.
  * For beans that aren't registered as moddas, this dynamically imports and registers them.
  *
@@ -450,20 +462,14 @@ async function ensureServiceInConfig(app: Application, serviceName: string): Pro
         // Beans aren't loaded as moddas by default — register them so Core can find the type
         if (!app.getModdas()[fullName]) {
           const meta = modules[section][fullName];
-          const importPath = join(resolve(app.getPath()), meta.Import);
-          const [importFilename, importName = "default"] = importPath.split(":");
-          const mod = await import(importFilename.endsWith(".js") ? importFilename : importFilename + ".js");
-          const constructor = mod[importName];
+          const constructor = await importExport(join(resolve(app.getPath()), meta.Import));
           if (constructor) {
             app.getModdas()[fullName] = constructor;
             // Set up filterParameters and createConfiguration like sectionLoader does
             const { ServiceParameters: DefaultParams } = await import("../services/serviceparameters.js");
             let configClass = DefaultParams;
             if (meta.Configuration) {
-              const configPath = join(resolve(app.getPath()), meta.Configuration);
-              const [cfgFile, cfgName = "default"] = configPath.split(":");
-              const cfgMod = await import(cfgFile.endsWith(".js") ? cfgFile : cfgFile + ".js");
-              configClass = cfgMod[cfgName] || DefaultParams;
+              configClass = (await importExport(join(resolve(app.getPath()), meta.Configuration))) || DefaultParams;
             }
             installConfigurationFactories(constructor, configClass, meta.Schema);
           }

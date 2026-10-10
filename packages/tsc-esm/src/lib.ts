@@ -1,4 +1,5 @@
 import { realpathSync } from "fs";
+import { fileURLToPath } from "node:url";
 import { createPropertyDecorator } from "@webda/decorators";
 
 export { createClassDecorator, createPropertyDecorator, createMethodDecorator } from "@webda/decorators";
@@ -232,7 +233,7 @@ export function assertUnreachable(unreachable: never): never {
  */
 export function getFileName(importMeta: ImportMeta): string {
   if (typeof importMeta === "object" && typeof importMeta.url === "string") {
-    return new URL(importMeta.url).pathname;
+    return fileURLToPath(importMeta.url);
   }
   throw new Error("Cannot determine file name from importMeta");
 }

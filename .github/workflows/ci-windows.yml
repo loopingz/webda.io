@@ -1,0 +1,62 @@
+# Build and test the framework packages that do not require external services on Windows
+# Cloud integrations (aws, gcp, mongodb, postgres, ...) rely on Linux service containers and run in ci.yml
+name: "CI Windows"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22"]
+    name: Build with NodeJS v${{ matrix.node }} on Windows
+    env:
+      FORCE_COLOR: 1
+
+    steps:
+      # Keep LF line endings: tests compare generated files with fixtures
+      - name: Disable CRLF conversion
+        run: git config --global core.autocrlf false
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm --workspace-concurrency=1 --filter "@webda/core..." run build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Run tests
+        run: >-
+          pnpm --no-bail
+          --filter @webda/utils
+          --filter @webda/tsc-esm
+          --filter @webda/workout
+          --filter @webda/serialize
+          --filter @webda/ql
+          --filter @webda/models
+          --filter @webda/content-mapper
+          --filter @webda/compiler
+          --filter @webda/core
+          run test
+        env:
+          NODE_OPTIONS: "--max-old-space-size=6144"

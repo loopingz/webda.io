@@ -81,8 +81,10 @@ export function openSession(configFile: string, rootDir: string, fs?: any): Sess
   const checker: Checker = project.checker;
 
   const sourceFiles: SourceFile[] = [];
+  // TypeScript file names always use "/", even on Windows
+  const root = rootDir.replace(/\\/g, "/");
   for (const fileName of program.getSourceFileNames()) {
-    if (!fileName.startsWith(rootDir)) continue;
+    if (!fileName.startsWith(root)) continue;
     if (fileName.endsWith(".d.ts")) continue;
     const sf = program.getSourceFile(fileName);
     if (sf) sourceFiles.push(sf);

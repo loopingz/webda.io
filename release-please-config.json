@@ -27,6 +27,7 @@
     "packages/graphql": {},
     "packages/grpc": {},
     "packages/hawk": {},
+    "packages/iam": {},
     "packages/kubernetes": {},
     "packages/mcp": {},
     "packages/mock": {},

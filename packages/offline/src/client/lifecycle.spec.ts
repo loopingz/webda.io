@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { OfflineClient } from "./client.js";
 import { FakeServer } from "./fake-transport.js";
 import { MemoryStorage } from "./storage/memory.js";
+import { ResyncLoopError } from "./sync.js";
 import { TransportError } from "./transport/transport.js";
 
 describe("OfflineClient lifecycle", () => {
@@ -298,6 +299,35 @@ describe("OfflineClient lifecycle", () => {
       expect(connections).toBe(4);
       await vi.advanceTimersByTimeAsync(100); // back to base
       expect(connections).toBe(5);
+      client.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reports a resync loop as the error status and backs off", async () => {
+    vi.useFakeTimers();
+    try {
+      let calls = 0;
+      const client = new OfflineClient({
+        storage: new MemoryStorage(),
+        transport: transportOf(async () => {
+          calls++;
+          return { upserts: [], evicts: [], cursor: "0", hasMore: false, resync: true };
+        }),
+        scopes: [{ model: "A" }],
+        syncInterval: 0,
+        retry: { base: 100, max: 300 }
+      });
+      const errors: any[] = [];
+      client.on("error", e => errors.push(e));
+      await client.start();
+      expect(client.status).toBe("error");
+      expect(errors[0]).toBeInstanceOf(ResyncLoopError);
+      // Two pulls per attempt: the resync, then the one that is refused
+      expect(calls).toBe(2);
+      await vi.advanceTimersByTimeAsync(100);
+      expect(calls).toBe(4);
       client.stop();
     } finally {
       vi.useRealTimers();

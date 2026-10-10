@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { OfflineClient, type OfflineClientOptions } from "./client.js";
 import { FakeServer } from "./fake-transport.js";
 import { MemoryStorage } from "./storage/memory.js";
+import { ResyncLoopError } from "./sync.js";
 
 const SCOPES = [{ model: "App/Task", query: "archived = FALSE" }];
 
@@ -545,6 +546,40 @@ describe("server re-creates a key", () => {
     server.horizon = server.log.length + 1;
     await client.sync();
     expect((await tasks.get("a")).title).toBe("new");
+  });
+});
+
+describe("resync loop guard", () => {
+  it("a server that always asks to resync fails the sync after one snapshot pass", async () => {
+    const { server, client, tasks } = await setup();
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "A", archived: false });
+    let snapshots = 0;
+    const snapshot = server.snapshot.bind(server);
+    server.snapshot = async req => {
+      snapshots++;
+      return snapshot(req);
+    };
+    server.pull = async () => ({ upserts: [], evicts: [], cursor: "0", hasMore: false, resync: true });
+    await expect(client.sync()).rejects.toBeInstanceOf(ResyncLoopError);
+    expect(snapshots).toBe(1);
+    // The one snapshot pass is kept, the server fault is reported as such
+    expect((await tasks.get("a")).title).toBe("A");
+    await expect(client.sync()).rejects.toMatchObject({ status: 500, message: /resync cursor "0"/ });
+  });
+
+  it("a resync cursor at the horizon pulls normally afterwards", async () => {
+    const { server, client, tasks } = await setup();
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "A", archived: false });
+    await client.sync();
+    server.serverWrite("App/Task", "a", { uuid: "a", title: "A2", archived: false });
+    server.horizon = server.log.length;
+    await client.sync();
+    expect((await tasks.get("a")).title).toBe("A2");
+    const before = server.pullCalls;
+    server.serverWrite("App/Task", "b", { uuid: "b", title: "B", archived: false });
+    await client.sync();
+    expect(server.pullCalls).toBe(before + 1);
+    expect((await tasks.get("b")).title).toBe("B");
   });
 });
 

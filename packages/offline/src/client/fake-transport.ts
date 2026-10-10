@@ -66,8 +66,12 @@ export class FakeServer implements Transport {
     this.check();
     this.pullCalls++;
     const cursor = req.cursor === undefined || req.cursor === null ? -1 : Number(req.cursor);
-    if (cursor < this.horizon)
-      return { upserts: [], evicts: [], cursor: String(this.log.length), hasMore: false, resync: true };
+    if (cursor < this.horizon) {
+      // Like the real server (its resync cursor is "now - overlap", always past the retention horizon): the cursor
+      // handed back with a resync is never itself too old, or the client would resync forever
+      const next = String(Math.max(this.log.length, this.horizon));
+      return { upserts: [], evicts: [], cursor: next, hasMore: false, resync: true };
+    }
     const ids = [...new Set(this.log.slice(cursor))];
     const upserts = [];
     const evicts = [];

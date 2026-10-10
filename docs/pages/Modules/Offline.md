@@ -92,6 +92,9 @@ mutations per push request, at most the server `maxMutations`).
 - `client.status` is `idle`, `syncing`, `offline` (network failure) or `error` (server refusal); every change is
   emitted as `status`, every failure as `error`. An `error` status recovers by itself on the next successful sync:
   fix the cause (sign in again, grant the permission...) and call `client.sync()` or wait for the retry.
+- A pull resyncs at most once: a server whose resync cursor is itself too old (a retention shorter than its own
+  overlap, a broken proxy...) makes the sync fail with a `ResyncLoopError` (status `500`, reported as `error`) after
+  one snapshot pass instead of snapshotting every scope forever.
 
 ### Scopes
 

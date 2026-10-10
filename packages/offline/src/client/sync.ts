@@ -8,6 +8,25 @@ const PUSH_ROUNDS = 3;
 const REBASE_RETRIES = 3;
 
 /**
+ * The server asked for a second resync within one pull: the cursor it handed back with the first one is itself
+ * below its retention horizon, so pulling again would snapshot every scope forever
+ */
+export class ResyncLoopError extends Error {
+  /**
+   * A server fault, not a network failure: `OfflineClient` reports it as the `error` status and backs off
+   */
+  readonly status = 500;
+
+  /**
+   * @param cursor - the cursor the server answered the first resync with
+   */
+  constructor(cursor: string | undefined) {
+    super(`Server requested a second resync in one pull: its resync cursor ${JSON.stringify(cursor)} is too old`);
+    this.name = "ResyncLoopError";
+  }
+}
+
+/**
  * Push / pull / resync logic of an OfflineClient
  */
 export class SyncEngine {
@@ -243,10 +262,14 @@ export class SyncEngine {
     const changed = async () => ((await this.storage.getMeta<number>("scopesEpoch")) ?? 0) !== epoch;
     // A null cursor persisted by an older version is sent as an absent one
     let cursor = (await this.storage.getMeta<string>("cursor")) ?? undefined;
+    let resynced = false;
     for (let page = 0; page < 10000; page++) {
       const res = await this.transport.pull({ scopes, cursor });
       if (await changed()) return;
       if (res.resync) {
+        // One resync per pull: a server whose resync cursor is itself too old must not make us snapshot forever
+        if (resynced) throw new ResyncLoopError(cursor);
+        resynced = true;
         await this.resync();
         if (await changed()) return;
         cursor = res.cursor;

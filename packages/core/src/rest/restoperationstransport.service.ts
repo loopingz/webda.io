@@ -7,9 +7,15 @@ import * as WebdaError from "../errors/errors.js";
 import { useRouter } from "./hooks.js";
 import { useApplication } from "../application/hooks.js";
 import { useCore, useModelMetadata } from "../core/hooks.js";
-import { useInstanceStorage } from "../core/instancestorage.js";
-import { callOperation } from "../core/operations.js";
+import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
+import { callOperation, canCallOperation, getOperationStreaming } from "../core/operations.js";
+import { AsyncQueue } from "../core/asyncqueue.js";
+import { useCoreEvents } from "../events/events.js";
 import { WebContext } from "../contexts/webcontext.js";
+import { WebSocketOperationContext } from "../contexts/websocketcontext.js";
+import type { IncomingMessage, Server } from "node:http";
+import type { Duplex } from "node:stream";
+import { WebSocketServer, type WebSocket } from "ws";
 import type { HttpMethodType } from "../contexts/httpcontext.js";
 import { hasSchema } from "../schemas/hooks.js";
 import type { ModelClass } from "@webda/models";
@@ -131,6 +137,11 @@ export class RESTOperationsTransport<
    */
   openapiContent: string;
 
+  /** Bidirectional operations served as WebSocket upgrades: path → operation id */
+  webSocketRoutes: Map<string, string> = new Map();
+  /** Shared WebSocket server (noServer: upgrades come from the HttpServer) */
+  private webSocketServer?: WebSocketServer;
+
   /**
    * Transform name using configured casing
    * @param name - the name to transform
@@ -150,7 +161,110 @@ export class RESTOperationsTransport<
     if (this.parameters.exposeOpenAPI) {
       this.addRoute(".", ["GET"], this.openapi, { hidden: true });
     }
+    // Bidirectional operations: accept WebSocket upgrades on every HTTP server once it listens
+    const storage = useInstanceStorage();
+    useCoreEvents("Webda.Init.Http" as any, (server: any) => this.attachWebSockets(server, storage));
     return this;
+  }
+
+  /**
+   * Serve the bidirectional operations' upgrades on an HTTP server
+   * @param server - the server emitted by Webda.Init.Http
+   * @param storage - the instance storage to run requests in
+   */
+  protected attachWebSockets(server: Server, storage: ReturnType<typeof useInstanceStorage>): void {
+    server.on("upgrade", (req: IncomingMessage, socket: Duplex, head: Buffer) => {
+      const opId = this.webSocketRoutes.get(new URL(req.url ?? "/", "http://localhost").pathname);
+      if (!opId) return; // another listener's upgrade (GraphQL subscriptions)
+      runWithInstanceStorage(storage, () => {
+        this.upgradeOperation(opId, server, req, socket, head).catch(err => {
+          this.log("ERROR", "WebSocket upgrade failed", opId, err);
+          socket.destroy();
+        });
+      });
+    });
+  }
+
+  /**
+   * Answer an upgrade with an HTTP error
+   * @param socket - the raw socket
+   * @param status - HTTP status
+   * @param message - reason phrase
+   */
+  private refuseUpgrade(socket: Duplex, status: number, message: string): void {
+    socket.end(`HTTP/1.1 ${status} ${message}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
+  }
+
+  /**
+   * Check the caller (session from the upgrade request) and accept the WebSocket
+   * @param opId - the bidirectional operation
+   * @param server - the HTTP server
+   * @param req - the upgrade request
+   * @param socket - the raw socket
+   * @param head - first packet of the upgraded stream
+   */
+  protected async upgradeOperation(
+    opId: string,
+    server: Server,
+    req: IncomingMessage,
+    socket: Duplex,
+    head: Buffer
+  ): Promise<void> {
+    const http = Object.values(useCore().getServices()).find(
+      s => (s as any).server === server && typeof (s as any).getContextFromRequest === "function"
+    ) as any;
+    const base: WebContext | undefined = http && (await http.getContextFromRequest(req));
+    if (!base) return this.refuseUpgrade(socket, 400, "Bad Request");
+    await base.init();
+    if (!canCallOperation(base, opId)) return this.refuseUpgrade(socket, 403, "Forbidden");
+    const storage = useInstanceStorage();
+    this.webSocketServer ??= new WebSocketServer({ noServer: true });
+    this.webSocketServer.handleUpgrade(req, socket, head, ws => {
+      runWithInstanceStorage(storage, () => {
+        this.runWebSocketOperation(opId, base.getHttpContext(), ws).catch(err => {
+          this.log("ERROR", "WebSocket operation failed", opId, err);
+          ws.close(1011);
+        });
+      });
+    });
+  }
+
+  /**
+   * Run a bidirectional operation over an accepted WebSocket: messages in, chunks out
+   * @param opId - the operation
+   * @param httpContext - the upgrade request
+   * @param ws - the socket
+   */
+  protected async runWebSocketOperation(opId: string, httpContext: any, ws: WebSocket): Promise<void> {
+    const ctx = new WebSocketOperationContext(httpContext, ws);
+    await ctx.init();
+    const input = new AsyncQueue<unknown>();
+    ctx.setExtension("operationInputStream", input);
+    ws.on("message", data => {
+      try {
+        input.push(JSON.parse(String(data)));
+      } catch {
+        ws.close(4400, "Invalid JSON message");
+      }
+    });
+    ws.on("error", err => this.log("DEBUG", "WebSocket error", opId, err));
+    // The client is gone: the operation's writes throw and its pending read ends so its finally blocks run
+    ws.on("close", () => {
+      ctx.cancel();
+      input.end();
+    });
+    try {
+      await callOperation(ctx, opId);
+      if (ctx.isCancelled) return;
+      const output = ctx.getExtension("operationStreaming") ? undefined : ctx.getOutput();
+      if (output) ws.send(output);
+      ws.close(1000);
+    } catch (err: any) {
+      // Only a client that went away is a silent cancel: an operation raising it while connected is an error
+      if (ctx.isCancelled) return;
+      const status = typeof err?.getResponseCode === "function" ? err.getResponseCode() : undefined;
+      ws.close(status ? 4000 + status : 1011, String(err?.message ?? "Error").slice(0, 120));
+    }
   }
 
   /**
@@ -214,6 +328,20 @@ export class RESTOperationsTransport<
         // Default: expose as operationId.toLowerCase().replace(".", "/")
         path = `${this.parameters.url}${opId.toLowerCase().replace(/\./g, "/")}`;
         methods = ["PUT"];
+      }
+
+      if (getOperationStreaming(op) === "bidi") {
+        // Served as a WebSocket upgrade on this path; a plain request cannot carry a bidirectional stream
+        this.webSocketRoutes.set(path, opId);
+        this.addRoute(
+          path,
+          [...new Set<HttpMethodType>(["GET", ...methods])],
+          async () => {
+            throw new WebdaError.HttpError("Upgrade Required: open a WebSocket on this URL", 426);
+          },
+          { get: { tags: op.tags || [], summary: `${op.summary || opId} (WebSocket)`, operationId: opId } }
+        );
+        continue;
       }
 
       const openapi: OpenAPIWebdaDefinition = {

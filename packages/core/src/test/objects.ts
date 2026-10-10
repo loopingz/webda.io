@@ -510,7 +510,8 @@ export class TestApplication extends UnpackedApplication {
    */
   loadWebdaModule(moduleFile: string): CachedModule {
     // Test are using ts-node so local source should be loaded from .ts with ts-node aswell
-    if (path.resolve(process.cwd()) === path.resolve(path.dirname(moduleFile))) {
+    // Only matches the mocked cwd of the framework own tests (vitest.chdir.mts), which ends with a separator
+    if (process.cwd() === path.dirname(moduleFile) + path.sep) {
       const module = FileUtils.load(moduleFile);
       Object.keys(SectionEnum)
         .filter(k => Number.isNaN(+k))

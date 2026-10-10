@@ -46,7 +46,7 @@ export class IndexedDBStorage implements StorageAdapter {
    * @returns the opened database
    */
   protected open(): Promise<IDBDatabase> {
-    this.db ??= new Promise((resolve, reject) => {
+    this.db ??= new Promise<IDBDatabase>((resolve, reject) => {
       const request = this.factory.open(this.name, 1);
       request.onupgradeneeded = () => {
         const db = request.result;
@@ -55,8 +55,20 @@ export class IndexedDBStorage implements StorageAdapter {
         records.createIndex("pending", "pending");
         db.createObjectStore(META);
       };
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => {
+        const db = request.result;
+        // Another tab upgrades the database: release it, the next call reopens
+        db.onversionchange = () => {
+          db.close();
+          this.db = undefined;
+        };
+        resolve(db);
+      };
       request.onerror = () => reject(request.error);
+    }).catch(err => {
+      // Do not cache a failed open: the next call retries
+      this.db = undefined;
+      throw err;
     });
     return this.db;
   }
@@ -74,7 +86,7 @@ export class IndexedDBStorage implements StorageAdapter {
   /**
    *
    * @param id - the id
-   * @returns the result
+   * @returns the record, undefined when missing
    */
   async getRecord(id: string): Promise<LocalRecord | undefined> {
     const db = await this.open();
@@ -89,8 +101,16 @@ export class IndexedDBStorage implements StorageAdapter {
     const db = await this.open();
     const tx = db.transaction(RECORDS, "readwrite");
     const store = tx.objectStore(RECORDS);
-    for (const record of records) store.put({ ...record, pending: record.state === "synced" ? 0 : 1 });
-    await committed(tx);
+    const done = committed(tx);
+    try {
+      for (const record of records) store.put({ ...record, pending: record.state === "synced" ? 0 : 1 });
+    } catch (err) {
+      // put throws synchronously (DataCloneError): drop the puts already queued
+      done.catch(() => {});
+      tx.abort();
+      throw err;
+    }
+    await done;
   }
 
   /**
@@ -107,7 +127,7 @@ export class IndexedDBStorage implements StorageAdapter {
   /**
    *
    * @param model - the model
-   * @returns the result
+   * @returns every record of the model
    */
   async scan(model: string): Promise<LocalRecord[]> {
     const db = await this.open();
@@ -117,7 +137,7 @@ export class IndexedDBStorage implements StorageAdapter {
 
   /**
    *
-   * @returns the result
+   * @returns every record not synced
    */
   async scanPending(): Promise<LocalRecord[]> {
     const db = await this.open();
@@ -128,7 +148,7 @@ export class IndexedDBStorage implements StorageAdapter {
   /**
    *
    * @param key - the key
-   * @returns the result
+   * @returns the value, undefined when missing
    */
   async getMeta<T>(key: string): Promise<T | undefined> {
     const db = await this.open();

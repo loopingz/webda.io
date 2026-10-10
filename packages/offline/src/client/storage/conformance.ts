@@ -61,5 +61,14 @@ export function storageConformance(name: string, factory: () => Promise<StorageA
       expect(await storage.getMeta("scopes")).toBeUndefined();
       expect(await storage.scan("A")).toEqual([]);
     });
+    it("writes nothing when one record cannot be stored", async () => {
+      const storage = await factory();
+      const bad = { ...record("A", "2"), current: { fn: () => 1 } };
+      await expect(storage.putRecords([record("A", "1"), bad])).rejects.toThrow();
+      expect(await storage.getRecord("A|1")).toBeUndefined();
+      expect(await storage.getRecord("A|2")).toBeUndefined();
+      await storage.putRecords([record("A", "3")]);
+      expect(await storage.getRecord("A|3")).toBeDefined();
+    });
   });
 }

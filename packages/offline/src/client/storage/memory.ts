@@ -11,7 +11,7 @@ export class MemoryStorage implements StorageAdapter {
   /**
    *
    * @param id - the id
-   * @returns the result
+   * @returns the record, undefined when missing
    */
   async getRecord(id: string): Promise<LocalRecord | undefined> {
     return clone(this.records.get(id));
@@ -21,7 +21,9 @@ export class MemoryStorage implements StorageAdapter {
    * @param records - the records
    */
   async putRecords(records: LocalRecord[]): Promise<void> {
-    for (const record of records) this.records.set(record.id, clone(record));
+    // Clone everything first: a record that cannot be cloned writes nothing
+    const copies = records.map(record => clone(record));
+    for (const copy of copies) this.records.set(copy.id, copy);
   }
   /**
    *
@@ -33,14 +35,14 @@ export class MemoryStorage implements StorageAdapter {
   /**
    *
    * @param model - the model
-   * @returns the result
+   * @returns every record of the model
    */
   async scan(model: string): Promise<LocalRecord[]> {
     return [...this.records.values()].filter(r => r.ref.model === model).map(clone);
   }
   /**
    *
-   * @returns the result
+   * @returns every record not synced
    */
   async scanPending(): Promise<LocalRecord[]> {
     return [...this.records.values()].filter(r => r.state !== "synced").map(clone);
@@ -48,7 +50,7 @@ export class MemoryStorage implements StorageAdapter {
   /**
    *
    * @param key - the key
-   * @returns the result
+   * @returns the value, undefined when missing
    */
   async getMeta<T>(key: string): Promise<T | undefined> {
     return clone(this.meta.get(key) as T | undefined);

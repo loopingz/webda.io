@@ -101,15 +101,16 @@ listener is only attached when at least one such route exists.
   `4404`); only a 4xx keeps its message as the reason (truncated to 123 bytes of UTF-8), a 5xx closes with the generic
   reason `Internal server error`; `1011` with that same generic reason for any other error, so internals do not leak;
   `4400` for a message that is not valid JSON or does not match `T`; `4413` when the client sends faster than the
-  operation reads (see `webSocketMaxQueuedMessages`).
+  operation reads (see `webSocketMaxQueuedMessages` and `webSocketMaxQueuedBytes`).
 - Operations whose path has parameters (templated, e.g. `/items/{id}/connect`) are not served over WebSocket: a
   `WARN` is logged at startup.
 - Transport parameters:
 
-| Parameter                    | Default           | Meaning                                                                                            |
-| ---------------------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
-| `webSocketMaxPayload`        | `1048576` (1 MiB) | Largest incoming message in bytes; a larger one closes the socket                                  |
-| `webSocketMaxQueuedMessages` | `1000`            | Most received messages waiting to be read by the operation; above it the socket closes with `4413` |
+| Parameter                    | Default             | Meaning                                                                                                     |
+| ---------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `webSocketMaxPayload`        | `1048576` (1 MiB)   | Largest incoming message in bytes; a larger one closes the socket                                           |
+| `webSocketMaxQueuedMessages` | `1000`              | Most received messages waiting to be read by the operation; above it the socket closes with `4413`          |
+| `webSocketMaxQueuedBytes`    | `16777216` (16 MiB) | Most bytes of received messages waiting to be read by the operation; above it the socket closes with `4413` |
 
 ### GraphQL
 

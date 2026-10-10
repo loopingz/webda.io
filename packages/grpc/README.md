@@ -43,11 +43,12 @@ pnpm add @webda/grpc
 }
 ```
 
-| Parameter     | Type   | Default              | Required | Description                                                       |
-| ------------- | ------ | -------------------- | -------- | ----------------------------------------------------------------- |
-| `protoFile`   | string | `".webda/app.proto"` | No       | Path where the generated `.proto` file is written and loaded from |
-| `packageName` | string | `"webda"`            | No       | Protobuf package name used in the generated `.proto`              |
-| `maxQueuedMessages` | number | `1000` | No | Most unconsumed messages a client or bidirectional call may queue; above it the call fails with `RESOURCE_EXHAUSTED` |
+| Parameter           | Type   | Default              | Required | Description                                                                                                                   |
+| ------------------- | ------ | -------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `protoFile`         | string | `".webda/app.proto"` | No       | Path where the generated `.proto` file is written and loaded from                                                             |
+| `packageName`       | string | `"webda"`            | No       | Protobuf package name used in the generated `.proto`                                                                          |
+| `maxQueuedMessages` | number | `1000`               | No       | Most unconsumed messages a client or bidirectional call may queue; above it the call fails with `RESOURCE_EXHAUSTED`          |
+| `maxQueuedBytes`    | number | `16777216`           | No       | Most bytes of unconsumed messages a client or bidirectional call may queue; above it the call fails with `RESOURCE_EXHAUSTED` |
 
 ## Usage
 

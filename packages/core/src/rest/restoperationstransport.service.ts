@@ -28,6 +28,15 @@ import type { ModelGraphBehaviorDefinition, ModelMetadata } from "@webda/compile
 /**
  * Swagger static html
  */
+/**
+ * @param data - a raw WebSocket message
+ * @returns its length in bytes
+ */
+function rawLength(data: Buffer | ArrayBuffer | Buffer[]): number {
+  if (Array.isArray(data)) return data.reduce((sum, chunk) => sum + chunk.length, 0);
+  return data instanceof ArrayBuffer ? data.byteLength : data.length;
+}
+
 const SWAGGER_HTML = `
 <html>
   <head>
@@ -118,6 +127,12 @@ export class RESTOperationsTransportParameters extends OperationsTransportParame
    */
   webSocketMaxQueuedMessages?: number;
   /**
+   * Most bytes of unconsumed messages a bidirectional operation may have queued; above it the socket closes with 4413
+   *
+   * @default 16777216
+   */
+  webSocketMaxQueuedBytes?: number;
+  /**
    * Milliseconds between two keep-alive comments on an open `text/event-stream` response of a server-streaming
    * operation (0 disables them)
    *
@@ -136,6 +151,7 @@ export class RESTOperationsTransportParameters extends OperationsTransportParame
     this.queryMethod ??= "PUT";
     this.webSocketMaxPayload ??= 1024 * 1024;
     this.webSocketMaxQueuedMessages ??= 1000;
+    this.webSocketMaxQueuedBytes ??= 16 * 1024 * 1024;
     this.streamKeepAliveInterval ??= 20000;
     // Ensure url ends with /
     if (this.url && !this.url.endsWith("/")) {
@@ -318,6 +334,7 @@ export class RESTOperationsTransport<
     const input = new AsyncQueue<unknown>();
     ctx.setExtension("operationInputStream", input);
     const maxQueued = this.parameters.webSocketMaxQueuedMessages;
+    const maxQueuedBytes = this.parameters.webSocketMaxQueuedBytes;
     ws.on("message", data => {
       let message: unknown;
       try {
@@ -326,12 +343,13 @@ export class RESTOperationsTransport<
         ws.close(4400, "Invalid JSON message");
         return;
       }
-      input.push(message);
-      if (input.pending > maxQueued) {
+      input.push(message, rawLength(data));
+      if (input.pending > maxQueued || input.pendingBytes > maxQueuedBytes) {
         // The operation does not keep up: stop it rather than buffering without limit
+        const bytes = input.pendingBytes > maxQueuedBytes;
         ctx.cancel();
         input.end(true);
-        ws.close(4413, "Too many queued messages");
+        ws.close(4413, bytes ? "Too many queued bytes" : "Too many queued messages");
       }
     });
     ws.on("error", err => useLog("DEBUG", "WebSocket error", opId, err));

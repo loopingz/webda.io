@@ -50,6 +50,14 @@ export class GrpcServiceParameters extends OperationsTransportParameters {
   maxQueuedMessages?: number;
 
   /**
+   * Most bytes of unconsumed messages a client or bidirectional operation may have queued; above it the call fails
+   * with RESOURCE_EXHAUSTED
+   *
+   * @default 16777216
+   */
+  maxQueuedBytes?: number;
+
+  /**
    * Load and apply default parameter values.
    * @param params - raw configuration object to load into this parameters instance
    * @returns this instance with defaults applied
@@ -59,6 +67,7 @@ export class GrpcServiceParameters extends OperationsTransportParameters {
     this.protoFile ??= ".webda/app.proto";
     this.packageName ??= "webda";
     this.maxQueuedMessages ??= 1000;
+    this.maxQueuedBytes ??= 16 * 1024 * 1024;
     return this;
   }
 }
@@ -292,11 +301,12 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
     const ctx = new GrpcOperationContext(this.httpContextOf(req), stream, res);
     const input = new AsyncQueue<unknown>();
     // Handlers first: data may arrive while the session loads
-    stream.onMessage(message => {
-      input.push(this.cleanMessage(message));
-      if (input.pending > this.parameters.maxQueuedMessages && !finished()) {
+    stream.onMessage((message, size) => {
+      input.push(this.cleanMessage(message), size);
+      const bytes = input.pendingBytes > this.parameters.maxQueuedBytes;
+      if ((bytes || input.pending > this.parameters.maxQueuedMessages) && !finished()) {
         // The operation does not keep up: stop it rather than buffering without limit
-        stream.sendError(GrpcStatus.RESOURCE_EXHAUSTED, "Too many queued messages");
+        stream.sendError(GrpcStatus.RESOURCE_EXHAUSTED, bytes ? "Too many queued bytes" : "Too many queued messages");
         ctx.cancel();
         input.end(true);
       }

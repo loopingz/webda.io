@@ -1514,6 +1514,11 @@
             "description": "Largest message (bytes) a client may send on a bidirectional WebSocket operation; a bigger one closes the socket",
             "type": "number"
           },
+          "webSocketMaxQueuedBytes": {
+            "default": 16777216,
+            "description": "Most bytes of unconsumed messages a bidirectional operation may have queued; above it the socket closes with 4413",
+            "type": "number"
+          },
           "webSocketMaxQueuedMessages": {
             "default": 1000,
             "description": "Most unconsumed messages a bidirectional operation may have queued; above it the socket closes with 4413",

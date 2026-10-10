@@ -39,7 +39,13 @@ class GrpcLiveTest extends WebdaApplicationTest {
       services: {
         ...GRPC_FIXTURE_SERVICES,
         HttpServer: { type: "Webda/HttpServer", port: 0, h2c: true },
-        Grpc: { type: "Webda/GrpcService", protoFile, operations: ["Fixture.*"], maxQueuedMessages: 5 }
+        Grpc: {
+          type: "Webda/GrpcService",
+          protoFile,
+          operations: ["Fixture.*"],
+          maxQueuedMessages: 5,
+          maxQueuedBytes: 1000
+        }
       }
     };
   }
@@ -235,6 +241,21 @@ class GrpcLiveTest extends WebdaApplicationTest {
     for (let i = 0; i < 50; i++) call.write({ frame: `f${i}` });
     const err = await error;
     assert.strictEqual(err.code, grpc.status.RESOURCE_EXHAUSTED);
+    await until(() => fixtureState.floodClosed);
+  }
+
+  @test
+  async floodingBytesUnderTheMessageCapFailsWithResourceExhausted() {
+    const client = await this.connect();
+    fixtureState.floodClosed = false;
+    const call = client.Flood(new grpc.Metadata());
+    call.on("data", () => {});
+    const error = new Promise<any>(resolve => call.on("error", resolve));
+    // 3 messages of 600 bytes: under the 5 messages cap, over the 1000 bytes one
+    for (let i = 0; i < 3; i++) call.write({ frame: "x".repeat(600) });
+    const err = await error;
+    assert.strictEqual(err.code, grpc.status.RESOURCE_EXHAUSTED);
+    assert.match(err.details, /queued bytes/);
     await until(() => fixtureState.floodClosed);
   }
 

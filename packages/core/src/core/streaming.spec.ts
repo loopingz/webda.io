@@ -122,6 +122,28 @@ class StreamingOperationTest extends WebdaApplicationTest {
   }
 
   @test
+  async asyncQueueTracksPendingBytes() {
+    const plain = new AsyncQueue<string>();
+    plain.push("abc");
+    assert.strictEqual(plain.pendingBytes, 0);
+    const queue = new AsyncQueue<string>({ size: item => item.length });
+    queue.push("abc");
+    queue.push("de");
+    queue.push("raw", 100);
+    assert.strictEqual(queue.pendingBytes, 105);
+    await queue.next();
+    assert.strictEqual(queue.pendingBytes, 102);
+    queue.end(true);
+    assert.strictEqual(queue.pendingBytes, 0);
+    assert.strictEqual(queue.pending, 0);
+    const consumed = new AsyncQueue<string>({ size: item => item.length });
+    consumed.push("abcd");
+    await consumed.next();
+    consumed.push("x");
+    assert.strictEqual(consumed.pendingBytes, 1);
+  }
+
+  @test
   async derivesTheStreamingMode() {
     this.register();
     const ops = useInstanceStorage().operations;

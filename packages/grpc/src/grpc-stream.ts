@@ -33,7 +33,7 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
   /** Sentinel value indicating successful stream setup */
   static OK = Symbol("OK");
 
-  private onMessageHandler: (message: RequestType) => void | Promise<void>;
+  private onMessageHandler: (message: RequestType, size: number) => void | Promise<void>;
   private onEndHandler?: () => void;
   private onCancelHandler?: () => void;
   private chunk: Buffer | null = null;
@@ -85,7 +85,7 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
           return this.fail(GrpcStatus.INVALID_ARGUMENT, `cannot decode message: ${(err as Error)?.message}`);
         }
         try {
-          const result = this.onMessageHandler?.(decoded);
+          const result = this.onMessageHandler?.(decoded, length);
           if (result && typeof (result as Promise<void>).catch === "function") {
             (result as Promise<void>).catch(err => this.fail(GrpcStatus.INTERNAL, "message handler failed", err));
           }
@@ -127,7 +127,7 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
    * @param handler - callback invoked with each deserialized request message
    * @returns this instance for chaining
    */
-  onMessage(handler: (message: RequestType) => void | Promise<void>): this {
+  onMessage(handler: (message: RequestType, size: number) => void | Promise<void>): this {
     this.onMessageHandler = handler;
     return this;
   }

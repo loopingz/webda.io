@@ -111,7 +111,8 @@ class WebSocketOperationTest extends WebdaApplicationTest {
         RESTService: {
           type: "Webda/RESTOperationsTransport",
           webSocketMaxPayload: 2048,
-          webSocketMaxQueuedMessages: 50
+          webSocketMaxQueuedMessages: 50,
+          webSocketMaxQueuedBytes: 20000
         }
       }
     };
@@ -328,6 +329,23 @@ class WebSocketOperationTest extends WebdaApplicationTest {
     for (let i = 0; i < 200; i++) ws.send(JSON.stringify({ frame: `m${i}` }));
     assert.strictEqual(await closed, 4413);
     // Cancelled: its next write throws and its finally runs
+    release();
+    await until(() => state.closed);
+  }
+
+  @test
+  async floodingBytesUnderTheMessageCapClosesWith4413() {
+    state.closed = false;
+    let release!: () => void;
+    state.gate = new Promise<void>(resolve => (release = resolve));
+    const ws = new WebSocket(`ws://${await this.url()}/ws/stall`);
+    const { messages, closed, reasons } = watch(ws);
+    await new Promise(r => ws.on("open", r));
+    await until(() => messages.length === 1);
+    // 15 messages of ~1.5 KB: under the 50 messages cap, over the 20000 bytes one
+    for (let i = 0; i < 15; i++) ws.send(JSON.stringify({ frame: "x".repeat(1500) }));
+    assert.strictEqual(await closed, 4413);
+    assert.strictEqual(reasons[0], "Too many queued bytes");
     release();
     await until(() => state.closed);
   }

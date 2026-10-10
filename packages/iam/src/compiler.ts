@@ -1,4 +1,5 @@
 import { analyzeCondition, PolicyCompileError } from "./conditions.js";
+import { OPERATION_PATTERN } from "./glob.js";
 
 /**
  * One statement of a policy
@@ -103,6 +104,10 @@ export function validateStatements(statements: unknown): PolicyStatement[] {
       statement.operations.some((op: unknown) => typeof op !== "string" || op === "")
     ) {
       throw new PolicyCompileError(`${where}: operations must be a non-empty list of patterns`);
+    }
+    const invalid = statement.operations.find((op: string) => !OPERATION_PATTERN.test(op));
+    if (invalid !== undefined) {
+      throw new PolicyCompileError(`${where}: invalid operation pattern ${JSON.stringify(invalid)}`);
     }
     if (statement.condition !== undefined) {
       if (typeof statement.condition !== "string") {

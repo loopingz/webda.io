@@ -23,8 +23,13 @@ class IAMModelsTest extends IAMTest {
     assert.strictEqual(isIAMActive(), false);
     assert.notStrictEqual(await IAMPolicy.canAct(undefined, "create"), true);
     assert.notStrictEqual(await IAMPolicyAttachment.canAct(undefined, "get", new IAMPolicyAttachment()), true);
-    const authorizer = Object.assign(async () => true as const, { [IAM_AUTHORIZER]: true });
+    // A registered IAM authorizer whose policies are not loaded (not initialized, or stopped) keeps them closed
+    let live = false;
+    const authorizer = Object.assign(async () => true as const, { [IAM_AUTHORIZER]: () => live });
     registerOperationAuthorizer(authorizer);
+    assert.strictEqual(isIAMActive(), false);
+    assert.notStrictEqual(await IAMPolicy.canAct(undefined, "create"), true);
+    live = true;
     try {
       assert.strictEqual(isIAMActive(), true);
       assert.strictEqual(await IAMPolicy.canAct(undefined, "create"), true);

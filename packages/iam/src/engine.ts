@@ -1,5 +1,6 @@
 import { Enforcer, newEnforcer, newModelFromString } from "casbin";
 import { AttachmentRow, PolicyRow } from "./compiler.js";
+import { iamGlobMatch } from "./glob.js";
 
 /**
  * Casbin model: deny wins, implicit deny; `attached` resolves policy attachments, `skipInput` implements probe mode
@@ -62,6 +63,13 @@ export class PolicyEngine {
     await enforcer.addFunction("attached", (principals: string[], sub: string) =>
       Array.isArray(principals) ? principals.some(principal => links.get(sub)?.has(principal)) : false
     );
+    // Replace Casbin's minimatch globMatch: brace expansion and backtracking are a CPU DoS with caller patterns.
+    // Enforcer.addFunction never replaces a built-in, so the function map is updated directly and checked
+    const functions: Map<string, unknown> | undefined = (enforcer as any).fm?.getFunctions?.();
+    functions?.set("globMatch", iamGlobMatch);
+    if (functions?.get("globMatch") !== iamGlobMatch) {
+      throw new Error("Cannot install the IAM globMatch in Casbin");
+    }
     await enforcer.addFunction(
       "skipInput",
       (ctx: IAMRequestContext, probe: string) => ctx?.probe === true && probe === "input"

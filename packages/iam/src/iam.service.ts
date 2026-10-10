@@ -4,13 +4,11 @@ import {
   registerOperationAuthorizer,
   Service,
   ServiceParameters,
-  unregisterOperationAuthorizer,
   WebContext,
   WebdaError
 } from "@webda/core";
 import { useRepository } from "@webda/models";
 import { useLog } from "@webda/workout";
-import { minimatch } from "minimatch";
 import { IAM_AUTHORIZER } from "./active.js";
 import {
   attachmentsFromConfig,
@@ -24,6 +22,7 @@ import {
 } from "./compiler.js";
 import { PolicyCompileError } from "./conditions.js";
 import { IAMRequestContext, PolicyEngine } from "./engine.js";
+import { iamGlobMatch, OPERATION_PATTERN } from "./glob.js";
 import { IAMPolicy } from "./iampolicy.model.js";
 import { IAMPolicyAttachment } from "./iampolicyattachment.model.js";
 
@@ -118,6 +117,11 @@ function frozenClone<T>(value: T): T {
 }
 
 /**
+ * The current user's IAM view, cached on the context while loading
+ */
+type IAMUserCache = { uuid: string; user: Promise<IAMRequestContext["user"] | undefined> };
+
+/**
  * Enforce IAM policies on operations, evaluated with Casbin
  *
  * Policies come from the configuration and from the IAMPolicy / IAMPolicyAttachment models
@@ -157,6 +161,10 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
    * Generation of the latest started rebuild: an older rebuild finishing late never replaces a newer snapshot
    */
   protected generation = 0;
+  /**
+   * True once stopped: the authorizer stays registered and refuses in-scope operations
+   */
+  protected stopped = false;
 
   /**
    * Validate and compile the configuration, register the authorizer
@@ -164,13 +172,20 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
    */
   resolve(): this {
     super.resolve();
+    const invalid = this.parameters.scope.find(
+      pattern => typeof pattern !== "string" || !OPERATION_PATTERN.test(pattern)
+    );
+    if (invalid !== undefined) {
+      throw new PolicyCompileError(`Invalid scope pattern ${JSON.stringify(invalid)}`);
+    }
     this.configRows = compilePolicies(this.parameters.policies);
     this.configNames = new Set(this.parameters.policies.map(policy => policy.name));
     if (!this.authorizer) {
       this.authorizer = Object.assign(
         (context: OperationContext, operationId: string, _operation: any, options: { input?: any; probe: boolean }) =>
           this.authorize(context, operationId, options),
-        { [IAM_AUTHORIZER]: true }
+        // Liveness for the IAM models' canAct: false until the policies are loaded, and again once stopped
+        { [IAM_AUTHORIZER]: () => this.engine !== undefined }
       );
       registerOperationAuthorizer(this.authorizer);
     }
@@ -178,12 +193,16 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
   }
 
   /**
-   * Load the stored policies, build the engine and watch for changes
+   * Watch for changes, then load the stored policies and build the engine
+   *
+   * Listeners and the periodic rebuild start first: when the first build fails, init() throws but a later
+   * successful rebuild (after the stored policy is fixed) still recovers; until then in-scope calls are refused
    * @returns this
+   * @throws PolicyCompileError when the first build fails
    */
   async init(): Promise<this> {
     await super.init();
-    this.engine = await this.build();
+    this.stopped = false;
     for (const model of [IAMPolicy, IAMPolicyAttachment]) {
       const repository = tryRepository(model);
       if (!repository) {
@@ -199,17 +218,32 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
       this.intervalTimer = setInterval(() => this.reload(), this.parameters.reloadInterval * 1000);
       this.intervalTimer.unref?.();
     }
+    const generation = ++this.generation;
+    let engine: PolicyEngine;
+    try {
+      engine = await this.build();
+    } catch (err) {
+      useLog(
+        "ERROR",
+        "IAM policies could not be loaded: in-scope operations are refused until a rebuild succeeds",
+        err
+      );
+      throw err;
+    }
+    // A rebuild started meanwhile wins, unless it has not finished yet
+    if (!this.stopped && (generation === this.generation || !this.engine)) {
+      this.engine = engine;
+    }
     return this;
   }
 
   /**
-   * Unregister the authorizer and stop watching
+   * Stop watching and drop the policies
+   *
+   * The authorizer stays registered: in-scope operations are refused during and after a graceful shutdown
    */
   async stop(): Promise<void> {
-    if (this.authorizer) {
-      unregisterOperationAuthorizer(this.authorizer);
-      this.authorizer = undefined;
-    }
+    this.stopped = true;
     clearTimeout(this.reloadTimer);
     clearInterval(this.intervalTimer);
     this.unsubscribers.forEach(unsubscribe => unsubscribe());
@@ -225,7 +259,7 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
    * @returns true when IAM governs the operation
    */
   isInScope(operationId: string): boolean {
-    return [...IAM_OPERATIONS, ...this.parameters.scope].some(pattern => minimatch(operationId, pattern));
+    return [...IAM_OPERATIONS, ...this.parameters.scope].some(pattern => iamGlobMatch(operationId, pattern));
   }
 
   /**
@@ -277,7 +311,10 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
       return;
     }
     try {
-      if (input.statements !== undefined) {
+      if (operationId === "IAMPolicy.Create") {
+        // The whole document: a stored policy that cannot compile would freeze every rebuild
+        validatePolicyDocument(input);
+      } else if (input.statements !== undefined) {
         validateStatements(input.statements);
       }
       if (operationId === "IAMPolicy.Create" && this.configNames.has(input.name)) {
@@ -308,20 +345,19 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
     const userId = context.getCurrentUserId?.();
     let user: IAMRequestContext["user"];
     if (userId) {
-      user = context.getExtension?.("iamUser");
-      if (!user || user.uuid !== userId) {
-        let model: any;
-        try {
-          model = await context.getCurrentUser();
-        } catch (err) {
-          useLog("WARN", "IAM could not load the current user", err);
+      // The in-flight load is shared on the context: a listing asks for many operations at once
+      let cached = context.getExtension?.<IAMUserCache>("iamUser");
+      if (!cached || cached.uuid !== userId) {
+        cached = { uuid: userId, user: this.loadUser(context, userId) };
+        context.setExtension?.("iamUser", cached);
+      }
+      user = await cached.user;
+      if (!user) {
+        // Without its groups, a deny attached to a group would be skipped: refuse, and do not cache the failure
+        if (context.getExtension?.("iamUser") === cached) {
+          context.setExtension?.("iamUser", undefined);
         }
-        if (!model) {
-          // Without its groups, a deny attached to a group would be skipped: refuse, and do not cache
-          return "current user could not be loaded";
-        }
-        user = { uuid: userId, groups: model.getGroups?.() ?? [], roles: model.getRoles?.() ?? [] };
-        context.setExtension?.("iamUser", user);
+        return "current user could not be loaded";
       }
     }
     const principals = user
@@ -344,6 +380,25 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
       now: Date.now()
     });
     return { principals, ctx };
+  }
+
+  /**
+   * Load the current user's groups and roles
+   * @param context - the caller context
+   * @param userId - the current user id
+   * @returns the user, or undefined when it cannot be loaded
+   */
+  protected async loadUser(context: OperationContext, userId: string): Promise<IAMRequestContext["user"] | undefined> {
+    let model: any;
+    try {
+      model = await context.getCurrentUser();
+    } catch (err) {
+      useLog("WARN", "IAM could not load the current user", err);
+    }
+    if (!model) {
+      return undefined;
+    }
+    return { uuid: userId, groups: model.getGroups?.() ?? [], roles: model.getRoles?.() ?? [] };
   }
 
   /**
@@ -385,7 +440,7 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
     const generation = ++this.generation;
     try {
       const engine = await this.build();
-      if (generation === this.generation && this.authorizer) {
+      if (generation === this.generation && !this.stopped) {
         this.engine = engine;
       }
     } catch (err) {

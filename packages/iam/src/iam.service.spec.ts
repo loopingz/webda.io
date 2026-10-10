@@ -5,6 +5,7 @@ import {
   registerOperation,
   registerSchema,
   Service,
+  unregisterOperationAuthorizer,
   useApplication,
   useCore,
   WebdaError
@@ -12,6 +13,7 @@ import {
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { IAMTest } from "../test/fixture.js";
+import { isIAMActive } from "./active.js";
 import { PolicyCompileError } from "./conditions.js";
 import { IAMPolicy } from "./iampolicy.model.js";
 import { IAMPolicyAttachment } from "./iampolicyattachment.model.js";
@@ -22,7 +24,7 @@ import { IAMService, IAMServiceParameters } from "./iam.service.js";
  */
 class IAMContext extends OperationContext {
   constructor(
-    protected user?: { uuid: string; groups?: string[]; broken?: boolean; missing?: boolean },
+    protected user?: { uuid: string; groups?: string[]; broken?: boolean; missing?: boolean; loads?: number },
     protected body?: any
   ) {
     super();
@@ -31,6 +33,10 @@ class IAMContext extends OperationContext {
     return this.user?.uuid;
   }
   async getCurrentUser(): Promise<any> {
+    if (this.user) {
+      this.user.loads = (this.user.loads ?? 0) + 1;
+    }
+    await new Promise(resolve => setTimeout(resolve, 1));
     if (this.user?.broken) {
       throw new Error("user store down");
     }
@@ -124,6 +130,8 @@ class IAMServiceTest extends IAMTest {
 
   async afterEach() {
     await this.service.stop();
+    // A stopped IAMService keeps refusing: remove it before the next test registers a new one
+    unregisterOperationAuthorizer((this.service as any).authorizer);
     delete useCore().getServices()["IAM"];
     for (const attachment of (await IAMPolicyAttachment.query("")).results ?? []) {
       await attachment.delete();
@@ -282,5 +290,106 @@ class IAMServiceTest extends IAMTest {
     const service = new IAMService("Fresh", new IAMServiceParameters().load({}));
     const ctx = new IAMContext({ uuid: "u1" });
     assert.notStrictEqual(await service.authorize(ctx, "Tasks.Update", { input: {}, probe: false }), true);
+  }
+
+  @test
+  async stoppedServiceKeepsRefusing() {
+    const editor = { uuid: "u1", groups: ["editors"] };
+    await this.call(new IAMContext(editor, { status: "draft" }), "Tasks.Update");
+    assert.strictEqual(isIAMActive(), true);
+    await this.service.stop();
+    // In-scope operations are refused during and after a graceful shutdown; out-of-scope ones still pass
+    await assert.rejects(
+      () => this.call(new IAMContext(editor, { status: "draft" }), "Tasks.Update"),
+      WebdaError.Forbidden
+    );
+    await this.call(new IAMContext(undefined, {}), "Other.Op");
+    // The IAM models are closed again
+    assert.strictEqual(isIAMActive(), false);
+    assert.notStrictEqual(await IAMPolicy.canAct(undefined as any, "create"), true);
+    // A rebuild after stop is discarded
+    await this.service.reload();
+    await assert.rejects(
+      () => this.call(new IAMContext(editor, { status: "draft" }), "Tasks.Update"),
+      WebdaError.Forbidden
+    );
+  }
+
+  @test
+  async invalidScopeFailsResolve() {
+    const service = new IAMService("BadScope", new IAMServiceParameters().load({ scope: ["Tasks.{Get,Delete}"] }));
+    assert.throws(() => service.resolve(), PolicyCompileError);
+  }
+
+  @test
+  async createValidatesTheWholeDocument() {
+    const admin = new IAMContext({ uuid: "a1", groups: ["admins"] });
+    await admin.init();
+    for (const input of [{ statements: [] }, { name: "", statements: [] }, { name: "NoStatements" }]) {
+      await assert.rejects(
+        () => this.service.authorize(admin, "IAMPolicy.Create", { input, probe: false }),
+        WebdaError.BadRequest,
+        JSON.stringify(input)
+      );
+    }
+    await assert.rejects(
+      () =>
+        this.service.authorize(admin, "IAMPolicy.Create", {
+          input: { name: "Brace", statements: [{ effect: "allow", operations: ["Tasks.{Get,Delete}"] }] },
+          probe: false
+        }),
+      WebdaError.BadRequest
+    );
+  }
+
+  @test
+  async userIsLoadedOncePerListing() {
+    const editor = { uuid: "u1", groups: ["editors"], loads: 0 };
+    const ctx = new IAMContext(editor);
+    await ctx.init();
+    const ids = ["Tasks.Update", "Tasks.Delete", "Tasks.Note", "Tasks.Public"];
+    await Promise.all(ids.map(id => canCallOperation(ctx, id)));
+    await canCallOperation(ctx, "Tasks.Update");
+    assert.strictEqual(editor.loads, 1);
+    // A failed load is not cached
+    const broken = { uuid: "u4", broken: true, loads: 0 };
+    const brokenCtx = new IAMContext(broken);
+    await brokenCtx.init();
+    assert.strictEqual(await canCallOperation(brokenCtx, "Tasks.Update"), false);
+    assert.strictEqual(await canCallOperation(brokenCtx, "Tasks.Update"), false);
+    assert.strictEqual(broken.loads, 2);
+  }
+
+  @test
+  async firstBuildFailureStillWatches() {
+    // Written through the model API, bypassing the authorizer validation
+    await IAMPolicy.create({
+      name: "Broken",
+      statements: [{ effect: "allow", operations: ["*"], condition: "r.ctx.constructor" }]
+    } as any);
+    const service = new IAMService(
+      "Recovering",
+      new IAMServiceParameters().load({
+        reloadDelay: 0,
+        reloadInterval: 300,
+        scope: ["Tasks.*"],
+        policies: POLICIES as any,
+        attachments: { "group:editors": ["TaskEditor"] }
+      })
+    );
+    service.resolve();
+    try {
+      await assert.rejects(() => service.init(), PolicyCompileError);
+      assert.ok((service as any).intervalTimer, "the periodic rebuild is started");
+      const editor = new IAMContext({ uuid: "u1", groups: ["editors"] });
+      await editor.init();
+      assert.notStrictEqual(await service.authorize(editor, "Tasks.Update", { input: {}, probe: false }), true);
+      await IAMPolicy.ref("Broken").delete();
+      await service.reload();
+      assert.strictEqual(await service.authorize(editor, "Tasks.Update", { input: {}, probe: false }), true);
+    } finally {
+      await service.stop();
+      unregisterOperationAuthorizer((service as any).authorizer);
+    }
   }
 }

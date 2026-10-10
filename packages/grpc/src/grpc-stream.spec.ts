@@ -384,6 +384,49 @@ class GrpcStreamTest {
     // Should not throw
     req.emit("close");
   }
+
+  @test
+  async decodesFramesSplitAnywhere() {
+    const req = createMockRequest();
+    const { res } = createMockResponse();
+    const stream = new GrpcStream(req as any, res, createJsonMethodDef());
+    const received: any[] = [];
+    stream.onMessage(m => received.push(m));
+    const bytes = Buffer.concat([
+      createGrpcFrame(Buffer.from(JSON.stringify({ a: 1 }))),
+      createGrpcFrame(Buffer.from(JSON.stringify({ b: 2 })))
+    ]);
+    // first chunk shorter than the 5-byte header, then the rest in two uneven chunks
+    req.emit("data", bytes.subarray(0, 2));
+    req.emit("data", bytes.subarray(2, 9));
+    req.emit("data", bytes.subarray(9));
+    assert.deepStrictEqual(received, [{ a: 1 }, { b: 2 }]);
+  }
+
+  @test
+  async reportsBackpressure() {
+    const req = createMockRequest();
+    const state = createMockResponse();
+    state.res.write = (data: Buffer) => {
+      state.written.push(Buffer.from(data));
+      return false;
+    };
+    const stream = new GrpcStream(req as any, state.res, createJsonMethodDef());
+    assert.strictEqual(stream.send({ x: 1 }), false);
+  }
+
+  @test
+  async closeAfterTheResponseEndedIsNotACancel() {
+    const req = createMockRequest();
+    const state = createMockResponse();
+    let cancelled = 0;
+    const stream = new GrpcStream(req as any, state.res, createJsonMethodDef());
+    stream.onCancel(() => cancelled++);
+    stream.end(0);
+    state.res.writableEnded = true;
+    req.emit("close");
+    assert.strictEqual(cancelled, 0);
+  }
 }
 
 @suite

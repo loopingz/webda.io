@@ -33,7 +33,6 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
   private onEndHandler?: () => void;
   private onCancelHandler?: () => void;
   private chunk: Buffer | null = null;
-  private messageLength = 0;
   private request: IncomingMessage | Http2ServerRequest;
   private response: ServerResponse | Http2ServerResponse;
   private definition: GrpcMethodDef<RequestType, ResponseType>;
@@ -58,35 +57,27 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
     this.response.setHeader("Grpc-Accept-Encoding", "identity");
     this.response.setHeader("Grpc-Encoding", "identity");
 
-    // Parse incoming gRPC frames
+    // Parse incoming gRPC frames (1-byte flag + 4-byte big-endian length + payload); a chunk may hold part of a
+    // header, several frames, or both
     req.on("data", (data: Buffer) => {
-      if (this.chunk === null) {
-        this.messageLength = data.readUInt32BE(1);
-        this.chunk = data;
-      } else {
-        this.chunk = Buffer.concat([this.chunk, data]);
+      this.chunk = this.chunk ? Buffer.concat([this.chunk, data]) : data;
+      while (this.chunk.length >= 5) {
+        const length = this.chunk.readUInt32BE(1);
+        if (this.chunk.length < 5 + length) break;
+        const message = this.chunk.subarray(5, 5 + length);
+        this.chunk = this.chunk.subarray(5 + length);
+        this.onMessageHandler?.(this.definition.requestDeserialize(message));
       }
-      // Check if we have a complete message
-      while (this.chunk && this.chunk.length >= 5 + this.messageLength) {
-        const message = this.chunk.subarray(5, 5 + this.messageLength);
-        const deserialized = this.definition.requestDeserialize(message);
-        this.onMessageHandler?.(deserialized);
-        // Advance to next frame
-        this.chunk = this.chunk.subarray(5 + this.messageLength);
-        if (this.chunk.length >= 5) {
-          this.messageLength = this.chunk.readUInt32BE(1);
-        } else if (this.chunk.length === 0) {
-          this.chunk = null;
-        }
-      }
+      if (this.chunk.length === 0) this.chunk = null;
     });
 
     req.on("end", () => {
       this.onEndHandler?.();
     });
 
+    // "close" also fires after a normal end: only a close before the response ended is a cancellation
     req.on("close", () => {
-      this.onCancelHandler?.();
+      if (!(this.response as any).writableEnded) this.onCancelHandler?.();
     });
   }
 
@@ -123,15 +114,15 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
   /**
    * Send a response message with gRPC framing.
    * @param message - the response message to serialize and send
-   * @returns void
+   * @returns false when the response buffer is full (wait for "drain")
    */
-  send(message: ResponseType): void {
+  send(message: ResponseType): boolean {
     const responseBuffer = this.definition.responseSerialize(message);
     const frame = Buffer.alloc(5 + responseBuffer.length);
     frame.writeUInt8(0, 0); // Not compressed
     frame.writeUInt32BE(responseBuffer.length, 1);
     responseBuffer.copy(frame, 5);
-    this.response.write(frame);
+    return this.response.write(frame) !== false;
   }
 
   /**

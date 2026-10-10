@@ -6,7 +6,13 @@
   "services": {
     "IAMStore": {
       "type": "Webda/MemoryStore",
-      "models": ["Webda/IAMPolicy", "Webda/IAMPolicyAttachment"]
+      "models": [
+        "Webda/IAMPolicy",
+        "Webda/IAMPolicyAttachment"
+      ]
+    },
+    "DomainService": {
+      "type": "Webda/DomainService"
     }
   }
 }

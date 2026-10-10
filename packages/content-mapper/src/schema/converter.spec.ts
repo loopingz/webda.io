@@ -4,6 +4,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import * as is from "typescript/unstable/ast/is";
 import type { ClassDeclaration } from "typescript/unstable/ast";
 import { openSession, type Session } from "../context.ts";
+import { generateActionInput } from "./action.ts";
 import { generateModelSchemas } from "./model.ts";
 import { generateTopLevelSchemas } from "./project.ts";
 import { findParametersNode, generateServiceSchema } from "./service.ts";
@@ -354,6 +355,41 @@ describe("top-level schemas", () => {
 
   it("ignores undecorated methods", () => {
     expect(schemas["Test/Desk.helper.input"]).toBeUndefined();
+  });
+
+  it("describes a streamed return by its element, marked x-webda-stream", () => {
+    const output = schemas["Test/Desk.watch.output"] as Record<string, unknown>;
+    expect(output["x-webda-stream"]).toBe(true);
+    expect(JSON.stringify(output)).toContain('"subject"');
+    expect(schemas["Test/Desk.watch.input"].properties).toHaveProperty("since");
+    expect((schemas["Test/Desk.watch.input"] as Record<string, unknown>)["x-webda-stream"]).toBeUndefined();
+  });
+
+  it("describes a streamed parameter by its element, without wrapping it in parameter names", () => {
+    const input = schemas["Test/Desk.total.input"] as Record<string, unknown>;
+    expect(input["x-webda-stream"]).toBe(true);
+    expect(input.$schema).toBeUndefined();
+    expect(JSON.stringify(input)).toContain('"value"');
+    expect(JSON.stringify(input)).not.toContain('"values"');
+    expect((schemas["Test/Desk.total.output"] as Record<string, unknown>)["x-webda-stream"]).toBeUndefined();
+  });
+
+  it("marks both sides of a bidirectional stream", () => {
+    expect((schemas["Test/Desk.relay.input"] as Record<string, unknown>)["x-webda-stream"]).toBe(true);
+    expect((schemas["Test/Desk.relay.output"] as Record<string, unknown>)["x-webda-stream"]).toBe(true);
+  });
+});
+
+describe("streamed parameters", () => {
+  it("must be the only parameter", () => {
+    const declaration = classOf("streams.model.ts", "Mixed");
+    const method = declaration.members.find(
+      member => is.isMethodDeclaration(member) && (member.name as { text?: string }).text === "mixed"
+    );
+    expect(method).toBeDefined();
+    expect(() =>
+      generateActionInput(method as never, { project: session.ctx.project, checker: session.ctx.checker })
+    ).toThrow(/only parameter/);
   });
 });
 

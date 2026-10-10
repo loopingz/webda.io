@@ -67,6 +67,27 @@ export class Desk {
     return Promise.resolve(0);
   }
 
+  /** Server stream: tickets as they come. */
+  @Action()
+  async *watch(since: number): AsyncGenerator<Ticket> {
+    void since;
+    yield { subject: "watched", assignee: undefined };
+  }
+
+  /** Client stream: adds up the payloads. */
+  @Action()
+  async total(values: AsyncIterable<Payload>): Promise<number> {
+    let sum = 0;
+    for await (const payload of values) sum += payload.value;
+    return sum;
+  }
+
+  /** Both directions: relays the payloads. */
+  @Action()
+  async *relay(frames: AsyncIterable<Payload>): AsyncGenerator<Payload> {
+    yield* frames;
+  }
+
   /** Not decorated, so it contributes nothing. */
   helper(): string {
     return "";

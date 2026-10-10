@@ -12,6 +12,10 @@ import { useInstanceStorage } from "../core/instancestorage.js";
 import { Session } from "../session/session.js";
 import { RestStreamingOperationContext } from "../contexts/restcontext.js";
 import { HttpContext } from "../contexts/httpcontext.js";
+import { useContext } from "../index.js";
+import { registerSchema } from "../schemas/hooks.js";
+import { useApplication } from "../application/hooks.js";
+import * as http2 from "node:http2";
 
 const state = { closed: false, started: 0, gate: Promise.resolve() as Promise<void> };
 
@@ -65,6 +69,17 @@ class RsFixtureService extends Service {
     throw new WebdaError.OperationCancelledError();
   }
 
+  /** Streams `n` items; the input is validated against Rs.Params */
+  async *repeat(n: number) {
+    for (let i = 0; i < n; i++) yield { i };
+  }
+
+  /** Changes the session, then yields: the cookie must carry the change */
+  async *stamp() {
+    useContext<any>().getSession().marker = "changed";
+    yield { stamped: true };
+  }
+
   async *empty() {
     // nothing to say
   }
@@ -99,15 +114,15 @@ async function until(check: () => boolean): Promise<void> {
   if (!check()) throw new Error("timed out");
 }
 
-@suite
-class RestStreamTest extends WebdaApplicationTest {
+class RestStreamBase extends WebdaApplicationTest {
   port: number;
+  h2c = false;
 
   getTestConfiguration(): any {
     return {
       services: {
         Rs: { type: "Webda/RsFixtureService" },
-        HttpServer: { type: "Webda/HttpServer", port: 0 },
+        HttpServer: { type: "Webda/HttpServer", port: 0, ...(this.h2c ? { h2c: true } : {}) },
         RESTService: { type: "Webda/RESTOperationsTransport", streamKeepAliveInterval: 60 }
       }
     };
@@ -121,7 +136,26 @@ class RestStreamTest extends WebdaApplicationTest {
 
   async url(): Promise<string> {
     if (!this.port) {
-      const ops = ["gated", "failEarly", "failInternal", "failClient", "failCancel", "empty"];
+      const params = {
+        type: "object",
+        properties: { n: { type: "number" } },
+        required: ["n"],
+        additionalProperties: false
+      };
+      useApplication().getSchemas()["Rs.Params"] = params;
+      try {
+        registerSchema("Rs.Params", params);
+      } catch {
+        // registered by a previous test
+      }
+      registerOperation("Rs.Repeat", {
+        service: "Rs",
+        method: "repeat",
+        input: "Rs.Params",
+        output: "void",
+        streaming: "server"
+      });
+      const ops = ["gated", "stamp", "failEarly", "failInternal", "failClient", "failCancel", "empty"];
       for (const method of ops) {
         registerOperation(`Rs.${method[0].toUpperCase()}${method.slice(1)}`, {
           service: "Rs",
@@ -169,7 +203,10 @@ class RestStreamTest extends WebdaApplicationTest {
     }
     return logs;
   }
+}
 
+@suite
+class RestStreamTest extends RestStreamBase {
   @test
   async ndjsonChunksArriveLive() {
     const release = closeGate();
@@ -319,11 +356,105 @@ class RestStreamTest extends WebdaApplicationTest {
     };
     const ctx = new RestStreamingOperationContext(new HttpContext("localhost", "PUT", "/x"), response, "ndjson");
     ctx.setExtension("operationStreaming", true);
-    ctx.write({ a: 1, __b: 2 });
-    ctx.finish(true);
-    ctx.finish(true);
-    ctx.writeError("late", 500);
+    // The first chunk waits for the response head: the operation is asked to wait
+    assert.strictEqual(ctx.write({ a: 1, __b: 2 }), false);
+    await ctx.drained();
+    await ctx.finish(true);
+    await ctx.finish(true);
+    await ctx.writeError("late", 500);
     assert.deepStrictEqual(written, ['{"a":1}\n']);
     assert.throws(() => ctx.write({ a: 2 }), WebdaError.OperationCancelledError);
+  }
+
+  @test
+  async sessionChangesBeforeTheFirstChunkReachTheCookie() {
+    const sessions = useService("SessionManager" as any) as any;
+    const save = sessions.save;
+    sessions.save = async (ctx: any, session: any) => ctx.cookie("marker", session.marker ?? "none");
+    try {
+      const res = await fetch(`${await this.url()}/rs/stamp`, { method: "PUT" });
+      assert.strictEqual(res.status, 200);
+      assert.ok((res.headers.get("set-cookie") ?? "").includes("marker=changed"), `${res.headers.get("set-cookie")}`);
+      assert.strictEqual(await res.text(), '{"stamped":true}\n');
+    } finally {
+      sessions.save = save;
+    }
+  }
+
+  @test
+  async bodyInputIsValidatedBeforeAnyChunk() {
+    const url = await this.url();
+    const ok = await fetch(`${url}/rs/repeat`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ n: 3 })
+    });
+    assert.strictEqual(ok.status, 200, await ok.clone().text());
+    assert.strictEqual(await ok.text(), '{"i":0}\n{"i":1}\n{"i":2}\n');
+    const bad = await fetch(`${url}/rs/repeat`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ n: "three" })
+    });
+    assert.strictEqual(bad.status, 400);
+    assert.ok(!(bad.headers.get("content-type") ?? "").includes("ndjson"));
+  }
+
+  @test
+  async serverStreamingModelActionDescribesTheStreamInOpenApi() {
+    await this.url();
+    registerOperation("Rs.Act", {
+      service: "Rs",
+      method: "gated",
+      input: "void",
+      output: "void",
+      streaming: "server"
+    });
+    (useService("RESTService" as any) as any).exposeActionRoute(
+      "/things",
+      "Rs",
+      "Rs",
+      "act",
+      { methods: ["PUT"], global: true } as any,
+      0,
+      undefined
+    );
+    const doc: any = (useService("Router" as any) as any).exportOpenAPI(true);
+    const content = doc.paths["/things/act"].put.responses["200"].content;
+    assert.deepStrictEqual(Object.keys(content), ["application/x-ndjson", "text/event-stream"]);
+  }
+}
+
+@suite
+class RestStreamH2Test extends RestStreamBase {
+  h2c = true;
+
+  @test
+  async clientCancelOnHttp2EndsTheGeneratorWithoutErrors() {
+    state.closed = false;
+    const release = closeGate();
+    await this.url();
+    const failures: any[] = [];
+    const onError = (err: any) => failures.push(err);
+    process.on("uncaughtException", onError);
+    const logs = await this.errorLogs(async () => {
+      const client = http2.connect(`http://127.0.0.1:${this.port}`);
+      client.on("error", () => undefined);
+      const req = client.request({ ":method": "PUT", ":path": "/rs/gated" });
+      let received = "";
+      req.on("data", chunk => (received += chunk));
+      req.end();
+      await until(() => received.includes("scalar"));
+      req.close(http2.constants.NGHTTP2_CANCEL);
+      await new Promise(resolve => req.once("close", resolve));
+      release();
+      await until(() => state.closed);
+      // let the server settle
+      await new Promise(resolve => setTimeout(resolve, 100));
+      client.close();
+    });
+    process.off("uncaughtException", onError);
+    assert.deepStrictEqual(failures, []);
+    assert.deepStrictEqual(logs, []);
   }
 }

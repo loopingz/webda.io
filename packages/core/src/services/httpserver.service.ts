@@ -305,7 +305,7 @@ export class HttpServer<
       });
       // Flush response — skip if pipeline/streaming already handled it (a streamed response is ended by its
       // operation, or gone with its client)
-      if (res.writableEnded || res.destroyed) {
+      if (res.writableEnded || res.destroyed || (res as any).stream?.destroyed) {
         return;
       }
       if (!res.headersSent) {

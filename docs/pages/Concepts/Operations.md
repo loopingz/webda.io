@@ -78,7 +78,8 @@ as soon as the operation yields it:
   disables) while the response is open, and a normal end of the generator sends `event: end` with `data: {}` before
   closing, so a client can tell it from a dropped connection. NDJSON just closes.
 - Permissions, input validation and events are those of a normal call. An error raised before the first chunk is the
-  usual HTTP error response. After it the status is already sent: SSE sends `event: error` with
+  usual HTTP error response (for SSE, until the first keep-alive: once one is sent the response head is committed, so
+  a later error is an `event: error` even if no chunk was sent). After the first chunk the status is already sent: SSE sends `event: error` with
   `data: {"message": …, "code": <status>}`, NDJSON a last line `{"error": {"message": …, "code": <status>}}`, then the
   response ends. A 4xx `WebdaError` keeps its message; anything else is reported as `Internal server error` and
   logged at `ERROR`. An `OperationCancelledError` raised by the operation while the client is connected is such an

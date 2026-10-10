@@ -524,21 +524,19 @@ export class RESTOperationsTransport<
     );
     await stream.init();
     stream.setParameters(context.getParameters());
-    // The session cookie leaves with the headers, which leave with the first chunk
-    await stream.saveSession();
     stream.startKeepAlive();
     try {
       await callOperation(stream, operationId);
     } catch (err: any) {
       stream.stopKeepAlive();
       // The client went away: nothing to tell
-      if (stream.isCancelled || response.destroyed) return stream.finish();
+      if (stream.isCancelled || stream.disconnected) return stream.finish();
       // Nothing sent yet: a normal HTTP error response
       if (!stream.hasStarted) throw err;
       const status = typeof err?.getResponseCode === "function" ? err.getResponseCode() : undefined;
       const clientError = status >= 400 && status < 500;
       if (!clientError) useLog("ERROR", `[REST ${operationId}] streamed operation threw:`, err);
-      stream.writeError(clientError ? String(err.message ?? "Error") : "Internal server error", status || 500);
+      await stream.writeError(clientError ? String(err.message ?? "Error") : "Internal server error", status || 500);
       return stream.finish();
     }
     stream.stopKeepAlive();
@@ -552,7 +550,7 @@ export class RESTOperationsTransport<
       }
       return;
     }
-    stream.finish(true);
+    return stream.finish(true);
   }
 
   /**
@@ -1062,6 +1060,13 @@ export class RESTOperationsTransport<
         ...(action.openapi?.[method.toLowerCase()] ?? {})
       };
     });
+    if (getOperationStreaming(useInstanceStorage().operations?.[operationId]) === "server") {
+      Object.keys(openapi)
+        .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
+        .forEach(k => {
+          openapi[k].responses = { ...this.streamedResponses(), ...openapi[k].responses };
+        });
+    }
     if (hasSchema(`${identifier}.${actionName}.input`)) {
       Object.keys(openapi)
         .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
@@ -1077,7 +1082,10 @@ export class RESTOperationsTransport<
           };
         });
     }
-    if (hasSchema(`${identifier}.${actionName}.output`)) {
+    if (
+      hasSchema(`${identifier}.${actionName}.output`) &&
+      getOperationStreaming(useInstanceStorage().operations?.[operationId]) !== "server"
+    ) {
       Object.keys(openapi)
         .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
         .forEach(k => {
@@ -1185,7 +1193,9 @@ export class RESTOperationsTransport<
           }
         };
       }
-      if (hasSchema(outputSchema)) {
+      if (getOperationStreaming(op) === "server") {
+        openapi[methodKey].responses = this.streamedResponses();
+      } else if (hasSchema(outputSchema)) {
         openapi[methodKey].responses = {
           "200": {
             description: "Operation success",

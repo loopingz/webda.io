@@ -13,7 +13,7 @@ import type {
 import type { Modda } from "../services/iservice.js";
 import type { ModelDefinition } from "../models/types.js";
 import { setLogContext } from "../loggers/hooks.js";
-import { CancelablePromise, FileUtils, parseImportDescriptor, State, toImportSpecifier } from "@webda/utils";
+import { FileUtils, parseImportDescriptor, State, toImportSpecifier } from "@webda/utils";
 import { existsSync, lstatSync, Mode, readFileSync } from "node:fs";
 import { join, resolve, dirname, isAbsolute } from "node:path";
 import * as WebdaError from "../errors/errors.js";

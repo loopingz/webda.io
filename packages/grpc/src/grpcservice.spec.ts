@@ -104,6 +104,8 @@ vi.mock("@webda/core", () => {
       }
     },
     WebContext: class {},
+    StreamingOperationContext: class {},
+    toPublicChunk: (value: unknown) => (value === undefined ? undefined : JSON.parse(JSON.stringify(value))),
     useCoreEvents: (eventName: string, callback: Function) => {
       coreEventCallbacks[eventName] = callback;
       return () => {

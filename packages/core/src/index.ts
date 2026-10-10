@@ -14,6 +14,7 @@ export * from "./contexts/icontext.js";
 export * from "./contexts/execution.js";
 export * from "./contexts/webcontext.js";
 export * from "./contexts/httpcontext.js";
+export * from "./contexts/streamingcontext.js";
 export * from "./contexts/websocketcontext.js";
 export * from "./contexts/globalcontext.js";
 export * from "./core/icore.js";

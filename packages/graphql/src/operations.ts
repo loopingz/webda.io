@@ -3,11 +3,12 @@ import {
   HttpContext,
   type OperationDefinition,
   Session,
+  StreamingOperationContext,
   WebContext,
   WebdaError,
-  getOperationStreaming
+  getOperationStreaming,
+  toPublicChunk
 } from "@webda/core";
-import { JSONUtils } from "@webda/utils";
 import { operationError } from "./mutations.js";
 
 /** Operations the model schema already serves (X, Xs, createX, updateX, deleteX) */
@@ -103,21 +104,20 @@ export function graphqlPlacement(id: string, op: OperationDefinition): GraphQLPl
  * @returns the copy (null for undefined)
  */
 export function publicCopy(value: unknown): unknown {
-  return value === undefined ? null : JSON.parse(JSONUtils.stringify(value, undefined, 0, true));
+  return value === undefined ? null : toPublicChunk(value);
 }
 
 /**
  * The context of an operation called from GraphQL: the GraphQL request's session and headers, the field arguments as
  * input; a non-streamed result is kept as is (`result`), streamed chunks are queued for the subscription.
  */
-export class GraphQLOperationContext extends WebContext {
+export class GraphQLOperationContext extends StreamingOperationContext {
   /** Last value written by a non-streamed operation */
   result: unknown;
   private readonly message: Buffer;
   private readonly queue = new AsyncQueue<unknown>();
   private pending = 0;
   private wakers: (() => void)[] = [];
-  private cancelled = false;
   private finished = false;
   private failure?: unknown;
 
@@ -163,44 +163,47 @@ export class GraphQLOperationContext extends WebContext {
   }
 
   /**
-   * @returns whether the subscriber left
+   * No connection: the subscriber leaving is signalled by cancel()
+   * @override
    */
-  get isCancelled(): boolean {
-    return this.cancelled;
+  protected get connectionEnded(): boolean {
+    return false;
   }
 
   /**
-   * Streamed chunks are queued for the subscriber; a non-streamed result is kept
+   * A non-streamed result is kept as is
    * @override
-   * @throws OperationCancelledError when the subscriber left or the stream is over
    */
-  // @ts-ignore same signature as WebContext.write
-  public write(output: any, _encoding?: string, _cb?: (error: Error) => void): boolean {
-    if (!this.getExtension("operationStreaming")) {
-      this.result = output;
-      return true;
-    }
-    if (this.cancelled || this.finished) throw new WebdaError.OperationCancelledError();
-    this.queue.push(this.transform(output));
+  protected writeResult(output: any): boolean {
+    this.result = output;
+    return true;
+  }
+
+  /**
+   * Streamed chunks are queued for the subscriber
+   * @override
+   * @throws OperationCancelledError when the stream is over
+   */
+  protected sendChunk(chunk: any): boolean {
+    if (this.finished) throw new WebdaError.OperationCancelledError();
+    this.queue.push(this.transform(chunk));
     this.pending++;
     return this.pending < HIGH_WATER;
   }
 
   /**
-   * Wait for the subscriber to consume the queued chunks
+   * Wait for the subscriber to consume the queued chunks (or to leave)
    * @override
-   * @throws OperationCancelledError when the subscriber left
    */
-  async drained(): Promise<void> {
-    while (!this.cancelled && this.pending >= HIGH_WATER) {
+  protected async waitForDrain(): Promise<void> {
+    while (!this.isCancelled && this.pending >= HIGH_WATER) {
       await new Promise<void>(resolve => this.wakers.push(resolve));
     }
-    if (this.cancelled) throw new WebdaError.OperationCancelledError();
   }
 
   /** The subscriber left: the next write or drain throws, the iterator ends. */
   cancel(): void {
-    this.cancelled = true;
+    super.cancel();
     this.queue.end(true);
     this.wake();
   }
@@ -217,14 +220,14 @@ export class GraphQLOperationContext extends WebContext {
    */
   fail(error: unknown): void {
     this.finished = true;
-    if (this.cancelled && error instanceof WebdaError.OperationCancelledError) {
+    if (this.isCancelled && error instanceof WebdaError.OperationCancelledError) {
       // The expected end of an operation whose subscriber left
       this.queue.end();
       return;
     }
     // Any other error is mapped (and logged when unexpected) even if nobody listens anymore
     const mapped = operationError(error);
-    if (!this.cancelled) {
+    if (!this.isCancelled) {
       this.failure = mapped;
     }
     this.queue.end();

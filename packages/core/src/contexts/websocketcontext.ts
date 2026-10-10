@@ -2,7 +2,7 @@ import { once } from "node:events";
 import type { WebSocket } from "ws";
 import { JSONUtils } from "@webda/utils";
 import { HttpContext } from "./httpcontext.js";
-import { WebContext } from "./webcontext.js";
+import { StreamingOperationContext } from "./streamingcontext.js";
 import type { Session } from "../session/session.js";
 import * as WebdaError from "../errors/errors.js";
 
@@ -16,8 +16,7 @@ const CLOSING = 2;
  * The context of a bidirectional operation served over a WebSocket: the upgrade request's headers and session,
  * each streamed chunk sent as one JSON text message.
  */
-export class WebSocketOperationContext extends WebContext {
-  private cancelled = false;
+export class WebSocketOperationContext extends StreamingOperationContext {
   private lastSend: Promise<void> = Promise.resolve();
 
   /**
@@ -43,35 +42,19 @@ export class WebSocketOperationContext extends WebContext {
   }
 
   /**
-   * @returns whether the client closed the socket
-   */
-  get isCancelled(): boolean {
-    return this.cancelled;
-  }
-
-  /** The client closed the socket: the next write or drain throws. */
-  cancel(): void {
-    this.cancelled = true;
-  }
-
-  /**
-   * @throws OperationCancelledError when the client went away or the socket is closing
-   */
-  private assertAlive(): void {
-    if (this.cancelled || this.socket.readyState >= CLOSING) {
-      throw new WebdaError.OperationCancelledError();
-    }
-  }
-
-  /**
-   * Streamed chunks go out immediately as one JSON message; a non-streamed result is buffered as usual
+   * The socket is closing or closed
    * @override
    */
-  // @ts-ignore same signature as WebContext.write
-  public write(output: any, encoding?: string, cb?: (error: Error) => void): boolean {
-    if (!this.getExtension("operationStreaming")) return super.write(output, encoding, cb);
-    this.assertAlive();
-    const text = JSONUtils.stringify(output, undefined, 0, true);
+  protected get connectionEnded(): boolean {
+    return this.socket.readyState >= CLOSING;
+  }
+
+  /**
+   * One JSON text message per chunk
+   * @override
+   */
+  protected sendChunk(chunk: any): boolean {
+    const text = JSONUtils.stringify(chunk, undefined, 0, true);
     const sent = new Promise<void>((resolve, reject) => this.socket.send(text, err => (err ? reject(err) : resolve())));
     sent.catch(() => {
       // reported through drained()
@@ -81,24 +64,15 @@ export class WebSocketOperationContext extends WebContext {
   }
 
   /**
-   * Wait for the last message to be flushed, without leaving listeners behind
+   * Wait for the last message to be flushed, or the socket to close
    * @override
    */
-  async drained(): Promise<void> {
-    this.assertAlive();
-    const controller = new AbortController();
-    try {
-      await Promise.race([
-        this.lastSend,
-        once(this.socket, "close", { signal: controller.signal }).then(() => {
-          throw new WebdaError.OperationCancelledError();
-        })
-      ]);
-    } catch {
-      throw new WebdaError.OperationCancelledError();
-    } finally {
-      controller.abort();
-    }
-    this.assertAlive();
+  protected async waitForDrain(signal: AbortSignal): Promise<void> {
+    await Promise.race([
+      this.lastSend,
+      once(this.socket, "close", { signal }).then(() => {
+        throw new WebdaError.OperationCancelledError();
+      })
+    ]);
   }
 }

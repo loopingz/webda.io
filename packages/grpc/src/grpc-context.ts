@@ -1,7 +1,6 @@
 import { once } from "node:events";
 import type { ServerResponse } from "node:http";
-import { HttpContext, WebContext, WebdaError } from "@webda/core";
-import { JSONUtils } from "@webda/utils";
+import { HttpContext, StreamingOperationContext, toPublicChunk } from "@webda/core";
 import type { GrpcStream } from "./grpc-stream.js";
 
 /**
@@ -10,17 +9,18 @@ import type { GrpcStream } from "./grpc-stream.js";
  * @returns the message
  */
 export function toGrpcMessage(value: unknown): Record<string, unknown> {
-  const plain = value === undefined ? undefined : JSON.parse(JSONUtils.stringify(value, undefined, 0, true));
-  return typeof plain === "object" && plain !== null && !Array.isArray(plain) ? plain : { value: plain };
+  const plain = toPublicChunk(value);
+  return typeof plain === "object" && plain !== null && !Array.isArray(plain)
+    ? (plain as Record<string, unknown>)
+    : { value: plain };
 }
 
 /**
  * The context of one gRPC call: request metadata as HTTP headers (so useContext().getHttpContext() works and the
  * session loads), the unary request message as input, and streamed output sent message by message.
  */
-export class GrpcOperationContext extends WebContext {
+export class GrpcOperationContext extends StreamingOperationContext {
   private message?: Buffer;
-  private cancelled = false;
 
   /**
    * @param httpContext - request line and metadata
@@ -33,13 +33,6 @@ export class GrpcOperationContext extends WebContext {
     private readonly response: ServerResponse
   ) {
     super(httpContext);
-  }
-
-  /**
-   * @returns whether the client went away
-   */
-  get isCancelled(): boolean {
-    return this.cancelled;
   }
 
   /**
@@ -67,53 +60,34 @@ export class GrpcOperationContext extends WebContext {
     return (await this.getRawInput(limit)).toString();
   }
 
-  /** The client went away: the next write or drain throws. */
-  cancel(): void {
-    this.cancelled = true;
-  }
-
   /**
-   * Streamed chunks go out immediately; a non-streamed result is buffered as usual
+   * The response is over
    * @override
    */
-  // @ts-ignore same signature as WebContext.write
-  public write(output: any, encoding?: string, cb?: (error: Error) => void): boolean {
-    if (!this.getExtension("operationStreaming")) return super.write(output, encoding, cb);
-    this.assertAlive();
-    return this.stream.send(toGrpcMessage(output));
-  }
-
-  /**
-   * @throws OperationCancelledError when the client went away or the response is over
-   */
-  private assertAlive(): void {
+  protected get connectionEnded(): boolean {
     const response = this.response as { writableEnded?: boolean; destroyed?: boolean };
-    if (this.cancelled || response.writableEnded || response.destroyed) {
-      throw new WebdaError.OperationCancelledError();
-    }
+    return Boolean(response.writableEnded || response.destroyed);
   }
 
   /**
-   * Wait for the response buffer to empty, without leaving listeners behind
+   * One gRPC message per chunk
    * @override
    */
-  async drained(): Promise<void> {
-    this.assertAlive();
-    const controller = new AbortController();
-    try {
-      await Promise.race([
-        once(this.response, "drain", { signal: controller.signal }),
-        once(this.response, "close", { signal: controller.signal }),
-        once(this.response, "error", { signal: controller.signal }).then(([error]) => {
-          throw error;
-        })
-      ]);
-    } catch (err) {
-      if (err instanceof WebdaError.OperationCancelledError) throw err;
-      throw new WebdaError.OperationCancelledError();
-    } finally {
-      controller.abort();
-    }
-    this.assertAlive();
+  protected sendChunk(chunk: any): boolean {
+    return this.stream.send(toGrpcMessage(chunk));
+  }
+
+  /**
+   * Wait for the response buffer to empty, or the response to close or fail
+   * @override
+   */
+  protected async waitForDrain(signal: AbortSignal): Promise<void> {
+    await Promise.race([
+      once(this.response, "drain", { signal }),
+      once(this.response, "close", { signal }),
+      once(this.response, "error", { signal }).then(([error]) => {
+        throw error;
+      })
+    ]);
   }
 }

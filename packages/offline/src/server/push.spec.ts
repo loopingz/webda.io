@@ -154,4 +154,96 @@ class PushTest extends SyncTest {
     assert.strictEqual(res.rev, 2);
     assert.strictEqual((await Note.ref(note.uuid).get())._rev, 2);
   }
+
+  @test
+  async conflictDoesNotLeakUnreadable() {
+    const note = await Note.create({ title: "secret", owner: "bob" } as any);
+    for (const op of ["patch", "delete"]) {
+      const [res] = await this.push(
+        [{ mutationId: `m-${op}`, ref: { model: "Test/Note", key: note.uuid }, baseRev: 5, op, patch: {} }],
+        "alice"
+      );
+      assert.strictEqual(res.status, "rejected");
+      assert.strictEqual(res.error.code, "NOT_FOUND");
+      assert.ok(!JSON.stringify(res).includes("secret"));
+    }
+  }
+
+  @test
+  async replayByAnotherUserDoesNotLeak() {
+    const note = await Note.create({ title: "secret", owner: "bob" } as any);
+    const delta = diff(note.toDTO(), { ...note.toDTO(), title: "b" });
+    const m = {
+      mutationId: "shared",
+      ref: { model: "Test/Note", key: note.uuid },
+      baseRev: 1,
+      op: "patch",
+      patch: delta
+    };
+    assert.strictEqual((await this.push([m], "bob"))[0].status, "ok");
+    const [replay] = await this.push([m], "alice");
+    assert.strictEqual(replay.status, "rejected");
+    assert.strictEqual(replay.error.code, "NOT_FOUND");
+  }
+
+  @test
+  async deleteRaceIsConflict() {
+    const note = await Note.create({ title: "a" } as any);
+    const repo: any = useRepository(Note);
+    const original = repo.delete;
+    repo.delete = async (...args: any[]) => {
+      repo.delete = original;
+      await Note.ref(note.uuid).patch({ title: "concurrent" } as any);
+      // MemoryRepository.delete ignores its condition: fail like a conditional backend would
+      throw new Error("Condition failed: _rev");
+    };
+    try {
+      const [res] = await this.push([
+        { mutationId: "m1", ref: { model: "Test/Note", key: note.uuid }, baseRev: 1, op: "delete" }
+      ]);
+      assert.strictEqual(res.status, "conflict");
+      assert.strictEqual(res.rev, 2);
+    } finally {
+      repo.delete = original;
+    }
+  }
+
+  @test
+  async createRaceIsConflict() {
+    const uuid = "22222222-2222-4222-8222-222222222222";
+    const repo: any = useRepository(Note);
+    const original = repo.create;
+    repo.create = async (...args: any[]) => {
+      repo.create = original;
+      await original.call(repo, { uuid, title: "winner" });
+      return original.apply(repo, args);
+    };
+    try {
+      const [res] = await this.push([
+        {
+          mutationId: "m1",
+          ref: { model: "Test/Note", key: uuid },
+          baseRev: 0,
+          op: "create",
+          patch: { title: "loser" }
+        }
+      ]);
+      assert.strictEqual(res.status, "conflict");
+      assert.strictEqual(res.object.title, "winner");
+    } finally {
+      repo.create = original;
+    }
+  }
+
+  @test
+  async deltaCannotRewriteKey() {
+    const note = await Note.create({ title: "a" } as any);
+    const delta = diff(note.toDTO(), { ...note.toDTO(), title: "b", uuid: "33333333-3333-4333-8333-333333333333" });
+    const [res] = await this.push([
+      { mutationId: "m1", ref: { model: "Test/Note", key: note.uuid }, baseRev: 1, op: "patch", patch: delta }
+    ]);
+    assert.strictEqual(res.status, "ok");
+    assert.strictEqual((await Note.ref(note.uuid).get()).title, "b");
+    assert.strictEqual(await Note.ref("33333333-3333-4333-8333-333333333333").exists(), false);
+  }
 }

@@ -550,6 +550,38 @@ export class SyncService extends Service<SyncServiceParameters> {
   }
 
   /**
+   * @param mutationId - the mutation
+   * @returns the result for an object the caller cannot read: indistinguishable from a missing one
+   */
+  protected hidden(mutationId: string): MutationResult {
+    return this.rejected(mutationId, "NOT_FOUND", "Object not found");
+  }
+
+  /**
+   * A conflict that never carries an object the caller cannot read
+   * @param mutationId - the mutation
+   * @param modelId - the model
+   * @param object - the current server object, undefined when deleted
+   * @returns the conflict, or a NOT_FOUND rejection
+   */
+  protected async guardedConflict(mutationId: string, modelId: string, object?: any): Promise<MutationResult> {
+    if (object && !(await this.canRead(object, modelId))) return this.hidden(mutationId);
+    return this.conflict(mutationId, modelId, object);
+  }
+
+  /**
+   * @param mutationId - the mutation
+   * @param modelId - the model
+   * @param existing - the object already stored under the key
+   * @returns a conflict when readable, KEY_IN_USE otherwise (no content)
+   */
+  protected async keyInUse(mutationId: string, modelId: string, existing: any): Promise<MutationResult> {
+    return (await this.canRead(existing, modelId))
+      ? this.conflict(mutationId, modelId, existing)
+      : this.rejected(mutationId, "KEY_IN_USE", "Key already in use");
+  }
+
+  /**
    * Validate a candidate object against the model schema
    * @param modelId - the model
    * @param candidate - the full object
@@ -586,23 +618,19 @@ export class SyncService extends Service<SyncServiceParameters> {
     }
     const context = useContext<OperationContext>();
     const id = refId(m.ref);
+    const keyFields = typeof pk === "object" ? pk : { [fields[0] ?? "uuid"]: pk };
     try {
       // Replay of a mutation already applied (lost response)
       const done = (await SyncChange.query(escape(["mutationId = ", " LIMIT 1"], [mutationId]))).results[0];
       if (done && done.subjectModel === modelId && done.subjectKey === m.ref.key) {
         const object = await this.load(modelId, m.ref.key);
-        return object
-          ? { mutationId, status: "ok", rev: object._rev ?? 0, object: this.toSynced(modelId, object).object }
-          : { mutationId, status: "ok", rev: 0 };
+        if (!object) return { mutationId, status: "ok", rev: 0 };
+        if (!(await this.canRead(object, modelId))) return this.hidden(mutationId);
+        return { mutationId, status: "ok", rev: object._rev ?? 0, object: this.toSynced(modelId, object).object };
       }
       const current = await this.load(modelId, m.ref.key);
       if (m.op === "create") {
-        if (current) {
-          return (await this.canRead(current, modelId))
-            ? this.conflict(mutationId, modelId, current)
-            : this.rejected(mutationId, "KEY_IN_USE", "Key already in use");
-        }
-        const keyFields = typeof pk === "object" ? pk : { [fields[0] ?? "uuid"]: pk };
+        if (current) return this.keyInUse(mutationId, modelId, current);
         const input = { ...sanitizeModelInput(model, m.patch ?? {}), ...keyFields };
         const candidate = new model();
         candidate["load"](input);
@@ -610,18 +638,33 @@ export class SyncService extends Service<SyncServiceParameters> {
         const error = this.invalid(modelId, { ...input, _rev: 1 });
         if (error) return this.rejected(mutationId, "VALIDATION", error);
         this.mutationIds.set(id, mutationId);
-        await model.create(input);
+        try {
+          await model.create(input);
+        } catch (err) {
+          this.mutationIds.delete(id);
+          const existing = await this.load(modelId, m.ref.key);
+          if (existing) return this.keyInUse(mutationId, modelId, existing);
+          throw err;
+        }
       } else if (m.op === "patch" || m.op === "delete") {
         if (!current) {
           return m.op === "delete" ? { mutationId, status: "ok", rev: 0 } : this.conflict(mutationId, modelId);
         }
-        if ((current._rev ?? 0) !== m.baseRev) {
-          return this.conflict(mutationId, modelId, current);
-        }
         await checkModelPermission(current, context, m.op === "patch" ? "update" : "delete", model);
+        if ((current._rev ?? 0) !== m.baseRev) {
+          return this.guardedConflict(mutationId, modelId, current);
+        }
         this.mutationIds.set(id, mutationId);
         if (m.op === "delete") {
-          await useRepository(model).delete(pk as any, "_rev" as any, current._rev);
+          try {
+            await useRepository(model).delete(pk as any, "_rev" as any, current._rev);
+          } catch (err) {
+            this.mutationIds.delete(id);
+            const reloaded = await this.load(modelId, m.ref.key);
+            if (!reloaded) return { mutationId, status: "ok", rev: 0 };
+            if ((reloaded._rev ?? 0) !== m.baseRev) return this.guardedConflict(mutationId, modelId, reloaded);
+            throw err;
+          }
           return { mutationId, status: "ok", rev: 0 };
         }
         const before = this.toSynced(modelId, current).object;
@@ -630,7 +673,7 @@ export class SyncService extends Service<SyncServiceParameters> {
         const writable = sanitizeModelInput(model, after);
         const writableBefore = sanitizeModelInput(model, before);
         const managed = Object.fromEntries(Object.entries(before).filter(([key]) => !(key in writableBefore)));
-        const data: any = { ...managed, ...writable, _rev: m.baseRev + 1 };
+        const data: any = { ...managed, ...writable, ...keyFields, _rev: m.baseRev + 1 };
         const error = this.invalid(modelId, data);
         if (error) {
           this.mutationIds.delete(id);
@@ -649,7 +692,7 @@ export class SyncService extends Service<SyncServiceParameters> {
         } catch (err) {
           this.mutationIds.delete(id);
           const reloaded = await this.load(modelId, m.ref.key);
-          if ((reloaded?._rev ?? 0) !== m.baseRev) return this.conflict(mutationId, modelId, reloaded);
+          if ((reloaded?._rev ?? 0) !== m.baseRev) return this.guardedConflict(mutationId, modelId, reloaded);
           throw err;
         }
       } else {

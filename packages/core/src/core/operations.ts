@@ -95,6 +95,8 @@ export function listOperationAuthorizers(): OperationAuthorizer[] {
  * @param operationId - the operation identifier
  * @param operation - the operation definition
  * @param options - input and probe mode
+ * @param options.input - the operation input
+ * @param options.probe - true to ask whether some input could be allowed
  * @returns true when every authorizer allows, otherwise the refusal reason
  * @throws WebdaError.HttpError thrown by an authorizer
  */
@@ -133,6 +135,7 @@ async function runAuthorizers(
  * @param context - the execution context holding the session
  * @param operationId - the operation identifier
  * @param options - the operation input for an exact check
+ * @param options.input - the operation input
  * @returns true if the operation exists and is allowed
  */
 export async function canCallOperation(

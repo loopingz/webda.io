@@ -12,7 +12,12 @@ import {
 const editor = {
   name: "TaskEditor",
   statements: [
-    { sid: "edit", effect: "allow" as const, operations: ["Tasks.*", "Task.Get"], condition: "r.ctx.input.status != 'archived'" },
+    {
+      sid: "edit",
+      effect: "allow" as const,
+      operations: ["Tasks.*", "Task.Get"],
+      condition: "r.ctx.input.status != 'archived'"
+    },
     { effect: "deny" as const, operations: ["Tasks.Delete"] }
   ]
 };

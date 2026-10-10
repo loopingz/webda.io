@@ -13,12 +13,26 @@ const policies: PolicyDocument[] = [
   },
   { name: "ReadAll", statements: [{ effect: "allow", operations: ["*.Get", "*.Query"] }] },
   { name: "Everything", statements: [{ effect: "allow", operations: ["*"] }] },
-  { name: "NoBigRefund", statements: [{ effect: "deny", operations: ["Billing.Refund"], condition: "r.ctx.input.amount > 1000" }] },
+  {
+    name: "NoBigRefund",
+    statements: [{ effect: "deny", operations: ["Billing.Refund"], condition: "r.ctx.input.amount > 1000" }]
+  },
   {
     name: "OwnOnly",
-    statements: [{ effect: "allow", operations: ["Notes.Edit"], condition: "r.ctx.input.meta.owner == r.ctx.user.uuid" }]
+    statements: [
+      { effect: "allow", operations: ["Notes.Edit"], condition: "r.ctx.input.meta.owner == r.ctx.user.uuid" }
+    ]
   },
-  { name: "Office", statements: [{ effect: "allow", operations: ["Office.*"], condition: "includes(r.ctx.user.groups, 'staff') && ipMatch(r.ctx.http.ip, '10.0.0.0/8')" }] }
+  {
+    name: "Office",
+    statements: [
+      {
+        effect: "allow",
+        operations: ["Office.*"],
+        condition: "includes(r.ctx.user.groups, 'staff') && ipMatch(r.ctx.http.ip, '10.0.0.0/8')"
+      }
+    ]
+  }
 ];
 
 const ctx = (operationId: string, extra: Partial<IAMRequestContext> = {}): IAMRequestContext => ({
@@ -57,7 +71,10 @@ class EngineTest {
   @test
   async conditionsOnInput() {
     const editor = ["user:u1", "group:editors", "authenticated"];
-    assert.strictEqual(await this.engine.decide(editor, "Tasks.Update", ctx("Tasks.Update", { input: { status: "draft" } })), true);
+    assert.strictEqual(
+      await this.engine.decide(editor, "Tasks.Update", ctx("Tasks.Update", { input: { status: "draft" } })),
+      true
+    );
     assert.notStrictEqual(
       await this.engine.decide(editor, "Tasks.Update", ctx("Tasks.Update", { input: { status: "archived" } })),
       true
@@ -69,7 +86,10 @@ class EngineTest {
     const editor = ["user:u1", "group:editors", "authenticated"];
     assert.notStrictEqual(await this.engine.decide(editor, "Tasks.Delete", ctx("Tasks.Delete")), true);
     const root = ["user:root", "authenticated"];
-    assert.strictEqual(await this.engine.decide(root, "Billing.Refund", ctx("Billing.Refund", { input: { amount: 10 } })), true);
+    assert.strictEqual(
+      await this.engine.decide(root, "Billing.Refund", ctx("Billing.Refund", { input: { amount: 10 } })),
+      true
+    );
     assert.notStrictEqual(
       await this.engine.decide(root, "Billing.Refund", ctx("Billing.Refund", { input: { amount: 5000 } })),
       true
@@ -79,7 +99,10 @@ class EngineTest {
   @test
   async globBoundaries() {
     const editor = ["user:u1", "group:editors"];
-    assert.notStrictEqual(await this.engine.decide(editor, "TasksAdmin.Get", ctx("TasksAdmin.Get", { input: { status: "x" } })), true);
+    assert.notStrictEqual(
+      await this.engine.decide(editor, "TasksAdmin.Get", ctx("TasksAdmin.Get", { input: { status: "x" } })),
+      true
+    );
     const reader = ["user:u2", "authenticated"];
     assert.strictEqual(await this.engine.decide(reader, "Anything.Get", ctx("Anything.Get")), true);
     assert.notStrictEqual(await this.engine.decide(reader, "Anything.Getter", ctx("Anything.Getter")), true);
@@ -100,9 +123,16 @@ class EngineTest {
     );
     const staff = { uuid: "s1", groups: ["staff"], roles: [] };
     const http = { method: "POST", ip: "10.1.2.3", host: "h" };
-    assert.strictEqual(await this.engine.decide(["user:s1", "group:staff"], "Office.Open", ctx("Office.Open", { user: staff, http })), true);
+    assert.strictEqual(
+      await this.engine.decide(["user:s1", "group:staff"], "Office.Open", ctx("Office.Open", { user: staff, http })),
+      true
+    );
     assert.notStrictEqual(
-      await this.engine.decide(["user:s1", "group:staff"], "Office.Open", ctx("Office.Open", { user: staff, http: { ...http, ip: "8.8.8.8" } })),
+      await this.engine.decide(
+        ["user:s1", "group:staff"],
+        "Office.Open",
+        ctx("Office.Open", { user: staff, http: { ...http, ip: "8.8.8.8" } })
+      ),
       true
     );
   }
@@ -120,11 +150,24 @@ class EngineTest {
   async probeMode() {
     const editor = ["user:u1", "group:editors"];
     // Input-dependent allow matches in probe mode
-    assert.strictEqual(await this.engine.decide(editor, "Tasks.Update", ctx("Tasks.Update", { probe: true, input: undefined })), true);
+    assert.strictEqual(
+      await this.engine.decide(editor, "Tasks.Update", ctx("Tasks.Update", { probe: true, input: undefined })),
+      true
+    );
     // Unconditional deny still applies
-    assert.notStrictEqual(await this.engine.decide(editor, "Tasks.Delete", ctx("Tasks.Delete", { probe: true, input: undefined })), true);
+    assert.notStrictEqual(
+      await this.engine.decide(editor, "Tasks.Delete", ctx("Tasks.Delete", { probe: true, input: undefined })),
+      true
+    );
     // Input-dependent deny does not hide the operation
-    assert.strictEqual(await this.engine.decide(["user:root"], "Billing.Refund", ctx("Billing.Refund", { probe: true, input: undefined })), true);
+    assert.strictEqual(
+      await this.engine.decide(
+        ["user:root"],
+        "Billing.Refund",
+        ctx("Billing.Refund", { probe: true, input: undefined })
+      ),
+      true
+    );
   }
 
   @test
@@ -139,7 +182,9 @@ class EngineTest {
       { name: "Force", statements: [{ effect: "deny", operations: ["Ops.Run"], condition: "r.ctx.input.force" }] },
       {
         name: "Flag",
-        statements: [{ effect: "deny", operations: ["Ops.Flag"], condition: "r.ctx.input.amount > 1000 || r.ctx.input.flag" }]
+        statements: [
+          { effect: "deny", operations: ["Ops.Flag"], condition: "r.ctx.input.amount > 1000 || r.ctx.input.flag" }
+        ]
       },
       { name: "Num", statements: [{ effect: "allow", operations: ["Num.Do"], condition: "r.ctx.input.n" }] }
     ];

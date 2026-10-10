@@ -10,6 +10,11 @@
         "additionalProperties": false,
         "description": "Parameters of the SyncService",
         "properties": {
+          "maxMutations": {
+            "default": 100,
+            "description": "Maximum mutations accepted per Sync.Push request (clients batch with `pushBatchSize`, 100 by default)",
+            "type": "number"
+          },
           "maxQueryLength": {
             "default": 1024,
             "description": "Maximum length of a scope query",
@@ -34,7 +39,7 @@
           },
           "pageSize": {
             "default": 500,
-            "description": "Maximum entries, objects or mutations handled per request",
+            "description": "Maximum change-log entries or objects returned per Sync.Pull / Sync.Snapshot page",
             "type": "number"
           },
           "retention": {

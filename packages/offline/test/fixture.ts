@@ -15,6 +15,7 @@ export class Note extends CoreModel implements Syncable {
   body?: string;
   count?: number;
   tags?: string[];
+  due?: Date;
   _rev?: number;
 
   /**
@@ -39,6 +40,7 @@ export const NOTE_SCHEMA = {
     body: { type: "string" },
     count: { type: "number" },
     tags: { type: "array", items: { type: "string" } },
+    due: { type: "string", format: "date-time" },
     _rev: { type: "number" }
   },
   required: ["title"]

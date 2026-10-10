@@ -264,4 +264,68 @@ class PushTest extends SyncTest {
     assert.strictEqual((await Note.ref(note.uuid).get()).title, "b");
     assert.strictEqual(await Note.ref("33333333-3333-4333-8333-333333333333").exists(), false);
   }
+  @test
+  async pushOnlyWritesChangedFields() {
+    const due = new Date("2026-01-02T03:04:05.000Z");
+    const note = await Note.create({ title: "a", body: "keep", due } as any);
+    const repo: any = useRepository(Note);
+    const original = repo.patch;
+    const payloads: any[] = [];
+    repo.patch = async (...args: any[]) => {
+      payloads.push({ ...args[1] });
+      return original.apply(repo, args);
+    };
+    try {
+      const dto = note.toDTO();
+      const [res] = await this.push([
+        {
+          mutationId: "m1",
+          ref: { model: "Test/Note", key: note.uuid },
+          baseRev: 1,
+          op: "patch",
+          patch: diff(dto, { ...dto, title: "b" })
+        }
+      ]);
+      assert.strictEqual(res.status, "ok");
+      assert.deepStrictEqual(Object.keys(payloads[0]).sort(), ["_rev", "title", "uuid"]);
+      const stored: any = await Note.ref(note.uuid).get();
+      assert.strictEqual(stored.title, "b");
+      assert.ok(stored.due instanceof Date, "the Date field is not rewritten as a string");
+      assert.strictEqual(stored.due.getTime(), due.getTime());
+      // A removal is still written explicitly
+      const after = stored.toDTO();
+      const { body: _body, ...without } = after;
+      const [removed] = await this.push([
+        {
+          mutationId: "m2",
+          ref: { model: "Test/Note", key: note.uuid },
+          baseRev: 2,
+          op: "patch",
+          patch: diff(after, without)
+        }
+      ]);
+      assert.strictEqual(removed.status, "ok");
+      assert.ok("body" in payloads[1] && payloads[1].body === undefined);
+      assert.strictEqual((await Note.ref(note.uuid).get()).body, undefined);
+    } finally {
+      repo.patch = original;
+    }
+  }
+
+  @test
+  async pushLimitIsMaxMutations() {
+    const mutation = (i: number) => ({
+      mutationId: `m${i}`,
+      ref: { model: "Test/Note", key: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}` },
+      baseRev: 0,
+      op: "create",
+      patch: { title: `n${i}` }
+    });
+    assert.strictEqual(this.sync.getParameters().maxMutations, 100);
+    this.sync.getParameters().pageSize = 2;
+    const results = await this.push([0, 1, 2, 3].map(mutation));
+    assert.strictEqual(results.length, 4);
+    this.sync.getParameters().maxMutations = 3;
+    await assert.rejects(() => this.push([4, 5, 6, 7].map(mutation)), /At most 3 mutations/);
+  }
 }

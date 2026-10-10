@@ -22,6 +22,7 @@ import { escape, QueryValidator } from "@webda/ql";
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { isDeepStrictEqual } from "node:util";
 import { SyncChange } from "./syncchange.model.js";
 import { parseDuration } from "./duration.js";
 import { refId } from "../protocol/index.js";
@@ -61,10 +62,15 @@ export class SyncServiceParameters extends ServiceParameters {
    */
   maxQueryLength?: number;
   /**
-   * Maximum entries, objects or mutations handled per request
+   * Maximum change-log entries or objects returned per Sync.Pull / Sync.Snapshot page
    * @default 500
    */
   pageSize?: number;
+  /**
+   * Maximum mutations accepted per Sync.Push request (clients batch with `pushBatchSize`, 100 by default)
+   * @default 100
+   */
+  maxMutations?: number;
   /**
    * Window re-read by the next pull, covering clock skew between servers
    * @default "5s"
@@ -93,11 +99,23 @@ export class SyncServiceParameters extends ServiceParameters {
     this.maxScopes ??= 20;
     this.maxQueryLength ??= 1024;
     this.pageSize ??= 500;
+    this.maxMutations ??= 100;
     this.overlap ??= "5s";
     this.watchDebounce ??= 250;
     this.watchKeepAlive ??= 25000;
     return this;
   }
+}
+
+/**
+ * @param a - first value
+ * @param b - second value
+ * @returns true when both have the same JSON representation
+ */
+function sameJson(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a === undefined || b === undefined) return false;
+  return isDeepStrictEqual(JSON.parse(JSON.stringify(a)), JSON.parse(JSON.stringify(b)));
 }
 
 /**
@@ -164,7 +182,12 @@ export class SyncService extends Service<SyncServiceParameters> {
       }
       this.hook(id, model);
     }
-    await this.prune();
+    try {
+      await this.prune();
+    } catch (err) {
+      // Retention keeps working: the hourly prune retries, pulls compute their horizon from the clock
+      this.log("ERROR", "SyncService: startup prune failed", err);
+    }
     this.pruneTimer = setInterval(() => this.prune().catch(err => this.log("ERROR", "Prune failed", err)), 3600000);
     this.pruneTimer.unref?.();
     return this;
@@ -354,17 +377,19 @@ export class SyncService extends Service<SyncServiceParameters> {
   }
 
   /**
-   * Cursors below this seq may have missed pruned entries
+   * Cursors below this seq may have missed pruned entries: computed from the clock, so every instance agrees
+   * whichever of them pruned
+   * @returns the retention horizon
    */
-  protected horizon: string = "";
+  protected horizon(): string {
+    return this.seqAt(Date.now() - parseDuration(this.parameters.retention));
+  }
 
   /**
-   * Delete the entries older than the retention and move the horizon
+   * Delete the entries older than the retention
    */
   protected async prune(): Promise<void> {
-    const cutoff = this.seqAt(Date.now() - parseDuration(this.parameters.retention));
-    await (useRepository(SyncChange) as any).deleteMany(escape(["DELETE WHERE seq < ", ""], [cutoff]));
-    this.horizon = cutoff;
+    await (useRepository(SyncChange) as any).deleteMany(escape(["DELETE WHERE seq < ", ""], [this.horizon()]));
   }
 
   /**
@@ -433,7 +458,7 @@ export class SyncService extends Service<SyncServiceParameters> {
   /**
    * Changes of the scoped objects since `cursor`
    * @param scopes - the sync scopes
-   * @param cursor - the cursor of the previous pull, null for the first one
+   * @param cursor - the cursor of the previous pull, absent for the first one
    * @param limit - page size (capped by pageSize)
    * @returns the page of changes
    */
@@ -443,11 +468,11 @@ export class SyncService extends Service<SyncServiceParameters> {
     output: "SyncService.pull.output",
     rest: { method: "post", path: "sync/pull" }
   })
-  async pull(scopes: SyncScope[], cursor?: string | null, limit?: number): Promise<PullResponse> {
+  async pull(scopes: SyncScope[], cursor?: string, limit?: number): Promise<PullResponse> {
     const validated = this.validateScopes(scopes);
     // Bare millisecond: sorts before every seq of it, so a resync cursor never skips a write of the current ms
     const settle = this.seqAt(Date.now() - parseDuration(this.parameters.overlap));
-    if (!cursor || cursor < this.horizon) {
+    if (!cursor || cursor < this.horizon()) {
       return { upserts: [], evicts: [], cursor: settle, hasMore: false, resync: true };
     }
     const pageSize = Math.min(
@@ -533,8 +558,8 @@ export class SyncService extends Service<SyncServiceParameters> {
     if (!Array.isArray(mutations)) {
       throw new WebdaError.BadRequest("mutations must be an array");
     }
-    if (mutations.length > this.parameters.pageSize) {
-      throw new WebdaError.BadRequest(`At most ${this.parameters.pageSize} mutations are accepted`);
+    if (mutations.length > this.parameters.maxMutations) {
+      throw new WebdaError.BadRequest(`At most ${this.parameters.maxMutations} mutations are accepted`);
     }
     const results: MutationResult[] = [];
     for (const mutation of mutations) {
@@ -692,17 +717,23 @@ export class SyncService extends Service<SyncServiceParameters> {
         if (error) {
           return this.rejected(mutationId, "VALIDATION", error);
         }
-        this.revved.add(data);
+        // patch, not update: MemoryRepository.update rebuilds the row with `new Model(data)`, which drops every field
+        // for models whose constructor ignores its argument. Only the attributes the mutation changed are written
+        // (an untouched Date stays a Date, not its DTO string); removed attributes are cleared explicitly.
+        const removed = Object.fromEntries(
+          Object.keys(writableBefore)
+            .filter(key => !(key in data))
+            .map(key => [key, undefined])
+        );
+        const changed = Object.fromEntries(
+          Object.entries(data).filter(([key, value]) => !sameJson(value, before[key]))
+        );
+        const payload: any = { ...removed, ...changed, ...keyFields, _rev: m.baseRev + 1 };
+        // The Patch listener keeps this _rev instead of reading the stored one
+        this.revved.add(payload);
         try {
-          // patch, not update: MemoryRepository.update rebuilds the row with `new Model(data)`, which drops every field
-          // for models whose constructor ignores its argument. Removed attributes are cleared explicitly.
-          const removed = Object.fromEntries(
-            Object.keys(writableBefore)
-              .filter(key => !(key in data))
-              .map(key => [key, undefined])
-          );
           await this.pushContext.run({ id, mutationId }, () =>
-            useRepository(model).patch(pk as any, { ...removed, ...data }, "_rev" as any, current._rev)
+            useRepository(model).patch(pk as any, payload, "_rev" as any, current._rev)
           );
         } catch (err) {
           const reloaded = await this.load(modelId, m.ref.key);

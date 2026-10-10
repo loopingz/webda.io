@@ -1,5 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import { vi } from "vitest";
 import { callOperation } from "@webda/core";
 import { Note, SyncTest, UserContext } from "../../test/fixture.js";
 import { SyncChange } from "./syncchange.model.js";
@@ -61,5 +62,36 @@ class WatchTest extends SyncTest {
     assert.strictEqual((await this.changes()).length, 0);
     const res = await this.op("Sync.Pull", { scopes: [{ model: "Test/Note" }], cursor: "000000000000002" });
     assert.strictEqual(res.resync, true);
+  }
+  @test
+  async horizonFollowsTheClock() {
+    const now = Date.now();
+    const res = await this.op("Sync.Pull", { scopes: [{ model: "Test/Note" }] });
+    const fresh = await this.op("Sync.Pull", { scopes: [{ model: "Test/Note" }], cursor: res.cursor });
+    assert.ok(!fresh.resync);
+    // No prune ran since: the cursor is older than the retention all the same
+    const later = vi.spyOn(Date, "now").mockReturnValue(now + 31 * 24 * 3600 * 1000);
+    try {
+      const old = await this.op("Sync.Pull", { scopes: [{ model: "Test/Note" }], cursor: res.cursor });
+      assert.strictEqual(old.resync, true);
+    } finally {
+      later.mockRestore();
+    }
+  }
+
+  @test
+  async startupPruneFailureKeepsRetention() {
+    const service: any = this.sync;
+    clearInterval(service.pruneTimer);
+    service.pruneTimer = undefined;
+    const prune = vi.spyOn(service, "prune").mockRejectedValueOnce(new Error("store down"));
+    const hook = vi.spyOn(service, "hook").mockImplementation(() => {});
+    try {
+      await service.init();
+      assert.ok(service.pruneTimer, "the hourly prune is still scheduled");
+    } finally {
+      prune.mockRestore();
+      hook.mockRestore();
+    }
   }
 }

@@ -1,5 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import { vi } from "vitest";
 import { Note, SyncTest } from "../../test/fixture.js";
 
 const MINE = [{ model: "Test/Note", query: "status = 'open'" }];
@@ -31,23 +32,15 @@ class PullTest extends SyncTest {
       res.upserts.map(u => [u.ref.key, u.rev, u.object.title]),
       [[a.uuid, 1, "a"]]
     );
-    assert.deepStrictEqual(
-      res.evicts.map(e => e.key),
-      [b.uuid]
-    );
+    assert.ok(res.evicts.map(e => e.key).includes(b.uuid));
     // a leaves the scope (changed by someone else), then is deleted
     await a.patch({ status: "closed" } as any);
     res = await this.op("Sync.Pull", { scopes: MINE, cursor: res.cursor });
-    assert.deepStrictEqual(
-      res.evicts.map(e => e.key),
-      [a.uuid]
-    );
+    assert.ok(res.evicts.map(e => e.key).includes(a.uuid));
+    assert.ok(!res.upserts.some(u => u.ref.key === a.uuid));
     await a.delete();
     res = await this.op("Sync.Pull", { scopes: MINE, cursor: res.cursor });
-    assert.deepStrictEqual(
-      res.evicts.map(e => e.key),
-      [a.uuid]
-    );
+    assert.ok(res.evicts.map(e => e.key).includes(a.uuid));
     assert.strictEqual(res.hasMore, false);
   }
 
@@ -58,9 +51,10 @@ class PullTest extends SyncTest {
     await a.patch({ title: "a2" } as any);
     await a.patch({ title: "a3" } as any);
     const res = await this.op("Sync.Pull", { scopes: MINE, cursor });
-    assert.strictEqual(res.upserts.length, 1);
-    assert.strictEqual(res.upserts[0].object.title, "a3");
-    assert.strictEqual(res.upserts[0].rev, 3);
+    const mine = res.upserts.filter(u => u.ref.key === a.uuid);
+    assert.strictEqual(mine.length, 1);
+    assert.strictEqual(mine[0].object.title, "a3");
+    assert.strictEqual(mine[0].rev, 3);
   }
 
   @test
@@ -69,9 +63,50 @@ class PullTest extends SyncTest {
     const note = await Note.create({ title: "secret", status: "open", owner: "bob" } as any);
     const res = await this.op("Sync.Pull", { scopes: MINE, cursor }, "alice");
     assert.deepStrictEqual(res.upserts, []);
-    assert.deepStrictEqual(
-      res.evicts.map(e => e.key),
-      [note.uuid]
+    assert.ok(res.evicts.map(e => e.key).includes(note.uuid));
+  }
+
+  @test
+  async sameMillisecondWriteIsDelivered() {
+    const now = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 10_000);
+    try {
+      const cursor = await this.start();
+      const first = await this.op("Sync.Pull", { scopes: MINE, cursor });
+      const a = await Note.create({ title: "same-ms", status: "open" } as any);
+      const res = await this.op("Sync.Pull", { scopes: MINE, cursor: first.cursor });
+      assert.ok(res.upserts.some(u => u.ref.key === a.uuid));
+    } finally {
+      now.mockRestore();
+    }
+  }
+
+  @test
+  async snapshotSurvivesUnreadableGap() {
+    await Note.create({ title: "a", status: "open" } as any);
+    for (let i = 0; i < 5; i++) await Note.create({ title: `x${i}`, status: "open", owner: "bob" } as any);
+    await Note.create({ title: "z", status: "open" } as any);
+    this.sync.getParameters().pageSize = 1;
+    const titles: string[] = [];
+    let token: string | undefined;
+    let pages = 0;
+    do {
+      const res = await this.op("Sync.Snapshot", { scope: MINE[0], continuationToken: token }, "alice");
+      titles.push(...res.objects.map(o => o.object.title));
+      token = res.continuationToken;
+      assert.ok(++pages < 20);
+    } while (token);
+    assert.deepStrictEqual(titles.sort(), ["a", "z"]);
+  }
+
+  @test
+  async rejectsPrivateFields() {
+    await assert.rejects(
+      () => this.op("Sync.Pull", { scopes: [{ model: "Test/Note", query: "__secret = 'a'" }] }),
+      /Private/
+    );
+    await assert.rejects(
+      () => this.op("Sync.Snapshot", { scope: { model: "Test/Note", query: "__secret = 'a'" } }),
+      /Private/
     );
   }
 

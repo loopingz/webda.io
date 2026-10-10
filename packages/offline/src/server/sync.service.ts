@@ -6,7 +6,7 @@ import {
   WebdaError,
   assertFilterOnly,
   checkModelPermission,
-  queryModelWithPermissions,
+  assertNoPrivateFields,
   serializeSubjectKey,
   parseSubjectKey,
   useApplication,
@@ -366,6 +366,7 @@ export class SyncService extends Service<SyncServiceParameters> {
         throw new WebdaError.BadRequest("Query syntax error");
       }
       assertFilterOnly(validator);
+      assertNoPrivateFields(validator);
       return { model: scope.model, query, validator };
     });
   }
@@ -451,8 +452,7 @@ export class SyncService extends Service<SyncServiceParameters> {
     const hasMore = entries.length === pageSize;
     const last = entries[entries.length - 1]?.seq ?? cursor;
     // Last page: re-read the overlap window next time; a full page always moves forward
-    const served = `${settle}-~`; // sorts after every seq of that ms: entries up to it count as served
-    const next = hasMore || last < served ? last : served;
+    const next = hasMore || last < settle ? last : settle;
     return { upserts, evicts, cursor: next, hasMore };
   }
 
@@ -474,9 +474,14 @@ export class SyncService extends Service<SyncServiceParameters> {
     if (continuationToken) {
       query += escape([" OFFSET ", ""], [continuationToken]);
     }
-    const res = await queryModelWithPermissions(useModel(valid.model), query, useContext<OperationContext>());
+    // Not queryModelWithPermissions: it drops the token when its scan budget finds no readable row
+    const res = await (useModel(valid.model) as any).query(query);
+    const objects: SyncedObject[] = [];
+    for (const object of res.results) {
+      if (await this.canRead(object, valid.model)) objects.push(this.toSynced(valid.model, object));
+    }
     return {
-      objects: res.results.map(object => this.toSynced(valid.model, object)),
+      objects,
       continuationToken: res.continuationToken || undefined
     };
   }

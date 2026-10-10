@@ -32,7 +32,10 @@ class RevisionsTest extends SyncTest {
         ["delete", "Test/Note", note.uuid]
       ]
     );
-    assert.ok(changes.every((c, i) => i === 0 || c.seq > changes[i - 1].seq), "seq is strictly increasing");
+    assert.ok(
+      changes.every((c, i) => i === 0 || c.seq > changes[i - 1].seq),
+      "seq is strictly increasing"
+    );
   }
 
   @test

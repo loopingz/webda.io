@@ -51,6 +51,11 @@
             "description": "Debounce of the watch hints, in milliseconds",
             "type": "number"
           },
+          "watchKeepAlive": {
+            "default": 25000,
+            "description": "Interval of the heartbeats yielded by an idle Sync.Watch, in milliseconds (0 disables them).\nThey let the transport notice a closed client and release the watcher.",
+            "type": "number"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true
@@ -745,7 +750,21 @@
     "SyncService.watch.output": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": false,
-      "type": "object"
+      "properties": {
+        "cursor": {
+          "type": "string"
+        },
+        "heartbeat": {
+          "default": false,
+          "description": "Keep-alive of an idle watch: clients must not pull on it",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "cursor"
+      ],
+      "type": "object",
+      "x-webda-stream": true
     }
   },
   "behaviors": {}

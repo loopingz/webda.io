@@ -93,6 +93,10 @@ export interface WatchRequest {
 
 export interface WatchEvent {
   cursor: string;
+  /**
+   * Keep-alive of an idle watch: clients must not pull on it
+   */
+  heartbeat?: boolean;
 }
 
 /**

@@ -1,6 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Note, SyncTest } from "../../test/fixture.js";
+import { callOperation } from "@webda/core";
+import { Note, SyncTest, UserContext } from "../../test/fixture.js";
 import { SyncChange } from "./syncchange.model.js";
 
 @suite
@@ -16,6 +17,34 @@ class WatchTest extends SyncTest {
     const { value } = await first;
     assert.ok(value.cursor, "hint carries a cursor");
     await gen.return(undefined);
+    assert.strictEqual((this.sync as any).changes.listenerCount("change"), 0, "listener removed");
+  }
+
+  @test
+  async heartbeatWhenIdle() {
+    this.sync.getParameters().watchKeepAlive = 20;
+    const gen = this.sync.watch([{ model: "Test/Note" }]);
+    const { value } = await gen.next();
+    assert.strictEqual(value.heartbeat, true);
+    assert.ok(value.cursor);
+    assert.strictEqual((this.sync as any).changes.listenerCount("change"), 1);
+    await gen.return(undefined);
+    assert.strictEqual((this.sync as any).changes.listenerCount("change"), 0, "listener removed");
+  }
+
+  @test
+  async watchThroughTheOperationPath() {
+    this.sync.getParameters().watchKeepAlive = 20;
+    const chunks: any[] = [];
+    const ctx = new UserContext(undefined, { scopes: [{ model: "Test/Note" }] });
+    await ctx.init();
+    (ctx as any).write = (chunk: any) => {
+      chunks.push(chunk);
+      throw new Error("client gone");
+    };
+    await assert.rejects(() => callOperation(ctx, "Sync.Watch"), /client gone/);
+    assert.strictEqual(chunks[0].heartbeat, true);
+    assert.ok(chunks[0].cursor);
     assert.strictEqual((this.sync as any).changes.listenerCount("change"), 0, "listener removed");
   }
 

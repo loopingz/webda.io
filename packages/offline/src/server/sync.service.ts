@@ -75,6 +75,12 @@ export class SyncServiceParameters extends ServiceParameters {
    * @default 250
    */
   watchDebounce?: number;
+  /**
+   * Interval of the heartbeats yielded by an idle Sync.Watch, in milliseconds (0 disables them).
+   * They let the transport notice a closed client and release the watcher.
+   * @default 25000
+   */
+  watchKeepAlive?: number;
 
   /**
    * @param params - the raw parameters
@@ -89,6 +95,7 @@ export class SyncServiceParameters extends ServiceParameters {
     this.pageSize ??= 500;
     this.overlap ??= "5s";
     this.watchDebounce ??= 250;
+    this.watchKeepAlive ??= 25000;
     return this;
   }
 }
@@ -108,7 +115,7 @@ export class SyncService extends Service<SyncServiceParameters> {
   /**
    * Emits "change" ({ model, key, seq }) when an entry is appended
    */
-  protected changes = new EventEmitter();
+  protected changes = new EventEmitter().setMaxListeners(0);
   /**
    * Write payloads whose `_rev` was already set by the service
    */
@@ -730,7 +737,9 @@ export class SyncService extends Service<SyncServiceParameters> {
   async *watch(scopes: SyncScope[], _cursor?: string): AsyncGenerator<WatchEvent> {
     const models = new Set(this.validateScopes(scopes).map(s => s.model));
     let pending: string | undefined;
+    let last: string | undefined;
     let wake: (() => void) | undefined;
+    let timer: NodeJS.Timeout | undefined;
     const listener = (evt: { model: string; seq: string }) => {
       if (!models.has(evt.model)) return;
       pending = evt.seq;
@@ -740,15 +749,29 @@ export class SyncService extends Service<SyncServiceParameters> {
     try {
       while (true) {
         if (!pending) {
-          await new Promise<void>(resolve => (wake = resolve));
+          const keepAlive = this.parameters.watchKeepAlive;
+          const beat = await new Promise<boolean>(resolve => {
+            wake = () => resolve(false);
+            if (keepAlive > 0) {
+              timer = setTimeout(() => resolve(true), keepAlive);
+              timer.unref?.();
+            }
+          });
+          clearTimeout(timer);
           wake = undefined;
+          if (beat) {
+            yield { cursor: last ?? this.seqAt(Date.now() - parseDuration(this.parameters.overlap)), heartbeat: true };
+            continue;
+          }
         }
         await new Promise(resolve => setTimeout(resolve, this.parameters.watchDebounce));
         const cursor = pending;
         pending = undefined;
+        last = cursor;
         yield { cursor };
       }
     } finally {
+      clearTimeout(timer);
       this.changes.off("change", listener);
     }
   }

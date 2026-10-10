@@ -1116,7 +1116,8 @@ function findClass(ctx: AnalysisContext, fileName: string, className: string): C
  * @returns the import path
  */
 function jsTarget(fileName: string, options: DiscoveryOptions): string {
-  if (!fileName.startsWith(options.appPath)) {
+  // TypeScript file names always use "/", even on Windows
+  if (!fileName.startsWith(options.appPath.replace(/\\/g, "/"))) {
     let folder = fileName;
     let libPath = "node_modules/";
     for (;;) {
@@ -1131,7 +1132,7 @@ function jsTarget(fileName: string, options: DiscoveryOptions): string {
         break;
       }
     }
-    return (libPath + relative(folder, fileName)).replace(/\.d\.ts$/, ".js").replace(/\.js$/, "");
+    return (libPath + relative(folder, fileName).replace(/\\/g, "/")).replace(/\.d\.ts$/, ".js").replace(/\.js$/, "");
   }
   return outputTarget(fileName, options);
 }

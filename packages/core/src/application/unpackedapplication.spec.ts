@@ -15,7 +15,8 @@ class UnpackedApplicationTest extends WebdaApplicationTest {
     // The modules are merged in this order: it must not depend on the file system timing.
     // A symlinked package takes longer to resolve than a folder, so it is found last without sorting,
     // its real path (pnpm store) sorts first
-    const root = realpathSync(mkdtempSync(join(tmpdir(), "webda-modules-")));
+    // native: on Windows the JS realpath keeps 8.3 short names while symlinks resolve to long ones
+    const root = realpathSync.native(mkdtempSync(join(tmpdir(), "webda-modules-")));
     try {
       for (const name of ["a-store/a-module", "node_modules/b-module"]) {
         mkdirSync(join(root, name), { recursive: true });
@@ -24,7 +25,7 @@ class UnpackedApplicationTest extends WebdaApplicationTest {
       symlinkSync(join(root, "a-store/a-module"), join(root, "node_modules/a-module"));
       const modules = await UnpackedApplication.findModulesFiles(join(root, "node_modules"));
       assert.deepStrictEqual(
-        modules.map(file => file.substring(root.length)),
+        modules.map(file => file.substring(root.length).replace(/\\/g, "/")),
         ["/a-store/a-module/webda.module.json", "/node_modules/b-module/webda.module.json"]
       );
     } finally {

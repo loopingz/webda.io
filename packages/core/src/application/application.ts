@@ -13,7 +13,7 @@ import type {
 import type { Modda } from "../services/iservice.js";
 import type { ModelDefinition } from "../models/types.js";
 import { setLogContext } from "../loggers/hooks.js";
-import { CancelablePromise, FileUtils, State } from "@webda/utils";
+import { FileUtils, parseImportDescriptor, State, toImportSpecifier } from "@webda/utils";
 import { existsSync, lstatSync, Mode, readFileSync } from "node:fs";
 import { join, resolve, dirname, isAbsolute } from "node:path";
 import * as WebdaError from "../errors/errors.js";
@@ -757,11 +757,11 @@ export class Application {
     try {
       this.log("TRACE", "Load file", info);
       // eslint-disable-next-line prefer-const
-      let [importFilename, importName = "default"] = info.split(":");
+      let { file: importFilename, exportName: importName } = parseImportDescriptor(info);
       if (!importFilename.endsWith(".js") && !importFilename.endsWith(".ts")) {
         importFilename += ".js";
       }
-      const importedFile = await import(importFilename);
+      const importedFile = await import(toImportSpecifier(importFilename));
       if (!withExport) {
         return;
       }

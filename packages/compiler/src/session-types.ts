@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { isAbsolute, join, relative } from "node:path";
+import { parseImportDescriptor } from "@webda/utils";
 import { useLog } from "@webda/workout";
 
 /**
@@ -36,14 +37,14 @@ export function generateSessionTypes(projectRoot: string): void {
     throw new Error(`Cannot resolve session model "${config.session}" in webda.module.json: not declared`);
   }
 
-  const [importFile, exportName] = importDescriptor.split(":");
+  const { file: importFile, exportName } = parseImportDescriptor(importDescriptor);
   const outDir = join(projectRoot, ".webda");
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
   const outPath = join(outDir, "session-types.d.ts");
 
   let importTarget: string;
-  if (importFile.startsWith(".") || importFile.startsWith("/")) {
-    const absImportFile = importFile.startsWith("/") ? importFile : join(projectRoot, importFile);
+  if (importFile.startsWith(".") || isAbsolute(importFile)) {
+    const absImportFile = isAbsolute(importFile) ? importFile : join(projectRoot, importFile);
     importTarget = relative(outDir, absImportFile)
       .replace(/\\/g, "/")
       .replace(/\.tsx?$/, ".js");

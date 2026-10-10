@@ -1,5 +1,7 @@
 import process from "process";
 
+import { fileURLToPath } from "node:url";
 import { vi } from "vitest";
 
-vi.spyOn(process, "cwd").mockReturnValue(new URL(".", import.meta.url).pathname);
+// fileURLToPath: URL.pathname would give "/C:/..." on Windows
+vi.spyOn(process, "cwd").mockReturnValue(fileURLToPath(new URL(".", import.meta.url)));

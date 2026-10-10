@@ -21,6 +21,7 @@ import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { useLog } from "@webda/workout";
 
 /** A Webda class declared in a file the content mapper cannot claim. */
@@ -90,7 +91,7 @@ function resolveWorker(projectRoot: string): string {
     if (!existsSync(override)) throw new Error(`WEBDA_SCHEMA_WORKER does not exist: ${override}`);
     return override;
   }
-  for (const base of [projectRoot, dirname(new URL(import.meta.url).pathname)]) {
+  for (const base of [projectRoot, dirname(fileURLToPath(import.meta.url))]) {
     try {
       const worker = createRequire(join(base, "index.js")).resolve("@webda/content-mapper/schema-worker-cli");
       if (existsSync(worker)) return worker;

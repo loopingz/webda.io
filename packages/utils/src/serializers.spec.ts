@@ -11,6 +11,7 @@ import {
   writeFileSync
 } from "fs";
 import * as path from "path";
+import { tmpdir } from "node:os";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "url";
 import { gunzipSync, gzipSync } from "zlib";
@@ -254,7 +255,7 @@ plop: test
         symlinkSync(__dirname + "/../../non-existing", "test/badlink");
       }
       await FileUtils.walk(__dirname + "/../test", f => res.push(f));
-      res = res.map(c => c.replace(path.resolve(__dirname + "/../") + "/", ""));
+      res = res.map(c => path.relative(path.resolve(__dirname + "/../"), c).replace(/\\/g, "/"));
       assert.ok(
         ["test/jsonutils/mdocs.yaml", "test/jsonutils/test.yml", "test/jsonutils/test.json"]
           .map(c => res.includes(c))
@@ -272,21 +273,21 @@ plop: test
   async finder() {
     const { __dirname } = getCommonJS(import.meta.url);
     const res = await FileUtils.find(__dirname + "/../test", { filterPattern: /mdocs/ });
-    assert.ok(res.findIndex(c => c.includes("test/jsonutils/mdocs.yaml")) > -1);
+    assert.ok(res.findIndex(c => c.replace(/\\/g, "/").includes("test/jsonutils/mdocs.yaml")) > -1);
   }
 
   @test
   async streams() {
-    const st = await FileUtils.getWriteStream("/tmp/webda.stream");
+    const st = await FileUtils.getWriteStream(path.join(tmpdir(), "webda.stream"));
     const p = new Promise(resolve => st.on("finish", resolve));
     st.end();
     await p;
-    await FileUtils.getReadStream("/tmp/webda.stream");
+    await FileUtils.getReadStream(path.join(tmpdir(), "webda.stream"));
   }
 
   @test
   async jsoncUpdateFile() {
-    const file = "/tmp/webda.jsonc";
+    const file = path.join(tmpdir(), "webda.jsonc");
     const JSONC_SOURCE = `{
       "test": "plop",
       // Comment one

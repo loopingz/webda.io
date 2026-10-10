@@ -68,7 +68,8 @@ class DeploymentVariablesTest extends WebdaAsyncStorageTest {
   }
 }
 
-@suite
+// Relies on POSIX commands and shell expansion
+@suite("RunCommandTest", { execution: process.platform === "win32" ? "skip" : "default" })
 class RunCommandTest {
   @test
   async success() {

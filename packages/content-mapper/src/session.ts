@@ -137,6 +137,8 @@ export class WarmSession {
    */
   transform(fileName: string, content: string): TransformOutcome {
     const t0 = process.hrtime.bigint();
+    // Edits are keyed by TypeScript file names, which always use "/", even on Windows
+    fileName = fileName.replace(/\\/g, "/");
 
     const changed = this.overlay.get(fileName) !== content;
     if (changed) {

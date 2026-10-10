@@ -196,7 +196,10 @@ function tagsOf(ctx: AnalysisContext, sf: any, node: any): Record<string, string
  */
 export function outputTarget(fileName: string, options: DiscoveryOptions): string {
   const fromRoot = relative(options.rootDir, fileName);
-  return relative(options.appPath, join(options.outDir, fromRoot)).replace(/\.tsx?$/, "");
+  // Import paths are written to webda.module.json: keep them platform independent
+  return relative(options.appPath, join(options.outDir, fromRoot))
+    .replace(/\\/g, "/")
+    .replace(/\.tsx?$/, "");
 }
 
 /**

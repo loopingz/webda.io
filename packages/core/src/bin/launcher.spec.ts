@@ -1,6 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { EventEmitter } from "node:events";
+import { resolve } from "node:path";
 import { vi } from "vitest";
 
 const state = vi.hoisted(() => ({
@@ -23,7 +24,8 @@ vi.mock("node:fs", async importOriginal => {
   const fs = await importOriginal<typeof import("node:fs")>();
   return {
     ...fs,
-    existsSync: (path: string) => (path.endsWith("/lib/bin/cli.js") ? state.hasLocalCli : fs.existsSync(path))
+    existsSync: (path: string) =>
+      path.replace(/\\/g, "/").endsWith("/lib/bin/cli.js") ? state.hasLocalCli : fs.existsSync(path)
   };
 });
 
@@ -74,7 +76,7 @@ class LauncherTest {
   async delegatesToTheLocalCli() {
     await this.launch();
     assert.strictEqual(state.spawnArgs[0], process.execPath);
-    assert.strictEqual(state.spawnArgs[1][0], "/app/node_modules/@webda/core/lib/bin/cli.js");
+    assert.strictEqual(state.spawnArgs[1][0], resolve("/app/node_modules/@webda/core/lib/bin/cli.js"));
     assert.deepStrictEqual(state.spawnArgs[2].stdio, "inherit");
     assert.deepStrictEqual(this.exits, []);
   }

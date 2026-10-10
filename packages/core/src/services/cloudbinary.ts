@@ -1,4 +1,4 @@
-import { join } from "path";
+import { posix } from "path";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { BinaryMap, CoreModelWithBinary, BinaryParameters, BinaryService } from "./binary.service.js";
 
@@ -43,7 +43,8 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
    * @returns the result string
    */
   _getKey(hash: string, suffix: string = "data"): string {
-    return join(`${this.parameters.prefix}`, hash, suffix);
+    // Object storage keys always use "/", whatever the platform
+    return posix.join(`${this.parameters.prefix}`, hash, suffix);
   }
 
   /**

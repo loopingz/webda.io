@@ -246,7 +246,8 @@ class PackagerTest {
     assert.ok(existsSync(join(empty, "package.json")));
   }
 
-  @test
+  // Windows has no executable bit
+  @test({ execution: process.platform === "win32" ? "skip" : "default" })
   async writePackageKeepsExecutableBit() {
     write(join(this.appPath, "lib/cli.js"), "#!/usr/bin/env node");
     chmodSync(join(this.appPath, "lib/cli.js"), 0o755);

@@ -1068,6 +1068,11 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       if (!placement) continue;
       const target = targets[placement.kind];
       const key = `${placement.kind}.${placement.name}`;
+      if (placement.kind === "subscription" && placement.name === "Aggregate" && this.parameters.globalSubscription) {
+        throw new Error(
+          `GraphQL subscription field Aggregate of operation ${id} is already defined by the global Aggregate subscription (globalSubscription): rename it with @Operation({ graphql: { subscription: "…" } })`
+        );
+      }
       if (target[placement.name]) {
         throw new Error(
           `GraphQL ${placement.kind} field ${placement.name} of operation ${id} is already defined by ${owners.get(key) ?? "the model schema"}: rename it with @Operation({ graphql: { ${placement.kind}: "…" } })`
@@ -1126,9 +1131,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           `${base}Input_${name}`,
           true
         );
-        if (!converted) continue;
-        const type = converted.type as GraphQLInputType;
-        args[name] = { type: required.has(name) ? new GraphQLNonNull(type) : type, description: converted.description };
+        // A property the converter cannot map still is an argument: the Object scalar takes anything
+        const type = (converted?.type ?? AnyScalarType) as GraphQLInputType;
+        args[name] = {
+          type: required.has(name) ? new GraphQLNonNull(type) : type,
+          description: converted?.description
+        };
       }
       return { args, toInput: fieldArgs => ({ ...fieldArgs }) };
     }

@@ -3,6 +3,10 @@ import { Service, ServiceParameters, WebdaError, registerOperation, registerSche
 /** Observations of the fixture's generator. */
 export const fixtureState = {
   closed: false,
+  /** Ticks produced by Fixture.Endless */
+  produced: 0,
+  /** Set when a guarded stream starts */
+  started: false,
   release: undefined as undefined | (() => void),
   /** Lets Fixture.Ticks yield past its first tick */
   open() {
@@ -112,6 +116,40 @@ export class GraphQLFixtureService extends Service {
    * Stream that reports a cancellation itself while the subscriber still listens
    * @yields a tick
    */
+  async *endless() {
+    try {
+      for (let index = 1; ; index++) {
+        fixtureState.produced = index;
+        yield { index };
+      }
+    } finally {
+      fixtureState.closed = true;
+    }
+  }
+
+  /**
+   * Stream that fails once released, whoever still listens
+   * @yields a tick
+   */
+  async *lateFail() {
+    yield { index: 1 };
+    await new Promise<void>(resolve => (fixtureState.release = resolve));
+    throw new Error("late secret failure");
+  }
+
+  /**
+   * Stream guarded by a permission
+   * @yields a tick
+   */
+  async *guarded() {
+    fixtureState.started = true;
+    yield { index: 1 };
+  }
+
+  /**
+   * Stream that reports a cancellation itself while the subscriber still listens
+   * @yields a tick
+   */
   async *selfCancel() {
     yield { index: 1 };
     throw new WebdaError.OperationCancelledError();
@@ -171,6 +209,9 @@ export function registerGraphQLFixture(): void {
   op("Fixture.Ticks", "ticks", { input: "Fixture.Ticks.input", output: "Fixture.Tick" });
   op("Fixture.Broken", "broken", { output: "Fixture.Tick" });
   op("Fixture.SelfCancel", "selfCancel", { output: "Fixture.Tick" });
+  op("Fixture.Endless", "endless", { output: "Fixture.Tick" });
+  op("Fixture.LateFail", "lateFail", { output: "Fixture.Tick" });
+  op("Fixture.Guarded", "guarded", { output: "Fixture.Tick", permission: "userId = 'alice'" });
   op("Thing.Get", "modelGet", { context: { model: ThingModel } });
   op("Fixture.Hidden", "version", { hidden: true });
   op("Fixture.NoGraph", "version", { graphql: false });

@@ -217,8 +217,15 @@ export class GraphQLOperationContext extends WebContext {
    */
   fail(error: unknown): void {
     this.finished = true;
+    if (this.cancelled && error instanceof WebdaError.OperationCancelledError) {
+      // The expected end of an operation whose subscriber left
+      this.queue.end();
+      return;
+    }
+    // Any other error is mapped (and logged when unexpected) even if nobody listens anymore
+    const mapped = operationError(error);
     if (!this.cancelled) {
-      this.failure = operationError(error);
+      this.failure = mapped;
     }
     this.queue.end();
   }

@@ -1,6 +1,25 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { describe, it } from "vitest";
+import { describe, it, vi } from "vitest";
+
+const logged = vi.hoisted(() => [] as any[][]);
+// Records the log calls, still delegating to the real logger
+vi.mock("@webda/workout", async importOriginal => {
+  const original = await importOriginal<any>();
+  return {
+    ...original,
+    useLog: (level: string, ...args: any[]) => {
+      logged.push([level, ...args]);
+      return original.useLog(level, ...args);
+    }
+  };
+});
+/**
+ * @param text - text to look for in the logged arguments
+ * @returns the ERROR log calls mentioning it
+ */
+const errorLogs = (text: string) =>
+  logged.filter(call => call[0] === "ERROR" && call.some(arg => String(arg?.message ?? arg).includes(text)));
 import {
   GraphQLBoolean,
   GraphQLNonNull,
@@ -69,6 +88,26 @@ describe("operation placement", () => {
     (svc as any).app = { getSchema: () => undefined };
     assert.strictEqual(svc.operationOutputType({ output: "Test/Doc" } as any, "X"), doc);
     assert.strictEqual(svc.operationOutputType({ output: "void" } as any, "X"), GraphQLBoolean);
+  });
+
+  it("keeps an argument the converter cannot map, as the Object scalar", () => {
+    const svc: GraphQLService = Object.create(GraphQLService.prototype);
+    svc.namedTypes = new Map();
+    const schema = {
+      type: "object",
+      properties: { nothing: { type: "null" }, name: { type: "string" }, maybe: { type: "null" } },
+      required: ["nothing", "name"]
+    };
+    (svc as any).app = { getSchema: () => schema };
+    const { args } = svc.operationArgs({ input: "X.input" } as any, "X");
+    assert.deepStrictEqual(
+      Object.entries(args).map(([name, arg]) => [name, String(arg.type)]),
+      [
+        ["nothing", "Object!"],
+        ["name", "String!"],
+        ["maybe", "Object"]
+      ]
+    );
   });
 });
 
@@ -158,12 +197,23 @@ describe("GraphQLOperationContext", () => {
     await assert.rejects(chunks.next(), /Internal server error/);
   });
 
-  it("ignores a failure after the subscriber left", async () => {
+  it("ignores the cancellation of an operation whose subscriber left", async () => {
     const ctx = streaming();
     const chunks = ctx.chunks();
     await chunks.return!();
+    const before = logged.length;
     ctx.fail(new WebdaError.OperationCancelledError());
     assert.strictEqual((await chunks.next()).done, true);
+    assert.strictEqual(logged.length, before);
+  });
+
+  it("still logs a genuine error that comes after the subscriber left", async () => {
+    const ctx = streaming();
+    const chunks = ctx.chunks();
+    await chunks.return!();
+    ctx.fail(new Error("late failure in finally"));
+    assert.strictEqual((await chunks.next()).done, true); // nobody to tell
+    assert.strictEqual(errorLogs("late failure in finally").length, 1);
   });
 });
 
@@ -233,7 +283,14 @@ class GraphQLOperationsTest extends WebdaApplicationTest {
       "fixtureRename",
       "thingFollow"
     ]);
-    assert.deepStrictEqual(names(schema.getSubscriptionType()), ["fixtureBroken", "fixtureSelfCancel", "fixtureTicks"]);
+    assert.deepStrictEqual(names(schema.getSubscriptionType()), [
+      "fixtureBroken",
+      "fixtureEndless",
+      "fixtureGuarded",
+      "fixtureLateFail",
+      "fixtureSelfCancel",
+      "fixtureTicks"
+    ]);
     const follow = schema.getMutationType()!.getFields().thingFollow;
     assert.deepStrictEqual(
       follow.args.map(a => [a.name, String(a.type)]),
@@ -274,6 +331,7 @@ class GraphQLOperationsTest extends WebdaApplicationTest {
     assert.strictEqual(crash.errors?.[0].message, "Internal server error");
     assert.strictEqual(crash.errors?.[0].extensions?.code, "INTERNAL_SERVER_ERROR");
     assert.ok(!JSON.stringify(crash).includes("secret internal detail"));
+    assert.strictEqual(errorLogs("secret internal detail").length, 1, "logged at ERROR");
     const result = (await subscribe({
       schema: this.schema(),
       document: parse("subscription { fixtureBroken { index } }"),
@@ -286,6 +344,7 @@ class GraphQLOperationsTest extends WebdaApplicationTest {
       assert.strictEqual((error as any).extensions.code, "INTERNAL_SERVER_ERROR");
       return true;
     });
+    assert.strictEqual(errorLogs("secret stream detail").length, 1, "logged at ERROR");
   }
 
   @test
@@ -316,6 +375,84 @@ class GraphQLOperationsTest extends WebdaApplicationTest {
     assert.deepStrictEqual(plain((await second).value.data), { fixtureTicks: { index: 2 } });
     await it.return!();
     await until(() => fixtureState.closed);
+  }
+
+  @test
+  async unsubscribingStopsAnEndlessGenerator() {
+    fixtureState.closed = false;
+    fixtureState.produced = 0;
+    const result = (await subscribe({
+      schema: this.schema(),
+      document: parse("subscription { fixtureEndless { index } }"),
+      contextValue: this.context()
+    })) as AsyncIterableIterator<any>;
+    assert.deepStrictEqual(plain((await result.next()).value.data), { fixtureEndless: { index: 1 } });
+    // Back-pressure holds the generator: 1 consumed + 16 queued (HIGH_WATER), it never runs away
+    await until(() => fixtureState.produced >= 17);
+    await new Promise(r => setTimeout(r, 50));
+    assert.strictEqual(fixtureState.produced, 17);
+    assert.ok(!fixtureState.closed, "the generator is still alive while subscribed");
+    await result.return!();
+    await until(() => fixtureState.closed);
+    const atCancel = fixtureState.produced;
+    await new Promise(r => setTimeout(r, 50));
+    assert.strictEqual(fixtureState.produced, atCancel, "nothing is produced after the cancel");
+    assert.ok(atCancel <= 17);
+  }
+
+  @test
+  async reportsAnErrorOfTheGeneratorAfterUnsubscribe() {
+    const result = (await subscribe({
+      schema: this.schema(),
+      document: parse("subscription { fixtureLateFail { index } }"),
+      contextValue: this.context()
+    })) as AsyncIterableIterator<any>;
+    await result.next();
+    // The generator is blocked at its gate when the subscriber leaves
+    await result.return!();
+    assert.strictEqual(errorLogs("late secret failure").length, 0);
+    fixtureState.open();
+    await until(() => errorLogs("late secret failure").length > 0);
+  }
+
+  @test
+  async refusesASubscriptionWithoutPermission() {
+    fixtureState.started = false;
+    const refused = await subscribe({
+      schema: this.schema(),
+      document: parse("subscription { fixtureGuarded { index } }"),
+      contextValue: this.context()
+    });
+    assert.ok(!(Symbol.asyncIterator in (refused as object)), "no stream for a refused subscription");
+    assert.strictEqual((refused as any).errors[0].extensions.code, "PERMISSION_DENIED");
+    await new Promise(r => setTimeout(r, 20));
+    assert.strictEqual(fixtureState.started, false, "the generator never starts");
+    const allowed = (await subscribe({
+      schema: this.schema(),
+      document: parse("subscription { fixtureGuarded { index } }"),
+      contextValue: this.context("alice")
+    })) as AsyncIterableIterator<any>;
+    assert.deepStrictEqual(plain((await allowed.next()).value.data), { fixtureGuarded: { index: 1 } });
+    await allowed.return!();
+  }
+
+  @test
+  async refusesToShadowTheAggregateSubscription() {
+    registerGraphQLFixture();
+    useInstanceStorage().operations["Fixture.Agg"] = {
+      ...useInstanceStorage().operations["Fixture.Ticks"],
+      id: "Fixture.Agg",
+      graphql: { subscription: "Aggregate" }
+    } as any;
+    const parameters = this.service.parameters as any;
+    try {
+      assert.doesNotThrow(() => this.service.generateSchema(), "no global subscription: the name is free");
+      parameters.globalSubscription = true;
+      assert.throws(() => this.service.generateSchema(), /Aggregate.*Fixture\.Agg|Fixture\.Agg.*Aggregate/);
+    } finally {
+      parameters.globalSubscription = false;
+      delete useInstanceStorage().operations["Fixture.Agg"];
+    }
   }
 
   @test

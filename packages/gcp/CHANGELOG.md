@@ -117,6 +117,18 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.6...gcp-v4.0.0-beta.7) (2026-10-10)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.7
+    * @webda/utils bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.5...gcp-v4.0.0-beta.6) (2026-10-09)
 
 

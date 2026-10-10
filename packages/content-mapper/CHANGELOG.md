@@ -1,5 +1,21 @@
 # Changelog
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/content-mapper-v4.0.0-beta.6...content-mapper-v4.0.0-beta.7) (2026-10-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* GraphQL now exposes every non-CRUD operation by default (opt out with exposeOperations: []); titled nested input types are renamed <title>Input; the Object scalar no longer JSON-parses string variables; duplicate GraphQL type/field names are startup errors; operations declaring grpc.streaming: "client" | "bidi" now receive an async iterable of messages instead of a collected array.
+
+### Features
+
+* streaming operations on gRPC, WebSocket and GraphQL ([#829](https://github.com/loopingz/webda.io/issues/829)) ([e67bfea](https://github.com/loopingz/webda.io/commit/e67bfea1984e32ad7172e486602cb532369e62f5))
+
+
+### Bug Fixes
+
+* support Windows paths when loading and building modules ([#827](https://github.com/loopingz/webda.io/issues/827)) ([0d88747](https://github.com/loopingz/webda.io/commit/0d8874761196fcf09ac72bf9dc5bb31f8cfb87e1))
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/content-mapper-v4.0.0-beta.5...content-mapper-v4.0.0-beta.6) (2026-10-09)
 
 

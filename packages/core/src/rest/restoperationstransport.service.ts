@@ -396,6 +396,8 @@ export class RESTOperationsTransport<
   protected exposeServiceOperations(operations: Record<string, OperationDefinition>): void {
     for (const [opId, op] of Object.entries(operations)) {
       if (op.hidden) continue;
+      // A client stream cannot be carried by a plain HTTP request: reachable over gRPC only
+      if (getOperationStreaming(op) === "client") continue;
       // Skip if this operation was already handled by model tree walk
       if (op.context?.model) continue;
 

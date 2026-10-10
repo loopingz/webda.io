@@ -24,7 +24,7 @@
             "default": [
               "*"
             ],
-            "description": "Operations exposed as GraphQL fields next to the model schema, with the operation transports' patterns:\n`\"*\"`, `\"Service.*\"`, an exact id, `\"!Id\"` to exclude",
+            "description": "Operations exposed as GraphQL fields next to the model schema, with the operation transports' patterns:\n`\"*\"`, `\"Service.*\"`, an exact id, `\"!Id\"` to exclude; `[]` exposes no operation",
             "items": {
               "type": "string"
             },

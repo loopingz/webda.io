@@ -102,7 +102,9 @@ schema already serves (`X`, `Xs`, `createX`, `updateX`, `deleteX`):
   message (`OPERATION_REFUSED`), everything else is logged and reported as `Internal server error`
   (`INTERNAL_SERVER_ERROR`) without its internal message;
 - leaving a subscription cancels the operation, so the generator's `finally` blocks run;
-- the `exposeOperations` parameter filters them with the transports' patterns (`["*", "!User.Delete"]`).
+- the `exposeOperations` parameter filters them with the transports' patterns (`["*", "!User.Delete"]`); every
+  operation is exposed by default, `exposeOperations: []` exposes none (the opt-out), and a list of exclusions only
+  (`["!User.Delete"]`) means "all but these".
 
 ```graphql
 query {

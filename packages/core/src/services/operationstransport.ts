@@ -18,14 +18,15 @@ export function operationPatternMatches(operationId: string, pattern: string): b
 }
 
 /**
- * Build an operation filter from transport patterns: `!` entries exclude, the others include (all when none)
+ * Build an operation filter from transport patterns: `!` entries exclude, the others include (all when only exclusions, none when empty)
  * @param patterns - e.g. `["*", "!User.Delete"]`
  * @returns the filter
  */
 export function createOperationFilter(patterns: string[] = ["*"]): (operationId: string) => boolean {
   const excluded = patterns.filter(p => p.startsWith("!")).map(p => p.substring(1));
   const included = patterns.filter(p => !p.startsWith("!"));
-  const includes = included.length > 0 ? included : ["*"];
+  // An empty list exposes nothing; a list of exclusions only means "everything but those"
+  const includes = patterns.length > 0 && included.length === 0 ? ["*"] : included;
   return operationId =>
     !excluded.some(p => operationPatternMatches(operationId, p)) &&
     includes.some(p => operationPatternMatches(operationId, p));

@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as grpc from "@grpc/grpc-js";
 import * as protoLoader from "@grpc/proto-loader";
-import { HttpContext, WebdaError, useService } from "@webda/core";
+import { HttpContext, WebdaError, useRouter, useService } from "@webda/core";
 import { HttpServer } from "@webda/core/lib/services/httpserver.service.js";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import { TestApplication } from "@webda/core/lib/test/objects.js";
@@ -39,7 +39,7 @@ class GrpcLiveTest extends WebdaApplicationTest {
       services: {
         ...GRPC_FIXTURE_SERVICES,
         HttpServer: { type: "Webda/HttpServer", port: 0, h2c: true },
-        Grpc: { type: "Webda/GrpcService", protoFile, operations: ["Fixture.*"] }
+        Grpc: { type: "Webda/GrpcService", protoFile, operations: ["Fixture.*"], maxQueuedMessages: 5 }
       }
     };
   }
@@ -191,6 +191,51 @@ class GrpcLiveTest extends WebdaApplicationTest {
     const err = await error;
     assert.strictEqual(err.code, grpc.status.NOT_FOUND);
     assert.match(err.details, /No such frame/);
+  }
+
+  @test
+  async internalErrorMessagesAreHidden() {
+    const client = await this.connect();
+    const err: any = await new Promise(resolve => client.Leak({ text: "x" }, (e: Error) => resolve(e)));
+    assert.strictEqual(err.code, grpc.status.INTERNAL);
+    assert.ok(!/secret/.test(err.details), err.details);
+    assert.match(err.details, /Internal server error/);
+    // A client error keeps its message
+    const notFound: any = await new Promise(resolve => client.Echo({ text: "boom" }, (e: Error) => resolve(e)));
+    assert.strictEqual(notFound.code, grpc.status.NOT_FOUND);
+    assert.match(notFound.details, /Nothing to echo/);
+  }
+
+  @test
+  async requestFiltersApplyToCalls() {
+    const client = await this.connect();
+    useRouter().registerRequestFilter({
+      checkRequest: async ctx => ctx.getHttpContext().getUniqueHeader("x-block") !== "yes"
+    });
+    fixtureState.echoCalls = 0;
+    const blocked = new grpc.Metadata();
+    blocked.set("x-block", "yes");
+    const err: any = await new Promise(resolve => client.Echo({ text: "hi" }, blocked, (e: Error) => resolve(e)));
+    assert.strictEqual(err.code, grpc.status.PERMISSION_DENIED);
+    assert.strictEqual(fixtureState.echoCalls, 0, "the operation must not run");
+    const out = await new Promise<any>((resolve, reject) =>
+      client.Echo({ text: "hi" }, (e: Error, res: any) => (e ? reject(e) : resolve(res)))
+    );
+    assert.strictEqual(out.text, "hi");
+    assert.strictEqual(fixtureState.echoCalls, 1);
+  }
+
+  @test
+  async floodingAnOperationThatDoesNotReadFailsWithResourceExhausted() {
+    const client = await this.connect();
+    fixtureState.floodClosed = false;
+    const call = client.Flood(new grpc.Metadata());
+    call.on("data", () => {});
+    const error = new Promise<any>(resolve => call.on("error", resolve));
+    for (let i = 0; i < 50; i++) call.write({ frame: `f${i}` });
+    const err = await error;
+    assert.strictEqual(err.code, grpc.status.RESOURCE_EXHAUSTED);
+    await until(() => fixtureState.floodClosed);
   }
 
   @test

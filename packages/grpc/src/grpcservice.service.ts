@@ -7,11 +7,14 @@ import {
   OperationsTransportParameters,
   WebdaError,
   callOperation,
+  emitCoreEvent,
   getOperationStreaming,
+  runWithContext,
   runWithInstanceStorage,
   useApplication,
   useCore,
-  useInstanceStorage
+  useInstanceStorage,
+  useRouter
 } from "@webda/core";
 import { useLog } from "@webda/workout";
 import * as protoLoader from "@grpc/proto-loader";
@@ -39,6 +42,14 @@ export class GrpcServiceParameters extends OperationsTransportParameters {
   packageName?: string;
 
   /**
+   * Most unconsumed messages a client or bidirectional operation may have queued; above it the call fails with
+   * RESOURCE_EXHAUSTED
+   *
+   * @default 1000
+   */
+  maxQueuedMessages?: number;
+
+  /**
    * Load and apply default parameter values.
    * @param params - raw configuration object to load into this parameters instance
    * @returns this instance with defaults applied
@@ -47,6 +58,7 @@ export class GrpcServiceParameters extends OperationsTransportParameters {
     super.load(params);
     this.protoFile ??= ".webda/app.proto";
     this.packageName ??= "webda";
+    this.maxQueuedMessages ??= 1000;
     return this;
   }
 }
@@ -280,7 +292,15 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
     const ctx = new GrpcOperationContext(this.httpContextOf(req), stream, res);
     const input = new AsyncQueue<unknown>();
     // Handlers first: data may arrive while the session loads
-    stream.onMessage(message => input.push(this.cleanMessage(message)));
+    stream.onMessage(message => {
+      input.push(this.cleanMessage(message));
+      if (input.pending > this.parameters.maxQueuedMessages && !finished()) {
+        // The operation does not keep up: stop it rather than buffering without limit
+        stream.sendError(GrpcStatus.RESOURCE_EXHAUSTED, "Too many queued messages");
+        ctx.cancel();
+        input.end(true);
+      }
+    });
     stream.onEnd(() => input.end());
     stream.onCancel(() => {
       ctx.cancel();
@@ -296,6 +316,18 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
 
     try {
       await ctx.init();
+      const allowed = await runWithContext(ctx, async () => {
+        try {
+          emitCoreEvent("Webda.Request", { context: ctx });
+        } catch {
+          // listener error
+        }
+        return useRouter().checkRequest(ctx);
+      });
+      if (!allowed) {
+        if (!finished()) stream.sendError(GrpcStatus.PERMISSION_DENIED, "Forbidden");
+        return;
+      }
       if (streaming === "client" || streaming === "bidi") {
         ctx.setExtension("operationInputStream", input);
       } else {
@@ -319,7 +351,10 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
         return;
       }
       if (!(err?.getResponseCode?.() < 500)) useLog("ERROR", `[gRPC ${opId}] handler threw:`, err);
-      stream.sendError(this.errorToGrpcStatus(err), err?.message || "Internal error");
+      // Only client errors (4xx) carry their message: anything else may leak internals
+      const code = err?.getResponseCode?.();
+      const visible = typeof code === "number" && code >= 400 && code < 500;
+      stream.sendError(this.errorToGrpcStatus(err), visible ? err.message || "Bad request" : "Internal server error");
     }
   }
 

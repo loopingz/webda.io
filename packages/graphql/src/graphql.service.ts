@@ -21,6 +21,10 @@ import {
   canCallOperation,
   createOperationFilter,
   useInstanceStorage,
+  runWithInstanceStorage,
+  emitCoreEvent,
+  runWithContext,
+  useRouter,
   type OperationDefinition
 } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
@@ -185,7 +189,7 @@ export class GraphQLParameters extends DomainServiceParameters {
   globalSubscription: boolean;
   /**
    * Operations exposed as GraphQL fields next to the model schema, with the operation transports' patterns:
-   * `"*"`, `"Service.*"`, an exact id, `"!Id"` to exclude
+   * `"*"`, `"Service.*"`, an exact id, `"!Id"` to exclude; `[]` exposes no operation
    * @default ["*"]
    */
   exposeOperations: string[];
@@ -233,6 +237,15 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * @returns initialized GraphQLParameters
    */
   loadParameters(params: any): GraphQLParameters {
+    return new GraphQLParameters().load(params);
+  }
+
+  /**
+   * Parameters with their defaults (the core builds a service configuration through this, not loadParameters)
+   * @param params - raw partial configuration
+   * @returns initialized GraphQLParameters
+   */
+  static createConfiguration(params: any = {}): GraphQLParameters {
     return new GraphQLParameters().load(params);
   }
 
@@ -687,17 +700,40 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     super.resolve();
     // Set-up ws server
     this.wss = new WebSocketServer({ noServer: true });
+    // The HTTP server events fire outside the instance storage: re-enter it
+    const storage = useInstanceStorage();
     useCoreEvents("Webda.Init.Http" as any, (http: any) => {
       http.on("upgrade", (req, socket, head) => {
-        if (req.url === this.parameters.url) {
+        runWithInstanceStorage(storage, () => {
+          if (req.url !== this.parameters.url) return;
           (async () => {
-            req.webdaContext ??= await (<any>useCore()).getContextFromRequest(req);
-            await req.webdaContext.init();
+            const httpServer: any = Object.values(useCore().getServices()).find(
+              s => (s as any).server === http && typeof (s as any).getContextFromRequest === "function"
+            );
+            req.webdaContext ??= await (httpServer ?? <any>useCore()).getContextFromRequest(req);
+            const context: WebContext = req.webdaContext;
+            await context.init();
+            // Same checks as a normal request: Webda.Request listeners and the router request filters
+            const allowed = await runWithContext(context, async () => {
+              try {
+                emitCoreEvent("Webda.Request", { context });
+              } catch {
+                // listener error
+              }
+              return useRouter().checkRequest(context);
+            });
+            if (!allowed) {
+              socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
+              return;
+            }
             this.wss.handleUpgrade(req, socket, head, ws => {
               this.wss.emit("connection", ws, req);
             });
-          })();
-        }
+          })().catch(err => {
+            this.log("ERROR", "GraphQL WebSocket upgrade failed", err);
+            socket.destroy();
+          });
+        });
       });
     });
 

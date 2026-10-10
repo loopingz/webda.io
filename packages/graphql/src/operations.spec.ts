@@ -30,7 +30,7 @@ import {
   subscribe,
   type GraphQLSchema
 } from "graphql";
-import { HttpContext, Session, WebContext, WebdaError, useInstanceStorage, useService } from "@webda/core";
+import { HttpContext, Session, WebContext, WebdaError, useInstanceStorage, useRouter, useService } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import { TestApplication } from "@webda/core/lib/test/objects.js";
 import {
@@ -39,6 +39,8 @@ import {
   fixtureState,
   registerGraphQLFixture
 } from "../test/fixture.js";
+import { HttpServer } from "@webda/core/lib/services/httpserver.service.js";
+import WebSocket from "ws";
 import { GraphQLService } from "./graphql.service.js";
 import { GraphQLOperationContext, graphqlPlacement, operationFieldName } from "./operations.js";
 
@@ -223,6 +225,7 @@ class GraphQLOperationsTest extends WebdaApplicationTest {
     return {
       services: {
         ...GRAPHQL_FIXTURE_SERVICES,
+        HttpServer: { type: "Webda/HttpServer", port: 0 },
         GraphQL: {
           type: "Webda/GraphQLService",
           exposeMe: false,
@@ -236,6 +239,7 @@ class GraphQLOperationsTest extends WebdaApplicationTest {
   async tweakApp(app: TestApplication): Promise<void> {
     app.addModda("Webda/GraphQLFixtureService", GraphQLFixtureService);
     app.addModda("Webda/GraphQLService", GraphQLService);
+    app.addModda("Webda/HttpServer", HttpServer);
   }
 
   /** @returns the service under test */
@@ -452,6 +456,53 @@ class GraphQLOperationsTest extends WebdaApplicationTest {
     } finally {
       parameters.globalSubscription = false;
       delete useInstanceStorage().operations["Fixture.Agg"];
+    }
+  }
+
+  @test
+  async anEmptyExposeOperationsExposesNoOperation() {
+    registerGraphQLFixture();
+    const parameters = this.service.parameters as any;
+    const previous = parameters.exposeOperations;
+    try {
+      parameters.exposeOperations = [];
+      this.service.generateSchema();
+      const fields = [
+        ...Object.keys(this.service.schema.getQueryType()?.getFields() ?? {}),
+        ...Object.keys(this.service.schema.getMutationType()?.getFields() ?? {}),
+        ...Object.keys(this.service.schema.getSubscriptionType()?.getFields() ?? {})
+      ];
+      assert.ok(!fields.some(f => /^(fixture|thing)/.test(f)), `no operation field, got ${fields.join(",")}`);
+    } finally {
+      parameters.exposeOperations = previous;
+    }
+  }
+
+  @test
+  async requestFiltersApplyToTheWebSocketUpgrade() {
+    registerGraphQLFixture();
+    useRouter().registerRequestFilter({
+      checkRequest: async ctx => ctx.getHttpContext().getUniqueHeader("x-block") !== "yes"
+    });
+    const http = useService("HttpServer" as any) as any;
+    await http.start("127.0.0.1", 0);
+    await until(() => http.server?.listening);
+    const url = `ws://127.0.0.1:${http.server.address().port}/graphql`;
+    try {
+      const blocked = new WebSocket(url, "graphql-transport-ws", { headers: { "x-block": "yes" } });
+      const status = await new Promise<number>(resolve => {
+        blocked.on("unexpected-response", (_req, res) => resolve(res.statusCode!));
+        blocked.on("error", () => resolve(0));
+      });
+      assert.strictEqual(status, 403);
+      const accepted = new WebSocket(url, "graphql-transport-ws");
+      await new Promise<void>((resolve, reject) => {
+        accepted.on("open", () => resolve());
+        accepted.on("error", reject);
+      });
+      accepted.close();
+    } finally {
+      await http.stop?.();
     }
   }
 

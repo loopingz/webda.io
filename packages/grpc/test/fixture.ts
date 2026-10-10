@@ -13,6 +13,8 @@ import {
 export const fixtureState = {
   connectClosed: false,
   ticksClosed: false,
+  floodClosed: false,
+  echoCalls: 0,
   release: undefined as undefined | (() => void),
   /** Lets Fixture.Ticks yield past its first tick */
   open() {
@@ -38,8 +40,34 @@ export class GrpcFixtureService extends Service {
    * @returns the text
    */
   echo(text: string) {
+    fixtureState.echoCalls++;
     if (text === "boom") throw new WebdaError.NotFound("Nothing to echo");
     return { text, authorization: authorization() };
+  }
+
+  /**
+   * An operation failing with an internal error whose message must not leave the server
+   * @param _text - unused
+   * @returns never
+   */
+  leak(_text: string): { text: string } {
+    throw new Error("secret database password");
+  }
+
+  /**
+   * Bidirectional operation that never reads its input and keeps producing until it is cancelled
+   * @param _frames - incoming frames, ignored
+   * @returns outgoing frames
+   */
+  async *flood(_frames: AsyncIterable<{ frame: string }>) {
+    try {
+      for (;;) {
+        yield { frame: "tick" };
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+    } finally {
+      fixtureState.floodClosed = true;
+    }
   }
 
   /**
@@ -127,7 +155,9 @@ export function registerGrpcFixture(): void {
   const op = (id: string, method: string, extra: any) =>
     registerOperation(id, { service: "Fixture", method, ...extra });
   op("Fixture.Echo", "echo", { input: "Fixture.Echo.input", output: "Fixture.Echo.output" });
-  op("Fixture.Abort", "abort", { input: "Fixture.Echo.input", output: "Fixture.Echo.output" });
+  op("Fixture.Leak", "leak", { input: "Fixture.Echo.input", output: "Fixture.Echo.output" });
+  op("Fixture.Flood", "flood", { input: "Fixture.Frame", output: "Fixture.FrameOut" });
+  op("Fixture.Abort","abort", { input: "Fixture.Echo.input", output: "Fixture.Echo.output" });
   op("Fixture.Ticks", "ticks", { input: "Fixture.Ticks.input", output: "Fixture.Tick" });
   op("Fixture.Sum", "sum", { input: "Fixture.Value", output: "Fixture.Total" });
   op("Fixture.Connect", "connect", { input: "Fixture.Frame", output: "Fixture.FrameOut" });

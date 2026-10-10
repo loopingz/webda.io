@@ -10,6 +10,11 @@
         "additionalProperties": false,
         "description": "Parameters for the gRPC service",
         "properties": {
+          "maxQueuedMessages": {
+            "default": 1000,
+            "description": "Most unconsumed messages a client or bidirectional operation may have queued; above it the call fails with\nRESOURCE_EXHAUSTED",
+            "type": "number"
+          },
           "operations": {
             "default": [
               "*"

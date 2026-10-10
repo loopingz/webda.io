@@ -1,4 +1,4 @@
-import type { OperationDefinition } from "@webda/core";
+import { getOperationStreaming, type OperationDefinition } from "@webda/core";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { inlineSchema, JsonSchema, SchemaResolver } from "./schema.js";
 
@@ -59,7 +59,8 @@ function isObjectSchema(schema: JsonSchema | undefined): boolean {
  * @returns the tool entry, or undefined when the operation must not be exposed
  */
 export function operationToTool(id: string, op: OperationDefinition, resolve: SchemaResolver): ToolEntry | undefined {
-  if (op.hidden || op.mcp === false) {
+  const streaming = getOperationStreaming(op);
+  if (op.hidden || op.mcp === false || streaming === "client" || streaming === "bidi") {
     return undefined;
   }
   const hints = op.mcp || {};

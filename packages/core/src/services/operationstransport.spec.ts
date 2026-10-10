@@ -225,5 +225,7 @@ describe("createOperationFilter", () => {
     assert.ok(!filter("Other.Run"));
     assert.ok(createOperationFilter()("Anything.Here"));
     assert.ok(createOperationFilter(["!Svc.Secret"])("Other.Run"), "only excludes: everything else is included");
+    assert.ok(!createOperationFilter(["!Svc.Secret"])("Svc.Secret"));
+    assert.ok(!createOperationFilter([])("Anything.Here"), "an empty list exposes nothing");
   });
 });

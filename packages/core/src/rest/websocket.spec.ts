@@ -172,6 +172,34 @@ class WebSocketOperationTest extends WebdaApplicationTest {
   }
 
   @test
+  async clientStreamingOperationsGetNoRestRoute() {
+    await this.url();
+    registerOperation("Ws.Sum", {
+      service: "Ws",
+      method: "stall",
+      input: "Ws.Frame",
+      output: "void",
+      streaming: "client"
+    });
+    registerOperation("Ws.Plain", { service: "Ws", method: "stall", input: "void", output: "void" });
+    const ops = useInstanceStorage().operations;
+    const rest: any = useService("RESTService" as any);
+    const added: string[] = [];
+    const addRoute = rest.addRoute;
+    rest.addRoute = (path: string, ...args: any[]) => {
+      added.push(path);
+      return addRoute.call(rest, path, ...args);
+    };
+    try {
+      rest.exposeServiceOperations({ "Ws.Sum": ops["Ws.Sum"], "Ws.Plain": ops["Ws.Plain"] });
+    } finally {
+      rest.addRoute = addRoute;
+    }
+    assert.ok(added.some(path => path.endsWith("ws/plain")), `a normal operation keeps its route: ${added}`);
+    assert.ok(!added.some(path => path.endsWith("ws/sum")), `no route for a client stream: ${added}`);
+  }
+
+  @test
   async plainHttpGets426() {
     const res = await fetch(`http://${await this.url()}/ws/connect`, { method: "PUT", body: "{}" });
     assert.strictEqual(res.status, 426);

@@ -1,3 +1,5 @@
+import { SecretString } from "@webda/core";
+
 /**
  * AWS client parameters shared by the AWS services
  *
@@ -11,11 +13,13 @@ export interface AWSServiceParameters {
   endpoint?: string;
   /**
    * Static credentials, default to the AWS environment variables
+   *
+   * Can be encrypted with `webda config encrypt`
    */
   credentials?: {
-    accessKeyId: string;
-    secretAccessKey: string;
-    sessionToken?: string;
+    accessKeyId: string | SecretString;
+    secretAccessKey: string | SecretString;
+    sessionToken?: string | SecretString;
   };
   /**
    * AWS region
@@ -40,4 +44,22 @@ export function loadAWSParameters<T extends AWSServiceParameters>(params: T): T 
     };
   }
   return params;
+}
+
+/**
+ * Build the configuration to pass to an AWS SDK client constructor
+ *
+ * The credentials can hold {@link SecretString} values (encrypted configuration):
+ * they are replaced by their plain value in a shallow copy, the parameters
+ * themselves keep the masked secrets.
+ *
+ * @param params - the service parameters
+ * @returns the client configuration
+ */
+export function getAWSClientConfig<T extends AWSServiceParameters>(params: T): any {
+  const credentials = params.credentials;
+  if (!credentials || !Object.values(credentials).some(v => v instanceof SecretString)) {
+    return params;
+  }
+  return { ...params, credentials: SecretString.unwrap({ ...credentials }) };
 }

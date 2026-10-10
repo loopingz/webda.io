@@ -1,3 +1,4 @@
+import { SecretString } from "@webda/core";
 import pg, { PoolConfig } from "pg";
 
 /**
@@ -42,11 +43,14 @@ const registry = new Map<string, PoolEntry>();
 /**
  * Build the registry key for a config. Exposed for tests.
  *
+ * {@link SecretString} values (encrypted configuration) are unwrapped first so
+ * two configs differing only by an encrypted password do not share a pool.
+ *
  * @param config - the pg pool config (may be undefined — pg falls back to PG* env)
  * @returns the registry key
  */
 export function poolKey(config: PoolConfig | undefined): string {
-  return stableStringify(config ?? {});
+  return stableStringify(SecretString.unwrap(config ?? {}));
 }
 
 /**
@@ -61,6 +65,9 @@ export function poolKey(config: PoolConfig | undefined): string {
  * subscription is bound to a single connection — pooled connections
  * rotate and would silently drop the subscription.
  *
+ * {@link SecretString} values in the config are replaced by their plain value
+ * before being handed to `pg`.
+ *
  * @param config - the pg pool config
  * @returns the shared pool
  */
@@ -71,7 +78,7 @@ export function acquirePool(config: PoolConfig | undefined): pg.Pool {
     entry.refCount++;
     return entry.pool;
   }
-  const pool = new pg.Pool(config);
+  const pool = new pg.Pool(SecretString.unwrap(config));
   registry.set(key, { pool, refCount: 1 });
   return pool;
 }

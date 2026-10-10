@@ -2,6 +2,7 @@ import {
   EventRepository,
   InstanceCache,
   MemoryRepository,
+  SecretString,
   Store,
   StoreNotFoundError,
   StoreParameters,
@@ -20,13 +21,17 @@ export class MongoParameters extends StoreParameters {
    * Contains the URL to Mongo Server
    *
    * Will try to use WEBDA_MONGO_URL environment variable if not defined
+   *
+   * Can be encrypted with `webda config encrypt`
    */
-  mongoUrl?: string;
+  mongoUrl?: string | SecretString;
   /**
    * Additional options for Mongo connetion
    *
    * Should be typed with MongoClientOptions but not available due to bug in ts-json-schema-generator
    * https://docs.mongodb.com/manual/reference/connection-string
+   *
+   * Can be encrypted with `webda config encrypt`
    */
   options?: any;
   /**
@@ -652,7 +657,10 @@ export class MongoStore<K extends MongoParameters = MongoParameters> extends Sto
    */
   async _connect(): Promise<Collection<Document>> {
     this._connectPromise ??= (async () => {
-      this._client = await new MongoClient(this.parameters.mongoUrl, this.parameters.options).connect();
+      this._client = await new MongoClient(
+        SecretString.unwrap(this.parameters.mongoUrl) as string,
+        SecretString.unwrap(this.parameters.options)
+      ).connect();
       this._db = this._client.db(this.parameters.database, this.parameters.databaseOptions);
       this._collection = this._db.collection(this.parameters.collection);
       return this._collection;

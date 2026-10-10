@@ -1,5 +1,12 @@
 import { timingSafeEqual } from "node:crypto";
-import { type AuthResult, type EventWithContext, type ResolvedIdentity, useContext, WebdaError } from "@webda/core";
+import {
+  type AuthResult,
+  type EventWithContext,
+  type ResolvedIdentity,
+  SecretString,
+  useContext,
+  WebdaError
+} from "@webda/core";
 import {
   EmailDomainNotAllowed,
   type OAuthAuthorizationRequest,
@@ -38,8 +45,10 @@ export class GoogleParameters extends OAuthProviderParameters {
   declare client_id: string;
   /**
    * Google OAuth client secret
+   *
+   * Can be encrypted with `webda config encrypt`
    */
-  declare client_secret: string;
+  declare client_secret: string | SecretString;
   /**
    * Scopes requested from Google
    * @default ["openid", "email", "profile"]
@@ -114,7 +123,7 @@ export class GoogleAuthentication<T extends GoogleParameters = GoogleParameters>
   protected getClient(redirectUri?: string): OAuth2Client {
     return new OAuth2Client({
       clientId: this.parameters.client_id,
-      clientSecret: this.parameters.client_secret,
+      clientSecret: SecretString.from(this.parameters.client_secret, "GoogleAuthentication.client_secret"),
       redirectUri
     });
   }

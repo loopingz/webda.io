@@ -10,6 +10,7 @@ import {
   EventRepository,
   InstanceCache,
   MemoryRepository,
+  SecretString,
   Store,
   StoreNotFoundError,
   StoreParameters,
@@ -21,7 +22,7 @@ import {
 import type { ModelClass, Repository } from "@webda/core";
 import * as WebdaQL from "@webda/ql";
 import { WorkerOutput } from "@webda/workout";
-import { AWSServiceParameters, loadAWSParameters } from "./aws-parameters.js";
+import { AWSServiceParameters, getAWSClientConfig, loadAWSParameters } from "./aws-parameters.js";
 import type { CloudFormationContributor, CloudFormationDeployerInfo } from "./contributors.js";
 
 /**
@@ -59,8 +60,14 @@ export class DynamoStoreParameters extends StoreParameters implements AWSService
   endpoint?: string;
   /**
    * Static credentials, default to the AWS environment variables
+   *
+   * Can be encrypted with `webda config encrypt`
    */
-  credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string };
+  credentials?: {
+    accessKeyId: string | SecretString;
+    secretAccessKey: string | SecretString;
+    sessionToken?: string | SecretString;
+  };
   /**
    * AWS region
    * @default "us-east-1"
@@ -938,7 +945,7 @@ export class DynamoStore<K extends DynamoStoreParameters = DynamoStoreParameters
    */
   resolve(): this {
     super.resolve();
-    this._client = DynamoDBDocument.from(new DynamoDBClient(this.parameters), {
+    this._client = DynamoDBDocument.from(new DynamoDBClient(getAWSClientConfig(this.parameters)), {
       marshallOptions: {
         removeUndefinedValues: true,
         convertClassInstanceToMap: true

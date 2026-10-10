@@ -1,4 +1,4 @@
-import { MessageReceipt, Queue, QueueParameters } from "@webda/core";
+import { MessageReceipt, Queue, QueueParameters, SecretString } from "@webda/core";
 import { JSONUtils } from "@webda/utils";
 import * as amqplib from "amqplib";
 
@@ -8,9 +8,11 @@ import * as amqplib from "amqplib";
 export class AMQPQueueParameters extends QueueParameters {
   /**
    * AMQP connection url
+   *
+   * Can be encrypted with `webda config encrypt`
    * @example "amqp://localhost:5672"
    */
-  url: string;
+  url: string | SecretString;
   /**
    * Queue name
    */
@@ -36,7 +38,7 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
    */
   async init(): Promise<this> {
     await super.init();
-    this.conn = await amqplib.connect(this.parameters.url);
+    this.conn = await amqplib.connect(SecretString.unwrap(this.parameters.url) as string);
     this.channel = await this.conn.createChannel();
     await this.channel.assertQueue(this.parameters.queue, this.parameters.queueOptions);
     return this;

@@ -1,6 +1,6 @@
 import { useLog } from "@webda/workout";
 import type { Readable } from "node:stream";
-import { type AuthChallenge, parseAuthChallenge, type RegistryCredentials } from "./auth.js";
+import { type AuthChallenge, parseAuthChallenge, type PlainRegistryCredentials } from "./auth.js";
 import { MANIFEST_ACCEPT, sha256 } from "./oci.js";
 import { getRegistryApiHost } from "./reference.js";
 
@@ -11,7 +11,7 @@ export interface RegistryClientOptions {
   /**
    * Credentials, anonymous when undefined
    */
-  credentials?: RegistryCredentials;
+  credentials?: PlainRegistryCredentials;
   /**
    * Use plain http: default for `localhost` and `127.0.0.1`
    */

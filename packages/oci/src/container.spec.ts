@@ -1,4 +1,5 @@
 import { suite, test } from "@webda/test";
+import { SecretString } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import * as assert from "node:assert";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -77,6 +78,17 @@ class ContainerDeployerTest extends WebdaApplicationTest {
     assert.strictEqual(resolved.labels["org.opencontainers.image.title"], "@webda/oci");
     assert.ok(resolved.labels["org.opencontainers.image.revision"]?.length >= 7);
     assert.strictEqual(resolved.mtime, process.env.SOURCE_DATE_EPOCH ? parseInt(process.env.SOURCE_DATE_EPOCH) : 0);
+  }
+
+  @test
+  resolvedSecretCredentials() {
+    const resolved = this.deployer({
+      credentials: { "ghcr.io": { username: "${deployer.name}", password: new SecretString("${pass}", "test") } }
+    }).getResolvedParameters();
+    // Templates apply to plain values, the encrypted ones are kept as is
+    assert.strictEqual(resolved.credentials["ghcr.io"].username, "image");
+    assert.ok(resolved.credentials["ghcr.io"].password instanceof SecretString);
+    assert.strictEqual((resolved.credentials["ghcr.io"].password as SecretString).getValue(), "${pass}");
   }
 
   @test

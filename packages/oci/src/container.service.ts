@@ -5,6 +5,7 @@ import {
   packageApplication,
   type PackageOptions,
   resolveDeploymentVariables,
+  SecretString,
   Service,
   ServiceParameters,
   useApplication
@@ -110,6 +111,8 @@ export class ContainerDeployerParameters extends ServiceParameters {
    * Credentials per registry host, they take precedence over `~/.docker/config.json`
    *
    * Use templates to read them from the environment: `{ "ghcr.io": { "username": "${env.GHCR_USER}", "password": "${env.GHCR_TOKEN}" } }`
+   *
+   * `password`, `identityToken` and `token` can be encrypted with `webda config encrypt`
    */
   credentials?: Record<string, RegistryCredentials>;
   /**
@@ -171,6 +174,14 @@ export class ContainerDeployer<T extends ContainerDeployerParameters = Container
   getResolvedParameters(): ContainerDeployerParameters {
     const variables = getDeploymentVariables(this);
     const resolved: ContainerDeployerParameters = resolveDeploymentVariables({ ...this.parameters }, variables);
+    // Template resolution serializes the parameters: put back the encrypted secrets it masked
+    for (const [host, credentials] of Object.entries(this.parameters.credentials ?? {})) {
+      for (const [key, value] of Object.entries(credentials ?? {})) {
+        if (value instanceof SecretString) {
+          resolved.credentials[host][key] = value;
+        }
+      }
+    }
     const repository: string | { url?: string } = (variables.package as any)?.repository;
     resolved.labels = {
       "org.opencontainers.image.title": variables.package?.name,

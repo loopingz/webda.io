@@ -61,6 +61,11 @@ export class CryptoServiceParameters extends ServiceParameters {
       type?: "pkcs1" | "pkcs8" | "sec1";
       format?: "pem";
       cipher?: string;
+      /**
+       * Passphrase used to encrypt the private key
+       *
+       * Can be encrypted with `webda config encrypt`
+       */
       passphrase?: string;
     };
   };
@@ -74,6 +79,8 @@ export class CryptoServiceParameters extends ServiceParameters {
   symetricCipher?: string;
   /**
    * Default JWT options
+   *
+   * `secretOrPublicKey` can be encrypted with `webda config encrypt`
    */
   jwt?: JWTOptions;
 
@@ -112,6 +119,8 @@ export interface KeysDefinition {
 export interface JWTOptions {
   /**
    * Secret to use with JWT
+   *
+   * Can be encrypted with `webda config encrypt`
    */
   secretOrPublicKey?: string | Buffer | { key: string; passphrase: string };
   /**

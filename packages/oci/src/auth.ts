@@ -1,3 +1,4 @@
+import { SecretString } from "@webda/core";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -5,9 +6,37 @@ import { join } from "node:path";
 import { DOCKER_HUB, DOCKER_HUB_API } from "./reference.js";
 
 /**
- * Credentials of a registry
+ * Credentials of a registry, as configured
  */
 export interface RegistryCredentials {
+  /**
+   * User name
+   */
+  username?: string;
+  /**
+   * Password or access token used with the user name
+   *
+   * Can be encrypted with `webda config encrypt`
+   */
+  password?: string | SecretString;
+  /**
+   * Identity token (OAuth2 refresh token) as stored by `docker login` for some registries
+   *
+   * Can be encrypted with `webda config encrypt`
+   */
+  identityToken?: string | SecretString;
+  /**
+   * Registry bearer token sent as is, without token exchange
+   *
+   * Can be encrypted with `webda config encrypt`
+   */
+  token?: string | SecretString;
+}
+
+/**
+ * Credentials of a registry with plain values, as sent to the registry
+ */
+export interface PlainRegistryCredentials {
   /**
    * User name
    */
@@ -17,7 +46,7 @@ export interface RegistryCredentials {
    */
   password?: string;
   /**
-   * Identity token (OAuth2 refresh token) as stored by `docker login` for some registries
+   * Identity token (OAuth2 refresh token)
    */
   identityToken?: string;
   /**
@@ -100,7 +129,7 @@ export function readDockerConfig(env: Record<string, string | undefined> = proce
  * @param serverUrl - the registry key
  * @returns the credentials, undefined when the helper has none
  */
-export function getHelperCredentials(helper: string, serverUrl: string): RegistryCredentials | undefined {
+export function getHelperCredentials(helper: string, serverUrl: string): PlainRegistryCredentials | undefined {
   const result = spawnSync(`docker-credential-${helper}`, ["get"], { input: serverUrl, encoding: "utf8" });
   if (result.status !== 0 || !result.stdout) {
     return undefined;
@@ -126,18 +155,19 @@ export function getHelperCredentials(helper: string, serverUrl: string): Registr
  * @param explicit - credentials per registry from the parameters
  * @param dockerConfig - the Docker configuration, see {@link readDockerConfig}
  * @param helper - credential helper runner, for tests
- * @returns the credentials, undefined for anonymous access
+ * @returns the credentials with plain values, undefined for anonymous access
  */
 export function resolveCredentials(
   registry: string,
   explicit: Record<string, RegistryCredentials> = {},
   dockerConfig: any = readDockerConfig(),
   helper: typeof getHelperCredentials = getHelperCredentials
-): RegistryCredentials | undefined {
+): PlainRegistryCredentials | undefined {
   const keys = dockerConfigKeys(registry);
   for (const key of keys) {
     if (explicit[key]) {
-      return explicit[key];
+      // Encrypted values are replaced by their plain value
+      return SecretString.unwrap(explicit[key]) as PlainRegistryCredentials;
     }
   }
   for (const key of keys) {

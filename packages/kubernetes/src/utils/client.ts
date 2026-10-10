@@ -1,4 +1,5 @@
 import * as k8s from "@kubernetes/client-node";
+import { SecretString } from "@webda/core";
 import { FileUtils } from "@webda/utils";
 
 /**
@@ -7,6 +8,8 @@ import { FileUtils } from "@webda/utils";
 export interface KubernetesParameters {
   /**
    * Kubernetes configuration
+   *
+   * Can be encrypted with `webda config encrypt`
    */
   config?: string | K8sConfiguration;
   /**
@@ -23,11 +26,13 @@ export interface KubernetesParameters {
 export function getKubeConfig(params: KubernetesParameters): k8s.KubeConfig {
   const kc = new k8s.KubeConfig();
   // Load all type of configuration
-  if (params.config) {
-    if (typeof params.config === "string") {
-      kc.loadFromOptions(FileUtils.load(params.config));
+  // Encrypted values (tokens, keys) are replaced by their plain value
+  const config = SecretString.unwrap(params.config);
+  if (config) {
+    if (typeof config === "string") {
+      kc.loadFromOptions(FileUtils.load(config));
     } else {
-      kc.loadFromOptions(params.config);
+      kc.loadFromOptions(config);
     }
   } else {
     kc.loadFromDefault();

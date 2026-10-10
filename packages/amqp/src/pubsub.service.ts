@@ -1,4 +1,4 @@
-import { PubSubService, ServiceParameters } from "@webda/core";
+import { PubSubService, ServiceParameters, SecretString } from "@webda/core";
 import { CancelablePromise, JSONUtils } from "@webda/utils";
 import * as amqplib from "amqplib";
 
@@ -8,9 +8,11 @@ import * as amqplib from "amqplib";
 export class AMQPPubSubParameters extends ServiceParameters {
   /**
    * AMQP connection url
+   *
+   * Can be encrypted with `webda config encrypt`
    * @example "amqp://localhost:5672"
    */
-  url: string;
+  url: string | SecretString;
   /**
    * Exchange name to publish to and consume from
    */
@@ -97,7 +99,7 @@ export default class AMQPPubSubService<
    */
   async init(): Promise<this> {
     await super.init();
-    this.conn = await amqplib.connect(this.parameters.url);
+    this.conn = await amqplib.connect(SecretString.unwrap(this.parameters.url) as string);
     this.channel = await this.conn.createChannel();
     const params = { ...this.parameters.exchange };
     delete params.type;

@@ -1,4 +1,4 @@
-import { MessageReceipt, Queue, QueueParameters } from "@webda/core";
+import { MessageReceipt, Queue, QueueParameters, SecretString } from "@webda/core";
 import { JSONUtils } from "@webda/utils";
 import { useLog } from "@webda/workout";
 import pg, { ClientConfig, PoolConfig } from "pg";
@@ -46,6 +46,8 @@ export class PostgresQueueParameters extends QueueParameters {
   /**
    * Connection settings forwarded to the chosen pg client/pool. Defaults
    * to PG* environment variables.
+   *
+   * Can be encrypted with `webda config encrypt`
    */
   postgresqlServer?: ClientConfig | PoolConfig;
   /**
@@ -122,7 +124,7 @@ export default class PostgresQueueService<
       this.client = acquirePool(this.parameters.postgresqlServer as PoolConfig);
       this.ownsPool = true;
     } else {
-      this.client = new pg.Client(this.parameters.postgresqlServer as ClientConfig);
+      this.client = new pg.Client(SecretString.unwrap(this.parameters.postgresqlServer as ClientConfig));
       await this.client.connect();
     }
     if (this.parameters.autoCreateTable) {

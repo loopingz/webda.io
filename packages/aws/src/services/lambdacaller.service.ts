@@ -1,6 +1,7 @@
 import { Lambda } from "@aws-sdk/client-lambda";
 import { AsyncAction, JobInfo, Runner, RunnerParameters } from "@webda/async";
-import { AWSServiceParameters, loadAWSParameters } from "./aws-parameters.js";
+import type { SecretString } from "@webda/core";
+import { AWSServiceParameters, getAWSClientConfig, loadAWSParameters } from "./aws-parameters.js";
 
 export interface LambdaAsyncJobEvent {
   eventSource: string;
@@ -17,8 +18,14 @@ export class LambdaCallerParameters extends RunnerParameters implements AWSServi
   endpoint?: string;
   /**
    * Static credentials, default to the AWS environment variables
+   *
+   * Can be encrypted with `webda config encrypt`
    */
-  credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string };
+  credentials?: {
+    accessKeyId: string | SecretString;
+    secretAccessKey: string | SecretString;
+    sessionToken?: string | SecretString;
+  };
   /**
    * AWS region
    * @default "us-east-1"
@@ -89,7 +96,7 @@ export class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParamet
    */
   resolve(): this {
     super.resolve();
-    this.client = new Lambda(this.parameters);
+    this.client = new Lambda(getAWSClientConfig(this.parameters));
     return this;
   }
 

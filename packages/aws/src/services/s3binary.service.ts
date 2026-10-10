@@ -9,11 +9,12 @@ import {
   CloudBinaryParameters,
   CoreModel,
   OperationContext,
+  SecretString,
   useModelId,
   WebdaError
 } from "@webda/core";
 import { Readable } from "node:stream";
-import { AWSServiceParameters, loadAWSParameters } from "./aws-parameters.js";
+import { AWSServiceParameters, getAWSClientConfig, loadAWSParameters } from "./aws-parameters.js";
 import type { CloudFormationContributor, CloudFormationDeployerInfo } from "./contributors.js";
 
 /**
@@ -26,8 +27,14 @@ export class S3BinaryParameters extends CloudBinaryParameters implements AWSServ
   endpoint?: string;
   /**
    * Static credentials, default to the AWS environment variables
+   *
+   * Can be encrypted with `webda config encrypt`
    */
-  credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string };
+  credentials?: {
+    accessKeyId: string | SecretString;
+    secretAccessKey: string | SecretString;
+    sessionToken?: string | SecretString;
+  };
   /**
    * AWS region
    * @default "us-east-1"
@@ -93,6 +100,10 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   implements CloudFormationContributor
 {
   _s3: S3;
+  /**
+   * S3 client configuration, with plain credentials
+   */
+  protected _s3Config: any;
 
   /**
    * Create the S3 client
@@ -100,7 +111,8 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   computeParameters() {
     super.computeParameters();
-    this._s3 = new S3(this.parameters);
+    this._s3Config = getAWSClientConfig(this.parameters);
+    this._s3 = new S3(this._s3Config);
   }
 
   /**
@@ -186,7 +198,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @returns the putObject result
    */
   putMarker(hash: string, suffix: string, storeName: string) {
-    const s3obj = new S3(this.parameters);
+    const s3obj = new S3(this._s3Config);
     return s3obj.putObject({
       Bucket: this.parameters.bucket,
       Key: this._getKey(hash, suffix),
@@ -214,7 +226,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       command = new PutObjectCommand(params);
     }
     // Create new client as the implementation is an ugly middleware
-    return getSignedUrl(new S3(this.parameters), command, params);
+    return getSignedUrl(new S3(this._s3Config), command, params);
   }
 
   /**
@@ -376,7 +388,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async getObject(key: string, bucket?: string): Promise<Readable> {
     bucket = bucket || this.parameters.bucket;
-    const s3obj = new S3(this.parameters);
+    const s3obj = new S3(this._s3Config);
     return (
       await s3obj.getObject({
         Bucket: bucket,
@@ -402,7 +414,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   ) {
     const params: any = { Bucket, Prefix };
     let page = 0;
-    const s3 = new S3(this.parameters);
+    const s3 = new S3(this._s3Config);
     do {
       await s3.listObjectsV2(params).then(async ({ Contents, NextContinuationToken }: any) => {
         params.ContinuationToken = NextContinuationToken;
@@ -432,7 +444,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     metadatas = {},
     bucket: string = this.parameters.bucket
   ) {
-    const s3obj = new S3(this.parameters);
+    const s3obj = new S3(this._s3Config);
     await s3obj.putObject({
       Bucket: bucket,
       Key: key,
@@ -454,7 +466,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     if (data === undefined) {
       const s3metas: any = {};
       s3metas["x-amz-meta-challenge"] = file.challenge;
-      const s3obj = new S3(this.parameters);
+      const s3obj = new S3(this._s3Config);
       await s3obj.putObject({
         Bucket: this.parameters.bucket,
         Key: this._getKey(file.hash),

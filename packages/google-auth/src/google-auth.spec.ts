@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import { createHash } from "node:crypto";
-import { HttpContext, Ident, useService, type WebContext } from "@webda/core";
+import { HttpContext, Ident, SecretString, useService, type WebContext } from "@webda/core";
 import { AuthTest } from "@webda/auth/lib/test/authtest.js";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import { OAuth2Client } from "google-auth-library";
@@ -149,6 +149,14 @@ class GoogleAuthTest extends AuthTest {
     assert.deepStrictEqual(params.audiences, []);
     assert.strictEqual(this.google.providerName, "google");
     assert.deepStrictEqual(this.google.getPublicInfo(), { name: "google", type: "oauth", startUrl: "/auth/google" });
+  }
+
+  @test
+  encryptedClientSecret() {
+    // An encrypted client secret reaches the Google client as a plain string
+    this.google.getParameters().client_secret = new SecretString("plainSecret", "test");
+    const client: any = (this.google as any).getClient("https://app.example.com/callback");
+    assert.strictEqual(client._clientSecret, "plainSecret");
   }
 
   @test

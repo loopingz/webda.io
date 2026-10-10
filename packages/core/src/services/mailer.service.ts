@@ -4,6 +4,7 @@ import * as nodemailer from "nodemailer";
 import * as path from "path";
 import { NotificationService } from "./notificationservice.service.js";
 import { Service } from "./service.js";
+import { SecretString } from "./cryptoservice.service.js";
 import { Counter } from "../metrics/metrics.js";
 import type { User } from "../models/user.model.js";
 import type { Ident } from "../models/ident.model.js";
@@ -98,6 +99,8 @@ export class MailerParameters extends ServiceParameters {
   transport?: string;
   /**
    * SES AWS Bean if transport === "ses"
+   *
+   * Credentials inside can be encrypted with `webda config encrypt`
    */
   SES?: any;
 
@@ -249,7 +252,10 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
    */
   async init(): Promise<this> {
     // Service parameters carry the nodemailer transport options (SMTP, SES, ...) next to the Mailer settings
-    this._transporter = nodemailer.createTransport(<nodemailer.TransportConfig>this.parameters);
+    // Encrypted values (auth.pass, SES credentials...) are unwrapped to plain strings for nodemailer
+    this._transporter = nodemailer.createTransport(
+      <nodemailer.TransportConfig>SecretString.unwrap({ ...this.parameters })
+    );
     return this;
   }
 

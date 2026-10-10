@@ -1,5 +1,6 @@
 import { Client } from "@elastic/elasticsearch";
 import {
+  SecretString,
   Service,
   ServiceParameters,
   WebdaError,
@@ -81,6 +82,8 @@ export class ElasticSearchServiceParameters extends ServiceParameters {
   /**
    * ClientOptions is not usable for now
    * ts-json-schema error
+   *
+   * Can be encrypted with `webda config encrypt`
    */
   client: any;
   /**
@@ -137,7 +140,7 @@ export default class ElasticSearchService<
    */
   resolve(): this {
     super.resolve();
-    this._client = new Client(this.parameters.client);
+    this._client = new Client(SecretString.unwrap(this.parameters.client));
     return this;
   }
 

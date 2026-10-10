@@ -1,0 +1,9 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {},
+  "models": {},
+  "schemas": {},
+  "behaviors": {}
+}

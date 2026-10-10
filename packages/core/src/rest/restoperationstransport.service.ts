@@ -26,9 +26,6 @@ import type { ModelAction } from "../models/types.js";
 import type { ModelGraphBehaviorDefinition, ModelMetadata } from "@webda/compiler";
 
 /**
- * Swagger static html
- */
-/**
  * @param data - a raw WebSocket message
  * @returns its length in bytes
  */
@@ -37,6 +34,9 @@ function rawLength(data: Buffer | ArrayBuffer | Buffer[]): number {
   return data instanceof ArrayBuffer ? data.byteLength : data.length;
 }
 
+/**
+ * Swagger static html
+ */
 const SWAGGER_HTML = `
 <html>
   <head>

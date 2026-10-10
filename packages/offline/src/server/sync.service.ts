@@ -172,10 +172,8 @@ export class SyncService extends Service<SyncServiceParameters> {
   async init(): Promise<this> {
     await super.init();
     for (const id of this.parameters.models) {
+      // Throws "Undefined model <id>" for an unknown one
       const model = useModel(id);
-      if (!model) {
-        throw new Error(`SyncService: unknown model ${id}`);
-      }
       const schema: any = useApplication().getSchema(id);
       if (schema && !schema.properties?._rev) {
         throw new Error(`SyncService: model ${id} must declare _rev (implement Syncable)`);

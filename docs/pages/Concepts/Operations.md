@@ -24,6 +24,58 @@ OperationCall is
 
 A `@Route` can be seen as an Operation
 
+## Streaming operations
+
+An operation streams when its signature says so: an `async *` method (or one returning `AsyncGenerator<T>` /
+`AsyncIterable<T>`) produces a stream of `T`, and a single parameter typed `AsyncIterable<T>` consumes one. The
+compiler describes each side by `T` and marks it `x-webda-stream`; the mode follows:
+
+| Signature                                               | Mode   | gRPC                | REST                               | GraphQL          | MCP                    |
+| ------------------------------------------------------- | ------ | ------------------- | ---------------------------------- | ---------------- | ---------------------- |
+| `op(args): Promise<R>`                                  | none   | unary               | as usual                           | Query / Mutation | tool                   |
+| `async *op(args): AsyncGenerator<T>`                    | server | server stream, live | buffered (live NDJSON/SSE planned) | not yet          | progress notifications |
+| `op(items: AsyncIterable<T>): Promise<R>`               | client | client stream       | not exposed                        | not exposed      | not exposed            |
+| `async *op(items: AsyncIterable<T>): AsyncGenerator<U>` | bidi   | bidi stream         | WebSocket on the operation URL     | skipped          | skipped                |
+
+```ts
+@Operation()
+async *connect(frames: AsyncIterable<Envelope>): AsyncGenerator<Envelope> {
+  const auth = useContext<WebContext>().getHttpContext()?.getUniqueHeader("authorization");
+  yield { frame: "welcome" };
+  for await (const envelope of frames) yield handle(envelope, auth);
+}
+```
+
+- Each incoming message is validated against `T` as it is read; an invalid one fails the call (`INVALID_ARGUMENT`,
+  WebSocket close `4400`).
+- The request headers (gRPC metadata included) and the session are available through `useContext()`, also after a
+  `yield`.
+- When the client goes away, the input ends and the generator is closed (`finally` blocks run). Output waits while
+  the client cannot keep up.
+- `grpc: { streaming }` in `@Operation` still overrides the mode.
+
+### WebSocket (REST transport)
+
+A bidirectional operation is served as a WebSocket on its REST route by `Webda/RESTOperationsTransport`; the upgrade
+listener is only attached when at least one such route exists.
+
+- One JSON text message per item each way.
+- The upgrade is checked like a normal request: the `Webda.Request` event and the router request filters run first,
+  then the operation permission; a refused upgrade answers HTTP `403` (`400` when the request cannot be read).
+- A plain HTTP request to the URL answers `426 Upgrade Required`.
+- Close codes: `1000` when the generator returns; `4000 + status` for a `WebdaError` with a response code (e.g. `4404`,
+  the reason is the error message); `1011` for any other error, with a generic reason (`Internal server error`) so
+  internals do not leak; `4400` for a message that is not valid JSON or does not match `T`; `4413` when the client
+  sends faster than the operation reads (see `webSocketMaxQueuedMessages`).
+- Operations whose path has parameters (templated, e.g. `/items/{id}/connect`) are not served over WebSocket: a
+  `WARN` is logged at startup.
+- Transport parameters:
+
+| Parameter                    | Default           | Meaning                                                                                            |
+| ---------------------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
+| `webSocketMaxPayload`        | `1048576` (1 MiB) | Largest incoming message in bytes; a larger one closes the socket                                  |
+| `webSocketMaxQueuedMessages` | `1000`            | Most received messages waiting to be read by the operation; above it the socket closes with `4413` |
+
 ## See also
 
 - [Core Routing](../Modules/core/Routing.md)

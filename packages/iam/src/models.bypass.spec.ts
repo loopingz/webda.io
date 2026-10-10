@@ -6,6 +6,7 @@ import {
   loadModelForAction,
   queryModelWithPermissions,
   registerOperation,
+  registerOperationAuthorizer,
   Service,
   SimpleOperationContext,
   unregisterOperationAuthorizer,
@@ -133,9 +134,57 @@ class IAMModelsBypassTest extends IAMTest {
     assert.strictEqual(attachments.length, 1);
     await this.call("IAMPolicyAttachment.Delete", {}, { uuid: attachments[0].uuid });
     assert.strictEqual((await IAMPolicyAttachment.query("")).results.length, 0);
+    await this.call(
+      "IAMPolicy.Update",
+      { name: "Readers", description: "updated", statements: [{ effect: "allow", operations: ["*.Query"] }] },
+      { name: "Readers" }
+    );
+    const updated = await IAMPolicy.ref("Readers").get();
+    assert.strictEqual(updated.description, "updated");
+    assert.deepStrictEqual(updated.statements, [{ effect: "allow", operations: ["*.Query"] }]);
     // Refused by the policy
     await assert.rejects(() => this.call("IAMPolicy.Delete", {}, { name: "Readers" }), WebdaError.Forbidden);
     assert.ok(await IAMPolicy.ref("Readers").get());
+  }
+
+  @test
+  async operationPathDeletesWhenAllowed() {
+    await this.service.stop();
+    unregisterOperationAuthorizer((this.service as any).authorizer);
+    this.service = await this.addService(
+      IAMService,
+      {
+        type: "Webda/IAMService",
+        reloadDelay: 0,
+        reloadInterval: 0,
+        scope: ["Tasks.*"],
+        policies: [{ name: "IAMAdmin", statements: [{ effect: "allow", operations: ["IAMPolicy.*"] }] }] as any,
+        attachments: { anonymous: ["IAMAdmin"] }
+      },
+      "IAM"
+    );
+    await IAMPolicy.create({ name: "Gone", statements: [] } as any);
+    await this.call("IAMPolicy.Delete", {}, { name: "Gone" });
+    await assert.rejects(() => IAMPolicy.ref("Gone").get());
+  }
+
+  @test
+  async laterAuthorizerRefusalClearsTheMarker() {
+    await IAMPolicy.create({ name: "Stored", statements: [] } as any);
+    // Registered after the IAMService: IAM allows (and marks), then this one refuses
+    const refuser = async (_ctx: any, operationId: string) =>
+      operationId === "IAMPolicy.Get" ? "refused by another authorizer" : (true as const);
+    registerOperationAuthorizer(refuser);
+    try {
+      const ctx = await this.context({}, { name: "Stored" });
+      await assert.rejects(() => callOperation(ctx, "IAMPolicy.Get"), WebdaError.Forbidden);
+      assert.strictEqual(ctx.getExtension("operation"), "IAMPolicy.Get");
+      assert.strictEqual(ctx.getExtension(IAM_ALLOWED_OPERATION), undefined);
+      assert.notStrictEqual(await IAMPolicy.canAct(ctx, "get"), true);
+      await assert.rejects(() => loadModelForAction(IAMPolicy, "Stored", ctx, "get"), WebdaError.NotFound);
+    } finally {
+      unregisterOperationAuthorizer(refuser);
+    }
   }
 
   @test
@@ -190,7 +239,14 @@ class IAMModelsBypassTest extends IAMTest {
     const reused = await this.context({}, { name: "Stored" });
     await IAMPolicy.create({ name: "Stored", statements: [] } as any);
     await callOperation(reused, "IAMPolicy.Get");
-    assert.strictEqual(await IAMPolicy.canAct(reused, "get"), true);
+    // The operation returned: its marker is gone, no residual authorization for any action
+    assert.strictEqual(reused.getExtension(IAM_ALLOWED_OPERATION), undefined);
+    assert.notStrictEqual(await IAMPolicy.canAct(reused, "get"), true);
+    assert.notStrictEqual(await IAMPolicy.canAct(reused, "delete"), true);
+    await assert.rejects(() => loadModelForAction(IAMPolicy, "Stored", reused, "delete"), WebdaError.NotFound);
+    // Same after a failed IAM operation
+    await assert.rejects(() => callOperation(reused, "IAMPolicy.Delete"), WebdaError.Forbidden);
+    assert.notStrictEqual(await IAMPolicy.canAct(reused, "delete"), true);
     await callOperation(reused, "Bypass.Op");
     assert.notStrictEqual(await IAMPolicy.canAct(reused, "get"), true);
     assert.notStrictEqual(await IAMPolicyAttachment.canAct(reused, "create"), true);

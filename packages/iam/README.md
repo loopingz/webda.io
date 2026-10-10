@@ -104,7 +104,7 @@ IAM is an operation authorizer: it governs **only** calls that go through `callO
 
 - **GraphQL** resolves models through their `canAct`, not through operations, so IAM policies do not apply to your
   models there. The IAM models themselves are safe: their `canAct` allows an action only inside an operation the
-  `IAMService` authorizer allowed (it records the allowed IAM operation on the context), so any path that bypasses the
+  `IAMService` authorizer allowed (it records the allowed IAM operation on the context until that operation ends), so any path that bypasses the
   operation authorizer, such as GraphQL CRUD, is refused for every caller. Excluding them from GraphQL is defense in
   depth, not required: `"models": ["*", "!Webda/IAMPolicy", "!Webda/IAMPolicyAttachment"]` on the GraphQL service
   (and any subclass you expose).
@@ -115,7 +115,9 @@ IAM is an operation authorizer: it governs **only** calls that go through `callO
 - A **system context** (`runAsSystem`, user id `system`) has no loadable user: in-scope operations are refused.
 - Framework models stay internal unless the application namespace resolves to them, so `IAMPolicy` /
   `IAMPolicyAttachment` are only exposed as operations when your application exposes them (namespace `Webda` or a
-  subclass in your namespace). Their operation ids (`IAMPolicy.*`, `IAMPolicies.*`, ...) are always in scope.
+  subclass in your namespace). Their operation ids (`IAMPolicy.*`, `IAMPolicies.*`, ...) are always in scope. A
+  subclass is governed only if it keeps the `IAMPolicy` / `IAMPolicyAttachment` short name (hence those operation
+  ids); under another name its `canAct` is refused everywhere.
 
 ## Fail-closed behavior
 

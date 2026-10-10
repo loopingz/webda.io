@@ -4,6 +4,7 @@ import {
   registerOperationAuthorizer,
   Service,
   ServiceParameters,
+  useCoreEvents,
   WebContext,
   WebdaError
 } from "@webda/core";
@@ -37,6 +38,20 @@ export const IAM_OPERATIONS = ["IAMPolicy.*", "IAMPolicies.*", "IAMPolicyAttachm
  */
 export function isIAMOperation(operationId: string): boolean {
   return IAM_OPERATIONS.some(pattern => iamGlobMatch(operationId, pattern));
+}
+
+/**
+ * Drop the IAM decision recorded on a context once its operation ended (success or failure, including a refusal by
+ * another authorizer): core leaves the `operation` extension set, so a kept marker would still satisfy the IAM models'
+ * canAct after the call. Synchronous: core runs it before callOperation returns
+ * @param evt - the operation event
+ * @param evt.context - the operation context
+ * @param evt.operationId - the operation id
+ */
+function clearAllowedOperation(evt: { context: OperationContext; operationId: string }): void {
+  if (evt.context?.getExtension?.(IAM_ALLOWED_OPERATION) === evt.operationId) {
+    evt.context.setExtension(IAM_ALLOWED_OPERATION, undefined);
+  }
 }
 
 /**
@@ -211,6 +226,10 @@ export class IAMService<T extends IAMServiceParameters = IAMServiceParameters> e
   async init(): Promise<this> {
     await super.init();
     this.stopped = false;
+    // Nothing is marked before the policies are loaded, nor after stop (the engine is dropped)
+    for (const event of ["Webda.OperationSuccess", "Webda.OperationFailure"] as const) {
+      this.unsubscribers.push(useCoreEvents(event, clearAllowedOperation));
+    }
     for (const model of [IAMPolicy, IAMPolicyAttachment]) {
       const repository = tryRepository(model);
       if (!repository) {

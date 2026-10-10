@@ -1504,6 +1504,16 @@
             "description": "Base URL for the REST API",
             "type": "string"
           },
+          "webSocketMaxPayload": {
+            "default": 1048576,
+            "description": "Largest message (bytes) a client may send on a bidirectional WebSocket operation; a bigger one closes the socket",
+            "type": "number"
+          },
+          "webSocketMaxQueuedMessages": {
+            "default": 1000,
+            "description": "Most unconsumed messages a bidirectional operation may have queued; above it the socket closes with 4413",
+            "type": "number"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true

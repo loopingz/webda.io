@@ -15,8 +15,11 @@ import { ServiceParameters } from "../services/serviceparameters.js";
 import { useApplication } from "../application/hooks.js";
 import { registerSchema } from "../schemas/hooks.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
+import { useRouter } from "./hooks.js";
+import { Session } from "../session/session.js";
+import { truncateUtf8 } from "./restoperationstransport.service.js";
 
-const state = { closed: false };
+const state = { closed: false, started: 0, gate: Promise.resolve() as Promise<void> };
 
 class WsFixtureService extends Service {
   static createConfiguration(params: any) {
@@ -30,13 +33,31 @@ class WsFixtureService extends Service {
   async *connect(frames: AsyncIterable<{ frame: string }>) {
     const auth = () => useContext<WebContext>().getHttpContext()?.getUniqueHeader("authorization") ?? "none";
     try {
+      state.started++;
       yield { frame: `hello ${auth()}` };
       for await (const f of frames) {
         if (f.frame === "fail") throw new WebdaError.NotFound("No such frame");
+        if (f.frame === "boom") throw new Error("secret database password");
+        if (f.frame === "longfail") throw new WebdaError.BadRequest("é".repeat(100) + " is not accepted");
+        if (f.frame === "who") {
+          yield { frame: `user ${useContext<WebContext>().getSession<any>()?.userId}` };
+          continue;
+        }
         if (f.frame === "cancel") throw new WebdaError.OperationCancelledError();
         if (f.frame === "bye") return;
         yield { frame: `echo ${f.frame}` };
       }
+    } finally {
+      state.closed = true;
+    }
+  }
+
+  /** Never reads its input: waits on the gate, then writes (which throws once cancelled) */
+  async *stall(_frames: AsyncIterable<{ frame: string }>) {
+    try {
+      yield { frame: "stalled" };
+      await state.gate;
+      yield { frame: "late" };
     } finally {
       state.closed = true;
     }
@@ -60,8 +81,14 @@ const schema = (name: string, value: any) => {
 function watch(ws: WebSocket) {
   const messages: any[] = [];
   ws.on("message", data => messages.push(JSON.parse(String(data))));
-  const closed = new Promise<number>(resolve => ws.on("close", code => resolve(code)));
-  return { messages, closed };
+  const reasons: string[] = [];
+  const closed = new Promise<number>(resolve =>
+    ws.on("close", (code, reason) => {
+      reasons.push(String(reason));
+      resolve(code);
+    })
+  );
+  return { messages, closed, reasons };
 }
 
 /**
@@ -81,7 +108,11 @@ class WebSocketOperationTest extends WebdaApplicationTest {
       services: {
         Ws: { type: "Webda/WsFixtureService" },
         HttpServer: { type: "Webda/HttpServer", port: 0 },
-        RESTService: { type: "Webda/RESTOperationsTransport" }
+        RESTService: {
+          type: "Webda/RESTOperationsTransport",
+          webSocketMaxPayload: 2048,
+          webSocketMaxQueuedMessages: 50
+        }
       }
     };
   }
@@ -110,10 +141,12 @@ class WebSocketOperationTest extends WebdaApplicationTest {
         output: "Ws.Frame",
         permission: "userId = 'alice'"
       });
+      registerOperation("Ws.Stall", { service: "Ws", method: "stall", input: "Ws.Frame", output: "Ws.Frame" });
       const ops = useInstanceStorage().operations;
       (useService("RESTService" as any) as any).exposeServiceOperations({
         "Ws.Connect": ops["Ws.Connect"],
-        "Ws.Guarded": ops["Ws.Guarded"]
+        "Ws.Guarded": ops["Ws.Guarded"],
+        "Ws.Stall": ops["Ws.Stall"]
       });
       const http = useService("HttpServer" as any) as any;
       await http.start("127.0.0.1", 0);
@@ -218,5 +251,152 @@ class WebSocketOperationTest extends WebdaApplicationTest {
     assert.strictEqual(socket.listenerCount("close"), 0);
     assert.throws(() => ctx.write({ a: 3 }), WebdaError.OperationCancelledError);
     await assert.rejects(ctx.drained(), WebdaError.OperationCancelledError);
+  }
+
+  @test
+  async requestFiltersApplyToTheUpgrade() {
+    const url = await this.url();
+    useRouter().registerRequestFilter({
+      checkRequest: async ctx => ctx.getHttpContext().getUniqueHeader("origin") !== "http://evil.example"
+    });
+    state.started = 0;
+    const evil = new WebSocket(`ws://${url}/ws/connect`, { origin: "http://evil.example" });
+    const status = await new Promise<number>(resolve =>
+      evil.on("unexpected-response", (_req, res) => resolve(res.statusCode!))
+    );
+    assert.strictEqual(status, 403);
+    assert.strictEqual(state.started, 0, "the operation must not run");
+    const good = new WebSocket(`ws://${url}/ws/connect`, { origin: "http://good.example" });
+    const { messages } = watch(good);
+    await new Promise(r => good.on("open", r));
+    await until(() => messages.length === 1);
+    good.close();
+  }
+
+  @test
+  async oversizedMessageClosesTheSocketAndCancels() {
+    state.closed = false;
+    const ws = new WebSocket(`ws://${await this.url()}/ws/connect`);
+    const { messages, closed } = watch(ws);
+    await new Promise(r => ws.on("open", r));
+    await until(() => messages.length === 1);
+    ws.send(JSON.stringify({ frame: "x".repeat(4000) }));
+    assert.strictEqual(await closed, 1009);
+    await until(() => state.closed);
+  }
+
+  @test
+  async floodingAnOperationThatDoesNotReadClosesWith4413() {
+    state.closed = false;
+    let release!: () => void;
+    state.gate = new Promise<void>(resolve => (release = resolve));
+    const ws = new WebSocket(`ws://${await this.url()}/ws/stall`);
+    const { messages, closed } = watch(ws);
+    await new Promise(r => ws.on("open", r));
+    await until(() => messages.length === 1);
+    for (let i = 0; i < 200; i++) ws.send(JSON.stringify({ frame: `m${i}` }));
+    assert.strictEqual(await closed, 4413);
+    // Cancelled: its next write throws and its finally runs
+    release();
+    await until(() => state.closed);
+  }
+
+  @test
+  async internalErrorsAreHidden() {
+    const ws = new WebSocket(`ws://${await this.url()}/ws/connect`);
+    const { closed, reasons } = watch(ws);
+    await new Promise(r => ws.on("open", r));
+    ws.send(JSON.stringify({ frame: "boom" }));
+    assert.strictEqual(await closed, 1011);
+    assert.strictEqual(reasons[0], "Internal server error");
+  }
+
+  @test
+  async longMultiByteReasonsAreTruncatedOnACharacter() {
+    const ws = new WebSocket(`ws://${await this.url()}/ws/connect`);
+    const { closed, reasons } = watch(ws);
+    await new Promise(r => ws.on("open", r));
+    ws.send(JSON.stringify({ frame: "longfail" }));
+    assert.strictEqual(await closed, 4400);
+    assert.ok(Buffer.byteLength(reasons[0]) <= 123);
+    assert.ok(reasons[0].startsWith("éé") && !reasons[0].includes("�"));
+    assert.strictEqual(truncateUtf8("ééé", 3), "é");
+    assert.strictEqual(truncateUtf8("abc", 3), "abc");
+  }
+
+  @test
+  async routesAreMatchedRelativeToThePrefixAndTemplatesAreSkipped() {
+    await this.url();
+    const rest = useService("RESTService" as any) as any;
+    assert.strictEqual(rest.webSocketOperationOf("/ws/connect?a=b"), "Ws.Connect");
+    assert.strictEqual(rest.webSocketOperationOf("/prod/ws/connect", "/prod"), "Ws.Connect");
+    assert.strictEqual(rest.webSocketOperationOf("/production/ws/connect", "/prod"), undefined);
+    assert.strictEqual(rest.webSocketOperationOf("/other"), undefined);
+    registerOperation("Ws.Templated", {
+      service: "Ws",
+      method: "connect",
+      input: "Ws.Frame",
+      output: "Ws.Frame",
+      rest: { method: "get", path: "/tpl/{id}" }
+    } as any);
+    const warnings: string[] = [];
+    const log = rest.log;
+    rest.log = (level: string, ...args: any[]) => {
+      if (level === "WARN") warnings.push(args.join(" "));
+      return log.call(rest, level, ...args);
+    };
+    rest.exposeServiceOperations({ "Ws.Templated": useInstanceStorage().operations["Ws.Templated"] });
+    rest.log = log;
+    assert.ok(![...rest.webSocketRoutes.values()].includes("Ws.Templated"));
+    assert.ok(warnings.some(w => w.includes("Ws.Templated")));
+  }
+
+  @test
+  async guardedOperationIsReachableWithASessionAndSeesIt() {
+    const sessions = useService("SessionManager" as any) as any;
+    const load = sessions.load;
+    let loads = 0;
+    sessions.load = async (ctx: WebContext) => {
+      loads++;
+      const session = new Session();
+      if (ctx.getHttpContext().getUniqueHeader("authorization") === "Bearer alice") session.userId = "alice";
+      return session;
+    };
+    try {
+      const ws = new WebSocket(`ws://${await this.url()}/ws/guarded`, { headers: { authorization: "Bearer alice" } });
+      const { messages } = watch(ws);
+      await new Promise(r => ws.on("open", r));
+      await until(() => messages.length === 1);
+      ws.send(JSON.stringify({ frame: "who" }));
+      await until(() => messages.length === 2);
+      assert.deepStrictEqual(messages[1], { frame: "user alice" });
+      assert.strictEqual(loads, 1, "the session is loaded once");
+      ws.close();
+    } finally {
+      sessions.load = load;
+    }
+  }
+
+  @test
+  async upgradeListenerIsAttachedOnceAndOnlyWithRoutes() {
+    const rest = useService("RESTService" as any) as any;
+    const server: any = new EventEmitter();
+    const routes = new Map(rest.webSocketRoutes);
+    rest.webSocketRoutes.clear();
+    rest.attachWebSockets(server, useInstanceStorage());
+    assert.strictEqual(server.listenerCount("upgrade"), 0);
+    routes.forEach((op, path) => rest.webSocketRoutes.set(path, op));
+    rest.webSocketRoutes.set("/ws/connect", "Ws.Connect");
+    rest.attachWebSockets(server, useInstanceStorage());
+    rest.attachWebSockets(server, useInstanceStorage());
+    assert.strictEqual(server.listenerCount("upgrade"), 1);
+    // An unknown path is left alone
+    const socket: any = {
+      destroyed: false,
+      destroy: () => (socket.destroyed = true),
+      end: () => (socket.destroyed = true)
+    };
+    server.emit("upgrade", { url: "/graphql" }, socket, Buffer.alloc(0));
+    assert.strictEqual(socket.destroyed, false);
   }
 }

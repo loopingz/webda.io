@@ -601,7 +601,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @param ctx - the operation context
    * @returns true if the condition is met
    */
-  protected async checkRequest(ctx: IWebContext): Promise<boolean> {
+  async checkRequest(ctx: IWebContext): Promise<boolean> {
     // Do not need to filter on OPTIONS as CORS is for that
     if (ctx.getHttpContext().getMethod() === "OPTIONS" || this._requestFilters.length === 0) {
       return true;

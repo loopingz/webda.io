@@ -3,6 +3,7 @@ import type { WebSocket } from "ws";
 import { JSONUtils } from "@webda/utils";
 import { HttpContext } from "./httpcontext.js";
 import { WebContext } from "./webcontext.js";
+import type { Session } from "../session/session.js";
 import * as WebdaError from "../errors/errors.js";
 
 /** Pending output (bytes) above which write() asks the operation to wait. */
@@ -22,12 +23,23 @@ export class WebSocketOperationContext extends WebContext {
   /**
    * @param httpContext - the upgrade request
    * @param socket - the accepted socket
+   * @param session - the session already loaded for the upgrade request, if any
    */
   constructor(
     httpContext: HttpContext,
-    private readonly socket: WebSocket
+    private readonly socket: WebSocket,
+    session?: Session
   ) {
     super(httpContext);
+    if (session) this.session = session;
+  }
+
+  /**
+   * The session of an authorized upgrade is reused, not loaded twice
+   * @override
+   */
+  async init(): Promise<this> {
+    return this.session ? this : super.init();
   }
 
   /**

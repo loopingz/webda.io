@@ -24,8 +24,19 @@ export class AsyncQueue<T> implements AsyncIterable<T> {
     else this.items.push(item);
   }
 
-  /** No more items. */
-  end(): void {
+  /**
+   * @returns the number of items pushed and not yet consumed
+   */
+  get pending(): number {
+    return this.items.length;
+  }
+
+  /**
+   * No more items.
+   * @param discard - also drop the items not consumed yet
+   */
+  end(discard: boolean = false): void {
+    if (discard) this.items.length = 0;
     if (this.done) return;
     this.done = true;
     for (const waiter of this.waiters.splice(0)) waiter({ value: undefined, done: true });

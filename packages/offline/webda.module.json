@@ -706,6 +706,46 @@
           "type": "object"
         }
       }
+    },
+    "SyncService.watch.input": {
+      "type": "object",
+      "properties": {
+        "scopes": {
+          "items": {
+            "$ref": "#/definitions/SyncScope"
+          },
+          "type": "array"
+        },
+        "_cursor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "scopes"
+      ],
+      "definitions": {
+        "SyncScope": {
+          "additionalProperties": false,
+          "description": "A sync scope: the objects of `model` matching the WebdaQL filter `query` (all of them when omitted)",
+          "properties": {
+            "model": {
+              "type": "string"
+            },
+            "query": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    "SyncService.watch.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "type": "object"
     }
   },
   "behaviors": {}

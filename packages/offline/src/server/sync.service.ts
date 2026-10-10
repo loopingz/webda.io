@@ -33,7 +33,8 @@ import type {
   SnapshotResponse,
   SyncedObject,
   SyncRef,
-  SyncScope
+  SyncScope,
+  WatchEvent
 } from "../protocol/index.js";
 
 /**
@@ -127,6 +128,10 @@ export class SyncService extends Service<SyncServiceParameters> {
   protected lastMs = 0;
   protected counter = 0;
   /**
+   * Hourly retention pruning
+   */
+  protected pruneTimer?: NodeJS.Timeout;
+  /**
    * Remove the repository listeners
    */
   protected unsubscribers: (() => void)[] = [];
@@ -153,6 +158,8 @@ export class SyncService extends Service<SyncServiceParameters> {
       this.hook(id, model);
     }
     await this.prune();
+    this.pruneTimer = setInterval(() => this.prune().catch(err => this.log("ERROR", "Prune failed", err)), 3600000);
+    this.pruneTimer.unref?.();
     return this;
   }
 
@@ -160,6 +167,7 @@ export class SyncService extends Service<SyncServiceParameters> {
    * @returns nothing
    */
   async stop(): Promise<void> {
+    clearInterval(this.pruneTimer);
     for (const off of this.unsubscribers.splice(0)) off();
     this.changes.removeAllListeners();
     await super.stop();
@@ -704,6 +712,44 @@ export class SyncService extends Service<SyncServiceParameters> {
       if (err instanceof WebdaError.Forbidden) return this.rejected(mutationId, "FORBIDDEN", err.message);
       this.log("ERROR", "Sync.Push mutation failed", err);
       return this.rejected(mutationId, "INTERNAL", "Internal error");
+    }
+  }
+
+  /**
+   * Stream of hints telling the client to pull: only a cursor, never object data
+   * @param scopes - the sync scopes
+   * @param _cursor - the client cursor (reserved)
+   * @returns the hints
+   */
+  @Operation({
+    id: "Sync.Watch",
+    input: "SyncService.watch.input",
+    output: "SyncService.watch.output",
+    rest: { method: "post", path: "sync/watch" }
+  })
+  async *watch(scopes: SyncScope[], _cursor?: string): AsyncGenerator<WatchEvent> {
+    const models = new Set(this.validateScopes(scopes).map(s => s.model));
+    let pending: string | undefined;
+    let wake: (() => void) | undefined;
+    const listener = (evt: { model: string; seq: string }) => {
+      if (!models.has(evt.model)) return;
+      pending = evt.seq;
+      wake?.();
+    };
+    this.changes.on("change", listener);
+    try {
+      while (true) {
+        if (!pending) {
+          await new Promise<void>(resolve => (wake = resolve));
+          wake = undefined;
+        }
+        await new Promise(resolve => setTimeout(resolve, this.parameters.watchDebounce));
+        const cursor = pending;
+        pending = undefined;
+        yield { cursor };
+      }
+    } finally {
+      this.changes.off("change", listener);
     }
   }
 }

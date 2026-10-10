@@ -132,4 +132,55 @@ class EngineTest {
     const engine = await PolicyEngine.build([], []);
     assert.notStrictEqual(await engine.decide(["user:x"], "A.B", ctx("A.B")), true);
   }
+
+  async nonBooleanEngine() {
+    const docs: PolicyDocument[] = [
+      { name: "All", statements: [{ effect: "allow", operations: ["*"] }] },
+      { name: "Force", statements: [{ effect: "deny", operations: ["Ops.Run"], condition: "r.ctx.input.force" }] },
+      {
+        name: "Flag",
+        statements: [{ effect: "deny", operations: ["Ops.Flag"], condition: "r.ctx.input.amount > 1000 || r.ctx.input.flag" }]
+      },
+      { name: "Num", statements: [{ effect: "allow", operations: ["Num.Do"], condition: "r.ctx.input.n" }] }
+    ];
+    const { rows } = compileAttachments(
+      [
+        { principal: "user:a", policy: "All" },
+        { principal: "user:a", policy: "Force" },
+        { principal: "user:a", policy: "Flag" },
+        { principal: "user:b", policy: "Num" }
+      ],
+      new Set(docs.map(d => d.name))
+    );
+    return PolicyEngine.build(compilePolicies(docs), rows);
+  }
+
+  @test
+  async nonBooleanDenyConditions() {
+    const engine = await this.nonBooleanEngine();
+    const run = (input: any) => engine.decide(["user:a"], "Ops.Run", ctx("Ops.Run", { input }));
+    for (const force of [2, 4, 1, "yes"]) {
+      assert.notStrictEqual(await run({ force }), true, `force=${force}`);
+    }
+    for (const input of [{ force: 0 }, { force: false }, {}]) {
+      assert.strictEqual(await run(input), true, JSON.stringify(input));
+    }
+    assert.notStrictEqual(
+      await engine.decide(["user:a"], "Ops.Flag", ctx("Ops.Flag", { input: { amount: 1, flag: 2 } })),
+      true
+    );
+    assert.strictEqual(
+      await engine.decide(["user:a"], "Ops.Flag", ctx("Ops.Flag", { input: { amount: 1, flag: 0 } })),
+      true
+    );
+  }
+
+  @test
+  async nonBooleanAllowCondition() {
+    const engine = await this.nonBooleanEngine();
+    const num = (n: any) => engine.decide(["user:b"], "Num.Do", ctx("Num.Do", { input: { n } }));
+    assert.strictEqual(await num(3), true);
+    assert.strictEqual(await num(2), true);
+    assert.notStrictEqual(await num(0), true);
+  }
 }

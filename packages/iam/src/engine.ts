@@ -18,7 +18,7 @@ g = _, _
 e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
 
 [matchers]
-m = attached(r.sub, p.sub) && globMatch(r.op, p.op) && (skipInput(r.ctx, p.probe) ? p.eft == "allow" : eval(p.cond))
+m = attached(r.sub, p.sub) && globMatch(r.op, p.op) && (skipInput(r.ctx, p.probe) ? p.eft == "allow" : !!(eval(p.cond)))
 `;
 
 /**

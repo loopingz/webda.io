@@ -1,27 +1,36 @@
-import { GraphQLScalarType, Kind } from "graphql";
+import { GraphQLScalarType, Kind, valueFromASTUntyped } from "graphql";
 
 /**
- * Coerce an arbitrary value into an object — parses JSON strings, passes objects through
- * @param value - value to coerce
- * @returns parsed object, the value itself if already an object, or null
+ * Read a string as JSON when it looks like a JSON object or array
+ * @param value - the string
+ * @returns the parsed value, or the string itself
  */
-function coerceAny(value: any): any {
-  return typeof value === "object" ? value : typeof value === "string" ? JSON.parse(value) : null;
+function fromJSONString(value: string): any {
+  const text = value.trim();
+  if (!text.startsWith("{") && !text.startsWith("[")) {
+    return value;
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Values pass through unchanged (objects, arrays, numbers, booleans, strings)
+ * @param value - value to pass
+ * @returns the value, null for undefined
+ */
+function passThrough(value: any): any {
+  return value === undefined ? null : value;
 }
 
 export const AnyScalarType = new GraphQLScalarType({
   name: "Object",
-  description: "Arbitrary object",
-  parseValue: coerceAny,
-  serialize: coerceAny,
-  parseLiteral: ast => {
-    switch (ast.kind) {
-      case Kind.STRING:
-        return JSON.parse(ast.value);
-      case Kind.OBJECT:
-        throw new Error(`Not sure what to do with OBJECT for ObjectScalarType`);
-      default:
-        return null;
-    }
-  }
+  description: "Arbitrary value: object, array, number, boolean or string",
+  parseValue: passThrough,
+  serialize: passThrough,
+  parseLiteral: (ast, variables) =>
+    ast.kind === Kind.STRING ? fromJSONString(ast.value) : valueFromASTUntyped(ast, variables)
 });

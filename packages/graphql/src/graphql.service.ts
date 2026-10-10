@@ -196,6 +196,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   schema: GraphQLSchema;
   handler: Handler;
   modelsMap: { [key: string]: GraphQLObjectType };
+  /**
+   * Generated named types, by name: a name is generated once per shape (reset by generateSchema)
+   */
+  namedTypes: Map<string, { type: GraphQLType; shape: string }> = new Map();
   app: Application;
   wss: WebSocketServer;
   wsHandler: GraphQLWSServer;
@@ -229,6 +233,30 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
+   * One GraphQL type per name: reuse the type already generated for this name and shape
+   * @param name - type name
+   * @param shape - what makes two types of this name the same (kind and field names)
+   * @param create - builds the type the first time
+   * @returns the type
+   * @throws Error when the name was generated for another shape
+   */
+  namedType<T extends GraphQLType>(name: string, shape: string, create: () => T): T {
+    this.namedTypes ??= new Map();
+    const known = this.namedTypes.get(name);
+    if (known) {
+      if (known.shape !== shape) {
+        throw new Error(
+          `GraphQL type ${name} is generated for two different schemas (${known.shape} / ${shape}): give one of them another title`
+        );
+      }
+      return known.type as T;
+    }
+    const type = create();
+    this.namedTypes.set(name, { type, shape });
+    return type;
+  }
+
+  /**
    * Convert a JSON Schema to a GraphQL type definition
    * @param schema - JSON Schema to convert
    * @param defaultName - fallback name for anonymous types
@@ -240,6 +268,17 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     defaultName: string,
     input?: boolean
   ): { type: GraphQLType; description?: string } {
+    // `type: ["string", "null"]`: the nullable form of one type (GraphQL fields are nullable already)
+    if (Array.isArray(schema?.type)) {
+      const types = (schema.type as string[]).filter(t => t !== "null");
+      if (types.length === 0) {
+        return undefined;
+      }
+      if (types.length > 1) {
+        return { type: AnyScalarType, description: schema.description };
+      }
+      return this.getGraphQLSchemaFromSchema({ ...schema, type: types[0] as any }, defaultName, input);
+    }
     let type: GraphQLType;
     if (!schema || !schema.type) {
       type = AnyScalarType;
@@ -284,10 +323,11 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         this.log("DEBUG", "Return map for", defaultName, "because no fields");
         return { type: AnyScalarType, description: "Map" };
       }
-      type = new (input ? GraphQLInputObjectType : GraphQLObjectType)({
-        fields,
-        name: schema.title || defaultName
-      });
+      // A titled input type gets its own name: the output type of the same title already uses the title
+      const name = schema.title ? (input ? `${schema.title}Input` : schema.title) : defaultName;
+      type = this.namedType(name, `${input ? "input" : "output"}:${Object.keys(fields).sort().join(",")}`, () =>
+        input ? new GraphQLInputObjectType({ fields, name }) : new GraphQLObjectType({ fields, name })
+      );
     }
     return { type, description: schema.description };
   }
@@ -628,6 +668,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     const subscriptions: ThunkObjMap<GraphQLFieldConfig<any, any, any>> = {};
     const models = this.app.getModels();
     this.modelsMap = {};
+    this.namedTypes = new Map();
     for (const i in models) {
       const model = models[i];
       const metadata = useModelMetadata(model);
@@ -659,6 +700,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         ),
         name: name + "Input"
       });
+      this.namedTypes.set(name, { type: this.modelsMap[i], shape: `model ${i}` });
+      this.namedTypes.set(`${name}Input`, { type: input, shape: `model input ${i}` });
       const actionsName = Object.keys(metadata.Actions);
       if (!actionsName.includes("create")) {
         mutations[`create${name}`] = {

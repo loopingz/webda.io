@@ -32,7 +32,7 @@ describe("HttpTransport", () => {
     expect(calls[0][0]).toBe("https://api.test/sync/pull");
     expect(calls[0][1]).toBe("POST");
     expect(calls[0][2]).toMatchObject({ Authorization: "Bearer t", "Content-Type": "application/json" });
-    expect(calls[0][3]).toEqual({ scopes: [{ model: "A" }], cursor: null });
+    expect(calls[0][3]).toEqual({ scopes: [{ model: "A" }] });
   });
 
   it("throws TransportError on failures", async () => {

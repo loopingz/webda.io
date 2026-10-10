@@ -5,9 +5,19 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "exports": {
-    ".": { "types": "./lib/index.d.ts", "import": "./lib/index.js", "node": "./lib/index.js" },
-    "./client": { "types": "./lib/client/index.d.ts", "import": "./lib/client/index.js" },
-    "./protocol": { "types": "./lib/protocol/index.d.ts", "import": "./lib/protocol/index.js" }
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "node": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/client/index.d.ts",
+      "import": "./lib/client/index.js"
+    },
+    "./protocol": {
+      "types": "./lib/protocol/index.d.ts",
+      "import": "./lib/protocol/index.js"
+    }
   },
   "scripts": {
     "build": "webdac build",
@@ -19,8 +29,16 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix"
   },
-  "keywords": ["webda-module", "offline", "sync"],
-  "files": ["lib", "webda.module.json", "package.json"],
+  "keywords": [
+    "webda-module",
+    "offline",
+    "sync"
+  ],
+  "files": [
+    "lib",
+    "webda.module.json",
+    "package.json"
+  ],
   "dependencies": {
     "@webda/core": "workspace:*",
     "@webda/models": "workspace:*",
@@ -38,12 +56,24 @@
     "vite": "^6.0.0",
     "vitest": "^4.1.2"
   },
-  "bugs": { "url": "https://github.com/loopingz/webda.io/issues" },
+  "bugs": {
+    "url": "https://github.com/loopingz/webda.io/issues"
+  },
   "homepage": "https://github.com/loopingz/webda.io#readme",
-  "repository": { "type": "git", "url": "git+https://github.com/loopingz/webda.io.git", "directory": "packages/offline" },
-  "publishConfig": { "access": "public" },
-  "webda": { "namespace": "Webda" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/offline"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "webda": {
+    "namespace": "Webda"
+  },
   "type": "module",
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "license": "LGPL-3.0-only"
 }

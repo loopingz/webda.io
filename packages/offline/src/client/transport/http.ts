@@ -120,18 +120,40 @@ export class HttpTransport implements Transport {
     return res;
   }
 
+  /**
+   *
+   * @param req - the req
+   * @returns the result
+   */
   async pull(req: PullRequest): Promise<PullResponse> {
-    return (await this.request("pull", req)).json();
+    // The server input schema types cursor as an optional string: a null cursor is sent as an absent one
+    const { cursor, ...rest } = req;
+    return (await this.request("pull", cursor == null ? rest : { ...rest, cursor })).json();
   }
 
+  /**
+   *
+   * @param req - the req
+   * @returns the result
+   */
   async push(req: PushRequest): Promise<PushResponse> {
     return (await this.request("push", req)).json();
   }
 
+  /**
+   *
+   * @param req - the req
+   * @returns the result
+   */
   async snapshot(req: SnapshotRequest): Promise<SnapshotResponse> {
     return (await this.request("snapshot", req)).json();
   }
 
+  /**
+   *
+   * @param req - the req
+   * @param signal - the signal
+   */
   async *watch(req: WatchRequest, signal: AbortSignal): AsyncIterable<WatchEvent> {
     const res = await this.request("watch", req, { signal, headers: { Accept: "text/event-stream" } });
     if (!res.body) return;

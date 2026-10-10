@@ -48,18 +48,35 @@ export const NOTE_SCHEMA = {
  * Operation context with a stubbed user and a JSON body
  */
 export class UserContext extends OperationContext {
+  /**
+   *
+   * @param userId - the userId
+   * @param body - the body
+   */
   constructor(
     protected userId?: string,
     protected body?: any
   ) {
     super();
   }
+  /**
+   *
+   * @returns the result
+   */
   getCurrentUserId(): any {
     return this.userId;
   }
+  /**
+   *
+   * @returns the result
+   */
   async getRawInputAsString(): Promise<string> {
     return this.body === undefined ? "" : JSON.stringify(this.body);
   }
+  /**
+   *
+   * @returns the result
+   */
   async getRawInput(): Promise<Buffer> {
     return Buffer.from(await this.getRawInputAsString());
   }
@@ -95,6 +112,10 @@ export class SyncTest extends WebdaApplicationTest {
     app.addModda("Webda/SyncService", SyncService);
   }
 
+  /**
+   *
+   * @returns the result
+   */
   get sync(): SyncService {
     return useCore().getService<SyncService>("sync");
   }
@@ -121,6 +142,9 @@ export class SyncTest extends WebdaApplicationTest {
     return (await SyncChange.query("ORDER BY seq ASC LIMIT 1000")).results;
   }
 
+  /**
+   *
+   */
   async afterEach() {
     for (const note of (await Note.query("")).results) await note.delete();
     for (const change of await this.changes()) await change.delete();

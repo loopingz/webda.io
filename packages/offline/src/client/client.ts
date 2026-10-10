@@ -150,6 +150,7 @@ export class OfflineClient extends Emitter<{
 
   /**
    * Push then pull; concurrent calls share one run (and trigger one more if needed)
+   * @returns the result
    */
   sync(): Promise<void> {
     if (this.running) {
@@ -219,6 +220,7 @@ export class OfflineClient extends Emitter<{
 
   /**
    * Initial sync, then the timer, `online` events and watch hints; concurrent calls share one start
+   * @returns the result
    */
   start(): Promise<void> {
     if (!this.starting) {

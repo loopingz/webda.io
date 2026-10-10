@@ -34,6 +34,9 @@ export class FakeServer implements Transport {
     this.failure = error;
   }
 
+  /**
+   *
+   */
   protected check(): void {
     const failure = this.failure;
     this.failure = undefined;
@@ -54,6 +57,11 @@ export class FakeServer implements Transport {
     this.log.push(id);
   }
 
+  /**
+   *
+   * @param req - the req
+   * @returns the result
+   */
   async pull(req: PullRequest): Promise<PullResponse> {
     this.check();
     this.pullCalls++;
@@ -74,6 +82,11 @@ export class FakeServer implements Transport {
     return { upserts, evicts, cursor: String(this.log.length), hasMore: false };
   }
 
+  /**
+   *
+   * @param req - the req
+   * @returns the result
+   */
   async snapshot(req: SnapshotRequest): Promise<SnapshotResponse> {
     this.check();
     const validator = new QueryValidator(req.scope.query ?? "");
@@ -84,6 +97,11 @@ export class FakeServer implements Transport {
     };
   }
 
+  /**
+   *
+   * @param req - the req
+   * @returns the result
+   */
   async push(req: PushRequest): Promise<PushResponse> {
     this.check();
     this.received.push(structuredClone(req));

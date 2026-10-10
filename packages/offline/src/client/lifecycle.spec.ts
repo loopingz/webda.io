@@ -57,7 +57,7 @@ describe("OfflineClient lifecycle", () => {
   it("pulls on watch hints", async () => {
     const server = new FakeServer();
     let push!: (v: any) => void;
-    server.watch = async function* () {
+    server.watch = async function* watchStub() {
       yield await new Promise<any>(resolve => (push = resolve));
     } as any;
     const client = new OfflineClient({
@@ -81,7 +81,7 @@ describe("OfflineClient lifecycle", () => {
     const server = new FakeServer();
     let emit!: (v: any) => void;
     const gate = new Promise<void>(resolve => (emit = resolve));
-    server.watch = async function* () {
+    server.watch = async function* watchStub() {
       yield { cursor: "1", heartbeat: true };
       yield { cursor: "2", heartbeat: true };
       await gate;
@@ -180,7 +180,7 @@ describe("OfflineClient lifecycle", () => {
         calls++;
         throw Object.assign(new Error("down"), { status: 0 });
       });
-      transport.watch = async function* (_req: any, s: AbortSignal) {
+      transport.watch = async function* watchStub(_req: any, s: AbortSignal) {
         signal = s;
         await new Promise(() => {});
       };
@@ -211,7 +211,7 @@ describe("OfflineClient lifecycle", () => {
   it("reconnects the watch after the stream ends or throws", async () => {
     let connections = 0;
     const transport = transportOf(async () => ok);
-    transport.watch = async function* () {
+    transport.watch = async function* watchStub() {
       connections++;
       if (connections === 1) return;
       if (connections === 2) throw new Error("broken");
@@ -238,7 +238,7 @@ describe("OfflineClient lifecycle", () => {
         calls++;
         return ok;
       });
-      transport.watch = async function* () {
+      transport.watch = async function* watchStub() {
         connections++;
         await new Promise(() => {});
       };

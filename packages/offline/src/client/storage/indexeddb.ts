@@ -71,11 +71,20 @@ export class IndexedDBStorage implements StorageAdapter {
     return record;
   }
 
+  /**
+   *
+   * @param id - the id
+   * @returns the result
+   */
   async getRecord(id: string): Promise<LocalRecord | undefined> {
     const db = await this.open();
     return this.strip(await done(db.transaction(RECORDS).objectStore(RECORDS).get(id)));
   }
 
+  /**
+   *
+   * @param records - the records
+   */
   async putRecords(records: LocalRecord[]): Promise<void> {
     const db = await this.open();
     const tx = db.transaction(RECORDS, "readwrite");
@@ -84,6 +93,10 @@ export class IndexedDBStorage implements StorageAdapter {
     await committed(tx);
   }
 
+  /**
+   *
+   * @param ids - the ids
+   */
   async deleteRecords(ids: string[]): Promise<void> {
     const db = await this.open();
     const tx = db.transaction(RECORDS, "readwrite");
@@ -91,23 +104,42 @@ export class IndexedDBStorage implements StorageAdapter {
     await committed(tx);
   }
 
+  /**
+   *
+   * @param model - the model
+   * @returns the result
+   */
   async scan(model: string): Promise<LocalRecord[]> {
     const db = await this.open();
     const rows = await done(db.transaction(RECORDS).objectStore(RECORDS).index("model").getAll(model));
     return rows.map(row => this.strip(row)!);
   }
 
+  /**
+   *
+   * @returns the result
+   */
   async scanPending(): Promise<LocalRecord[]> {
     const db = await this.open();
     const rows = await done(db.transaction(RECORDS).objectStore(RECORDS).index("pending").getAll(1));
     return rows.map(row => this.strip(row)!);
   }
 
+  /**
+   *
+   * @param key - the key
+   * @returns the result
+   */
   async getMeta<T>(key: string): Promise<T | undefined> {
     const db = await this.open();
     return (await done(db.transaction(META).objectStore(META).get(key))) as T | undefined;
   }
 
+  /**
+   *
+   * @param key - the key
+   * @param value - the value
+   */
   async setMeta<T>(key: string, value: T | undefined): Promise<void> {
     const db = await this.open();
     const tx = db.transaction(META, "readwrite");
@@ -116,6 +148,9 @@ export class IndexedDBStorage implements StorageAdapter {
     await committed(tx);
   }
 
+  /**
+   *
+   */
   async clear(): Promise<void> {
     const db = await this.open();
     const tx = db.transaction([RECORDS, META], "readwrite");

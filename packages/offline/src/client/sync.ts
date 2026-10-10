@@ -17,10 +17,18 @@ export class SyncEngine {
    */
   constructor(protected client: OfflineClient) {}
 
+  /**
+   *
+   * @returns the result
+   */
   protected get storage() {
     return this.client.storage;
   }
 
+  /**
+   *
+   * @returns the result
+   */
   protected get transport() {
     return this.client.options.transport;
   }

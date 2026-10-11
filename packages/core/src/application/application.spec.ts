@@ -6,6 +6,8 @@ import { CoreModel } from "../models/coremodel.model.js";
 import { User } from "../models/user.model.js";
 import { WebdaInternalTest, TestInternalApplication } from "../test/internal.js";
 import { FileUtils, getCommonJS } from "@webda/utils";
+import { MemoryLogger, useWorkerOutput } from "@webda/workout";
+import { useLogger } from "../loggers/hooks.js";
 import { TestApplication } from "../test/objects.js";
 import { WebdaApplicationTest } from "../test/application.js";
 const { __dirname } = getCommonJS(import.meta.url);
@@ -311,5 +313,24 @@ class ApplicationTest extends WebdaInternalTest {
     const instance = new User();
     const ByInstance = useModel(instance as any);
     assert.strictEqual(ByInstance, ByString, "instance lookup must equal string lookup");
+  }
+}
+
+/**
+ * The services log to the global output, where the CLI and Lambda console loggers are attached
+ */
+@suite
+class ApplicationDefaultOutputTest {
+  @test
+  async servicesLogToGlobalOutput() {
+    const app = new Application({ version: 4, parameters: {}, services: {} });
+    assert.strictEqual(app.getWorkerOutput(), useWorkerOutput());
+    const memoryLogger = new MemoryLogger(useWorkerOutput());
+    try {
+      useLogger("SampleService").log("INFO", "visible service log");
+    } finally {
+      memoryLogger.close();
+    }
+    assert.ok(JSON.stringify(memoryLogger.getLogs()).includes("visible service log"));
   }
 }

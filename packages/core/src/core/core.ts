@@ -112,6 +112,10 @@ export class Core implements ICore {
    */
   configurationService?: string;
   applicationConfiguration: Configuration;
+  /**
+   * Last error of the services that could not be created, by service name
+   */
+  protected serviceErrors: Record<string, any> = {};
 
   /**
    * Create a new Core
@@ -362,7 +366,11 @@ export class Core implements ICore {
     if (this.configurationService) {
       const service = this.createService(this.configurationService) as ConfigurationService;
       if (!service) {
-        throw new Error(`Cannot create configuration service ${this.configurationService}`);
+        const cause = this.serviceErrors[this.configurationService];
+        throw new Error(
+          `Cannot create configuration service ${this.configurationService}${cause ? `: ${cause.message || cause}` : ""}`,
+          { cause }
+        );
       }
       // Will update the configuration
       await service.bootstrap(this);
@@ -539,8 +547,10 @@ export class Core implements ICore {
    * @returns the result
    */
   protected createService(service: string) {
+    delete this.serviceErrors[service];
     const serviceConstructor = this.moddas[service];
     if (!serviceConstructor) {
+      this.serviceErrors[service] = new Error(`unknown type ${this.configuration[service]?.type}`);
       this.log("ERROR", `Create service ${service}(${this.configuration[service]?.type}) failed: unknown type`);
       return;
     }
@@ -551,6 +561,7 @@ export class Core implements ICore {
         : this.configuration[service];
       this.services[service] = new serviceConstructor(service, params);
     } catch (err) {
+      this.serviceErrors[service] = err;
       this.log("ERROR", "Cannot create service", service, err.message || err);
     }
     return this.services[service];

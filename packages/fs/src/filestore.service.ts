@@ -180,14 +180,14 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
    * @param uid - the object unique identifier
    * @returns the file path
    */
-  file(uid) {
+  file(uid: string) {
     return `${this.parameters.folder}/${uid}${FileStore.EXTENSION}`;
   }
 
   /**
    * @override
    */
-  async _exists(uid) {
+  async _exists(uid: string) {
     return fs.existsSync(this.file(uid));
   }
 
@@ -430,6 +430,9 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
    * @override
    */
   async __clean(): Promise<void> {
-    (await import("fs-extra")).emptyDirSync(this.parameters.folder);
+    fs.mkdirSync(this.parameters.folder, { recursive: true });
+    for (const entry of fs.readdirSync(this.parameters.folder)) {
+      fs.rmSync(`${this.parameters.folder}/${entry}`, { recursive: true, force: true });
+    }
   }
 }

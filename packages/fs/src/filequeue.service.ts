@@ -12,11 +12,22 @@ export class FileQueueParameters extends QueueParameters {
    *
    * @default 30
    */
-  expire?: number;
+  expire: number;
   /**
    * Where to store the queue
    */
   folder: string;
+
+  /**
+   * Load parameters with expiration in seconds.
+   * @param params - raw parameters
+   * @returns this instance
+   */
+  load(params: any = {}): this {
+    super.load(params);
+    this.expire ??= 30;
+    return this;
+  }
 
   /** Set default expiration to 30 seconds and convert to milliseconds. */
   default() {
@@ -69,7 +80,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   /**
    * @override
    */
-  async sendMessage(params) {
+  async sendMessage(params: T) {
     let uid = randomUUID();
     let file = this.getFile(uid);
     while (fs.existsSync(file)) {
@@ -110,8 +121,8 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
         }
         return -1;
       });
-    if (files.length) {
-      const el = files.shift();
+    const el = files.shift();
+    if (el) {
       fs.writeFileSync(el.path + ".lock", "");
       return [
         {
@@ -128,7 +139,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   /**
    * @override
    */
-  async deleteMessage(receipt) {
+  async deleteMessage(receipt: string) {
     const file = this.getFile(receipt);
     if (fs.existsSync(file)) {
       fs.unlinkSync(file);
@@ -142,6 +153,9 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
    * @inheritdoc
    */
   async __clean() {
-    (await import("fs-extra")).emptyDirSync(this.parameters.folder);
+    fs.mkdirSync(this.parameters.folder, { recursive: true });
+    for (const entry of fs.readdirSync(this.parameters.folder)) {
+      fs.rmSync(`${this.parameters.folder}/${entry}`, { recursive: true, force: true });
+    }
   }
 }

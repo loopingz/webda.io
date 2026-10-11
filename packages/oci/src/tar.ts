@@ -1,3 +1,4 @@
+import { WebdaError } from "@webda/core";
 import { createReadStream, statSync } from "node:fs";
 
 /**
@@ -186,7 +187,11 @@ export function withDirectories(entries: TarEntry[], directoryMode: number = 0o7
 export async function* generateTar(entries: TarEntry[], options: TarOptions = {}): AsyncGenerator<Buffer> {
   for (const entry of entries) {
     const name = entry.type === "directory" ? `${entry.path}/` : entry.path;
-    const size = entry.type === "file" ? (entry.content?.length ?? statSync(entry.source).size) : 0;
+    const source = entry.source;
+    if (entry.type === "file" && !entry.content && !source) {
+      throw new WebdaError.BadRequest(`File entry ${entry.path} has neither content nor source`);
+    }
+    const size = entry.type === "file" ? (entry.content?.length ?? (source ? statSync(source).size : 0)) : 0;
     if (Buffer.byteLength(name) > 100) {
       const pax = paxRecord("path", name);
       yield header("PaxHeader", "x", 0o644, pax.length, options);
@@ -205,9 +210,9 @@ export async function* generateTar(entries: TarEntry[], options: TarOptions = {}
     }
     if (entry.content) {
       yield entry.content;
-    } else {
+    } else if (source) {
       let read = 0;
-      for await (const chunk of createReadStream(entry.source)) {
+      for await (const chunk of createReadStream(source)) {
         read += chunk.length;
         if (read > size) {
           throw new Error(`File '${entry.source}' changed while archiving`);

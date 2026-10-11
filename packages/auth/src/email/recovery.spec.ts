@@ -2,12 +2,30 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Ident, runAsSystem, useCore, useService } from "@webda/core";
 import { vi } from "vitest";
+import { EmailPasswordParameters } from "./emailpassword.service.js";
+import { signEmailToken } from "./tokens.js";
 import { EmailTest } from "../test/emailtest.js";
 
 const rejectsWith = (fn: () => Promise<unknown>, code: string) => assert.rejects(fn, (err: any) => err.code === code);
 
 @suite
 class RecoveryTest extends EmailTest {
+  @test
+  defaultsForPartialConfiguration() {
+    const params = new EmailPasswordParameters().load({
+      password: { policy: null },
+      throttle: { resendDelay: 0, lockout: null }
+    });
+    assert.strictEqual(params.password.policy, ".{8,}");
+    assert.deepStrictEqual(params.throttle, { resendDelay: 0, failedBeforeDelay: 3, lockout: 900000 });
+  }
+
+  @test
+  async recoveryRequiresSubject() {
+    const token = await this.inContext(await this.ctx(), () => signEmailToken("recover", { email: "missing@x.com" }));
+    await rejectsWith(() => this.op("Auth.Password.Recover", { token, password: "newpassword" }), "TOKEN_INVALID");
+  }
+
   async beforeEach() {
     await super.beforeEach();
     this.email.getParameters().redirects = {

@@ -13,7 +13,7 @@ function roundTrip(query: string): string {
   const first = WebdaQL.parse(query);
   const printed = first.toString();
   const second = WebdaQL.parse(printed);
-  for (const key of ["type", "fields", "assignments", "limit", "continuationToken", "orderBy"]) {
+  for (const key of ["type", "fields", "assignments", "limit", "continuationToken", "orderBy"] as const) {
     assert.deepStrictEqual(second[key], first[key], `${key} of ${query} => ${printed}`);
   }
   assert.strictEqual(second.filter.toString(), first.filter.toString(), `filter of ${query} => ${printed}`);
@@ -147,7 +147,7 @@ class StatementsTest {
 
   @test
   lowercaseFieldsAreNotReserved() {
-    const object = { desc: 1, set: 2, update: 3, select: 4, where: 5, delete: 6 };
+    const object: Record<string, number> = { desc: 1, set: 2, update: 3, select: 4, where: 5, delete: 6 };
     for (const field of Object.keys(object)) {
       const q = WebdaQL.parse(`${field} = ${object[field]} ORDER BY ${field} DESC`);
       assert.strictEqual(q.type, "SELECT", field);
@@ -379,6 +379,7 @@ class StatementsTest {
       try {
         return WebdaQL.normalizeQuery(q);
       } catch (err) {
+        assert.ok(err instanceof WebdaQLError);
         return err;
       }
     })();

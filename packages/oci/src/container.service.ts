@@ -29,7 +29,7 @@ export class ContainerDeployerParameters extends ServiceParameters {
    *
    * @default "node:22-slim"
    */
-  baseImage?: string;
+  baseImage: string;
   /**
    * Repository to push to, without tag: `ghcr.io/my-org/my-app`
    *
@@ -44,35 +44,36 @@ export class ContainerDeployerParameters extends ServiceParameters {
    *
    * @default ["${git.version}"]
    */
-  tags?: string[];
+  tags: string[];
   /**
    * Folder of the application in the image
    *
    * @default "/app"
    */
-  workdir?: string;
+  workdir: string;
   /**
    * Entrypoint of the image
    *
    * @default ["node", "<workdir>/node_modules/@webda/core/lib/bin/cli.js"]
    */
-  entrypoint?: string[];
+  entrypoint: string[];
   /**
    * Command of the image, the arguments of the entrypoint
    *
    * @default ["serve", "--bind", "0.0.0.0"]
    */
-  cmd?: string[];
+  cmd: string[];
   /**
    * Environment variables
    *
    * @default { "NODE_ENV": "production" }
    */
-  env?: Record<string, string>;
+  env: Record<string, string>;
   /**
    * Labels, added to the default OCI ones (version, revision, source, title)
+   * @default {}
    */
-  labels?: Record<string, string>;
+  labels: Record<string, string>;
   /**
    * User the container runs as, the base image one by default
    */
@@ -82,13 +83,13 @@ export class ContainerDeployerParameters extends ServiceParameters {
    *
    * @default ["18080/tcp"]
    */
-  exposedPorts?: string[];
+  exposedPorts: string[];
   /**
    * Platforms to build, several platforms produce a multi-platform index
    *
    * @default ["linux/amd64"]
    */
-  platforms?: string[];
+  platforms: string[];
   /**
    * Output of `container build`: an OCI layout folder, or a tar archive when ending with `.tar`
    *
@@ -96,11 +97,12 @@ export class ContainerDeployerParameters extends ServiceParameters {
    *
    * @default ".webda/oci/${deployer.name}"
    */
-  output?: string;
+  output: string;
   /**
    * Options of the application packaging
+   * @default {}
    */
-  package?: PackageOptions;
+  package: PackageOptions;
   /**
    * Modification time of the files and creation time of the image, in seconds
    *
@@ -109,16 +111,18 @@ export class ContainerDeployerParameters extends ServiceParameters {
   mtime?: number;
   /**
    * Credentials per registry host, they take precedence over `~/.docker/config.json`
+   * @default {}
    *
    * Use templates to read them from the environment: `{ "ghcr.io": { "username": "${env.GHCR_USER}", "password": "${env.GHCR_TOKEN}" } }`
    *
    * `password`, `identityToken` and `token` can be encrypted with `webda config encrypt`
    */
-  credentials?: Record<string, RegistryCredentials>;
+  credentials: Record<string, RegistryCredentials>;
   /**
    * Registries reached over plain http, `localhost` and `127.0.0.1` always are
+   * @default []
    */
-  insecureRegistries?: string[];
+  insecureRegistries: string[];
 
   /**
    * @override
@@ -177,22 +181,23 @@ export class ContainerDeployer<T extends ContainerDeployerParameters = Container
     // Template resolution serializes the parameters: put back the encrypted secrets it masked
     for (const [host, credentials] of Object.entries(this.parameters.credentials ?? {})) {
       for (const [key, value] of Object.entries(credentials ?? {})) {
-        if (value instanceof SecretString) {
+        if (value instanceof SecretString && (key === "password" || key === "identityToken" || key === "token")) {
           resolved.credentials[host][key] = value;
         }
       }
     }
     const repository: string | { url?: string } = (variables.package as any)?.repository;
-    resolved.labels = {
+    const labels: Record<string, string | undefined> = {
       "org.opencontainers.image.title": variables.package?.name,
       "org.opencontainers.image.version": variables.git?.version,
       "org.opencontainers.image.revision": variables.git?.commit,
       "org.opencontainers.image.source": typeof repository === "string" ? repository : repository?.url,
       ...resolved.labels
     };
-    for (const [key, value] of Object.entries(resolved.labels)) {
-      if (value === undefined || value === "") {
-        delete resolved.labels[key];
+    resolved.labels = {};
+    for (const [key, value] of Object.entries(labels)) {
+      if (value !== undefined && value !== "") {
+        resolved.labels[key] = value;
       }
     }
     resolved.tags = resolved.tags.map(tag => toTag(tag));

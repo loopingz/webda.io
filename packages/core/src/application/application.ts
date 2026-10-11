@@ -1,4 +1,4 @@
-import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
+import { WorkerLogLevel, WorkerOutput, useWorkerOutput } from "@webda/workout";
 import type {
   CachedModule,
   Configuration,
@@ -194,7 +194,8 @@ export class Application {
    * @param logger - the logger instance
    */
   constructor(file: string | UnpackedConfiguration, logger: WorkerOutput = undefined) {
-    this.logger = logger || new WorkerOutput();
+    // Default to the global output, where the console loggers (CLI, Lambda) are attached
+    this.logger = logger || useWorkerOutput();
     setLogContext(this.logger);
     // If configuration is a programmatic object (usually for tests)
     if (typeof file !== "string") {

@@ -55,7 +55,8 @@
   },
   "files": [
     "lib",
-    "webui"
+    "webui",
+    "webda.module.json"
   ],
   "homepage": "https://webda.io",
   "publishConfig": {

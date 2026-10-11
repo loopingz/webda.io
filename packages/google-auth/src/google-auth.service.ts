@@ -107,7 +107,7 @@ export class GoogleAuthentication<T extends GoogleParameters = GoogleParameters>
   readonly providerName = "google";
 
   /** Client verifying ID tokens: one per service so the Google certificates cache is reused */
-  protected verifier: OAuth2Client;
+  protected verifier?: OAuth2Client;
 
   /** @override */
   async init(): Promise<this> {

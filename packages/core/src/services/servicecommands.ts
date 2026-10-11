@@ -30,14 +30,16 @@ export interface ServiceCommandInfo {
   /**
    * Lifecycle phase declared by each service providing this command, in the
    * same order as `services`. Values are one of:
+   * - `"application"`: service declared phase "application", a static method called without Core.
    * - `"resolved"`: service declared phase "resolved" (e.g. via `@BuildCommand`).
    * - `"initialized"`: service declared phase "initialized".
    * - `undefined`: service did not declare a phase (treat as "initialized").
    *
    * The CLI dispatcher uses this to decide whether to skip `Core.init()`:
-   * all-"resolved" → resolve-only; all-"initialized"/undefined → full init; mixed → error.
+   * all-"application" → no Core; all-"resolved" → resolve-only; all-"initialized"/undefined → full init;
+   * mixed → error.
    */
-  phases: Array<"resolved" | "initialized" | undefined>;
+  phases: Array<"application" | "resolved" | "initialized" | undefined>;
 }
 
 /**

@@ -27,7 +27,6 @@ export class KubernetesConfigurationParameters extends ConfigurationServiceParam
         `KubernetesConfigurationService does not support default configuration ${params.default}`
       );
     }
-    console.log(this.source, this.sources);
     return this;
   }
 }
@@ -67,16 +66,14 @@ export class KubernetesConfigurationService<
    */
   canTriggerConfiguration(id: string, callback: () => void): boolean {
     this.sourcePaths[id] ??= this.getFilePath(id);
-    console.log("canTriggerConfiguration", this.sourcePaths[id]);
     if (!fs.existsSync(this.sourcePaths[id])) {
       throw new WebdaError.CodeError(
         "KUBE_CONFIGURATION_SOURCE_MISSING",
         `Kubernetes configuration source not found: ${this.sourcePaths[id]}`
       );
     }
-    console.log("Watch", path.join(this.sourcePaths[id], "..data"));
     fs.watchFile(path.join(this.sourcePaths[id], "..data"), { interval: 500 }, () => {
-      console.log("Configuration source changed", id, this.sourcePaths[id], Date.now());
+      this.log("DEBUG", "Configuration source changed", id, this.sourcePaths[id]);
       callback();
     });
     return true;

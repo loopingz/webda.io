@@ -306,6 +306,47 @@ class CliAddServiceCommandsTest {
     await cli.parseAsync(["aws", "lambda"]);
     assert.strictEqual(calls[1].name, "aws lambda");
   }
+
+  @test
+  async addServiceCommandsNestedSubcommands() {
+    const { default: yargs } = await import("yargs");
+    const service = [{ name: "CryptoService", method: "m", type: "Webda/CryptoService" }];
+    const serviceCommands = {
+      "config encrypt": {
+        description: "Encrypt",
+        services: service,
+        args: { file: { type: "string", required: true } }
+      },
+      "config pki generate": {
+        description: "Generate",
+        services: service,
+        args: { kid: { type: "string", required: true } }
+      },
+      "config pki list": { description: "List", services: service, args: { file: { type: "string", required: true } } }
+    };
+    const calls: { name: string; args: any }[] = [];
+    const parse = async (argv: string[]) => {
+      const cli = yargs([]).scriptName("webda").exitProcess(false).fail(false);
+      addServiceCommandsToCli(cli, <any>serviceCommands, async (name, args) => {
+        calls.push({ name, args });
+      });
+      return cli.parseAsync(argv);
+    };
+
+    await parse(["config", "pki", "generate", "--kid", "k1"]);
+    await parse(["config", "pki", "list", "--file", "a.json"]);
+    await parse(["config", "encrypt", "--file", "b.json"]);
+    assert.deepStrictEqual(
+      calls.map(c => [c.name, c.args.kid ?? c.args.file]),
+      [
+        ["config pki generate", "k1"],
+        ["config pki list", "a.json"],
+        ["config encrypt", "b.json"]
+      ]
+    );
+    // Each subcommand keeps its own required arguments
+    await assert.rejects(() => parse(["config", "pki", "generate"]), /Missing required argument: kid/);
+  }
 }
 
 @suite

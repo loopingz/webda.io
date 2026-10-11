@@ -1,5 +1,6 @@
 import type { OpenAPIV3 } from "openapi-types";
 import type { ModelGraph, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
+import type { PkiEncrypterOptions } from "../services/pki.encrypter.js";
 export type { PackageDescriptor, WebdaPackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
 
 /**
@@ -31,6 +32,31 @@ export type StaticWebsite = {
   index?: string;
   catchAll?: boolean;
 };
+
+/**
+ * Settings of the configuration secrets encryption, `parameters.configurationEncryption`
+ *
+ * They are never encrypted. A deployment can override them, to use other keys for example.
+ */
+export interface ConfigurationEncryption {
+  /**
+   * Encrypter used by the values written `encrypt:<value>` or `sencrypt:<value>`
+   *
+   * `webda config encrypt` always writes the encrypter in the encrypted value, so changing it
+   * does not break the existing values.
+   */
+  default?: string;
+  /**
+   * Options of each encrypter, by encrypter name
+   */
+  encrypters?: {
+    /**
+     * Options of the `pki` encrypter
+     */
+    pki?: PkiEncrypterOptions;
+    [name: string]: any;
+  };
+}
 
 export type ServiceGroup = {
   services?: any;
@@ -101,6 +127,12 @@ export type UnpackedConfiguration = {
           config?: { [key: string]: any };
           prefix?: string;
         };
+    /**
+     * Configuration secrets encryption: default encrypter and encrypters options
+     *
+     * It cannot hold encrypted values.
+     */
+    configurationEncryption?: ConfigurationEncryption;
     /**
      * Allow any other type of parameters
      */

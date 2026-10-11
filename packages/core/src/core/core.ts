@@ -169,7 +169,10 @@ export class Core implements ICore {
   protected async decryptConfiguration() {
     // Only the services and parameters can hold secrets, not the cached modules
     const { services, parameters } = this.applicationConfiguration;
-    const decrypted = await CryptoService.decryptConfiguration({ services, parameters }, []);
+    const decrypted = await CryptoService.decryptConfiguration({ services, parameters }, [], {
+      settings: parameters?.configurationEncryption,
+      appPath: this.application.getPath()
+    });
     // Keep the configuration untouched when nothing was encrypted
     if (JSON.stringify(decrypted) === JSON.stringify({ services, parameters })) {
       return;

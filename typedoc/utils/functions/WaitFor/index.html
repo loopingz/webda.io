@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.9f060b7e.css">
-<script src="/assets/js/runtime~main.d21f81d2.js" defer="defer"></script>
-<script src="/assets/js/main.fe9121f8.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.7c058c14.js" defer="defer"></script>
+<script src="/assets/js/main.ef3f3484.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -23,7 +23,7 @@
 <blockquote>
 <p><strong>WaitFor</strong>&lt;<code>T</code>&gt;(<code>callback</code>, <code>retries</code>, <code>title?</code>, <code>logger?</code>, <code>delayer?</code>): <code>Promise</code>&lt;<code>T</code>&gt;</p>
 </blockquote>
-<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a903ab25509ee7244bb48a3ea208ee19cce95e83/packages/utils/src/waiter.ts#L132" target="_blank" rel="noopener noreferrer" class="">packages/utils/src/waiter.ts:132</a></p>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/c0348042b0607e755054a847833f0dbb8cbfa10c/packages/utils/src/waiter.ts#L132" target="_blank" rel="noopener noreferrer" class="">packages/utils/src/waiter.ts:132</a></p>
 <p>Poll an async callback until it resolves the promise itself, returns <code>true</code>, or the retry limit is reached.</p>
 <p>Some AWS APIs require minutes of polling. This method calls <code>callback</code> repeatedly until it
 returns <code>true</code> (or calls <code>resolve</code>), or until <code>retries</code> is exhausted — in which case the

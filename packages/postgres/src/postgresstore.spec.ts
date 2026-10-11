@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import pg from "pg";
-import { AndExpression, WebdaQLError, PrependCondition, parse, toAggregationQuery } from "@webda/ql";
+import { AndExpression, escape, WebdaQLError, PrependCondition, parse, toAggregationQuery } from "@webda/ql";
 import { checkAggregation, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import { EventRepository, MemoryRepository, useModel } from "@webda/core";
 import PostgresStore, { PostgresParameters } from "./postgresstore.service.js";
@@ -235,6 +235,43 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
     assert.deepStrictEqual(await uuids("email IS NULL"), ["missing", "null"]);
     assert.deepStrictEqual(await uuids("email IS NOT NULL"), ["set"]);
     assert.deepStrictEqual(await uuids("email IS NULL AND uuid = 'null'"), ["null"]);
+  }
+
+  /**
+   * #670: an apostrophe in a value (e.g. a file named l'été.png) must not break the SQL
+   */
+  @test
+  async apostropheInValues() {
+    const c = this.store!.getClient();
+    const name = "l'été.png";
+    const injection = "x' OR 1=1 --";
+    await c.query(`INSERT INTO smoke_idents(uuid,data) VALUES($1, $2)`, ["a", JSON.stringify({ uuid: "a", name })]);
+    await c.query(`INSERT INTO smoke_idents(uuid,data) VALUES($1, $2)`, [
+      "b",
+      JSON.stringify({ uuid: "b", name: "b" })
+    ]);
+    const pgRepo = this.store!.getRepositories().find(r => r instanceof PostgresRepository) as PostgresRepository<any>;
+    // Collection items are written with the value inside: append then replace
+    await pgRepo.upsertItemToCollection("a", "files", { name, hash: injection });
+    await pgRepo.upsertItemToCollection("a", "files", { name: "o'brien.txt", hash: "h2" });
+    await pgRepo.upsertItemToCollection("a", "files", { name: "it's.txt", hash: "h3" }, 1, "hash", "h2");
+    const stored = (await c.query(`SELECT data FROM smoke_idents WHERE uuid=$1`, ["a"])).rows[0].data;
+    assert.deepStrictEqual(stored.files, [
+      { name, hash: injection },
+      { name: "it's.txt", hash: "h3" }
+    ]);
+    // The other row was not touched by the injection attempt
+    assert.strictEqual(
+      (await c.query(`SELECT data FROM smoke_idents WHERE uuid=$1`, ["b"])).rows[0].data.files,
+      undefined
+    );
+    // Querying on the value matches exactly, through both escaping forms
+    const repo = this.store!.getRepository(useModel("Webda/OwnerModel"));
+    const uuids = async (query: string) => (await repo.query(query)).results.map((r: any) => r.uuid).sort();
+    assert.deepStrictEqual(await uuids(escape(["name = ", ""], [name])), ["a"]);
+    assert.deepStrictEqual(await uuids("name = 'l''été.png'"), ["a"]);
+    assert.deepStrictEqual(await uuids("name LIKE 'l''%'"), ["a"]);
+    assert.deepStrictEqual(await uuids(escape(["name = ", ""], [injection])), []);
   }
 
   @test

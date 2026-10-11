@@ -495,12 +495,13 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
     const key = this.getPrimaryKey(primaryKey).toString();
     const attr = String(collection);
     const updateDate = new Date();
-    const args: any[] = [key];
+    // The item is bound as a parameter: inlining it would break (and inject) on any quote, e.g. a file named l'été.png
+    const args: any[] = [key, JSON.stringify(item)];
     let q = `UPDATE ${this.table} SET data = jsonb_set(jsonb_set(data::jsonb, array['${attr}'],`;
     if (index === undefined) {
-      q += `COALESCE((data->'${attr}')::jsonb, '[]'::jsonb) || '[${JSON.stringify(item)}]'::jsonb)::jsonb`;
+      q += `COALESCE((data->'${attr}')::jsonb, '[]'::jsonb) || jsonb_build_array($2::jsonb))::jsonb`;
     } else {
-      q += `jsonb_set(COALESCE((data->'${attr}')::jsonb, '[]'::jsonb), '{${index}}', '${JSON.stringify(item)}'::jsonb)::jsonb)`;
+      q += `jsonb_set(COALESCE((data->'${attr}')::jsonb, '[]'::jsonb), '{${index}}', $2::jsonb)::jsonb)`;
     }
     q += `, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid=$1`;
     if (itemWriteCondition !== undefined) {

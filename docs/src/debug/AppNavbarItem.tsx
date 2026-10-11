@@ -27,17 +27,18 @@ export interface AppNavbarItemProps {
  * @param props - navbar item props
  * @returns the link element
  */
-export function AppNavbarItem({ className }: AppNavbarItemProps): React.JSX.Element {
+export function AppNavbarItem({ className, mobile }: AppNavbarItemProps): React.JSX.Element {
   const state = useDebugConnection();
   // Without a token the server answers 401: it is running, the dashboard will connect
   const found = state.status === "connected" || (state.status === "error" && state.failure === "unauthorized");
-  return (
+  // Keep the classes' own `display`: Infima hides `.navbar__item` on small screens,
+  // where the item is rendered again in the mobile menu (`mobile`)
+  const link = (
     <Link
       // The dashboard is a static page outside the Docusaurus app: a full navigation, not a route
       href="pathname:///debug/"
       target="_self"
-      className={`navbar__item navbar__link${className ? ` ${className}` : ""}`}
-      style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+      className={[mobile ? "menu__link" : "navbar__item navbar__link", className].filter(Boolean).join(" ")}
       title={
         found ? "My Application — a debug server is running, open the dashboard" : "My Application — debug dashboard"
       }
@@ -50,12 +51,14 @@ export function AppNavbarItem({ className }: AppNavbarItemProps): React.JSX.Elem
             display: "inline-block",
             width: 8,
             height: 8,
+            marginLeft: 6,
             borderRadius: "50%",
             backgroundColor: "#22c55e",
-            flexShrink: 0
+            verticalAlign: "middle"
           }}
         />
       )}
     </Link>
   );
+  return mobile ? <li className="menu__list-item">{link}</li> : link;
 }

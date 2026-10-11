@@ -17,6 +17,7 @@ import { CookieOptions } from "../session/cookie";
 import { runWithContext, useContext } from "./execution";
 import { GlobalContext } from "./globalcontext";
 import { Ident } from "../models/ident.model";
+import * as WebdaError from "../errors/errors";
 
 export class WebContextMock extends WebContext {
   constructor(httpContext: HttpContext) {
@@ -172,6 +173,25 @@ class ContextAppTest extends WebdaAsyncStorageTest {
       return "";
     };
     assert.strictEqual(await this.ctx.getInput(), undefined);
+  }
+
+  @test
+  async getInputUnsupportedCharset() {
+    const ctx = new WebContextMock(
+      new HttpContext("test.webda.io", "POST", "/", "http", 80, {
+        "content-type": "application/json; charset=foo"
+      }).setBody('{"a":1}')
+    );
+    await assert.rejects(
+      () => ctx.getInput(),
+      (err: any) => err instanceof WebdaError.UnsupportedMediaType && err.getResponseCode() === 415
+    );
+    const latin1 = new WebContextMock(
+      new HttpContext("test.webda.io", "POST", "/", "http", 80, {
+        "content-type": "application/json; charset=ISO-8859-1"
+      }).setBody(Buffer.from([0x7b, 0x22, 0x61, 0x22, 0x3a, 0x22, 0xe9, 0x22, 0x7d]))
+    );
+    assert.deepStrictEqual(await latin1.getInput(), { a: "é" });
   }
 
   @test

@@ -64,6 +64,9 @@ class FindUnencryptedSecretsTest {
     assert.deepStrictEqual(check("encrypt:local:hunter2-plain"), [{ path: "apiKey", reason: "marked" }]);
     assert.deepStrictEqual(check("sencrypt:hunter2-plain"), [{ path: "apiKey", reason: "marked" }]);
     assert.deepStrictEqual(check("hunter2-plain"), [{ path: "apiKey", reason: "plain" }]);
+    // Kept in clear text on purpose
+    assert.deepStrictEqual(check("crypt:none:public-value"), [{ path: "apiKey", reason: "opted-out" }]);
+    assert.deepStrictEqual(check("scrypt:none:public-value"), [{ path: "apiKey", reason: "opted-out" }]);
     // Unset values fall back to the environment
     assert.deepStrictEqual(check(""), []);
     assert.deepStrictEqual(check(null), []);
@@ -265,6 +268,58 @@ class EncryptCheckCommandTest extends WebdaApplicationTest {
     const clean = await this.run(FILE, undefined, undefined, true);
     assert.strictEqual(clean.code, 0);
     assert.ok(clean.written.includes("No unencrypted secret found"));
+  }
+
+  @test
+  async optOut() {
+    writeFileSync(
+      FILE,
+      [
+        "parameters:",
+        "  configurationEncryption:",
+        "    default: b64",
+        "services:",
+        "  Mailer:",
+        "    auth:",
+        "      pass: crypt:none:public-pass",
+        "  cookies:",
+        "    jwt:",
+        "      secretOrPublicKey: encrypt:none:public-jwt",
+        ""
+      ].join("\n")
+    );
+    // `encrypt:none:` opts out through the usual flow; neither the auto-encryption nor --migrate touches it
+    assert.strictEqual(await CryptoService.encryptFile(FILE), 1);
+    assert.strictEqual(await CryptoService.encryptFile(FILE, "b64"), 0);
+    const content = readFileSync(FILE, "utf-8");
+    assert.ok(content.includes("pass: crypt:none:public-pass"));
+    assert.ok(content.includes("secretOrPublicKey: crypt:none:public-jwt"));
+    // A warning, not a failure, even in strict mode
+    const { code, written } = await this.run(FILE, undefined, undefined, true, true);
+    assert.strictEqual(code, 0);
+    assert.ok(
+      written.includes(
+        "! test/check-secrets.yaml: services.Mailer.auth.pass (Webda/Mailer): secret is kept in clear text on purpose"
+      )
+    );
+    assert.ok(written.includes("No unencrypted secret found, 2 kept in clear text on purpose"));
+    const json = await this.run(FILE, undefined, undefined, true, true, "json");
+    const output = JSON.parse(
+      JSON.parse(json.written)
+        .filter(m => m.type === "output")
+        .pop().data
+    );
+    assert.deepStrictEqual(output.findings, []);
+    assert.deepStrictEqual(output.warnings.map(w => `${w.path} ${w.reason}`).sort(), [
+      "services.Mailer.auth.pass opted-out",
+      "services.cookies.jwt.secretOrPublicKey opted-out"
+    ]);
+    // The service receives the value as is
+    const decrypted = await CryptoService.decryptConfiguration({ a: "crypt:none:public-pass", b: "scrypt:none:x" });
+    assert.strictEqual(decrypted.a.getValue(), "public-pass");
+    assert.strictEqual(decrypted.b, "x");
+    // A configuration value is a single line
+    await assert.rejects(() => CryptoService.encryptConfiguration({ a: "encrypt:none:a\nb" }), /multi-line/);
   }
 
   @test

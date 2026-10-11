@@ -12,6 +12,11 @@ import { getDeploymentUnitServices, type DeploymentUnit } from "../application/d
 export const SECRET_KEYWORD = "x-webda-secret";
 
 /**
+ * Encrypter of the values kept in clear text on purpose: `crypt:none:<value>`
+ */
+export const OPT_OUT_ENCRYPTER = "none";
+
+/**
  * A secret configuration value that is not encrypted
  *
  * It never holds the value itself.
@@ -34,9 +39,11 @@ export interface SecretFinding {
    */
   type?: string;
   /**
-   * `plain`: written in clear text, `marked`: still `encrypt:` or `sencrypt:`, run `webda config encrypt`
+   * - `plain`: written in clear text
+   * - `marked`: still `encrypt:` or `sencrypt:`, run `webda config encrypt`
+   * - `opted-out`: kept in clear text on purpose with `crypt:none:` or `scrypt:none:`
    */
-  reason: "plain" | "marked";
+  reason: "plain" | "marked" | "opted-out";
 }
 
 /**
@@ -82,14 +89,20 @@ export function formatSecretPath(path: (string | number)[]): string {
 /**
  * Classify a secret value
  *
- * `crypt:` and `scrypt:` values are encrypted. Unset values (`""`, `null`, `undefined`) are allowed:
- * the service then falls back to its environment.
+ * `crypt:` and `scrypt:` values are encrypted, except the opted-out `crypt:none:` ones. Unset values (`""`,
+ * `null`, `undefined`) are allowed: the service then falls back to its environment.
  *
  * @param value - the secret value
  * @returns the reason it fails, or undefined when it is fine
  */
 function classify(value: any): SecretFinding["reason"] | undefined {
-  if (typeof value !== "string" || value === "" || /^s?crypt:/.test(value)) {
+  if (typeof value !== "string" || value === "") {
+    return undefined;
+  }
+  if (value.startsWith(`crypt:${OPT_OUT_ENCRYPTER}:`) || value.startsWith(`scrypt:${OPT_OUT_ENCRYPTER}:`)) {
+    return "opted-out";
+  }
+  if (/^s?crypt:/.test(value)) {
     return undefined;
   }
   return /^s?encrypt:/.test(value) ? "marked" : "plain";

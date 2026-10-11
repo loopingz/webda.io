@@ -27,7 +27,7 @@ import { OperationContext } from "../contexts/operationcontext.js";
 import { Route } from "../rest/irest.js";
 import { useRegistry } from "../models/registry.model.js";
 import { useApplication } from "../application/hooks.js";
-import { findConfigurationSecrets, type SecretFinding } from "./secretscheck.js";
+import { findConfigurationSecrets, OPT_OUT_ENCRYPTER, type SecretFinding } from "./secretscheck.js";
 
 /**
  * Masked representation of a secret
@@ -829,7 +829,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     }
     let { encrypter, data: plain } = parsed;
     if (parsed.mode === "crypt") {
-      if (!pass.migrate && !pass.upgrade) {
+      // An opted-out value stays in clear text, it is not migrated to another encrypter
+      if ((!pass.migrate && !pass.upgrade) || encrypter === OPT_OUT_ENCRYPTER) {
         return data;
       }
       const target = pass.migrate || encrypter;
@@ -1048,27 +1049,34 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
   protected static checkFiles(files: string[], strict: boolean, format: "text" | "json"): number {
     const app = useApplication();
     const failures: (SecretFinding & { file: string })[] = [];
+    const warnings: (SecretFinding & { file: string })[] = [];
     for (const filename of files) {
       const file = relative(app.getPath(), filename) || filename;
       // Plain JSON: the comment-preserving loader returns wrapper objects
       const findings = CryptoService.findFileSecrets(JSON.parse(JSON.stringify(FileUtils.load(filename))));
       for (const finding of findings) {
-        const failure = strict || finding.reason === "plain";
-        const message =
-          finding.reason === "plain"
-            ? "secret is not encrypted"
-            : "secret is marked encrypt: but not encrypted, run 'webda config encrypt'";
-        useLog(failure ? "ERROR" : "WARN", `✗ ${file}: ${finding.path} (${finding.type}): ${message}`);
-        if (failure) {
-          const { location: _location, ...reported } = finding;
-          failures.push({ file, ...reported });
-        }
+        const failure = finding.reason === "plain" || (strict && finding.reason === "marked");
+        const message = {
+          plain: "secret is not encrypted",
+          marked: "secret is marked encrypt: but not encrypted, run 'webda config encrypt'",
+          "opted-out": "secret is kept in clear text on purpose (crypt:none:)"
+        }[finding.reason];
+        useLog(
+          failure ? "ERROR" : "WARN",
+          `${failure ? "✗" : "!"} ${file}: ${finding.path} (${finding.type}): ${message}`
+        );
+        const { location: _location, ...reported } = finding;
+        (failure ? failures : warnings).push({ file, ...reported });
       }
     }
     if (format === "json") {
-      useOutput(JSON.stringify({ findings: failures }, undefined, 2));
+      useOutput(JSON.stringify({ findings: failures, warnings }, undefined, 2));
     } else {
-      useOutput(failures.length ? `${failures.length} unencrypted secret(s) found` : "No unencrypted secret found");
+      const optedOut = warnings.filter(w => w.reason === "opted-out").length;
+      useOutput(
+        (failures.length ? `${failures.length} unencrypted secret(s) found` : "No unencrypted secret found") +
+          (optedOut ? `, ${optedOut} kept in clear text on purpose` : "")
+      );
     }
     return failures.length ? 1 : 0;
   }
@@ -1379,6 +1387,22 @@ CryptoService.registerEncrypter("local", {
  * Asymmetric encrypter: public keys in the repository, private keys in the runtime
  */
 CryptoService.registerEncrypter("pki", pkiEncrypter);
+
+/**
+ * Opt-out: `crypt:none:<value>` keeps a value of a secret field in clear text on purpose
+ *
+ * `webda config encrypt` does not encrypt it, even with `--migrate`, and `--check` reports it as a warning.
+ */
+CryptoService.registerEncrypter(OPT_OUT_ENCRYPTER, {
+  encrypt: async (data: string) => {
+    if (/[\r\n]/.test(data)) {
+      throw new Error("A multi-line value cannot be kept in clear text with crypt:none:");
+    }
+    return data;
+  },
+  decrypt: async (data: string) => data,
+  needsUpgrade: () => false
+});
 
 export { AuthenticatedEncryption };
 

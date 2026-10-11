@@ -257,6 +257,7 @@ module that requires a plain string.
 | `password` | `@webda/runtime` | a password, from `WEBDA_CONFIG_PASSWORD` or a prompt                      | small teams sharing a password out of band     |
 | `gcp`      | `@webda/gcp`     | a Google Cloud KMS key, `WEBDA_GCP_KMS_KEY` to encrypt                    | production, access managed by IAM              |
 | `pki`      | `@webda/core`    | RSA key pairs: public keys in the repository, private keys in the runtime | anyone encrypts, only the application decrypts |
+| `none`     | `@webda/core`    | none, the value stays in clear text                                       | a secret field holding a public value          |
 
 An encrypter is available once its package is a dependency of the application: the package registers it when the
 application loads its modules.
@@ -270,6 +271,7 @@ application loads its modules.
   only needs the `useToDecrypt` permission on the application identity.
 
 - **pki**: see [below](#pki-encrypter).
+- **none**: see [Keeping a value in clear text](#keeping-a-value-in-clear-text).
 
 `local`, `password` and `pki` use AES-256-GCM: a wrong key, a wrong password or an altered value fails with an error,
 it never produces a wrong secret.
@@ -465,6 +467,20 @@ It checks the services, the global `parameters` they inherit (including the serv
 deployment overrides without its `type` takes the type of `webda.config`. A service type without schema, from a
 package that is not a dependency of the application, is skipped with a warning.
 
+### Keeping a value in clear text
+
+A secret field sometimes holds a value that is not secret: a public demo key, a local development password. Write it
+`crypt:none:<value>` (or `encrypt:none:<value>`, which `webda config encrypt` turns into `crypt:none:<value>`): it
+stays in clear text, the service receives the value as is, and the opt-out is visible in the file.
+
+```jsonc title="webda.config.jsonc"
+        // Shared demo account, not a secret
+        "password": "crypt:none:demo"
+```
+
+`webda config encrypt` never encrypts it, even with `--migrate`, and `--check` reports it as a warning without
+failing. `scrypt:none:<value>` does the same for a field read as a plain string. The value must be a single line.
+
 ## Checking for unencrypted secrets
 
 `webda config encrypt --check` writes nothing: it fails when a secret field is not encrypted, a plain value or a value
@@ -479,7 +495,8 @@ webda -d production config encrypt --check
 ```
 ✗ deployments/production.jsonc: services.db.postgresqlServer.password (Webda/PostgresStore): secret is not encrypted
 ✗ deployments/production.jsonc: units[aws].secretAccessKey (Webda/AWSDeployer): secret is marked encrypt: but not encrypted, run 'webda config encrypt'
-2 unencrypted secret(s) found
+! webda.config.jsonc: services.demo.password (Webda/PostgresStore): secret is kept in clear text on purpose (crypt:none:)
+2 unencrypted secret(s) found, 1 kept in clear text on purpose
 ```
 
 The exit code is `1` when a secret is not encrypted, `0` otherwise. Only the files and paths are reported, never the
@@ -488,7 +505,8 @@ private key.
 
 - `-f <file>`: check this file instead of `webda.config` and the deployment file
 - `--no-strict`: only warn for the values marked `encrypt:`
-- `--format json`: write `{ "findings": [{ "file", "path", "service", "type", "reason" }] }` on the standard output
+- `--format json`: write `{ "findings": [...], "warnings": [...] }` on the standard output, each entry with `file`,
+  `path`, `service`, `type` and `reason` (`plain`, `marked` or `opted-out`)
 
 ```yaml title=".github/workflows/ci.yml"
 - run: pnpm webda config encrypt --check

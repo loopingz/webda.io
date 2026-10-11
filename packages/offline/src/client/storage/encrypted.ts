@@ -1,4 +1,5 @@
 import type { LocalRecord } from "../record.js";
+import type { KeyProvider } from "./keys.js";
 import type { StorageAdapter } from "./storage.js";
 
 /** Record fields that are encrypted; every other field stays readable for indexing */
@@ -7,16 +8,30 @@ const ENCRYPTED_FIELDS = ["base", "current", "sent", "conflict", "error"] as con
 /** Length in bytes of the AES-GCM initialization vector */
 const IV_LENGTH = 12;
 
+/** Reserved meta namespace, written only by this class */
+const RESERVED_PREFIX = "__encryption.";
+
+/** Meta key prefix of the wrapped data key copies, one per provider id */
+const KEYS_PREFIX = `${RESERVED_PREFIX}keys.`;
+
+/** Meta key holding the list of provider ids */
+const PROVIDERS_KEY = `${RESERVED_PREFIX}providers`;
+
+/** Error codes of {@link EncryptedStorageError} */
+export type EncryptedStorageErrorCode = "LOCKED" | "DECRYPT" | "NO_KEY" | "LAST_PROVIDER" | "RESERVED";
+
 /**
  * Error raised by {@link EncryptedStorage}
  */
 export class EncryptedStorageError extends Error {
   /**
-   * @param code - LOCKED when no data key is set, DECRYPT when a record cannot be decrypted
+   * @param code - LOCKED when no data key is set, DECRYPT when a record or wrapped key cannot be decrypted,
+   * NO_KEY when no wrapped key exists for the provider, LAST_PROVIDER when removing the only provider,
+   * RESERVED when writing the reserved meta namespace
    * @param message - human readable detail
    */
   constructor(
-    public readonly code: "LOCKED" | "DECRYPT",
+    public readonly code: EncryptedStorageErrorCode,
     message: string = code
   ) {
     super(message);
@@ -56,6 +71,8 @@ function fromBase64(value: string): Uint8Array<ArrayBuffer> {
  */
 export class EncryptedStorage implements StorageAdapter {
   private key: CryptoKey | undefined;
+  /** Provider that unlocked the storage with its non-extractable KEK, used to re-wrap the data key in addProvider */
+  private active: { id: string; kek: CryptoKey } | undefined;
 
   /**
    * @param inner - storage holding the encrypted records
@@ -68,6 +85,110 @@ export class EncryptedStorage implements StorageAdapter {
    */
   setDataKey(key: CryptoKey | undefined): void {
     this.key = key;
+  }
+
+  /**
+   * Unlock the storage with a provider. When no provider is registered yet, a random AES-256-GCM data key is
+   * generated and wrapped for this provider.
+   * @param provider - the key provider
+   * @throws EncryptedStorageError NO_KEY when providers exist but none for this id, DECRYPT when the KEK is wrong
+   */
+  async unlock(provider: KeyProvider): Promise<void> {
+    const ids = await this.providers();
+    const kek = await provider.unlock();
+    if (ids.length === 0) {
+      // extractable only so it can be wrapped; the key kept in memory is the non-extractable unwrapped copy
+      const fresh = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+      await this.storeWrapped(provider.id, kek, fresh);
+      await this.inner.setMeta(PROVIDERS_KEY, [provider.id]);
+    } else if (!ids.includes(provider.id)) {
+      throw new EncryptedStorageError("NO_KEY", `No key registered for provider ${provider.id}`);
+    }
+    this.key = await this.unwrap(provider.id, kek, false);
+    this.active = { id: provider.id, kek };
+  }
+
+  /**
+   * Forget the data key and the provider KEK
+   */
+  lock(): void {
+    this.key = undefined;
+    this.active = undefined;
+  }
+
+  /**
+   * Register another provider able to unlock the same data key. The data key is unwrapped as an extractable copy
+   * from the unlocking provider's entry for the duration of the call only.
+   * @param provider - the provider to add
+   * @throws EncryptedStorageError LOCKED when locked, NO_KEY when the unlocking provider was removed
+   */
+  async addProvider(provider: KeyProvider): Promise<void> {
+    this.requireKey();
+    const { id, kek } = this.active!;
+    if ((await this.inner.getMeta(KEYS_PREFIX + id)) === undefined)
+      throw new EncryptedStorageError("NO_KEY", `Unlocking provider ${id} was removed`);
+    const copy = await this.unwrap(id, kek, true);
+    await this.storeWrapped(provider.id, await provider.unlock(), copy);
+    const ids = await this.providers();
+    if (!ids.includes(provider.id)) await this.inner.setMeta(PROVIDERS_KEY, [...ids, provider.id]);
+  }
+
+  /**
+   * Remove a provider's wrapped key
+   * @param id - provider id
+   * @throws EncryptedStorageError LAST_PROVIDER when it is the only provider
+   */
+  async removeProvider(id: string): Promise<void> {
+    const ids = await this.providers();
+    if (!ids.includes(id)) return;
+    if (ids.length === 1) throw new EncryptedStorageError("LAST_PROVIDER", "Cannot remove the last key provider");
+    await this.inner.setMeta(
+      PROVIDERS_KEY,
+      ids.filter(i => i !== id)
+    );
+    await this.inner.setMeta(KEYS_PREFIX + id, undefined);
+  }
+
+  /**
+   * @returns the ids of the registered providers
+   */
+  async providers(): Promise<string[]> {
+    return (await this.inner.getMeta<string[]>(PROVIDERS_KEY)) ?? [];
+  }
+
+  /**
+   * @param id - provider id
+   * @param kek - the provider KEK
+   * @param dataKey - extractable data key
+   */
+  private async storeWrapped(id: string, kek: CryptoKey, dataKey: CryptoKey): Promise<void> {
+    const wrapped = await crypto.subtle.wrapKey("raw", dataKey, kek, "AES-KW");
+    await this.inner.setMeta(KEYS_PREFIX + id, toBase64(new Uint8Array(wrapped)));
+  }
+
+  /**
+   * @param id - provider id
+   * @param kek - the provider KEK
+   * @param extractable - whether the unwrapped key is extractable
+   * @returns the AES-GCM data key
+   * @throws EncryptedStorageError DECRYPT when the KEK cannot unwrap the entry
+   */
+  private async unwrap(id: string, kek: CryptoKey, extractable: boolean): Promise<CryptoKey> {
+    const wrapped = await this.inner.getMeta<string>(KEYS_PREFIX + id);
+    if (wrapped === undefined) throw new EncryptedStorageError("NO_KEY", `No key registered for provider ${id}`);
+    try {
+      return await crypto.subtle.unwrapKey(
+        "raw",
+        fromBase64(wrapped),
+        kek,
+        "AES-KW",
+        { name: "AES-GCM" },
+        extractable,
+        ["encrypt", "decrypt"]
+      );
+    } catch (err) {
+      throw new EncryptedStorageError("DECRYPT", `Cannot unwrap data key for ${id}: ${(err as Error).message}`);
+    }
   }
 
   /**
@@ -185,8 +306,10 @@ export class EncryptedStorage implements StorageAdapter {
    * @param key - the key
    * @param value - the value, undefined removes the key
    * @returns resolved once stored
+   * @throws EncryptedStorageError RESERVED for keys in the `__encryption.` namespace
    */
-  setMeta<T>(key: string, value: T | undefined): Promise<void> {
+  async setMeta<T>(key: string, value: T | undefined): Promise<void> {
+    if (key.startsWith(RESERVED_PREFIX)) throw new EncryptedStorageError("RESERVED", `Meta key ${key} is reserved`);
     return this.inner.setMeta(key, value);
   }
 

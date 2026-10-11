@@ -6,6 +6,19 @@ sidebar_position: 3
 
 Webda allow you to deploy your code in many differents way
 
+## Deployment files
+
+A deployment is a `deployments/<name>.(json|jsonc|yaml|yml)` file. `webdac build` generates its JSON schema in
+`.webda/deployment.schema.json` and references it from each deployment file, so editors complete and validate it:
+
+```json title="deployments/production.json"
+{
+  "$schema": "../.webda/deployment.schema.json",
+  "parameters": {},
+  "units": []
+}
+```
+
 ## Package a deployment
 
 A deployment is applied at runtime with `webda -d <deployment> serve`: the application reads

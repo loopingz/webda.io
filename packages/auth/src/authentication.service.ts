@@ -82,27 +82,27 @@ export class AuthenticationParameters extends ServiceParameters {
    * User model
    * @default "Webda/User"
    */
-  userModel?: string;
+  userModel: string;
   /**
    * Ident model
    * @default "Webda/Ident"
    */
-  identModel?: string;
+  identModel: string;
   /**
    * Linking policy
    * @default "verified"
    */
-  linking?: LinkingPolicy;
+  linking: LinkingPolicy;
   /**
    * Allow automatic registration of new users
    * @default true
    */
-  registration?: boolean;
+  registration: boolean;
   /**
    * v3 data compatibility
    * @default { "v3": true }
    */
-  compatibility?: AuthenticationCompatibility;
+  compatibility: AuthenticationCompatibility;
 
   /**
    * @param params - raw parameters
@@ -266,16 +266,17 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   /** @override */
   initMetrics(): void {
     super.initMetrics();
-    this.metrics.login = this.getMetric(Counter, {
+    this.metrics ??= {};
+    this.metrics.login = this.getMetric<Counter>(Counter, {
       name: "auth_login",
       help: "Counter number of login per provider",
       labelNames: ["provider"]
     });
-    this.metrics.logout = this.getMetric(Counter, {
+    this.metrics.logout = this.getMetric<Counter>(Counter, {
       name: "auth_logout",
       help: "Counter number of logout"
     });
-    this.metrics.registration = this.getMetric(Counter, {
+    this.metrics.registration = this.getMetric<Counter>(Counter, {
       name: "auth_registration",
       help: "Counter number of registration per provider",
       labelNames: ["provider"]
@@ -444,10 +445,15 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
       user = registered = await this.registerUser(identity, {}, ctx);
       userId = user.getUUID();
     }
-    if (adopting) {
+    if (ident) {
       ident.setUser(userId);
       // Verification is only kept when this identity proves it
-      ident.verifiedAt = identity.emailVerified ? (ident.verifiedAt ?? new Date()) : undefined;
+      if (identity.emailVerified) {
+        ident.verifiedAt ??= new Date();
+      } else {
+        // Use the model setter so the cleared value is persisted by its proxy.
+        Reflect.set(ident, "verifiedAt", undefined);
+      }
       await ident.save();
     } else {
       ident = new (this.getIdentModel())({
@@ -464,7 +470,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
       try {
         await ident.getRepository().create(ident);
       } catch (err) {
-        if (!retried && /Already exists/.test(`${err?.message}`)) {
+        if (!retried && /Already exists/.test(`${err instanceof Error ? err.message : err}`)) {
           // Lost a concurrent first login: drop the user created for nothing, the retry finds the winner's ident
           await registered?.delete();
           return this.completeAs(identity, ctx, true, newUser);
@@ -484,7 +490,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
         .getRepository()
         .create(extra)
         .catch(err => {
-          if (!/Already exists/.test(`${err?.message}`)) throw err;
+          if (!/Already exists/.test(`${err instanceof Error ? err.message : err}`)) throw err;
         });
     }
     if (linked) {
@@ -775,7 +781,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
         } catch (err) {
           const identifier = (model as any).Metadata?.Identifier ?? model.name;
           const error: any = new Error(
-            `Cannot scan the ${identifier} records of the store: ${err?.message ?? err}. ` +
+            `Cannot scan the ${identifier} records of the store: ${err instanceof Error ? err.message : err}. ` +
               "A malformed ident key must be removed from the store manually; the migration is safe to re-run."
           );
           error.cause = err;
@@ -783,7 +789,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
         }
         if (next.done) break;
         const uid = next.value.getLegacyUID();
-        if (seen.has(uid)) continue;
+        if (uid === undefined || seen.has(uid)) continue;
         seen.add(uid);
         yield uid;
       }
@@ -824,7 +830,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
           upgraded++;
         } catch (err) {
           status.set(uid, "failed");
-          this.log("WARN", `v3 ident ${uid} not migrated: ${err?.message ?? err}`);
+          this.log("WARN", `v3 ident ${uid} not migrated: ${err instanceof Error ? err.message : err}`);
         }
       }
       pass++;
@@ -855,7 +861,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
         report.users.migrated++;
       } catch (err) {
         report.users.failed.push(user.getUUID());
-        this.log("WARN", `v3 user ${user.getUUID()} not migrated: ${err?.message ?? err}`);
+        this.log("WARN", `v3 user ${user.getUUID()} not migrated: ${err instanceof Error ? err.message : err}`);
       }
     }
   }

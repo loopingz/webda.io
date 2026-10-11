@@ -32,6 +32,13 @@ function rmrf(dir: string) {
 
 @suite
 class FileQueueUnitTest {
+  @test
+  loadedExpiration() {
+    assert.strictEqual(new FileQueueParameters().load({}).expire, 30);
+    assert.strictEqual(new FileQueueParameters().load({ expire: null }).expire, 30);
+    assert.strictEqual(new FileQueueParameters().load({ expire: 0 }).expire, 0);
+  }
+
   tmpDir: string;
   queue: FileQueue;
 

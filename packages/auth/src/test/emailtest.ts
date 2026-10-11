@@ -43,6 +43,8 @@ export abstract class EmailTest extends AuthTest {
    * @returns its token query parameter
    */
   tokenOf(url: string): string {
-    return new URL(url, "http://localhost").searchParams.get("token");
+    const token = new URL(url, "http://localhost").searchParams.get("token");
+    if (!token) throw new Error("Email link has no token");
+    return token;
   }
 }

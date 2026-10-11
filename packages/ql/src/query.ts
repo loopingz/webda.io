@@ -227,8 +227,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * @param ctx - the order expression context
    */
   visitOrderExpression(ctx: OrderExpressionContext): void {
-    this.orderBy = ctx.children
-      ?.filter(c => c instanceof OrderFieldExpressionContext)
+    this.orderBy = (ctx.children ?? [])
+      .filter(c => c instanceof OrderFieldExpressionContext)
       .map((c: OrderFieldExpressionContext) => this.visitOrderFieldExpression(c));
   }
 
@@ -238,7 +238,9 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * @returns the built Query
    */
   visitWebdaql(ctx: WebdaqlContext): Query {
-    return ctx.statement() ? this.visitStatement(ctx.statement()) : this.visitFilterQuery(ctx.filterQuery());
+    const statement = ctx.statement();
+    const filter = ctx.filterQuery();
+    return statement ? this.visitStatement(statement) : filter ? this.visitFilterQuery(filter) : this.defaultResult();
   }
 
   /**
@@ -418,7 +420,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
   getComparison(ctx: AndLogicExpressionContext | OrLogicExpressionContext): any[] {
     const res = [];
     // eslint-disable-next-line prefer-const
-    let [left, _, right] = ctx.children;
+    let left = ctx.getChild(0);
+    let right = ctx.getChild(2);
     if (right instanceof SubExpressionContext) {
       right = right.getChild(1);
     }
@@ -459,7 +462,9 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * @returns the comparison expression
    */
   visitBinaryComparisonExpression(ctx: BinaryComparisonExpressionContext) {
-    const [left, op, right] = ctx.children;
+    const left = ctx.getChild(0);
+    const op = ctx.getChild(1);
+    const right = ctx.getChild(2);
     // @ts-ignore
     return new ComparisonExpression(op.text, left.text, this.visit(right));
   }
@@ -470,7 +475,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * @returns the array of values
    */
   visitSetExpression(ctx: SetExpressionContext): value[] {
-    return ctx.children.filter((_i, id) => id % 2).map(c => this.visit(c)) as unknown as value[];
+    return (ctx.children ?? []).filter((_i, id) => id % 2).map(c => this.visit(c)) as unknown as value[];
   }
 
   /**
@@ -479,7 +484,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * @returns the comparison expression
    */
   visitLikeExpression(ctx: LikeExpressionContext) {
-    const [left, _, right] = ctx.children;
+    const left = ctx.getChild(0);
+    const right = ctx.getChild(2);
     const value = this.visit(right) as unknown as any[];
     return new ComparisonExpression("LIKE", left.text, value);
   }
@@ -490,7 +496,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * @returns the comparison expression
    */
   visitInExpression(ctx: InExpressionContext) {
-    const [left, _, right] = ctx.children;
+    const left = ctx.getChild(0);
+    const right = ctx.getChild(2);
     const value = this.visit(right) as unknown as any[];
     return new ComparisonExpression("IN", left.text, value);
   }
@@ -501,7 +508,8 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    * @returns the comparison expression
    */
   visitContainsExpression(ctx: ContainsExpressionContext) {
-    const [left, _, right] = ctx.children;
+    const left = ctx.getChild(0);
+    const right = ctx.getChild(2);
     const value = this.visit(right) as unknown as any[];
     return new ComparisonExpression("CONTAINS", left.text, value);
   }
@@ -698,7 +706,7 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
   /**
    * Right side of the comparison
    */
-  value: value | value[];
+  value: value | value[] | null;
   /**
    * Attribute to read from the object (split by .)
    */
@@ -708,7 +716,7 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
    * @param attribute - dot-notation path to the object property (e.g. `"user.name"`)
    * @param value - literal value or array of values (for IN operator) to compare against
    */
-  constructor(operator: T, attribute: string, value: value | any[]) {
+  constructor(operator: T, attribute: string, value: value | any[] | null) {
     super(operator);
     this.value = value;
     this.attribute = attribute.split(".");
@@ -790,13 +798,13 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
         // ignore strong type on purpose
         return left == this.value;
       case "<=":
-        return left <= this.value;
+        return left <= (this.value ?? 0);
       case ">=":
-        return left >= this.value;
+        return left >= (this.value ?? 0);
       case "<":
-        return left < this.value;
+        return left < (this.value ?? 0);
       case ">":
-        return left > this.value;
+        return left > (this.value ?? 0);
       case "!=":
         return left != this.value;
       case "LIKE":
@@ -829,7 +837,7 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
    * @param value - the value to serialize
    * @returns the serialized string
    */
-  toStringValue(value: value | value[]): string {
+  toStringValue(value: value | value[] | null): string {
     if (Array.isArray(value)) {
       return `[${value.map(v => this.toStringValue(v)).join(", ")}]`;
     }
@@ -839,7 +847,7 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
       case "boolean":
         return value.toString().toUpperCase();
     }
-    return value?.toString();
+    return value === null ? "NULL" : value.toString();
   }
 
   /**
@@ -1163,7 +1171,7 @@ export class QueryValidator {
    * @param type - logical operator to combine filters (`"AND"` or `"OR"`)
    * @returns `this` for chaining
    */
-  merge(query: string, type: "OR" | "AND" = "AND"): this {
+  merge(query: string = "", type: "OR" | "AND" = "AND"): this {
     const adds = new QueryValidator(query);
     if (adds.query.type !== "SELECT" || adds.query.fields) {
       throw new SyntaxError(`Only a filter can be merged into a query, not a statement (Query: ${query})`);
@@ -1450,7 +1458,8 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
    * @returns the partial comparison expression
    */
   visitLikeExpression(ctx: any) {
-    const [left, _, right] = ctx.children;
+    const left = ctx.getChild(0);
+    const right = ctx.getChild(2);
     const value = this.visit(right) as unknown as any[];
     return new PartialComparisonExpression(this, "LIKE", left.text, value);
   }
@@ -1461,7 +1470,9 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
    * @returns the partial comparison expression
    */
   visitBinaryComparisonExpression(ctx: any) {
-    const [left, op, right] = ctx.children;
+    const left = ctx.getChild(0);
+    const op = ctx.getChild(1);
+    const right = ctx.getChild(2);
     // @ts-ignore
     return new PartialComparisonExpression(this, op.text, left.text, this.visit(right));
   }
@@ -1472,7 +1483,8 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
    * @returns the partial comparison expression
    */
   visitInExpression(ctx: any) {
-    const [left, _, right] = ctx.children;
+    const left = ctx.getChild(0);
+    const right = ctx.getChild(2);
     const value = this.visit(right) as unknown as any[];
     return new PartialComparisonExpression(this, "IN", left.text, value);
   }
@@ -1483,7 +1495,8 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
    * @returns the partial comparison expression
    */
   visitContainsExpression(ctx: any) {
-    const [left, _, right] = ctx.children;
+    const left = ctx.getChild(0);
+    const right = ctx.getChild(2);
     const value = this.visit(right) as unknown as any[];
     return new PartialComparisonExpression(this, "CONTAINS", left.text, value);
   }

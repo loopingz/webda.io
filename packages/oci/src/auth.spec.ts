@@ -11,6 +11,8 @@ class AuthTest {
   @test
   challenges() {
     assert.strictEqual(parseAuthChallenge(undefined), undefined);
+    assert.strictEqual(parseAuthChallenge(""), undefined);
+    assert.strictEqual(parseAuthChallenge("   "), undefined);
     assert.deepStrictEqual(
       parseAuthChallenge(
         'Bearer realm="https://auth.docker.io/token",service="registry.docker.io",scope="repository:library/node:pull"'

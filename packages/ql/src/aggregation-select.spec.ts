@@ -8,7 +8,8 @@ import { assertFilterQuery, normalizeQuery, parse } from "./query.js";
  * @param query - the query
  * @returns a plain object
  */
-function plain(query: AggregationQuery) {
+function plain(query: AggregationQuery | undefined) {
+  assert.ok(query);
   return { ...query, filter: query.filter.toString() };
 }
 
@@ -86,7 +87,7 @@ class AggregationSelectTest {
       "SELECT COUNT(*) AS n ORDER BY nope",
       "SELECT status GROUP BY status"
     ]) {
-      assert.throws(() => parse(bad), undefined, bad);
+      assert.throws(() => parse(bad), bad);
     }
   }
 
@@ -110,7 +111,7 @@ class AggregationSelectTest {
       "count = 1 AND min = 2",
       "lowercase stays an attribute"
     );
-    assert.throws(() => parse("COUNT = 1"), undefined, "uppercase COUNT is now a keyword");
-    assert.throws(() => parse("a = 1 GROUP BY a"), undefined, "GROUP BY only in a SELECT");
+    assert.throws(() => parse("COUNT = 1"), "uppercase COUNT is now a keyword");
+    assert.throws(() => parse("a = 1 GROUP BY a"), "GROUP BY only in a SELECT");
   }
 }

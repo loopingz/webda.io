@@ -33,6 +33,17 @@ const LOCAL_REGISTRY = process.env.WEBDA_OCI_TEST_REGISTRY ?? "localhost:5005";
 
 @suite
 class ImageTest {
+  @test
+  async missingUploadLocation() {
+    const client = new RegistryClient("registry.example.com", {
+      fetch: async () => new Response(null, { status: 202 })
+    });
+    await assert.rejects(
+      () => client.uploadBlob("test", "sha256:test", 0, () => Buffer.alloc(0)),
+      /no Location header/
+    );
+  }
+
   folders: string[] = [];
 
   /**

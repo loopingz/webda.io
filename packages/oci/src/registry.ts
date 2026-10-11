@@ -1,3 +1,4 @@
+import { WebdaError } from "@webda/core";
 import { useLog } from "@webda/workout";
 import type { Readable } from "node:stream";
 import { type AuthChallenge, parseAuthChallenge, type PlainRegistryCredentials } from "./auth.js";
@@ -341,7 +342,11 @@ export class RegistryClient {
     if (start.status !== 202) {
       await this.fail(start, `Start upload of ${digest}`);
     }
-    const location = new URL(start.headers.get("location"), `${this.baseUrl}/`);
+    const uploadLocation = start.headers.get("location");
+    if (!uploadLocation) {
+      throw new WebdaError.BadRequest("Registry upload response has no Location header");
+    }
+    const location = new URL(uploadLocation, `${this.baseUrl}/`);
     location.searchParams.set("digest", digest);
     const response = await this.request("PUT", location.toString(), scopes, {
       headers: { "content-type": "application/octet-stream", "content-length": `${size}` },

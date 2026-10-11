@@ -40,7 +40,7 @@ export function resetFailures(): LoginAttempts {
  * @param now - clock
  * @returns true when an email may be sent
  */
-export function canSend(t: IdentThrottle, delayMs: number, now: number = Date.now()): boolean {
+export function canSend(t: IdentThrottle | undefined, delayMs: number, now: number = Date.now()): boolean {
   return !t?.lastSentAt || t.lastSentAt + delayMs < now;
 }
 
@@ -50,6 +50,6 @@ export function canSend(t: IdentThrottle, delayMs: number, now: number = Date.no
  * @param now - clock
  * @returns state with the send timestamp set
  */
-export function markSent(t: IdentThrottle, now: number = Date.now()): IdentThrottle {
+export function markSent(t: IdentThrottle | undefined, now: number = Date.now()): IdentThrottle {
   return { ...(t ?? {}), lastSentAt: now };
 }

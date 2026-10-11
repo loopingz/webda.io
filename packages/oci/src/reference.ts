@@ -43,7 +43,7 @@ export function parseImageReference(reference: string): ImageReference {
   if (!rest) {
     throw new Error("Empty image reference");
   }
-  let digest: string;
+  let digest: string | undefined;
   const at = rest.indexOf("@");
   if (at >= 0) {
     digest = rest.substring(at + 1);
@@ -52,7 +52,7 @@ export function parseImageReference(reference: string): ImageReference {
       throw new Error(`Invalid digest in image reference '${reference}'`);
     }
   }
-  let tag: string;
+  let tag: string | undefined;
   const lastSlash = rest.lastIndexOf("/");
   const colon = rest.lastIndexOf(":");
   if (colon > lastSlash) {

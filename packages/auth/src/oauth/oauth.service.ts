@@ -81,7 +81,7 @@ export interface OAuthRedirects {
    * Where a successful login lands when the login did not carry an allowed `redirect` parameter
    * @default "/"
    */
-  success?: string;
+  success: string;
   /**
    * Where a failed login or callback lands, with `?reason=<CODE>` (required)
    */
@@ -119,11 +119,12 @@ export class OAuthProviderParameters extends ServiceParameters {
    * target matches when it has the same origin and its path is the listed path or below it
    * @default []
    */
-  authorized_uris?: string[];
+  authorized_uris: string[];
   /**
    * Browser redirects of the callback
+   * @default { "success": "/" }
    */
-  redirects?: OAuthRedirects;
+  redirects: OAuthRedirects;
   /** Only these email domains may use this provider (see ProviderEmailPolicy) */
   allowedEmailDomains?: string[];
   /** Whether the verification of the email is believed (see ProviderEmailPolicy) */
@@ -136,7 +137,7 @@ export class OAuthProviderParameters extends ServiceParameters {
   load(params: any = {}): this {
     super.load(params);
     this.authorized_uris ??= [];
-    this.redirects = { success: "/", ...(this.redirects ?? {}) };
+    this.redirects = { ...this.redirects, success: this.redirects?.success ?? "/" };
     return this;
   }
 }
@@ -610,7 +611,9 @@ export abstract class OAuthProvider<
    * @param reason - failure code
    */
   protected fail(ctx: WebContext, reason: string): void {
-    this.redirect(ctx, withQuery(this.parameters.redirects.failure, { reason }));
+    const failure = this.parameters.redirects.failure;
+    if (!failure) throw new WebdaError.BadRequest("Missing OAuth failure redirect");
+    this.redirect(ctx, withQuery(failure, { reason }));
   }
 
   /**
@@ -699,7 +702,7 @@ export abstract class OAuthProvider<
         await this.onAuthenticated(identity, res, "callback");
         return res;
       });
-      const target = pending.redirect ?? this.parameters.redirects.success ?? "/";
+      const target = pending.redirect ?? this.parameters.redirects.success;
       this.redirect(ctx, result.status === "mfa_required" ? withQuery(target, { mfa: "required" }) : target);
     } catch (err) {
       const code = httpErrorCode(err);

@@ -80,10 +80,13 @@ export function parseAuthChallenge(header: string | null | undefined): AuthChall
     return undefined;
   }
   const match = /^\s*(\S+)\s*(.*)$/s.exec(header);
+  if (!match) {
+    return undefined;
+  }
   const scheme = match[1].toLowerCase();
   const parameters: Record<string, string> = {};
   const pattern = /([a-zA-Z0-9_.-]+)\s*=\s*(?:"((?:[^"\\]|\\.)*)"|([^,\s]*))\s*,?/g;
-  let parameter: RegExpExecArray;
+  let parameter: RegExpExecArray | null;
   while ((parameter = pattern.exec(match[2])) !== null) {
     parameters[parameter[1].toLowerCase()] =
       parameter[2] !== undefined ? parameter[2].replace(/\\(.)/g, "$1") : parameter[3];

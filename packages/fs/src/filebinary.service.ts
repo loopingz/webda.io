@@ -51,9 +51,9 @@ export class FileBinaryParameters extends CloudBinaryParameters {
   folder: string;
   /**
    * Maximum size to handle
-   * @default 10Mb
+   * @default 10485760
    */
-  maxSize?: number;
+  maxSize: number;
   /**
    * URL to use for direct download
    */
@@ -214,9 +214,11 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @override
    */
   async _get(info: BinaryMap): Promise<Readable> {
-    const path = this._getPath(info.hash, "data");
+    const hash = info.hash;
+    if (!hash) throw new WebdaError.BadRequest("Missing binary hash");
+    const path = this._getPath(hash, "data");
     if (!fs.existsSync(path)) {
-      throw new BinaryNotFoundError(info.hash, this.getName());
+      throw new BinaryNotFoundError(hash, this.getName());
     }
     return fs.createReadStream(path);
   }
@@ -246,7 +248,8 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param postfix - optional path suffix
    * @returns the filesystem path
    */
-  _getPath(hash: string, postfix: string = undefined) {
+  _getPath(hash: string | undefined, postfix?: string) {
+    if (!hash) throw new WebdaError.BadRequest("Missing binary hash");
     if (postfix === undefined) {
       return this.parameters.folder + hash;
     }
@@ -259,7 +262,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param filePath - path of the file to create
    * @param mode - file permission mode
    */
-  _touch(filePath, mode = 0o600) {
+  _touch(filePath: string, mode = 0o600) {
     try {
       const fd = fs.openSync(filePath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_RDWR, mode);
       fs.closeSync(fd);
@@ -277,7 +280,13 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param target - for an upload token, what to attach once the content is stored and verified
    * @returns the signed JWT token
    */
-  async getToken(hash: string, method: "PUT" | "GET", expiresIn: number = 60, target?: UploadTarget): Promise<string> {
+  async getToken(
+    hash: string | undefined,
+    method: "PUT" | "GET",
+    expiresIn: number = 60,
+    target?: UploadTarget
+  ): Promise<string> {
+    if (!hash) throw new WebdaError.BadRequest("Missing binary hash");
     return this.cryptoService.jwtSign(target ? { hash, method, target } : { hash, method }, { expiresIn });
   }
 
@@ -289,8 +298,8 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param target - what the upload attaches once the content is stored and verified
    * @returns the upload URL
    */
-  async getPutUrl(ctx: OperationContext<BinaryFile>, hash?: string, target?: UploadTarget) {
-    hash ??= (await ctx.getInput()).hash;
+  async getPutUrl(ctx: OperationContext<BinaryFile> | undefined, hash?: string, target?: UploadTarget) {
+    hash ??= (await ctx?.getInput())?.hash;
     const token = await this.getToken(hash, "PUT", 60, target);
     if (ctx instanceof WebContext) {
       return ctx.getHttpContext().getAbsoluteUrl(this.parameters.url + "/upload/data/" + hash + `?token=${token}`);
@@ -359,15 +368,24 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     attribute: string,
     info?: BinaryFile,
     context?: OperationContext<BinaryFile>
-  ): Promise<{ url: string; method: string }> {
-    info ??= await context.getInput();
+  ): Promise<{ url: string; method: string } | undefined> {
+    info ??= await context?.getInput();
+    if (!info?.hash) throw new WebdaError.BadRequest("Missing binary hash");
+    const uuid = object.getUUID();
+    if (!uuid) throw new WebdaError.BadRequest("Missing object identifier");
+    const model = useModelId(object.constructor);
+    if (!model) throw new WebdaError.BadRequest("Missing model identifier");
     const target: UploadTarget = {
-      model: useModelId(object.constructor),
-      uuid: object.getUUID(),
+      model,
+      uuid,
       attribute,
       info: { name: info.name, size: info.size, mimetype: info.mimetype, metadata: info.metadata }
     };
-    if (fs.existsSync(this._getPath(info.hash, "data")) && this.challenge(info.hash, info.challenge)) {
+    if (
+      fs.existsSync(this._getPath(info.hash, "data")) &&
+      info.challenge &&
+      this.challenge(info.hash, info.challenge)
+    ) {
       // Proof of possession: attach the stored binary
       await this.attach(object, target, { hash: info.hash, challenge: info.challenge });
       return;
@@ -470,9 +488,14 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @override
    */
   async delete(object: CoreModelWithBinary, property: string, index?: number): Promise<void> {
-    const hash = (index !== undefined ? object[property][index] : (object[property] as any)).hash;
+    const maps = object[property];
+    const map = Array.isArray(maps) ? (index === undefined ? undefined : maps[index]) : maps;
+    if (!map?.hash) throw new WebdaError.BadRequest("Missing binary hash");
+    const hash = map.hash;
+    const uuid = object.getUUID();
+    if (!uuid) throw new WebdaError.BadRequest("Missing object identifier");
     await this.deleteSuccess(<any>object, property, index);
-    await this._cleanUsage(hash, object.getUUID(), property);
+    await this._cleanUsage(hash, uuid, property);
   }
 
   /**
@@ -492,9 +515,10 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param challenge - the challenge string
    * @returns true if the proof marker exists
    */
-  challenge(hash, challenge) {
+  challenge(hash: string | undefined, challenge: string | undefined) {
+    if (!hash || !challenge) return false;
     const path = this._getPath(hash);
-    return !!challenge && fs.existsSync(path) && fs.existsSync(`${path}/${this.proofMarker(challenge)}`);
+    return fs.existsSync(path) && fs.existsSync(`${path}/${this.proofMarker(challenge)}`);
   }
 
   /**
@@ -514,6 +538,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @override
    */
   async cascadeDelete(info: BinaryMap, uuid: string) {
+    if (!info.hash) throw new WebdaError.BadRequest("Missing binary hash");
     return this._cleanUsage(info.hash, uuid);
   }
 
@@ -525,36 +550,37 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param attribute - the binary attribute name
    */
   async _store(file: BinaryFile, object: CoreModel, attribute: string) {
-    fs.mkdirSync(this._getPath(file.hash));
+    const { hash, challenge } = await file.getHashes();
+    const uuid = object.getUUID();
+    if (!uuid) throw new WebdaError.BadRequest("Missing object identifier");
+    const model = useModelId(object.constructor);
+    if (!model) throw new WebdaError.BadRequest("Missing model identifier");
+    fs.mkdirSync(this._getPath(hash));
     const map = await file.get();
     await new Promise((resolve, reject) => {
       map
-        .pipe(fs.createWriteStream(this._getPath(file.hash, "data")))
+        .pipe(fs.createWriteStream(this._getPath(hash, "data")))
         .on("error", reject)
         .on("finish", resolve);
     });
 
-    this._touch(this._getPath(file.hash, this.proofMarker(file.challenge)));
-    this._touch(
-      this._getPath(
-        file.hash,
-        this.usageMarker({ model: useModelId(object.constructor), attribute, uuid: object.getUUID() })
-      )
-    );
+    this._touch(this._getPath(hash, this.proofMarker(challenge)));
+    this._touch(this._getPath(hash, this.usageMarker({ model, attribute, uuid })));
   }
 
   /**
    * @override
    */
   async store(object: CoreModel, property: string, file: BinaryFile): Promise<any> {
-    await file.getHashes();
+    const { hash } = await file.getHashes();
+    const uuid = object.getUUID();
+    if (!uuid) throw new WebdaError.BadRequest("Missing object identifier");
     const storeName = useModelId(object.constructor);
+    if (!storeName) throw new WebdaError.BadRequest("Missing model identifier");
     const fileInfo = file.toBinaryFileInfo();
     this.checkMap(<any>object, property);
-    if (fs.existsSync(this._getPath(file.hash))) {
-      this._touch(
-        this._getPath(file.hash, this.usageMarker({ model: storeName, attribute: property, uuid: object.getUUID() }))
-      );
+    if (fs.existsSync(this._getPath(hash))) {
+      this._touch(this._getPath(hash, this.usageMarker({ model: storeName, attribute: property, uuid })));
       await this.uploadSuccess(<any>object, property, fileInfo);
       return;
     }
@@ -566,6 +592,9 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * Clean all data
    */
   async ___cleanData(): Promise<void> {
-    (await import("fs-extra")).emptyDirSync(this.parameters.folder);
+    fs.mkdirSync(this.parameters.folder, { recursive: true });
+    for (const entry of fs.readdirSync(this.parameters.folder)) {
+      fs.rmSync(`${this.parameters.folder}/${entry}`, { recursive: true, force: true });
+    }
   }
 }

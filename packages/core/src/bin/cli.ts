@@ -526,6 +526,40 @@ export function shouldPatchConsole(argv: string[]): boolean {
 }
 
 /**
+ * Top-level commands that ship in optional packages, so an unknown command can
+ * point to the package to install
+ */
+const OPTIONAL_COMMANDS: Record<string, string[]> = {
+  async: ["@webda/async"],
+  auth: ["@webda/auth"],
+  aws: ["@webda/aws"],
+  container: ["@webda/oci"],
+  debug: ["@webda/debug"],
+  deploy: ["@webda/aws", "@webda/oci"],
+  kubernetes: ["@webda/kubernetes"],
+  mcp: ["@webda/mcp"]
+};
+
+/**
+ * Error shown when the command matches none the application provides
+ *
+ * @param command - the command typed
+ * @param available - top-level commands of the application
+ * @returns the message, with the package to install when the command ships in one
+ */
+export function unknownCommandMessage(command: string, available: string[]): string {
+  const lines = [`Unknown command '${command}'.`];
+  const packages = OPTIONAL_COMMANDS[command];
+  if (packages) {
+    lines.push(
+      `'webda ${command}' is provided by ${packages.join(" or ")}: add it to your dependencies (pnpm add -D ${packages[0]}).`
+    );
+  }
+  lines.push(`Available commands: ${[...new Set(available)].sort().join(", ")}`, "Run 'webda --help' for details.");
+  return lines.join("\n");
+}
+
+/**
  * Load the Application from a path, choosing packaged or unpacked mode based on the presence of `.webda/packaged.json`.
  *
  * @param appPath - Absolute or relative path to the application root directory
@@ -1013,10 +1047,18 @@ if (isMain) {
         .demandCommand(1, "Specify a command")
         .help();
 
-      await cli.parseAsync();
+      const parsed = await cli.parseAsync();
 
       if (!matchedCommand) {
-        // No command matched, yargs already showed help or error
+        // yargs reports a missing command or action itself, but accepts an unknown command silently
+        const command = String(parsed._[0] ?? "");
+        const available = [
+          ...Object.keys(serviceCommands).map(name => name.split(" ")[0]),
+          ...(ops ? [...groupOperations(ops.operations).keys()].map(group => group.toLowerCase()) : [])
+        ];
+        if (command && !available.includes(command)) {
+          console.error(unknownCommandMessage(command, available));
+        }
         process.exit(1);
       }
 

@@ -18,6 +18,7 @@ import {
   addServiceCommandsToCli,
   resolveLogStream,
   shouldPatchConsole,
+  unknownCommandMessage,
   type OperationsFile,
   type OperationCall,
   type OperationEntry
@@ -650,5 +651,31 @@ class CliDeploymentTest {
       () => prepareDeploymentUnits(app, "deploy", cmdInfo),
       /conflicts with the application service 'store'/
     );
+  }
+}
+
+@suite
+class CliUnknownCommandTest {
+  @test
+  namesTheCommandAndListsTheAvailableOnes() {
+    const message = unknownCommandMessage("nosuchcommand", ["serve", "auth", "openapi"]);
+    assert.ok(message.includes("Unknown command 'nosuchcommand'"), message);
+    assert.ok(message.includes("Available commands: auth, openapi, serve"), message);
+    assert.ok(message.includes("webda --help"), message);
+    assert.ok(!message.includes("provided by"), "no package hint for an unknown name");
+  }
+
+  @test
+  pointsToThePackageProvidingAKnownCommand() {
+    const message = unknownCommandMessage("debug", ["serve"]);
+    assert.ok(message.includes("Unknown command 'debug'"), message);
+    assert.ok(message.includes("'webda debug' is provided by @webda/debug"), message);
+    assert.ok(message.includes("pnpm add -D @webda/debug"), message);
+  }
+
+  @test
+  pointsToEveryPackageProvidingASharedCommand() {
+    const message = unknownCommandMessage("deploy", []);
+    assert.ok(message.includes("@webda/aws or @webda/oci"), message);
   }
 }

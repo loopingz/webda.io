@@ -6,21 +6,21 @@ const footer = fs.readFileSync("README.footer.md", "utf8");
 function updateReadme(content, package) {
   const newHeader = header.replace(/{{name}}/g, package.name).replace(/{{description}}/g, package.description);
   const newFooter = footer.replace(/{{name}}/g, package.name);
-  const headerMarkup = "\n<!-- README_HEADER -->\n";
-  const footerMarkup = "\n<!-- README_FOOTER -->\n";
-  const headerPos = content.indexOf(headerMarkup);
-  if (headerPos !== -1) {
-    content = content.substring(headerPos + headerMarkup.length);
+  // Markers are matched with any surrounding blank lines, so the output stays stable after prettier
+  const headerMatch = content.match(/\n*<!-- README_HEADER -->\n*/);
+  if (headerMatch) {
+    content = content.substring(headerMatch.index + headerMatch[0].length);
   }
   // Remove title if exists
   if (content.startsWith(`# ${package.name}\n`)) {
-    content = content.substring(package.name.length + 3);
+    content = content.substring(package.name.length + 3).replace(/^\n+/, "");
   }
-  const footerPos = content.indexOf(footerMarkup);
-  if (footerPos !== -1) {
-    content = content.substring(0, footerPos);
+  const footerMatch = content.match(/\n*<!-- README_FOOTER -->\n*/);
+  if (footerMatch) {
+    content = content.substring(0, footerMatch.index);
   }
-  return `${newHeader}${headerMarkup}${content}${footerMarkup}${newFooter}`;
+  content = content.replace(/\s+$/, "");
+  return `${newHeader}\n<!-- README_HEADER -->\n\n${content}\n\n<!-- README_FOOTER -->\n\n${newFooter}`;
 }
 
 function handleReadme(packagePath) {

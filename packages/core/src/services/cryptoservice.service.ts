@@ -1064,7 +1064,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     const failures: (SecretFinding & { file: string })[] = [];
     const warnings: (SecretFinding & { file: string })[] = [];
     for (const filename of files) {
-      const file = relative(app.getPath(), filename) || filename;
+      // Same report on every OS: forward slashes
+      const file = (relative(app.getPath(), filename) || filename).replace(/\\/g, "/");
       // Plain JSON: the comment-preserving loader returns wrapper objects
       const findings = CryptoService.findFileSecrets(JSON.parse(JSON.stringify(FileUtils.load(filename))), exclude);
       for (const finding of findings) {

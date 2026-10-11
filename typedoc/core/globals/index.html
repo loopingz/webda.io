@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.9f060b7e.css">
-<script src="/assets/js/runtime~main.6d0eb232.js" defer="defer"></script>
-<script src="/assets/js/main.ab7958bc.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.d21f81d2.js" defer="defer"></script>
+<script src="/assets/js/main.fe9121f8.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -117,6 +117,8 @@
 <li class=""><a class="" href="/typedoc/core/classes/OwnerModel">OwnerModel</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/Password">Password</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/PasswordPolicyError">PasswordPolicyError</a></li>
+<li class=""><a class="" href="/typedoc/core/classes/PkiEncrypter">PkiEncrypter</a></li>
+<li class=""><a class="" href="/typedoc/core/classes/PkiKeyring">PkiKeyring</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/PrometheusParameters">PrometheusParameters</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/PrometheusService">PrometheusService</a></li>
 <li class=""><a class="" href="/typedoc/core/classes/PubSubService">PubSubService</a></li>
@@ -159,6 +161,8 @@
 <li class=""><a class="" href="/typedoc/core/interfaces/CachedModule">CachedModule</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/CommandOptions">CommandOptions</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/CommandResult">CommandResult</a></li>
+<li class=""><a class="" href="/typedoc/core/interfaces/ConfigurationEncryption">ConfigurationEncryption</a></li>
+<li class=""><a class="" href="/typedoc/core/interfaces/ConfigurationEncryptionOptions">ConfigurationEncryptionOptions</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ConfigurationProvider">ConfigurationProvider</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ContextProviderInfo">ContextProviderInfo</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/CORSFilter">CORSFilter</a></li>
@@ -169,6 +173,8 @@
 <li class=""><a class="" href="/typedoc/core/interfaces/Deployment">Deployment</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/DeploymentUnit">DeploymentUnit</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/DeploymentVariables">DeploymentVariables</a></li>
+<li class=""><a class="" href="/typedoc/core/interfaces/EncryptedValue">EncryptedValue</a></li>
+<li class=""><a class="" href="/typedoc/core/interfaces/EncrypterContext">EncrypterContext</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/EventAuthenticationGetMe">EventAuthenticationGetMe</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/EventAuthenticationLinked">EventAuthenticationLinked</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/EventAuthenticationLogin">EventAuthenticationLogin</a></li>
@@ -221,6 +227,8 @@
 <li class=""><a class="" href="/typedoc/core/interfaces/PackageEntry">PackageEntry</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/PackageOptions">PackageOptions</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/PasswordPolicy">PasswordPolicy</a></li>
+<li class=""><a class="" href="/typedoc/core/interfaces/PkiEncrypterOptions">PkiEncrypterOptions</a></li>
+<li class=""><a class="" href="/typedoc/core/interfaces/PkiValue">PkiValue</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ProjectInformation">ProjectInformation</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/ProviderInfo">ProviderInfo</a></li>
 <li class=""><a class="" href="/typedoc/core/interfaces/Repository">Repository</a></li>
@@ -312,6 +320,14 @@
 <li class=""><a class="" href="/typedoc/core/variables/NOT_FOUND_MESSAGE">NOT_FOUND_MESSAGE</a></li>
 <li class=""><a class="" href="/typedoc/core/variables/PACKAGED_CONFIGURATION">PACKAGED_CONFIGURATION</a></li>
 <li class=""><a class="" href="/typedoc/core/variables/PACKAGED_MARKER">PACKAGED_MARKER</a></li>
+<li class=""><a class="" href="/typedoc/core/variables/PKI_DEFAULT_PRIVATE_KEYS">PKI_DEFAULT_PRIVATE_KEYS</a></li>
+<li class=""><a class="" href="/typedoc/core/variables/PKI_DEFAULT_PUBLIC_KEYS">PKI_DEFAULT_PUBLIC_KEYS</a></li>
+<li class=""><a class="" href="/typedoc/core/variables/PKI_FORMAT_V1">PKI_FORMAT_V1</a></li>
+<li class=""><a class="" href="/typedoc/core/variables/PKI_MIN_BITS">PKI_MIN_BITS</a></li>
+<li class=""><a class="" href="/typedoc/core/variables/PKI_PASSPHRASE_ENV">PKI_PASSPHRASE_ENV</a></li>
+<li class=""><a class="" href="/typedoc/core/variables/PKI_PRIVATE_KEY_ENV_PREFIX">PKI_PRIVATE_KEY_ENV_PREFIX</a></li>
+<li class=""><a class="" href="/typedoc/core/variables/PKI_PRIVATE_KEYS_DIR_ENV">PKI_PRIVATE_KEYS_DIR_ENV</a></li>
+<li class=""><a class="" href="/typedoc/core/variables/pkiEncrypter">pkiEncrypter</a></li>
 <li class=""><a class="" href="/typedoc/core/variables/ProcessCache">ProcessCache</a></li>
 <li class=""><a class="" href="/typedoc/core/variables/Route">Route</a></li>
 <li class=""><a class="" href="/typedoc/core/variables/SCAN_FACTOR">SCAN_FACTOR</a></li>
@@ -326,6 +342,7 @@
 <li class=""><a class="" href="/typedoc/core/functions/callOperation">callOperation</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/canCallOperation">canCallOperation</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/canUpdateContext">canUpdateContext</a></li>
+<li class=""><a class="" href="/typedoc/core/functions/checkKid">checkKid</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/checkModelParent">checkModelParent</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/checkModelPermission">checkModelPermission</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/checkModelReparent">checkModelReparent</a></li>
@@ -349,6 +366,7 @@
 <li class=""><a class="" href="/typedoc/core/functions/getModelPermission">getModelPermission</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/getOperationStreaming">getOperationStreaming</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/getParentRelation">getParentRelation</a></li>
+<li class=""><a class="" href="/typedoc/core/functions/getPrivateKeyEnv">getPrivateKeyEnv</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/getProtectedAttributes">getProtectedAttributes</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/getReadOnlyAttributes">getReadOnlyAttributes</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/hasModelPermissionCheck">hasModelPermissionCheck</a></li>
@@ -370,6 +388,7 @@
 <li class=""><a class="" href="/typedoc/core/functions/operationPatternMatches">operationPatternMatches</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/packageApplication">packageApplication</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/parseEncryptedValue">parseEncryptedValue</a></li>
+<li class=""><a class="" href="/typedoc/core/functions/parsePkiValue">parsePkiValue</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/parseSubjectKey">parseSubjectKey</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/prepareCreateInput">prepareCreateInput</a></li>
 <li class=""><a class="" href="/typedoc/core/functions/queryModelWithPermissions">queryModelWithPermissions</a></li>

@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.9f060b7e.css">
-<script src="/assets/js/runtime~main.6d0eb232.js" defer="defer"></script>
-<script src="/assets/js/main.ab7958bc.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.d21f81d2.js" defer="defer"></script>
+<script src="/assets/js/main.fe9121f8.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -23,7 +23,7 @@
 <blockquote>
 <p><strong>CommandDefinition</strong> = <code>object</code></p>
 </blockquote>
-<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5bda419c408faac9709d7b49f1b25ed97424e397/packages/compiler/src/definition.ts#L354" target="_blank" rel="noopener noreferrer" class="">definition.ts:354</a></p>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a903ab25509ee7244bb48a3ea208ee19cce95e83/packages/compiler/src/definition.ts#L354" target="_blank" rel="noopener noreferrer" class="">definition.ts:354</a></p>
 <p>Definition of a CLI command declared via the <code>@Command</code> decorator on a service method.</p>
 <p>Written into <code>webda.module.json</code> under <code>moddas[serviceName].commands</code> or
 <code>beans[serviceName].commands</code> by the CommandsMetadata compiler plugin.</p>
@@ -34,7 +34,7 @@
 <blockquote>
 <p><strong>args</strong>: <code>object</code></p>
 </blockquote>
-<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5bda419c408faac9709d7b49f1b25ed97424e397/packages/compiler/src/definition.ts#L369" target="_blank" rel="noopener noreferrer" class="">definition.ts:369</a></p>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a903ab25509ee7244bb48a3ea208ee19cce95e83/packages/compiler/src/definition.ts#L369" target="_blank" rel="noopener noreferrer" class="">definition.ts:369</a></p>
 <p>Map of argument name to its definition. Keys are method parameter names,
 which become <code>--flag</code> names in the CLI.</p>
 <h4 class="anchor anchorTargetStickyNavbar_FE5u" id="index-signature">Index Signature<a href="#index-signature" class="hash-link" aria-label="Direct link to Index Signature" title="Direct link to Index Signature" translate="no">​</a></h4>
@@ -44,7 +44,7 @@ which become <code>--flag</code> names in the CLI.</p>
 <blockquote>
 <p><strong>description</strong>: <code>string</code></p>
 </blockquote>
-<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5bda419c408faac9709d7b49f1b25ed97424e397/packages/compiler/src/definition.ts#L359" target="_blank" rel="noopener noreferrer" class="">definition.ts:359</a></p>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a903ab25509ee7244bb48a3ea208ee19cce95e83/packages/compiler/src/definition.ts#L359" target="_blank" rel="noopener noreferrer" class="">definition.ts:359</a></p>
 <p>Human-readable description of the command, displayed in CLI help output.
 Extracted from the <code>description</code> option in <code>@Command(&quot;name&quot;, { description: &quot;...&quot; })</code>.</p>
 <hr>
@@ -52,27 +52,28 @@ Extracted from the <code>description</code> option in <code>@Command(&quot;name&
 <blockquote>
 <p><strong>method</strong>: <code>string</code></p>
 </blockquote>
-<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5bda419c408faac9709d7b49f1b25ed97424e397/packages/compiler/src/definition.ts#L364" target="_blank" rel="noopener noreferrer" class="">definition.ts:364</a></p>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a903ab25509ee7244bb48a3ea208ee19cce95e83/packages/compiler/src/definition.ts#L364" target="_blank" rel="noopener noreferrer" class="">definition.ts:364</a></p>
 <p>Name of the method on the service class that handles this command.
 The shell calls <code>service[method](...args)</code> when the command is invoked.</p>
 <hr>
 <h3 class="anchor anchorTargetStickyNavbar_FE5u" id="phase">phase?<a href="#phase" class="hash-link" aria-label="Direct link to phase?" title="Direct link to phase?" translate="no">​</a></h3>
 <blockquote>
-<p><code>optional</code> <strong>phase?</strong>: <code>&quot;resolved&quot;</code> | <code>&quot;initialized&quot;</code></p>
+<p><code>optional</code> <strong>phase?</strong>: <code>&quot;application&quot;</code> | <code>&quot;resolved&quot;</code> | <code>&quot;initialized&quot;</code></p>
 </blockquote>
-<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5bda419c408faac9709d7b49f1b25ed97424e397/packages/compiler/src/definition.ts#L382" target="_blank" rel="noopener noreferrer" class="">definition.ts:382</a></p>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a903ab25509ee7244bb48a3ea208ee19cce95e83/packages/compiler/src/definition.ts#L383" target="_blank" rel="noopener noreferrer" class="">definition.ts:383</a></p>
 <p>Lifecycle phase at which this command runs.</p>
 <ul>
 <li class=""><code>&quot;initialized&quot;</code> (default when omitted): after <code>Core.init()</code>.</li>
 <li class=""><code>&quot;resolved&quot;</code>: after <code>Core.resolve()</code> only. No service.init() called.
 Used for build-time hooks (e.g. <code>@BuildCommand</code>).</li>
+<li class=""><code>&quot;application&quot;</code>: with the loaded application only, no Core. The method is static.</li>
 </ul>
 <hr>
 <h3 class="anchor anchorTargetStickyNavbar_FE5u" id="requires">requires?<a href="#requires" class="hash-link" aria-label="Direct link to requires?" title="Direct link to requires?" translate="no">​</a></h3>
 <blockquote>
 <p><code>optional</code> <strong>requires?</strong>: <code>string</code>[]</p>
 </blockquote>
-<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/5bda419c408faac9709d7b49f1b25ed97424e397/packages/compiler/src/definition.ts#L375" target="_blank" rel="noopener noreferrer" class="">definition.ts:375</a></p>
+<p>Defined in: <a href="https://github.com/loopingz/webda.io/blob/a903ab25509ee7244bb48a3ea208ee19cce95e83/packages/compiler/src/definition.ts#L375" target="_blank" rel="noopener noreferrer" class="">definition.ts:375</a></p>
 <p>Capabilities required by this command.
 The CLI resolves these against the capabilities map and auto-injects
 missing services before booting Core.</p></div></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/typedoc/compiler/type-aliases/CommandArgDefinition"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">CommandArgDefinition</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/typedoc/compiler/type-aliases/ModelGraph"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">ModelGraph</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_kFBU thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#example" class="table-of-contents__link toc-highlight">Example</a></li><li><a href="#properties" class="table-of-contents__link toc-highlight">Properties</a><ul><li><a href="#args" class="table-of-contents__link toc-highlight">args</a></li><li><a href="#description" class="table-of-contents__link toc-highlight">description</a></li><li><a href="#method" class="table-of-contents__link toc-highlight">method</a></li><li><a href="#phase" class="table-of-contents__link toc-highlight">phase?</a></li><li><a href="#requires" class="table-of-contents__link toc-highlight">requires?</a></li></ul></li></ul></div></div></div></div></div></main></div></div></div></div>

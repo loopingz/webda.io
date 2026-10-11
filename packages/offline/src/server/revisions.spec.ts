@@ -9,6 +9,22 @@ import { SyncChange } from "./syncchange.model.js";
 @suite
 class RevisionsTest extends SyncTest {
   @test
+  async missingEventKeysDoNotCreateInvalidChanges() {
+    const repo = useRepository(Note);
+    for (const event of ["Created", "Updated", "Patched", "Deleted", "PartialUpdated"]) {
+      await (repo as any).emit(event, { object_id: undefined, object: {} });
+    }
+    assert.deepStrictEqual(await this.changes(), []);
+    await Note.create({ title: "valid write" } as any);
+    assert.strictEqual((await this.changes()).length, 1);
+  }
+
+  @test
+  objectsWithoutPrimaryKeysCannotBeSynced() {
+    assert.throws(() => (this.sync as any).toSynced("Test/Note", { title: "missing key" }), /complete primary key/);
+  }
+
+  @test
   async createUpdatePatchDelete() {
     const note = await Note.create({ title: "a" } as any);
     assert.strictEqual((await Note.ref(note.uuid).get())._rev, 1);

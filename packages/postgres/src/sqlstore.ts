@@ -77,7 +77,7 @@ export class SQLComparisonExpression extends WebdaQL.ComparisonExpression {
    * @param value - the value to stringify
    * @returns SQL-compatible literal
    */
-  toStringValue(value: (string | number | boolean) | (string | number | boolean)[]): string {
+  toStringValue(value: Parameters<WebdaQL.ComparisonExpression["toStringValue"]>[0]): string {
     if (typeof value === "string") {
       return sqlString(value);
     }

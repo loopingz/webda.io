@@ -11,7 +11,9 @@ export const ROTATION_MS = 8000;
 interface DomainCardProps {
   active: DomainKey;
   onActiveChange: (key: DomainKey) => void;
-  /** Rotate through the domains; false until the logo has assembled */
+  /** Called when the reader picks a domain, from a tab or the arrow keys */
+  onPick: (key: DomainKey) => void;
+  /** Rotate through the domains; false until the logo has assembled and once the reader picked one */
   rotate: boolean;
   className?: string;
 }
@@ -19,19 +21,24 @@ interface DomainCardProps {
 /**
  * One card describing a single Webda domain, with a tab per domain.
  *
- * It rotates every ROTATION_MS, pauses while the pointer is over it, and stops
- * rotating once the reader picks a tab.
+ * It rotates every ROTATION_MS while `rotate` is set, and pauses while the
+ * pointer is over it. Picking a tab is reported through `onPick`.
  *
  * @param props - see DomainCardProps
  * @returns the card
  */
-export default function DomainCard({ active, onActiveChange, rotate, className }: DomainCardProps): React.JSX.Element {
-  const [picked, setPicked] = useState(false);
+export default function DomainCard({
+  active,
+  onActiveChange,
+  onPick,
+  rotate,
+  className
+}: DomainCardProps): React.JSX.Element {
   const [hovering, setHovering] = useState(false);
   const [reduce, setReduce] = useState(false);
   // Bumped to restart the progress bar
   const [cycle, setCycle] = useState(0);
-  const running = rotate && !picked && !hovering && !reduce;
+  const running = rotate && !hovering && !reduce;
   const domain = DOMAINS.find(d => d.key === active) ?? DOMAINS[0];
 
   useEffect(() => {
@@ -47,16 +54,12 @@ export default function DomainCard({ active, onActiveChange, rotate, className }
     return () => clearTimeout(timer);
   }, [running, active, cycle, onActiveChange]);
 
-  const pick = function pick(key: DomainKey) {
-    setPicked(true);
-    onActiveChange(key);
-  };
   const onKeyDown = function onKeyDown(e: React.KeyboardEvent) {
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
     e.preventDefault();
     const index = DOMAINS.findIndex(d => d.key === active);
     const next = DOMAINS[(index + (e.key === "ArrowRight" ? 1 : DOMAINS.length - 1)) % DOMAINS.length].key;
-    pick(next);
+    onPick(next);
     document.getElementById(`domain-tab-${next}`)?.focus();
   };
 
@@ -82,7 +85,7 @@ export default function DomainCard({ active, onActiveChange, rotate, className }
             tabIndex={d.key === active ? 0 : -1}
             className={styles.tab}
             style={{ "--domain-color": d.color } as React.CSSProperties}
-            onClick={() => pick(d.key)}
+            onClick={() => onPick(d.key)}
             onKeyDown={onKeyDown}
           >
             <i aria-hidden="true" />

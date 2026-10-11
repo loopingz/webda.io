@@ -4,8 +4,10 @@ export const DateScalar = new GraphQLScalarType({
   name: "Date",
   description: "Date custom scalar type",
   serialize(value) {
-    if (value instanceof Date) {
-      return value.toISOString(); // Convert outgoing Date to integer for JSON
+    // Stores serializing to JSON return dates as ISO strings or timestamps
+    const date = typeof value === "string" || typeof value === "number" ? new Date(value) : value;
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      return date.toISOString();
     }
     throw Error("GraphQL Date Scalar serializer expected a `Date` object");
   },

@@ -922,6 +922,15 @@ describe("GraphQL scalars", () => {
     assert.ok(DateScalar.parseValue("2020-01-01T00:00:00.000Z") instanceof Date);
     assert.throws(() => DateScalar.parseValue(12), /GraphQL Date Scalar parser expected a `string`/);
     assert.throws(() => DateScalar.serialize("test"), /GraphQL Date Scalar serializer expected a `Date` object/);
+    // Stores serializing to JSON return dates as ISO strings or timestamps
+    assert.strictEqual(DateScalar.serialize("2020-01-01T00:00:00.000Z"), "2020-01-01T00:00:00.000Z");
+    assert.strictEqual(DateScalar.serialize("2020-01-01T01:00:00+01:00"), "2020-01-01T00:00:00.000Z");
+    assert.strictEqual(DateScalar.serialize(1577836800000), "2020-01-01T00:00:00.000Z");
+    assert.throws(
+      () => DateScalar.serialize(new Date("test")),
+      /GraphQL Date Scalar serializer expected a `Date` object/
+    );
+    assert.throws(() => DateScalar.serialize({}), /GraphQL Date Scalar serializer expected a `Date` object/);
     assert.ok(DateScalar.parseLiteral({ kind: Kind.STRING, value: "2020-01-01T00:00:00.000Z" }) instanceof Date);
     assert.strictEqual(DateScalar.parseLiteral({ kind: Kind.INT, value: "2020-01-01T00:00:00.000Z" }), null);
   });

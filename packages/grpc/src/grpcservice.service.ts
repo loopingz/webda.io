@@ -33,13 +33,13 @@ export class GrpcServiceParameters extends OperationsTransportParameters {
    * Path to the generated .proto file
    * @default ".webda/app.proto"
    */
-  protoFile?: string;
+  protoFile: string;
 
   /**
    * Protobuf package name
    * @default "webda"
    */
-  packageName?: string;
+  packageName: string;
 
   /**
    * Most unconsumed messages a client or bidirectional operation may have queued; above it the call fails with
@@ -47,7 +47,7 @@ export class GrpcServiceParameters extends OperationsTransportParameters {
    *
    * @default 1000
    */
-  maxQueuedMessages?: number;
+  maxQueuedMessages: number;
 
   /**
    * Most bytes of unconsumed messages a client or bidirectional operation may have queued; above it the call fails
@@ -55,7 +55,7 @@ export class GrpcServiceParameters extends OperationsTransportParameters {
    *
    * @default 16777216
    */
-  maxQueuedBytes?: number;
+  maxQueuedBytes: number;
 
   /**
    * Load and apply default parameter values.
@@ -156,12 +156,13 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
    * Load the .proto file and map its RPC methods to operations (also callable after registering operations late)
    */
   loadDefinitions(): void {
-    if (!existsSync(this.parameters.protoFile)) {
+    const protoFile = this.parameters.protoFile;
+    if (!existsSync(protoFile)) {
       useLog("WARN", `Proto file not found: ${this.parameters.protoFile}. Run 'webdac build' to generate it.`);
       return;
     }
     try {
-      this.definitions = protoLoader.loadSync(this.parameters.protoFile, {
+      this.definitions = protoLoader.loadSync(protoFile, {
         keepCase: true,
         longs: String,
         enums: String,
@@ -282,7 +283,7 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
    * @returns a promise that resolves when the response has been fully sent
    */
   async handleGrpcRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    const grpcPath = req.url;
+    const grpcPath = req.url ?? "";
     const opId = this.rpcToOperation.get(grpcPath);
     const methodDef = this.rpcMethods.get(grpcPath);
 

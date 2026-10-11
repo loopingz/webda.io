@@ -381,7 +381,7 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
       ]);
     } catch (err) {
       // unique_violation on the primary key: the object exists, never overwrite it
-      if (err?.code === "23505") {
+      if (typeof err === "object" && err !== null && "code" in err && err.code === "23505") {
         throw new Error(`Already exists: ${key}`);
       }
       throw err;

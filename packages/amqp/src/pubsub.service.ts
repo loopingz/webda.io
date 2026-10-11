@@ -1,4 +1,4 @@
-import { PubSubService, ServiceParameters, SecretString } from "@webda/core";
+import { PubSubService, ServiceParameters, SecretString, WebdaError } from "@webda/core";
 import { CancelablePromise, JSONUtils } from "@webda/utils";
 import * as amqplib from "amqplib";
 
@@ -21,7 +21,7 @@ export class AMQPPubSubParameters extends ServiceParameters {
    * Queue name used to subscribe, empty to let the broker generate one
    * @default ""
    */
-  subscription?: string;
+  subscription: string;
   exchange?: {
     /**
      * @default fanout
@@ -79,9 +79,20 @@ export default class AMQPPubSubService<
   T = any,
   K extends AMQPPubSubParameters = AMQPPubSubParameters
 > extends PubSubService<T, K> {
-  channel: amqplib.Channel;
-  conn: amqplib.ChannelModel;
+  channel?: amqplib.Channel;
+  conn?: amqplib.ChannelModel;
   exchange: amqplib.Replies.AssertExchange;
+
+  /**
+   * @returns the active AMQP channel
+   * @throws CodeError when the service is not connected
+   */
+  protected getChannel(): amqplib.Channel {
+    if (!this.channel) {
+      throw new WebdaError.CodeError("AMQP_NOT_CONNECTED", "AMQP service is not connected");
+    }
+    return this.channel;
+  }
 
   /**
    * @override
@@ -90,7 +101,7 @@ export default class AMQPPubSubService<
    */
   async sendMessage(event: T, routingKey: string = ""): Promise<void> {
     this.metrics.messages_sent.inc();
-    this.channel.publish(this.parameters.channel, routingKey, Buffer.from(JSONUtils.stringify(event)));
+    this.getChannel().publish(this.parameters.channel, routingKey, Buffer.from(JSONUtils.stringify(event)));
   }
 
   /**
@@ -103,7 +114,7 @@ export default class AMQPPubSubService<
     this.channel = await this.conn.createChannel();
     const params = { ...this.parameters.exchange };
     delete params.type;
-    this.exchange = await this.channel.assertExchange(
+    this.exchange = await this.getChannel().assertExchange(
       this.parameters.channel,
       this.parameters.exchange?.type || "fanout",
       params
@@ -132,7 +143,7 @@ export default class AMQPPubSubService<
    * @returns the number of messages in the subscription queue
    */
   async size(): Promise<number> {
-    return (await this.channel.assertQueue(this.parameters.subscription)).messageCount;
+    return (await this.getChannel().assertQueue(this.parameters.subscription)).messageCount;
   }
 
   /**
@@ -151,14 +162,14 @@ export default class AMQPPubSubService<
     let consumerTag: string;
     return new CancelablePromise(
       async (_resolve, reject) => {
-        const queue = await this.channel.assertQueue(this.parameters.subscription, {
+        const queue = await this.getChannel().assertQueue(this.parameters.subscription, {
           exclusive: true,
           durable: false,
           autoDelete: true
         });
-        await this.channel.bindQueue(queue.queue, this.parameters.channel, "*");
+        await this.getChannel().bindQueue(queue.queue, this.parameters.channel, "*");
         consumerTag = (
-          await this.channel.consume(queue.queue, async msg => {
+          await this.getChannel().consume(queue.queue, async msg => {
             if (msg === null) {
               reject("Cancelled by server");
               return;
@@ -167,7 +178,7 @@ export default class AMQPPubSubService<
             const end = this.metrics.processing_duration.startTimer();
             try {
               await callback(this.unserialize(msg?.content.toString() || "", eventPrototype));
-              this.channel.ack(msg);
+              this.getChannel().ack(msg);
             } catch (err) {
               this.metrics.errors.inc();
               this.log("ERROR", `Message ${msg?.properties?.messageId}`, err);

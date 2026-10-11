@@ -18,3 +18,14 @@
 [data-theme="dark"] .navbar {
   --ifm-navbar-background-color: rgba(27, 27, 29, 0.6);
 }
+
+/* Active page in the docs sidebar: bold, with a coloured bar on its left edge */
+.theme-doc-sidebar-menu .menu__link--active:not(.menu__link--sublist) {
+  color: var(--ifm-font-color-base);
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 #4557a4;
+}
+
+[data-theme="dark"] .theme-doc-sidebar-menu .menu__link--active:not(.menu__link--sublist) {
+  box-shadow: inset 2px 0 0 #7d8cf0;
+}

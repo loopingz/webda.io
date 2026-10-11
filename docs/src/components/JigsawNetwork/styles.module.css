@@ -8,6 +8,15 @@
   z-index: -1;
 }
 
+/* Behind the homepage hero: kept faint so the logo and the card stay the focus */
+.hero {
+  opacity: 0.45;
+}
+
+[data-theme="dark"] .hero {
+  opacity: 0.55;
+}
+
 /* Header strip behind a docs page title: shorter, fainter, fading out downward */
 .band {
   bottom: auto;

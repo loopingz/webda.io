@@ -19,13 +19,47 @@
   --ifm-navbar-background-color: rgba(27, 27, 29, 0.6);
 }
 
-/* Active page in the docs sidebar: bold, with a coloured bar on its left edge */
-.theme-doc-sidebar-menu .menu__link--active:not(.menu__link--sublist) {
+/* Active page in the docs sidebar: bold, with a bar on its left edge in the colour
+   of its domain (the logo pieces); other sections use the logo's cyan outline */
+.theme-doc-sidebar-menu .menu__link[aria-current="page"] {
+  --webda-section-color: #29abe2;
   color: var(--ifm-font-color-base);
   font-weight: 600;
-  box-shadow: inset 2px 0 0 #4557a4;
+  box-shadow: inset 2px 0 0 var(--webda-section-color);
 }
 
-[data-theme="dark"] .theme-doc-sidebar-menu .menu__link--active:not(.menu__link--sublist) {
-  box-shadow: inset 2px 0 0 #7d8cf0;
+.theme-doc-sidebar-menu .menu__link[aria-current="page"][href*="/docs/Concepts/Models"] {
+  --webda-section-color: #4557a4;
+}
+
+[data-theme="dark"] .theme-doc-sidebar-menu .menu__link[aria-current="page"][href*="/docs/Concepts/Models"] {
+  --webda-section-color: #7d8cf0;
+}
+
+.theme-doc-sidebar-menu
+  .menu__link[aria-current="page"]:is([href*="/docs/Concepts/Services"], [href*="/docs/Concepts/Stores"]) {
+  --webda-section-color: #7fbf6b;
+}
+
+.theme-doc-sidebar-menu .menu__link[aria-current="page"][href*="/docs/Deployments"] {
+  --webda-section-color: #f7992c;
+}
+
+.theme-doc-sidebar-menu
+  .menu__link[aria-current="page"]:is(
+    [href*="/docs/REST"],
+    [href*="/docs/Modules/graphql"],
+    [href$="/docs/Concepts/Operations"]
+  ) {
+  --webda-section-color: #8b93a7;
+}
+
+[data-theme="dark"]
+  .theme-doc-sidebar-menu
+  .menu__link[aria-current="page"]:is(
+    [href*="/docs/REST"],
+    [href*="/docs/Modules/graphql"],
+    [href$="/docs/Concepts/Operations"]
+  ) {
+  --webda-section-color: #d9dce6;
 }

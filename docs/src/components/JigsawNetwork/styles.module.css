@@ -10,11 +10,11 @@
 
 /* Behind the homepage hero: kept faint so the logo and the card stay the focus */
 .hero {
-  opacity: 0.45;
+  opacity: 0.35;
 }
 
 [data-theme="dark"] .hero {
-  opacity: 0.55;
+  opacity: 0.45;
 }
 
 /* Header strip behind a docs page title: shorter, fainter, fading out downward */

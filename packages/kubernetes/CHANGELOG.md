@@ -137,6 +137,25 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/kubernetes-v4.0.0-beta.6...kubernetes-v4.0.0-beta.7) (2026-10-11)
+
+
+### Features
+
+* **core:** config encrypt encrypts every secret field, --check fails on unencrypted secrets ([#854](https://github.com/loopingz/webda.io/issues/854)) ([8926a02](https://github.com/loopingz/webda.io/commit/8926a024a527b4f5271cfa2b1e8a4e4535167620))
+* stable and documented configuration secret encryption ([#837](https://github.com/loopingz/webda.io/issues/837)) ([55fad94](https://github.com/loopingz/webda.io/commit/55fad94e96537c0b44ade1cdfb88e4b5e6c6035b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped to 4.0.0-beta.7
+    * @webda/core bumped to 4.0.0-beta.7
+    * @webda/utils bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/kubernetes-v4.0.0-beta.5...kubernetes-v4.0.0-beta.6) (2026-10-09)
 
 

@@ -1,5 +1,25 @@
 # Changelog
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/auth-v4.0.0-beta.6...auth-v4.0.0-beta.7) (2026-10-11)
+
+
+### Features
+
+* stable and documented configuration secret encryption ([#837](https://github.com/loopingz/webda.io/issues/837)) ([55fad94](https://github.com/loopingz/webda.io/commit/55fad94e96537c0b44ade1cdfb88e4b5e6c6035b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.7
+    * @webda/models bumped to 4.0.0-beta.7
+    * @webda/utils bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.7
+    * @webda/content-mapper bumped to 4.0.0-beta.7
+    * @webda/fs bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/auth-v4.0.0-beta.5...auth-v4.0.0-beta.6) (2026-10-09)
 
 

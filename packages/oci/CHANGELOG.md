@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/oci-v4.0.0-beta.6...oci-v4.0.0-beta.7) (2026-10-11)
+
+
+### Features
+
+* **core:** config encrypt encrypts every secret field, --check fails on unencrypted secrets ([#854](https://github.com/loopingz/webda.io/issues/854)) ([8926a02](https://github.com/loopingz/webda.io/commit/8926a024a527b4f5271cfa2b1e8a4e4535167620))
+* **oci:** reproducible image builds ([#825](https://github.com/loopingz/webda.io/issues/825)) ([845cd5b](https://github.com/loopingz/webda.io/commit/845cd5ba24db80c7e3b2804dd28a1c3c717887a9))
+* stable and documented configuration secret encryption ([#837](https://github.com/loopingz/webda.io/issues/837)) ([55fad94](https://github.com/loopingz/webda.io/commit/55fad94e96537c0b44ade1cdfb88e4b5e6c6035b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/oci-v4.0.0-beta.5...oci-v4.0.0-beta.6) (2026-10-09)
 
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.6...models-v4.0.0-beta.7) (2026-10-11)
+
+
+### Bug Fixes
+
+* **postgres:** bind collection items, quote S3 Content-Disposition ([#670](https://github.com/loopingz/webda.io/issues/670)) ([#861](https://github.com/loopingz/webda.io/issues/861)) ([a5a5068](https://github.com/loopingz/webda.io/commit/a5a5068bb435bda82e918c1f26da6f2cc619fe47))
+* publish webda.module.json with debug, models, cloudevents and compiler ([#849](https://github.com/loopingz/webda.io/issues/849)) ([db9e967](https://github.com/loopingz/webda.io/commit/db9e967c2da4dc5d2e116a2a6d62c9cb46853fac))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.7
+    * @webda/tsc-esm bumped to 4.0.0-beta.7
+  * peerDependencies
+    * @webda/utils bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.5...models-v4.0.0-beta.6) (2026-10-09)
 
 

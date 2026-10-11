@@ -3,6 +3,45 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.6...core-v4.0.0-beta.7) (2026-10-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* GraphQL now exposes every non-CRUD operation by default (opt out with exposeOperations: []); titled nested input types are renamed <title>Input; the Object scalar no longer JSON-parses string variables; duplicate GraphQL type/field names are startup errors; operations declaring grpc.streaming: "client" | "bidi" now receive an async iterable of messages instead of a collected array.
+* **iam:** canCallOperation() from @webda/core now returns Promise<boolean> so awaited operation authorizers can run. Callers must await it: a non-awaited Promise is truthy and would allow every operation.
+
+### Features
+
+* **core:** config encrypt encrypts every secret field, --check fails on unencrypted secrets ([#854](https://github.com/loopingz/webda.io/issues/854)) ([8926a02](https://github.com/loopingz/webda.io/commit/8926a024a527b4f5271cfa2b1e8a4e4535167620))
+* **core:** pki configuration encrypter and default encrypter ([#851](https://github.com/loopingz/webda.io/issues/851)) ([8777e06](https://github.com/loopingz/webda.io/commit/8777e063e1f4ef580cb21b447e63ff6e1d7e973c))
+* **core:** support any WHATWG charset in getRawBodyAsString ([#221](https://github.com/loopingz/webda.io/issues/221)) ([#859](https://github.com/loopingz/webda.io/issues/859)) ([600d01c](https://github.com/loopingz/webda.io/commit/600d01c8121f195b68b5f23fedbc42934688c635))
+* **iam:** IAM policies for operations, evaluated with Casbin ([#830](https://github.com/loopingz/webda.io/issues/830)) ([32a84db](https://github.com/loopingz/webda.io/commit/32a84dbbe7b534ecba557fff4c4b6e3ea172ea9b))
+* **oci:** reproducible image builds ([#825](https://github.com/loopingz/webda.io/issues/825)) ([845cd5b](https://github.com/loopingz/webda.io/commit/845cd5ba24db80c7e3b2804dd28a1c3c717887a9))
+* stable and documented configuration secret encryption ([#837](https://github.com/loopingz/webda.io/issues/837)) ([55fad94](https://github.com/loopingz/webda.io/commit/55fad94e96537c0b44ade1cdfb88e4b5e6c6035b))
+* streaming operations on gRPC, WebSocket and GraphQL ([#829](https://github.com/loopingz/webda.io/issues/829)) ([e67bfea](https://github.com/loopingz/webda.io/commit/e67bfea1984e32ad7172e486602cb532369e62f5))
+
+
+### Bug Fixes
+
+* **core:** report unknown CLI commands instead of exiting silently ([#846](https://github.com/loopingz/webda.io/issues/846)) ([851df1f](https://github.com/loopingz/webda.io/commit/851df1fecb3482f71a680b55c4d696364bb08eb5))
+* **core:** save the session and send every cookie on HTTP responses ([#824](https://github.com/loopingz/webda.io/issues/824)) ([c1ae0b0](https://github.com/loopingz/webda.io/commit/c1ae0b0530f3b68b61e355347ad986c9439cce47))
+* **core:** show service logs in the CLI and report configuration service errors ([#852](https://github.com/loopingz/webda.io/issues/852)) ([5bda419](https://github.com/loopingz/webda.io/commit/5bda419c408faac9709d7b49f1b25ed97424e397))
+* support Windows paths when loading and building modules ([#827](https://github.com/loopingz/webda.io/issues/827)) ([0d88747](https://github.com/loopingz/webda.io/commit/0d8874761196fcf09ac72bf9dc5bb31f8cfb87e1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.7
+    * @webda/models bumped to 4.0.0-beta.7
+    * @webda/tsc-esm bumped to 4.0.0-beta.7
+    * @webda/utils bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.7
+    * @webda/content-mapper bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.5...core-v4.0.0-beta.6) (2026-10-09)
 
 

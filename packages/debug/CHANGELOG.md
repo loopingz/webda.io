@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/debug-v4.0.0-beta.6...debug-v4.0.0-beta.7) (2026-10-11)
+
+
+### Bug Fixes
+
+* publish webda.module.json with debug, models, cloudevents and compiler ([#849](https://github.com/loopingz/webda.io/issues/849)) ([db9e967](https://github.com/loopingz/webda.io/commit/db9e967c2da4dc5d2e116a2a6d62c9cb46853fac))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/utils bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.7
+    * @webda/core bumped to 4.0.0-beta.7
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/debug-v4.0.0-beta.5...debug-v4.0.0-beta.6) (2026-10-09)
 
 

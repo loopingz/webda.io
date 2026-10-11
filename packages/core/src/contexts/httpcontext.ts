@@ -1,12 +1,33 @@
 import { parse as cookieParse } from "cookie";
 import { type IncomingHttpHeaders } from "http";
 import { Readable } from "stream";
+import { HttpError, UnsupportedMediaType } from "../errors/errors.js";
 
 export type HttpMethodType = "GET" | "OPTIONS" | "POST" | "PUT" | "PATCH" | "DELETE";
 /**
  * All methods supported by Webda
  */
 export const HttpMethodTypeAny: HttpMethodType[] = ["GET", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"];
+
+/**
+ * Extract the charset parameter from a Content-Type header value
+ *
+ * The parameter name is matched case-insensitively, surrounding quotes and whitespace are removed
+ *
+ * @param contentType the Content-Type header value
+ * @returns the charset label or undefined if none is present
+ */
+export function getCharset(contentType?: string): string | undefined {
+  const match = contentType?.match(/;\s*charset\s*=\s*("[^"]*"|[^;]*)/i);
+  if (!match) {
+    return undefined;
+  }
+  const charset = match[1]
+    .trim()
+    .replace(/^"(.*)"$/, "$1")
+    .trim();
+  return charset || undefined;
+}
 
 type HeadersRequest = IncomingHttpHeaders & {
   // Permit any property starting with 'x-'.
@@ -248,25 +269,27 @@ export class HttpContext {
   /**
    * Get the raw body as string
    *
+   * Any WHATWG Encoding Standard label is accepted (utf-8, iso-8859-1, shift_jis, gbk, utf-16le, ...)
+   * A leading BOM is stripped
+   *
    * @param limit the size of readable request
    * @param timeout the time to read the request
-   * @param encoding to analyze
+   * @param encoding to decode with, default to the Content-Type charset or utf-8
    * @returns the result
+   * @throws UnsupportedMediaType if the encoding is not supported
    */
   async getRawBodyAsString(limit: number = 1024 * 1024 * 10, timeout: number = 60000, encoding?: string) {
-    // Get charset from header
-    if (!encoding) {
-      const match = this.getUniqueHeader("content-type", "charset=utf-8").match(/charset=([^;\s]+)/);
-      if (match) {
-        encoding = match[1].trim();
-      } else {
-        encoding = "utf-8";
+    const label = encoding ?? getCharset(this.getUniqueHeader("content-type")) ?? "utf-8";
+    let decoder: TextDecoder;
+    try {
+      decoder = new TextDecoder(label);
+    } catch (err) {
+      if (err instanceof RangeError) {
+        throw new UnsupportedMediaType(`Unsupported charset '${label}'`);
       }
+      throw err;
     }
-    if (encoding !== "utf-8") {
-      throw new Error("Only UTF-8 is currently managed: https://github.com/loopingz/webda.io/issues/221");
-    }
-    return ((await this.getRawBody(limit, timeout)) || Buffer.from("")).toString(<BufferEncoding>encoding);
+    return decoder.decode((await this.getRawBody(limit, timeout)) ?? Buffer.alloc(0));
   }
 
   /**
@@ -275,26 +298,46 @@ export class HttpContext {
    * @param limit the size of readable request
    * @param timeout the time to read the request
    * @returns the result
+   * @throws HttpError 413 if the body is bigger than limit, 408 if it is not read within timeout
    */
   async getRawBody(limit: number = 1024 * 1024 * 10, timeout: number = 60000): Promise<Buffer | undefined> {
     if (this.body instanceof Readable) {
       return new Promise((resolve, reject) => {
         const req = <Readable>this.body;
-        const body = [];
+        const body: Buffer[] = [];
+        let total = 0;
+        let done = false;
+        const fail = (err: Error) => {
+          done = true;
+          clearTimeout(timeoutId);
+          req.removeAllListeners("readable");
+          req.destroy();
+          reject(err);
+        };
         const timeoutId = setTimeout(() => {
-          reject("Request timeout");
+          fail(new HttpError("Request timeout", 408));
         }, timeout);
         req.on("readable", () => {
-          const chunk = req.read();
-          if (chunk !== null) {
-            if (chunk.length + body.length > limit) {
-              clearTimeout(timeoutId);
-              reject("Request oversized");
+          let chunk: Buffer | null;
+          while (!done && (chunk = req.read()) !== null) {
+            if (total + chunk.length > limit) {
+              fail(new HttpError("Request oversized", 413));
+              return;
             }
+            total += chunk.length;
             body.push(chunk);
           }
         });
+        req.on("error", err => {
+          if (!done) {
+            fail(err);
+          }
+        });
         req.on("end", () => {
+          if (done) {
+            return;
+          }
+          done = true;
           clearTimeout(timeoutId);
           // Cache body as stream won't be able to be read twice
           this.body = Buffer.concat(body);

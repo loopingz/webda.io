@@ -86,6 +86,16 @@ export class Forbidden extends HttpError {
   }
 }
 
+/** HTTP 415 Unsupported Media Type error */
+export class UnsupportedMediaType extends HttpError {
+  /** Create a new UnsupportedMediaType
+   * @param message - error message
+   */
+  constructor(message: string) {
+    super(message, 415);
+  }
+}
+
 /** HTTP 404 Not Found error */
 export class NotFound extends HttpError {
   /** Create a new NotFound

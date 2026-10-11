@@ -110,11 +110,13 @@ export class EventServiceParameters extends ServiceParameters {
   /**
    * Queues to post async events to
    */
-  queues?: { [key: string]: string };
+  /** @default {} */
+  queues!: { [key: string]: string };
   /**
    * Make the event sending asynchronous
    */
-  sync?: boolean;
+  /** @default false */
+  sync!: boolean;
 
   /**
    * @override
@@ -134,10 +136,10 @@ export class EventServiceParameters extends ServiceParameters {
  * @WebdaModda AsyncEvents
  */
 class EventService<T extends EventServiceParameters = EventServiceParameters> extends Service<T> {
-  _callbacks: any = {};
+  _callbacks: Record<string, Array<(payload: any, event: AsyncEvent) => unknown>> = {};
   _queues: QueueMap = {};
   _defaultQueue: string = "";
-  _async: boolean;
+  _async!: boolean;
 
   /**
    * Resolve the queues
@@ -145,7 +147,7 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
    */
   resolve(): this {
     super.resolve();
-    Object.keys(this.parameters.queues).forEach(key => {
+    Object.keys(this.parameters.queues ?? {}).forEach(key => {
       // Define default as first queue
       if (!this._defaultQueue) {
         this._defaultQueue = key;
@@ -186,19 +188,26 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
    * @param callback - the listener
    * @param queue - the queue to use, default queue if not specified
    */
-  bindAsyncListener(service: Service | ModelClass, event: string, callback, queue?: string) {
+  bindAsyncListener(
+    service: Service | ModelClass,
+    event: string,
+    callback: (payload: any, event: AsyncEvent) => unknown,
+    queue?: string
+  ) {
     if (!this._async) {
       throw Error("EventService is not configured for asynchronous");
     }
     if (!queue) {
       queue = this._defaultQueue;
     }
+    const selectedQueue = queue ?? this._defaultQueue;
+    if (!selectedQueue) throw new Error("EventService requires a queue for async events");
     const mapper = new AsyncEvent(service, event).getMapper();
     if (!this._callbacks[mapper]) {
       if (service instanceof Service) {
-        service.on(<never>event, data => this.pushEvent(service, event, queue, data));
+        service.on(<never>event, (data: any) => this.pushEvent(service, event, selectedQueue, data));
       } else {
-        (<any>useRepository(service)).on(event, data => this.pushEvent(service, event, queue, data));
+        (<any>useRepository(service)).on(event, (data: any) => this.pushEvent(service, event, selectedQueue, data));
       }
       this._callbacks[mapper] = [];
     }
@@ -214,10 +223,13 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
    * @param payload - the event payload
    * @returns the send or handle promise
    */
-  async pushEvent(service: Service | ModelClass, type: string, queue: string, payload: any) {
+  async pushEvent(service: Service | ModelClass, type: string, queue: string | undefined, payload: any) {
     const event = new AsyncEvent(service, type, payload);
     if (this._async) {
-      return this._queues[queue].sendMessage(event);
+      const selectedQueue = queue ?? this._defaultQueue;
+      const target = this._queues[selectedQueue];
+      if (!target) throw new Error(`Unknown async event queue: ${selectedQueue}`);
+      return target.sendMessage(event);
     } else {
       return this.handleEvent(event);
     }
@@ -235,8 +247,8 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
         "Callbacks should not be empty, possible application version mismatch between emitter and worker"
       );
     }
-    const promises = [];
-    this._callbacks[event.getMapper()].map(executor => {
+    const promises: unknown[] = [];
+    this._callbacks[event.getMapper()].forEach(executor => {
       promises.push(executor(event.payload, event));
     });
     // Need to handle the failure

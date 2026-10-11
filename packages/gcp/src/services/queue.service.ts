@@ -9,13 +9,13 @@ export class GCPQueueParameters extends QueueParameters {
   /**
    * Topic to use
    */
-  topic: string;
+  topic!: string;
   /**
    * Subscription to use for the queue
    *
    * All instances will use the same subscription to create a queue style pubsub
    */
-  subscription: string;
+  subscription!: string;
   /**
    * Timeout when receiveMessage is used before returning empty result (in ms)
    *
@@ -51,11 +51,11 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
   /**
    * Main api object
    */
-  pubsub: PubSub;
+  pubsub?: PubSub;
   /**
    * Current subscription
    */
-  subscription: Subscription;
+  subscription?: Subscription;
   /**
    * Pending message
    *
@@ -124,6 +124,7 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
    */
   async sendMessage(msg: T): Promise<void> {
     this.metrics.messages_sent.inc();
+    if (!this.pubsub) throw new Error("Pub/Sub client is not initialized");
     await this.pubsub.topic(this.parameters.topic).publishMessage({ data: Buffer.from(JSONUtils.stringify(msg)) });
   }
 
@@ -132,11 +133,11 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
    * @returns the resolver of the current pending promise
    */
   private nextReceiver<L>(): (value: MessageReceipt<L>[]) => void {
-    const resolve = this.receiverResolve;
     this.receiverPromise ??= new Promise<MessageReceipt<L>[]>(res => {
       this.receiverResolve = res;
     });
-    return resolve;
+    if (!this.receiverResolve) throw new Error("Queue receiver was not initialized");
+    return this.receiverResolve;
   }
 
   /**
@@ -149,6 +150,8 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
     if (this.parameters.mode !== "receiver") {
       throw new Error("You can only use receiveMessage in 'receiver' mode");
     }
+    if (!this.pubsub) throw new Error("Pub/Sub client is not initialized");
+    if (!this.pubsub) throw new Error("Pub/Sub client is not initialized");
     this.subscription ??= this.pubsub.subscription(this.parameters.subscription, {
       flowControl: {
         maxMessages: 1,
@@ -206,6 +209,8 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
    * @returns a cancelable consumer handle
    */
   consume(callback: (event: T) => Promise<void>, eventPrototype?: { new (): T }): CancelablePromise {
+    if (!this.pubsub) throw new Error("Pub/Sub client is not initialized");
+    if (!this.pubsub) throw new Error("Pub/Sub client is not initialized");
     this.subscription ??= this.pubsub.subscription(this.parameters.subscription, {
       flowControl: {
         maxMessages: this.getMaxConsumers()
@@ -223,6 +228,7 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
     };
     return new CancelablePromise(
       async () => {
+        if (!this.subscription) throw new Error("Subscription is not initialized");
         this.subscription.on("message", msgHandler);
       },
       async () => {

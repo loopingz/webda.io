@@ -13,6 +13,7 @@ import { StorageFinder, Throttler } from "@webda/utils";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
 import { Readable, Stream, Writable } from "node:stream";
+import { WebdaError } from "@webda/core";
 import { pipeline } from "node:stream/promises";
 
 export type StorageObject = {
@@ -56,7 +57,7 @@ export class StorageParameters extends CloudBinaryParameters {
   /**
    * Bucket to store binaries in
    */
-  bucket: string;
+  bucket!: string;
   /**
    * Specify endpoint for GCS
    */
@@ -110,9 +111,10 @@ export class GCSFinder implements StorageFinder {
     _depth?: number
   ): Promise<void> {
     const { bucket, key } = this.getInfo(path);
-    let pageToken;
+    let pageToken: string | undefined;
     do {
-      const res = await this._storage.bucket(bucket).getFiles(pageToken ? pageToken : { prefix: key });
+      const query = pageToken ? { prefix: key, pageToken } : { prefix: key };
+      const res = await this._storage.bucket(bucket).getFiles(query);
       for (const file of res[0]) {
         processor(`${path}${file.name}`);
       }
@@ -133,7 +135,7 @@ export class GCSFinder implements StorageFinder {
       processor?: (filepath: string) => void;
     }
   ): Promise<string[]> {
-    const res = [];
+    const res: string[] = [];
     await this.walk(currentPath, f => {
       if (options?.filterPattern && !options.filterPattern.test(f)) {
         return;
@@ -192,6 +194,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @returns the content stream
    */
   async _get(info: BinaryMap): Promise<Readable> {
+    if (!info.hash) throw new WebdaError.BadRequest("Binary map has no hash");
     const key = this._getKey(info.hash);
     return this.getContent({ key });
   }
@@ -204,6 +207,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @returns the signed url
    */
   getSignedUrlFromMap(map: BinaryMap, expires: number, _context: OperationContext): Promise<string> {
+    if (!map.hash) throw new WebdaError.BadRequest("Binary map has no hash");
     return this.getSignedUrl({
       key: this._getKey(map.hash),
       expires,
@@ -246,7 +250,8 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       bufferStream.end(body);
       stream = bufferStream;
     } else {
-      contentType = mime.lookup(body, "application/octet-stream");
+      const detected = mime.lookup(String(body));
+      contentType = typeof detected === "string" ? detected : "application/octet-stream";
       stream = createReadStream(body);
     }
     await pipeline(stream, file.createWriteStream({ contentType, resumable: false }));
@@ -302,15 +307,17 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     this.checkMap(<any>object, property);
     await file.getHashes();
 
-    const [exists] = await this.getStorageBucket().file(this._getKey(file.hash)).exists();
+    const hash = file.hash;
+    if (!hash) throw new WebdaError.BadRequest("Binary file has no hash");
+    const [exists] = await this.getStorageBucket().file(this._getKey(hash)).exists();
     // If data already exist no need to upload
     if (!exists) {
-      await this.putObject(this._getKey(file.hash), await file.get(), {
+      await this.putObject(this._getKey(hash), await file.get(), {
         ...file.metadata,
         proof: file.challenge
       });
     }
-    await this.putMarker(file.hash, `${property}_${object.getUUID()}`, useModelId(object.constructor));
+    await this.putMarker(hash, `${property}_${object.getUUID()}`, useModelId(object.constructor)!);
     await this.uploadSuccess(<any>object, property, file.toBinaryFileInfo());
   }
 
@@ -352,8 +359,10 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     property: string,
     info?: BinaryFileInfo & { hash: string; challenge: string },
     context?: OperationContext<any>
-  ): Promise<{ url: string; method: string; headers: { [key: string]: string } }> {
-    const body = info ?? (await context.getInput());
+  ): Promise<{ url: string; method: string; headers: { [key: string]: string } } | undefined> {
+    if (!info && !context) throw new WebdaError.BadRequest("Upload information is required");
+    const body = info ?? (await context!.getInput());
+    if (!body.hash || !body.challenge) throw new WebdaError.BadRequest("Upload hash and challenge are required");
     this.checkMap(<any>object, property);
     const uuid = object.getUUID();
     const base64String = Buffer.from(body.hash, "hex").toString("base64");
@@ -383,14 +392,14 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       // Attaching existing data needs the proof of possession: the matching challenge
       if (challenge !== undefined && challenge === body.challenge) {
         await this.uploadSuccess(<any>object, property, body);
-        await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor));
+        await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor)!);
         return;
       }
       // A hash alone never attaches: the client has to upload the content it claims to hold
     } else {
       // New content: the signed PUT binds the bytes to the announced hash (Content-MD5)
       await this.uploadSuccess(<any>object, property, body);
-      await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor));
+      await this.putMarker(body.hash, `${property}_${uuid}`, useModelId(object.constructor)!);
     }
     const url = await this.getSignedUrl(params);
     return {
@@ -456,8 +465,8 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   async getMeta({ bucket, key }: StorageObject): Promise<StorageObjectMeta> {
     const [metadata] = await this.getStorageBucket(bucket).file(key).getMetadata();
     return {
-      size: typeof metadata.size === "string" ? parseInt(metadata.size) : metadata.size,
-      contentType: metadata.contentType
+      size: Number(metadata.size ?? 0),
+      contentType: metadata.contentType ?? "application/octet-stream"
     };
   }
 
@@ -469,16 +478,16 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @returns the total size and count of files
    */
   async getBucketSize(bucket?: string, prefix?: string, regex?: RegExp) {
-    let pageToken;
+    let pageToken: string | undefined;
     const throttler = new Throttler();
     bucket ??= this.parameters.bucket;
     let size = 0;
     let count = 0;
-    const dwl = f => {
+    const dwl = (f: File) => {
       return async () => {
         try {
-          const metadata = (await f.getMetadata()).shift();
-          size += Number.parseInt(metadata.size);
+          const metadata = (await f.getMetadata())[0];
+          size += Number.parseInt(String(metadata.size ?? "0"));
           count++;
         } catch {
           // Ignore files removed while computing
@@ -486,7 +495,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       };
     };
     do {
-      const [files, page] = await this.storage.bucket(bucket).getFiles({ maxResults: 1000, pageToken, prefix });
+      const [files, page] = await this.storage.bucket(bucket!).getFiles({ maxResults: 1000, pageToken, prefix });
       files.filter(f => (regex ? f.name.match(regex) : true)).forEach(f => throttler.queue(dwl(f)));
       await throttler.wait();
       pageToken = (<any>page)?.pageToken;

@@ -12,23 +12,15 @@ const encrypter = {
         "A GCP KMS key 'projects/<project>/locations/<location>/keyRings/<ring>/cryptoKeys/<key>' is required, set WEBDA_GCP_KMS_KEY"
       );
     }
+    if (!key) throw new Error("A GCP KMS key is required");
     // Only the odd elements are dynamic
     const infos = key.split("/").filter((i, ind) => ind % 2 === 1);
     const client = new KeyManagementServiceClient();
     // Encode the infos in base64
     // Add the encrypted info after a : separator
-    return (
-      Buffer.from(infos.join(":")).toString("base64") +
-      ":" +
-      Buffer.from(
-        (
-          await client.encrypt({
-            name: key,
-            plaintext: Buffer.from(data)
-          })
-        )[0].ciphertext
-      ).toString("base64")
-    );
+    const [result] = await client.encrypt({ name: key, plaintext: Buffer.from(data) });
+    if (!result.ciphertext) throw new Error("GCP KMS returned no ciphertext");
+    return Buffer.from(infos.join(":")).toString("base64") + ":" + Buffer.from(result.ciphertext).toString("base64");
   },
   decrypt: async (data: string): Promise<string> => {
     // Get the info

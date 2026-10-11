@@ -33,12 +33,7 @@ export default class ApiKey extends OwnerModel {
    * Split per method, each item of the array contains
    * a regexp to validate the url used
    */
-  permissions?: {
-    GET: string[];
-    PUT: string[];
-    DELETE: string[];
-    POST: string[];
-  };
+  permissions?: Partial<Record<"GET" | "PUT" | "DELETE" | "POST" | "OPTIONS", string[]>>;
   /**
    * Algorithm to use with hawk
    */
@@ -76,8 +71,12 @@ export default class ApiKey extends OwnerModel {
    * @returns the secret
    */
   generateSecret(): string {
-    const secret = this["secret"] || randomBytes(64).toString("base64").replace(/=/g, "");
-    this["secret"] = undefined;
+    const supplied: unknown = Reflect.get(this, "secret");
+    if (supplied !== undefined && supplied !== null && typeof supplied !== "string") {
+      throw new WebdaError.BadRequest("Secret must be a string");
+    }
+    const secret = supplied || randomBytes(64).toString("base64").replace(/=/g, "");
+    Reflect.deleteProperty(this, "secret");
     return secret;
   }
 
@@ -134,10 +133,12 @@ export default class ApiKey extends OwnerModel {
     }
     // Check ip whitelist
     if (this.whitelist) {
-      if (!checkers.has(this)) {
-        checkers.set(this, createChecker(this.whitelist.map(c => (c.indexOf("/") < 0 ? `${c}/32` : c))));
+      let checker = checkers.get(this);
+      if (!checker) {
+        checker = createChecker(this.whitelist.map(c => (c.indexOf("/") < 0 ? `${c}/32` : c)));
+        checkers.set(this, checker);
       }
-      if (!checkers.get(this)(ctx.getClientIp())) {
+      if (!checker(ctx.getClientIp())) {
         return false;
       }
     }
@@ -148,11 +149,12 @@ export default class ApiKey extends OwnerModel {
     if (method === "PATCH") {
       method = "PUT";
     }
-    if (!this.permissions[method]) {
+    const permissions = this.permissions[method];
+    if (!permissions) {
       return false;
     }
-    for (const i in this.permissions[method]) {
-      if (ctx.getUrl().match(this.permissions[method][i])) {
+    for (const pattern of permissions) {
+      if (ctx.getUrl().match(pattern)) {
         return true;
       }
     }

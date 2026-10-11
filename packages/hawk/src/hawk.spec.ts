@@ -329,6 +329,12 @@ class HawkServiceTest extends WebdaApplicationTest {
     await assert.rejects(() => test._redirect(ctx), WebdaError.Forbidden);
     test.getParameters().redirectUris.push("http://test.webda.io");
     await test._redirect(ctx);
+    const saved = Reflect.get(ctx.getSession(), "bouzouf");
+    Reflect.set(ctx.getSession(), "bouzouf", 123);
+    await assert.rejects(() => test._redirect(ctx), /Invalid session key/);
+    Reflect.set(ctx.getSession(), "bouzouf", saved);
+    test.getParameters().dynamicSessionKey = undefined;
+    await assert.rejects(() => test._redirect(ctx), /Dynamic session key is not configured/);
     const location = new URL(<string>ctx.getResponseHeaders().Location);
     assert.notStrictEqual(location.searchParams.get("csrf"), undefined);
     await test.stop();

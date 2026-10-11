@@ -36,6 +36,22 @@ class ApiKeyTest extends WebdaApplicationTest {
   }
 
   @test
+  suppliedSecretsAreConsumedAndValidated() {
+    Reflect.set(this.apikey, "secret", "a".repeat(32));
+    assert.strictEqual(this.apikey.generateSecret(), "a".repeat(32));
+    assert.strictEqual(Reflect.has(this.apikey, "secret"), false);
+    Reflect.set(this.apikey, "secret", 123);
+    assert.throws(() => this.apikey.generateSecret(), WebdaError.BadRequest);
+  }
+
+  @test
+  unlistedOptionsAreDenied() {
+    this.apikey.load({ ...KEY, origins: undefined } as any, true);
+    this.getExecutor(this.context, "test.webda.io", "OPTIONS", "/path");
+    assert.strictEqual(this.apikey.canRequest(this.context), false);
+  }
+
+  @test
   toHawkCredentials() {
     this.apikey.load({ __secret: "bouzouf", uuid: "plop" }, true);
     const credentials = this.apikey.toHawkCredentials();

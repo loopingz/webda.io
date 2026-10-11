@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      Analytics relay of the hosted debug dashboard. Loaded by /debug/ in an iframe with
+      sandbox="allow-scripts" (no allow-same-origin): this document runs in an opaque origin,
+      it cannot read the dashboard, its storage or the debug server. It receives allowlisted
+      {event, params} messages, validates them again, and forwards them to gtag.
+      The script is inlined at build time: an opaque origin cannot fetch module scripts.
+    -->
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="noindex" />
+    <title>Webda debug analytics</title>
+  </head>
+  <body>
+    <script>
+      (function(){"use strict";const r={debug_connected:["debug_api_version","framework_version","mode"],panel_open:["panel"],operation_invoked:[],model_graph_view:[],request_detail_view:[],config_view:[],connection_failed:["reason"]},d={mode:["hosted","local"],panel:["logs","models","services","operations","requests","config"],reason:["mixed_content","unreachable","unauthorized","version"]},g=["framework_version"],u=/^\d{1,5}\.\d{1,5}\.\d{1,5}(-[0-9A-Za-z.-]{1,12})?$/,l="webda-debug-analytics";function f(n,e){if(!Object.prototype.hasOwnProperty.call(r,n))return;const o=r[n],a={};for(const i of o){const t=e==null?void 0:e[i];if(t==null)continue;const c=d[i];if(c){typeof t=="string"&&c.includes(t)&&(a[i]=t);continue}if(g.includes(i)){typeof t=="string"&&(u.test(t)||t==="unknown")&&(a[i]=t);continue}(typeof t=="number"&&Number.isFinite(t)||typeof t=="string"&&t.length<=64)&&(a[i]=t)}return a}function p(n){if(!n||typeof n!="object")return;const e=n;if(e.type!==l||typeof e.event!="string")return;const o=f(e.event,e.params&&typeof e.params=="object"?e.params:void 0);if(o)return{event:e.event,params:o}}function _(n){return n.origin==="null"&&n.parent!==n.self}function w(n,e){const o=window;o.dataLayer=o.dataLayer||[];const a=function(){o.dataLayer.push(arguments)};o.gtag=a,a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:e}),a("js",new Date),a("config",n,{anonymize_ip:!0,send_page_view:!1,page_location:"https://webda.io/debug/",page_referrer:""});try{const i=document.createElement("script");i.async=!0,i.src=`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(n)}`,i.onerror=()=>{},document.head.appendChild(i)}catch{}return a}const s="G-8QE1GS556P",m=new URLSearchParams(location.search).get("consent")==="granted"?"granted":"denied",v=new URL(location.href).origin;if(_({origin:self.origin,parent:window.parent,self:window})&&/^G-[A-Z0-9]+$/.test(s)){const n=w(s,m);window.addEventListener("message",e=>{if(e.origin!==v||e.source!==window.parent)return;const o=p(e.data);if(o)try{n("event",o.event,o.params)}catch{}})}})();
+    </script>
+  </body>
+</html>

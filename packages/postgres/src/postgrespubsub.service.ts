@@ -171,7 +171,7 @@ export default class PostgresPubSubService<
     }
     this.metrics?.messages_received?.inc();
     for (const sub of this.callbacks) {
-      const event = sub.proto && raw ? Object.assign(new sub.proto(), raw) : (raw as T);
+      const event = sub.proto && raw ? Object.assign(new sub.proto() as T & object, raw) : (raw as T);
       const start = Date.now();
       sub
         .callback(event)

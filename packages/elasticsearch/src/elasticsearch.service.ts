@@ -101,11 +101,11 @@ export class ElasticSearchServiceParameters extends ServiceParameters {
     super.load(params);
     this.indexes ??= {};
     // Ensure to default to monthly
-    Object.values(this.indexes)
-      .filter(i => i.dateSplit)
-      .forEach(index => {
+    for (const index of Object.values(this.indexes)) {
+      if (index.dateSplit) {
         index.dateSplit.frequency ??= "monthly";
-      });
+      }
+    }
     return this;
   }
 }
@@ -259,7 +259,15 @@ export default class ElasticSearchService<
     try {
       await this._delete(index.name, uuid);
     } catch (err) {
-      if (err?.meta?.statusCode !== 404) {
+      if (
+        typeof err !== "object" ||
+        err === null ||
+        !("meta" in err) ||
+        typeof err.meta !== "object" ||
+        err.meta === null ||
+        !("statusCode" in err.meta) ||
+        err.meta.statusCode !== 404
+      ) {
         throw err;
       }
     }
@@ -277,7 +285,9 @@ export default class ElasticSearchService<
     const update = evt.partial_update;
     if (update.increments) {
       const increments = Array.isArray(update.increments)
-        ? update.increments.map(i => (typeof i === "string" ? { property: i, value: 1 } : { value: 1, ...i }))
+        ? update.increments.map((i: string | { property: string; value?: number }) =>
+            typeof i === "string" ? { property: i, value: 1 } : { value: 1, ...i }
+          )
         : Object.entries(update.increments).map(([property, value]) => ({ property, value: <number>value }));
       await this._increments(index.name, evt.object_id, increments);
     } else if (update.upsert_in_collection) {
@@ -304,8 +314,8 @@ export default class ElasticSearchService<
     const key = `storeMigration.${this.getName()}.reindex.${index}`;
     const status: {
       continuationToken?: string;
-      count?: number;
-      errors?: number;
+      count: number;
+      errors: number;
     } = <any>await useRegistry().get(key, {});
     status.count ??= 0;
     status.errors ??= 0;
@@ -353,7 +363,7 @@ export default class ElasticSearchService<
    * @param parameters - the properties to increment
    */
   protected async _increments(index: string, uuid: string, parameters: { property: string; value: number }[]) {
-    const params = {};
+    const params: Record<string, number> = {};
     parameters.forEach(({ value }, i) => {
       params[`count${i}`] = value;
     });
@@ -614,7 +624,7 @@ export default class ElasticSearchService<
    * @param index - the index name
    * @returns the number of documents
    */
-  async count(index: string = undefined): Promise<number> {
+  async count(index?: string): Promise<number> {
     if (!index) {
       return (await this._client.count()).count;
     }

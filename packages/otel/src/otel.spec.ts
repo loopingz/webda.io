@@ -144,3 +144,24 @@ class OtelTest extends WebdaApplicationTest {
     await service.stop();
   }
 }
+
+@suite
+class OtelParametersTest {
+  @test
+  partialTraceConfigurationReceivesSamplingDefault() {
+    for (const sampling of [undefined, null]) {
+      const params = new OtelServiceParameters().load({ traceExporter: { type: "console", enable: false, sampling } });
+      assert.strictEqual(params.traceExporter.sampling, 0.01);
+      assert.strictEqual(params.traceExporter.type, "console");
+      assert.strictEqual(params.traceExporter.enable, false);
+    }
+  }
+
+  @test
+  explicitSamplingIsPreserved() {
+    for (const sampling of [0, 0.5, 1]) {
+      const params = new OtelServiceParameters().load({ traceExporter: { type: "console", sampling } });
+      assert.strictEqual(params.traceExporter.sampling, sampling);
+    }
+  }
+}

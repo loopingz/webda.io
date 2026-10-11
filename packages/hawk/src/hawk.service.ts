@@ -13,7 +13,6 @@ import {
   useRegistry,
   useRepository
 } from "@webda/core";
-import type { ModelClass } from "@webda/core";
 import { randomBytes } from "node:crypto";
 import * as Hawk from "hawk";
 import type { ApiKey } from "./apikey.model.js";
@@ -51,8 +50,9 @@ export class HawkServiceParameters extends ServiceParameters {
   redirectUrl?: string;
   /**
    * Allowed redirection with CSRF
+   * @default []
    */
-  redirectUris?: string[];
+  redirectUris: string[];
 
   /**
    * @override
@@ -87,7 +87,7 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
   /**
    * Model to use for apikey
    */
-  model: ModelClass<ApiKey>;
+  model?: typeof ApiKey;
   /**
    * Listeners to remove on stop
    */
@@ -101,6 +101,9 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
    */
   @InstanceCache()
   async getApiKey(id: string, _timestamp = undefined): Promise<HawkCredentials> {
+    if (!this.model) {
+      throw new WebdaError.Forbidden("API key model is not configured");
+    }
     return (await this.model.ref(id).get()).toHawkCredentials();
   }
 
@@ -139,8 +142,14 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
       // Make sure origins exist
       await this.getOrigins();
       // Keep the origins registry in sync with the keys
-      const repo = useRepository(this.model);
-      const update = ({ object }) => object?.updateOrigins?.();
+      // The inherited model event marker is optional; describe the repository events used here explicitly.
+      type KeyEvent = "Created" | "Updated" | "Patched";
+      type KeyListener = (event: { object?: ApiKey }) => void;
+      const repo = useRepository(this.model) as {
+        on(event: KeyEvent, listener: KeyListener): void;
+        off(event: KeyEvent, listener: KeyListener): void;
+      };
+      const update = ({ object }: { object?: ApiKey }) => object?.updateOrigins();
       repo.on("Created", update);
       repo.on("Updated", update);
       repo.on("Patched", update);
@@ -180,7 +189,7 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
         return;
       }
       const headers = context.getResponseHeaders();
-      const contentType = headers["Content-Type"] || headers["content-type"] || "application/json";
+      const contentType = String(headers["Content-Type"] || headers["content-type"] || "application/json");
       // Send current time to be able to detect any time synchronization issue
       context.setHeader("x-server-time", Date.now());
 
@@ -195,7 +204,7 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
       // LambdaServer behave a bit different
       context.setHeader("Server-Authorization", header);
     } catch (err) {
-      this.log("TRACE", `Hawk init failed : '${err.message}'`);
+      this.log("TRACE", `Hawk init failed : '${err instanceof Error ? err.message : String(err)}'`);
     }
   }
 
@@ -217,10 +226,21 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
     if (!this.parameters.redirectUris.some(u => url.startsWith(u))) {
       throw new WebdaError.Forbidden("Invalid redirect");
     }
-    context.getSession()[this.parameters.dynamicSessionKey] ??=
-      `${this.cryptoService.current}.${randomBytes(16).toString("base64")}`;
+    const sessionKey = this.parameters.dynamicSessionKey;
+    if (!sessionKey) {
+      throw new WebdaError.Forbidden("Dynamic session key is not configured");
+    }
+    const session = context.getSession();
+    let secret: unknown = Reflect.get(session, sessionKey);
+    if (secret === undefined || secret === null) {
+      secret = `${this.cryptoService.current}.${randomBytes(16).toString("base64")}`;
+      Reflect.set(session, sessionKey, secret);
+    }
+    if (typeof secret !== "string") {
+      throw new WebdaError.Forbidden("Invalid session key");
+    }
     const updatedUrl = new URL(url);
-    const [key, data] = context.getSession()[this.parameters.dynamicSessionKey].split(".");
+    const [key, data] = secret.split(".");
     updatedUrl.searchParams.set("csrf", await this.cryptoService.hmac(data, key));
     context.redirect(updatedUrl.toString());
   }
@@ -291,10 +311,11 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
     // Specific dynamic session checks (useful for CSRF token)
     if (this.parameters.dynamicSessionKey && authorization.startsWith('Hawk id="session"')) {
       try {
-        if (!context.getSession()[this.parameters.dynamicSessionKey]) {
+        const secret: unknown = Reflect.get(context.getSession(), this.parameters.dynamicSessionKey);
+        if (typeof secret !== "string" || !secret) {
           throw new WebdaError.Forbidden("No session key");
         }
-        const [key, data] = context.getSession()[this.parameters.dynamicSessionKey].split(".");
+        const [key, data] = secret.split(".");
         context.setExtension(
           "hawk",
           await Hawk.server.authenticate(hawkRequest, async () => ({
@@ -307,7 +328,7 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
         if (err instanceof WebdaError.Forbidden) {
           throw err;
         }
-        throw new WebdaError.Forbidden(`Hawk error (${err.message})`);
+        throw new WebdaError.Forbidden(`Hawk error (${err instanceof Error ? err.message : String(err)})`);
       }
     } else if (this.model) {
       // We have an Api Key store

@@ -126,7 +126,7 @@ function tryRepository(model: any): any {
  */
 function frozenClone<T>(value: T): T {
   if (value === undefined) {
-    return undefined;
+    return value;
   }
   const clone: any = JSON.parse(JSON.stringify(value));
   const freeze = (o: any) => {

@@ -3,12 +3,15 @@
  * one when GA_MEASUREMENT_ID is set, none otherwise), every `gtag("config"`
  * call carries the stripped `page_location`, and the hosted dashboard page
  * (/debug/) loads no gtag at all; its sandboxed relay (/debug/analytics.html)
- * carries exactly one inlined loader with the baked-in id.
+ * always carries exactly one inlined loader, which only runs with a valid
+ * baked-in id: the id when GA_MEASUREMENT_ID is set, never the placeholder.
+ *
+ * Usage: node check-analytics.js [buildDir] (defaults to ./build)
  */
 const fs = require("fs");
 const path = require("path");
 
-const build = path.join(__dirname, "build");
+const build = process.argv[2] ? path.resolve(process.argv[2]) : path.join(__dirname, "build");
 const id = (process.env.GA_MEASUREMENT_ID || "").trim();
 const problems = [];
 let pages = 0;
@@ -31,10 +34,12 @@ function check(file) {
     return;
   }
   if (rel === path.join("debug", "analytics.html")) {
-    // The sandboxed relay is the only place gtag runs for the dashboard: one inlined loader, no script tag with a src
-    if (loaders !== (id ? 1 : 0) || /<script[^>]*\ssrc=/.test(html))
+    // The sandboxed relay is the only place gtag runs for the dashboard: one inlined loader, no script tag with a src.
+    // The loader is part of the relay's code whether or not an id is set; it only runs with a valid baked-in id.
+    if (loaders !== 1 || /<script[^>]*\ssrc=/.test(html))
       problems.push(`${rel}: the relay must inline exactly one gtag loader`);
     if (id && !html.includes(JSON.stringify(id))) problems.push(`${rel}: the measurement id is not baked in`);
+    if (html.includes("__WEBDA_GA_ID__")) problems.push(`${rel}: the measurement id placeholder was not replaced`);
     return;
   }
   if (loaders !== (id ? 1 : 0)) problems.push(`${rel}: ${loaders} gtag loader(s), expected ${id ? 1 : 0}`);

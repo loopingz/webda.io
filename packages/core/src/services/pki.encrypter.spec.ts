@@ -224,7 +224,7 @@ class PkiEncrypterTest {
     await assert.rejects(
       () => decrypt(encrypted, settings({ privateKeys: broken })),
       (err: Error) => {
-        assert.match(err.message, /Cannot load private key '2026-10' from .*broken\/2026-10\.pem/);
+        assert.match(err.message, /Cannot load private key '2026-10' from .*broken[\\/]2026-10\.pem/);
         assert.ok(!err.message.includes("bm90YWtleQ"));
         return true;
       }
@@ -376,7 +376,10 @@ class PkiCommandsTest extends WebdaApplicationTest {
     const crypto = CryptoService;
     const k1 = await crypto.pkiGenerate("k1", 3072, join(COMMAND_ROOT, "k1.pem"));
     assert.strictEqual(k1.publicKey, join(COMMAND_ROOT, "keys", "k1.pub.pem"));
-    assert.strictEqual(statSync(k1.privateKey).mode & 0o777, 0o600);
+    // Windows has no POSIX permission bits
+    if (process.platform !== "win32") {
+      assert.strictEqual(statSync(k1.privateKey).mode & 0o777, 0o600);
+    }
     assert.ok(readFileSync(k1.publicKey, "utf-8").includes("PUBLIC KEY"));
     // Refuse to overwrite, to write the private key in the public keys directory, weak keys and bad kids
     await assert.rejects(() => crypto.pkiGenerate("k1", 3072, join(COMMAND_ROOT, "k1.pem")), /already exists/);

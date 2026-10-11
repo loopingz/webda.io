@@ -48,6 +48,7 @@ export class PostgresQueueParameters extends QueueParameters {
    * to PG* environment variables.
    *
    * Can be encrypted with `webda config encrypt`
+   * @secret password,connectionString
    */
   postgresqlServer?: ClientConfig | PoolConfig;
   /**

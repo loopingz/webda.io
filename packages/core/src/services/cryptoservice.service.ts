@@ -27,6 +27,7 @@ import { OperationContext } from "../contexts/operationcontext.js";
 import { Route } from "../rest/irest.js";
 import { useRegistry } from "../models/registry.model.js";
 import { useApplication } from "../application/hooks.js";
+import { findConfigurationSecrets, OPT_OUT_ENCRYPTER, secretPathExcluder, type SecretFinding } from "./secretscheck.js";
 
 /**
  * Masked representation of a secret
@@ -43,7 +44,11 @@ const SECRET_MASK = "********";
  * In a service parameters class, type a secret field as `string | SecretString`
  * and read it with {@link SecretString.from}.
  *
+ * `@secret` marks every property typed with this class as a secret in the generated
+ * schema (`x-webda-secret`), so `webda config encrypt` encrypts it and `--check` reports it when it is not encrypted.
+ *
  * @type string
+ * @secret
  */
 export class SecretString {
   /**
@@ -824,7 +829,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     }
     let { encrypter, data: plain } = parsed;
     if (parsed.mode === "crypt") {
-      if (!pass.migrate && !pass.upgrade) {
+      // An opted-out value stays in clear text, it is not migrated to another encrypter
+      if ((!pass.migrate && !pass.upgrade) || encrypter === OPT_OUT_ENCRYPTER) {
         return data;
       }
       const target = pass.migrate || encrypter;
@@ -959,40 +965,217 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * @returns the number of values changed
    */
   async encryptConfigurationFile(file: string, migrate?: string, upgrade?: boolean): Promise<number> {
-    return CryptoService.encryptConfigurationFile(file, migrate, upgrade);
+    return CryptoService.encryptFile(file, migrate, upgrade);
   }
 
   /**
-   * Encrypt the marked values of a configuration file, keeping its comments
+   * Encrypt the secrets of the configuration files, keeping their comments, or check them
+   *
+   * Encrypts the values marked `encrypt:` or `sencrypt:`, and the plain values of the secret fields: the fields
+   * typed `SecretString` or tagged `@secret` in their service parameters, marked `x-webda-secret` in the compiled
+   * schemas. The plain secrets are encrypted with the default encrypter.
+   *
+   * Without `file`, it updates the application configuration and the file of the selected deployment.
+   *
+   * With `check`, nothing is written: it fails when a secret is not encrypted. It needs no key, so it runs in CI.
+   * Only the paths are reported, never the values.
    *
    * It only needs the loaded application: the configuration is not decrypted and no service is created.
    *
    * @param file - the configuration file (json, jsonc or yaml) to update
    * @param migrate - re-encrypt the already encrypted values with this encrypter, the default one when empty
    * @param upgrade - re-encrypt the already encrypted values with their own encrypter, to its current format or key
-   * @returns the number of values changed
+   * @param check - only check that the secrets are encrypted, write nothing
+   * @param strict - with check, report the values still marked `encrypt:` as failures
+   * @param format - with check, output format: text or json
+   * @param none - with check, accept the values kept in clear text with `crypt:none:`, false to fail on them
+   * @param exclude - secret paths to leave alone, comma-separated: not checked, not auto-encrypted
+   * @returns with check, 1 when a secret is not encrypted, otherwise 0
    */
   @Command("config encrypt", {
-    description: "Encrypt the values marked with encrypt: in a configuration file",
+    description: "Encrypt the secrets of the configuration files, or check them with --check",
     // No Core: runs without decrypting the configuration, its sources or the private keys
     phase: "application"
   })
   static async encryptConfigurationFile(
-    /** @alias f @description Configuration file to update (json, jsonc or yaml) */
-    file: string,
+    /** @alias f @description Configuration file to update (json, jsonc or yaml), the application and deployment files by default */
+    file?: string,
     /** @description Re-encrypt the already encrypted values with this encrypter, the default one when empty */
     migrate?: string,
     /** @description Re-encrypt the already encrypted values with their own encrypter, to its current format or key */
-    upgrade?: boolean
+    upgrade?: boolean,
+    /** @description Only check that the secrets are encrypted, write nothing and fail if one is not */
+    check: boolean = false,
+    /** @description With --check, report the values marked encrypt: as failures */
+    strict: boolean = true,
+    /** @description With --check, output format: text or json */
+    format: "text" | "json" = "text",
+    /** @description With --check, accept the values kept in clear text with crypt:none: (--no-none to fail on them) */
+    none: boolean = true,
+    /** @description Secret paths to leave alone, comma-separated (services.demo.password, units[*].token, $.parameters.**) */
+    exclude?: string
+  ): Promise<number> {
+    const files = CryptoService.getConfigurationFiles(file);
+    if (check) {
+      return CryptoService.checkFiles(files, { strict, format, none, exclude });
+    }
+    // The count is logged, not returned: a command result is its exit code
+    for (const filename of files) {
+      await CryptoService.encryptFile(filename, migrate, upgrade, exclude);
+    }
+    return 0;
+  }
+
+  /**
+   * The configuration files to encrypt or check
+   * @param file - the file given on the command line
+   * @returns the absolute paths: the file, or the application configuration and the selected deployment file
+   */
+  protected static getConfigurationFiles(file?: string): string[] {
+    const app = useApplication();
+    if (file) {
+      return [resolve(app.getPath(), file)];
+    }
+    const files = [app.configurationFile, app.getDeployment() ? app.deploymentFile : undefined].filter(
+      f => f && existsSync(f)
+    );
+    if (!files.length) {
+      throw new Error("No configuration file found, use --file");
+    }
+    return files;
+  }
+
+  /**
+   * Check that the secrets of configuration files are encrypted
+   * @param files - the files to check
+   * @param options - check options
+   * @param options.strict - report the values still marked `encrypt:` as failures
+   * @param options.format - output format: text or json
+   * @param options.none - accept the values kept in clear text with `crypt:none:`
+   * @param options.exclude - secret paths not checked, comma-separated
+   * @returns 1 when a secret is not encrypted, 0 otherwise
+   */
+  protected static checkFiles(
+    files: string[],
+    options: { strict?: boolean; format?: "text" | "json"; none?: boolean; exclude?: string } = {}
+  ): number {
+    const { strict = true, format = "text", none = true, exclude } = options;
+    const app = useApplication();
+    const failures: (SecretFinding & { file: string })[] = [];
+    const warnings: (SecretFinding & { file: string })[] = [];
+    for (const filename of files) {
+      // Same report on every OS: forward slashes
+      const file = (relative(app.getPath(), filename) || filename).replace(/\\/g, "/");
+      // Plain JSON: the comment-preserving loader returns wrapper objects
+      const findings = CryptoService.findFileSecrets(JSON.parse(JSON.stringify(FileUtils.load(filename))), exclude);
+      for (const finding of findings) {
+        const failure =
+          finding.reason === "plain" ||
+          (strict && finding.reason === "marked") ||
+          (!none && finding.reason === "opted-out");
+        const message = {
+          plain: "secret is not encrypted",
+          marked: "secret is marked encrypt: but not encrypted, run 'webda config encrypt'",
+          "opted-out": "secret is kept in clear text on purpose (crypt:none:)"
+        }[finding.reason];
+        useLog(
+          failure ? "ERROR" : "WARN",
+          `${failure ? "✗" : "!"} ${file}: ${finding.path} (${finding.type}): ${message}`
+        );
+        const { location: _location, ...reported } = finding;
+        (failure ? failures : warnings).push({ file, ...reported });
+      }
+    }
+    if (format === "json") {
+      useOutput(JSON.stringify({ findings: failures, warnings }, undefined, 2));
+    } else {
+      const optedOut = warnings.filter(w => w.reason === "opted-out").length;
+      useOutput(
+        (failures.length ? `${failures.length} unencrypted secret(s) found` : "No unencrypted secret found") +
+          (optedOut ? `, ${optedOut} kept in clear text on purpose` : "")
+      );
+    }
+    return failures.length ? 1 : 0;
+  }
+
+  /**
+   * Find the unencrypted secrets of a configuration or deployment file
+   *
+   * A service the file overrides without its type takes the type of the application configuration, and the
+   * file `parameters` are also checked against the services of the application.
+   *
+   * @param data - the file content, as plain JSON
+   * @param exclude - secret paths to leave out, comma-separated patterns, see {@link secretPathExcluder}
+   * @returns the findings, with their location in data, without the values
+   */
+  static findFileSecrets(data: any, exclude?: string | string[]): SecretFinding[] {
+    const app = useApplication();
+    const services = app.getConfiguration().services ?? {};
+    const { findings, unknownTypes } = findConfigurationSecrets(
+      { services: data?.services, parameters: data?.parameters, resources: data?.resources, units: data?.units },
+      {
+        getSchema: type => app.getSchema(type),
+        // Same resolution as the services: the application namespace, then Webda
+        completeNamespace: type => {
+          const namespaced = app.completeNamespace(type);
+          return app.getSchema(namespaced) || type.includes("/") ? namespaced : `Webda/${type}`;
+        },
+        getType: name => services[name]?.type,
+        inheritingServices: services
+      }
+    );
+    for (const type of unknownTypes) {
+      useLog("WARN", `No schema for service type ${type}, its secrets are not checked`);
+    }
+    const excluded = secretPathExcluder(exclude);
+    return findings.filter(finding => {
+      if (!excluded(finding.path)) return true;
+      useLog("DEBUG", `Secret ${finding.path} excluded`);
+      return false;
+    });
+  }
+
+  /**
+   * Encrypt the secrets of a configuration file, keeping its comments
+   *
+   * The values marked `encrypt:` or `sencrypt:`, and the plain values of the secret fields, with the default
+   * encrypter.
+   *
+   * @param file - the configuration file (json, jsonc or yaml) to update
+   * @param migrate - re-encrypt the already encrypted values with this encrypter, the default one when empty
+   * @param upgrade - re-encrypt the already encrypted values with their own encrypter, to its current format or key
+   * @param exclude - secret paths not auto-encrypted, comma-separated patterns, see {@link secretPathExcluder}
+   * @returns the number of values changed
+   */
+  static async encryptFile(
+    file: string,
+    migrate?: string,
+    upgrade?: boolean,
+    exclude?: string | string[]
   ): Promise<number> {
     const filename = resolve(useApplication().getPath(), file);
     const data = FileUtils.load(filename);
     const before = JSON.stringify(data);
+    const settings = CryptoService.getEncryptionSettings(data);
+    const plain = CryptoService.findFileSecrets(JSON.parse(before), exclude).filter(f => f.reason === "plain");
+    if (plain.length && !settings.default) {
+      throw new Error(
+        `${plain.length} secret(s) are not encrypted in ${filename} (${plain.map(f => f.path).join(", ")}): ` +
+          `set ${SETTINGS_PATH}.default or prefix them with encrypt:<encrypter>:`
+      );
+    }
+    for (const finding of plain) {
+      // The encrypter is explicit: a plain value starting with an encrypter name is not misread
+      const parent = finding.location.slice(0, -1).reduce((target, segment) => target[segment], data);
+      const key = finding.location[finding.location.length - 1];
+      parent[key] = `encrypt:${settings.default}:${parent[key]}`;
+      useLog("INFO", `Encrypting the plain secret ${finding.path}`);
+    }
     let changes = 0;
     await CryptoService.encryptConfiguration(data, {
       migrate,
       upgrade,
-      settings: CryptoService.getEncryptionSettings(data),
+      settings,
       appPath: useApplication().getPath()
     });
     // Count the changed values without logging them
@@ -1233,6 +1416,22 @@ CryptoService.registerEncrypter("local", {
  * Asymmetric encrypter: public keys in the repository, private keys in the runtime
  */
 CryptoService.registerEncrypter("pki", pkiEncrypter);
+
+/**
+ * Opt-out: `crypt:none:<value>` keeps a value of a secret field in clear text on purpose
+ *
+ * `webda config encrypt` does not encrypt it, even with `--migrate`, and `--check` reports it as a warning.
+ */
+CryptoService.registerEncrypter(OPT_OUT_ENCRYPTER, {
+  encrypt: async (data: string) => {
+    if (/[\r\n]/.test(data)) {
+      throw new Error("A multi-line value cannot be kept in clear text with crypt:none:");
+    }
+    return data;
+  },
+  decrypt: async (data: string) => data,
+  needsUpgrade: () => false
+});
 
 export { AuthenticatedEncryption };
 

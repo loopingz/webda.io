@@ -145,3 +145,67 @@ export class ExoticParameters extends ServiceParameters {
 
 /** Service used to prove the converter refuses rather than guesses. */
 export class ExoticService extends Service<ExoticParameters> {}
+
+/**
+ * A class standing for an encrypted string, like `SecretString`.
+ *
+ * @type string
+ * @secret
+ */
+export class Hidden {
+  /** Not part of the schema. */
+  value: string;
+}
+
+/** A third-party connection settings object, like `pg.ClientConfig`. */
+export interface Connection {
+  /** Not a secret. */
+  host: string;
+  /** A secret, listed on the property. */
+  password?: string;
+  /** A secret, listed on the property. */
+  connectionString?: string;
+}
+
+/** Parameters holding secrets, by type or by `@secret` tag. */
+export class SecretParameters extends ServiceParameters {
+  /** The usual secret field. */
+  apiKey: string | Hidden;
+  /** The class alone. */
+  token?: Hidden;
+  /** The class first. */
+  tokenFirst?: Hidden | string;
+  /** Mixed with other types. */
+  pin?: Hidden | number;
+  /** A list of secrets. */
+  keys?: (string | Hidden)[];
+  /** Nested in an inline object. */
+  credentials?: {
+    /** Not a secret. */
+    accessKeyId: string;
+    /** A secret. */
+    secretAccessKey: string | Hidden;
+  };
+  /**
+   * Any client options, all secret.
+   * @secret - prose only
+   */
+  client?: any;
+  /**
+   * A structure the author does not own.
+   * @secret password,connectionString - prose after the names is ignored
+   */
+  server?: Connection;
+  /**
+   * A file path or an inline configuration.
+   * @secret
+   */
+  config?: string | Connection;
+  /** A plain string. */
+  name?: string;
+  /** Tagged `@type string` but not `@secret`. */
+  masked?: string | Masked;
+}
+
+/** Service whose parameters hold secrets. */
+export class SecretService extends Service<SecretParameters> {}

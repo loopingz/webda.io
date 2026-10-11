@@ -362,7 +362,8 @@
                     "$ref": "#/definitions/jwt%24secretOrPublicKey%233"
                   }
                 ],
-                "description": "Secret to use with JWT\n\nCan be encrypted with `webda config encrypt`"
+                "description": "Secret to use with JWT\n\nCan be encrypted with `webda config encrypt`",
+                "x-webda-secret": true
               },
               "subject": {
                 "description": "Subject for JWT",
@@ -511,7 +512,8 @@
                     "$ref": "#/definitions/jwt%24secretOrPublicKey%233"
                   }
                 ],
-                "description": "Secret to use with JWT\n\nCan be encrypted with `webda config encrypt`"
+                "description": "Secret to use with JWT\n\nCan be encrypted with `webda config encrypt`",
+                "x-webda-secret": true
               },
               "subject": {
                 "description": "Subject for JWT",
@@ -553,7 +555,8 @@
               },
               "passphrase": {
                 "description": "Passphrase used to encrypt the private key\n\nCan be encrypted with `webda config encrypt`",
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "type": {
                 "default": "pkcs8",
@@ -678,14 +681,13 @@
       "Configuration": "lib/services/icryptoservice:CryptoServiceParameters",
       "commands": {
         "config encrypt": {
-          "description": "Encrypt the values marked with encrypt: in a configuration file",
+          "description": "Encrypt the secrets of the configuration files, or check them with --check",
           "method": "encryptConfigurationFile",
           "args": {
             "file": {
               "type": "string",
-              "required": true,
               "alias": "f",
-              "description": "Configuration file to update (json, jsonc or yaml)"
+              "description": "Configuration file to update (json, jsonc or yaml), the application and deployment files by default"
             },
             "migrate": {
               "type": "string",
@@ -694,6 +696,30 @@
             "upgrade": {
               "type": "boolean",
               "description": "Re-encrypt the already encrypted values with their own encrypter, to its current format or key"
+            },
+            "check": {
+              "type": "boolean",
+              "default": false,
+              "description": "Only check that the secrets are encrypted, write nothing and fail if one is not"
+            },
+            "strict": {
+              "type": "boolean",
+              "default": true,
+              "description": "With --check, report the values marked encrypt: as failures"
+            },
+            "format": {
+              "type": "string",
+              "default": "text",
+              "description": "With --check, output format: text or json"
+            },
+            "none": {
+              "type": "boolean",
+              "default": true,
+              "description": "With --check, accept the values kept in clear text with crypt:none: (--no-none to fail on them)"
+            },
+            "exclude": {
+              "type": "string",
+              "description": "Secret paths to leave alone, comma-separated (services.demo.password, units[ ].token, $.parameters.  )"
             }
           },
           "phase": "application"
@@ -1130,6 +1156,10 @@
           "type"
         ],
         "type": "object",
+        "x-webda-secret": [
+          "auth.pass",
+          "SES.credentials"
+        ],
         "title": "Mailer"
       },
       "Configuration": "lib/services/mailer.service:MailerParameters"

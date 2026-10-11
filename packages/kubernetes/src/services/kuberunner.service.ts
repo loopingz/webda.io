@@ -26,6 +26,7 @@ export class KubeRunnerParameters extends RunnerParameters implements Kubernetes
    * Kubernetes configuration
    *
    * Can be encrypted with `webda config encrypt`
+   * @secret users.token,users.password,users.keyData,users.authProvider
    */
   config?: string | K8sConfiguration;
   /**

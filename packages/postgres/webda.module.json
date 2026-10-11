@@ -576,7 +576,11 @@
           },
           "postgresqlServer": {
             "$ref": "#/definitions/ClientConfig",
-            "description": "Connection settings forwarded to `pg.Client`. By default `pg` reads\nstandard PG* environment variables.\n\nCan be encrypted with `webda config encrypt`"
+            "description": "Connection settings forwarded to `pg.Client`. By default `pg` reads\nstandard PG* environment variables.\n\nCan be encrypted with `webda config encrypt`",
+            "x-webda-secret": [
+              "password",
+              "connectionString"
+            ]
           },
           "reconnectDelay": {
             "default": 500,
@@ -1330,7 +1334,11 @@
                 "$ref": "#/definitions/PoolConfig"
               }
             ],
-            "description": "Connection settings forwarded to the chosen pg client/pool. Defaults\nto PG* environment variables.\n\nCan be encrypted with `webda config encrypt`"
+            "description": "Connection settings forwarded to the chosen pg client/pool. Defaults\nto PG* environment variables.\n\nCan be encrypted with `webda config encrypt`",
+            "x-webda-secret": [
+              "password",
+              "connectionString"
+            ]
           },
           "table": {
             "default": "webda_queue",
@@ -2155,7 +2163,11 @@
                 "$ref": "#/definitions/PoolConfig"
               }
             ],
-            "description": "By default use environment variables\n\nCan be encrypted with `webda config encrypt`"
+            "description": "By default use environment variables\n\nCan be encrypted with `webda config encrypt`",
+            "x-webda-secret": [
+              "password",
+              "connectionString"
+            ]
           },
           "slowQueryThreshold": {
             "default": 30000,

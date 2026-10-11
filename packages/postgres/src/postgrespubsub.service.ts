@@ -30,6 +30,7 @@ export class PostgresPubSubParameters extends ServiceParameters {
    * standard PG* environment variables.
    *
    * Can be encrypted with `webda config encrypt`
+   * @secret password,connectionString
    */
   postgresqlServer?: ClientConfig;
   /**

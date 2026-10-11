@@ -67,6 +67,7 @@ export * from "./services/cloudbinary.js";
 export * from "./services/prometheus.service.js";
 export * from "./services/resource.service.js";
 export * from "./services/cryptoservice.service.js";
+export * from "./services/secretscheck.js";
 export * from "./services/pki.encrypter.js";
 export * from "./services/token.service.js";
 export * from "./models/refreshtoken.model.js";

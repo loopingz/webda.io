@@ -25,7 +25,8 @@
               "url": {
                 "default": "http://localhost:4317",
                 "description": "Can be encrypted with `webda config encrypt` (when it holds credentials)",
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               }
             },
             "type": "object"

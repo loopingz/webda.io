@@ -44,6 +44,10 @@ export interface CommandOptions {
  * - JSDoc `@description` on parameter provides help text for the flag
  * - JSDoc `@deprecated` on parameter marks the flag as deprecated
  *
+ * A handler returning a number sets the process exit code (the highest one when
+ * several services run the command); any other result exits with `0`. Log counts
+ * rather than returning them.
+ *
  * Multiple services can declare the same command name — they all run in
  * dependency-graph order. Use `--service=ServiceName` to filter at invocation.
  *

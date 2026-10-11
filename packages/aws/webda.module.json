@@ -108,13 +108,16 @@
             "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
             "properties": {
               "accessKeyId": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "secretAccessKey": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "sessionToken": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               }
             },
             "required": [
@@ -702,7 +705,8 @@
           },
           "accessKeyId": {
             "description": "AWS_ACCESS_KEY_ID to use\n\nUsing static key is not recommended\n\nCan be encrypted with `webda config encrypt`",
-            "type": "string"
+            "type": "string",
+            "x-webda-secret": true
           },
           "endpoints": {
             "$ref": "#/definitions/endpoints",
@@ -719,11 +723,13 @@
           },
           "secretAccessKey": {
             "description": "AWS_SECRET_ACCESS_KEY to use\n\nUsing static key is not recommended\n\nCan be encrypted with `webda config encrypt`",
-            "type": "string"
+            "type": "string",
+            "x-webda-secret": true
           },
           "sessionToken": {
             "description": "AWS_SESSION_TOKEN Token\n\nEven if it is possible to add it here\nIt is not sustainable as this token at its best will\nhave a lifetime of 12 hours\n\nCan be encrypted with `webda config encrypt`",
-            "type": "string"
+            "type": "string",
+            "x-webda-secret": true
           },
           "type": {
             "description": "Type of the service",
@@ -767,13 +773,16 @@
             "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
             "properties": {
               "accessKeyId": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "secretAccessKey": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "sessionToken": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               }
             },
             "required": [
@@ -874,13 +883,16 @@
             "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
             "properties": {
               "accessKeyId": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "secretAccessKey": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "sessionToken": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               }
             },
             "required": [
@@ -1044,13 +1056,16 @@
             "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
             "properties": {
               "accessKeyId": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "secretAccessKey": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "sessionToken": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               }
             },
             "required": [
@@ -1261,13 +1276,16 @@
             "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
             "properties": {
               "accessKeyId": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "secretAccessKey": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "sessionToken": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               }
             },
             "required": [
@@ -1381,13 +1399,16 @@
             "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`",
             "properties": {
               "accessKeyId": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "secretAccessKey": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "sessionToken": {
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               }
             },
             "required": [

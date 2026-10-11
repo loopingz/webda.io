@@ -32,6 +32,7 @@ export class MongoParameters extends StoreParameters {
    * https://docs.mongodb.com/manual/reference/connection-string
    *
    * Can be encrypted with `webda config encrypt`
+   * @secret auth.password,tlsCertificateKeyFilePassword
    */
   options?: any;
   /**

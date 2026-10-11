@@ -53,7 +53,7 @@ export type { DefaultGeneratorOptions } from "./defaults.ts";
 export { runTwoPass } from "./twopass.ts";
 export type { TwoPassOptions, TwoPassResult } from "./twopass.ts";
 
-export { SchemaConverter } from "./schema/converter.ts";
+export { SchemaConverter, SECRET_KEYWORD } from "./schema/converter.ts";
 export type { BufferStrategy, ConverterOptions, SchemaMode } from "./schema/converter.ts";
 export { generateActionInput, generateActionOutput, normalizeDefinitions } from "./schema/action.ts";
 export type { ActionSchemaOptions } from "./schema/action.ts";

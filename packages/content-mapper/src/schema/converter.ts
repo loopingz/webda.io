@@ -39,8 +39,10 @@ import type {
 import { ModifierFlags, SyntaxKind } from "typescript/unstable/ast";
 import type { Expression, Node } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
-import { applyDocs } from "./annotations.ts";
+import { applyDocs, SECRET_KEYWORD } from "./annotations.ts";
 import { SchemaConversionError, type JSONSchema7 } from "./types.ts";
+
+export { SECRET_KEYWORD };
 
 /** JSON Schema dialect every generated document declares. */
 const DRAFT_07 = "http://json-schema.org/draft-07/schema#";
@@ -939,6 +941,7 @@ export class SchemaConverter {
     for (const branch of definition.anyOf) {
       if (branch.type === "null") branch.const = null;
     }
+    liftSecret(definition);
     this.simplifyUnion(definition);
     return { optional, decision: "keep" };
   }
@@ -1364,12 +1367,16 @@ const ANNOTATION_KEYWORDS = ["description", "title", "$comment", "examples"];
 
 /**
  * Remove the annotation keywords of a schema
+ *
+ * The secret marker is removed too: it does not change the values a branch
+ * accepts, so `string` and `SecretString` remain duplicates.
  * @param schema - the schema
  * @returns a copy without annotations
  */
 function withoutAnnotations(schema: JSONSchema7): JSONSchema7 {
   const copy = { ...schema };
   for (const keyword of ANNOTATION_KEYWORDS) delete copy[keyword];
+  delete copy[SECRET_KEYWORD];
   return copy;
 }
 
@@ -1379,7 +1386,8 @@ function withoutAnnotations(schema: JSONSchema7): JSONSchema7 {
  * Branches are compared without their annotations, so `string | SecretString`
  * (the class tagged `@type string`) collapses to `string`. When duplicates
  * merge, the annotations are dropped: they described a member type, not the
- * property, and would otherwise leak onto it once the union collapses.
+ * property, and would otherwise leak onto it once the union collapses. The
+ * secret marker is kept when any merged branch had it.
  * @param branches - the branch schemas
  * @returns the branches, deduplicated, in first-seen order
  */
@@ -1391,13 +1399,33 @@ function dedupe(branches: JSONSchema7[]): JSONSchema7[] {
     const key = JSON.stringify(stripped);
     const index = seen.get(key);
     if (index !== undefined) {
-      unique[index] = stripped;
+      const secret = unique[index][SECRET_KEYWORD] ?? branch[SECRET_KEYWORD];
+      unique[index] = secret === undefined ? stripped : { ...stripped, [SECRET_KEYWORD]: secret };
       continue;
     }
     seen.set(key, unique.length);
     unique.push(branch);
   }
   return unique;
+}
+
+/**
+ * Move the secret marker of union branches onto the union itself
+ *
+ * `string | SecretString | number` is a secret whatever branch the value
+ * matches, and the simplifications that merge branches into a `type` array
+ * would otherwise drop the marker.
+ * @param definition - schema carrying `anyOf`, mutated in place
+ */
+function liftSecret(definition: JSONSchema7): void {
+  let secret: unknown;
+  for (const branch of definition.anyOf!) {
+    if (branch[SECRET_KEYWORD] === undefined) continue;
+    // A whole-value marker wins over a list of child names
+    if (secret !== true) secret = branch[SECRET_KEYWORD];
+    delete branch[SECRET_KEYWORD];
+  }
+  if (secret !== undefined) definition[SECRET_KEYWORD] ??= secret;
 }
 
 /** Keywords compared when deciding whether tuple elements share a shape. */

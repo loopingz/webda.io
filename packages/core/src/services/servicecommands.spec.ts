@@ -493,6 +493,25 @@ class ExecuteServiceCommandTest {
   }
 
   @test
+  async returnsHighestNumericHandlerResult() {
+    const services = {
+      "MyApp/A": { doIt: async () => 1 },
+      "MyApp/B": { doIt: async () => 3 },
+      "MyApp/C": { doIt: async () => "text" },
+      "MyApp/D": { doIt: async () => undefined }
+    } as any;
+    const cmdInfo = {
+      description: "Test",
+      services: ["A", "B", "C", "D"].map(n => ({ name: `MyApp/${n}`, method: "doIt", type: `MyApp/${n}` })),
+      args: {}
+    };
+    assert.strictEqual(await executeServiceCommand("test", cmdInfo, {}, services), 3);
+    // A non-number result, or none, counts as 0
+    cmdInfo.services = cmdInfo.services.slice(2);
+    assert.strictEqual(await executeServiceCommand("test", cmdInfo, {}, services), 0);
+  }
+
+  @test
   async missingMethodReturns1() {
     const services = {
       "MyApp/A": { wrongMethod: async () => {} }

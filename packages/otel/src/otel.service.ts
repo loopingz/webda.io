@@ -46,7 +46,11 @@ export class OtelLogger extends WorkerLogger {
  * OpenTelemetry service parameters
  */
 export class OtelServiceParameters extends ServiceParameters {
-  traceExporter?: {
+  /**
+   * Trace export configuration
+   * @default {"type":"otlp","enable":true,"sampling":0.01}
+   */
+  traceExporter: {
     type: "console" | "otlp";
     /**
      * Allow to disable the trace exporter
@@ -58,7 +62,7 @@ export class OtelServiceParameters extends ServiceParameters {
      *
      * @default 0.01
      */
-    sampling?: number;
+    sampling: number;
   };
   metricExporter?: {
     type: "console" | "otlp";
@@ -109,6 +113,7 @@ export class OtelServiceParameters extends ServiceParameters {
       enable: true,
       sampling: 0.01
     };
+    this.traceExporter.sampling ??= 0.01;
     this.metricExporter ??= {
       type: "otlp",
       enable: true
@@ -303,7 +308,7 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
    */
   patch() {
     const tracer = trace.getTracer("webda");
-    const mod = Math.floor(1 / (this.parameters.traceExporter?.sampling ?? 0.01));
+    const mod = Math.floor(1 / this.parameters.traceExporter.sampling);
     let count = 0;
     const router = useRouter();
     // Add a span around each request execution

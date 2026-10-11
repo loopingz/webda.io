@@ -21,7 +21,7 @@ export class AMQPPubSubParameters extends ServiceParameters {
    * Queue name used to subscribe, empty to let the broker generate one
    * @default ""
    */
-  subscription?: string;
+  subscription: string;
   exchange?: {
     /**
      * @default fanout
@@ -143,7 +143,7 @@ export default class AMQPPubSubService<
    * @returns the number of messages in the subscription queue
    */
   async size(): Promise<number> {
-    return (await this.getChannel().assertQueue(this.parameters.subscription ?? "")).messageCount;
+    return (await this.getChannel().assertQueue(this.parameters.subscription)).messageCount;
   }
 
   /**
@@ -162,7 +162,7 @@ export default class AMQPPubSubService<
     let consumerTag: string;
     return new CancelablePromise(
       async (_resolve, reject) => {
-        const queue = await this.getChannel().assertQueue(this.parameters.subscription ?? "", {
+        const queue = await this.getChannel().assertQueue(this.parameters.subscription, {
           exclusive: true,
           durable: false,
           autoDelete: true

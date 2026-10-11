@@ -314,8 +314,8 @@ export default class ElasticSearchService<
     const key = `storeMigration.${this.getName()}.reindex.${index}`;
     const status: {
       continuationToken?: string;
-      count?: number;
-      errors?: number;
+      count: number;
+      errors: number;
     } = <any>await useRegistry().get(key, {});
     status.count ??= 0;
     status.errors ??= 0;
@@ -339,7 +339,7 @@ export default class ElasticSearchService<
         },
         onDrop: doc => {
           /* c8 ignore next 3 - do not know how to trigger this one */
-          status.errors = (status.errors ?? 0) + 1;
+          status.errors++;
           this.log("ERROR", "Failed to reindex doc", info._repository.getUID(doc.document), doc.error);
         },
         refresh: this._refreshMode

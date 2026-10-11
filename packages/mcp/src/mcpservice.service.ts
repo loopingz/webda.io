@@ -33,12 +33,20 @@ export class McpServiceParameters extends OperationsTransportParameters {
    * HTTP endpoint; false disables HTTP (stdio only)
    * @default "/mcp"
    */
-  url?: string | false;
+  url: string | false;
   /**
    * Models exposed as resources (short ids or "*"); false disables resources
    * @default {"models":["*"]}
    */
-  resources?: false | { models?: string[] };
+  resources:
+    | false
+    | {
+        /**
+         * Models exposed as resources
+         * @default ["*"]
+         */
+        models: string[];
+      };
   /**
    * Seconds of inactivity before an MCP session is evicted
    * @default 1800
@@ -48,24 +56,24 @@ export class McpServiceParameters extends OperationsTransportParameters {
    * Extra Origin values accepted besides the request's own origin
    * @default []
    */
-  allowedOrigins?: string[];
+  allowedOrigins: string[];
   /**
    * Hostnames (any port) accepted in the request Host, against DNS rebinding;
    * "*" disables the check
    * @default ["localhost","127.0.0.1","::1"]
    */
-  allowedHosts?: string[];
+  allowedHosts: string[];
   /**
    * Maximum number of concurrent MCP HTTP sessions; at the limit the least
    * recently used session is closed to make room for a new one
    * @default 1000
    */
-  maxSessions?: number;
+  maxSessions: number;
   /**
    * Larger tool/resource outputs are truncated
    * @default 1048576
    */
-  maxOutputBytes?: number;
+  maxOutputBytes: number;
   /**
    * Server name announced to clients (defaults to the application package name)
    */
@@ -76,8 +84,9 @@ export class McpServiceParameters extends OperationsTransportParameters {
   serverVersion?: string;
   /**
    * stdio defaults
+   * @default {}
    */
-  stdio?: {
+  stdio: {
     /**
      * Default user for `webda mcp`
      */
@@ -206,12 +215,12 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
     };
     this.tools = new ToolRegistry(resolve);
     this.resourceRegistry = this.parameters.resources
-      ? new ResourceRegistry(this.parameters.resources.models ?? ["*"])
+      ? new ResourceRegistry(this.parameters.resources.models)
       : undefined;
     this.sessions = new McpSessionManager(this.parameters.sessionTimeout * 1000);
     this.refreshRegistries();
     if (this.parameters.url !== false) {
-      this.addRoute(this.parameters.url ?? "/mcp", ["GET", "POST", "DELETE"], this.handleHttp, { hidden: true } as any);
+      this.addRoute(this.parameters.url, ["GET", "POST", "DELETE"], this.handleHttp, { hidden: true } as any);
     }
     this.evictTimer = setInterval(() => void this.sessions.evictIdle(), 60_000);
     this.evictTimer.unref();
@@ -260,7 +269,7 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
       },
       tools: this.tools,
       resources: this.resourceRegistry,
-      maxOutputBytes: this.parameters.maxOutputBytes ?? 1048576,
+      maxOutputBytes: this.parameters.maxOutputBytes,
       getSession,
       beforeRequest: () => this.checkForChanges()
     });
@@ -294,7 +303,7 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
    * @returns true when the host is accepted
    */
   protected isHostAllowed(ctx: WebContext): boolean {
-    const allowed = this.parameters.allowedHosts ?? ["localhost", "127.0.0.1", "::1"];
+    const allowed = this.parameters.allowedHosts;
     if (allowed.includes("*")) {
       return true;
     }
@@ -350,7 +359,7 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
       }
       // At the cap, make room by evicting the least recently used session:
       // refusing new sessions would let anonymous callers lock out the endpoint
-      while (this.sessions.all().length >= Math.max(1, this.parameters.maxSessions ?? 1000)) {
+      while (this.sessions.all().length >= Math.max(1, this.parameters.maxSessions)) {
         const evicted = await this.sessions.evictOldest();
         useLog("INFO", "MCP session limit reached, evicted least recently used session", evicted);
       }
@@ -384,7 +393,7 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       enableDnsRebindingProtection: true,
-      allowedOrigins: [...(origin ? [origin] : []), ...(this.parameters.allowedOrigins ?? [])],
+      allowedOrigins: [...(origin ? [origin] : []), ...this.parameters.allowedOrigins],
       onsessioninitialized: id => {
         entry.id = id;
         this.sessions.add(entry);
@@ -417,7 +426,7 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
     try {
       const server = await this.serveStdio(
         new StdioServerTransport(process.stdin, protocol),
-        user || this.parameters.stdio?.user
+        user || this.parameters.stdio.user
       );
       await new Promise<void>(resolve => {
         server.onclose = () => resolve();

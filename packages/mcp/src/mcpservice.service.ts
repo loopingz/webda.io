@@ -43,7 +43,7 @@ export class McpServiceParameters extends OperationsTransportParameters {
    * Seconds of inactivity before an MCP session is evicted
    * @default 1800
    */
-  sessionTimeout?: number;
+  sessionTimeout: number;
   /**
    * Extra Origin values accepted besides the request's own origin
    * @default []
@@ -208,7 +208,7 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
     this.resourceRegistry = this.parameters.resources
       ? new ResourceRegistry(this.parameters.resources.models ?? ["*"])
       : undefined;
-    this.sessions = new McpSessionManager((this.parameters.sessionTimeout ?? 1800) * 1000);
+    this.sessions = new McpSessionManager(this.parameters.sessionTimeout * 1000);
     this.refreshRegistries();
     if (this.parameters.url !== false) {
       this.addRoute(this.parameters.url ?? "/mcp", ["GET", "POST", "DELETE"], this.handleHttp, { hidden: true } as any);

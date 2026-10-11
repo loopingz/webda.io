@@ -54,10 +54,9 @@ export class PolicyEngine {
     // Matcher functions run synchronously: attachments are resolved from this map, built from the same g rows
     const links = new Map<string, Set<string>>();
     for (const [principal, sub] of attachments) {
-      if (!links.has(sub)) {
-        links.set(sub, new Set());
-      }
-      links.get(sub).add(principal);
+      const principals = links.get(sub) ?? new Set<string>();
+      principals.add(principal);
+      links.set(sub, principals);
     }
     const enforcer = await newEnforcer(newModelFromString(CASBIN_MODEL));
     await enforcer.addFunction("attached", (principals: string[], sub: string) =>
@@ -102,7 +101,7 @@ export class PolicyEngine {
       }
       return explain?.length ? `denied by ${explain.join(", ")}` : "implicit deny";
     } catch (err) {
-      return `condition error: ${err?.message ?? err}`;
+      return `condition error: ${err instanceof Error ? err.message : String(err)}`;
     }
   }
 }

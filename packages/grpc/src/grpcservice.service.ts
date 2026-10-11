@@ -109,7 +109,7 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
     requires: ["rest-domain"]
   })
   async build(): Promise<void> {
-    const outPath = this.parameters.protoFile;
+    const outPath = this.parameters.protoFile ?? ".webda/app.proto";
     const operations = this.getOperations();
     const app = useApplication();
     const schemas: Record<string, any> = { ...(app.getSchemas?.() || {}) };
@@ -156,12 +156,13 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
    * Load the .proto file and map its RPC methods to operations (also callable after registering operations late)
    */
   loadDefinitions(): void {
-    if (!existsSync(this.parameters.protoFile)) {
+    const protoFile = this.parameters.protoFile ?? ".webda/app.proto";
+    if (!existsSync(protoFile)) {
       useLog("WARN", `Proto file not found: ${this.parameters.protoFile}. Run 'webdac build' to generate it.`);
       return;
     }
     try {
-      this.definitions = protoLoader.loadSync(this.parameters.protoFile, {
+      this.definitions = protoLoader.loadSync(protoFile, {
         keepCase: true,
         longs: String,
         enums: String,
@@ -282,7 +283,7 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
    * @returns a promise that resolves when the response has been fully sent
    */
   async handleGrpcRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    const grpcPath = req.url;
+    const grpcPath = req.url ?? "";
     const opId = this.rpcToOperation.get(grpcPath);
     const methodDef = this.rpcMethods.get(grpcPath);
 
@@ -303,8 +304,8 @@ export class GrpcService<T extends GrpcServiceParameters = GrpcServiceParameters
     // Handlers first: data may arrive while the session loads
     stream.onMessage((message, size) => {
       input.push(this.cleanMessage(message), size);
-      const bytes = input.pendingBytes > this.parameters.maxQueuedBytes;
-      if ((bytes || input.pending > this.parameters.maxQueuedMessages) && !finished()) {
+      const bytes = input.pendingBytes > (this.parameters.maxQueuedBytes ?? 16 * 1024 * 1024);
+      if ((bytes || input.pending > (this.parameters.maxQueuedMessages ?? 1000)) && !finished()) {
         // The operation does not keep up: stop it rather than buffering without limit
         stream.sendError(GrpcStatus.RESOURCE_EXHAUSTED, bytes ? "Too many queued bytes" : "Too many queued messages");
         ctx.cancel();

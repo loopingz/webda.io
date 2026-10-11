@@ -15,7 +15,7 @@ function mapKeys(value: unknown, rename: (key: string) => string): unknown {
   if (Array.isArray(value)) return value.map(item => mapKeys(item, rename));
   // Only plain objects: values like Date are handled by jsondiffpatch as they are
   const proto = value && typeof value === "object" ? Object.getPrototypeOf(value) : undefined;
-  if (proto === Object.prototype || proto === null) {
+  if (value !== null && typeof value === "object" && (proto === Object.prototype || proto === null)) {
     const out: Record<string, unknown> = {};
     for (const [key, item] of Object.entries(value)) {
       out[rename(key)] = mapKeys(item, rename);

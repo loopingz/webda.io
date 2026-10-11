@@ -206,12 +206,12 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
     };
     this.tools = new ToolRegistry(resolve);
     this.resourceRegistry = this.parameters.resources
-      ? new ResourceRegistry(this.parameters.resources.models)
+      ? new ResourceRegistry(this.parameters.resources.models ?? ["*"])
       : undefined;
-    this.sessions = new McpSessionManager(this.parameters.sessionTimeout * 1000);
+    this.sessions = new McpSessionManager((this.parameters.sessionTimeout ?? 1800) * 1000);
     this.refreshRegistries();
     if (this.parameters.url !== false) {
-      this.addRoute(this.parameters.url, ["GET", "POST", "DELETE"], this.handleHttp, { hidden: true } as any);
+      this.addRoute(this.parameters.url ?? "/mcp", ["GET", "POST", "DELETE"], this.handleHttp, { hidden: true } as any);
     }
     this.evictTimer = setInterval(() => void this.sessions.evictIdle(), 60_000);
     this.evictTimer.unref();
@@ -260,7 +260,7 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
       },
       tools: this.tools,
       resources: this.resourceRegistry,
-      maxOutputBytes: this.parameters.maxOutputBytes,
+      maxOutputBytes: this.parameters.maxOutputBytes ?? 1048576,
       getSession,
       beforeRequest: () => this.checkForChanges()
     });
@@ -294,7 +294,7 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
    * @returns true when the host is accepted
    */
   protected isHostAllowed(ctx: WebContext): boolean {
-    const allowed = this.parameters.allowedHosts;
+    const allowed = this.parameters.allowedHosts ?? ["localhost", "127.0.0.1", "::1"];
     if (allowed.includes("*")) {
       return true;
     }
@@ -350,7 +350,7 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
       }
       // At the cap, make room by evicting the least recently used session:
       // refusing new sessions would let anonymous callers lock out the endpoint
-      while (this.sessions.all().length >= Math.max(1, this.parameters.maxSessions)) {
+      while (this.sessions.all().length >= Math.max(1, this.parameters.maxSessions ?? 1000)) {
         const evicted = await this.sessions.evictOldest();
         useLog("INFO", "MCP session limit reached, evicted least recently used session", evicted);
       }
@@ -381,19 +381,23 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
     requestOrigin: URL | undefined = this.requestOrigin(ctx)
   ): Promise<McpSessionEntry> {
     const origin = requestOrigin?.origin;
-    const entry: McpSessionEntry = { id: "", userId, lastSeen: Date.now(), server: undefined, transport: undefined };
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       enableDnsRebindingProtection: true,
-      allowedOrigins: [...(origin ? [origin] : []), ...this.parameters.allowedOrigins],
+      allowedOrigins: [...(origin ? [origin] : []), ...(this.parameters.allowedOrigins ?? [])],
       onsessioninitialized: id => {
         entry.id = id;
         this.sessions.add(entry);
       },
       onsessionclosed: id => this.sessions.remove(id)
     });
-    entry.transport = transport;
-    entry.server = this.createServer(extra => extra.authInfo?.extra?.session as Session);
+    const entry: McpSessionEntry = {
+      id: "",
+      userId,
+      lastSeen: Date.now(),
+      transport,
+      server: this.createServer(extra => extra.authInfo?.extra?.session as Session)
+    };
     await entry.server.connect(transport);
     return entry;
   }
@@ -411,7 +415,10 @@ export class McpService<T extends McpServiceParameters = McpServiceParameters> e
     // stdout carries only protocol frames: logging goes to stderr regardless of --log-stream
     const { protocol, restore } = reserveStdout();
     try {
-      const server = await this.serveStdio(new StdioServerTransport(process.stdin, protocol), user || this.parameters.stdio.user);
+      const server = await this.serveStdio(
+        new StdioServerTransport(process.stdin, protocol),
+        user || this.parameters.stdio?.user
+      );
       await new Promise<void>(resolve => {
         server.onclose = () => resolve();
         process.stdin.once("end", () => void server.close());

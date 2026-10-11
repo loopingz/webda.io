@@ -133,7 +133,7 @@ export class OtelServiceParameters extends ServiceParameters {
  */
 export class OtelService<T extends OtelServiceParameters = OtelServiceParameters> extends Service<T> {
   sdk: NodeSDK;
-  stubs: Map<
+  stubs?: Map<
     object,
     {
       [key: string]: Function;
@@ -266,7 +266,7 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
     if (!this.stubs) return;
     for (const [object, methods] of this.stubs) {
       for (const [method, original] of Object.entries(methods)) {
-        object[method] = original;
+        Reflect.set(object, method, original);
       }
     }
     this.stubs = undefined;
@@ -279,16 +279,18 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
    * @param wrapper - return the replacement from the bound original
    */
   protected _wrap(object: object, method: string, wrapper: Function) {
-    const original = object[method];
+    const original: unknown = Reflect.get(object, method);
+    if (typeof original !== "function") return;
     this.stubs ??= new Map();
-    if (!this.stubs.has(object)) {
-      this.stubs.set(object, {});
-    }
-    const objectStubs = this.stubs.get(object);
+    const objectStubs = this.stubs.get(object) ?? {};
+    this.stubs.set(object, objectStubs);
     // Already patched
     if (objectStubs[method]) return;
     try {
-      object[method] = wrapper(original.bind(object));
+      if (!Reflect.set(object, method, wrapper(original.bind(object)))) {
+        diag.debug(`Cannot wrap read-only method ${method}`);
+        return;
+      }
       objectStubs[method] = original;
     } catch {
       // Read-only methods (e.g. lifecycle methods guarded by state decorators) cannot be wrapped
@@ -301,7 +303,7 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
    */
   patch() {
     const tracer = trace.getTracer("webda");
-    const mod = Math.floor(1 / this.parameters.traceExporter.sampling);
+    const mod = Math.floor(1 / (this.parameters.traceExporter?.sampling ?? 0.01));
     let count = 0;
     const router = useRouter();
     // Add a span around each request execution
@@ -332,7 +334,7 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
       // Avoid patching itself and the router already wrapped above
       if (services[i] === this || services[i] === router) continue;
       for (const p of Object.getOwnPropertyNames(services[i].constructor.prototype).filter(
-        item => item !== "constructor" && typeof services[i][item] === "function"
+        item => item !== "constructor" && typeof Reflect.get(services[i], item) === "function"
       )) {
         this._wrap(services[i], p, (original: Function) => {
           return (...args: any[]) => {
@@ -347,7 +349,7 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
               try {
                 res = original(...args);
               } catch (err) {
-                span.addEvent("error", { message: err.message });
+                span.addEvent("error", { message: err instanceof Error ? err.message : String(err) });
                 span.end();
                 throw err;
               }

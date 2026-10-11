@@ -116,7 +116,7 @@ export function validateStatements(statements: unknown): PolicyStatement[] {
       try {
         analyzeCondition(statement.condition);
       } catch (err) {
-        throw new PolicyCompileError(`${where}: ${err.message}`);
+        throw new PolicyCompileError(`${where}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
   });
@@ -137,7 +137,7 @@ export function validatePolicyDocument(doc: unknown): PolicyDocument {
   try {
     validateStatements(policy.statements);
   } catch (err) {
-    throw new PolicyCompileError(`Policy ${policy.name}: ${err.message}`);
+    throw new PolicyCompileError(`Policy ${policy.name}: ${err instanceof Error ? err.message : String(err)}`);
   }
   return policy;
 }

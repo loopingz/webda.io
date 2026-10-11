@@ -6,6 +6,7 @@ pnpm-debug.log
 packages/*/src/**/*.js
 packages/*/src/**/*.js.map
 packages/*/src/**/*.d.ts
+!packages/elasticsearch/src/dateformat.d.ts
 packages/*/src/**/*.d.ts.map
 sample-app/src/**/*.js
 sample-app/src/**/*.js.map

@@ -1,3 +1,4 @@
+import type { Writable } from "node:stream";
 import type { Http2ServerRequest, Http2ServerResponse } from "node:http2";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { useLog } from "@webda/workout";
@@ -163,7 +164,7 @@ export class GrpcStream<RequestType = any, ResponseType = any> {
     frame.writeUInt8(0, 0); // Not compressed
     frame.writeUInt32BE(responseBuffer.length, 1);
     responseBuffer.copy(frame, 5);
-    return this.response.write(frame) !== false;
+    return (this.response as Writable).write(frame) !== false;
   }
 
   /**

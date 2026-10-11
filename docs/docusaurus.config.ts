@@ -142,9 +142,17 @@ const config = {
             position: "right"
           },
           {
+            // GitHub mark instead of a text label, drawn by .header-github-link in custom.css
             href: "https://github.com/loopingz/webda.io",
-            label: "GitHub",
-            position: "right"
+            position: "right",
+            className: "header-github-link",
+            "aria-label": "GitHub repository"
+          },
+          {
+            // Centred in the navbar on wide screens by .navbar-search-centered in custom.css
+            type: "search",
+            position: "right",
+            className: "navbar-search-centered"
           }
         ]
       },

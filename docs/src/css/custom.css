@@ -7,3 +7,14 @@
 .webda-debug-page > .webda-debug-ui {
   flex: 1;
 }
+
+/* Frosted navbar, so the homepage and docs-page jigsaw networks show through */
+.navbar {
+  --ifm-navbar-background-color: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+}
+
+[data-theme="dark"] .navbar {
+  --ifm-navbar-background-color: rgba(27, 27, 29, 0.6);
+}

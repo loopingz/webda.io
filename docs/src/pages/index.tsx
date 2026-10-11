@@ -1,42 +1,21 @@
-import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
-import Layout from "@theme/Layout";
 import React from "react";
-import Panel from "@site/src/components/Panel";
-import WebdaPanel from "../components/WebdaPanel";
+import Layout from "@theme/Layout";
+import HomeHero from "@site/src/components/HomeHero";
 
-function HomepageHeader() {
-  const { siteConfig } = useDocusaurusContext();
-  return (
-    <header>
-      <div className="container">
-        <h1 className="hero__subtitle">{siteConfig.tagline}</h1>
-      </div>
-    </header>
-  );
-}
-
-export default function Home() {
-  const { siteConfig } = useDocusaurusContext();
+/**
+ * Homepage of docs.webda.io
+ *
+ * @returns the page
+ */
+export default function Home(): React.JSX.Element {
   return (
     <Layout
-      title={`Hello from ${siteConfig.title}`}
+      title="Domain-driven TypeScript framework"
       description="NodeJS framework with GraphQL, REST, AWS, GCP, Kubernetes"
     >
-      <div style={{ paddingTop: 30 }}>
-        <HomepageHeader />
-      </div>
-      <div className="container" style={{ paddingBottom: 60 }}>
-        <p>
-          A typescript framework to create applications. It provides the features we think every application should
-          have: Authentication, Authorization, Logging, Monitoring, Configuration, Database Abstraction, Realtime
-          events, GraphQL, REST API.
-        </p>
-        <WebdaPanel>This is my service description</WebdaPanel>
-      </div>
+      <main>
+        <HomeHero />
+      </main>
     </Layout>
   );
-  /*
-  Add a combo box to select the cloud provider
-  Add some code typing example of models in left panel <-> right panel display GraphQL or REST API
-  */
 }

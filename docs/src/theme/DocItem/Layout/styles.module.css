@@ -1,0 +1,11 @@
+.wrapper {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Reach into the page padding so the band starts right under the navbar */
+.band {
+  top: calc(-1 * var(--ifm-spacing-vertical) * 2);
+  left: calc(-1 * var(--ifm-spacing-horizontal));
+  width: calc(100% + 2 * var(--ifm-spacing-horizontal));
+}

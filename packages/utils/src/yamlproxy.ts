@@ -64,10 +64,13 @@ interface YAMLProxies {
 function getYAMLNode(item) {
   if (yaml.isScalar(item)) {
     return item.value;
-  } else if (yaml.isSeq(item)) {
-    return new YAMLArray(item as any).getProxy();
+  }
+  // The proxies hold a pair and read its value: wrap the item of a sequence the same way
+  const holder = { value: item, toString: () => item.toString(), toJSON: () => item.toJSON() };
+  if (yaml.isSeq(item)) {
+    return new YAMLArray(holder as any).getProxy();
   } else if (yaml.isMap(item)) {
-    return new YAMLMap(item).getProxy();
+    return new YAMLMap(holder).getProxy();
   }
 }
 

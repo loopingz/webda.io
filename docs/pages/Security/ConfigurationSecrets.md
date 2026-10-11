@@ -22,10 +22,11 @@ Kubernetes ConfigMap, store...). Webda decrypts them when it loads the configura
 }
 ```
 
-2. Run the command: it replaces the marked values in place and keeps the comments (json, jsonc and yaml).
+2. Run the command: it replaces the marked values in place and keeps the comments (json, jsonc and yaml). Without
+   `-f`, it updates `webda.config` and, with `-d <deployment>`, the deployment file.
 
 ```bash
-webda config encrypt -f webda.config.jsonc
+webda config encrypt
 ```
 
 ```jsonc title="webda.config.jsonc"
@@ -34,7 +35,7 @@ webda config encrypt -f webda.config.jsonc
 
 3. Commit the file: the service receives the decrypted value at runtime.
 
-The `config encrypt`, `config check-secrets` and `config pki` commands only load the application: they do not start it. The secrets already
+The `config encrypt` and `config pki` commands only load the application: they do not start it. The secrets already
 in the configuration are not decrypted and the configuration sources are not loaded, so they run on any machine, without
 access to the KMS key or to the private keys. Add `-d <deployment>` to use the encryption settings of a deployment.
 
@@ -435,45 +436,67 @@ older unauthenticated format, still readable), or to the active key for `pki`:
 webda -d production config encrypt -f k8s/webda.jsonc --upgrade
 ```
 
+## Encrypting every secret field
+
+`webda config encrypt` also encrypts the plain values of the secret fields, the ones marked `x-webda-secret` in the
+compiled schemas (see [Using secrets in your services](#using-secrets-in-your-services)), with the
+[default encrypter](#default-encrypter). A database password written in clear text is encrypted without adding
+`encrypt:` first:
+
+```jsonc title="webda.config.jsonc"
+{
+  "parameters": { "configurationEncryption": { "default": "gcp" } },
+  "services": {
+    "db": {
+      "type": "PostgresStore",
+      // `password` and `connectionString` are secret fields: encrypted, `host` is not
+      "postgresqlServer": { "host": "db.example.com", "password": "my-db-password" }
+    }
+  }
+}
+```
+
+Without a default encrypter, the command fails and lists the plain secrets: set one, or prefix them with
+`encrypt:<encrypter>:`. Each auto-encrypted path is logged, never the value. Unset values (`""`, `null`) are left as
+they are: the service then falls back to its environment.
+
+It checks the services, the global `parameters` they inherit (including the services of another file: a deployment
+`parameters` reaches the services of `webda.config`), and the deployment units with their `resources`. A service a
+deployment overrides without its `type` takes the type of `webda.config`. A service type without schema, from a
+package that is not a dependency of the application, is skipped with a warning.
+
 ## Checking for unencrypted secrets
 
-`webda config check-secrets` fails when a secret field of the configuration is not encrypted: a plain value, or a
-value still marked `encrypt:` (encryption was forgotten). Run it in CI or in a pre-commit hook to catch a secret
-committed in clear text before it leaks.
+`webda config encrypt --check` writes nothing: it fails when a secret field is not encrypted, a plain value or a value
+still marked `encrypt:` (encryption was forgotten). Run it in CI or in a pre-commit hook to catch a secret committed in
+clear text before it leaks.
 
 ```bash
-webda config check-secrets
-webda -d production config check-secrets
+webda config encrypt --check
+webda -d production config encrypt --check
 ```
 
 ```
-✗ services.db.postgresqlServer.password (Webda/PostgresStore): secret is not encrypted
-✗ units[aws].secretAccessKey (Webda/AWSDeployer): secret is marked encrypt: but not encrypted, run 'webda config encrypt'
+✗ deployments/production.jsonc: services.db.postgresqlServer.password (Webda/PostgresStore): secret is not encrypted
+✗ deployments/production.jsonc: units[aws].secretAccessKey (Webda/AWSDeployer): secret is marked encrypt: but not encrypted, run 'webda config encrypt'
 2 unencrypted secret(s) found
 ```
 
-It checks the services, the global `parameters` they inherit and, with `-d <deployment>`, the deployment units and
-their `resources`. The exit code is `1` when a secret is not encrypted, `0` otherwise. Only the paths are reported,
-never the values. Unset values (`""`, `null`) are fine: the service then falls back to its environment.
-
-- `-f <file>`: also check a configuration or deployment file that is not the active configuration
-- `--no-strict`: only warn for the values marked `encrypt:`
-- `--format json`: write `{ "findings": [{ "path", "service", "type", "reason" }] }` on the standard output
-
-Like `config encrypt`, it does not decrypt anything, so it needs no key: no `WEBDA_CONFIG_PASSWORD`, no KMS access, no
+The exit code is `1` when a secret is not encrypted, `0` otherwise. Only the files and paths are reported, never the
+values. It does not encrypt or decrypt anything, so it needs no key: no `WEBDA_CONFIG_PASSWORD`, no KMS access, no
 private key.
 
+- `-f <file>`: check this file instead of `webda.config` and the deployment file
+- `--no-strict`: only warn for the values marked `encrypt:`
+- `--format json`: write `{ "findings": [{ "file", "path", "service", "type", "reason" }] }` on the standard output
+
 ```yaml title=".github/workflows/ci.yml"
-- run: pnpm webda config check-secrets
+- run: pnpm webda config encrypt --check
 - run: |
     for d in deployments/*.json*; do
-      pnpm webda -d "$(basename "${d%%.*}")" config check-secrets
+      pnpm webda -d "$(basename "${d%%.*}")" config encrypt --check
     done
 ```
-
-The secret fields are the ones marked `x-webda-secret` in the compiled schemas (`webda.module.json`), see
-[Using secrets in your services](#using-secrets-in-your-services). A service type without schema, from a package that
-is not a dependency of the application, is skipped with a warning.
 
 ## Errors
 
@@ -493,8 +516,8 @@ Unknown encrypter 'gcp' at services.db.postgresqlServer.password (registered: lo
 
 Type a secret parameter as `string | SecretString` and read it with `SecretString.from`. It also accepts a plain
 string, with a warning that does not contain the value. Its JSON schema stays a `string`, marked
-`"x-webda-secret": true` so [`webda config check-secrets`](#checking-for-unencrypted-secrets) reports it when it is not
-encrypted.
+`"x-webda-secret": true` so [`webda config encrypt`](#encrypting-every-secret-field) encrypts it, and `--check`
+reports it when it is not encrypted.
 
 ```typescript
 import { SecretString, Service, ServiceParameters } from "@webda/core";
@@ -582,7 +605,7 @@ An encrypter can also implement:
 - `CryptoService.encryptConfiguration(data, { migrate, upgrade, settings, appPath })`: encrypts the marked values, in place
 - `CryptoService.decryptConfiguration(data, path, { settings, appPath })`: returns a decrypted copy
 - `parseEncryptedValue(value, defaultEncrypter)`: parses a configuration value
-- `findUnencryptedSecrets(value, schema)` and `findConfigurationSecrets(configuration, options)`: the checks of
-  `config check-secrets`, without the values
+- `findUnencryptedSecrets(value, schema)` and `findConfigurationSecrets(configuration, options)`: find the unencrypted
+  secret fields, without the values
 - `PkiKeyring`, `PkiEncrypter`: the `pki` keys and encrypter
 - `SecretString.from(value, path)`, `SecretString.unwrap(value)`, `secret.getValue()`

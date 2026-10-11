@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { existsSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import { getCommonJS } from "@webda/utils";
 import type { JSONSchema7 } from "json-schema";
@@ -152,98 +152,182 @@ class FindUnencryptedSecretsTest {
 }
 
 const FILE = __dirname + "/../../test/check-secrets.yaml";
+const DEPLOYMENT_FILE = __dirname + "/../../test/check-secrets-deployment.jsonc";
+
+/**
+ * Encode a value for the test encrypter
+ * @param value - the plain value
+ * @returns the encrypted data
+ */
+const b64 = (value: string) => Buffer.from(value).toString("base64");
 
 @suite
-class CheckSecretsCommandTest extends WebdaApplicationTest {
+class EncryptCheckCommandTest extends WebdaApplicationTest {
   getTestConfiguration() {
     return {
       application: { ignoreBeans: true },
       parameters: {},
       services: {
-        Mailer: {
-          type: "Webda/Mailer",
-          sender: "me@webda.io",
-          auth: { user: "me", pass: "smtp-plain-pass" }
-        },
+        Mailer: { type: "Webda/Mailer", sender: "me@webda.io" },
         cookies: {
           type: "Webda/CookieSessionManager",
-          jwt: { secretOrPublicKey: `crypt:b64:${Buffer.from("jwt-secret").toString("base64")}` }
+          jwt: { secretOrPublicKey: `crypt:b64:${b64("jwt-secret")}` }
         }
       }
     };
   }
 
   async afterEach() {
-    useApplication()["deployment"] = undefined;
-    if (existsSync(FILE)) unlinkSync(FILE);
+    const app = useApplication();
+    app["deployment"] = undefined;
+    app["deploymentFile"] = undefined;
+    app["configurationFile"] = undefined;
+    [FILE, DEPLOYMENT_FILE].filter(existsSync).forEach(unlinkSync);
     await super.afterEach?.();
   }
 
   /**
-   * Run the command, capturing logs and outputs
+   * Run `config encrypt`, capturing logs and outputs
    * @param args - the command arguments
    * @returns the exit code and everything written
    */
-  async run(...args: Parameters<typeof CryptoService.checkSecrets>): Promise<{ code: number; written: string }> {
+  async run(
+    ...args: Parameters<typeof CryptoService.encryptConfigurationFile>
+  ): Promise<{ code: number; written: string }> {
     const memoryLogger = new MemoryLogger(useWorkerOutput(), "TRACE", 2000, true);
     try {
-      const code = await CryptoService.checkSecrets(...args);
+      const code = await CryptoService.encryptConfigurationFile(...args);
       return { code, written: JSON.stringify(memoryLogger.getMessages()) };
     } finally {
       memoryLogger.close();
     }
   }
 
-  @test
-  async reportsPlainSecrets() {
-    // Uses the compiled schema: Mailer is tagged `@secret auth.pass,SES.credentials`
-    const { code, written } = await this.run(undefined, true, "text");
-    assert.strictEqual(code, 1);
-    assert.ok(written.includes("services.Mailer.auth.pass (Webda/Mailer): secret is not encrypted"));
-    assert.ok(written.includes("1 unencrypted secret(s) found"));
-    assert.ok(!written.includes("cookies"), "an encrypted value is fine");
-    for (const plain of PLAIN) assert.ok(!written.includes(plain), "a value must never be written");
-  }
-
-  @test
-  async checksUnitsAndFile() {
-    useApplication()["deployment"] = {
-      units: [{ name: "image", type: "Webda/Mailer", sender: "x", auth: { pass: "unit-plain-key" } }]
-    };
-    writeFileSync(
-      FILE,
-      "services:\n  Mailer:\n    auth:\n      pass: encrypt:file-plain-pass\n  cookies:\n    jwt:\n      secretOrPublicKey: hunter2-plain\n"
-    );
-    const { code, written } = await this.run(FILE, true, "json");
-    assert.strictEqual(code, 1);
+  /**
+   * The findings of a json output
+   * @param written - the captured messages
+   * @returns the findings as `file path reason`
+   */
+  jsonFindings(written: string): string[] {
     const output = JSON.parse(
       JSON.parse(written)
         .filter(m => m.type === "output")
         .pop().data
     );
-    assert.deepStrictEqual(output.findings.map(f => `${f.path} ${f.reason}`).sort(), [
-      "services.Mailer.auth.pass plain",
-      "services.cookies.jwt.secretOrPublicKey plain",
-      "units[image].auth.pass plain"
+    return output.findings.map(f => `${f.file} ${f.path} ${f.reason}`).sort();
+  }
+
+  @test
+  async check() {
+    // Mailer uses the compiled schema: it is tagged `@secret auth.pass,SES.credentials`
+    writeFileSync(
+      FILE,
+      [
+        "parameters:",
+        // Inherited by the Mailer of the application configuration, this file does not override it
+        "  auth:",
+        "    pass: global-plain-token",
+        "services:",
+        "  cookies:",
+        "    jwt:",
+        "      secretOrPublicKey: hunter2-plain",
+        "units:",
+        "  - name: image",
+        "    type: Webda/Mailer",
+        "    sender: x",
+        "    auth:",
+        "      pass: unit-plain-key",
+        ""
+      ].join("\n")
+    );
+    const before = readFileSync(FILE, "utf-8");
+    const { code, written } = await this.run(FILE, undefined, undefined, true, true, "json");
+    assert.strictEqual(code, 1);
+    assert.deepStrictEqual(this.jsonFindings(written), [
+      "test/check-secrets.yaml parameters.auth.pass plain",
+      "test/check-secrets.yaml services.cookies.jwt.secretOrPublicKey plain",
+      "test/check-secrets.yaml units[image].auth.pass plain"
     ]);
+    assert.strictEqual(readFileSync(FILE, "utf-8"), before, "check writes nothing");
     for (const plain of PLAIN) assert.ok(!written.includes(plain), "a value must never be written");
   }
 
   @test
-  async notStrict() {
-    useApplication().getConfiguration().services.Mailer.auth.pass = "encrypt:smtp-plain-pass";
-    try {
-      assert.strictEqual((await this.run(undefined, false, "text")).code, 0);
-      const { code, written } = await this.run(undefined, true, "text");
-      assert.strictEqual(code, 1);
-      assert.ok(written.includes("marked encrypt: but not encrypted"));
-      assert.ok(!written.includes("smtp-plain-pass"));
-      useApplication().getConfiguration().services.Mailer.auth.pass = "crypt:local:v2:abc";
-      const clean = await this.run(undefined, true, "text");
-      assert.strictEqual(clean.code, 0);
-      assert.ok(clean.written.includes("No unencrypted secret found"));
-    } finally {
-      useApplication().getConfiguration().services.Mailer.auth.pass = "smtp-plain-pass";
-    }
+  async checkStrict() {
+    writeFileSync(FILE, "services:\n  Mailer:\n    auth:\n      pass: encrypt:smtp-plain-pass\n");
+    assert.strictEqual((await this.run(FILE, undefined, undefined, true, false)).code, 0);
+    const { code, written } = await this.run(FILE, undefined, undefined, true, true);
+    assert.strictEqual(code, 1);
+    assert.ok(written.includes("test/check-secrets.yaml: services.Mailer.auth.pass (Webda/Mailer): secret is marked"));
+    assert.ok(written.includes("1 unencrypted secret(s) found"));
+    assert.ok(!written.includes("smtp-plain-pass"));
+    writeFileSync(FILE, `services:\n  Mailer:\n    auth:\n      pass: crypt:b64:${b64("x")}\n`);
+    const clean = await this.run(FILE, undefined, undefined, true);
+    assert.strictEqual(clean.code, 0);
+    assert.ok(clean.written.includes("No unencrypted secret found"));
+  }
+
+  @test
+  async encryptsPlainSecrets() {
+    writeFileSync(
+      FILE,
+      [
+        "# My comment",
+        "services:",
+        "  Mailer:",
+        "    host: smtp.example.com",
+        "    auth:",
+        "      user: me",
+        "      pass: smtp-plain-pass # inline",
+        "units:",
+        "  - name: image",
+        "    type: Webda/Mailer",
+        "    sender: x",
+        "    auth:",
+        "      pass: unit-plain-key",
+        ""
+      ].join("\n")
+    );
+    // A plain secret needs a default encrypter
+    await assert.rejects(
+      () => this.run(FILE),
+      /2 secret\(s\) are not encrypted .*services\.Mailer\.auth\.pass, units\[image\]\.auth\.pass.*configurationEncryption\.default/
+    );
+    assert.ok(readFileSync(FILE, "utf-8").includes("smtp-plain-pass"), "nothing written");
+    writeFileSync(FILE, readFileSync(FILE, "utf-8") + "parameters:\n  configurationEncryption:\n    default: b64\n");
+    const { code, written } = await this.run(FILE);
+    assert.strictEqual(code, 0);
+    for (const plain of PLAIN) assert.ok(!written.includes(plain), "a value must never be written");
+    const content = readFileSync(FILE, "utf-8");
+    assert.ok(content.includes("# My comment") && content.includes("# inline"));
+    assert.ok(content.includes(`pass: crypt:b64:${b64("smtp-plain-pass")}`));
+    assert.ok(content.includes(`pass: crypt:b64:${b64("unit-plain-key")}`));
+    // Not secrets
+    assert.ok(content.includes("user: me") && content.includes("host: smtp.example.com"));
+    assert.strictEqual((await this.run(FILE, undefined, undefined, true)).code, 0);
+  }
+
+  @test
+  async defaultFiles() {
+    const app = useApplication();
+    app["configurationFile"] = FILE;
+    writeFileSync(FILE, "services:\n  Mailer:\n    type: Webda/Mailer\n");
+    assert.strictEqual((await this.run(undefined, undefined, undefined, true)).code, 0);
+    // The deployment file of the selected deployment is checked too
+    app["deployment"] = {};
+    app["deploymentFile"] = DEPLOYMENT_FILE;
+    writeFileSync(
+      DEPLOYMENT_FILE,
+      `{\n  // Production\n  "services": { "Mailer": { "auth": { "pass": "smtp-plain-pass" } } }\n}\n`
+    );
+    const { code, written } = await this.run(undefined, undefined, undefined, true, true, "json");
+    assert.strictEqual(code, 1);
+    assert.deepStrictEqual(this.jsonFindings(written), [
+      "test/check-secrets-deployment.jsonc services.Mailer.auth.pass plain"
+    ]);
+    // Without a file to update
+    app["configurationFile"] = undefined;
+    app["deployment"] = undefined;
+    await assert.rejects(() => this.run(undefined, undefined, undefined, true), /No configuration file found/);
   }
 }

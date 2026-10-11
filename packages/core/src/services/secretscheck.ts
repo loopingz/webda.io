@@ -22,6 +22,10 @@ export interface SecretFinding {
    */
   path: string;
   /**
+   * Location of the value in the checked configuration object, like `["units", 0, "apiKey"]`
+   */
+  location?: (string | number)[];
+  /**
    * Service or deployment unit name
    */
   service?: string;
@@ -304,6 +308,7 @@ export interface SecretsCheckConfiguration {
  * @param options.getSchema - the schema of a service type
  * @param options.completeNamespace - add the namespace to a service type
  * @param options.getType - the type of a service without one, from the application configuration
+ * @param options.inheritingServices - other services inheriting `parameters`, defined in another file
  * @returns the findings, and the service types without schema
  */
 export function findConfigurationSecrets(
@@ -312,6 +317,7 @@ export function findConfigurationSecrets(
     getSchema: (type: string) => JSONSchema7 | undefined;
     completeNamespace?: (type: string) => string;
     getType?: (service: string) => string | undefined;
+    inheritingServices?: Record<string, any>;
   }
 ): { findings: SecretFinding[]; unknownTypes: string[] } {
   const completeNamespace = options.completeNamespace ?? (type => type);
@@ -328,6 +334,7 @@ export function findConfigurationSecrets(
     type: string,
     own: Record<string, any>,
     merged: Record<string, any>,
+    ownLocation: (string | number)[],
     ownPrefix: (string | number)[],
     inheritedPrefix: string
   ) => {
@@ -340,6 +347,7 @@ export function findConfigurationSecrets(
       const inherited = !hasPath(own, path);
       report({
         path: formatSecretPath([...(inherited ? [inheritedPrefix] : ownPrefix), ...path]),
+        location: [...(inherited ? [inheritedPrefix] : ownLocation), ...path],
         service: name,
         type,
         reason
@@ -348,20 +356,28 @@ export function findConfigurationSecrets(
   };
 
   const parameters = configuration.parameters ?? {};
-  for (const [name, service] of Object.entries(configuration.services ?? {})) {
+  const services = configuration.services ?? {};
+  for (const [name, service] of Object.entries(services)) {
     if (!isPlainObject(service)) continue;
     const type = completeNamespace(service.type ?? options.getType?.(name) ?? name);
-    check(name, type, service, { ...parameters, ...service }, ["services", name], "parameters");
+    check(name, type, service, { ...parameters, ...service }, ["services", name], ["services", name], "parameters");
+  }
+  // The parameters also reach the services of the other files, unless they set the same key
+  for (const [name, service] of Object.entries(options.inheritingServices ?? {})) {
+    if (!isPlainObject(service) || services[name] !== undefined) continue;
+    const type = completeNamespace(service.type ?? name);
+    const inherited = Object.fromEntries(Object.entries(parameters).filter(([key]) => service[key] === undefined));
+    check(name, type, {}, inherited, ["services", name], ["services", name], "parameters");
   }
 
   const units = configuration.units ?? [];
   if (units.length) {
     const merged = getDeploymentUnitServices({ units, resources: configuration.resources }, completeNamespace);
-    for (const unit of units) {
+    units.forEach((unit, index) => {
       const { name, type: _type, ...own } = unit;
       const { type, ...service } = merged[name];
-      check(name, type, own, service, [`units[${name}]`], "resources");
-    }
+      check(name, type, own, service, ["units", index], [`units[${name}]`], "resources");
+    });
   }
   return { findings, unknownTypes: [...unknownTypes] };
 }

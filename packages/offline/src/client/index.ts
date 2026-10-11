@@ -4,6 +4,7 @@ export * from "./storage/storage.js";
 export * from "./storage/memory.js";
 export * from "./storage/encrypted.js";
 export * from "./storage/keys.js";
+export * from "./storage/passkey.js";
 export * from "./storage/indexeddb.js";
 export * from "./emitter.js";
 export * from "./transport/transport.js";

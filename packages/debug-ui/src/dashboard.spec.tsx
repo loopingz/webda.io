@@ -6,7 +6,7 @@ import { AnalyticsProvider } from "./analytics.js";
 import { describeConnection } from "./components/ConnectionStatus.js";
 import { failureMessage } from "./components/ConnectionError.js";
 import { DebugConnectionProvider, useDebugConnection } from "./connection.js";
-import { DebugDashboard, shortenCwd } from "./DebugDashboard.js";
+import { DebugDashboard, FOOTER_COOKIE, shortenCwd } from "./DebugDashboard.js";
 import {
   assertAllowlisted,
   FakeWebSocket,
@@ -41,6 +41,7 @@ function renderDashboard(routes: Routes, options: FetchOptions = { token: TOKEN 
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
+  document.cookie = `${FOOTER_COOKIE}=; max-age=0; path=/`;
 });
 
 afterEach(() => {
@@ -65,6 +66,20 @@ describe("DebugDashboard", () => {
     screen.getByText("Debug dashboard & telemetry");
     screen.getByText("@webda/debug 4.0.0-beta.6");
     await screen.findByText("Server started");
+  });
+
+  it("closes the footer and remembers it in a cookie", async () => {
+    renderDashboard(healthyRoutes());
+    await screen.findByText("Debug dashboard & telemetry");
+    await act(async () => {
+      screen.getByRole("button", { name: "Close the footer" }).click();
+    });
+    assert.strictEqual(screen.queryByText("Debug dashboard & telemetry"), null);
+    assert.ok(document.cookie.includes(`${FOOTER_COOKIE}=closed`));
+    cleanup();
+    renderDashboard(healthyRoutes());
+    await screen.findByText("sample-app");
+    assert.strictEqual(screen.queryByText("Debug dashboard & telemetry"), null, "stays closed on the next visit");
   });
 
   it("switches panels with the arrow keys", async () => {

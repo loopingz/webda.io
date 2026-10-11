@@ -63,7 +63,7 @@ export interface CommandDefinition {
   method: string;
   args: Record<string, CommandArgDefinition>;
   requires?: string[];
-  phase?: "resolved" | "initialized";
+  phase?: "application" | "resolved" | "initialized";
 }
 
 /** A modda, bean or deployer entry. */
@@ -710,7 +710,7 @@ export function buildCommands(ctx: AnalysisContext, cls: ClassDeclaration): Reco
           requires = (initializer as any).elements.filter((e: Node) => is.isStringLiteral(e)).map((e: any) => e.text);
         } else if (!isBuild && key === "phase" && is.isStringLiteral(initializer)) {
           const value = (initializer as any).text;
-          if (value === "resolved" || value === "initialized") phase = value;
+          if (value === "application" || value === "resolved" || value === "initialized") phase = value;
         }
       }
     }

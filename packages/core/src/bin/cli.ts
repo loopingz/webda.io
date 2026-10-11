@@ -16,7 +16,7 @@ import { getDeploymentUnitServices, mergeDeploymentUnits } from "../application/
 import { DEPLOYER_CAPABILITY } from "../deployers/deployer.js";
 import * as WebdaError from "../errors/errors.js";
 import { Core } from "../core/core.js";
-import { bootCoreForCommand } from "./cli-phase.js";
+import { bootCoreForCommand, executeApplicationCommand, selectPhase } from "./cli-phase.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { CancelablePromise, parseImportDescriptor, toImportSpecifier } from "@webda/utils";
 import {
@@ -323,47 +323,64 @@ export function addServiceCommandsToCli(
     global: true
   });
 
-  // Group commands by top-level name for subcommand support
-  const topLevel = new Map<
-    string,
-    { name: string; info: import("../services/servicecommands.js").ServiceCommandInfo }[]
-  >();
-
-  for (const [cmdName, cmdInfo] of Object.entries(serviceCommands)) {
-    const parts = cmdName.split(" ");
-    const top = parts[0];
-    if (!topLevel.has(top)) topLevel.set(top, []);
-    topLevel.get(top)!.push({ name: cmdName, info: cmdInfo });
-  }
-
-  for (const [top, commands] of topLevel) {
-    if (commands.length === 1 && commands[0].name === top) {
-      // Simple command (no subcommands)
-      const { name, info } = commands[0];
-      cli.command(
-        top,
-        info.description,
-        y => addCommandArgs(y, info.args),
-        async args => handler(name, args as Record<string, any>)
-      );
-    } else {
-      // Command group with subcommands
-      cli.command(top, `${top} commands`, groupY => {
-        for (const { name, info } of commands) {
-          const sub = name.substring(top.length + 1) || top;
-          groupY.command(
-            sub,
-            info.description,
-            y => addCommandArgs(y, info.args),
-            async args => handler(name, args as Record<string, any>)
-          );
-        }
-        return groupY.demandCommand(1, `Specify a subcommand for ${top}`);
-      });
-    }
-  }
+  addCommandTree(
+    cli,
+    Object.entries(serviceCommands).map(([name, info]) => ({ name, info, parts: name.split(" ") })),
+    [],
+    handler
+  );
 
   return cli;
+}
+
+/**
+ * Register a level of service commands, nesting the subcommands (`config pki generate`) as yargs command groups
+ * @param y - the yargs instance of the level
+ * @param commands - the commands under this level, with their name split in words
+ * @param prefix - the words of this level
+ * @param handler - called when a service command is invoked
+ */
+function addCommandTree(
+  y: Argv,
+  commands: { name: string; parts: string[]; info: import("../services/servicecommands.js").ServiceCommandInfo }[],
+  prefix: string[],
+  handler: (cmdName: string, args: Record<string, any>) => Promise<void>
+): void {
+  const groups = new Map<string, typeof commands>();
+  for (const command of commands) {
+    const word = command.parts[prefix.length];
+    if (!groups.has(word)) groups.set(word, []);
+    groups.get(word)!.push(command);
+  }
+  for (const [word, group] of groups) {
+    const leaf = group.find(c => c.parts.length === prefix.length + 1);
+    const children = group.filter(c => c.parts.length > prefix.length + 1);
+    if (!children.length) {
+      // Simple command (no subcommands)
+      y.command(
+        word,
+        leaf.info.description,
+        sub => addCommandArgs(sub, leaf.info.args),
+        async args => handler(leaf.name, args as Record<string, any>)
+      );
+      continue;
+    }
+    // Command group with subcommands
+    const path = [...prefix, word].join(" ");
+    y.command(word, `${path} commands`, groupY => {
+      if (leaf) {
+        // The group command itself is reachable as `<group> <group>`
+        groupY.command(
+          word,
+          leaf.info.description,
+          sub => addCommandArgs(sub, leaf.info.args),
+          async args => handler(leaf.name, args as Record<string, any>)
+        );
+      }
+      addCommandTree(groupY, children, [...prefix, word], handler);
+      return groupY.demandCommand(1, `Specify a subcommand for ${path}`);
+    });
+  }
 }
 
 /**
@@ -1121,6 +1138,17 @@ if (isMain) {
         // Service command: boot Core and execute
         const cmdInfo = serviceCommands[matchedCommand.name];
         const serviceFilter = matchedCommand.args.service?.split(",");
+
+        if (selectPhase(cmdInfo.phases, matchedCommand.name) === "application") {
+          // Static method on the loaded application, without Core
+          const { name: commandName, args: commandArgs } = matchedCommand;
+          await settleServiceCommand(
+            commandName,
+            () => executeApplicationCommand(app, commandName, cmdInfo, commandArgs, serviceFilter),
+            async code => exitAfterFlush(code)
+          );
+          return;
+        }
 
         // Add the deployment units running this command, then the services required by it
         prepareDeploymentUnits(app, matchedCommand.name, cmdInfo);

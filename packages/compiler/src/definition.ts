@@ -378,8 +378,9 @@ export type CommandDefinition = {
    * - `"initialized"` (default when omitted): after `Core.init()`.
    * - `"resolved"`: after `Core.resolve()` only. No service.init() called.
    *   Used for build-time hooks (e.g. `@BuildCommand`).
+   * - `"application"`: with the loaded application only, no Core. The method is static.
    */
-  phase?: "resolved" | "initialized";
+  phase?: "application" | "resolved" | "initialized";
 };
 
 export type ServiceMetadata = {

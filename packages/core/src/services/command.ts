@@ -27,8 +27,10 @@ export interface CommandOptions {
    * - `"initialized"` (default): runs after `Core.init()` — full runtime including service.init() (DB, network).
    * - `"resolved"`: runs after `Core.resolve()` only — services are constructed and resolve()d but init() is skipped.
    *   Use for build-time codegen hooks that shouldn't touch the network.
+   * - `"application"`: runs with the loaded application only — no Core, no service, the configuration is not
+   *   decrypted. The method must be static. Use for tooling on the configuration files, like `webda config encrypt`.
    */
-  phase?: "resolved" | "initialized";
+  phase?: "application" | "resolved" | "initialized";
 }
 
 /**

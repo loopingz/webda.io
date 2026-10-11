@@ -47,6 +47,7 @@ export default defineConfig({
       "src/services/cron.spec.ts",
       "src/services/cryptoservice.spec.ts",
       "src/services/cryptoconfiguration.spec.ts",
+      "src/services/pki.encrypter.spec.ts",
       "src/services/debugmailer.spec.ts",
       "src/services/domainservice.spec.ts",
       "src/services/domainservice-behaviors.spec.ts",

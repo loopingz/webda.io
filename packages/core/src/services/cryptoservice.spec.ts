@@ -253,14 +253,29 @@ class CryptoConfigurationTest {
       plain: false,
       mode: "crypt",
       encrypter: "local",
-      data: "a:b"
+      data: "a:b",
+      explicit: true
     });
     assert.deepStrictEqual(parseEncryptedValue("sencrypt:test:value"), {
       plain: true,
       mode: "encrypt",
       encrypter: "test",
-      data: "value"
+      data: "value",
+      explicit: true
     });
+    // Default encrypter: the whole remainder is the value unless it starts with a registered encrypter
+    assert.deepStrictEqual(parseEncryptedValue("encrypt:myvalue", "pki"), {
+      plain: false,
+      mode: "encrypt",
+      encrypter: "pki",
+      data: "myvalue",
+      explicit: false
+    });
+    assert.strictEqual(parseEncryptedValue("encrypt:notregistered:b", "pki").data, "notregistered:b");
+    assert.strictEqual(parseEncryptedValue("encrypt:local:b", "pki").encrypter, "local");
+    assert.strictEqual(parseEncryptedValue("encrypt:myvalue").encrypter, undefined);
+    // crypt: never uses the default
+    assert.strictEqual(parseEncryptedValue("crypt:nodata", "pki"), undefined);
     assert.strictEqual(parseEncryptedValue("crypt:"), undefined);
     assert.strictEqual(parseEncryptedValue("crypt:nodata"), undefined);
     assert.strictEqual(parseEncryptedValue("decrypt:test:value"), undefined);

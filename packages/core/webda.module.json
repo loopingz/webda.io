@@ -678,7 +678,7 @@
       "Configuration": "lib/services/icryptoservice:CryptoServiceParameters",
       "commands": {
         "config encrypt": {
-          "description": "Encrypt the values marked with encrypt:<encrypter>: in a configuration file",
+          "description": "Encrypt the values marked with encrypt: in a configuration file",
           "method": "encryptConfigurationFile",
           "args": {
             "file": {
@@ -689,14 +689,48 @@
             },
             "migrate": {
               "type": "string",
-              "description": "Re-encrypt the already encrypted values with this encrypter"
+              "description": "Re-encrypt the already encrypted values with this encrypter, the default one when empty"
             },
             "upgrade": {
               "type": "boolean",
-              "description": "Re-encrypt the already encrypted values with their own encrypter"
+              "description": "Re-encrypt the already encrypted values with their own encrypter, to its current format or key"
             }
           },
-          "phase": "resolved"
+          "phase": "application"
+        },
+        "config pki generate": {
+          "description": "Generate a key pair for the pki configuration encrypter",
+          "method": "pkiGenerate",
+          "args": {
+            "kid": {
+              "type": "string",
+              "required": true,
+              "description": "Key id, for example 2026-10"
+            },
+            "bits": {
+              "type": "number",
+              "default": 4096,
+              "description": "RSA modulus length"
+            },
+            "out": {
+              "type": "string",
+              "description": "Private key file, ./<kid>.pem by default"
+            }
+          },
+          "phase": "application"
+        },
+        "config pki list": {
+          "description": "List the pki keys and the values encrypted with each of them",
+          "method": "pkiList",
+          "args": {
+            "file": {
+              "type": "string",
+              "required": true,
+              "alias": "f",
+              "description": "Configuration file to inspect (json, jsonc or yaml)"
+            }
+          },
+          "phase": "application"
         }
       }
     },

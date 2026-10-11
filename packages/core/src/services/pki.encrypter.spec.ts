@@ -403,7 +403,7 @@ class PkiCommandsTest extends WebdaApplicationTest {
 }
 `
     );
-    assert.strictEqual(await crypto.encryptConfigurationFile(file), 2);
+    assert.strictEqual(await crypto.encryptFile(file), 2);
     let content = readFileSync(file, "utf-8");
     assert.ok(content.includes("// Secrets"));
     assert.ok(content.includes('"crypt:pki:v1:k1:'));
@@ -418,16 +418,16 @@ class PkiCommandsTest extends WebdaApplicationTest {
     );
     content = content.replace('"user"', '"other": "encrypt:p2",\n    "user"');
     writeFileSync(file, content);
-    assert.strictEqual(await crypto.encryptConfigurationFile(file), 1);
+    assert.strictEqual(await crypto.encryptFile(file), 1);
     assert.deepStrictEqual(await crypto.pkiList(file), {
       activeKey: "k2",
       publicKeys: ["k1", "k2"],
       values: { k1: 2, k2: 1 }
     });
     // Upgrade re-encrypts the k1 values only
-    assert.strictEqual(await crypto.encryptConfigurationFile(file, undefined, true), 2);
+    assert.strictEqual(await crypto.encryptFile(file, undefined, true), 2);
     assert.deepStrictEqual((await crypto.pkiList(file)).values, { k2: 3 });
-    assert.strictEqual(await crypto.encryptConfigurationFile(file, undefined, true), 0);
+    assert.strictEqual(await crypto.encryptFile(file, undefined, true), 0);
     // The application decrypts them
     const decrypted = await CryptoService.decryptConfiguration(
       JSON.parse(

@@ -27,6 +27,7 @@ import { OperationContext } from "../contexts/operationcontext.js";
 import { Route } from "../rest/irest.js";
 import { useRegistry } from "../models/registry.model.js";
 import { useApplication } from "../application/hooks.js";
+import { findConfigurationSecrets, type SecretFinding, type SecretsCheckConfiguration } from "./secretscheck.js";
 
 /**
  * Masked representation of a secret
@@ -43,7 +44,11 @@ const SECRET_MASK = "********";
  * In a service parameters class, type a secret field as `string | SecretString`
  * and read it with {@link SecretString.from}.
  *
+ * `@secret` marks every property typed with this class as a secret in the generated
+ * schema (`x-webda-secret`), so `webda config check-secrets` reports it when it is not encrypted.
+ *
  * @type string
+ * @secret
  */
 export class SecretString {
   /**
@@ -959,7 +964,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * @returns the number of values changed
    */
   async encryptConfigurationFile(file: string, migrate?: string, upgrade?: boolean): Promise<number> {
-    return CryptoService.encryptConfigurationFile(file, migrate, upgrade);
+    return CryptoService.encryptFile(file, migrate, upgrade);
   }
 
   /**
@@ -970,7 +975,6 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * @param file - the configuration file (json, jsonc or yaml) to update
    * @param migrate - re-encrypt the already encrypted values with this encrypter, the default one when empty
    * @param upgrade - re-encrypt the already encrypted values with their own encrypter, to its current format or key
-   * @returns the number of values changed
    */
   @Command("config encrypt", {
     description: "Encrypt the values marked with encrypt: in a configuration file",
@@ -984,7 +988,20 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     migrate?: string,
     /** @description Re-encrypt the already encrypted values with their own encrypter, to its current format or key */
     upgrade?: boolean
-  ): Promise<number> {
+  ): Promise<void> {
+    // The count is logged, not returned: a command result is its exit code
+    await CryptoService.encryptFile(file, migrate, upgrade);
+  }
+
+  /**
+   * Encrypt the marked values of a configuration file, keeping its comments
+   *
+   * @param file - the configuration file (json, jsonc or yaml) to update
+   * @param migrate - re-encrypt the already encrypted values with this encrypter, the default one when empty
+   * @param upgrade - re-encrypt the already encrypted values with their own encrypter, to its current format or key
+   * @returns the number of values changed
+   */
+  static async encryptFile(file: string, migrate?: string, upgrade?: boolean): Promise<number> {
     const filename = resolve(useApplication().getPath(), file);
     const data = FileUtils.load(filename);
     const before = JSON.stringify(data);
@@ -1010,6 +1027,102 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     }
     useLog("INFO", `${changes} value(s) encrypted in ${filename}`);
     return changes;
+  }
+
+  /**
+   * Fail when a secret configuration value is not encrypted
+   *
+   * A secret is a field typed `SecretString` or tagged `@secret` in its service parameters, marked
+   * `x-webda-secret` in the compiled schemas. It checks the services, the global parameters and the
+   * units of the selected deployment, without decrypting anything: no key is needed, so it runs in CI.
+   * Only the paths are reported, never the values.
+   *
+   * @param file - also check this configuration or deployment file
+   * @param strict - report the values still marked `encrypt:` as failures
+   * @param format - output format: text or json
+   * @returns 1 when a secret is not encrypted, 0 otherwise
+   */
+  @Command("config check-secrets", {
+    description: "Fail when a secret configuration value is not encrypted",
+    // No Core: runs without decrypting the configuration, its sources or the private keys
+    phase: "application"
+  })
+  static async checkSecrets(
+    /** @alias f @description Also check this configuration or deployment file (json, jsonc or yaml) */
+    file?: string,
+    /** @description Report the values marked encrypt: as failures */
+    strict: boolean = true,
+    /** @description Output format: text or json */
+    format: "text" | "json" = "text"
+  ): Promise<number> {
+    const findings = CryptoService.findSecrets(file);
+    const failures = findings.filter(finding => strict || finding.reason === "plain");
+    for (const finding of findings) {
+      const message =
+        finding.reason === "plain"
+          ? "secret is not encrypted"
+          : "secret is marked encrypt: but not encrypted, run 'webda config encrypt'";
+      useLog(failures.includes(finding) ? "ERROR" : "WARN", `✗ ${finding.path} (${finding.type}): ${message}`);
+    }
+    if (format === "json") {
+      useOutput(JSON.stringify({ findings: failures }, undefined, 2));
+    } else {
+      useOutput(failures.length ? `${failures.length} unencrypted secret(s) found` : "No unencrypted secret found");
+    }
+    return failures.length ? 1 : 0;
+  }
+
+  /**
+   * Find the unencrypted secrets of the application configuration, with the selected deployment
+   * @param file - also check this configuration or deployment file
+   * @returns the findings, without the values
+   */
+  static findSecrets(file?: string): SecretFinding[] {
+    const app = useApplication();
+    const configuration = app.getConfiguration();
+    const options = {
+      getSchema: (type: string) => app.getSchema(type),
+      // Same resolution as the services: the application namespace, then Webda
+      completeNamespace: (type: string) => {
+        const namespaced = app.completeNamespace(type);
+        return app.getSchema(namespaced) || type.includes("/") ? namespaced : `Webda/${type}`;
+      },
+      // A deployment file can override a service without repeating its type
+      getType: (name: string) => configuration.services?.[name]?.type
+    };
+    const sources: SecretsCheckConfiguration[] = [
+      {
+        services: configuration.services,
+        parameters: configuration.parameters,
+        resources: app.getDeployment()?.resources,
+        units: app.getDeployment()?.units
+      }
+    ];
+    if (file) {
+      // Plain JSON: the comment-preserving loader returns wrapper objects
+      const data = JSON.parse(JSON.stringify(FileUtils.load(resolve(app.getPath(), file))));
+      sources.push({
+        services: data.services,
+        parameters: data.parameters,
+        resources: data.resources,
+        units: data.units
+      });
+    }
+    const findings: SecretFinding[] = [];
+    const unknownTypes = new Set<string>();
+    for (const source of sources) {
+      const result = findConfigurationSecrets(source, options);
+      result.unknownTypes.forEach(type => unknownTypes.add(type));
+      for (const finding of result.findings) {
+        if (!findings.some(f => f.path === finding.path)) {
+          findings.push(finding);
+        }
+      }
+    }
+    for (const type of unknownTypes) {
+      useLog("WARN", `No schema for service type ${type}, its secrets are not checked`);
+    }
+    return findings;
   }
 
   /**

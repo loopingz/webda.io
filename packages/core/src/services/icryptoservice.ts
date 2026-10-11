@@ -65,6 +65,7 @@ export class CryptoServiceParameters extends ServiceParameters {
        * Passphrase used to encrypt the private key
        *
        * Can be encrypted with `webda config encrypt`
+       * @secret
        */
       passphrase?: string;
     };
@@ -121,6 +122,7 @@ export interface JWTOptions {
    * Secret to use with JWT
    *
    * Can be encrypted with `webda config encrypt`
+   * @secret
    */
   secretOrPublicKey?: string | Buffer | { key: string; passphrase: string };
   /**

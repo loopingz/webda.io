@@ -84,6 +84,7 @@ export class ElasticSearchServiceParameters extends ServiceParameters {
    * ts-json-schema error
    *
    * Can be encrypted with `webda config encrypt`
+   * @secret auth.password,auth.apiKey,auth.bearer
    */
   client: any;
   /**

@@ -295,7 +295,8 @@
         "properties": {
           "backend": {
             "description": "URL to proxy to\n\nCan be encrypted with `webda config encrypt` (when it holds credentials)",
-            "type": "string"
+            "type": "string",
+            "x-webda-secret": true
           },
           "proxyHeaders": {
             "default": true,

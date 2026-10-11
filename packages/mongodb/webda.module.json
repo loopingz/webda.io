@@ -307,7 +307,8 @@
           },
           "mongoUrl": {
             "description": "Contains the URL to Mongo Server\n\nWill try to use WEBDA_MONGO_URL environment variable if not defined\n\nCan be encrypted with `webda config encrypt`",
-            "type": "string"
+            "type": "string",
+            "x-webda-secret": true
           },
           "noCache": {
             "default": false,
@@ -315,7 +316,11 @@
             "type": "boolean"
           },
           "options": {
-            "description": "Additional options for Mongo connetion\n\nShould be typed with MongoClientOptions but not available due to bug in ts-json-schema-generator\nhttps://docs.mongodb.com/manual/reference/connection-string\n\nCan be encrypted with `webda config encrypt`"
+            "description": "Additional options for Mongo connetion\n\nShould be typed with MongoClientOptions but not available due to bug in ts-json-schema-generator\nhttps://docs.mongodb.com/manual/reference/connection-string\n\nCan be encrypted with `webda config encrypt`",
+            "x-webda-secret": [
+              "auth.password",
+              "tlsCertificateKeyFilePassword"
+            ]
           },
           "slowQueryThreshold": {
             "default": 30000,

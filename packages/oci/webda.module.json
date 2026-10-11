@@ -64,15 +64,18 @@
             "properties": {
               "identityToken": {
                 "description": "Identity token (OAuth2 refresh token) as stored by `docker login` for some registries\n\nCan be encrypted with `webda config encrypt`",
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "password": {
                 "description": "Password or access token used with the user name\n\nCan be encrypted with `webda config encrypt`",
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "token": {
                 "description": "Registry bearer token sent as is, without token exchange\n\nCan be encrypted with `webda config encrypt`",
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "username": {
                 "description": "User name",

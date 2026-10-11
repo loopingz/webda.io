@@ -37,6 +37,7 @@ export class PostgresParameters extends SQLStoreParameters {
    * By default use environment variables
    *
    * Can be encrypted with `webda config encrypt`
+   * @secret password,connectionString
    */
   postgresqlServer?: ClientConfig | PoolConfig;
   /**

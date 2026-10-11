@@ -112,14 +112,16 @@ export function collectServiceCommands(app: Application): { [name: string]: Serv
  * (supports suffix matching).
  *
  * Each service's command handler is called with the parsed arguments as
- * positional parameters.
+ * positional parameters. A handler returning a number sets the exit code: the
+ * highest one wins, any other result counts as `0`.
  *
  * @param cmdName - The command name to execute (e.g., `"serve"`, `"migrate"`)
  * @param cmdInfo - The merged command definition from {@link collectServiceCommands}
  * @param args - Parsed argument values keyed by argument name
  * @param services - Map of service name to service instance (from Core.getServices())
  * @param serviceFilter - Optional list of service names to filter to (supports suffix matching)
- * @returns `0` on success, `1` if no services match the filter, a method is missing or no service instance ran
+ * @returns the highest exit code returned by the handlers (`0` on success), `1` if no services match the filter,
+ *   a method is missing or no service instance ran
  *
  * @example
  * ```typescript
@@ -139,7 +141,8 @@ export async function executeServiceCommand(
 ): Promise<number> {
   // Filter services if requested, by type (e.g. "HttpServer") or by instance name (e.g. a deployment unit)
   const filtered = serviceFilter && serviceFilter.length > 0;
-  const typeMatches = (svc: ServiceCommandTarget) => !filtered || serviceFilter.some(f => svc.name.endsWith(f) || svc.name === f);
+  const typeMatches = (svc: ServiceCommandTarget) =>
+    !filtered || serviceFilter.some(f => svc.name.endsWith(f) || svc.name === f);
   const instanceMatches = (service: AbstractService) =>
     filtered && typeof service.getName === "function" && serviceFilter.includes(service.getName());
 
@@ -151,6 +154,13 @@ export async function executeServiceCommand(
 
   // Count executed handlers: a command where every provider was skipped did nothing
   let executed = 0;
+  // Highest exit code returned by a handler
+  let exitCode = 0;
+  const recordExitCode = (result: any) => {
+    if (typeof result === "number" && result > exitCode) {
+      exitCode = result;
+    }
+  };
   // Long-running handlers (serve, worker) return a cancelable promise that stays
   // pending while they run: start them all, then wait for every one to settle.
   const running: PromiseLike<any>[] = [];
@@ -189,7 +199,7 @@ export async function executeServiceCommand(
       if (isCancelable(result)) {
         running.push(result);
       } else {
-        await result;
+        recordExitCode(await result);
       }
       executed++;
     }
@@ -206,14 +216,14 @@ export async function executeServiceCommand(
   // Cancelling a long-running command (SIGINT, SIGTERM) is a clean stop
   await Promise.all(
     running.map(p =>
-      Promise.resolve(p).catch(err => {
+      Promise.resolve(p).then(recordExitCode, err => {
         if (err !== "Cancelled") {
           throw err;
         }
       })
     )
   );
-  return 0;
+  return exitCode;
 }
 
 /**

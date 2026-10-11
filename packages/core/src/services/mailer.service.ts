@@ -71,6 +71,8 @@ interface MailerSendOptions extends nodemailer.SendMailOptions {
  * Parameters for the Mailer service configuration
  *
  * Configures the email transport, templates directory and template engine
+ *
+ * @secret auth.pass,SES.credentials - nodemailer transport options to encrypt with `webda config encrypt`
  */
 export class MailerParameters extends ServiceParameters {
   /**

@@ -46,7 +46,6 @@ export default class KubernetesCronExporter extends Service {
    * @param target - Folder to write the resources to
    * @param filenameTemplate - Filename template to use
    * @param image - Image to use in the default template
-   * @returns the number of exported crons
    */
   @Command("kubernetes cronExport", {
     description: "Export all application Cron as template",
@@ -58,7 +57,7 @@ export default class KubernetesCronExporter extends Service {
     target: string = "./crons",
     filenameTemplate: string = "${serviceName.toLowerCase()}.${method.toLowerCase()}-${cronId}.${ext}",
     image?: string
-  ): Promise<number> {
+  ): Promise<void> {
     let ext: string;
     let content: string;
     if (template) {
@@ -77,8 +76,8 @@ export default class KubernetesCronExporter extends Service {
       this.log("DEBUG", `Exporting ${filename} cron with ${cron.toString()}`);
       writeFileSync(filename, CronReplace(content, exported as CronDefinition, { resources: { tag: image } }));
     });
+    // The count is logged, not returned: a command result is its exit code
     this.log("INFO", `Exported ${crons.length} crons`);
-    return crons.length;
   }
 }
 

@@ -362,7 +362,8 @@
                     "$ref": "#/definitions/jwt%24secretOrPublicKey%233"
                   }
                 ],
-                "description": "Secret to use with JWT\n\nCan be encrypted with `webda config encrypt`"
+                "description": "Secret to use with JWT\n\nCan be encrypted with `webda config encrypt`",
+                "x-webda-secret": true
               },
               "subject": {
                 "description": "Subject for JWT",
@@ -511,7 +512,8 @@
                     "$ref": "#/definitions/jwt%24secretOrPublicKey%233"
                   }
                 ],
-                "description": "Secret to use with JWT\n\nCan be encrypted with `webda config encrypt`"
+                "description": "Secret to use with JWT\n\nCan be encrypted with `webda config encrypt`",
+                "x-webda-secret": true
               },
               "subject": {
                 "description": "Subject for JWT",
@@ -553,7 +555,8 @@
               },
               "passphrase": {
                 "description": "Passphrase used to encrypt the private key\n\nCan be encrypted with `webda config encrypt`",
-                "type": "string"
+                "type": "string",
+                "x-webda-secret": true
               },
               "type": {
                 "default": "pkcs8",
@@ -694,6 +697,28 @@
             "upgrade": {
               "type": "boolean",
               "description": "Re-encrypt the already encrypted values with their own encrypter, to its current format or key"
+            }
+          },
+          "phase": "application"
+        },
+        "config check-secrets": {
+          "description": "Fail when a secret configuration value is not encrypted",
+          "method": "checkSecrets",
+          "args": {
+            "file": {
+              "type": "string",
+              "alias": "f",
+              "description": "Also check this configuration or deployment file (json, jsonc or yaml)"
+            },
+            "strict": {
+              "type": "boolean",
+              "default": true,
+              "description": "Report the values marked encrypt: as failures"
+            },
+            "format": {
+              "type": "string",
+              "default": "text",
+              "description": "Output format: text or json"
             }
           },
           "phase": "application"
@@ -1130,6 +1155,10 @@
           "type"
         ],
         "type": "object",
+        "x-webda-secret": [
+          "auth.pass",
+          "SES.credentials"
+        ],
         "title": "Mailer"
       },
       "Configuration": "lib/services/mailer.service:MailerParameters"

@@ -27,7 +27,7 @@ class CronExporterTest extends WebdaApplicationTest {
       this.registerService(new CronnedService("Cronned", new ServiceParameters().load({})));
       const exporter = new KubernetesCronExporter("exporter", new ServiceParameters().load({}));
       // Default template
-      assert.strictEqual(await exporter.cronExport(undefined, target, undefined, "webda.io/app:1.0"), 1);
+      await exporter.cronExport(undefined, target, undefined, "webda.io/app:1.0");
       let files = readdirSync(target);
       assert.strictEqual(files.length, 1);
       assert.match(files[0], /^cronned\.nightly-[0-9a-f]{8}\.yaml$/);
@@ -44,7 +44,7 @@ class CronExporterTest extends WebdaApplicationTest {
       rmSync(target, { recursive: true });
       const template = join(tmpdir(), "webda-cron-template.sh");
       writeFileSync(template, `run "\${cron.argsLine}"`);
-      assert.strictEqual(await exporter.cronExport(template, target, "${serviceName}.${ext}"), 1);
+      await exporter.cronExport(template, target, "${serviceName}.${ext}");
       files = readdirSync(target);
       assert.deepStrictEqual(files, ["Cronned.sh"]);
       assert.strictEqual(readFileSync(join(target, files[0])).toString(), `run "arg1" "arg2"`);

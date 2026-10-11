@@ -27,6 +27,25 @@ export const PANELS: { id: PanelId; label: string; color: string }[] = [
 /** Documentation page of the dashboard (hosted vs local, data collected, opt-out). */
 export const DOCS_URL = "https://webda.io/docs/Debug/DebugDashboard";
 
+/** Cookie set once the reader closes the footer */
+export const FOOTER_COOKIE = "webda.debug.footer";
+
+/**
+ * Whether the reader closed the footer on an earlier visit.
+ *
+ * @returns true when the cookie is set
+ */
+export function isFooterClosed(): boolean {
+  return document.cookie.split("; ").includes(`${FOOTER_COOKIE}=closed`);
+}
+
+/**
+ * Remember for a year that the reader closed the footer.
+ */
+export function rememberFooterClosed(): void {
+  document.cookie = `${FOOTER_COOKIE}=closed; max-age=31536000; path=/; SameSite=Lax`;
+}
+
 /** Props of {@link DebugDashboard}. */
 export interface DebugDashboardProps {
   /** Panel shown first */
@@ -62,6 +81,7 @@ export function DebugDashboard(props: DebugDashboardProps): React.JSX.Element {
   const state = useDebugConnection();
   const track = useTrack();
   const [panel, setPanel] = useState<PanelId>(props.initialPanel ?? "logs");
+  const [footerClosed, setFooterClosed] = useState(isFooterClosed);
   const panels = PANELS.filter(p => p.id !== "config" || state.features.config);
   const connected = state.status === "connected";
 
@@ -137,15 +157,31 @@ export function DebugDashboard(props: DebugDashboardProps): React.JSX.Element {
         </div>
       )}
       <main className="wdbg-content">{connected ? <Panel id={active.id} /> : <ConnectionError />}</main>
-      <footer className="wdbg-footer">
-        <a href={props.docsUrl ?? DOCS_URL} target="_blank" rel="noreferrer">
-          Debug dashboard &amp; telemetry
-        </a>
-        {state.info?.debugVersion && <span className="wdbg-muted">@webda/debug {String(state.info.debugVersion)}</span>}
-        {state.info?.frameworkVersion && (
-          <span className="wdbg-muted">@webda/core {String(state.info.frameworkVersion)}</span>
-        )}
-      </footer>
+      {!footerClosed && (
+        <footer className="wdbg-footer">
+          <a href={props.docsUrl ?? DOCS_URL} target="_blank" rel="noreferrer">
+            Debug dashboard &amp; telemetry
+          </a>
+          {state.info?.debugVersion && (
+            <span className="wdbg-muted">@webda/debug {String(state.info.debugVersion)}</span>
+          )}
+          {state.info?.frameworkVersion && (
+            <span className="wdbg-muted">@webda/core {String(state.info.frameworkVersion)}</span>
+          )}
+          <button
+            type="button"
+            className="wdbg-footer-close"
+            aria-label="Close the footer"
+            title="Close"
+            onClick={() => {
+              rememberFooterClosed();
+              setFooterClosed(true);
+            }}
+          >
+            ×
+          </button>
+        </footer>
+      )}
     </div>
   );
 }

@@ -29,7 +29,6 @@ export default function CodeBlockWrapper(props: Props): JSX.Element {
     }
   }
   color ??= WebdaColors.BLUE;
-  console.log("Props", props);
   return (
     <>
       <CodeBlock {...props} />

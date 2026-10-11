@@ -1,0 +1,159 @@
+.card {
+  width: min(540px, 100%);
+  overflow: hidden;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 24px 50px -30px rgba(10, 14, 40, 0.45);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+[data-theme="dark"] .card {
+  background: rgba(24, 26, 38, 0.72);
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 6px 11px;
+  border: 0;
+  background: none;
+  color: var(--ifm-color-emphasis-700);
+  font: 600 0.8rem var(--ifm-font-family-base);
+  cursor: pointer;
+}
+
+.tab[aria-selected="true"] {
+  color: var(--ifm-font-color-base);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: -2px;
+}
+
+.tab i {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--domain-color);
+}
+
+/* Bar under the active tab; fills over the rotation time while rotating */
+.progress {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 0;
+  height: 2px;
+  background: var(--domain-color);
+}
+
+.tab[aria-selected="true"] .progress {
+  width: 100%;
+}
+
+.tab[aria-selected="true"] .progress.running {
+  animation: fill var(--rotation) linear both;
+}
+
+@keyframes fill {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.panel {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 196px;
+  padding: 18px 20px 20px;
+  animation: panelIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.panel h3 {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.panel h3 svg {
+  flex: none;
+  width: 26px;
+  height: 26px;
+}
+
+.panel p {
+  margin: 0;
+  color: var(--ifm-color-emphasis-700);
+  font-size: 0.92rem;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tags code {
+  font-size: 0.75rem;
+}
+
+.more {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--domain-color);
+}
+
+/* Domain colours that need help to read as text */
+.integrations {
+  color: var(--ifm-color-emphasis-700);
+}
+
+[data-theme="dark"] .models {
+  color: #8f9cf0;
+}
+
+@media (max-width: 360px) {
+  .tab {
+    gap: 0;
+    padding: 12px 4px;
+    font-size: 0;
+  }
+
+  .tab i {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .tab[aria-selected="true"] .progress.running {
+    animation: none;
+  }
+}

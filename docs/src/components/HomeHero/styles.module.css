@@ -1,0 +1,103 @@
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: center;
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 56px 28px 64px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 11px 5px 6px;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 999px;
+  background: var(--ifm-background-surface-color);
+  color: var(--ifm-color-emphasis-700);
+  font: 500 0.75rem var(--ifm-font-family-monospace);
+}
+
+.eyebrow b {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #f7992c;
+  color: #1a1200;
+}
+
+.title {
+  margin: 18px 0 16px;
+  font-size: clamp(2.2rem, 5vw, 3.7rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.gradient {
+  background: linear-gradient(95deg, #4557a4, #29abe2 35%, #7fbf6b 65%, #f7992c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+[data-theme="dark"] .gradient {
+  background-image: linear-gradient(95deg, #7d8cf0, #29abe2 35%, #7fbf6b 65%, #f7992c);
+}
+
+.lede {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--ifm-color-emphasis-700);
+  font-size: 1.08rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.showcase {
+  position: relative;
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+  min-width: 0;
+}
+
+/* Soft glow behind the logo */
+.halo {
+  position: absolute;
+  top: 140px;
+  left: 50%;
+  z-index: -1;
+  width: 760px;
+  height: 760px;
+  max-width: 200%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(69, 87, 164, 0.12), transparent);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+[data-theme="dark"] .halo {
+  background: radial-gradient(closest-side, rgba(69, 87, 164, 0.3), transparent);
+}
+
+@media (max-width: 900px) {
+  .inner {
+    grid-template-columns: 1fr;
+    gap: 34px;
+    padding: 40px 16px;
+  }
+}

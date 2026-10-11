@@ -32,7 +32,7 @@ export interface PasskeyKeyProviderOptions {
   challenge?: () => Promise<Uint8Array>;
 }
 
-const utf8 = (s: string): Uint8Array => new TextEncoder().encode(s);
+const utf8 = (s: string): Uint8Array<ArrayBuffer> => new TextEncoder().encode(s);
 
 const fromBase64Url = (s: string): Uint8Array => {
   const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
@@ -119,7 +119,7 @@ export class PasskeyKeyProvider implements KeyProvider {
       throw new PasskeyKeyProviderError("PRF_UNSUPPORTED", "The passkey did not return a PRF result");
     }
     const prf = ArrayBuffer.isView(first)
-      ? new Uint8Array(first.buffer, first.byteOffset, first.byteLength)
+      ? new Uint8Array(first.buffer, first.byteOffset, first.byteLength).slice()
       : new Uint8Array(first);
     const material = await crypto.subtle.importKey("raw", prf, "HKDF", false, ["deriveKey"]);
     return crypto.subtle.deriveKey(

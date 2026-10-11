@@ -7,7 +7,7 @@ import type { JSONSchema7 } from "json-schema";
 import { WebdaApplicationTest } from "../test/application.js";
 import { useApplication } from "../application/hooks.js";
 import { CryptoService } from "./cryptoservice.service.js";
-import { findConfigurationSecrets, findUnencryptedSecrets } from "./secretscheck.js";
+import { findConfigurationSecrets, findUnencryptedSecrets, secretPathExcluder } from "./secretscheck.js";
 const { __dirname } = getCommonJS(import.meta.url);
 
 /**
@@ -102,6 +102,27 @@ class FindUnencryptedSecretsTest {
     ]);
     // A scoped marker on a string: a kubeconfig file path is not a secret
     assert.deepStrictEqual(findUnencryptedSecrets({ config: "~/.kube/config" }, SCHEMA), []);
+  }
+
+  @test
+  excluder() {
+    const excluded = secretPathExcluder(" services.demo , $.units[*].auth.pass,parameters.**.token,services.*.apiKey ");
+    // A pattern excludes the values below it
+    assert.ok(excluded("services.demo"));
+    assert.ok(excluded("services.demo.password"));
+    assert.ok(excluded("services.demo.keys[0]"));
+    assert.ok(!excluded("services.demonstration.password"));
+    // `*` is one name or index, `$.` is optional
+    assert.ok(excluded("units[image].auth.pass"));
+    assert.ok(!excluded("units[image].auth.user"));
+    assert.ok(excluded("services.db.apiKey"));
+    assert.ok(!excluded("services.db.nested.apiKey"));
+    // `**` matches anything
+    assert.ok(excluded("parameters.a.b.token"));
+    assert.ok(!excluded("parameters.a.b.secret"));
+    // Nothing to exclude
+    assert.ok(!secretPathExcluder()("services.db.password"));
+    assert.ok(!secretPathExcluder(" , ")("services.db.password"));
   }
 
   @test
@@ -320,6 +341,55 @@ class EncryptCheckCommandTest extends WebdaApplicationTest {
     assert.strictEqual(decrypted.b, "x");
     // A configuration value is a single line
     await assert.rejects(() => CryptoService.encryptConfiguration({ a: "encrypt:none:a\nb" }), /multi-line/);
+  }
+
+  @test
+  async noneAndExclude() {
+    writeFileSync(
+      FILE,
+      [
+        "parameters:",
+        "  configurationEncryption:",
+        "    default: b64",
+        "services:",
+        "  Mailer:",
+        "    auth:",
+        "      pass: crypt:none:public-pass",
+        "  cookies:",
+        "    jwt:",
+        "      secretOrPublicKey: hunter2-plain",
+        ""
+      ].join("\n")
+    );
+    // --no-none: an opt-out fails the check
+    assert.strictEqual(
+      (await this.run(FILE, undefined, undefined, true, true, "text", true, "services.cookies")).code,
+      0
+    );
+    const { code, written } = await this.run(FILE, undefined, undefined, true, true, "json", false, "services.cookies");
+    assert.strictEqual(code, 1);
+    assert.deepStrictEqual(this.jsonFindings(written), ["test/check-secrets.yaml services.Mailer.auth.pass opted-out"]);
+    // --exclude: neither checked nor auto-encrypted
+    assert.strictEqual((await this.run(FILE, undefined, undefined, true)).code, 1);
+    assert.strictEqual(
+      (
+        await this.run(
+          FILE,
+          undefined,
+          undefined,
+          true,
+          true,
+          "text",
+          false,
+          "$.services.*.auth.pass,services.cookies.jwt"
+        )
+      ).code,
+      0
+    );
+    assert.strictEqual(await CryptoService.encryptFile(FILE, undefined, undefined, "services.cookies"), 0);
+    assert.ok(readFileSync(FILE, "utf-8").includes("secretOrPublicKey: hunter2-plain"));
+    assert.strictEqual(await CryptoService.encryptFile(FILE), 1);
+    assert.ok(!readFileSync(FILE, "utf-8").includes("hunter2-plain"));
   }
 
   @test

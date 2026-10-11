@@ -711,6 +711,15 @@
               "type": "string",
               "default": "text",
               "description": "With --check, output format: text or json"
+            },
+            "none": {
+              "type": "boolean",
+              "default": true,
+              "description": "With --check, accept the values kept in clear text with crypt:none: (--no-none to fail on them)"
+            },
+            "exclude": {
+              "type": "string",
+              "description": "Secret paths to leave alone, comma-separated (services.demo.password, units[ ].token, $.parameters.  )"
             }
           },
           "phase": "application"

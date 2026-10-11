@@ -27,7 +27,7 @@ import { OperationContext } from "../contexts/operationcontext.js";
 import { Route } from "../rest/irest.js";
 import { useRegistry } from "../models/registry.model.js";
 import { useApplication } from "../application/hooks.js";
-import { findConfigurationSecrets, OPT_OUT_ENCRYPTER, type SecretFinding } from "./secretscheck.js";
+import { findConfigurationSecrets, OPT_OUT_ENCRYPTER, secretPathExcluder, type SecretFinding } from "./secretscheck.js";
 
 /**
  * Masked representation of a secret
@@ -988,6 +988,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * @param check - only check that the secrets are encrypted, write nothing
    * @param strict - with check, report the values still marked `encrypt:` as failures
    * @param format - with check, output format: text or json
+   * @param none - with check, accept the values kept in clear text with `crypt:none:`, false to fail on them
+   * @param exclude - secret paths to leave alone, comma-separated: not checked, not auto-encrypted
    * @returns with check, 1 when a secret is not encrypted, otherwise 0
    */
   @Command("config encrypt", {
@@ -1007,15 +1009,19 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     /** @description With --check, report the values marked encrypt: as failures */
     strict: boolean = true,
     /** @description With --check, output format: text or json */
-    format: "text" | "json" = "text"
+    format: "text" | "json" = "text",
+    /** @description With --check, accept the values kept in clear text with crypt:none: (--no-none to fail on them) */
+    none: boolean = true,
+    /** @description Secret paths to leave alone, comma-separated (services.demo.password, units[*].token, $.parameters.**) */
+    exclude?: string
   ): Promise<number> {
     const files = CryptoService.getConfigurationFiles(file);
     if (check) {
-      return CryptoService.checkFiles(files, strict, format);
+      return CryptoService.checkFiles(files, { strict, format, none, exclude });
     }
     // The count is logged, not returned: a command result is its exit code
     for (const filename of files) {
-      await CryptoService.encryptFile(filename, migrate, upgrade);
+      await CryptoService.encryptFile(filename, migrate, upgrade, exclude);
     }
     return 0;
   }
@@ -1042,20 +1048,30 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
   /**
    * Check that the secrets of configuration files are encrypted
    * @param files - the files to check
-   * @param strict - report the values still marked `encrypt:` as failures
-   * @param format - output format: text or json
+   * @param options - check options
+   * @param options.strict - report the values still marked `encrypt:` as failures
+   * @param options.format - output format: text or json
+   * @param options.none - accept the values kept in clear text with `crypt:none:`
+   * @param options.exclude - secret paths not checked, comma-separated
    * @returns 1 when a secret is not encrypted, 0 otherwise
    */
-  protected static checkFiles(files: string[], strict: boolean, format: "text" | "json"): number {
+  protected static checkFiles(
+    files: string[],
+    options: { strict?: boolean; format?: "text" | "json"; none?: boolean; exclude?: string } = {}
+  ): number {
+    const { strict = true, format = "text", none = true, exclude } = options;
     const app = useApplication();
     const failures: (SecretFinding & { file: string })[] = [];
     const warnings: (SecretFinding & { file: string })[] = [];
     for (const filename of files) {
       const file = relative(app.getPath(), filename) || filename;
       // Plain JSON: the comment-preserving loader returns wrapper objects
-      const findings = CryptoService.findFileSecrets(JSON.parse(JSON.stringify(FileUtils.load(filename))));
+      const findings = CryptoService.findFileSecrets(JSON.parse(JSON.stringify(FileUtils.load(filename))), exclude);
       for (const finding of findings) {
-        const failure = finding.reason === "plain" || (strict && finding.reason === "marked");
+        const failure =
+          finding.reason === "plain" ||
+          (strict && finding.reason === "marked") ||
+          (!none && finding.reason === "opted-out");
         const message = {
           plain: "secret is not encrypted",
           marked: "secret is marked encrypt: but not encrypted, run 'webda config encrypt'",
@@ -1088,9 +1104,10 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * file `parameters` are also checked against the services of the application.
    *
    * @param data - the file content, as plain JSON
+   * @param exclude - secret paths to leave out, comma-separated patterns, see {@link secretPathExcluder}
    * @returns the findings, with their location in data, without the values
    */
-  static findFileSecrets(data: any): SecretFinding[] {
+  static findFileSecrets(data: any, exclude?: string | string[]): SecretFinding[] {
     const app = useApplication();
     const services = app.getConfiguration().services ?? {};
     const { findings, unknownTypes } = findConfigurationSecrets(
@@ -1109,7 +1126,12 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     for (const type of unknownTypes) {
       useLog("WARN", `No schema for service type ${type}, its secrets are not checked`);
     }
-    return findings;
+    const excluded = secretPathExcluder(exclude);
+    return findings.filter(finding => {
+      if (!excluded(finding.path)) return true;
+      useLog("DEBUG", `Secret ${finding.path} excluded`);
+      return false;
+    });
   }
 
   /**
@@ -1121,14 +1143,20 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * @param file - the configuration file (json, jsonc or yaml) to update
    * @param migrate - re-encrypt the already encrypted values with this encrypter, the default one when empty
    * @param upgrade - re-encrypt the already encrypted values with their own encrypter, to its current format or key
+   * @param exclude - secret paths not auto-encrypted, comma-separated patterns, see {@link secretPathExcluder}
    * @returns the number of values changed
    */
-  static async encryptFile(file: string, migrate?: string, upgrade?: boolean): Promise<number> {
+  static async encryptFile(
+    file: string,
+    migrate?: string,
+    upgrade?: boolean,
+    exclude?: string | string[]
+  ): Promise<number> {
     const filename = resolve(useApplication().getPath(), file);
     const data = FileUtils.load(filename);
     const before = JSON.stringify(data);
     const settings = CryptoService.getEncryptionSettings(data);
-    const plain = CryptoService.findFileSecrets(JSON.parse(before)).filter(finding => finding.reason === "plain");
+    const plain = CryptoService.findFileSecrets(JSON.parse(before), exclude).filter(f => f.reason === "plain");
     if (plain.length && !settings.default) {
       throw new Error(
         `${plain.length} secret(s) are not encrypted in ${filename} (${plain.map(f => f.path).join(", ")}): ` +

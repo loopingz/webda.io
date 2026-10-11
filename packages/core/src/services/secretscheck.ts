@@ -271,6 +271,37 @@ export function findUnencryptedSecrets(
 }
 
 /**
+ * Parse the patterns of the secret paths to exclude
+ *
+ * A pattern uses the path syntax of the findings, `$.` prefix optional: `*` matches one name or index
+ * (`units[*].auth.pass`), `**` matches anything, and a pattern also excludes the values below it
+ * (`services.demo`).
+ *
+ * @param patterns - the patterns, a comma-separated string or a list
+ * @returns a function telling whether a finding path is excluded
+ */
+export function secretPathExcluder(patterns: string | string[] = []): (path: string) => boolean {
+  const list = (typeof patterns === "string" ? patterns.split(",") : patterns)
+    .map(pattern => pattern.trim().replace(/^\$\.?/, ""))
+    .filter(pattern => pattern !== "");
+  const expressions = list.map(pattern => {
+    let source = "";
+    for (let i = 0; i < pattern.length; i++) {
+      if (pattern.startsWith("**", i)) {
+        source += ".*";
+        i++;
+      } else if (pattern[i] === "*") {
+        source += "[^.\\[\\]]+";
+      } else {
+        source += pattern[i].replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+      }
+    }
+    return new RegExp(`^${source}(?:[.[].*)?$`);
+  });
+  return path => expressions.some(expression => expression.test(path));
+}
+
+/**
  * Check if a structure holds a value at a path
  * @param data - the structure
  * @param path - the path

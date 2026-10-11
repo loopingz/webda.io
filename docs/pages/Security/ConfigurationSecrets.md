@@ -479,7 +479,8 @@ stays in clear text, the service receives the value as is, and the opt-out is vi
 ```
 
 `webda config encrypt` never encrypts it, even with `--migrate`, and `--check` reports it as a warning without
-failing. `scrypt:none:<value>` does the same for a field read as a plain string. The value must be a single line.
+failing, or as a failure with `--no-none` (for example on the production deployment). `scrypt:none:<value>` does the
+same for a field read as a plain string. The value must be a single line.
 
 ## Checking for unencrypted secrets
 
@@ -505,8 +506,20 @@ private key.
 
 - `-f <file>`: check this file instead of `webda.config` and the deployment file
 - `--no-strict`: only warn for the values marked `encrypt:`
+- `--no-none`: fail on the values kept in clear text with `crypt:none:`, instead of a warning
+- `--exclude <paths>`: leave these secret paths alone, see below
 - `--format json`: write `{ "findings": [...], "warnings": [...] }` on the standard output, each entry with `file`,
   `path`, `service`, `type` and `reason` (`plain`, `marked` or `opted-out`)
+
+`--exclude` takes comma-separated paths, in the syntax of the reports (`$.` prefix optional). `*` matches one name or
+index, `**` matches anything, and a path also excludes the values below it. An excluded secret is neither checked nor
+auto-encrypted; a value marked `encrypt:` is still encrypted.
+
+```bash
+webda config encrypt --check --exclude 'services.demo,units[*].auth.pass,$.parameters.**.token'
+```
+
+Prefer `crypt:none:` for a single value: the opt-out stays visible in the file, next to the value.
 
 ```yaml title=".github/workflows/ci.yml"
 - run: pnpm webda config encrypt --check

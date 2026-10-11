@@ -18,9 +18,13 @@
 }
 
 /* Header strip behind a docs page title: shorter, fainter, fading out downward */
-.band {
+.band,
+.bandArea {
   bottom: auto;
   height: 260px;
+}
+
+.band {
   opacity: 0.4;
   -webkit-mask-image: linear-gradient(#000 30%, transparent);
   mask-image: linear-gradient(#000 30%, transparent);

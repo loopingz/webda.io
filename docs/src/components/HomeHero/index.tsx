@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import Link from "@docusaurus/Link";
 import AssemblingLogo from "../AssemblingLogo";
 import DomainCard from "../DomainCard";
@@ -9,7 +9,8 @@ import styles from "./styles.module.css";
 /**
  * Homepage hero: the pitch on the left; on the right the logo assembles, then
  * the domain card walks through Models, Services, Deployments and Integrations
- * while the matching logo piece and network pieces light up.
+ * while the matching logo piece and network pieces light up. Picking a domain,
+ * from a card tab or a logo piece, shows it and stops the rotation.
  *
  * @returns the hero section
  */
@@ -17,6 +18,11 @@ export default function HomeHero(): React.JSX.Element {
   const logoRef = useRef<HTMLDivElement>(null);
   const [assembled, setAssembled] = useState(false);
   const [active, setActive] = useState<DomainKey>("models");
+  const [picked, setPicked] = useState(false);
+  const pick = useCallback(function pick(key: DomainKey) {
+    setPicked(true);
+    setActive(key);
+  }, []);
 
   return (
     <header className={styles.hero}>
@@ -47,8 +53,13 @@ export default function HomeHero(): React.JSX.Element {
         </div>
         <div className={styles.showcase}>
           <div className={styles.halo} aria-hidden="true" />
-          <AssemblingLogo ref={logoRef} active={assembled ? active : null} onAssembled={() => setAssembled(true)} />
-          <DomainCard active={active} onActiveChange={setActive} rotate={assembled} />
+          <AssemblingLogo
+            ref={logoRef}
+            active={assembled ? active : null}
+            onAssembled={() => setAssembled(true)}
+            onPick={pick}
+          />
+          <DomainCard active={active} onActiveChange={setActive} onPick={pick} rotate={assembled && !picked} />
         </div>
       </div>
     </header>

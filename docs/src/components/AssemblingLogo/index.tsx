@@ -1,6 +1,6 @@
 import React, { forwardRef, useEffect, useState } from "react";
 import clsx from "clsx";
-import type { DomainKey } from "../webdaDomains";
+import { DOMAINS, type DomainKey } from "../webdaDomains";
 import { LOGO_CLOUD, LOGO_FRAME, LOGO_PIECES, type LogoPath } from "./logoLayers";
 import styles from "./styles.module.css";
 
@@ -16,6 +16,8 @@ interface AssemblingLogoProps {
   active?: DomainKey | null;
   /** Called once all the pieces have landed */
   onAssembled?: () => void;
+  /** Makes the pieces buttons, once assembled: called with the clicked piece's domain */
+  onPick?: (key: DomainKey) => void;
   className?: string;
 }
 
@@ -39,18 +41,22 @@ function Paths({ paths }: { paths: LogoPath[] }): React.JSX.Element {
  * The Webda logo, with its four pieces sliding in underneath the cloud on
  * first render. Afterwards the `active` piece is enlarged: the previous one
  * shrinks back first, then the new one is raised above its neighbours and grows.
+ * With `onPick`, each piece is then also a button that grows a little on hover.
  *
  * @param props - see AssemblingLogoProps
  * @returns the logo
  */
 const AssemblingLogo = forwardRef<HTMLDivElement, AssemblingLogoProps>(function AssemblingLogo(
-  { active = null, onAssembled, className },
+  { active = null, onAssembled, onPick, className },
   ref
 ) {
   const [assembling, setAssembling] = useState(true);
   // `shown` is the enlarged piece, `top` the piece drawn last (highest)
   const [shown, setShown] = useState<DomainKey | null>(null);
   const [top, setTop] = useState<DomainKey | null>(null);
+  // Hovered piece, kept in state rather than :hover, which the browser drops when
+  // raising a piece moves its node, so a clicked piece grows on from its hover size
+  const [hovered, setHovered] = useState<DomainKey | null>(null);
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -80,15 +86,48 @@ const AssemblingLogo = forwardRef<HTMLDivElement, AssemblingLogoProps>(function 
   }, [top, active]);
 
   const order = top ? [...ORDER.filter(k => k !== top), top] : ORDER;
+  const interactive = !assembling && onPick !== undefined;
   return (
-    <div ref={ref} className={clsx(styles.logo, assembling && styles.assembling, active && styles.focused, className)}>
+    <div
+      ref={ref}
+      className={clsx(
+        styles.logo,
+        assembling && styles.assembling,
+        active && styles.focused,
+        interactive && styles.interactive,
+        className
+      )}
+    >
       <svg viewBox="0 0 256 256" role="img" aria-label="Webda logo">
         <g className={styles.frame}>
           <Paths paths={LOGO_FRAME} />
         </g>
         {order.map(key => (
-          <g key={key} className={clsx(styles.slot, styles[key])}>
-            <g className={clsx(styles.piece, shown === key && styles.enlarged)}>
+          <g
+            key={key}
+            className={clsx(styles.slot, styles[key])}
+            {...(interactive && {
+              role: "button",
+              tabIndex: 0,
+              "aria-label": `Show ${DOMAINS.find(d => d.key === key)?.title}`,
+              "aria-pressed": active === key,
+              onPointerEnter: () => setHovered(key),
+              onPointerLeave: () => setHovered(h => (h === key ? null : h)),
+              onClick: () => onPick(key),
+              onKeyDown: (e: React.KeyboardEvent) => {
+                if (e.key !== "Enter" && e.key !== " ") return;
+                e.preventDefault();
+                onPick(key);
+              }
+            })}
+          >
+            <g
+              className={clsx(
+                styles.piece,
+                shown === key && styles.enlarged,
+                interactive && hovered === key && styles.hovered
+              )}
+            >
               <Paths paths={LOGO_PIECES[key]} />
             </g>
           </g>

@@ -55,7 +55,8 @@
     "vitest": "^4.1.2"
   },
   "files": [
-    "lib"
+    "lib",
+    "webda.module.json"
   ],
   "homepage": "https://webda.io",
   "publishConfig": {

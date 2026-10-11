@@ -42,7 +42,8 @@
     "vite": "^6.0.0"
   },
   "files": [
-    "lib"
+    "lib",
+    "webda.module.json"
   ],
   "homepage": "https://webda.io",
   "publishConfig": {

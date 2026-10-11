@@ -272,7 +272,9 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
    * per-model table name resolved by `resolveTable`. The repository ensures its
    * table exists (see {@link ensureTable}) before its first statement.
    *
-   * The result is cached per model class via `@InstanceCache`.
+   * The result is cached per model class via `@InstanceCache`, and may be requested before {@link init}
+   * (Store.computeStores runs from the first store to initialize): the repository reads the client on each
+   * statement, so it follows the one connected by `init()` and the reconnection after a `stop()`.
    * @param model - the model class
    * @returns a repository backed by this store's pg connection
    */
@@ -283,7 +285,7 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters> ex
     const inner: PostgresRepository<T> = new PostgresRepository<T>(
       model,
       meta.PrimaryKey,
-      this.client as any,
+      () => this.client,
       table,
       meta.PrimaryKeySeparator,
       () => this.ensureTable(inner),

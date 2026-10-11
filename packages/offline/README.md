@@ -277,7 +277,7 @@ A device can accept several passkeys (a second authenticator, a backup). While u
 ```ts
 await storage.addProvider(new PasskeyKeyProvider({ credentialId: other, label: "myapp-v1" })); // prompts for `other`
 await storage.removeProvider("passkey:" + other);
-storage.providers(); // ids of the registered providers
+await storage.providers(); // ids of the registered providers
 ```
 
 `removeProvider` refuses to remove the last provider (`LAST_PROVIDER`), so the data cannot be locked away by mistake.

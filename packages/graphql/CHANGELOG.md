@@ -134,6 +134,34 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.6...graphql-v4.0.0-beta.7) (2026-10-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* GraphQL now exposes every non-CRUD operation by default (opt out with exposeOperations: []); titled nested input types are renamed <title>Input; the Object scalar no longer JSON-parses string variables; duplicate GraphQL type/field names are startup errors; operations declaring grpc.streaming: "client" | "bidi" now receive an async iterable of messages instead of a collected array.
+
+### Features
+
+* **offline:** offline sync of models with conflict management (@webda/offline) ([#833](https://github.com/loopingz/webda.io/issues/833)) ([98df6ee](https://github.com/loopingz/webda.io/commit/98df6eeae0a17cdd984a6bc2c5a393543a58dcdf))
+* streaming operations on gRPC, WebSocket and GraphQL ([#829](https://github.com/loopingz/webda.io/issues/829)) ([e67bfea](https://github.com/loopingz/webda.io/commit/e67bfea1984e32ad7172e486602cb532369e62f5))
+
+
+### Bug Fixes
+
+* **graphql:** serialize ISO string and timestamp values in Date scalar ([#840](https://github.com/loopingz/webda.io/issues/840)) ([a140203](https://github.com/loopingz/webda.io/commit/a1402035de07f42906365c92778d62c6a36914cc)), closes [#603](https://github.com/loopingz/webda.io/issues/603)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.7
+    * @webda/runtime bumped to 4.0.0-beta.7
+    * @webda/utils bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.5...graphql-v4.0.0-beta.6) (2026-10-09)
 
 

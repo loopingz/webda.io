@@ -1,6 +1,6 @@
 {
   "name": "@webda/iam",
-  "version": "4.0.0-beta.6",
+  "version": "4.0.0-beta.7",
   "description": "IAM policies for Webda operations, evaluated with Casbin",
   "main": "lib/index.js",
   "scripts": {
@@ -13,8 +13,14 @@
     "lint:fix": "eslint --fix",
     "format:fix": "prettier --write src/**/*"
   },
-  "keywords": ["webda-module"],
-  "files": ["lib", "webda.module.json", "package.json"],
+  "keywords": [
+    "webda-module"
+  ],
+  "files": [
+    "lib",
+    "webda.module.json",
+    "package.json"
+  ],
   "dependencies": {
     "@casbin/expression-eval": "^5.3.0",
     "@webda/core": "workspace:*",
@@ -32,12 +38,23 @@
     "vite": "^6.0.0",
     "vitest": "^4.1.2"
   },
-  "bugs": { "url": "https://github.com/loopingz/webda.io/issues" },
+  "bugs": {
+    "url": "https://github.com/loopingz/webda.io/issues"
+  },
   "homepage": "https://github.com/loopingz/webda.io#readme",
-  "repository": { "type": "git", "url": "git+https://github.com/loopingz/webda.io.git" },
-  "publishConfig": { "access": "public" },
-  "webda": { "namespace": "Webda" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "webda": {
+    "namespace": "Webda"
+  },
   "type": "module",
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "license": "LGPL-3.0-only"
 }

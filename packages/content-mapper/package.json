@@ -1,6 +1,6 @@
 {
   "name": "@webda/content-mapper",
-  "version": "4.0.0-beta.6",
+  "version": "4.0.0-beta.7",
   "description": "Webda compile-time code generation as a TypeScript 7.1 content mapper",
   "keywords": [
     "webda",

@@ -1,5 +1,26 @@
 # Changelog
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.6...compiler-v4.0.0-beta.7) (2026-10-11)
+
+
+### Features
+
+* **core:** pki configuration encrypter and default encrypter ([#851](https://github.com/loopingz/webda.io/issues/851)) ([8777e06](https://github.com/loopingz/webda.io/commit/8777e063e1f4ef580cb21b447e63ff6e1d7e973c))
+
+
+### Bug Fixes
+
+* publish webda.module.json with debug, models, cloudevents and compiler ([#849](https://github.com/loopingz/webda.io/issues/849)) ([db9e967](https://github.com/loopingz/webda.io/commit/db9e967c2da4dc5d2e116a2a6d62c9cb46853fac))
+* support Windows paths when loading and building modules ([#827](https://github.com/loopingz/webda.io/issues/827)) ([0d88747](https://github.com/loopingz/webda.io/commit/0d8874761196fcf09ac72bf9dc5bb31f8cfb87e1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/content-mapper bumped to 4.0.0-beta.7
+    * @webda/utils bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.5...compiler-v4.0.0-beta.6) (2026-10-09)
 
 

@@ -5,6 +5,7 @@ import { OperationContext } from "../contexts/operationcontext.js";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { emitCoreEvent } from "../events/events.js";
+import * as WebdaError from "../errors/errors.js";
 import { createServer, IncomingMessage, Server, ServerResponse } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
 import { createSecureServer, createServer as createHttp2Server, Http2SecureServer } from "node:http2";
@@ -264,6 +265,10 @@ export class HttpServer<
           await useRouter().execute(webCtx);
         } catch (err) {
           webCtx.statusCode = err?.getResponseCode?.() || 500;
+          // A Redirect carries its target: without the Location header the client only gets the JSON body
+          if (err instanceof WebdaError.Redirect && err.location && !webCtx.hasFlushedHeaders?.()) {
+            webCtx.setHeader("Location", err.location);
+          }
           const method = webCtx.getHttpContext().getMethod();
           const url = webCtx.getHttpContext().getUrl();
           // Log 5xx at ERROR and 4xx at DEBUG so validation failures are still

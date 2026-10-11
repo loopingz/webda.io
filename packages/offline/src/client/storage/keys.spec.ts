@@ -111,4 +111,13 @@ describe("EncryptedStorage key providers", () => {
     await s.setMeta("other", 1);
     expect(await s.getMeta("other")).toBe(1);
   });
+
+  it("drops the provider KEK when the data key is set or cleared directly", async () => {
+    const s = new EncryptedStorage(new MemoryStorage());
+    await s.unlock(fakeProvider("p1"));
+    s.setDataKey(undefined);
+    expect((s as any).active).toBeUndefined();
+    s.setDataKey(await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]));
+    expect(await code(s.addProvider(fakeProvider("p2")))).toBe("NO_KEY");
+  });
 });

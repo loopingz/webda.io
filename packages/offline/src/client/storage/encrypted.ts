@@ -85,6 +85,7 @@ export class EncryptedStorage implements StorageAdapter {
    */
   setDataKey(key: CryptoKey | undefined): void {
     this.key = key;
+    this.active = undefined;
   }
 
   /**
@@ -124,7 +125,8 @@ export class EncryptedStorage implements StorageAdapter {
    */
   async addProvider(provider: KeyProvider): Promise<void> {
     this.requireKey();
-    const { id, kek } = this.active!;
+    if (!this.active) throw new EncryptedStorageError("NO_KEY", "Storage was not unlocked with a key provider");
+    const { id, kek } = this.active;
     if ((await this.inner.getMeta(KEYS_PREFIX + id)) === undefined)
       throw new EncryptedStorageError("NO_KEY", `Unlocking provider ${id} was removed`);
     const copy = await this.unwrap(id, kek, true);

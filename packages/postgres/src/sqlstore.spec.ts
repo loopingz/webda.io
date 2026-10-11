@@ -160,7 +160,11 @@ describe("PostgresRepository table readiness", () => {
       ["exists", () => repo.exists("a"), /^SELECT uuid FROM items/],
       ["removeAttribute", () => repo.removeAttribute("a", "name"), /data - \$1/],
       ["incrementAttributes", () => repo.incrementAttributes("a", { count: 2 } as any), /jsonb_set/],
-      ["upsertItemToCollection", () => repo.upsertItemToCollection("a", "tags", { v: 1 } as any), /'\[\{"v":1\}\]'/],
+      [
+        "upsertItemToCollection",
+        () => repo.upsertItemToCollection("a", "tags", { v: 1 } as any),
+        /jsonb_build_array\(\$2::jsonb\)/
+      ],
       ["deleteItemFromCollection", () => repo.deleteItemFromCollection("a", "tags", 0), /- 0/],
       ["__clean", () => repo.__clean(), /^DELETE FROM items$/]
     ];
@@ -201,5 +205,47 @@ describe("PostgresRepository table readiness", () => {
     await expect(repo.deleteItemFromCollection("a", "tags", 0, "k", "v")).rejects.toThrow();
     await expect(repo.get("a")).rejects.toThrow("Not found");
     expect(await repo.exists("a")).toBe(false);
+  });
+});
+
+describe("PostgresRepository collection items with quotes (#670)", () => {
+  /**
+   * Build a repository on a fake client that records every statement with its values
+   * @returns the repository and the captured statements
+   */
+  function makeCapturingRepository(): {
+    repo: PostgresRepository<any>;
+    statements: { q: string; values?: any[] }[];
+  } {
+    const statements: { q: string; values?: any[] }[] = [];
+    const client: SQLClient = {
+      query: async (q: string, values?: any[]) => {
+        statements.push({ q, values });
+        return { rows: [], rowCount: 1 };
+      }
+    };
+    return { repo: new PostgresRepository(FakeModel as any, ["uuid"], client, "items"), statements };
+  }
+
+  const item = { name: "l'été.png", hash: "x' OR 1=1 --", mimetype: "image/png" };
+
+  it("binds an appended item as a parameter instead of inlining it", async () => {
+    const { repo, statements } = makeCapturingRepository();
+    await repo.upsertItemToCollection("a", "files", item);
+    const { q, values } = statements.pop()!;
+    expect(q).not.toContain("l'été");
+    expect(q).not.toContain("OR 1=1");
+    expect(q).toContain("jsonb_build_array($2::jsonb)");
+    expect(values).toEqual(["a", JSON.stringify(item)]);
+  });
+
+  it("binds a replaced item as a parameter, keeping the write condition last", async () => {
+    const { repo, statements } = makeCapturingRepository();
+    await repo.upsertItemToCollection("a", "files", item, 1, "hash", "it's");
+    const { q, values } = statements.pop()!;
+    expect(q).not.toContain("l'été");
+    expect(q).toContain("'{1}', $2::jsonb");
+    expect(q).toMatch(/->>'hash'=\$3$/);
+    expect(values).toEqual(["a", JSON.stringify(item), "it's"]);
   });
 });

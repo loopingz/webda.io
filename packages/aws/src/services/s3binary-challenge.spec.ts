@@ -5,7 +5,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { mockClient } from "aws-sdk-client-mock";
 import { vi } from "vitest";
-import { S3Binary, S3BinaryParameters } from "./s3binary.service.js";
+import { contentDisposition, S3Binary, S3BinaryParameters } from "./s3binary.service.js";
 
 const Bucket = "webda-unit";
 
@@ -45,6 +45,30 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
     ).resolve();
     await this.binary.init();
     vi.spyOn(this.binary, "getSignedUrl").mockResolvedValue("https://signed.example/put");
+  }
+
+  /**
+   * #670: the download url carries the file name in Content-Disposition, quotes and accents must not break it
+   */
+  @test
+  async contentDispositionFileName() {
+    assert.strictEqual(contentDisposition(undefined), "attachment");
+    assert.strictEqual(contentDisposition("plain.txt"), `attachment; filename="plain.txt"; filename*=UTF-8''plain.txt`);
+    assert.strictEqual(
+      contentDisposition(`l'été "1"; x=\\.png`, "inline"),
+      `inline; filename="l'_t_ _1_; x=_.png"; filename*=UTF-8''l%27%C3%A9t%C3%A9%20%221%22%3B%20x%3D%5C.png`
+    );
+    await this.binary.getSignedUrlFromMap(
+      { hash: "h", name: "l'été.png", mimetype: "image/png" } as any,
+      30,
+      undefined as any
+    );
+    const params = (this.binary.getSignedUrl as any).mock.calls.at(-1)[2];
+    assert.strictEqual(
+      params.ResponseContentDisposition,
+      `attachment; filename="l'_t_.png"; filename*=UTF-8''l%27%C3%A9t%C3%A9.png`
+    );
+    assert.strictEqual(params.ResponseContentType, "image/png");
   }
 
   async afterEach() {

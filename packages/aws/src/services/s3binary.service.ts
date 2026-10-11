@@ -18,6 +18,26 @@ import { AWSServiceParameters, getAWSClientConfig, loadAWSParameters } from "./a
 import type { CloudFormationContributor, CloudFormationDeployerInfo } from "./contributors.js";
 
 /**
+ * Build an RFC 6266 Content-Disposition header value for a file name
+ *
+ * The name is sent twice: a quoted ASCII fallback for old clients and an RFC 5987 UTF-8 `filename*`.
+ * Quotes, backslashes and non-ASCII characters can neither break nor inject into the header (e.g. l'été "1".png)
+ *
+ * @param name - the file name
+ * @param type - the disposition type
+ * @returns the header value
+ */
+export function contentDisposition(name?: string, type: "attachment" | "inline" = "attachment"): string {
+  if (!name) {
+    return type;
+  }
+  const fallback = name.replace(/[^\x20-\x7e]|["\\]/g, "_");
+  // encodeURIComponent keeps ' ( ) * which are not valid in an RFC 5987 value
+  const encoded = encodeURIComponent(name).replace(/['()*]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  return `${type}; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+}
+
+/**
  * S3Binary parameters
  */
 export class S3BinaryParameters extends CloudBinaryParameters implements AWSServiceParameters {
@@ -239,7 +259,7 @@ export class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   async getSignedUrlFromMap(binaryMap: BinaryMap, expire: number, _context: OperationContext) {
     const params: any = {};
     params.Expires = expire; // A get should not take more than 30s
-    params.ResponseContentDisposition = `attachment; filename=${binaryMap.name || binaryMap.originalname}`;
+    params.ResponseContentDisposition = contentDisposition(binaryMap.name || binaryMap.originalname);
     params.ResponseContentType = binaryMap.mimetype;
 
     // Access-Control-Allow-Origin

@@ -97,11 +97,7 @@ export class EncryptedStorage implements StorageAdapter {
     // structuredClone throws on values JSON would silently drop (functions), like the other adapters
     const plain = new TextEncoder().encode(JSON.stringify(structuredClone(secret)));
     const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-    const data = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
-      key,
-      new TextEncoder().encode(JSON.stringify(structuredClone(secret)))
-    );
+    const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, plain);
     const stored: EncryptedRecord = {
       id: record.id,
       ref: record.ref,

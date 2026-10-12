@@ -121,6 +121,7 @@ application/x-ndjson`, SSE fallback) and bidirectional operations over a WebSock
 | --------------------------- | ------------------ | ---------------- | -------------------- | ------------------- |
 | `@webda/sdk/client`         | `HttpTransport`    | REST route       | NDJSON, SSE fallback | bidi over WebSocket |
 | `@webda/sdk/client/graphql` | `GraphQLTransport` | query / mutation | subscription         | not exposed         |
+| `@webda/sdk/client/grpc`    | `GrpcTransport`    | rpc              | native               | native              |
 
 #### GraphQL
 
@@ -148,6 +149,30 @@ optional peer dependency, imported on the first subscription). An operation with
 exposure: list `HttpTransport` after `GraphQLTransport` to fall back to REST. `PATCH` and `PUT` both map to
 `update<Type>`, which merges the attributes. GraphQL error codes map to HTTP-like statuses (`NOT_FOUND` → 404,
 `PERMISSION_DENIED` → 403, `BAD_USER_INPUT` → 400...).
+
+#### gRPC (Node only)
+
+```ts
+import { createClient } from "./webda";
+import { GrpcTransport } from "@webda/sdk/client/grpc";
+
+const api = createClient({
+  transports: [new GrpcTransport({ address: "api.internal:18080", protoFile: ".webda/app.proto" })]
+});
+await api.call("Echo.Say", { text: "hi" }); // unary
+for await (const tick of api.stream("Clock.Ticks", { n: 3 })) {
+} // server stream
+await api.call("Stats.Sum", [{ value: 1 }, { value: 2 }]); // client stream: an (async) iterable of messages
+const chat = api.connect("Chat.Connect"); // bidirectional: send(), close(), for await, closed
+```
+
+`GrpcService` serves `application/grpc` over h2c, which browsers cannot speak: this entry targets Node, React Native,
+Electron and service-to-service calls. The manifest names each rpc as `generateProto()` does (`<Prefix>Service` /
+`<Rest>`) for the operations the `GrpcService` serves; the `.proto` it generated is loaded with `@grpc/proto-loader`
+(`keepCase`, absent fields stay absent) and calls go through `@grpc/grpc-js`, both optional peer dependencies imported
+on the first call. Pass `package` when `GrpcService.packageName` is not `webda`. The call `headers` become metadata;
+gRPC statuses map to HTTP-like statuses (`NOT_FOUND` → 404, `UNAVAILABLE` → 0, i.e. offline...). `GrpcService` decodes
+requests with proto defaults: a required attribute left out arrives as `""` / `0`.
 
 ## `@Shared` methods
 

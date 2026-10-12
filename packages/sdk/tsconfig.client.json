@@ -13,5 +13,5 @@
     "types": []
   },
   "include": ["src/client/**/*"],
-  "exclude": ["**/node_modules", "src/**/*.spec.ts"]
+  "exclude": ["**/node_modules", "src/**/*.spec.ts", "src/client/grpc/**"]
 }

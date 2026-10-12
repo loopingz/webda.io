@@ -129,6 +129,20 @@ export function createIdFilter(include: string[] = [], exclude: string[] = []): 
   return id => includes.some(re => re.test(id)) && !excludes.some(re => re.test(id));
 }
 
+/**
+ * The rpc of an operation, named as `generateProto()` of `@webda/grpc` does: `<Prefix>Service` / the rest of the id,
+ * dots flattened to `_`
+ * @param id - operation id
+ * @returns the service and rpc, undefined when `GrpcService` cannot route the rpc back to the operation (it maps
+ * `<Prefix>Service/<Rpc>` to `<Prefix>.<Rpc>`: an id without a dot, or with a dotted rest, is not reachable)
+ */
+export function grpcNaming(id: string): { service: string; rpc: string } | undefined {
+  const dot = id.indexOf(".");
+  const prefix = dot > 0 ? id.substring(0, dot) : "Default";
+  const rpc = (dot > 0 ? id.substring(dot + 1) : id).replace(/\./g, "_");
+  return `${prefix}.${rpc}` === id ? { service: `${prefix}Service`, rpc } : undefined;
+}
+
 /** The method names `DomainService` registers, to the kind of operation */
 const KIND_BY_METHOD: Record<string, OperationKind> = {
   modelCreate: "create",
@@ -407,6 +421,13 @@ export class SdkManifestBuilder {
     if (grpc) {
       const params = grpc.getParameters();
       manifest.transports.grpc = { package: params.packageName ?? "webda", protoFile: params.protoFile };
+      const served: Record<string, unknown> =
+        typeof grpc.getOperations === "function" ? grpc.getOperations() : listFullOperations();
+      for (const op of Object.values(operations)) {
+        if (!served[op.id]) continue;
+        const naming = grpcNaming(op.id);
+        if (naming) op.grpc = naming;
+      }
     }
     const sync = this.options.offline === false ? undefined : this.serviceOf("SyncService");
     if (sync) {

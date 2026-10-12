@@ -1,7 +1,7 @@
 import { useApplication } from "@webda/core";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { createIdFilter, globToRegExp } from "./manifest.js";
+import { createIdFilter, globToRegExp, grpcNaming } from "./manifest.js";
 import { SampleAppTest } from "../test/sample-app.js";
 
 @suite
@@ -126,6 +126,14 @@ class SdkManifestTest extends SampleAppTest {
       "WebdaDemo/Project",
       "WebdaDemo/AbstractProject"
     ]);
+  }
+
+  @test
+  namesRpcsAsGenerateProtoDoes() {
+    assert.deepStrictEqual(grpcNaming("Company.Get"), { service: "CompanyService", rpc: "Get" });
+    // GrpcService routes `<Prefix>Service/<Rpc>` back to `<Prefix>.<Rpc>`: these ids cannot be reached
+    assert.strictEqual(grpcNaming("Post.MainImage.Delete"), undefined);
+    assert.strictEqual(grpcNaming("NoDot"), undefined);
   }
 
   @test

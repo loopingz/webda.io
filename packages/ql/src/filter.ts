@@ -150,6 +150,13 @@ function fieldToExpressions(key: string, value: any, parts: Expression[]): void 
     }
   }
 }
+/**
+ * Convert a JSON filter and its find options to a WebdaQL query string
+ * @param filter - the JSON filter
+ * @param options - ordering, limit and continuation token
+ * @returns the WebdaQL query
+ * @throws {WebdaQLError} for an invalid filter
+ */
 export function toWebdaQL<T extends object = any>(filter: ModelFilter<T>, options?: FindOptions<T>): WebdaQLString<T> {
   const q = normalizeQuery({
     type: "SELECT",

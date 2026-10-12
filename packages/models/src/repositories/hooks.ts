@@ -93,11 +93,25 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
       query: WebdaQLString<InstanceType<T>>,
       params?: QueryParameters
     ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
+    /**
+     * Query the object directly with a JSON filter, converted to WebdaQL
+     * @param this - the model class constructor
+     * @param filter - the JSON filter
+     * @param options - ordering, limit and continuation token
+     * @returns the query results
+     */
     static query<T extends ModelClass>(
       this: T,
       filter: ModelFilter<InstanceType<T>>,
       options?: FindOptions<InstanceType<T>>
     ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
+    /**
+     * Query the object directly with a query string or a JSON filter
+     * @param this - the model class constructor
+     * @param query - the query string or the JSON filter
+     * @param paramsOrOptions - the placeholder values of a query string, or the find options of a JSON filter
+     * @returns the query results
+     */
     static async query<T extends ModelClass>(
       this: T,
       query: WebdaQLString<InstanceType<T>> | ModelFilter<InstanceType<T>>,
@@ -122,11 +136,25 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
       query: WebdaQLString<InstanceType<T>>,
       params?: QueryParameters
     ): AsyncGenerator<InstanceType<T>, any, any>;
+    /**
+     * Iterate through the objects matching a JSON filter, converted to WebdaQL
+     * @param this - the model class constructor
+     * @param filter - the JSON filter
+     * @param options - the ordering
+     * @returns an async generator of model instances
+     */
     static iterate<T extends ModelClass>(
       this: T,
       filter: ModelFilter<InstanceType<T>>,
       options?: Pick<FindOptions<InstanceType<T>>, "orderBy">
     ): AsyncGenerator<InstanceType<T>, any, any>;
+    /**
+     * Iterate through the objects matching a query string or a JSON filter
+     * @param this - the model class constructor
+     * @param query - the query string or the JSON filter
+     * @param params - the placeholder values of a query string, or the ordering of a JSON filter
+     * @returns an async generator of model instances
+     */
     static async *iterate<T extends ModelClass>(
       this: T,
       query: WebdaQLString<InstanceType<T>> | ModelFilter<InstanceType<T>>,

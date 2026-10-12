@@ -9,7 +9,7 @@ export type RawObject = Record<string, unknown>;
 
 /**
  * Where a `ModelClient` reads and writes its objects: the server through the transports and the cache
- * (`RemoteBackend`), or a local replica (an offline backend, extension point)
+ * (`RemoteBackend`), or a local replica (`OfflineBackend` of `@webda/sdk/client/offline`)
  */
 export interface ModelBackend {
   get(uid: string, options: CallOptions): Promise<RawObject>;
@@ -282,7 +282,8 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
    * @param client - the client
    * @param descriptor - the model
    * @param modelClass - the generated class
-   * @param backend - where the objects live @default RemoteBackend
+   * @param backend - where the objects live @default the client's offline backend for a synced model, else
+   * RemoteBackend
    */
   constructor(
     readonly client: WebdaClient<any>,
@@ -291,7 +292,7 @@ export class ModelClient<T extends SdkModel = SdkModel> extends Emitter<{ change
     backend?: ModelBackend
   ) {
     super();
-    this.backend = backend ?? new RemoteBackend(client, descriptor);
+    this.backend = backend ?? client.backendFor?.(descriptor) ?? new RemoteBackend(client, descriptor);
     client.cache.on("change", event => {
       if (event.model === descriptor.id) this.emit("change", event);
     });

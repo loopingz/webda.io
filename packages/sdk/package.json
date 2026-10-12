@@ -22,6 +22,10 @@
       "types": "./lib/client/grpc/index.d.ts",
       "node": "./lib/client/grpc/index.js",
       "import": "./lib/client/grpc/index.js"
+    },
+    "./client/offline": {
+      "types": "./lib/client/offline/index.d.ts",
+      "import": "./lib/client/offline/index.js"
     }
   },
   "scripts": {
@@ -61,6 +65,7 @@
     "@webda/graphql": "workspace:*",
     "@webda/grpc": "workspace:*",
     "@webda/models": "workspace:*",
+    "@webda/offline": "workspace:*",
     "@webda/ql": "workspace:*",
     "@webda/test": "workspace:*",
     "graphql": "^16.13.2",
@@ -73,6 +78,7 @@
     "@grpc/proto-loader": "^0.7.0",
     "@webda/graphql": "workspace:^",
     "@webda/grpc": "workspace:^",
+    "@webda/offline": "workspace:^",
     "graphql-ws": "^6.0.8"
   },
   "peerDependenciesMeta": {
@@ -86,6 +92,9 @@
       "optional": true
     },
     "@webda/grpc": {
+      "optional": true
+    },
+    "@webda/offline": {
       "optional": true
     },
     "graphql-ws": {

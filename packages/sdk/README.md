@@ -160,8 +160,7 @@ const api = createClient({
   transports: [new GrpcTransport({ address: "api.internal:18080", protoFile: ".webda/app.proto" })]
 });
 await api.call("Echo.Say", { text: "hi" }); // unary
-for await (const tick of api.stream("Clock.Ticks", { n: 3 })) {
-} // server stream
+for await (const tick of api.stream("Clock.Ticks", { n: 3 })) console.log(tick); // server stream
 await api.call("Stats.Sum", [{ value: 1 }, { value: 2 }]); // client stream: an (async) iterable of messages
 const chat = api.connect("Chat.Connect"); // bidirectional: send(), close(), for await, closed
 ```
@@ -173,6 +172,43 @@ Electron and service-to-service calls. The manifest names each rpc as `generateP
 on the first call. Pass `package` when `GrpcService.packageName` is not `webda`. The call `headers` become metadata;
 gRPC statuses map to HTTP-like statuses (`NOT_FOUND` → 404, `UNAVAILABLE` → 0, i.e. offline...). `GrpcService` decodes
 requests with proto defaults: a required attribute left out arrives as `""` / `0`.
+
+### Offline
+
+```ts
+import { createClient } from "./webda";
+import { offline } from "@webda/sdk/client/offline";
+import { IndexedDBStorage } from "@webda/offline/client";
+
+const api = createClient({
+  baseUrl,
+  offline: offline({
+    storage: new IndexedDBStorage("myapp"),
+    scopes: [{ model: "MyApp/Task", query: "owner = 'me'" }], // default: one unfiltered scope per synced model
+    onConflict: "manual"
+  })
+});
+
+await api.Task.patch(uuid, { status: "done" }); // written locally, pushed by the OfflineClient
+api.Task.on("change", rerender); // fires on local writes and on pulled server changes
+await api.offline.conflicts(); // OfflineClient surface re-exposed
+```
+
+When the application has a `Webda/SyncService` (`manifest.offline`, the generated `SERVER.offline`), `offline()` serves
+the models it syncs from a local replica of `@webda/offline/client` (an optional peer dependency, imported when the
+client is created); every other model keeps going through the transports.
+
+- `ModelClient` delegates its CRUD and queries to a `ModelBackend`: `OfflineBackend` for the synced models,
+  `RemoteBackend` (transports and cache) for the others; the hydration is the same.
+- Reads and writes of a synced model are local and succeed while the server is down; an object the replica does not
+  hold is read from the server. Queries evaluate their filter locally, then apply `ORDER BY`, `LIMIT` and `OFFSET`.
+- `SyncTransportAdapter` implements the offline client's `Transport` with the `Sync.*` operations, through the SDK
+  transports: the same headers and authentication, and the protocol works over REST, GraphQL or gRPC.
+- The sync loop starts with the client (`start: false` to drive it with `api.offline.sync()`). `api.offline` exposes
+  `sync()`, `start()`, `stop()`, `status`, `conflicts()`, `resolve()`, `discard()` and the `change` / `status` /
+  `conflict` / `error` events; `createClient()` types it as the extension given.
+- An object with an open conflict cannot be written (`SdkError` 409) until it is resolved or discarded. Custom actions
+  and behaviors still need the server.
 
 ## `@Shared` methods
 

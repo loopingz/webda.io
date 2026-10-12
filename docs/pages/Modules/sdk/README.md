@@ -68,6 +68,7 @@ Programmatically: `generateSdk(manifest, options)` returns `{ "index.ts": ..., "
 ├── index.ts         createClient(options) → typed client with a property per model; re-exports
 ├── types.ts         interfaces from every schema
 ├── operations.ts    interface Operations { "Task.Get": { input: UuidRequest; output: Task } … } + OPERATIONS / MODELS
+│                    + SERVER (the transports the application serves, its SyncService)
 ├── models.ts        class Task extends SdkModel<TaskData> { declare owner: Link<User>; isOverdue() {…} } + TaskClient
 ├── manifest.json    the SdkManifest
 └── package.json     only when `package` is set
@@ -192,6 +193,57 @@ React Native, Electron and service-to-service use, never for browsers (it is lef
 - The call `headers` (and the `headers()` option) become metadata. Statuses map to HTTP-like ones: `NOT_FOUND` 404,
   `INVALID_ARGUMENT` 400, `PERMISSION_DENIED` 403, `UNAUTHENTICATED` 401, `UNAVAILABLE` 0 (offline).
 - `GrpcService` decodes requests with proto defaults: a required attribute left out arrives as `""` or `0`.
+
+## Offline
+
+When the application has a [`SyncService`](../offline/README.md), the manifest (and the generated `SERVER` constant)
+lists the models it syncs and its `Sync.*` operations. A client given `offline()` serves those models offline-first
+from a local replica of `@webda/offline/client`; every other model keeps going through the transports.
+
+```ts
+import { createClient } from "./webda";
+import { offline } from "@webda/sdk/client/offline";
+import { IndexedDBStorage } from "@webda/offline/client";
+
+const api = createClient({
+  baseUrl,
+  offline: offline({
+    storage: new IndexedDBStorage("myapp"),
+    scopes: [{ model: "MyApp/Task", query: "owner = 'me'" }], // default: one unfiltered scope per synced model
+    onConflict: "manual"
+  })
+});
+
+await api.Task.patch(uuid, { status: "done" }); // written locally, pushed by the sync loop
+api.Task.on("change", rerender); // local writes and pulled server changes
+await api.offline.conflicts(); // OfflineClient surface: sync(), start(), stop(), status, resolve(), discard()
+```
+
+```mermaid
+flowchart LR
+    MC[ModelClient Task] --> B{backend}
+    B -->|synced model + offline configured| OB[OfflineBackend<br/>OfflineClient.collection]
+    B -->|otherwise| RB[RemoteBackend<br/>Transport + EntityCache]
+    OB --> ST[(StorageAdapter<br/>IndexedDB / Memory)]
+    OB --> OC[OfflineClient sync loop]
+    OC --> SA[SyncTransportAdapter] --> T[SDK transports<br/>Sync.Pull / Push / Snapshot / Watch]
+```
+
+- `ModelClient` delegates to a `ModelBackend`: `OfflineBackend` for the synced models, `RemoteBackend` (transports and
+  cache) for the others. Hydration is the same, so the UI does not know which backend answers.
+- Reads and writes of a synced model are local: they succeed while the server is unreachable. `get` of an object the
+  replica does not hold (outside the scopes, not synced yet) asks the server. Queries evaluate their filter locally;
+  `ORDER BY`, `LIMIT` and `OFFSET` are applied on the result. `update` merges, like `patch`.
+- `SyncTransportAdapter` implements the offline client's `Transport` by calling the `Sync.*` operations through the SDK
+  transports: one headers/authentication configuration, and the sync protocol works over REST, GraphQL or gRPC.
+- The sync loop starts with the client (`start: false` to drive it with `api.offline.sync()`); a sync while the server
+  is down rejects with an offline `SdkError` (`status: 0`), the writes wait for the next one.
+- The cache follows the replica: local writes and pulled changes set the cached entity, so `change` fires on the model
+  client.
+- An object with an open conflict cannot be written (`SdkError` 409) until `api.offline.resolve()` or `discard()`.
+- Custom actions and behaviors of a synced model still need the server: they go through the transports.
+- `@webda/offline` is an optional peer dependency, imported when the client is created; `createClient()` types
+  `api.offline` as the extension given.
 
 ## `@Shared` methods
 

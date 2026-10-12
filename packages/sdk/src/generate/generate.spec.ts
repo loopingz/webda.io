@@ -13,6 +13,9 @@ import type { Company, User, SubSubProjectClient } from "./models.js";
 import type { Operations } from "./operations.js";
 
 const api = createClient({ baseUrl: "https://api.example.com" });
+// No offline extension given: \`offline\` is typed undefined
+const none: undefined = api.offline;
+void none;
 async function run(client: SubSubProjectClient) {
   const company: Company = await api.Company.get("c1");
   const name: string = company.name;
@@ -113,7 +116,11 @@ class GenerateSdkTest extends SampleAppTest {
     assert.match(files["models.ts"], /readonly password = \{/);
     // Index
     assert.match(files["index.ts"], /readonly Company: CompanyClient;/);
-    assert.match(files["index.ts"], /export function createClient\(options: ClientOptions = \{\}\): Client \{/);
+    assert.match(
+      files["index.ts"],
+      /export function createClient<O extends OfflineExtension \| undefined = undefined>\(\n  options: ClientOptions & \{ offline\?: O \} = \{\}\n\): Client & \{ readonly offline: O \} \{/
+    );
+    assert.match(files["operations.ts"], /export const SERVER: ServerManifest = \{/);
     const dir = writeSdk(files, { "check.ts": TYPE_CHECKS });
     try {
       assert.strictEqual(typeCheck(dir), "");
@@ -128,7 +135,7 @@ class GenerateSdkTest extends SampleAppTest {
     const files = await generateSdk(manifest, { models: false });
     assert.strictEqual(files["models.ts"], undefined);
     assert.ok(!files["index.ts"].includes("models.js"));
-    assert.match(files["index.ts"], /return client;/);
+    assert.match(files["index.ts"], /return client as Client & \{ readonly offline: O \};/);
     const dir = writeSdk(files);
     try {
       assert.strictEqual(typeCheck(dir), "");

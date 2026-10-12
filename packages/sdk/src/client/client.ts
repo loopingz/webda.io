@@ -2,7 +2,7 @@ import { EntityCache, type CacheOptions } from "./cache.js";
 import { Emitter } from "./emitter.js";
 import { SdkError } from "./errors.js";
 import { HttpTransport, type HttpTransportOptions } from "./http.js";
-import type { ModelClient } from "./model-client.js";
+import type { ModelBackend, ModelClient } from "./model-client.js";
 import type { SdkModel } from "./model.js";
 import {
   MUTATION_KINDS,
@@ -15,8 +15,25 @@ import {
   type OperationSignature,
   type OperationsManifest,
   type OperationsMap,
+  type ServerManifest,
   type Transport
 } from "./types.js";
+
+/**
+ * Serves some models from a local replica: `offline()` of `@webda/sdk/client/offline` (extension point)
+ */
+export interface OfflineExtension {
+  /**
+   * Called once by the client it is given to, before the model clients are created
+   * @param client - the client
+   */
+  attach(client: WebdaClient<any>): void;
+  /**
+   * @param descriptor - a model
+   * @returns the backend of the model, undefined to keep the transports (`RemoteBackend`)
+   */
+  backend(descriptor: ModelDescriptor): ModelBackend | undefined;
+}
 
 /** Options of `createClient()` */
 export interface ClientOptions extends Partial<Omit<HttpTransportOptions, "baseUrl">> {
@@ -29,6 +46,8 @@ export interface ClientOptions extends Partial<Omit<HttpTransportOptions, "baseU
   transports?: Transport[];
   /** Cache policy, or a cache shared between clients */
   cache?: CacheOptions | EntityCache;
+  /** Serve the models synced by the application's `SyncService` offline-first: `offline({ storage })` */
+  offline?: OfflineExtension;
 }
 
 /**
@@ -43,22 +62,43 @@ export class WebdaClient<Ops extends OperationsMap<Ops> = Record<string, Operati
   readonly models: ModelsManifest;
   readonly cache: EntityCache;
   readonly transports: Transport[];
+  /** What the application serves: its transports and its `SyncService` */
+  readonly server: ServerManifest;
+  /** The offline extension, when configured */
+  readonly offline?: OfflineExtension;
   protected readonly modelClients = new Map<string, ModelClient<any>>();
 
   /**
    * @param options - client options with the manifests
    */
-  constructor(options: ClientOptions & { operations: OperationsManifest; models?: ModelsManifest }) {
+  constructor(
+    options: ClientOptions & { operations: OperationsManifest; models?: ModelsManifest; server?: ServerManifest }
+  ) {
     super();
     this.operations = options.operations;
     this.models = options.models ?? {};
+    this.server = options.server ?? { transports: {} };
     this.cache = options.cache instanceof EntityCache ? options.cache : new EntityCache(options.cache);
     this.cache.on("change", event => this.emit("change", event));
-    const { transports, cache, operations, models, baseUrl, ...http } = options;
+    const { transports, cache, operations, models, server, offline, baseUrl, ...http } = options;
     void cache;
     void operations;
     void models;
+    void server;
     this.transports = transports ?? [new HttpTransport({ baseUrl: baseUrl ?? "/", ...http })];
+    if (offline) {
+      this.offline = offline;
+      offline.attach(this);
+    }
+  }
+
+  /**
+   * @param descriptor - a model
+   * @returns where its objects live: the offline replica for a synced model when `offline` is configured, else the
+   * transports
+   */
+  backendFor(descriptor: ModelDescriptor): ModelBackend | undefined {
+    return this.offline?.backend(descriptor);
   }
 
   /**

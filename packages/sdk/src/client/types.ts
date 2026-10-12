@@ -155,6 +155,22 @@ export interface ModelDescriptor {
 /** Model id to descriptor */
 export type ModelsManifest = Record<string, ModelDescriptor>;
 
+/** What the application serves (`manifest.transports` and `manifest.offline`), generated as `SERVER` */
+export interface ServerManifest {
+  transports: {
+    rest?: { url: string };
+    graphql?: { url: string; subscriptions?: boolean };
+    grpc?: { package: string; protoFile: string };
+  };
+  /** Present when a `Webda/SyncService` is configured */
+  offline?: {
+    /** Models the `SyncService` syncs */
+    models: string[];
+    /** Ids of the `Sync.*` operations */
+    operations: { pull: string; push: string; snapshot: string; watch?: string };
+  };
+}
+
 /** Input and output types of one operation */
 export interface OperationSignature {
   input: unknown;

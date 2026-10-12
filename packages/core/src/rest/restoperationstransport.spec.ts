@@ -464,6 +464,51 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
   }
 
   @test
+  async queryBodyNotJsonHTTP() {
+    const transport = new RESTOperationsTransport(
+      "TestRESTTransportQueryBody",
+      new RESTOperationsTransportParameters().load({ url: "/qb/", exposeOpenAPI: false })
+    );
+    this.registerService(transport);
+    transport.resolve();
+    await transport.init();
+    const User = useModel<any>("User");
+    registerRepository(User, new MemoryRepository(User, ["uuid"]));
+    await User.create({ uuid: "u-qb", name: "qb", company: "c1" });
+    // A malformed JSON body (here unescaped quotes) is a client error, not a 500 "reading 'q' of undefined"
+    await assert.rejects(
+      () =>
+        this.routerHttp({
+          method: "PUT",
+          url: "/qb/companies/c1/users",
+          body: '{"q":"name = "qb""}',
+          headers: { "content-type": "application/json" }
+        }),
+      (err: any) => err instanceof WebdaError.BadRequest
+    );
+    // A JSON body that is not an object carries no query either
+    await assert.rejects(
+      () => this.routerHttp({ method: "PUT", url: "/qb/companies/c1/users", body: "null" }),
+      (err: any) => err instanceof WebdaError.BadRequest
+    );
+    // No body at all queries everything, like {"q": ""}
+    const all = await this.routerHttp<{ results: any[] }>({ method: "PUT", url: "/qb/companies/c1/users" });
+    assert.deepStrictEqual(
+      all.results.map(r => r.uuid),
+      ["u-qb"]
+    );
+    const escaped = await this.routerHttp<{ results: any[] }>({
+      method: "PUT",
+      url: "/qb/companies/c1/users",
+      body: { q: 'name = "qb"' }
+    });
+    assert.deepStrictEqual(
+      escaped.results.map(r => r.uuid),
+      ["u-qb"]
+    );
+  }
+
+  @test
   async queryInvalidQueryHTTP() {
     const transport = new RESTOperationsTransport(
       "TestRESTTransportInvalidQ",

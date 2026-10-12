@@ -733,7 +733,17 @@ export class RESTOperationsTransport<
         let queryString = "";
         const parentId = `pid.${depth - 1}`;
         if (context.getHttpContext().getMethod() === "PUT") {
-          queryString = (await context.getInput()).q ?? "";
+          const input = await context.getInput();
+          if (input === undefined || input === null) {
+            // getInput() yields undefined for an empty body (query everything) but also for a body that is not
+            // JSON: report the latter as a client error instead of failing on `.q`
+            if ((await context.getRawInputAsString()).trim() !== "") {
+              throw new WebdaError.BadRequest("Query body must be a JSON object");
+            }
+          } else if (typeof input !== "object") {
+            throw new WebdaError.BadRequest("Query body must be a JSON object");
+          }
+          queryString = input?.q ?? "";
           context.clearInput();
         } else {
           queryString = context.parameter("q", "");

@@ -11,3 +11,9 @@ export function Action(..._args: any[]): any {
 export function Operation(..._args: any[]): any {
   return () => {};
 }
+export function Shared(..._args: any[]): any {
+  return () => {};
+}
+export function useContext(): any {
+  return undefined;
+}

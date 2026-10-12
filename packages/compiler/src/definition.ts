@@ -264,6 +264,34 @@ export interface ModelMetadata {
       };
     };
   };
+  /**
+   * Methods marked `@Shared()`: copied into the frontend SDK by `@webda/sdk`
+   *
+   * Only present when the model declares some.
+   */
+  Shared?: {
+    [method: string]: SharedMethodMetadata;
+  };
+}
+
+/**
+ * A model method shared with the frontend SDK (`@Shared()`)
+ */
+export interface SharedMethodMetadata {
+  /**
+   * Static method
+   */
+  static?: boolean;
+  /**
+   * The method declaration, decorators removed, type annotations kept
+   */
+  source: string;
+  /**
+   * Identifiers the body uses from the allowlisted modules (`sharedImports`), by module specifier
+   */
+  imports?: {
+    [module: string]: string[];
+  };
 }
 
 /**

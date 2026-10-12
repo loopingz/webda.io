@@ -11,6 +11,7 @@ import {
   buildModelActions,
   buildModelPrimaryKey,
   buildModelPrimaryKeySeparator,
+  buildModelShared,
   buildCommands,
   generateWebdaModule,
   getPlural,
@@ -112,6 +113,65 @@ describe("module metadata on a fixture", () => {
     const named = buildBehaviorActions(session.ctx, classOf(session, "behaviors.ts", "Named"), "Custom/Named");
     expect(Object.keys(named)).toEqual(["own", "read", "write", "bare"]);
     expect(named.own).toEqual({});
+  });
+
+  it("records @Shared methods with their source and allowlisted imports", () => {
+    const { methods, errors } = buildModelShared(session.ctx, classOf(session, "shared.ts", "Invoice"), {
+      modelName: "Fixture/Invoice",
+      sharedImports: ["./helpers.js"]
+    });
+    expect(errors).toEqual([]);
+    expect(Object.keys(methods)).toEqual([
+      "isOverdue",
+      "total",
+      "minimum",
+      "label",
+      "withType",
+      "toProxy",
+      "sortByDue",
+      "shorthand"
+    ]);
+    expect(methods.isOverdue).toEqual({
+      source:
+        "isOverdue(now: Date = new Date()): boolean {\n" +
+        '    const late = this.status === "open" && this.due.getTime() < now.getTime();\n' +
+        "    return late && this.total() > Math.max(0, Invoice.minimum());\n" +
+        "  }"
+    });
+    expect(methods.minimum).toEqual({ static: true, source: "static minimum(): number {\n    return 0;\n  }" });
+    expect(methods.label.imports).toEqual({ "./helpers.js": ["formatDate"] });
+    expect(methods.withType.imports).toEqual({ "./helpers.js": ["Money"] });
+    expect(methods.sortByDue.static).toBe(true);
+    expect(methods.toProxy.imports).toBeUndefined();
+    // The decorator is stripped, the JSDoc with it
+    expect(methods.isOverdue.source.startsWith("isOverdue(")).toBe(true);
+  });
+
+  it("fails an impure @Shared method with the offending identifier and module", () => {
+    const { methods, errors } = buildModelShared(session.ctx, classOf(session, "shared.ts", "Impure"), {
+      modelName: "Fixture/Impure",
+      sharedImports: ["./helpers.js"]
+    });
+    expect(Object.keys(methods)).toHaveLength(7);
+    expect(errors).toEqual([
+      `Fixture/Impure.usesContext is @Shared but references 'useContext' from "./decorators.js"`,
+      "Fixture/Impure.usesLocal is @Shared but references 'helper' declared in src/shared.ts",
+      "Fixture/Impure.usesLocal is @Shared but references 'RATE' declared in src/shared.ts",
+      "Fixture/Impure.usesSave is @Shared but references 'this.save()' which is not @Shared",
+      "Fixture/Impure.usesAction is @Shared but references 'this.action()' which is not @Shared",
+      "Fixture/Impure.usesUnknownStatic is @Shared but references 'Impure.nope()' which is not @Shared",
+      "Fixture/Impure.usesSuper is @Shared but references 'super'",
+      "Fixture/Impure.usesUnresolved is @Shared but references 'notDeclaredAnywhere' which cannot be resolved"
+    ]);
+    // A module outside the allowlist is named
+    const strict = buildModelShared(session.ctx, classOf(session, "shared.ts", "Invoice"), {
+      modelName: "Fixture/Invoice",
+      sharedImports: []
+    });
+    expect(strict.errors).toEqual([
+      `Fixture/Invoice.label is @Shared but references 'formatDate' from "./helpers.js"`,
+      `Fixture/Invoice.withType is @Shared but references 'Money' from "./helpers.js"`
+    ]);
   });
 
   it("keys model actions by the @Action name option and records the method as handler", () => {
@@ -246,6 +306,7 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
       expect(JSON.stringify(got.Actions), `${name} Actions`).toBe(JSON.stringify(entry.Actions));
       expect(JSON.stringify(got.Events), `${name} Events`).toBe(JSON.stringify(entry.Events));
       expect(JSON.stringify(got.PrimaryKey), `${name} PrimaryKey`).toBe(JSON.stringify(entry.PrimaryKey));
+      expect(JSON.stringify(got.Shared), `${name} Shared`).toBe(JSON.stringify(entry.Shared));
     }
   });
 

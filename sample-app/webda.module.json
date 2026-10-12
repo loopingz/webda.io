@@ -1537,7 +1537,12 @@
       "PrimaryKey": [
         "uuid"
       ],
-      "Identifier": "WebdaDemo/Company"
+      "Identifier": "WebdaDemo/Company",
+      "Shared": {
+        "hasPermission": {
+          "source": "hasPermission(permission: string): boolean {\n    return ((this.permissions ?? []) as string[]).includes(permission);\n  }"
+        }
+      }
     },
     "WebdaDemo/Computer": {
       "Plural": "Computers",
@@ -3074,7 +3079,16 @@
       "PrimaryKey": [
         "uuid"
       ],
-      "Identifier": "WebdaDemo/Project"
+      "Identifier": "WebdaDemo/Project",
+      "Shared": {
+        "displayName": {
+          "source": "displayName(): string {\n    return this.type ? `${this.name} (${this.type})` : this.name;\n  }"
+        },
+        "sortByName": {
+          "static": true,
+          "source": "static sortByName<T extends { name: string }>(projects: T[]): T[] {\n    return [...projects].sort((a, b) => a.name.localeCompare(b.name));\n  }"
+        }
+      }
     },
     "WebdaDemo/Student": {
       "Plural": "Students",

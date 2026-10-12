@@ -65,6 +65,8 @@ export interface SchemaRequest {
   namespace?: string;
   /** Top-level `capabilities`, for a `module` request; defaults to package.json `webda.capabilities`. */
   capabilities?: Record<string, string>;
+  /** Modules a `@Shared` model method may import from, for a `module` request. */
+  sharedImports?: string[];
 }
 
 /** A batch of requests against one project. */
@@ -122,7 +124,8 @@ export function handle(request: WorkerRequest): WorkerResponse {
             rootDir: item.rootDir ?? join(request.project, "src"),
             outDir: item.outDir ?? join(request.project, "lib"),
             namespace: item.namespace ?? namespaceOf(request.project),
-            capabilities: item.capabilities
+            capabilities: item.capabilities,
+            sharedImports: item.sharedImports
           }) as unknown as JSONSchema7;
           continue;
         }

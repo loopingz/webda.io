@@ -71,6 +71,8 @@ export interface BuildOptions {
   namespace?: string;
   /** `webda.capabilities` from the application's package.json. */
   capabilities?: unknown;
+  /** Modules a `@Shared` model method may import from; the content mapper's default when undefined. */
+  sharedImports?: string[];
   /** Skip module generation; emit only. */
   emitOnly?: boolean;
 }
@@ -115,7 +117,13 @@ function resolveWorker(projectRoot: string): string {
 export function build(projectRoot: string, options: BuildOptions = {}): BuildResult {
   const requests: object[] = [{ id: "emit", kind: "emit" }];
   if (!options.emitOnly) {
-    requests.push({ id: "module", kind: "module", namespace: options.namespace, capabilities: options.capabilities });
+    requests.push({
+      id: "module",
+      kind: "module",
+      namespace: options.namespace,
+      capabilities: options.capabilities,
+      sharedImports: options.sharedImports
+    });
   }
 
   const started = Date.now();
@@ -134,6 +142,9 @@ export function build(projectRoot: string, options: BuildOptions = {}): BuildRes
     throw new Error(`Build worker rejected ${failed.map(([id, message]) => `${id}: ${message}`).join("; ")}`);
   }
   const emit: EmitReport = response.results.emit;
-  useLog("DEBUG", `Build worker: ${emit.written} files, edits ${JSON.stringify(emit.editCounts)}, ${Date.now() - started}ms`);
+  useLog(
+    "DEBUG",
+    `Build worker: ${emit.written} files, edits ${JSON.stringify(emit.editCounts)}, ${Date.now() - started}ms`
+  );
   return { emit, module: emit.diagnosticCount === 0 ? response.results.module : undefined };
 }

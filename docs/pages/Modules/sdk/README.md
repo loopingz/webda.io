@@ -127,8 +127,43 @@ libraries.
 
 The client takes an ordered list of transports and uses the first whose `supports(op)` is true. `HttpTransport` (REST)
 is the default; a `client`-streaming operation cannot be carried by HTTP and raises a clear `SdkError`. Every failure is
-an `SdkError { status, code?, message, body, transport }`, `status: 0` when the server is unreachable. GraphQL, gRPC and
-offline-first backends plug into the `Transport` and `ModelBackend` interfaces.
+an `SdkError { status, code?, message, body, transport }`, `status: 0` when the server is unreachable.
+
+| Entry                       | Transport          | Runs in | Unary            | Server stream        | Client / bidi       |
+| --------------------------- | ------------------ | ------- | ---------------- | -------------------- | ------------------- |
+| `@webda/sdk/client`         | `HttpTransport`    | any     | REST route       | NDJSON, SSE fallback | bidi over WebSocket |
+| `@webda/sdk/client/graphql` | `GraphQLTransport` | any     | query / mutation | subscription         | not exposed         |
+
+### GraphQL
+
+```ts
+import { createClient, HttpTransport } from "./webda";
+import { GraphQLTransport } from "@webda/sdk/client/graphql";
+
+const api = createClient({
+  transports: [
+    new GraphQLTransport({ url: "https://api.example.com/graphql" }),
+    new HttpTransport({ baseUrl: "https://api.example.com" })
+  ]
+});
+const user = await api.User.get(uuid, { select: ["name", "company.name"] });
+```
+
+When a [`GraphQLService`](../graphql/README.md) is configured, the manifest records the GraphQL field of every
+operation it exposes (the service's own `graphqlPlacement()`, and `task` / `tasks` / `createTask` / `updateTask` /
+`deleteTask` for the CRUD), the field arguments and the selection set of the result, read from the generated schema.
+
+- Relations are selected as their target's primary key and reshaped into the uids the REST API sends: results
+  normalize into the cache exactly as over REST.
+- `{ select: ["name", "company.name"] }` fetches a projection in one round-trip; the projected fields of a relation are
+  readable on its `Link`. A projection refreshes an entity already cached, it is never cached as a whole one.
+- Server-streaming operations are subscriptions over `graphql-ws`, an optional peer dependency imported on the first
+  subscription.
+- `PATCH` and `PUT` both use `update<Type>`, which merges the attributes.
+- An operation with `graphql: false` (or filtered out by `exposeOperations`) has no GraphQL exposure: with
+  `[graphql, rest]` it goes through REST, with `[graphql]` alone it raises `SdkError("... not exposed ...")`.
+- Error codes map to HTTP-like statuses: `NOT_FOUND` 404, `PERMISSION_DENIED` 403, `BAD_USER_INPUT` 400, `CONFLICT`
+  409, `TOO_MANY_OPERATIONS` 429.
 
 ## `@Shared` methods
 

@@ -114,9 +114,40 @@ object passes the parent ids itself.
 
 `createClient({ transports: [...] })` takes an ordered list of `Transport`s; each call uses the first whose
 `supports(op)` is true. `HttpTransport` (REST, default) carries unary calls, server streams (`Accept:
-application/x-ndjson`, SSE fallback) and bidirectional operations over a WebSocket. GraphQL, gRPC and offline backends
-plug into the same `Transport` / `ModelBackend` interfaces (follow-ups). Every failure is an
+application/x-ndjson`, SSE fallback) and bidirectional operations over a WebSocket. Every failure is an
 `SdkError { status, code?, message, body, transport }`; `status` is `0` when the server cannot be reached.
+
+| Entry                       | Transport          | Unary            | Server stream        | Client / bidi       |
+| --------------------------- | ------------------ | ---------------- | -------------------- | ------------------- |
+| `@webda/sdk/client`         | `HttpTransport`    | REST route       | NDJSON, SSE fallback | bidi over WebSocket |
+| `@webda/sdk/client/graphql` | `GraphQLTransport` | query / mutation | subscription         | not exposed         |
+
+#### GraphQL
+
+```ts
+import { createClient, HttpTransport } from "./webda";
+import { GraphQLTransport } from "@webda/sdk/client/graphql";
+
+const api = createClient({
+  transports: [
+    new GraphQLTransport({ url: "https://api.example.com/graphql" }),
+    new HttpTransport({ baseUrl: "https://api.example.com" }) // for the operations GraphQL does not expose
+  ]
+});
+const user = await api.User.get(uuid, { select: ["name", "company.name"] }); // one round-trip
+user.company.name; // the projected fields are readable on the Link
+```
+
+The manifest records, for each operation the `GraphQLService` exposes, its root field (the `graphqlPlacement()` of the
+service operations, `task` / `tasks` / `createTask` / `updateTask` / `deleteTask` for the CRUD), its arguments and the
+selection set of its result, read from the generated GraphQL schema. Relations are selected as their target's primary
+key and reshaped into the uids the REST API sends, so the results normalize into the cache the same way. `select`
+narrows the selection to a projection (dotted paths go through relations); a projected object refreshes an entity
+already cached but is never cached as a whole one. Server-streaming operations are subscriptions over `graphql-ws` (an
+optional peer dependency, imported on the first subscription). An operation with `graphql: false` has no GraphQL
+exposure: list `HttpTransport` after `GraphQLTransport` to fall back to REST. `PATCH` and `PUT` both map to
+`update<Type>`, which merges the attributes. GraphQL error codes map to HTTP-like statuses (`NOT_FOUND` → 404,
+`PERMISSION_DENIED` → 403, `BAD_USER_INPUT` → 400...).
 
 ## `@Shared` methods
 

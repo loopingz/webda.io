@@ -1,13 +1,4 @@
-import {
-  registerOperation,
-  Service,
-  ServiceParameters,
-  useApplication,
-  useInstanceStorage,
-  useModel,
-  useService,
-  WebdaError
-} from "@webda/core";
+import { useModel, useService } from "@webda/core";
 import { HttpServer } from "@webda/core/lib/services/httpserver.service.js";
 import type { TestApplication } from "@webda/core/lib/test/objects.js";
 import { suite, test } from "@webda/test";
@@ -17,38 +8,10 @@ import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { SampleAppTest } from "../test/sample-app.js";
 import { writeSdk } from "../test/compile.js";
+import { registerSdkFixture, SdkFixtureService } from "../test/sdk-fixture.js";
 import { SdkError } from "./client/errors.js";
 import { Link, Related, SdkModel } from "./client/model.js";
 import type { SdkGenerator } from "./sdkgenerator.service.js";
-
-/** A streaming operation, as `packages/core/src/rest/reststream.spec.ts` registers them */
-class SdkFixtureService extends Service {
-  /**
-   * @param params - raw parameters
-   * @returns the parameters
-   */
-  static createConfiguration(params: any = {}) {
-    return new ServiceParameters().load(params);
-  }
-
-  /**
-   * @param since - first value
-   * @returns three chunks
-   */
-  async *tail(since: number = 0) {
-    yield { n: since + 1 };
-    yield "scalar";
-    yield { n: since + 3 };
-  }
-
-  /**
-   * @returns never
-   */
-  async *fail() {
-    yield { n: 1 };
-    throw new WebdaError.BadRequest("Bad frame");
-  }
-}
 
 /**
  * The generated SDK, driven through the real HTTP server of `sample-app`
@@ -86,27 +49,7 @@ class SdkRestE2ETest extends SampleAppTest {
 
   async beforeAll(): Promise<void> {
     await super.beforeAll();
-    const schemas = useApplication().getSchemas();
-    schemas["SdkFixture.Since"] = { type: "object", properties: { since: { type: "number" } } } as any;
-    registerOperation("SdkFixture.Tail", {
-      service: "SdkFixture",
-      method: "tail",
-      input: "SdkFixture.Since",
-      output: "void",
-      streaming: "server"
-    });
-    registerOperation("SdkFixture.Fail", {
-      service: "SdkFixture",
-      method: "fail",
-      output: "void",
-      streaming: "server"
-    });
-    const rest: any = useService("RESTService" as any);
-    const defs = useInstanceStorage().operations;
-    // The transport is initialized: operations registered afterwards are exposed explicitly, as reststream.spec does
-    rest.exposeServiceOperations(
-      Object.fromEntries(Object.entries(defs).filter(([id]) => id.startsWith("SdkFixture.")))
-    );
+    registerSdkFixture();
     const http: any = useService("HttpServer" as any);
     await http.start("127.0.0.1", 0);
     for (let i = 0; i < 100 && !http.server?.listening; i++) await new Promise(r => setTimeout(r, 10));

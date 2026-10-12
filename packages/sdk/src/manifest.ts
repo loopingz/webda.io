@@ -9,7 +9,8 @@ import {
 } from "@webda/core";
 import type { ModelGraph } from "@webda/compiler";
 import type { JSONSchema7 } from "json-schema";
-import type { HttpMethod, OperationKind, OperationStreaming } from "./client/types.js";
+import type { GraphQLExposure, HttpMethod, OperationKind, OperationStreaming } from "./client/types.js";
+import { describeGraphQL } from "./manifest-graphql.js";
 
 /** A method marked `@Shared()` on a model, as the compiler recorded it */
 export interface SharedMethod {
@@ -29,7 +30,9 @@ export interface SdkManifestOperation {
   output: string;
   streaming: OperationStreaming;
   rest?: { method: HttpMethod; path: string; pathParams: string[]; query?: string[] };
-  graphql?: { kind: "query" | "mutation" | "subscription"; name: string };
+  /** Where and how the `GraphQLService` exposes the operation, read from its schema */
+  graphql?: GraphQLExposure;
+  /** The rpc of the operation, named as `generateProto()` does */
   grpc?: { service: string; rpc: string };
   /** Model id when the operation is CRUD, an action or a behavior of a model */
   model?: string;
@@ -398,6 +401,7 @@ export class SdkManifestBuilder {
     if (graphql) {
       const params = graphql.getParameters();
       manifest.transports.graphql = { url: params.url ?? "/graphql", subscriptions: params.subscriptions !== false };
+      describeGraphQL(graphql, operations, models);
     }
     const grpc = describe("grpc") ? this.serviceOf("GrpcService") : undefined;
     if (grpc) {

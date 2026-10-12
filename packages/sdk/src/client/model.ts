@@ -54,6 +54,45 @@ export class Link<T extends SdkModel = SdkModel> {
 }
 
 /**
+ * @param client - the client
+ * @param model - target model id
+ * @param data - the target's attributes, its primary key included
+ * @returns the target's uid
+ */
+export function targetUid(client: WebdaClient<any>, model: string, data: Record<string, unknown>): string {
+  const descriptor = client.models[model];
+  const primaryKey = descriptor?.primaryKey ?? ["uuid"];
+  return primaryKey.map(key => String(data[key])).join(descriptor?.primaryKeySeparator ?? "_");
+}
+
+/**
+ * A `Link` from a relation value: a uid, or the target object of a projection (`select: ["owner.name"]`), whose
+ * attributes are readable on the link and refresh the cached target
+ * @param client - the client
+ * @param model - target model id
+ * @param value - uid or target attributes
+ * @returns the link
+ */
+export function projectedLink(client: WebdaClient<any>, model: string, value: unknown): Link {
+  if (value === null || typeof value !== "object") return new Link(client, model, String(value));
+  const data = value as Record<string, unknown>;
+  const uid = targetUid(client, model, data);
+  const link = new Link(client, model, uid);
+  for (const [key, attribute] of Object.entries(data)) {
+    if (!(key in link)) (link as any)[key] = attribute;
+  }
+  // Refresh the cached target, only when the projection changes it: hydrating must not loop through `change`
+  const cached = client.cache.getEntity(model, uid)?.data;
+  if (
+    cached &&
+    Object.entries(data).some(([key, attribute]) => JSON.stringify(cached[key]) !== JSON.stringify(attribute))
+  ) {
+    client.cache.mergeEntity(model, uid, data);
+  }
+  return link;
+}
+
+/**
  * References stored as an array of uids (`ModelLinksSimpleArray`)
  */
 export class Links<T extends SdkModel = SdkModel> extends Array<Link<T>> {
@@ -300,17 +339,25 @@ export class SdkModel<Data extends object = Record<string, unknown>> {
     for (const [key, value] of Object.entries(data)) {
       if (value === undefined) continue;
       if (descriptor.parent?.attribute === key) {
-        (this as any)[key] = value === null ? null : new Link(webda, descriptor.parent.model, String(value));
+        (this as any)[key] = value === null ? null : projectedLink(webda, descriptor.parent.model, value);
         continue;
       }
       const link = links.get(key);
       if (link && value !== null) {
         switch (link.type) {
           case "LINK":
-            (this as any)[key] = new Link(webda, link.model, String(value));
+            (this as any)[key] = projectedLink(webda, link.model, value);
             continue;
           case "LINKS_SIMPLE_ARRAY":
-            (this as any)[key] = new Links(webda, link.model, value as string[]);
+            (this as any)[key] = new Links(
+              webda,
+              link.model,
+              (value as unknown[]).map(item =>
+                item !== null && typeof item === "object"
+                  ? targetUid(webda, link.model, item as Record<string, unknown>)
+                  : String(item)
+              )
+            );
             continue;
           case "LINKS_ARRAY":
             (this as any)[key] = new LinksArray(webda, link.model, value as any[]);

@@ -33,6 +33,56 @@ export interface RestExposure {
   query?: string[];
 }
 
+/** How a relation field of a GraphQL result is turned back into the attribute the REST API sends */
+export interface GraphQLLink {
+  /** Target model id */
+  model: string;
+  /** Primary key attributes of the target, selected on the relation */
+  pk: string[];
+  /** Separator of a composite primary key */
+  separator?: string;
+  /**
+   * `id`: the uid (`ModelParent`, `ModelLink`, an array of uids for `ModelLinksSimpleArray`), `ref`: the reference
+   * objects (`ModelLinksArray`, `ModelMaps`), `map`: the reference objects by uid (`ModelLinksMap`)
+   */
+  as: "id" | "ref" | "map";
+}
+
+/** A field of a GraphQL selection: `1` for a leaf, its details otherwise */
+export interface GraphQLSelectionField {
+  /** JSON key of the attribute, when the GraphQL name differs (`available-balance` / `availableBalance`) */
+  key?: string;
+  /** Sub-selection of an object, or of the items of a list */
+  select?: GraphQLSelection;
+  /** The field is a relation to another model */
+  link?: GraphQLLink;
+}
+
+/** A GraphQL selection set: field name to `1` (leaf) or its details */
+export type GraphQLSelection = Record<string, 1 | GraphQLSelectionField>;
+
+/** Where and how GraphQL exposes an operation, read from the schema of `GraphQLService` */
+export interface GraphQLExposure {
+  kind: "query" | "mutation" | "subscription";
+  /** Root field name */
+  name: string;
+  /** Arguments of the field: name to GraphQL type (`String`, `CompanyInput`, `String!`) */
+  args?: Record<string, string>;
+  /**
+   * The argument carrying the input object (`create<Type>`, `update<Type>`, an operation's `input`); the other
+   * arguments are read from the input attributes of the same name
+   */
+  wrap?: {
+    arg: string;
+    /** Fields of its input type: GraphQL name to JSON key; the other attributes are left out */
+    fields?: Record<string, string>;
+  };
+  /** Selection set of the result, undefined for a scalar result */
+  selection?: GraphQLSelection;
+  /** Primary key fields of the model the result is (or lists), always kept in a projection */
+  keys?: string[];
+}
+
 /** One operation of the application and every way the server exposes it */
 export interface OperationDescriptor {
   id: string;
@@ -41,7 +91,7 @@ export interface OperationDescriptor {
   output: string;
   streaming: OperationStreaming;
   rest?: RestExposure;
-  graphql?: { kind: "query" | "mutation" | "subscription"; name: string };
+  graphql?: GraphQLExposure;
   grpc?: { service: string; rpc: string };
   /** Model id when the operation is CRUD, an action or a behavior of a model */
   model?: string;
@@ -128,6 +178,12 @@ export interface CallContext {
    * (`/companies/{pid.0}/users/{uuid}`)
    */
   parents?: string[];
+  /**
+   * Attributes to fetch, dotted paths through relations (`["name", "owner.name"]`): a projection for the transports
+   * that support one (GraphQL), ignored by the others. A projected object refreshes the cached entity but is not
+   * cached as a whole one.
+   */
+  select?: string[];
 }
 
 /** Cache mode of a call, in the `fetch` vocabulary */
@@ -149,7 +205,8 @@ export interface BidiStream<I = unknown, O = unknown> extends AsyncIterable<O> {
 }
 
 /**
- * A way to reach the operations of the application: REST today, GraphQL and gRPC as extension points
+ * A way to reach the operations of the application: REST (`HttpTransport`), GraphQL (`@webda/sdk/client/graphql`),
+ * gRPC (`@webda/sdk/client/grpc`, Node only)
  *
  * The client asks the transports in order and uses the first whose `supports(op)` is true.
  */

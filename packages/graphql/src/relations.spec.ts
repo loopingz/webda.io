@@ -68,6 +68,23 @@ describe("GraphQL relation sub-queries", () => {
     assert.strictEqual(((await service.loadModelInstance("c-public", Child as any, alice)) as any).uuid, "c-public");
   });
 
+  it("a parent or link attribute holding a relation object resolves its target", async () => {
+    registerRepository(User as any, new MemoryRepository(User as any, ["uuid"]) as any);
+    registerRepository(Child, new MemoryRepository(Child, ["uuid"]) as any);
+    await Child.create({ uuid: "c-public", parent: "p1", _user: "bob", public: true } as any);
+    const service: GraphQLService = Object.create(GraphQLService.prototype);
+    (service as any).log = () => {};
+    (service as any).countOperation = () => {};
+    // What a ModelParent / ModelLink attribute holds: no uuid, its key through getPrimaryKey / toString
+    const link = { getPrimaryKey: () => "c-public", toString: () => "c-public" };
+    const target = await service.loadModelInstance(
+      link as any,
+      Child as any,
+      { getCurrentUserId: () => "alice" } as any
+    );
+    assert.strictEqual(target.uuid, "c-public");
+  });
+
   it("private fields cannot be queried, at any depth", async () => {
     registerRepository(User as any, new MemoryRepository(User as any, ["uuid"]) as any);
     registerRepository(Child, new MemoryRepository(Child, ["uuid"]) as any);

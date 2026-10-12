@@ -31,7 +31,17 @@ function sources(dir: string): string[] {
   });
 }
 
+/** The entries that must run in a browser: `./client` and `./client/graphql` */
+const BROWSER_ENTRIES = ["src/client/index.ts", "src/client/graphql/index.ts"];
+
 describe("client entry boundaries", () => {
+  it("checks every browser entry", () => {
+    const checked = sources(join(root, "src", "client")).map(file => file.substring(root.length + 1));
+    for (const entry of BROWSER_ENTRIES) expect(checked).toContain(entry);
+    const tsconfig = JSON.parse(readFileSync(join(root, "tsconfig.client.json"), "utf8"));
+    expect(tsconfig.include).toContain("src/client/**/*");
+  });
+
   it("imports nothing from Node or the server packages", () => {
     for (const file of sources(join(root, "src", "client"))) {
       const imports = readFileSync(file, "utf8")

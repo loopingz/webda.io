@@ -90,6 +90,18 @@ export class RemoteBackend implements ModelBackend {
   }
 
   /**
+   * Cache an object the server sent: a projection (`select`) only refreshes an entity already cached
+   * @param uid - its uid
+   * @param data - the object
+   * @param projected - only some attributes were fetched
+   */
+  protected store(uid: string, data: RawObject, projected: boolean): void {
+    const { cache } = this.client;
+    if (!projected) cache.setEntity(this.descriptor.id, uid, data);
+    else if (cache.getEntity(this.descriptor.id, uid)) cache.mergeEntity(this.descriptor.id, uid, data);
+  }
+
+  /**
    * @param uid - the uid
    * @param options - call options
    * @returns the raw object, from the cache when fresh
@@ -99,10 +111,11 @@ export class RemoteBackend implements ModelBackend {
     const { cache } = this.client;
     const mode = options.cache ?? "default";
     const entry = cache.getEntity(this.descriptor.id, uid);
+    const projection = options.select?.length ? options.select.join(",") : undefined;
     const fetch = () =>
-      this.dedupe(`get|${uid}`, async () => {
+      this.dedupe(`get|${uid}|${projection ?? ""}`, async () => {
         const data = (await this.client.call(op, this.pk(uid), options)) as RawObject;
-        if (mode !== "no-store") cache.setEntity(this.descriptor.id, uid, data);
+        if (mode !== "no-store") this.store(uid, data, projection !== undefined);
         return data;
       });
     if (entry && mode !== "no-store" && mode !== "reload") {
@@ -127,17 +140,19 @@ export class RemoteBackend implements ModelBackend {
     const { cache } = this.client;
     const model = this.descriptor.id;
     const mode = options.cache ?? "default";
+    const projection = options.select?.length ? options.select.join(",") : undefined;
     const fetch = () =>
-      this.dedupe(`query|${query}`, async () => {
+      this.dedupe(`query|${query}|${projection ?? ""}`, async () => {
         const page = ((await this.client.call(op, { query }, options)) ?? {}) as QueryResult<RawObject>;
         const results = page.results ?? [];
         if (mode !== "no-store") {
           const uids = results.map(data => {
             const uid = this.uidOf(data);
-            cache.setEntity(model, uid, data);
+            this.store(uid, data, projection !== undefined);
             return uid;
           });
-          cache.setQuery(model, query, uids, page.continuationToken);
+          // A projected page holds partial objects: it is not a cached query
+          if (projection === undefined) cache.setQuery(model, query, uids, page.continuationToken);
         }
         return { results, continuationToken: page.continuationToken };
       });

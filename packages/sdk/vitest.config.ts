@@ -9,9 +9,8 @@ const client = fileURLToPath(new URL("./src/client/index.ts", import.meta.url));
 export default defineConfig({
   clearScreen: false,
   resolve: {
-    alias: {
-      "@webda/sdk/client": client
-    }
+    // Exact match: the optional entries (`@webda/sdk/client/graphql`...) are imported from their sources directly
+    alias: [{ find: /^@webda\/sdk\/client$/, replacement: client }]
   },
   test: {
     allowOnly: true,
@@ -25,6 +24,9 @@ export default defineConfig({
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",
+    // graphql-http and graphql-ws must share the ESM build of graphql with @webda/graphql (two builds of graphql
+    // refuse each other's schemas: "from another module or realm")
+    server: { deps: { inline: [/graphql-http/, /graphql-ws/] } },
     include: ["src/**/*.spec.ts"]
   }
 });

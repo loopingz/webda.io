@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/mock-v4.0.0-beta.7...mock-v4.0.0-beta.8) (2026-10-12)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/models bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/core bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-beta.8
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/mock-v4.0.0-beta.6...mock-v4.0.0-beta.7) (2026-10-11)
 
 

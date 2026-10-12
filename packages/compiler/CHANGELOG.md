@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.7...compiler-v4.0.0-beta.8) (2026-10-12)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/utils bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.6...compiler-v4.0.0-beta.7) (2026-10-11)
 
 

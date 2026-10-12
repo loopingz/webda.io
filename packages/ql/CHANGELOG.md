@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/ql-v4.0.0-beta.6...ql-v4.0.0-beta.7) (2026-10-12)
+
+
+### Features
+
+* **models:** accept JSON filters in query and iterate ([#883](https://github.com/loopingz/webda.io/issues/883)) ([073ff90](https://github.com/loopingz/webda.io/commit/073ff90993c526023f92eadddc38582a3e58ccfb))
+
+
+### Bug Fixes
+
+* enable strict mode in ql, oci, fs and auth ([#874](https://github.com/loopingz/webda.io/issues/874)) ([dec29f6](https://github.com/loopingz/webda.io/commit/dec29f657429eea40a21f0cae901af1e2c46074d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/ql-v4.0.0-beta.5...ql-v4.0.0-beta.6) (2026-10-09)
 
 

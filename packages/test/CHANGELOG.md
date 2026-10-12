@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/test-v4.0.0-beta.6...test-v4.0.0-beta.7) (2026-10-12)
+
+
+### Bug Fixes
+
+* enable strict mode in hawk offline and test ([#873](https://github.com/loopingz/webda.io/issues/873)) ([79a83c9](https://github.com/loopingz/webda.io/commit/79a83c981b538176a77207e91d034e81c23478b7))
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/test-v4.0.0-beta.5...test-v4.0.0-beta.6) (2026-10-09)
 
 

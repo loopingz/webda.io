@@ -1,5 +1,15 @@
 # Changelog
 
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/cache-v4.0.0-beta.7...cache-v4.0.0-beta.8) (2026-10-12)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/cache-v4.0.0-beta.6...cache-v4.0.0-beta.7) (2026-10-11)
 
 

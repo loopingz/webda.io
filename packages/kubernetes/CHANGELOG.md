@@ -137,6 +137,25 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/kubernetes-v4.0.0-beta.7...kubernetes-v4.0.0-beta.8) (2026-10-12)
+
+
+### Bug Fixes
+
+* enable strict mode in ten small packages ([#872](https://github.com/loopingz/webda.io/issues/872)) ([ecad571](https://github.com/loopingz/webda.io/commit/ecad571d67963ea4c35b47ddfafc1b91c2d7b12f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped to 4.0.0-beta.8
+    * @webda/core bumped to 4.0.0-beta.8
+    * @webda/utils bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/kubernetes-v4.0.0-beta.6...kubernetes-v4.0.0-beta.7) (2026-10-11)
 
 

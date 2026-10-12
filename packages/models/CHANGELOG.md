@@ -1,5 +1,26 @@
 # Changelog
 
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.7...models-v4.0.0-beta.8) (2026-10-12)
+
+
+### Features
+
+* **models:** accept JSON filters in query and iterate ([#883](https://github.com/loopingz/webda.io/issues/883)) ([073ff90](https://github.com/loopingz/webda.io/commit/073ff90993c526023f92eadddc38582a3e58ccfb))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/serialize bumped to 4.0.0-beta.7
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+    * @webda/tsc-esm bumped to 4.0.0-beta.8
+  * peerDependencies
+    * @webda/ql bumped to 4.0.0-beta.7
+    * @webda/utils bumped to 4.0.0-beta.8
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.6...models-v4.0.0-beta.7) (2026-10-11)
 
 

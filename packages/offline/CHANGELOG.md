@@ -1,5 +1,30 @@
 # Changelog
 
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/offline-v4.0.0-beta.7...offline-v4.0.0-beta.8) (2026-10-12)
+
+
+### Features
+
+* **offline:** encrypted local replica (EncryptedStorage, KeyProvider, passkey PRF) ([#881](https://github.com/loopingz/webda.io/issues/881)) ([db1eab7](https://github.com/loopingz/webda.io/commit/db1eab7a28214a81d33f2069c49721beb575f49c))
+
+
+### Bug Fixes
+
+* enable strict mode in hawk offline and test ([#873](https://github.com/loopingz/webda.io/issues/873)) ([79a83c9](https://github.com/loopingz/webda.io/commit/79a83c981b538176a77207e91d034e81c23478b7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.8
+    * @webda/models bumped to 4.0.0-beta.8
+    * @webda/ql bumped to 4.0.0-beta.7
+    * @webda/versioning bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/offline-v4.0.0-beta.6...offline-v4.0.0-beta.7) (2026-10-11)
 
 

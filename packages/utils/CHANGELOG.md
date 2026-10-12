@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/utils-v4.0.0-beta.7...utils-v4.0.0-beta.8) (2026-10-12)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/utils-v4.0.0-beta.6...utils-v4.0.0-beta.7) (2026-10-11)
 
 

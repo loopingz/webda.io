@@ -3,6 +3,30 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.7...core-v4.0.0-beta.8) (2026-10-12)
+
+
+### Bug Fixes
+
+* beta runtime — Postgres client, Redirect Location, OpenAPI copy, REST query 400, GraphQL names, module paths ([#876](https://github.com/loopingz/webda.io/issues/876)) ([8e62b1f](https://github.com/loopingz/webda.io/commit/8e62b1f1f746d4002093ce17987f1a1325bb3de9))
+* enable strict mode in ql, oci, fs and auth ([#874](https://github.com/loopingz/webda.io/issues/874)) ([dec29f6](https://github.com/loopingz/webda.io/commit/dec29f657429eea40a21f0cae901af1e2c46074d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-beta.8
+    * @webda/models bumped to 4.0.0-beta.8
+    * @webda/ql bumped to 4.0.0-beta.7
+    * @webda/tsc-esm bumped to 4.0.0-beta.8
+    * @webda/utils bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+  * peerDependencies
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.6...core-v4.0.0-beta.7) (2026-10-11)
 
 

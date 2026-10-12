@@ -184,6 +184,19 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/google-auth-v4.0.0-beta.7...google-auth-v4.0.0-beta.8) (2026-10-12)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/auth bumped to 4.0.0-beta.8
+    * @webda/core bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/google-auth-v4.0.0-beta.6...google-auth-v4.0.0-beta.7) (2026-10-11)
 
 

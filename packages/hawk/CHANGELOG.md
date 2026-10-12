@@ -144,6 +144,23 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/hawk-v4.0.0-beta.7...hawk-v4.0.0-beta.8) (2026-10-12)
+
+
+### Bug Fixes
+
+* enable strict mode in hawk offline and test ([#873](https://github.com/loopingz/webda.io/issues/873)) ([79a83c9](https://github.com/loopingz/webda.io/commit/79a83c981b538176a77207e91d034e81c23478b7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/hawk-v4.0.0-beta.6...hawk-v4.0.0-beta.7) (2026-10-11)
 
 

@@ -134,6 +134,26 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.7...graphql-v4.0.0-beta.8) (2026-10-12)
+
+
+### Bug Fixes
+
+* beta runtime — Postgres client, Redirect Location, OpenAPI copy, REST query 400, GraphQL names, module paths ([#876](https://github.com/loopingz/webda.io/issues/876)) ([8e62b1f](https://github.com/loopingz/webda.io/commit/8e62b1f1f746d4002093ce17987f1a1325bb3de9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.8
+    * @webda/ql bumped to 4.0.0-beta.7
+    * @webda/runtime bumped to 4.0.0-beta.8
+    * @webda/utils bumped to 4.0.0-beta.8
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.8
+    * @webda/test bumped to 4.0.0-beta.7
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.6...graphql-v4.0.0-beta.7) (2026-10-11)
 
 

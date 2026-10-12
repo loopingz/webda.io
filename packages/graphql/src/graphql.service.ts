@@ -58,6 +58,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import { AnyScalarType } from "./types/any.js";
 import { DateScalar } from "./types/date.js";
 import { GraphQLLong } from "./types/long.js";
+import { graphQLNames, restoreInputKeys, WEBDA_KEY } from "./names.js";
 import { createFromInput, isInputAttribute, loadForAction, operationError, updateFromInput } from "./mutations.js";
 import {
   GRAPHQL_NAME,
@@ -359,18 +360,19 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       if (!schema.properties) {
         return { type: AnyScalarType, description: "Map" };
       }
-      for (const i in schema.properties) {
-        // Private (`__`) fields are server-only, at any depth
-        if (i.startsWith("__")) {
-          continue;
-        }
+      // Private (`__`) fields are server-only, at any depth
+      const names = this.graphQLNames(
+        Object.keys(schema.properties).filter(i => !i.startsWith("__")),
+        schema.title || defaultName
+      );
+      for (const [i, field] of names) {
         const res = this.getGraphQLSchemaFromSchema(
           this.getJsonSchemaDefinition(<JSONSchema7>schema.properties[i], schema.definitions),
-          `${schema.title || defaultName}_${i}`,
+          `${schema.title || defaultName}_${field}`,
           input
         );
         if (!res) continue;
-        fields[i] = res;
+        fields[field] = this.renamedField(res, i, field, input);
       }
       if (Object.keys(fields).length === 0) {
         this.log("DEBUG", "Return map for", defaultName, "because no fields");
@@ -388,6 +390,38 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       );
     }
     return { type, description: schema.description };
+  }
+
+  /**
+   * GraphQL names of the properties of a type, see {@link graphQLNames}: a JSON key that is not a GraphQL name
+   * (`available-balance`) is exposed as `availableBalance`, unless that name is taken (logged, left out)
+   * @param keys - the property keys
+   * @param type - the type holding them, for the log
+   * @returns the GraphQL name of each key exposed
+   */
+  protected graphQLNames(keys: string[], type: string): Map<string, string> {
+    return graphQLNames(keys, (key, name) =>
+      // The real property (or the first key renamed so) keeps the name: this key stays REST only
+      this.log("INFO", `Property '${key}' of ${type} is left out of GraphQL: its name '${name}' is already used`)
+    );
+  }
+
+  /**
+   * A field renamed from its JSON key reads that key (output), and carries it to be put back on inputs
+   * ({@link restoreInputKeys})
+   * @param config - the field config
+   * @param key - the JSON key
+   * @param name - the GraphQL name
+   * @param input - an input type field
+   * @returns the field config
+   */
+  protected renamedField(config: any, key: string, name: string, input?: boolean): any {
+    if (key === name) return config;
+    return {
+      ...config,
+      extensions: { ...config.extensions, [WEBDA_KEY]: key },
+      ...(input ? {} : { resolve: (source: any) => source?.[key] })
+    };
   }
 
   /**
@@ -546,14 +580,15 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         };
       });
     }
-    for (const i in schema.properties) {
-      // Private (`__`) fields are server-only: never part of an output or input type
-      if (i.startsWith("__")) {
-        continue;
-      }
+    // Private (`__`) fields are server-only: never part of an output or input type
+    const names = this.graphQLNames(
+      Object.keys(schema.properties ?? {}).filter(i => !i.startsWith("__")),
+      defaultName
+    );
+    for (const [i, field] of names) {
       // Was initiated by the known graph; inputs never carry private or behavior attributes
       if (
-        fields[i] ||
+        fields[field] ||
         skipFields.includes(i) ||
         (input && ((<JSONSchema7>schema.properties[i]).readOnly || !isInputAttribute(i, webdaGraph, writable)))
       ) {
@@ -561,14 +596,14 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       }
       const prop: any = this.getGraphQLSchemaFromSchema(
         this.getJsonSchemaDefinition(<JSONSchema7>schema.properties[i], schema.definitions),
-        `${defaultName}_${i}`,
+        `${defaultName}_${field}`,
         input
       );
       if (!prop) {
         continue;
       }
 
-      fields[i] = prop;
+      fields[field] = this.renamedField(prop, i, field, input);
     }
     return fields;
   }
@@ -800,7 +835,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           },
           resolve: async (_, args, context) => {
             this.log("INFO", "Create", name, context.getCurrentUserId());
-            return createFromInput(model, args[name], context);
+            return createFromInput(model, restoreInputKeys(input, args[name]), context);
           }
         };
       }
@@ -813,7 +848,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
               type: GraphQLString
             }
           },
-          resolve: async (_, args, context) => updateFromInput(model, args.uuid, args[name], context)
+          resolve: async (_, args, context) =>
+            updateFromInput(model, args.uuid, restoreInputKeys(input, args[name]), context)
         };
       }
       // check for actions
@@ -1175,12 +1211,19 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           description: converted?.description
         };
       }
-      return { args, toInput: fieldArgs => ({ ...fieldArgs }) };
+      return {
+        args,
+        toInput: fieldArgs =>
+          Object.fromEntries(
+            Object.entries(fieldArgs).map(([k, v]) => [k, args[k] ? restoreInputKeys(args[k].type, v) : v])
+          )
+      };
     }
     const converted = this.getGraphQLSchemaFromSchema(resolved, `${base}Input`, true);
+    const type = (converted?.type ?? AnyScalarType) as GraphQLInputType;
     return {
-      args: { input: { type: (converted?.type ?? AnyScalarType) as GraphQLInputType } },
-      toInput: fieldArgs => fieldArgs.input
+      args: { input: { type } },
+      toInput: fieldArgs => restoreInputKeys(type, fieldArgs.input)
     };
   }
 

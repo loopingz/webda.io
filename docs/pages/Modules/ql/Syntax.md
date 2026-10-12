@@ -19,12 +19,12 @@ statement   : SELECT fieldList whereClause? orderExpression? limitExpression? of
 
 The statements (`SELECT`, `DELETE`, `UPDATE`) are described in [Statements](./Statements.md): field lists are parse-level only and DELETE / UPDATE run through the repository `deleteMany` / `updateMany`, never through the Query operations. A plain filter query is an implicit SELECT of every field; it is composed of four optional sections, always in this order:
 
-| Section | Syntax | Purpose |
-|---------|--------|---------|
-| Filter | `expression` | Predicate — which records to include |
-| Order | `ORDER BY field [ASC\|DESC], ...` | Sort order |
-| Limit | `LIMIT <integer>` | Maximum number of results |
-| Offset | `OFFSET "<token>"` | Continuation token for pagination |
+| Section | Syntax                            | Purpose                              |
+| ------- | --------------------------------- | ------------------------------------ |
+| Filter  | `expression`                      | Predicate — which records to include |
+| Order   | `ORDER BY field [ASC\|DESC], ...` | Sort order                           |
+| Limit   | `LIMIT <integer>`                 | Maximum number of results            |
+| Offset  | `OFFSET "<token>"`                | Continuation token for pagination    |
 
 Values (and the `LIMIT` / `OFFSET` values) can also be `?` or `:name` placeholders, bound from parameters: see [Parameters](./Parameters.md).
 
@@ -37,7 +37,7 @@ expression
     | identifier CONTAINS (stringLiteral | parameter)   #containsExpression
     | identifier IS NULL                      #isNullExpression
     | identifier IS NOT NULL                  #isNotNullExpression
-    | identifier (= | != | >= | <= | < | >) (values | parameter)   #binaryComparisonExpression
+    | identifier (= | != | >= | <= | < | >) (values | parameter | functionCall)   #binaryComparisonExpression
     | expression AND expression               #andLogicExpression
     | expression OR expression                #orLogicExpression
     | LR_BRACKET expression RR_BRACKET        #subExpression
@@ -49,11 +49,11 @@ expression
 
 WQL supports three primitive value types in filter expressions:
 
-| Type | Examples |
-|------|---------|
-| **String** | `'published'`, `"hello world"` (single or double quotes) |
-| **Number** | `42`, `0`, `-5`, `3.14` (no exponent form such as `1e3`) |
-| **Boolean** | `TRUE`, `FALSE` |
+| Type        | Examples                                                 |
+| ----------- | -------------------------------------------------------- |
+| **String**  | `'published'`, `"hello world"` (single or double quotes) |
+| **Number**  | `42`, `0`, `-5`, `3.14` (no exponent form such as `1e3`) |
+| **Boolean** | `TRUE`, `FALSE`                                          |
 
 Sets, used by `IN`, are written with square brackets: `status IN ['draft', 'review']`. They cannot be empty.
 
@@ -122,6 +122,44 @@ author.email IS NOT NULL
 status = 'published' ORDER BY createdAt DESC, title ASC LIMIT 20 OFFSET "eyJsYXN0S2V5IjoiMTIzIn0="
 ```
 
+## NOW() time function
+
+WebdaQL provides the `NOW()` function to represent timestamps as milliseconds since UNIX epoch (`Date.now()`).
+
+### Syntax
+
+- `NOW()`: current timestamp.
+- `NOW('offset')`: current timestamp with a duration string offset (e.g., `NOW('-5m')`, `NOW('+1d')`, `NOW('-1d2h')`).
+- `NOW(offset)`: current timestamp with a millisecond offset (e.g., `NOW(-300000)`).
+- `NOW(?)` / `NOW(:param)`: parameterized offset.
+
+### Supported duration units
+
+| Unit         | Suffixes             | Example         |
+| ------------ | -------------------- | --------------- |
+| Milliseconds | `ms`                 | `NOW('-500ms')` |
+| Seconds      | `s`, `sec`           | `NOW('-30s')`   |
+| Minutes      | `m`, `min`           | `NOW('-15m')`   |
+| Hours        | `h`, `hr`            | `NOW('+2h')`    |
+| Days         | `d`, `day`           | `NOW('-7d')`    |
+| Months       | `mo`, `mon`, `month` | `NOW('-1mo')`   |
+| Years        | `y`, `yr`, `year`    | `NOW('-1y')`    |
+
+Offsets can combine segments, such as `NOW('-1d2h')` (1 day and 2 hours in the past) or `NOW('+1h30m')`.
+
+### Dynamic evaluation
+
+Unlike static literals, `NOW()` returns a dynamic timestamp resolved when the query is evaluated or executed:
+
+```typescript
+@Operation({
+  id: "SensitiveAction",
+  permission: "mfa = 'verified' AND mfaAt > NOW('-10m')"
+})
+```
+
+Cached queries dynamically re-evaluate `NOW()` against the current clock time each time permissions or filters are checked.
+
 ## Query normalization
 
 The `QueryValidator` class parses and normalizes queries. It flattens nested AND/OR of the same type and canonicalizes string quoting to double quotes:
@@ -129,9 +167,7 @@ The `QueryValidator` class parses and normalizes queries. It flattens nested AND
 ```typescript
 import * as WebdaQL from "@webda/ql";
 
-const v = new WebdaQL.QueryValidator(
-  "status = 'published' AND (viewCount >= 100 AND title LIKE 'Intro%')"
-);
+const v = new WebdaQL.QueryValidator("status = 'published' AND (viewCount >= 100 AND title LIKE 'Intro%')");
 console.log(v.getExpression().toString());
 // Output: status = "published" AND viewCount >= 100 AND title LIKE "Intro%"
 // Note: nested AND is flattened
@@ -144,10 +180,7 @@ Use `PrependCondition` to insert a mandatory system-level condition in front of 
 ```typescript
 import { PrependCondition } from "@webda/ql";
 
-const merged = PrependCondition(
-  `status = 'published' ORDER BY title ASC LIMIT 10`,
-  `authorId = 'u-123'`
-);
+const merged = PrependCondition(`status = 'published' ORDER BY title ASC LIMIT 10`, `authorId = 'u-123'`);
 console.log(merged);
 // status = "published" AND authorId = "u-123" ORDER BY title ASC LIMIT 10
 ```
@@ -159,12 +192,10 @@ The parsed expression can be evaluated directly against a JavaScript object with
 ```typescript
 import * as WebdaQL from "@webda/ql";
 
-const validator = new WebdaQL.QueryValidator(
-  `status = 'published' AND viewCount >= 100`
-);
+const validator = new WebdaQL.QueryValidator(`status = 'published' AND viewCount >= 100`);
 
 const post = { status: "published", viewCount: 150 };
-console.log(validator.eval(post));  // true
+console.log(validator.eval(post)); // true
 
 const draft = { status: "draft", viewCount: 5 };
 console.log(validator.eval(draft)); // false

@@ -1,5 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import { vi } from "vitest";
 import {
   registerOperation,
   listOperations,
@@ -10,6 +11,7 @@ import {
   GrpcParameters,
   GraphQLParameters,
   canCallOperation,
+  checkOperationPermission,
   registerOperationAuthorizer,
   unregisterOperationAuthorizer,
   listOperationAuthorizers,
@@ -327,6 +329,31 @@ class OperationDecoratorTest extends WebdaApplicationTest {
     assert.ok(customOp, "CustomId operation should exist");
     assert.strictEqual(customOp.id, "CustomId");
   }
+
+  @test
+  async decoratorWithDynamicPermissionNow() {
+    vi.useFakeTimers();
+    try {
+      const now = 1000000000000;
+      vi.setSystemTime(now);
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      const session = new Session();
+      session.authAt = now;
+      ctx.setSession(session);
+
+      // Initially authAt === now > now - 5m (allowed)
+      assert.strictEqual(checkOperationPermission(ctx, "TestSvc.FreshOp"), true);
+
+      // Advance by 10 minutes (600,000 ms) without reparsing the query
+      vi.advanceTimersByTime(600000);
+
+      // authAt is now 10m in the past < now - 5m (refused)
+      assert.strictEqual(checkOperationPermission(ctx, "TestSvc.FreshOp"), false);
+    } finally {
+      vi.useRealTimers();
+    }
+  }
 }
 
 class DecoratedService extends Service {
@@ -346,6 +373,11 @@ class DecoratedService extends Service {
   @Operation({ id: "CustomId", summary: "A custom op" })
   async customOperation(ctx: OperationContext) {
     ctx.write("custom");
+  }
+
+  @Operation({ id: "FreshOp", permission: "authAt > NOW('-5m')" })
+  async freshOp(ctx: OperationContext) {
+    ctx.write("fresh");
   }
 }
 

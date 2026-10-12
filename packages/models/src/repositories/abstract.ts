@@ -379,7 +379,8 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
         }
         current = current[segment];
       }
-      current[segments[segments.length - 1]] = value;
+      current[segments[segments.length - 1]] =
+        value !== null && typeof (value as any)?.resolve === "function" ? (value as any).resolve() : value;
     }
     return target;
   }

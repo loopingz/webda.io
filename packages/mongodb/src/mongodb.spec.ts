@@ -140,6 +140,11 @@ export class MongoParametersTest {
     assert.deepStrictEqual(map("a.b IS NOT NULL"), { "a.b": { $ne: null } });
     // Two conditions on the same attribute must both apply
     assert.deepStrictEqual(map("a > 1 AND a < 5"), { $and: [{ a: { $gt: 1 } }, { a: { $lt: 5 } }] });
+    const before = Date.now();
+    const res = map("count < NOW('-1h')") as any;
+    const after = Date.now();
+    assert.ok(typeof res.count?.$lt === "number");
+    assert.ok(res.count.$lt >= before - 3600000 && res.count.$lt <= after - 3600000);
   }
 }
 

@@ -46,7 +46,7 @@ bind("owner = ? AND priority >= ?", ["alice", 2]);
 
 ### Where placeholders are allowed
 
-Only where the grammar expects a value: the right side of a comparison, an `IN` set (or a whole `IN ?` array), `LIKE` and `CONTAINS` values, `LIMIT` and `OFFSET`. A placeholder can never stand for an attribute, an operator or a keyword, so `? = 1`, `x ? 1` or `ORDER BY ?` are syntax errors.
+Only where the grammar expects a value: the right side of a comparison, inside `NOW(?)` / `NOW(:offset)`, an `IN` set (or a whole `IN ?` array), `LIKE` and `CONTAINS` values, `LIMIT` and `OFFSET`. A placeholder can never stand for an attribute, an operator or a keyword, so `? = 1`, `x ? 1` or `ORDER BY ?` are syntax errors.
 
 Placeholders are found by the WQL lexer: a `?` or `:name` inside a quoted string is part of the string, not a placeholder (`time = '10:30' AND x = ?`).
 
@@ -54,24 +54,24 @@ Placeholders are found by the WQL lexer: a `?` or `:name` inside a quoted string
 
 Parameters and template literals share the same escaping:
 
-| Value | Written as |
-|-------|-----------|
-| string | `'it''s'` (single quotes, `'` doubled, `\` escaped) |
-| number | `42`, `-7`, `3.14` (`NaN`, `Infinity` and numbers needing an exponent are rejected) |
-| boolean | `TRUE` / `FALSE` |
-| `Date` | its ISO string, quoted |
-| array | `['a', 'b']`, for `IN` (empty or nested arrays are rejected) |
-| object, function, symbol | rejected |
+| Value                    | Written as                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| string                   | `'it''s'` (single quotes, `'` doubled, `\` escaped)                                 |
+| number                   | `42`, `-7`, `3.14` (`NaN`, `Infinity` and numbers needing an exponent are rejected) |
+| boolean                  | `TRUE` / `FALSE`                                                                    |
+| `Date`                   | its ISO string, quoted                                                              |
+| array                    | `['a', 'b']`, for `IN` (empty or nested arrays are rejected)                        |
+| object, function, symbol | rejected                                                                            |
 
 ### Null values
 
 WQL has no `NULL` value, only the `IS NULL` / `IS NOT NULL` operators, so `null` and `undefined` are rewritten:
 
-| Query | Value | Result |
-|-------|-------|--------|
-| `x = ?` | `null` / `undefined` | `x IS NULL` |
-| `x != ?` | `null` / `undefined` | `x IS NOT NULL` |
-| any other position (`>`, `LIKE`, `IN`, inside a set, `LIMIT`) | `null` / `undefined` | error |
+| Query                                                         | Value                | Result          |
+| ------------------------------------------------------------- | -------------------- | --------------- |
+| `x = ?`                                                       | `null` / `undefined` | `x IS NULL`     |
+| `x != ?`                                                      | `null` / `undefined` | `x IS NOT NULL` |
+| any other position (`>`, `LIKE`, `IN`, inside a set, `LIMIT`) | `null` / `undefined` | error           |
 
 ### Errors
 

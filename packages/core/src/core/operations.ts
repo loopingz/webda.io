@@ -26,10 +26,10 @@ import { useLog } from "@webda/workout";
  * @param operation - the operation definition
  * @returns true if operation can be executed
  */
-function checkOperationPermission(
+export function checkOperationPermission(
   context: OperationContext,
   operationId: string,
-  operation?: OperationDefinition & { permissionQuery?: QueryValidator }
+  operation: OperationDefinition & { permissionQuery?: QueryValidator } = useInstanceStorage().operations[operationId]
 ): boolean {
   if (!operation) {
     throw new WebdaError.NotFound(`${operationId} Unknown`);
@@ -172,9 +172,7 @@ export const STREAM_SCHEMA_KEYWORD = "x-webda-stream";
  * @param operation - the operation definition
  * @returns its mode, `none` when unknown
  */
-export function getOperationStreaming(
-  operation?: Pick<OperationDefinition, "streaming" | "grpc">
-): OperationStreaming {
+export function getOperationStreaming(operation?: Pick<OperationDefinition, "streaming" | "grpc">): OperationStreaming {
   if (operation?.streaming) return operation.streaming;
   const grpc = operation?.grpc;
   return (typeof grpc === "object" && grpc?.streaming) || "none";
@@ -801,6 +799,10 @@ interface OperationParameters {
    * Mark the operation as deprecated
    */
   deprecated?: boolean;
+  /**
+   * Permission query to check before executing the operation
+   */
+  permission?: string;
   /**
    * Permission query to check before executing the operation
    */

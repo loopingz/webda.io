@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.9f060b7e.css">
-<script src="/assets/js/runtime~main.7c058c14.js" defer="defer"></script>
-<script src="/assets/js/main.ef3f3484.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.07c34d5e.js" defer="defer"></script>
+<script src="/assets/js/main.61a07949.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -189,6 +189,7 @@ natively, or stream objects through the in-memory <code>Aggregator</code>.</p>
 <li class=""><a class="" href="/typedoc/ql/interfaces/AggregationQuery">AggregationQuery</a></li>
 <li class=""><a class="" href="/typedoc/ql/interfaces/AggregationResult">AggregationResult</a></li>
 <li class=""><a class="" href="/typedoc/ql/interfaces/Assignment">Assignment</a></li>
+<li class=""><a class="" href="/typedoc/ql/interfaces/FindOptions">FindOptions</a></li>
 <li class=""><a class="" href="/typedoc/ql/interfaces/Metric">Metric</a></li>
 <li class=""><a class="" href="/typedoc/ql/interfaces/OrderBy">OrderBy</a></li>
 <li class=""><a class="" href="/typedoc/ql/interfaces/Query">Query</a></li>
@@ -198,7 +199,9 @@ natively, or stream objects through the in-memory <code>Aggregator</code>.</p>
 <li class=""><a class="" href="/typedoc/ql/type-aliases/AggregateFunction">AggregateFunction</a></li>
 <li class=""><a class="" href="/typedoc/ql/type-aliases/AggregationErrorCode">AggregationErrorCode</a></li>
 <li class=""><a class="" href="/typedoc/ql/type-aliases/ComparisonOperator">ComparisonOperator</a></li>
+<li class=""><a class="" href="/typedoc/ql/type-aliases/FilterOperators">FilterOperators</a></li>
 <li class=""><a class="" href="/typedoc/ql/type-aliases/MetricInput">MetricInput</a></li>
+<li class=""><a class="" href="/typedoc/ql/type-aliases/ModelFilter">ModelFilter</a></li>
 <li class=""><a class="" href="/typedoc/ql/type-aliases/QueryParameters">QueryParameters</a></li>
 <li class=""><a class="" href="/typedoc/ql/type-aliases/QueryType">QueryType</a></li>
 <li class=""><a class="" href="/typedoc/ql/type-aliases/WebdaQLStatement">WebdaQLStatement</a></li>
@@ -215,14 +218,17 @@ natively, or stream objects through the in-memory <code>Aggregator</code>.</p>
 <li class=""><a class="" href="/typedoc/ql/functions/assertFilterQuery">assertFilterQuery</a></li>
 <li class=""><a class="" href="/typedoc/ql/functions/bind">bind</a></li>
 <li class=""><a class="" href="/typedoc/ql/functions/checkAlias">checkAlias</a></li>
+<li class=""><a class="" href="/typedoc/ql/functions/checkFieldPath">checkFieldPath</a></li>
 <li class=""><a class="" href="/typedoc/ql/functions/compareValues">compareValues</a></li>
 <li class=""><a class="" href="/typedoc/ql/functions/escape">escape</a></li>
 <li class=""><a class="" href="/typedoc/ql/functions/escapeValue">escapeValue</a></li>
+<li class=""><a class="" href="/typedoc/ql/functions/filterToExpression">filterToExpression</a></li>
 <li class=""><a class="" href="/typedoc/ql/functions/normalizeQuery">normalizeQuery</a></li>
 <li class=""><a class="" href="/typedoc/ql/functions/parse">parse</a></li>
 <li class=""><a class="" href="/typedoc/ql/functions/PrependCondition">PrependCondition</a></li>
 <li class=""><a class="" href="/typedoc/ql/functions/stringifyQuery">stringifyQuery</a></li>
 <li class=""><a class="" href="/typedoc/ql/functions/toAggregationQuery">toAggregationQuery</a></li>
+<li class=""><a class="" href="/typedoc/ql/functions/toWebdaQL">toWebdaQL</a></li>
 <li class=""><a class="" href="/typedoc/ql/functions/unescapeStringLiteral">unescapeStringLiteral</a></li>
 <li class=""><a class="" href="/typedoc/ql/functions/unsanitize">unsanitize</a></li>
 <li class=""><a class="" href="/typedoc/ql/functions/validateAggregation">validateAggregation</a></li>

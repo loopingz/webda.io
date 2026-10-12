@@ -840,6 +840,7 @@ export class RESTOperationsTransport<
         if (injectAttribute) {
           (await context.getInput())[injectAttribute] = context.parameter(`pid.${depth - 1}`);
         }
+        this.clearParentParameters(context);
         await callOperation(context, operationId);
         // Add Location for successful creates without changing the status code —
         // the rest of the framework (and the shipped tests) assume 2xx without
@@ -910,6 +911,7 @@ export class RESTOperationsTransport<
       `${prefix}/${pathSuffix}`,
       ["DELETE"],
       async (context: WebContext) => {
+        this.clearParentParameters(context);
         await callOperation(context, operationId);
         // Convention: 204 No Content
         if (context.statusCode < 300 || context.statusCode === 204) {
@@ -991,6 +993,7 @@ export class RESTOperationsTransport<
       `${prefix}/${pathSuffix}`,
       ["PUT", "PATCH"],
       (context: WebContext) => {
+        this.clearParentParameters(context);
         const method = context.getHttpContext().getMethod();
         // Fall back to whichever operation is registered so users can override
         // just one of Update/Patch without breaking the other HTTP verb.
@@ -1055,9 +1058,24 @@ export class RESTOperationsTransport<
     this.addRoute(
       `${prefix}/${pathSuffix}`,
       ["GET"],
-      (context: WebContext) => callOperation(context, operationId),
+      (context: WebContext) => {
+        this.clearParentParameters(context);
+        return callOperation(context, operationId);
+      },
       openapi
     );
+  }
+
+  /**
+   * Drop the `{pid.N}` parameters of a nested route once they are consumed: `callOperation` merges the path
+   * parameters into the validated input, and a model schema with `additionalProperties: false` rejects them
+   * @param context - the web context
+   */
+  protected clearParentParameters(context: WebContext): void {
+    const parameters = context.getParameters();
+    for (const key of Object.keys(parameters ?? {})) {
+      if (/^pid\.\d+$/.test(key)) delete parameters[key];
+    }
   }
 
   /**

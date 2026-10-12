@@ -12,6 +12,7 @@ import type {
   QueryParameters
 } from "@webda/ql";
 import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
+import type { FindOptions, ModelFilter } from "@webda/ql";
 
 /**
  * Base repository implementation providing shared logic for key management,
@@ -502,11 +503,10 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     return this.updateManyByKey(statement, params);
   }
 
-  abstract query(
-    query: string,
-    params?: QueryParameters
-  ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
+  abstract query(query: string, params?: QueryParameters): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
+  abstract query(filter: ModelFilter<InstanceType<T>>, options?: FindOptions<InstanceType<T>>): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
   abstract iterate(query: string, params?: QueryParameters): AsyncGenerator<InstanceType<T>, any, any>;
+  abstract iterate(filter: ModelFilter<InstanceType<T>>, options?: Pick<FindOptions<InstanceType<T>>, "orderBy">): AsyncGenerator<InstanceType<T>, any, any>;
 
   /**
    * Copy the known options (fallback, maxGroups, warn); undefined values keep the current ones

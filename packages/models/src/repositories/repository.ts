@@ -4,7 +4,9 @@ import type {
   Query as WebdaQLQuery,
   QueryParameters,
   WebdaQLStatement,
-  WebdaQLString
+  WebdaQLString,
+  ModelFilter,
+  FindOptions
 } from "@webda/ql";
 import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
 import type {
@@ -125,6 +127,10 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
   query(
     query: WebdaQLString<InstanceType<T>>,
     params?: QueryParameters
+  ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
+  query(
+    query: ModelFilter<InstanceType<T>>,
+    options?: FindOptions<InstanceType<T>>
   ): Promise<{
     results: InstanceType<T>[];
     continuationToken?: string;
@@ -140,6 +146,7 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
    * @returns
    */
   iterate(query: WebdaQLString<InstanceType<T>>, params?: QueryParameters): AsyncGenerator<InstanceType<T>>;
+  iterate(filter: ModelFilter<InstanceType<T>>, options?: Pick<FindOptions<InstanceType<T>>, "orderBy">): AsyncGenerator<InstanceType<T>>;
 
   /**
    * Aggregate the store

@@ -6,6 +6,32 @@ description: Introduction to @webda/ql - SQL-like query language for filtering a
 
 # @webda/ql
 
+## JSON filters
+
+Model repositories accept a typed JSON filter in `query()`. Plain values mean equality, and operator objects support comparisons and collection matching:
+
+```ts
+const { results } = await Task.query(
+  { status: "open", priority: { $gte: 2, $lt: 10 } },
+  { orderBy: [{ field: "priority", direction: "DESC" }], limit: 10 }
+);
+```
+
+| JSON filter | WebdaQL |
+|---|---|
+| `{ a: 1 }` | `a = 1` |
+| `{ a: null }` | `a IS NULL` |
+| `{ a: { $ne: null } }` | `a IS NOT NULL` |
+| `{ a: { $gte: 2, $lt: 10 } }` | `a >= 2 AND a < 10` |
+| `{ a: { $in: ["x", "y"] } }` | `a IN ['x', 'y']` |
+| `{ a: { $like: "Do%" } }` | `a LIKE 'Do%'` |
+| `{ tags: { $contains: "urgent" } }` | `tags CONTAINS 'urgent'` |
+| `{ a: { $exists: false } }` | `a IS NULL` |
+| `{ $or: [{ a: 1 }, { b: 2 }] }` | `( a = 1 ) OR ( b = 2 )` |
+| `{ "profile.verified": true }` | `profile.verified = TRUE` |
+
+Use `$and` and `$or` for nested logical filters. `Task.iterate(filter)` streams matching models. Filter paths and values are checked against the model type, and the generated expression passes through WebdaQL validation before reaching a repository.
+
 A powerful SQL-like query language for filtering and querying JavaScript objects, built with ANTLR4 for robust parsing and expression evaluation.
 
 ## What is @webda/ql?

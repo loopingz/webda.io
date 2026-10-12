@@ -56,6 +56,14 @@ class QueryParametersTest {
   }
 
   @test
+  async jsonFilterMatchesWebdaQL() {
+    const fromFilter = await Task.query({ owner: "alice", priority: { $gte: 1 } }, { orderBy: [{ field: "priority", direction: "DESC" }], limit: 10 });
+    const fromWebdaQL = await Task.query("owner = 'alice' AND priority >= 1 ORDER BY priority DESC LIMIT 10");
+    assert.deepStrictEqual(this.uuids(fromFilter.results), this.uuids(fromWebdaQL.results));
+    assert.deepStrictEqual(this.uuids((await this.repo.query({ owner: "bob" })).results), ["t2"]);
+  }
+
+  @test
   async modelIterateWithParameters() {
     const found: string[] = [];
     for await (const task of Task.iterate("priority > ?", [1])) {

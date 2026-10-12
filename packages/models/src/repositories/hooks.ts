@@ -4,6 +4,7 @@ import { Helpers, PropertyPaths } from "../types.js";
 import type { Repository } from "./repository.js";
 import type { AggregationResult, QueryParameters, WebdaQLString } from "@webda/ql";
 import type { AggregatedRow, AggregationSpec, MetricSpec } from "../aggregation.js";
+import type { FindOptions, ModelFilter } from "@webda/ql";
 
 /**
  * Global registry mapping ModelClass constructors to their Repository instances.
@@ -89,11 +90,20 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
       this: T,
       query: WebdaQLString<InstanceType<T>>,
       params?: QueryParameters
-    ): Promise<{
-      results: InstanceType<T>[];
-      continuationToken?: string;
-    }> {
-      return useRepository(this).query(query, params);
+    ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
+    static query<T extends ModelClass>(
+      this: T,
+      filter: ModelFilter<InstanceType<T>>,
+      options?: FindOptions<InstanceType<T>>
+    ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
+    static query<T extends ModelClass>(
+      this: T,
+      query: WebdaQLString<InstanceType<T>> | ModelFilter<InstanceType<T>>,
+      paramsOrOptions?: QueryParameters | FindOptions<InstanceType<T>>
+    ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
+      return typeof query === "string"
+        ? useRepository(this).query(query, paramsOrOptions as QueryParameters)
+        : useRepository(this).query(query, paramsOrOptions as FindOptions<InstanceType<T>>);
     }
 
     /**
@@ -103,16 +113,17 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
      * @param params - values for the placeholders: an array for `?`, an object for `:name`
      * @returns an async generator of model instances
      */
+    static iterate<T extends ModelClass>(this: T, query: WebdaQLString<InstanceType<T>>, params?: QueryParameters): AsyncGenerator<InstanceType<T>, any, any>;
+    static iterate<T extends ModelClass>(this: T, filter: ModelFilter<InstanceType<T>>, options?: Pick<FindOptions<InstanceType<T>>, "orderBy">): AsyncGenerator<InstanceType<T>, any, any>;
     static async *iterate<T extends ModelClass>(
       this: T,
-      query: WebdaQLString<InstanceType<T>>,
-      params?: QueryParameters
+      query: WebdaQLString<InstanceType<T>> | ModelFilter<InstanceType<T>>,
+      params?: QueryParameters | Pick<FindOptions<InstanceType<T>>, "orderBy">
     ): AsyncGenerator<InstanceType<T>, any, any> {
-      for await (const item of useRepository(this).iterate(query, params)) {
+      for await (const item of useRepository(this).iterate(query as any, params as any)) {
         yield item as InstanceType<T>;
       }
     }
-
     /**
      * Aggregate the objects directly
      *

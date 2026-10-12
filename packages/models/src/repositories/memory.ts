@@ -1,5 +1,5 @@
 import type { ArrayElement } from "@webda/tsc-esm";
-import type { AggregationQuery, AggregationResult, Query as WebdaQLQuery, QueryParameters } from "@webda/ql";
+import type { AggregationQuery, AggregationResult, Query as WebdaQLQuery, QueryParameters, ModelFilter, FindOptions } from "@webda/ql";
 import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable.js";
 import type { Helpers, JSONed, SelfJSONed, PropertyPaths, NumericPropertyPaths } from "../types.js";
 import { deserialize, serialize, serializeRaw } from "@webda/serialize";
@@ -368,12 +368,16 @@ export class MemoryRepository<
    * @returns the query results with optional continuation token
    */
   async query(
-    query: string | Query,
-    params?: QueryParameters
+    query: string | Query | ModelFilter<InstanceType<T>>,
+    params?: QueryParameters | FindOptions<InstanceType<T>>
   ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
     WebdaQL ??= await import("@webda/ql");
+    if (typeof query === "object" && query !== null && !("type" in query && "filter" in query)) {
+      query = WebdaQL.toWebdaQL(query as ModelFilter<InstanceType<T>>, params as FindOptions<InstanceType<T>>);
+      params = undefined;
+    }
     if (typeof query === "string" && params !== undefined) {
-      query = WebdaQL.bind(query, params);
+      query = WebdaQL.bind(query, params as QueryParameters);
     }
     const ids = this.buildClassFilterIdentifiers();
     let parsed: Query;
@@ -527,10 +531,13 @@ export class MemoryRepository<
    * @param query - the query string
    * @param params - values for the `?` or `:name` placeholders
    */
-  async *iterate(query: string, params?: QueryParameters): AsyncGenerator<InstanceType<T>, any, any> {
+  async *iterate(query: string | ModelFilter<InstanceType<T>>, params?: QueryParameters | Pick<FindOptions<InstanceType<T>>, "orderBy">): AsyncGenerator<InstanceType<T>, any, any> {
     WebdaQL ??= await import("@webda/ql");
-    if (params !== undefined) {
-      query = WebdaQL.bind(query, params);
+    if (typeof query !== "string") {
+      query = WebdaQL.toWebdaQL(query, params as Pick<FindOptions<InstanceType<T>>, "orderBy">);
+      params = undefined;
+    } else if (params !== undefined) {
+      query = WebdaQL.bind(query, params as QueryParameters);
     }
     /* c8 ignore next */
     const q: Query = WebdaQL.parse(query); // Ensure it is valid

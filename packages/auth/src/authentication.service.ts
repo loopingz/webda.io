@@ -22,7 +22,15 @@ import {
   WebdaError
 } from "@webda/core";
 import type { ModelClass } from "@webda/models";
-import { AccountExists, IdentConflict, IdentLinkedElsewhere, LastLoginMethod, RegistrationDisabled } from "./errors.js";
+import {
+  AccountExists,
+  IdentConflict,
+  IdentLinkedElsewhere,
+  LastLoginMethod,
+  MfaNotEnabled,
+  MfaNotPending,
+  RegistrationDisabled
+} from "./errors.js";
 import { isLegacyIdent, legacyIdents, legacyKey, splitLegacyKey, upgradeIdent } from "./compat/upgrade.js";
 import { type AuthProvider, applyEmailPolicy, isAuthProvider, type ProviderEmailPolicy } from "./provider.js";
 
@@ -318,12 +326,12 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
-   * MFA methods enabled for a user (implemented by sub-project 4)
+   * MFA methods enabled for a user
    * @param user - user
    * @returns enabled methods, empty when MFA is off
    */
   protected mfaMethods(user: User): string[] {
-    const mfa = (user as any)?.mfa;
+    const mfa = user?.mfa;
     return mfa?.isEnabled?.() ? mfa.methods() : [];
   }
 
@@ -547,6 +555,30 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
       }
       return { status: "mfa_required", methods };
     }
+    return this.finish(userObj, ident, session, ctx, identity.provider, identity, update);
+  }
+
+  /**
+   * Finalise login after factors are verified: patch ident lastUsedAt, issue tokens, emit events, inc metric
+   * @param userObj - user instance
+   * @param ident - ident instance
+   * @param session - session
+   * @param ctx - operation context
+   * @param provider - provider name
+   * @param identity - optional resolved identity
+   * @param update - extra ident attributes to patch
+   * @returns auth result
+   */
+  protected async finish(
+    userObj: User,
+    ident: Ident,
+    session: any,
+    ctx: any,
+    provider: string,
+    identity?: ResolvedIdentity,
+    update: any = {}
+  ): Promise<AuthResult> {
+    const userId = userObj.getUUID();
     await ident.ref().patch({ lastUsedAt: new Date(), ...update });
     const tokens = await useService("TokenService").issue(session);
     await this.emit("Authentication.Login", {
@@ -555,12 +587,54 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
       user: userObj,
       identId: ident.getUUID(),
       ident,
-      provider: identity.provider,
+      provider,
       // Provider tokens never travel in Authentication events (providers emit their own)
-      identity: withoutTokens(identity)
+      identity: identity ? withoutTokens(identity) : { provider, providerUid: ident.providerUid, amr: session.amr }
     } as any);
-    this.metrics?.login?.inc({ provider: identity.provider });
+    if (session.mfa === "verified") {
+      await this.emit("Authentication.MfaVerified", {
+        context: ctx,
+        user: userObj,
+        userId,
+        method: session.amr?.find((m: string) => !PRIMARY_FACTORS.includes(m))
+      } as any);
+    }
+    this.metrics?.login?.inc({ provider });
     return { status: "ok", user: userObj.toPublicEntry(), ...tokens };
+  }
+
+  /**
+   * Complete second-factor authentication for a pending session
+   * @param amr - second factor method(s) used (e.g. ["totp"], ["recovery"])
+   * @returns auth result with issued tokens
+   */
+  async completeSecondFactor(amr: string[]): Promise<AuthResult> {
+    const ctx = useContext<any>();
+    const session = ctx.getSession();
+    if (!session?.isPending()) {
+      throw new MfaNotPending();
+    }
+    const userId = session.userId;
+    const user = await runAsSystem(() => this.loadUser(userId));
+    const enabledMethods = this.mfaMethods(user);
+    const isRecovery = amr.includes("recovery");
+    if (isRecovery) {
+      if (enabledMethods.length === 0) {
+        throw new MfaNotEnabled();
+      }
+    } else if (!amr.some(m => enabledMethods.includes(m))) {
+      throw new MfaNotEnabled();
+    }
+    const provider = session.provider;
+    const ident = await runAsSystem(() => this.getIdentModel().ref(session.identUsed).get());
+    const authAt = session.authAt;
+    session.login(userId, session.identUsed, {
+      provider,
+      amr: [...(session.amr ?? []), ...amr],
+      mfa: "verified"
+    });
+    session.authAt = authAt;
+    return this.finish(user, ident, session, ctx, provider);
   }
 
   /**

@@ -22,7 +22,7 @@ import type { AuthProvider } from "../provider.js";
 import { useAuthentication } from "../provider.js";
 import { AccountExists, IdentLinkedElsewhere, InvalidCredentials, Throttled, TokenInvalid } from "../errors.js";
 import { signEmailToken, verifyEmailToken } from "./tokens.js";
-import { canSend, isLocked, markSent } from "../throttle.js";
+import { canSend, countAttempt, isLocked, markSent } from "../throttle.js";
 
 /** When the email is verified relative to account creation */
 export type VerificationMode = "before" | "after" | "none";
@@ -261,22 +261,7 @@ export class EmailPasswordProvider<T extends EmailPasswordParameters = EmailPass
    * @returns true when this attempt must be refused without checking the password
    */
   protected async countAttempt(ident: Ident): Promise<boolean> {
-    const { failedBeforeDelay, lockout } = this.parameters.throttle;
-    const now = Date.now();
-    // A lock whose last attempt is older than the lockout is over: attempts restart a window. A count without any
-    // timestamp (v3 `_failedLogin` upgraded without `_lastFailedLogin`) is an expired lock too: v4 always stamps an
-    // attempt it verifies, so only such data reaches the threshold unstamped
-    const expired =
-      (ident._loginAttempts ?? 0) >= failedBeforeDelay &&
-      (!ident._lastLoginAttemptAt || !isLocked(ident, failedBeforeDelay, lockout, now));
-    const ref = ident.ref();
-    const updated = await runAsSystem(() => ref.incrementAttribute("_loginAttempts"));
-    const attempts = (updated as any)?.["_loginAttempts"] ?? (await runAsSystem(() => ref.get()))._loginAttempts;
-    const locked = !expired && attempts - 1 >= failedBeforeDelay;
-    if (!locked) {
-      await runAsSystem(() => ref.setAttribute("_lastLoginAttemptAt", now));
-    }
-    return locked;
+    return countAttempt(ident.ref(), "_loginAttempts", "_lastLoginAttemptAt", this.parameters.throttle, ident);
   }
 
   /**

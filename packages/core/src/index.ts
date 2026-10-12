@@ -38,6 +38,8 @@ export * from "./models/registry.model.js";
 export * from "./models/user.model.js";
 export * from "./models/password.model.js";
 export * from "./models/encrypted.model.js";
+export * from "./models/mfa.model.js";
+export * from "./utils/totp.js";
 export * from "./models/coremodel.model.js";
 export * from "./models/ownermodel.model.js";
 export * from "./models/rolemodel.model.js";

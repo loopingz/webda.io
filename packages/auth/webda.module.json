@@ -100,9 +100,13 @@
         "definitions": {
           "password": {
             "additionalProperties": false,
+            "default": {
+              "policy": ".{8,}"
+            },
             "description": "Password rules",
             "properties": {
               "policy": {
+                "default": ".{8,}",
                 "type": "string"
               },
               "verifier": {
@@ -135,15 +139,23 @@
           },
           "throttle": {
             "additionalProperties": false,
+            "default": {
+              "failedBeforeDelay": 3,
+              "lockout": 900000,
+              "resendDelay": 14400000
+            },
             "description": "Throttling",
             "properties": {
               "failedBeforeDelay": {
+                "default": 3,
                 "type": "number"
               },
               "lockout": {
+                "default": 900000,
                 "type": "number"
               },
               "resendDelay": {
+                "default": 14400000,
                 "type": "number"
               }
             },
@@ -166,6 +178,9 @@
           },
           "password": {
             "$ref": "#/definitions/password",
+            "default": {
+              "policy": ".{8,}"
+            },
             "description": "Password rules"
           },
           "redirects": {
@@ -174,6 +189,11 @@
           },
           "throttle": {
             "$ref": "#/definitions/throttle",
+            "default": {
+              "failedBeforeDelay": 3,
+              "lockout": 900000,
+              "resendDelay": 14400000
+            },
             "description": "Throttling"
           },
           "trustEmailVerification": {
@@ -215,15 +235,96 @@
           }
         },
         "required": [
-          "password",
           "redirects",
-          "throttle",
           "type"
         ],
         "type": "object",
         "title": "EmailPasswordProvider"
       },
       "Configuration": "lib/email/emailpassword.service:EmailPasswordParameters"
+    },
+    "Webda/TotpService": {
+      "Import": "lib/mfa/totp.service:TotpService",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "ThrottleParameters": {
+            "additionalProperties": false,
+            "description": "Throttle configuration options",
+            "properties": {
+              "failedBeforeDelay": {
+                "description": "Failures allowed before lockout engages",
+                "type": "number"
+              },
+              "lockout": {
+                "description": "Lockout duration in milliseconds",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "description": "Parameters for TOTP service",
+        "properties": {
+          "algorithm": {
+            "default": "sha1",
+            "description": "HMAC hash algorithm (default \"sha1\")",
+            "enum": [
+              "sha1",
+              "sha256",
+              "sha512"
+            ],
+            "type": "string"
+          },
+          "digits": {
+            "description": "Number of digits (default 6)",
+            "enum": [
+              6,
+              8
+            ],
+            "type": "number"
+          },
+          "issuer": {
+            "description": "Application name / issuer shown in authenticator apps (defaults to application name)",
+            "type": "string"
+          },
+          "period": {
+            "description": "Time step in seconds (default 30)",
+            "type": "number"
+          },
+          "reauthMaxAge": {
+            "description": "Max age (s) of the primary login for enroll without re-authenticating",
+            "type": "number"
+          },
+          "recoveryCodes": {
+            "description": "Number of recovery codes generated (default 10, 0 disables recovery codes)",
+            "type": "number"
+          },
+          "throttle": {
+            "$ref": "#/definitions/ThrottleParameters",
+            "description": "Throttle config for failed attempts"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "window": {
+            "description": "Accepted drift window in time steps (default 1)",
+            "type": "number"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "TotpService"
+      },
+      "Configuration": "lib/mfa/totp.service:TotpParameters"
     }
   },
   "models": {},

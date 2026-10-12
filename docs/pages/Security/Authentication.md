@@ -144,6 +144,12 @@ All operations are exposed through the REST API with the path shown (relative to
 | `Auth.<Provider>.Token`        | `POST auth/<provider>/token`       | `token`                                   | OAuth providers, e.g. `Auth.Google.Token`: the login result (see [OAuth providers](#oauth-providers)) |
 | (GET link)                     | `GET <url>?redirect=...`           | `redirect?`                               | OAuth providers: 302 to the provider, see [OAuth providers](#oauth-providers)                         |
 | (GET link)                     | `GET <url>/callback`               | `code`, `state`                           | OAuth providers: 302 to the login target or `redirects.failure?reason=`                               |
+| `Auth.Totp.Enroll`             | `POST auth/mfa/totp/enroll`        | -                                         | `{ secret, uri }`: start TOTP enrollment (URI formatted for authenticator QR code)                    |
+| `Auth.Totp.Confirm`            | `POST auth/mfa/totp/confirm`       | `code`                                    | `{ recoveryCodes }`: confirm factor, issue recovery codes, revoke other user sessions                 |
+| `Auth.Totp.Verify`             | `POST auth/mfa/totp/verify`        | `code`                                    | verify TOTP code on pending session, issue access/refresh tokens                                      |
+| `Auth.Totp.Disable`            | `POST auth/mfa/totp/disable`       | `code`                                    | disable TOTP method (requires current TOTP code or recovery code)                                     |
+| `Auth.Mfa.Recover`             | `POST auth/mfa/recover`            | `code`                                    | login with a single-use recovery code on pending session                                              |
+| `Auth.Mfa.RecoveryCodes`       | `POST auth/mfa/recovery-codes`     | `code`                                    | `{ recoveryCodes }`: regenerate recovery codes (requires factor code or recovery code)                |
 
 `Auth.Unlink` only counts the **usable** remaining login methods: idents of other providers, plus email idents when
 the user has a password (without one an email ident allows neither login nor recovery). It also refuses to remove the
@@ -322,6 +328,94 @@ later than `authAt`. A failing read also yields an anonymous session. So:
 Sessions without `authAt` (created before this check existed, or by custom code calling `session.login()`) are not
 checked.
 
+## Multi-Factor Authentication (MFA / TOTP)
+
+`@webda/auth` provides second-factor authentication built on top of RFC 6238 Time-based One-Time Passwords (TOTP) and
+single-use recovery codes, with an extensible `SecondFactorService` base class for future factors (e.g. SMS, WebAuthn).
+
+### Configuration
+
+Add `Webda/TotpService` to your services:
+
+```jsonc
+{
+  "services": {
+    "totp": {
+      "type": "Webda/TotpService",
+      "issuer": "MyApplication", // name shown in authenticator apps (default: package name or "Webda")
+      "algorithm": "sha1", // "sha1" | "sha256" | "sha512" (default "sha1")
+      "digits": 6, // 6 | 8 (default 6)
+      "period": 30, // time step in seconds (default 30)
+      "window": 1, // accepted drift window in time steps (default 1)
+      "recoveryCodes": 10, // number of single-use recovery codes generated (default 10)
+      "reauthMaxAge": 300, // max age (s) of session to enroll without re-authenticating (default 300)
+      "throttle": {
+        "failedBeforeDelay": 5, // failed verification attempts before lockout
+        "lockout": 900000 // lockout duration in ms (15 min)
+      }
+    }
+  }
+}
+```
+
+### Storage and Security Model
+
+- **Secret encryption at rest**: The Base32 TOTP secret is stored inside `user.mfa.totp`, an `EncryptedField<TotpSecret>`
+  (`Webda/Encrypted`), encrypted using `CryptoService` symmetric encryption. The plaintext secret is never serialized in
+  JSON outputs or API responses.
+- **Single-use step enforcement**: `totpLastStep` records the accepted time step. Replaying an identical or earlier time-step
+  code is rejected immediately to prevent replay attacks.
+- **Recovery codes**: Generated in human-friendly `xxxxx-xxxxx` format. Plaintext codes are displayed to the user only once
+  upon enrollment confirmation (or regeneration). They are stored hashed with SHA-256 in `user.mfa.__recoveryCodes`. Verification
+  uses constant-time comparison (`crypto.timingSafeEqual`) and deletes the code immediately upon use.
+- **Brute-force protection**: Failed attempts are atomically counted in `_mfaAttempts` and `_lastMfaAttemptAt` on the User
+  model using `throttle.ts`. When failures reach `failedBeforeDelay`, all verification attempts are locked out (`THROTTLED`, 429)
+  for `lockout` ms. Successful verification clears the counter.
+
+### Authentication Flow
+
+1. **Enrollment**:
+   - `POST auth/mfa/totp/enroll` requires an active logged-in session (and requires reauthentication if the session is older than `reauthMaxAge`).
+   - Returns `{ secret, uri }` where `uri` is a standard `otpauth://totp/...` URI ready for QR code rendering.
+2. **Confirmation**:
+   - `POST auth/mfa/totp/confirm` with `{ code: "123456" }`.
+   - On success, marks TOTP enabled, generates recovery codes, revokes all other refresh token families of the user, and upgrades the current session to `mfa: "verified"`.
+   - Returns `{ recoveryCodes: ["...", ...] }`.
+3. **Login Gate**:
+   - When MFA is enabled, primary logins (e.g. `Auth.Email.Login`, `Auth.<Provider>.Token`, OAuth callbacks) answer:
+     `{ status: "mfa_required", methods: ["totp"] }`
+   - The session enters a pending state (`session.mfa = "pending"`). No access or refresh tokens are issued.
+4. **Verification**:
+   - `POST auth/mfa/totp/verify` with `{ code: "123456" }`.
+   - On success, marks `session.mfa = "verified"`, appends `"totp"` to `session.amr` (`["pwd", "totp"]`), issues access/refresh tokens, and returns `{ status: "ok", accessToken, refreshToken, ... }`.
+5. **Recovery**:
+   - If the user lost their authenticator, `POST auth/mfa/recover` with `{ code: "xxxxx-xxxxx" }`.
+   - Consumes the recovery code, sets `session.amr = ["pwd", "recovery"]`, issues tokens, and completes login.
+6. **Disabling & Regneration**:
+   - `POST auth/mfa/totp/disable` with `{ code: "..." }` disables TOTP (requires valid code or recovery code).
+   - `POST auth/mfa/recovery-codes` with `{ code: "..." }` regenerates a fresh set of recovery codes.
+
+### Extending SecondFactorService
+
+Custom MFA factors (SMS, WebAuthn, email codes) can be implemented by extending `SecondFactorService<P>`:
+
+```typescript
+export class SmsSecondFactorService extends SecondFactorService<SmsParameters> {
+  readonly method = "sms";
+
+  protected async startEnrollment(user: User, input?: any): Promise<any> {
+    // Save phone number, send initial SMS challenge
+  }
+
+  protected async check(user: User, code: string): Promise<boolean> {
+    // Validate SMS OTP code
+  }
+}
+```
+
+The base class automatically handles throttle lockout, recovery codes generation, event emission, session upgrade,
+and dynamic operation registration (`Auth.<Method>.Enroll`, `Auth.<Method>.Confirm`, etc.).
+
 ### Pending MFA sessions
 
 When the user has MFA enabled, a login is only complete when the provider's `amr` contains a primary factor (`pwd` or
@@ -368,6 +462,10 @@ Listen on the `Authentication` service. All payloads include `context`.
 | `Authentication.PasswordUpdate` | `user`, `password`                                                                                                                             |
 | `Authentication.Linked`         | `user`, `ident`                                                                                                                                |
 | `Authentication.Unlinked`       | `user`, `ident` (projection: `uuid`, `provider`, `providerUid`, `email`, `verifiedAt`, `lastUsedAt`, `userId`; no provider tokens nor profile) |
+| `Authentication.MfaEnabled`     | `user`, `userId`, `method`                                                                                                                     |
+| `Authentication.MfaDisabled`    | `user`, `userId`, `method`                                                                                                                     |
+| `Authentication.MfaVerified`    | `user`, `userId`, `method`                                                                                                                     |
+| `Authentication.MfaFailed`      | `user`, `userId`, `method`                                                                                                                     |
 
 The `identity` of `Authentication.Register` and `Authentication.Login` never carries the provider `tokens` (see
 [OAuth providers](#oauth-providers)). `Authentication.Register` is emitted before the new user is saved: it can still
@@ -388,12 +486,16 @@ carries `{ context, user }` only (`user` is undefined for an unknown email).
 | `TOKEN_INVALID`            | 403  | Malformed, wrong purpose, revoked or reused token                |
 | `TOKEN_EXPIRED`            | 410  | Expired emailed token                                            |
 | `THROTTLED`                | 429  | Too many attempts, or a mail was sent too recently               |
+| `INVALID_MFA_CODE`         | 401  | Invalid, replayed, or unrecognised MFA verification or recovery code |
+| `MFA_NOT_ENABLED`          | 400  | MFA (or specific method) is not enabled for the user             |
+| `MFA_ALREADY_ENABLED`      | 409  | Factor method is already enabled for the user                    |
+| `MFA_NOT_PENDING`          | 401  | Session has no pending second factor verification                |
 | `PASSWORD_POLICY`          | 400  | The password does not satisfy the policy                         |
 | `INVALID_IDENT`            | 400  | Malformed ident                                                  |
 | `UNSUPPORTED_MEDIA_TYPE`   | 415  | `Auth.<Provider>.Token` called without a JSON body               |
 | `BAD_REQUEST`              | 400  | `complete()` called for a provider name that is not registered   |
 
-Importable from `@webda/auth` (`AccountExists`, `Throttled`, ...).
+Importable from `@webda/auth` (`AccountExists`, `Throttled`, `InvalidMfaCode`, `MfaNotEnabled`, ...).
 
 ## Password policy
 

@@ -87,6 +87,33 @@ export function installConfigurationFactories(
   );
 }
 
+/**
+ * Path of a file referenced by a webda.module.json
+ *
+ * The compiler writes a dependency's file as `node_modules/<package>/<path>`, relative to the module folder. The
+ * dependency is not always nested in it: pnpm (and Bazel rules_js) install it as a sibling of the package, so it
+ * is looked up like Node does, in the `node_modules` of the module folder then of each parent folder.
+ * @param moduleFolder - the folder of the webda.module.json
+ * @param info - the `path:export` descriptor
+ * @returns the descriptor joined to the folder holding the file (to the module folder when not found)
+ */
+export function resolveModuleFile(moduleFolder: string, info: string): string {
+  const target = join(moduleFolder, info);
+  if (!/^node_modules[\\/]/.test(info)) {
+    return target;
+  }
+  const { file } = parseImportDescriptor(info);
+  let folder = moduleFolder;
+  while (!existsSync(join(folder, file)) && !existsSync(join(folder, file + ".js"))) {
+    const up = dirname(folder);
+    if (up === folder) {
+      return target;
+    }
+    folder = up;
+  }
+  return join(folder, info);
+}
+
 export type ApplicationState = "initial" | "loading" | "ready";
 
 // We should not be able to set initial from outside
@@ -802,6 +829,16 @@ export class Application {
   }
 
   /**
+   * Path of a file referenced by a module, see {@link resolveModuleFile}
+   * @param parent - the module folder
+   * @param info - the `path:export` descriptor of the module
+   * @returns the descriptor with the path resolved
+   */
+  protected getModuleFilePath(parent: string, info: string): string {
+    return resolveModuleFile(parent, info);
+  }
+
+  /**
    * Load the module,
    *
    * @protected
@@ -814,23 +851,22 @@ export class Application {
     const info: Omit<CachedModule, "project"> = module;
     const sectionLoader = async (section: Section) => {
       for (const key in info[section]) {
-        this[section][key] ??= await this.importFile(join(parent, info[section][key].Import));
+        const importPath = this.getModuleFilePath(parent, info[section][key].Import);
+        this[section][key] ??= await this.importFile(importPath);
         if (!this[section][key]) {
-          this.log(
-            "ERROR",
-            `Cannot load ${section.substring(0, section.length - 1)} ${key} from ${join(parent, info[section][key].Import)}`
-          );
+          this.log("ERROR", `Cannot load ${section.substring(0, section.length - 1)} ${key} from ${importPath}`);
           continue;
         }
         if (section === "beans" || section === "moddas") {
           // Load the parameters automatically
-          const configurationClass = info[section][key].Configuration
-            ? await this.importFile(join(parent, info[section][key].Configuration))
-            : ServiceParameters;
+          const configurationPath = info[section][key].Configuration
+            ? this.getModuleFilePath(parent, info[section][key].Configuration)
+            : undefined;
+          const configurationClass = configurationPath ? await this.importFile(configurationPath) : ServiceParameters;
           if (!configurationClass) {
             this.log(
               "ERROR",
-              `Cannot load configuration for ${section.substring(0, section.length - 1)} ${key} from ${join(parent, info[section][key].Configuration)}`
+              `Cannot load configuration for ${section.substring(0, section.length - 1)} ${key} from ${configurationPath}`
             );
             continue;
           }

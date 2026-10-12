@@ -812,4 +812,58 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
     assert.ok(repos.length >= 1);
     assert.ok(repos.every(r => r instanceof PostgresRepository));
   }
+
+  @test
+  async repositoryObtainedBeforeInitUsesTheClientOfInit() {
+    const store = new PostgresStore(
+      "earlyRepository",
+      new PostgresParameters().load({ models: ["Webda/OwnerModel"], table: "idents" })
+    );
+    store.resolve();
+    // Store.computeStores() runs from the init() of the first store to initialize and asks every store,
+    // initialized or not, for its repositories: the cached repository predates this store's client
+    const repo = store.getRepository(useModel("Webda/OwnerModel"));
+    const statements: string[] = [];
+    store.client = {
+      query: async (q: string) => {
+        statements.push(q);
+        return { rows: [], rowCount: 1 };
+      }
+    } as any;
+    // init() continues with checkTable(): the DDL goes through the repository created above
+    await store.checkTable();
+    assert.strictEqual(statements.length, 1);
+    assert.match(statements[0], /^CREATE TABLE IF NOT EXISTS idents /);
+    await repo.create({ _type: "google" } as any);
+    assert.strictEqual(statements.length, 2);
+    assert.ok(statements[1].startsWith("INSERT INTO idents("));
+  }
+
+  @test
+  async repositoryFollowsTheClientAcrossStopAndInit() {
+    const store = new PostgresStore(
+      "reinitRepository",
+      new PostgresParameters().load({ models: ["Webda/OwnerModel"], table: "idents", autoCreateTable: false })
+    );
+    store.resolve();
+    const statements: { client: string; q: string }[] = [];
+    const fakeClient = (name: string) =>
+      ({
+        query: async (q: string) => {
+          statements.push({ client: name, q });
+          return { rows: [], rowCount: 0 };
+        }
+      }) as any;
+    store.client = fakeClient("first");
+    const repo = store.getRepository(useModel("Webda/OwnerModel"));
+    await repo.exists("x");
+    // stop() drops the client and a later init() connects another one: the cached repository must use it
+    await store.stop();
+    store.client = fakeClient("second");
+    await repo.exists("x");
+    assert.deepStrictEqual(
+      statements.map(s => s.client),
+      ["first", "second"]
+    );
+  }
 }

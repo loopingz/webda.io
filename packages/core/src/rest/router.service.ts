@@ -19,7 +19,7 @@ import { getMetadata } from "@webda/decorators";
 import { templateVariables } from "../templates/templates.js";
 import { emitCoreEvent, useCoreEvents } from "../events/events.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
-import { FileUtils } from "@webda/utils";
+import { FileUtils, JSONUtils } from "@webda/utils";
 
 /** Parameters for the Router service */
 export class RouterParameters extends ServiceParameters {
@@ -711,7 +711,10 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         type: "object"
       };
       const modelName = model.name || i.split("/").pop();
-      const schema = useApplication().getSchema(i);
+      // A copy: the definitions move to components below, the application schema must keep them for validation.
+      // A JSON one: schemas are JSON, and those of a webda.config.jsonc are JSONC proxies structuredClone rejects
+      const appSchema = useApplication().getSchema(i);
+      const schema: JSONSchema7 | undefined = appSchema ? JSONUtils.duplicate(appSchema) : undefined;
       if (schema) {
         for (const j in schema.definitions) {
           // @ts-ignore

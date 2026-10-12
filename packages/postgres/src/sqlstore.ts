@@ -135,7 +135,8 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
    * Create a new PostgresRepository.
    * @param model - the model class
    * @param pks - primary key field names
-   * @param client - the pg client or pool
+   * @param client - the pg client or pool, or a function returning the store's current one: the repository then
+   *   follows the client the store connects in `init()`, even when created before it or kept across a `stop()`
    * @param table - the table name
    * @param separator - composite key separator
    * @param prepare - awaited before every statement (e.g. to ensure the table exists)
@@ -145,7 +146,7 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
   constructor(
     model: T,
     pks: string[],
-    protected readonly client: SQLClient,
+    client: SQLClient | (() => SQLClient | undefined),
     protected readonly table: string,
     separator?: string,
     protected readonly prepare?: () => Promise<void>,
@@ -153,13 +154,35 @@ export class PostgresRepository<T extends ModelClass> extends MemoryRepository<T
   ) {
     // Pass an empty Map — we do NOT use in-memory storage
     super(model, pks, separator, new Map<string, string>() as any);
+    this.clientSource = client;
     this.tableModel = tableModel ?? PostgresRepository.rootIdentifier(model);
   }
+
+  /**
+   * The pg client or pool, or the function resolving the store's current one
+   */
+  private readonly clientSource: SQLClient | (() => SQLClient | undefined);
 
   /**
    * Identifier of the model the table was declared for: unstamped rows belong to it
    */
   protected readonly tableModel?: string;
+
+  /**
+   * The pg client or pool the statements run on
+   *
+   * Resolved on every access: a repository handed out before its store connected (Store.computeStores asks every
+   * store for its repositories from the first store init) or kept across a stop()/init() cycle uses the current one.
+   * @returns the client
+   * @throws when the store has no client, i.e. is not initialized or is stopped
+   */
+  protected get client(): SQLClient {
+    const client = typeof this.clientSource === "function" ? this.clientSource() : this.clientSource;
+    if (!client) {
+      throw new Error(`No SQL client for table ${this.table}: the store is not initialized`);
+    }
+    return client;
+  }
 
   /**
    * @param model - a model class

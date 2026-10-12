@@ -946,6 +946,23 @@ class HttpServerTest extends WebdaApplicationTest {
   }
 
   @test
+  async redirectErrorSendsTheLocation() {
+    // A Redirect thrown by a route (or a request filter like an authorizer) is a 302: the client needs the
+    // Location header to follow it, not only the JSON error body
+    useRouter().addRouteToRouter("/test-redirect", {
+      methods: ["GET"],
+      executor: "TestRoute",
+      _method: async () => {
+        throw new WebdaError.Redirect("Redirect to auth", "/auth/login");
+      }
+    });
+    const port = await this.startServer();
+    const res = await httpRequest({ hostname: "127.0.0.1", port, path: "/test-redirect", method: "GET" });
+    assert.strictEqual(res.statusCode, 302);
+    assert.strictEqual(res.headers.location, "/auth/login");
+  }
+
+  @test
   async errorPathWritesSafe5xxBody() {
     // Plain Error → 500 with code "INTERNAL_SERVER_ERROR" and a generic
     // message (we deliberately don't leak internals on 5xx).

@@ -33,6 +33,28 @@ class FilterTest {
   }
 
   @test
+  handlesUndefinedNestedAndEmpty() {
+    assert.strictEqual(toWebdaQL({ a: undefined, b: 2 }), "b = 2");
+    assert.strictEqual(toWebdaQL({ $or: undefined, b: 2 }), "b = 2");
+    assert.strictEqual(toWebdaQL({ a: { $gte: undefined, $lt: 10 } }), "a < 10");
+    assert.strictEqual(toWebdaQL({ address: { city: "Paris", zip: undefined } }), 'address.city = "Paris"');
+    assert.strictEqual(toWebdaQL({ a: { b: { c: 1 } } }), "a.b.c = 1");
+    assert.throws(() => toWebdaQL({ a: {} }), /Empty filter object/);
+    assert.throws(() => toWebdaQL({ a: { b: {} } }), /Empty filter object/);
+    assert.throws(() => toWebdaQL({ a: { $gt: 1, b: 2 } } as any), /Cannot mix/);
+    assert.throws(() => toWebdaQL({ a: { $contains: 5 } } as any), /\$contains takes a string/);
+  }
+
+  @test
+  dateEvalKeepsNumericComparison() {
+    const target = { due: new Date(1800000000000) };
+    assert.ok(new QueryValidator("due > 1700000000000").eval(target));
+    assert.ok(!new QueryValidator("due < 1700000000000").eval(target));
+    assert.ok(new QueryValidator(`due > "2020-01-01T00:00:00.000Z"`).eval(target));
+    assert.ok(new QueryValidator(`due IN ["${target.due.toISOString()}"]`).eval(target));
+  }
+
+  @test
   refusesInjectionAndInvalidValues() {
     assert.throws(() => filterToExpression({ "a' OR 1=1 --": 1 } as any), WebdaQLError);
     assert.throws(() => filterToExpression({ $or: [{ "a = 1 OR b": 1 }] } as any), WebdaQLError);

@@ -103,8 +103,8 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
       query: WebdaQLString<InstanceType<T>> | ModelFilter<InstanceType<T>>,
       paramsOrOptions?: QueryParameters | FindOptions<InstanceType<T>>
     ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
-      if (typeof query === "string") {
-        return useRepository(this).query(query, paramsOrOptions as QueryParameters);
+      if (typeof query === "string" || query === undefined || query === null) {
+        return useRepository(this).query(query as string, paramsOrOptions as QueryParameters);
       }
       const WebdaQL = await import("@webda/ql");
       return useRepository(this).query(WebdaQL.toWebdaQL(query, paramsOrOptions as FindOptions<InstanceType<T>>));
@@ -133,8 +133,8 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
       params?: QueryParameters | Pick<FindOptions<InstanceType<T>>, "orderBy">
     ): AsyncGenerator<InstanceType<T>, any, any> {
       const iterator =
-        typeof query === "string"
-          ? useRepository(this).iterate(query, params as QueryParameters)
+        typeof query === "string" || query === undefined || query === null
+          ? useRepository(this).iterate(query as string, params as QueryParameters)
           : useRepository(this).iterate(
               (await import("@webda/ql")).toWebdaQL(query, params as Pick<FindOptions<InstanceType<T>>, "orderBy">)
             );

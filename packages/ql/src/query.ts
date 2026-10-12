@@ -793,8 +793,14 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
    */
   eval(target: any): boolean {
     let left = ComparisonExpression.getAttributeValue(target, this.attribute);
-    // WebdaQL has no date literal: dates compare as their ISO 8601 string, the way they are serialized
-    if (left instanceof Date && !isNaN(left.getTime())) {
+    // WebdaQL has no date literal: a date compared with a string compares as its ISO 8601 form, the way it is
+    // serialized; comparisons with numbers keep the native Date behavior
+    if (
+      left instanceof Date &&
+      !isNaN(left.getTime()) &&
+      this.operator !== "LIKE" &&
+      (typeof this.value === "string" || (Array.isArray(this.value) && this.value.some(v => typeof v === "string")))
+    ) {
       left = left.toISOString();
     }
     switch (this.operator) {

@@ -8,7 +8,7 @@ description: Introduction to @webda/ql - SQL-like query language for filtering a
 
 ## JSON filters
 
-Model repositories accept a typed JSON filter in `query()`. Plain values mean equality, and operator objects support comparisons and collection matching:
+Models accept a typed JSON filter in `Model.query()` and `Model.iterate()`. The filter is converted to WebdaQL before reaching the repository, so every store supports it; repositories themselves only take WebdaQL strings. Plain values mean equality, and operator objects support comparisons and collection matching:
 
 ```ts
 const { results } = await Task.query(
@@ -23,14 +23,15 @@ const { results } = await Task.query(
 | `{ a: null }` | `a IS NULL` |
 | `{ a: { $ne: null } }` | `a IS NOT NULL` |
 | `{ a: { $gte: 2, $lt: 10 } }` | `a >= 2 AND a < 10` |
-| `{ a: { $in: ["x", "y"] } }` | `a IN ['x', 'y']` |
-| `{ a: { $like: "Do%" } }` | `a LIKE 'Do%'` |
-| `{ tags: { $contains: "urgent" } }` | `tags CONTAINS 'urgent'` |
+| `{ a: { $in: ["x", "y"] } }` | `a IN ["x", "y"]` |
+| `{ a: { $like: "Do%" } }` | `a LIKE "Do%"` |
+| `{ tags: { $contains: "urgent" } }` | `tags CONTAINS "urgent"` |
 | `{ a: { $exists: false } }` | `a IS NULL` |
-| `{ $or: [{ a: 1 }, { b: 2 }] }` | `( a = 1 ) OR ( b = 2 )` |
+| `{ $or: [{ a: 1 }, { b: 2 }] }` | `a = 1 OR b = 2` |
 | `{ "profile.verified": true }` | `profile.verified = TRUE` |
+| `{ due: { $lt: new Date("2026-01-01") } }` | `due < "2026-01-01T00:00:00.000Z"` |
 
-Use `$and` and `$or` for nested logical filters. `Task.iterate(filter)` streams matching models. Filter paths and values are checked against the model type, and the generated expression passes through WebdaQL validation before reaching a repository.
+Use `$and` and `$or` (non-empty arrays) for nested logical filters. Dates are compared as ISO 8601 strings. `Task.iterate(filter)` streams matching models. Filter paths and values are checked against the model type, and the generated expression passes through WebdaQL validation before reaching a repository.
 
 A powerful SQL-like query language for filtering and querying JavaScript objects, built with ANTLR4 for robust parsing and expression evaluation.
 

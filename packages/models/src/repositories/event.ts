@@ -2,7 +2,7 @@ import { PK, PrimaryKeyType, ModelClass, WEBDA_PRIMARY_KEY } from "../storable.j
 import type { SelfJSONed, JSONed, Helpers, PropertyPaths, NumericPropertyPaths, PropertyPathType } from "../types.js";
 import { AbstractRepository } from "./abstract.js";
 import { ArrayElement } from "@webda/tsc-esm";
-import type { Query as WebdaQLQuery, QueryParameters, AggregationResult, ModelFilter, FindOptions } from "@webda/ql";
+import type { Query as WebdaQLQuery, QueryParameters, AggregationResult } from "@webda/ql";
 import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
 import { WEBDA_TEST } from "./repository.js";
 
@@ -67,15 +67,11 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
    * @returns the query results with optional continuation token
    */
   async query(
-    query: string | ModelFilter<InstanceType<T>>,
-    params?: QueryParameters | FindOptions<InstanceType<T>>
+    query: string,
+    params?: QueryParameters
   ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
-    if (typeof query !== "string") {
-      const WebdaQL = await import("@webda/ql");
-      query = WebdaQL.toWebdaQL(query, params as FindOptions<InstanceType<T>>);
-      params = undefined;
-    } else if (params !== undefined) {
-      query = (await import("@webda/ql")).bind(query, params as QueryParameters);
+    if (params !== undefined) {
+      query = (await import("@webda/ql")).bind(query, params);
     }
     await this.emit("Query", { query } as any);
     const res = await this.repository.query(query);
@@ -89,13 +85,9 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
    * @param params - values for the `?` or `:name` placeholders, bound before reaching the underlying repository
    * @returns an async generator of objects
    */
-  async *iterate(query: string | ModelFilter<InstanceType<T>>, params?: QueryParameters | Pick<FindOptions<InstanceType<T>>, "orderBy">): AsyncGenerator<InstanceType<T>, any, any> {
-    if (typeof query !== "string") {
-      query = (await import("@webda/ql")).toWebdaQL(query, params as Pick<FindOptions<InstanceType<T>>, "orderBy">);
-      params = undefined;
-    }
+  async *iterate(query: string, params?: QueryParameters): AsyncGenerator<InstanceType<T>, any, any> {
     if (params !== undefined) {
-      query = (await import("@webda/ql")).bind(query, params as QueryParameters);
+      query = (await import("@webda/ql")).bind(query, params);
     }
     yield* this.repository.iterate(query);
   }

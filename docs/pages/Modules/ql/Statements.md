@@ -16,7 +16,7 @@ UPDATE SET a = <value>, b.c = <value> [WHERE <filter>] [LIMIT n]
 
 - **Keywords are uppercase only**, like every WQL keyword. `select`, `delete`, `update`, `set`, `where` or `desc` written in lowercase are field names: `select = 1 AND where = 2` is a filter.
 - **A plain filter is an implicit `SELECT` of every field**: `parse("status = 'open'").type` is `"SELECT"`. A bare field list without the keyword (`name, age WHERE ...`) is a syntax error.
-- Fields can be dotted paths (`profile.email`). SET values are literals (string, number, `TRUE`/`FALSE`) or parameters; `NULL` cannot be assigned.
+- Fields can be dotted paths (`profile.email`). SET values are literals (string, number, `TRUE`/`FALSE`), `NOW(...)` function calls, or parameters; `NULL` cannot be assigned.
 - Parameters (`?`, `:name`) work in WHERE, LIMIT, OFFSET and SET values: `bind("UPDATE SET status = ? WHERE owner = ?", ["archived", user])`.
 
 The parsed `Query` carries the statement:

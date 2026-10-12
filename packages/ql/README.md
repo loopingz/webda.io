@@ -54,6 +54,7 @@ aggregation syntax, uppercase `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, `AS`, `DISTIN
 **Filter expressions** support:
 
 - Comparison: `field = value`, `field != value`, `field > value`, `field >= value`, `field < value`, `field <= value`
+- Time function: `field > NOW()`, `field < NOW('-10m')`, `field >= NOW('+1d')` (millisecond timestamp resolution)
 - Pattern match: `field LIKE "pattern"` (`_` = single char, `%` = any chars)
 - Set membership: `field IN [value, value, ...]`
 - Array contains: `field CONTAINS value`
@@ -93,6 +94,22 @@ WebdaQL.bind("priority >= ? LIMIT ?", [2, 10]); // priority >= 2 LIMIT 10
 ```
 
 Placeholders are only allowed where a value is expected, values are escaped by type, and `= ?` / `!= ?` with `null` become `IS NULL` / `IS NOT NULL`. Template literals passed straight to a query method are escaped the same way at compile time by `webdac`. See [Parameters](../../docs/pages/Modules/ql/Parameters.md).
+
+### NOW() time function
+
+WebdaQL supports `NOW()` to produce dynamic numeric timestamps (milliseconds since Unix epoch):
+
+- `NOW()`: current timestamp (`Date.now()`).
+- `NOW('-10m')` / `NOW('+1d')`: current timestamp offset by duration string.
+- Units supported: `ms`, `s`/`sec`, `m`/`min`, `h`/`hr`, `d`/`day`, `mo`/`mon`/`month`, `y`/`yr`/`year`. Multi-part durations like `NOW('-1d2h')` are supported.
+- Numeric millisecond offsets: `NOW(-60000)` or `NOW(60000)`.
+- Parameters: `NOW(?)` and `NOW(:offset)` can be bound using `bind()`.
+- Updates: `UPDATE SET lastLoginAt = NOW()`.
+- Dynamic evaluation: Expressions with `NOW()` evaluate dynamically at query execution or access time, allowing cached queries and operation permissions to track real time:
+
+```typescript
+@Operation({ permission: "mfa = 'verified' AND mfaAt > NOW('-10m')" })
+```
 
 ### Statements: SELECT, DELETE, UPDATE
 

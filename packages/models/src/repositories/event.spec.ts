@@ -38,6 +38,12 @@ class EventRepositoryTest extends RepositoryTest {
       Queried: 18,
       Query: 18
     },
+    queryWithNow: {
+      Create: 3,
+      Created: 3,
+      Queried: 2,
+      Query: 2
+    },
     iterate: {},
     uuidModel: {},
     createWithoutPrimaryKey: {

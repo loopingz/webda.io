@@ -261,6 +261,32 @@ export class RepositoryTest {
   }
 
   @test
+  async queryWithNow() {
+    const now = Date.now();
+    const repo = QueryDocument.getRepository();
+    const docOld = new QueryDocument({ id: 9001, order: now - 7200000 });
+    const docRecent = new QueryDocument({ id: 9002, order: now - 1800000 });
+    const docFuture = new QueryDocument({ id: 9003, order: now + 3600000 });
+    await repo.create(docOld);
+    await repo.create(docRecent);
+    await repo.create(docFuture);
+
+    // order < NOW('-1h') matches docOld (2h ago < 1h ago)
+    const res = await repo.query("id IN [9001, 9002, 9003] AND order < NOW('-1h')");
+    assert.strictEqual(res.results.length, 1);
+    assert.strictEqual(res.results[0].id, 9001);
+
+    // order > NOW('-1h') matches docRecent and docFuture
+    const res2 = await repo.query("id IN [9001, 9002, 9003] AND order > NOW('-1h')");
+    assert.strictEqual(res2.results.length, 2);
+
+    // UPDATE SET with NOW()
+    await repo.updateMany("UPDATE SET order = NOW() WHERE id = 9001");
+    const updated = await repo.get(9001);
+    assert.ok(Math.abs(updated.order - Date.now()) < 5000);
+  }
+
+  @test
   async upsert() {
     const repo = TestModel.getRepository() as MemoryRepository<typeof TestModel>;
     const test = await repo.upsert({

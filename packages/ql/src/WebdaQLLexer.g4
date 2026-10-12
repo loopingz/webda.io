@@ -91,6 +91,9 @@ MIN: 'MIN';
 MAX: 'MAX';
 STAR: '*';
 
+// Time functions
+NOW: 'NOW';
+
 // Literals
 
 DQUOTED_STRING_LITERAL:                      DQUOTA_STRING;

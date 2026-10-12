@@ -96,6 +96,19 @@ describe("PostgresRepository query translation", () => {
     ]);
     expect(repo.duplicateExpression(tree).toString()).toBe("data#>>'{name}' = 'a' AND TRUE AND TRUE AND FALSE");
   });
+
+  it("translates NOW() with duration offset to numeric timestamp comparison", async () => {
+    const before = Date.now();
+    const sql = await where("lastUsedAt < NOW('-1h')");
+    const after = Date.now();
+    const match = sql.match(
+      /^\(CASE WHEN jsonb_typeof\(data#>'{lastUsedAt}'\) = 'number' THEN \(data#>>'{lastUsedAt}'\)::numeric END\) < (\d+)$/
+    );
+    expect(match).not.toBeNull();
+    const timestamp = Number(match![1]);
+    expect(timestamp).toBeGreaterThanOrEqual(before - 3600000);
+    expect(timestamp).toBeLessThanOrEqual(after - 3600000);
+  });
 });
 
 /**

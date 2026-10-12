@@ -1,0 +1,1 @@
+A typed frontend SDK is generated into `sdk/` by `SdkGenerator` on every build (`webdac build`, or `webda sdk generate`): import `createClient` from it in a frontend, it only depends on `@webda/sdk/client`. Model methods marked `@Shared()` are copied into the SDK and must stay pure (parameters, `this.<attribute>`, standard globals, `@webda/utils` and `@webda/ql` only).

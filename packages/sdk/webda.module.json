@@ -1,0 +1,191 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/SdkGenerator": {
+      "Import": "lib/sdkgenerator.service:SdkGenerator",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Record<string, unknown>": {
+            "additionalProperties": {},
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "package#2": {
+            "additionalProperties": false,
+            "description": "Write a `package.json` so the folder is a workspace package",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "Parameters of the SDK generator",
+        "properties": {
+          "exclude": {
+            "description": "Operation id globs to exclude (`*.Delete`)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "include": {
+            "default": "every operation",
+            "description": "Operation id globs to include (`Task.*`, `Tasks.Query`, `Auth.*`)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "models": {
+            "default": true,
+            "description": "Emit `models.ts` and the model clients",
+            "type": "boolean"
+          },
+          "offline": {
+            "default": "true when one is configured",
+            "description": "Describe the `SyncService` in the manifest",
+            "type": "boolean"
+          },
+          "outDir": {
+            "default": ".webda/sdk",
+            "description": "Folder the SDK is written to, relative to the application",
+            "type": "string"
+          },
+          "package": {
+            "$ref": "#/definitions/package%232",
+            "description": "Write a `package.json` so the folder is a workspace package"
+          },
+          "sharedImports": {
+            "default": [
+              "@webda/utils",
+              "@webda/ql"
+            ],
+            "description": "Modules a `@Shared` method may import from (also read by the compiler)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "transports": {
+            "default": "every configured transport service",
+            "description": "Exposures to describe in the manifest",
+            "items": {
+              "enum": [
+                "rest",
+                "graphql",
+                "grpc"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "types": {
+            "$ref": "#/definitions/Record%3Cstring%2C%20unknown%3E",
+            "description": "`json-schema-to-typescript` options passthrough"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "SdkGenerator"
+      },
+      "Configuration": "lib/sdkgenerator.service:SdkGeneratorParameters",
+      "commands": {
+        "build": {
+          "description": "Generate the frontend SDK",
+          "method": "build",
+          "args": {},
+          "requires": [
+            "rest-domain"
+          ],
+          "phase": "resolved"
+        },
+        "sdk generate": {
+          "description": "Generate the frontend SDK",
+          "method": "generate",
+          "args": {
+            "outDir": {
+              "type": "string"
+            }
+          },
+          "requires": [
+            "rest-domain"
+          ],
+          "phase": "resolved"
+        },
+        "sdk manifest": {
+          "description": "Print the SDK manifest",
+          "method": "printManifest",
+          "args": {},
+          "requires": [
+            "rest-domain"
+          ],
+          "phase": "resolved"
+        }
+      }
+    }
+  },
+  "models": {},
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    }
+  },
+  "behaviors": {}
+}

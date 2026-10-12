@@ -26,6 +26,7 @@ class OptionsTest {
       dir: "my-app",
       store: "postgres",
       transports: ["rest", "graphql"],
+      sdk: false,
       namespace: "Shop",
       pm: "pnpm",
       install: false,

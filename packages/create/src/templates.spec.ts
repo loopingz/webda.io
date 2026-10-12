@@ -123,4 +123,16 @@ class TemplatesTest {
     assert.strictEqual(graphqlOnly.RESTService, undefined);
     assert.ok(graphqlOnly.HttpServer, "the HTTP server stays for GraphQL");
   }
+
+  @test
+  async sdkAddsTheGeneratorAndItsDependency() {
+    const files = await render({ sdk: true });
+    const services = JSON.parse(files.get("webda.config.json")).services;
+    assert.deepStrictEqual(services.SdkGenerator, { type: "Webda/SdkGenerator", outDir: "sdk" });
+    assert.ok(JSON.parse(files.get("package.json")).dependencies["@webda/sdk"]);
+    assert.match(files.get("AGENTS.md"), /frontend SDK/);
+    const without = await render({});
+    assert.strictEqual(JSON.parse(without.get("webda.config.json")).services.SdkGenerator, undefined);
+    assert.strictEqual(JSON.parse(without.get("package.json")).dependencies["@webda/sdk"], undefined);
+  }
 }

@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "useDefineForClassFields": true,
+    "strictPropertyInitialization": false,
+    "lib": ["ES2022", "DOM", "DOM.AsyncIterable"],
+    "types": []
+  },
+  "include": ["src/client/**/*"],
+  "exclude": ["**/node_modules", "src/**/*.spec.ts"]
+}

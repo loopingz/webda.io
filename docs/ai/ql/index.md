@@ -6,6 +6,35 @@ description: Introduction to @webda/ql - SQL-like query language for filtering a
 
 # @webda/ql
 
+## JSON filters
+
+Models accept a typed JSON filter in `Model.query()` and `Model.iterate()`. The filter is converted to WebdaQL before reaching the repository, so every store accepts it; repositories themselves only take WebdaQL strings. Plain values mean equality, and operator objects support comparisons and collection matching:
+
+```ts
+const { results } = await Task.query(
+  { status: "open", priority: { $gte: 2, $lt: 10 } },
+  { orderBy: [{ field: "priority", direction: "DESC" }], limit: 10 }
+);
+```
+
+| JSON filter | WebdaQL |
+|---|---|
+| `{ a: 1 }` | `a = 1` |
+| `{ a: null }` | `a IS NULL` |
+| `{ a: { $ne: null } }` | `a IS NOT NULL` |
+| `{ a: { $gte: 2, $lt: 10 } }` | `a >= 2 AND a < 10` |
+| `{ a: { $in: ["x", "y"] } }` | `a IN ["x", "y"]` |
+| `{ a: { $like: "Do%" } }` | `a LIKE "Do%"` |
+| `{ tags: { $contains: "urgent" } }` | `tags CONTAINS "urgent"` |
+| `{ a: { $exists: false } }` | `a IS NULL` |
+| `{ $or: [{ a: 1 }, { b: 2 }] }` | `a = 1 OR b = 2` |
+| `{ "profile.verified": true }` | `profile.verified = TRUE` |
+| `{ due: { $lt: new Date("2026-01-01") } }` | `due < "2026-01-01T00:00:00.000Z"` |
+
+Use `$and` and `$or` (non-empty arrays) for nested logical filters. Keys set to `undefined` are ignored, so optional criteria can be spread in; an empty operator object such as `{ a: {} }` is rejected. A plain object without operators matches nested fields: `{ address: { city: "Paris" } }` is `address.city = "Paris"`. `$contains` takes a string.
+
+WebdaQL has no date literal: dates are sent as ISO 8601 strings in UTC (`Z`) and compared as text. This is correct when the store keeps dates in that same form (the default JSON serialization); dates stored with another offset, as date-only strings, or in native date columns may not compare as expected. `Task.iterate(filter)` streams matching models. Filter paths and values are checked against the model type, and the generated expression passes through WebdaQL validation before reaching a repository.
+
 A powerful SQL-like query language for filtering and querying JavaScript objects, built with ANTLR4 for robust parsing and expression evaluation.
 
 ## What is @webda/ql?

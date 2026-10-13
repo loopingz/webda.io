@@ -1,4 +1,4 @@
-import { generateTotpSecret, MFA, runAsSystem, totpUri, useApplication, type User } from "@webda/core";
+import { generateTotpSecret, type MFA, totpUri, useApplication } from "@webda/core";
 import { SecondFactorParameters, SecondFactorService } from "./secondfactor.service.js";
 
 /** Parameters for TOTP service */
@@ -26,13 +26,14 @@ export class TotpService extends SecondFactorService<TotpParameters> {
 
   /**
    * Start TOTP enrollment: generate secret and otpauth URI
-   * @param user - current user
+   * @param mfa - the MFA behavior
+   * @param owner - the user or object holding it, labelled by its email, display name or primary key
    * @returns secret and QR-ready otpauth URI
    */
-  protected async startEnrollment(user: User): Promise<{ secret: string; uri: string }> {
+  async startEnrollment(mfa: MFA, owner: any): Promise<{ secret: string; uri: string }> {
     const secret = generateTotpSecret(20);
     const issuer = this.parameters.issuer ?? useApplication()?.getPackageDescription()?.name ?? "Webda";
-    const account = user.getEmail() ?? user.getDisplayName() ?? user.getUUID();
+    const account = owner.getEmail?.() ?? owner.getDisplayName?.() ?? owner.getUUID();
     const uri = totpUri({
       secret,
       issuer,
@@ -41,25 +42,22 @@ export class TotpService extends SecondFactorService<TotpParameters> {
       digits: this.parameters.digits,
       period: this.parameters.period
     });
-    user.mfa ??= new MFA();
-    await user.mfa.totp.set({
+    await mfa.totp.set({
       secret,
       algorithm: this.parameters.algorithm,
       digits: this.parameters.digits,
       period: this.parameters.period
     });
-    await runAsSystem(() => user.save());
     return { secret, uri };
   }
 
   /**
-   * Check submitted code against user's TOTP secret
-   * @param user - user
+   * Check a submitted code against the TOTP secret, confirmed or pending
+   * @param mfa - the MFA behavior
    * @param code - code submitted by user
    * @returns true if valid
    */
-  protected async check(user: User, code: string): Promise<boolean> {
-    if (!user.mfa) return false;
-    return user.mfa.verifyTotp(code, this.parameters.window);
+  async check(mfa: MFA, code: string): Promise<boolean> {
+    return mfa.verifyTotp(code, this.parameters.window);
   }
 }

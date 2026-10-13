@@ -145,7 +145,7 @@ All operations are exposed through the REST API with the path shown (relative to
 | (GET link)                     | `GET <url>?redirect=...`           | `redirect?`                               | OAuth providers: 302 to the provider, see [OAuth providers](#oauth-providers)                         |
 | (GET link)                     | `GET <url>/callback`               | `code`, `state`                           | OAuth providers: 302 to the login target or `redirects.failure?reason=`                               |
 | `Auth.Totp.Enroll`             | `POST auth/mfa/totp/enroll`        | -                                         | `{ secret, uri }`: start TOTP enrollment (URI formatted for authenticator QR code)                    |
-| `Auth.Totp.Confirm`            | `POST auth/mfa/totp/confirm`       | `code`                                    | `{ recoveryCodes, ...tokens }`: confirm factor, issue recovery codes, re-issue the caller's tokens   |
+| `Auth.Totp.Confirm`            | `POST auth/mfa/totp/confirm`       | `code`                                    | `{ recoveryCodes, ...tokens }`: confirm factor, issue recovery codes, re-issue the caller's tokens    |
 | `Auth.Totp.Verify`             | `POST auth/mfa/totp/verify`        | `code`                                    | verify TOTP code on pending session, issue access/refresh tokens                                      |
 | `Auth.Totp.Disable`            | `POST auth/mfa/totp/disable`       | `code`                                    | disable TOTP method (requires current TOTP code or recovery code)                                     |
 | `Auth.Mfa.Recover`             | `POST auth/mfa/recover`            | `code`                                    | login with a single-use recovery code on pending session                                              |
@@ -333,6 +333,10 @@ checked.
 `@webda/auth` provides second-factor authentication built on top of RFC 6238 Time-based One-Time Passwords (TOTP) and
 single-use recovery codes, with an extensible `SecondFactorService` base class for future factors (e.g. SMS, WebAuthn).
 
+The factors and recovery codes live in the `Webda/MFA` behavior of `@webda/core`. On a user it is the login second
+factor described below; any other model can hold it to protect itself (see [MFA on other models](#mfa-on-other-models)).
+A user can enable several methods (e.g. `totp` and `sms`): the login gate accepts any of them.
+
 ### Configuration
 
 Add `Webda/TotpService` to your services:
@@ -347,10 +351,10 @@ Add `Webda/TotpService` to your services:
       "digits": 6, // 6 | 8 (default 6)
       "period": 30, // time step in seconds (default 30)
       "window": 1, // accepted drift window in time steps (default 1)
-      "recoveryCodes": 10, // number of single-use recovery codes generated (default 10)
+      "recoveryCodes": 10, // recovery codes issued with the first enabled factor (default 10, 0 disables them)
       "reauthMaxAge": 300, // max age (s) of session to enroll without re-authenticating (default 300)
       "throttle": {
-        "failedBeforeDelay": 5, // failed verification attempts before lockout
+        "failedBeforeDelay": 5, // failed verification attempts before lockout (the strictest enabled method applies)
         "lockout": 900000 // lockout duration in ms (15 min)
       }
     }
@@ -368,10 +372,12 @@ Add `Webda/TotpService` to your services:
 - **Recovery codes**: Generated in human-friendly `xxxxx-xxxxx` format. Plaintext codes are displayed to the user only once
   upon enrollment confirmation (or regeneration). They are stored hashed with SHA-256 in `user.mfa.__recoveryCodes`. Verification
   uses constant-time comparison (`crypto.timingSafeEqual`) and deletes the code immediately upon use.
-- **Brute-force protection**: Failed attempts are atomically counted in `_mfaAttempts` and `_lastMfaAttemptAt` on the User
-  model using `throttle.ts`. Every operation that checks a code shares this counter: verify, recover, confirm, disable
-  and recovery-codes. When failures reach `failedBeforeDelay`, all of them are locked out (`THROTTLED`, 429) for `lockout`
-  ms. A successful check clears the counter.
+- **Recovery codes cover every factor**: they are issued with the first enabled factor. Confirming another factor keeps
+  them and answers `recoveryCodes: []`; disabling the last factor drops them.
+- **Brute-force protection**: Failed attempts are atomically counted in `_mfaAttempts` and `_lastMfaAttemptAt` on the
+  model holding the behavior (`countAttempt`). Every operation that checks a code shares this counter: verify, recover,
+  confirm, disable and recovery-codes, whatever the method. When failures reach the strictest `failedBeforeDelay` of the
+  enabled methods, all of them are locked out (`THROTTLED`, 429) for `lockout` ms. A successful check clears the counter.
 
 ### Authentication Flow
 
@@ -380,7 +386,7 @@ Add `Webda/TotpService` to your services:
    - Returns `{ secret, uri }` where `uri` is a standard `otpauth://totp/...` URI ready for QR code rendering.
 2. **Confirmation**:
    - `POST auth/mfa/totp/confirm` with `{ code: "123456" }`.
-   - On success, marks TOTP enabled, generates recovery codes, revokes every refresh token family of the user, and upgrades the current session to `mfa: "verified"`.
+   - On success, marks TOTP enabled, issues recovery codes (first factor only), revokes every refresh token family of the user, and upgrades the current session to `mfa: "verified"`.
    - Returns `{ recoveryCodes: ["...", ...], accessToken, refreshToken, expiresIn }`: the tokens replace the caller's revoked ones.
 3. **Login Gate**:
    - When MFA is enabled, primary logins (e.g. `Auth.Email.Login`, `Auth.<Provider>.Token`, OAuth callbacks) answer:
@@ -398,24 +404,26 @@ Add `Webda/TotpService` to your services:
 
 ### Extending SecondFactorService
 
-Custom MFA factors (SMS, WebAuthn, email codes) can be implemented by extending `SecondFactorService<P>`:
+Custom MFA factors (SMS, WebAuthn, email codes) can be implemented by extending `SecondFactorService<P>`. The service is
+the `SecondFactorProvider` of its method, registered on resolve: the `MFA` behavior of every model uses it. The owner is
+a user or any object holding the behavior.
 
 ```typescript
 export class SmsSecondFactorService extends SecondFactorService<SmsParameters> {
   readonly method = "sms";
 
-  protected async startEnrollment(user: User, input?: any): Promise<any> {
-    // Save phone number, send initial SMS challenge
+  async startEnrollment(mfa: MFA, owner: any, input?: any): Promise<any> {
+    // Store the phone number in mfa.getFactor("sms").data, send the first code; the caller saves the owner
   }
 
-  protected async check(user: User, code: string): Promise<boolean> {
-    // Validate SMS OTP code
+  async check(mfa: MFA, code: string): Promise<boolean> {
+    // Validate the SMS code
   }
 }
 ```
 
-The base class automatically handles throttle lockout, recovery codes generation, event emission, session upgrade,
-and dynamic operation registration (`Auth.<Method>.Enroll`, `Auth.<Method>.Confirm`, `Auth.<Method>.Verify`,
+The `MFA` behavior handles throttling, recovery codes and saving the owner. The base class adds event emission,
+session upgrade and dynamic operation registration (`Auth.<Method>.Enroll`, `Auth.<Method>.Confirm`, `Auth.<Method>.Verify`,
 `Auth.<Method>.Disable`). `Auth.Mfa.Recover` and `Auth.Mfa.RecoveryCodes` are shared by every factor: recovery codes
 regenerate with the code of any enabled factor.
 
@@ -430,6 +438,42 @@ A session whose MFA is pending is not logged in: `ctx.getCurrentUserId()` and `c
 `ctx.getSession().userId`.
 
 `TokenService` parameters: `accessTtl`, `refreshTtl`.
+
+### MFA on other models
+
+Any model can hold the behavior to protect itself, e.g. a vault whose sensitive operations need a second factor. It
+declares the behavior and the attempts counters:
+
+```typescript
+export class Vault extends Model {
+  mfa: MFA;
+  _mfaAttempts: number = 0;
+  _lastMfaAttemptAt?: number;
+}
+```
+
+The domain service exposes the behavior actions of every such model, allowed by its `canAct(context, "mfa.<action>")`:
+
+| Operation                 | REST                                   | Input             | Output                                           |
+| ------------------------- | -------------------------------------- | ----------------- | ------------------------------------------------ |
+| `Vault.Mfa.Enroll`        | `POST vaults/{uuid}/mfa.enroll`        | `method`          | the factor enrollment data (TOTP: `secret, uri`) |
+| `Vault.Mfa.Confirm`       | `POST vaults/{uuid}/mfa.confirm`       | `method`, `code`  | `{ recoveryCodes }` (first factor only)          |
+| `Vault.Mfa.Verify`        | `POST vaults/{uuid}/mfa.verify`        | `code`, `method?` | `{ method, proof, expiresIn }`                   |
+| `Vault.Mfa.Disable`       | `POST vaults/{uuid}/mfa.disable`       | `method`, `code`  | -                                                |
+| `Vault.Mfa.RecoveryCodes` | `POST vaults/{uuid}/mfa.recoveryCodes` | `code`            | `{ recoveryCodes }`                              |
+
+`Verify` checks the code against the given method, or every enabled method then the recovery codes (`method:
+"recovery"` for a recovery code only). It answers a step-up proof signed by `CryptoService`, valid 5 minutes, bound to
+the object and to the caller. The operation that needs the second factor checks it:
+
+```typescript
+const method = await verifyMfaProof(input.proof, vault); // the method that verified, undefined when not valid
+if (!method) throw new WebdaError.Forbidden("Second factor required");
+```
+
+A third argument requires a more recent proof (`verifyMfaProof(proof, vault, 60)`). The users keep their own
+operations: these actions are not exposed on `User`, and refused on any model flagged as a login factor
+(`static [LOGIN_MFA] = true`).
 
 ## Linking policy
 
@@ -477,26 +521,26 @@ carries `{ context, user }` only (`user` is undefined for an unknown email).
 
 ## Errors
 
-| Code                       | HTTP | Meaning                                                          |
-| -------------------------- | ---- | ---------------------------------------------------------------- |
-| `ACCOUNT_EXISTS`           | 409  | An account owns this email, log in to link                       |
-| `IDENT_LINKED_ELSEWHERE`   | 409  | The ident belongs to another user                                |
-| `IDENT_CONFLICT`           | 409  | A v3 ident upgrades onto a key another user holds                |
-| `LAST_LOGIN_METHOD`        | 409  | The last login method cannot be removed                          |
-| `INVALID_CREDENTIALS`      | 403  | Wrong email or password                                          |
-| `REGISTRATION_DISABLED`    | 403  | Automatic registration is off                                    |
-| `EMAIL_DOMAIN_NOT_ALLOWED` | 403  | The provider policy refuses this email (domain, or not verified) |
-| `TOKEN_INVALID`            | 403  | Malformed, wrong purpose, revoked or reused token                |
-| `TOKEN_EXPIRED`            | 410  | Expired emailed token                                            |
-| `THROTTLED`                | 429  | Too many attempts, or a mail was sent too recently               |
+| Code                       | HTTP | Meaning                                                              |
+| -------------------------- | ---- | -------------------------------------------------------------------- |
+| `ACCOUNT_EXISTS`           | 409  | An account owns this email, log in to link                           |
+| `IDENT_LINKED_ELSEWHERE`   | 409  | The ident belongs to another user                                    |
+| `IDENT_CONFLICT`           | 409  | A v3 ident upgrades onto a key another user holds                    |
+| `LAST_LOGIN_METHOD`        | 409  | The last login method cannot be removed                              |
+| `INVALID_CREDENTIALS`      | 403  | Wrong email or password                                              |
+| `REGISTRATION_DISABLED`    | 403  | Automatic registration is off                                        |
+| `EMAIL_DOMAIN_NOT_ALLOWED` | 403  | The provider policy refuses this email (domain, or not verified)     |
+| `TOKEN_INVALID`            | 403  | Malformed, wrong purpose, revoked or reused token                    |
+| `TOKEN_EXPIRED`            | 410  | Expired emailed token                                                |
+| `THROTTLED`                | 429  | Too many attempts, or a mail was sent too recently                   |
 | `INVALID_MFA_CODE`         | 401  | Invalid, replayed, or unrecognised MFA verification or recovery code |
-| `MFA_NOT_ENABLED`          | 400  | MFA (or specific method) is not enabled for the user             |
-| `MFA_ALREADY_ENABLED`      | 409  | Factor method is already enabled for the user                    |
-| `MFA_NOT_PENDING`          | 401  | Session has no pending second factor verification                |
-| `PASSWORD_POLICY`          | 400  | The password does not satisfy the policy                         |
-| `INVALID_IDENT`            | 400  | Malformed ident                                                  |
-| `UNSUPPORTED_MEDIA_TYPE`   | 415  | `Auth.<Provider>.Token` called without a JSON body               |
-| `BAD_REQUEST`              | 400  | `complete()` called for a provider name that is not registered   |
+| `MFA_NOT_ENABLED`          | 400  | MFA (or specific method) is not enabled for the user                 |
+| `MFA_ALREADY_ENABLED`      | 409  | Factor method is already enabled for the user                        |
+| `MFA_NOT_PENDING`          | 401  | Session has no pending second factor verification                    |
+| `PASSWORD_POLICY`          | 400  | The password does not satisfy the policy                             |
+| `INVALID_IDENT`            | 400  | Malformed ident                                                      |
+| `UNSUPPORTED_MEDIA_TYPE`   | 415  | `Auth.<Provider>.Token` called without a JSON body                   |
+| `BAD_REQUEST`              | 400  | `complete()` called for a provider name that is not registered       |
 
 Importable from `@webda/auth` (`AccountExists`, `Throttled`, `InvalidMfaCode`, `MfaNotEnabled`, ...).
 

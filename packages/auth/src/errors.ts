@@ -1,5 +1,14 @@
 import { WebdaError } from "@webda/core";
-export { InvalidIdent, PasswordPolicyError, TokenInvalid } from "@webda/core";
+// MFA errors and Throttled live in core: the MFA behavior raises them on any model
+export {
+  InvalidIdent,
+  InvalidMfaCode,
+  MfaAlreadyEnabled,
+  MfaNotEnabled,
+  PasswordPolicyError,
+  Throttled,
+  TokenInvalid
+} from "@webda/core";
 
 /** An account already owns this email; log in to link (409) */
 export class AccountExists extends WebdaError.HttpError {
@@ -57,14 +66,6 @@ export class TokenExpired extends WebdaError.HttpError {
   }
 }
 
-/** Too many attempts (429) */
-export class Throttled extends WebdaError.HttpError {
-  /** @param message - error message */
-  constructor(message: string = "Too many attempts") {
-    super(message, 429);
-  }
-}
-
 /** The email domain is not allowed for this provider (403) */
 export class EmailDomainNotAllowed extends WebdaError.HttpError {
   /** @param message - error message */
@@ -78,30 +79,6 @@ export class UnsupportedMediaType extends WebdaError.HttpError {
   /** @param message - error message */
   constructor(message: string = "Content-Type must be application/json") {
     super(message, 415);
-  }
-}
-
-/** The MFA code is invalid or already used (401) */
-export class InvalidMfaCode extends WebdaError.HttpError {
-  /** @param message - error message */
-  constructor(message: string = "Invalid MFA code") {
-    super(message, 401);
-  }
-}
-
-/** MFA is not enabled for this user (400) */
-export class MfaNotEnabled extends WebdaError.HttpError {
-  /** @param message - error message */
-  constructor(message: string = "MFA is not enabled") {
-    super(message, 400);
-  }
-}
-
-/** MFA is already enabled (409) */
-export class MfaAlreadyEnabled extends WebdaError.HttpError {
-  /** @param message - error message */
-  constructor(message: string = "MFA is already enabled") {
-    super(message, 409);
   }
 }
 

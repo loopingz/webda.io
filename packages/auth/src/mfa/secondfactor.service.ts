@@ -1,23 +1,23 @@
 import {
   type AuthResult,
-  generateRecoveryCodes,
-  hashRecoveryCode,
+  InvalidMfaCode,
   type IssuedTokens,
+  type MFA,
   registerOperation,
+  registerSecondFactor,
   listOperations,
   runAsSystem,
+  type SecondFactorProvider,
   Service,
   ServiceParameters,
+  type ThrottleParameters,
   useContext,
-  useCore,
   useService,
   type User,
   WebdaError
 } from "@webda/core";
 import { useAuthentication } from "../provider.js";
-import { InvalidMfaCode, MfaAlreadyEnabled, MfaNotEnabled, MfaNotPending, Throttled } from "../errors.js";
-import { countAttempt, type ThrottleParameters } from "../throttle.js";
-
+import { MfaNotPending } from "../errors.js";
 /**
  * Extract string code from either a direct string or a JSON body object `{ code }`
  * @param input - code string or object containing code
@@ -42,25 +42,97 @@ export class SecondFactorParameters extends ServiceParameters {
 }
 
 /**
- * Base service for Multi-Factor Authentication second factor methods (TOTP, SMS, etc.)
+ * Base service of a second factor method (TOTP, SMS, etc.): the method implementation for the MFA behavior, and the
+ * authentication operations using it as the login second factor of the current user
  */
-export abstract class SecondFactorService<
-  P extends SecondFactorParameters = SecondFactorParameters
-> extends Service<P> {
+export abstract class SecondFactorService<P extends SecondFactorParameters = SecondFactorParameters>
+  extends Service<P>
+  implements SecondFactorProvider
+{
   /** amr value and key in MFA.methods(), e.g. "totp", "sms" */
   abstract readonly method: string;
 
-  /** Start enrollment: store pending factor data in user.mfa.factors[method] */
-  protected abstract startEnrollment(user: User, input?: any): Promise<any>;
+  /**
+   * Store the pending factor data in mfa.factors[method]
+   * @param mfa - the MFA behavior
+   * @param owner - the user or object holding it
+   * @param input - factor-specific enrollment input
+   * @returns the enrollment data for the client
+   */
+  abstract startEnrollment(mfa: MFA, owner: any, input?: any): Promise<any>;
 
   /**
-   * Send a challenge if the factor needs one (TOTP: no-op)
-   * @param _user - user to challenge
+   * Check a code against the factor data (TOTP: RFC 6238; SMS: hashed one-time code)
+   * @param mfa - the MFA behavior
+   * @param code - submitted code
+   * @returns true when the code is valid
    */
-  protected async challenge(_user: User): Promise<void> {}
+  abstract check(mfa: MFA, code: string): Promise<boolean>;
 
-  /** Check a code against the stored factor data (TOTP: RFC 6238; SMS: hashed one-time code) */
-  protected abstract check(user: User, code: string): Promise<boolean>;
+  /**
+   * @returns the throttle of the attempts checked with this method
+   */
+  get throttle(): ThrottleParameters {
+    return this.parameters.throttle;
+  }
+
+  /**
+   * @returns the recovery codes issued with the first enabled factor
+   */
+  get recoveryCodeCount(): number {
+    return this.parameters.recoveryCodes;
+  }
+
+  /**
+   * Make the method available to the MFA behavior of every model
+   * @returns this
+   */
+  override resolve(): this {
+    super.resolve();
+    registerSecondFactor(this);
+    return this;
+  }
+
+  /**
+   * @param check - session state required: logged in, logged in with MFA verified, or awaiting its second factor
+   * @returns the session and the user of the current context
+   */
+  private async currentUser(check: "logged" | "verified" | "pending"): Promise<{ ctx: any; session: any; user: User }> {
+    const ctx = useContext<any>();
+    const session = ctx.getSession();
+    if (check === "pending") {
+      if (!session?.isPending()) {
+        throw new MfaNotPending();
+      }
+    } else if (!session?.isLogged() || (check === "verified" && session.mfa !== "verified")) {
+      throw new WebdaError.Unauthorized("Login required");
+    }
+    const user = await runAsSystem(() => useAuthentication().getUserModel().ref(session.userId).get());
+    return { ctx, session, user };
+  }
+
+  /**
+   * Run an MFA check of the user, emitting Authentication.MfaFailed when the code is refused
+   * @param user - user
+   * @param method - method reported by the event
+   * @param run - the check
+   * @returns the check result
+   */
+  private async reportFailure<T>(user: User, method: string, run: () => Promise<T>): Promise<T> {
+    try {
+      return await run();
+    } catch (err) {
+      if (err instanceof InvalidMfaCode) {
+        await useAuthentication().emit("Authentication.MfaFailed", {
+          context: useContext(),
+          user,
+          userId: user.getUUID(),
+          method
+        } as any);
+      }
+      throw err;
+    }
+  }
 
   /**
    * Start enrollment for the current user
@@ -68,16 +140,7 @@ export abstract class SecondFactorService<
    * @returns enrollment data (e.g. secret and URI for TOTP)
    */
   async enroll(input?: any): Promise<any> {
-    const ctx = useContext<any>();
-    const session = ctx.getSession();
-    if (!session?.isLogged()) {
-      throw new WebdaError.Unauthorized("Login required");
-    }
-    const userId = session.userId;
-    const user = await runAsSystem(() => useAuthentication().getUserModel().ref(userId).get());
-    if (user.mfa?.isEnabled(this.method)) {
-      throw new MfaAlreadyEnabled();
-    }
+    const { session, user } = await this.currentUser("logged");
     if (
       this.parameters.reauthMaxAge &&
       session.authAt &&
@@ -85,38 +148,20 @@ export abstract class SecondFactorService<
     ) {
       throw new WebdaError.Unauthorized("Reauthentication required");
     }
-    return this.startEnrollment(user, input);
+    return user.mfa!.startEnrollment(this.method, input);
   }
 
   /**
    * Confirm enrollment of this factor with a valid code
    * @param code - verification code from the factor
-   * @returns recovery codes and the tokens of the new MFA-verified session
+   * @returns recovery codes (empty when kept from a previous factor) and the tokens of the new MFA-verified session
    */
   async confirm(code: string | { code: string }): Promise<{ recoveryCodes: string[] } & IssuedTokens> {
-    const ctx = useContext<any>();
-    const session = ctx.getSession();
-    if (!session?.isLogged()) {
-      throw new WebdaError.Unauthorized("Login required");
-    }
-    const userId = session.userId;
-    const user = await runAsSystem(() => useAuthentication().getUserModel().ref(userId).get());
-    if (user.mfa?.isEnabled(this.method)) {
-      throw new MfaAlreadyEnabled();
-    }
-    await this.attempt(user, this.method, () => this.check(user, extractCode(code)));
-
-    const factor = user.mfa!.getFactor(this.method);
-    factor.enabledAt = Date.now();
-
-    let recoveryCodes: string[] = [];
-    const numCodes = this.parameters.recoveryCodes;
-    if (numCodes > 0) {
-      recoveryCodes = generateRecoveryCodes(numCodes);
-      user.mfa!.__recoveryCodes = recoveryCodes.map(hashRecoveryCode);
-    }
-
-    await this.saveAndReset(user);
+    const { ctx, session, user } = await this.currentUser("logged");
+    const userId = user.getUUID();
+    const { recoveryCodes } = await this.reportFailure(user, this.method, () =>
+      user.mfa!.confirmFactor(this.method, extractCode(code))
+    );
     await useAuthentication().emit("Authentication.MfaEnabled", {
       context: ctx,
       user,
@@ -141,18 +186,8 @@ export abstract class SecondFactorService<
    * @returns auth result with issued tokens
    */
   async verify(code: string | { code: string }): Promise<AuthResult> {
-    const ctx = useContext<any>();
-    const session = ctx.getSession();
-    if (!session?.isPending()) {
-      throw new MfaNotPending();
-    }
-    const userId = session.userId;
-    const user = await runAsSystem(() => useAuthentication().getUserModel().ref(userId).get());
-    if (!user.mfa?.isEnabled(this.method)) {
-      throw new MfaNotEnabled();
-    }
-    await this.attempt(user, this.method, () => this.check(user, extractCode(code)));
-    await this.saveAndReset(user);
+    const { user } = await this.currentUser("pending");
+    await this.reportFailure(user, this.method, () => user.mfa!.verifyCode(extractCode(code), this.method));
     return useAuthentication().completeSecondFactor([this.method]);
   }
 
@@ -162,18 +197,8 @@ export abstract class SecondFactorService<
    * @returns auth result with issued tokens
    */
   async recover(code: string | { code: string }): Promise<AuthResult> {
-    const ctx = useContext<any>();
-    const session = ctx.getSession();
-    if (!session?.isPending()) {
-      throw new MfaNotPending();
-    }
-    const userId = session.userId;
-    const user = await runAsSystem(() => useAuthentication().getUserModel().ref(userId).get());
-    if (!user.mfa?.isEnabled()) {
-      throw new MfaNotEnabled();
-    }
-    await this.attempt(user, "recovery", async () => user.mfa!.consumeRecoveryCode(extractCode(code)));
-    await this.saveAndReset(user);
+    const { user } = await this.currentUser("pending");
+    await this.reportFailure(user, "recovery", () => user.mfa!.verifyCode(extractCode(code), "recovery"));
     return useAuthentication().completeSecondFactor(["recovery"]);
   }
 
@@ -182,27 +207,12 @@ export abstract class SecondFactorService<
    * @param code - verification code (factor code or recovery code)
    */
   async disable(code: string | { code: string }): Promise<void> {
-    const ctx = useContext<any>();
-    const session = ctx.getSession();
-    if (!session?.isLogged() || session.mfa !== "verified") {
-      throw new WebdaError.Unauthorized("Login required");
-    }
-    const userId = session.userId;
-    const user = await runAsSystem(() => useAuthentication().getUserModel().ref(userId).get());
-    if (!user.mfa?.isEnabled(this.method)) {
-      throw new MfaNotEnabled();
-    }
-    await this.attempt(user, this.method, () => this.checkFactorOrRecovery(user, extractCode(code), [this]));
-
-    user.mfa!.clearFactor(this.method);
-    if (!user.mfa!.isEnabled()) {
-      user.mfa!.__recoveryCodes = undefined;
-    }
-    await this.saveAndReset(user);
+    const { ctx, user } = await this.currentUser("verified");
+    await this.reportFailure(user, this.method, () => user.mfa!.disableFactor(this.method, extractCode(code)));
     await useAuthentication().emit("Authentication.MfaDisabled", {
       context: ctx,
       user,
-      userId,
+      userId: user.getUUID(),
       method: this.method
     } as any);
   }
@@ -213,72 +223,8 @@ export abstract class SecondFactorService<
    * @returns new recovery codes
    */
   async recoveryCodes(code: string | { code: string }): Promise<{ recoveryCodes: string[] }> {
-    const ctx = useContext<any>();
-    const session = ctx.getSession();
-    if (!session?.isLogged() || session.mfa !== "verified") {
-      throw new WebdaError.Unauthorized("Login required");
-    }
-    const userId = session.userId;
-    const user = await runAsSystem(() => useAuthentication().getUserModel().ref(userId).get());
-    if (!user.mfa?.isEnabled()) {
-      throw new MfaNotEnabled();
-    }
-    const factors = Object.values(useCore().getServices()).filter(
-      (s): s is SecondFactorService => s instanceof SecondFactorService && user.mfa!.isEnabled(s.method)
-    );
-    await this.attempt(user, "recovery", () => this.checkFactorOrRecovery(user, extractCode(code), factors));
-
-    const recoveryCodes = generateRecoveryCodes(this.parameters.recoveryCodes);
-    user.mfa!.__recoveryCodes = recoveryCodes.map(hashRecoveryCode);
-    await this.saveAndReset(user);
-    return { recoveryCodes };
-  }
-
-  /**
-   * Count an MFA attempt then run its check: a throttled attempt is refused, a failed one emits MfaFailed.
-   * Every MFA operation shares the user's `_mfaAttempts` counter, so codes cannot be brute-forced through any of them
-   * @param user - user
-   * @param method - method reported by the MfaFailed event
-   * @param check - the code check
-   */
-  protected async attempt(user: User, method: string, check: () => Promise<boolean>): Promise<void> {
-    if (await countAttempt(user.ref(), "_mfaAttempts", "_lastMfaAttemptAt", this.parameters.throttle, user)) {
-      throw new Throttled();
-    }
-    if (!(await check())) {
-      await useAuthentication().emit("Authentication.MfaFailed", {
-        context: useContext(),
-        user,
-        userId: user.getUUID(),
-        method
-      } as any);
-      throw new InvalidMfaCode();
-    }
-  }
-
-  /**
-   * Save the user after a successful attempt, then clear its MFA attempts
-   * @param user - user
-   */
-  protected async saveAndReset(user: User): Promise<void> {
-    await runAsSystem(() => user.save());
-    await runAsSystem(() => user.ref().setAttribute("_mfaAttempts", 0));
-  }
-
-  /**
-   * Check a code against the given factors, then consume it as a recovery code
-   * @param user - user
-   * @param code - submitted code
-   * @param factors - factor services to check the code with
-   * @returns true when a factor or a recovery code accepted it
-   */
-  protected async checkFactorOrRecovery(user: User, code: string, factors: SecondFactorService[]): Promise<boolean> {
-    for (const factor of factors) {
-      if (await factor.check(user, code)) {
-        return true;
-      }
-    }
-    return user.mfa!.consumeRecoveryCode(code);
+    const { user } = await this.currentUser("verified");
+    return this.reportFailure(user, "recovery", () => user.mfa!.regenerateRecoveryCodes(extractCode(code)));
   }
 
   /** @override */

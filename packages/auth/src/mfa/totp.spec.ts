@@ -4,10 +4,12 @@ import {
   hotp,
   Ident,
   listOperations,
+  MFA,
   runAsSystem,
   totpStep,
   type User,
   useApplication,
+  useSecondFactor,
   useService,
   WebdaError
 } from "@webda/core";
@@ -27,12 +29,11 @@ const rejectsWith = (fn: () => Promise<unknown>, cls: { name: string }) =>
 
 class DummyFactorService extends SecondFactorService {
   readonly method = "dummy";
-  protected async startEnrollment(user: User) {
-    user.mfa!.getFactor("dummy");
-    await runAsSystem(() => user.save());
+  async startEnrollment(mfa: MFA) {
+    mfa.getFactor("dummy");
     return { ready: true };
   }
-  protected async check(_user: User, submittedCode: string) {
+  async check(_mfa: MFA, submittedCode: string) {
     return submittedCode === "FIXED_CODE_42";
   }
 }
@@ -590,42 +591,28 @@ class TotpTest extends AuthTest {
   }
 
   @test
-  async challengeAndTotpServiceFallback() {
-    const { ctx: userCtx } = await this.registerUser();
-    const user = await runAsSystem(() => this.auth.getUserModel().ref(userCtx.getSession().userId).get());
-    await (this.totp as any).challenge(user);
+  async totpEnrollmentLabels() {
+    // Each second factor service is the provider of its method for the MFA behavior of every model
+    assert.strictEqual(useSecondFactor("totp"), this.totp);
+    assert.strictEqual(useSecondFactor("dummy"), useService("dummyService" as any));
 
-    // check without user.mfa
-    const userWithoutMfa = { mfa: undefined } as any;
-    assert.strictEqual(await (this.totp as any).check(userWithoutMfa, "123456"), false);
-
-    // startEnrollment with fallback to displayName and UUID
-    const nameOnlyUser = {
-      getEmail: () => undefined,
-      getDisplayName: () => "Display Only",
-      getUUID: () => "uuid-123",
-      mfa: undefined,
-      save: async () => {}
-    } as any;
-    const res1 = await (this.totp as any).startEnrollment(nameOnlyUser);
+    // The account label falls back to the display name, then to the primary key of any owner
+    const mfa = new MFA();
+    const nameOnly = { getEmail: () => undefined, getDisplayName: () => "Display Only", getUUID: () => "uuid-123" };
+    const res1 = await this.totp.startEnrollment(mfa, nameOnly);
     assert.ok(res1.uri.includes("Display%20Only"));
 
-    const uuidOnlyUser = {
-      getEmail: () => undefined,
-      getDisplayName: () => undefined,
-      getUUID: () => "uuid-456",
-      mfa: undefined,
-      save: async () => {}
-    } as any;
-    const res2 = await (this.totp as any).startEnrollment(uuidOnlyUser);
+    const uuidOnlyUser = { getUUID: () => "uuid-456" };
+    const res2 = await this.totp.startEnrollment(mfa, uuidOnlyUser);
     assert.ok(res2.uri.includes("uuid-456"));
+    assert.strictEqual((await mfa.totp.get())!.secret, res2.secret);
 
     // Issuer falls back to "Webda" when the application package has no name
     const app = useApplication();
     const getPackageDescription = app.getPackageDescription;
     app.getPackageDescription = () => ({}) as any;
     try {
-      const res3 = await (this.totp as any).startEnrollment(uuidOnlyUser);
+      const res3 = await this.totp.startEnrollment(mfa, uuidOnlyUser);
       assert.ok(res3.uri.startsWith("otpauth://totp/Webda:uuid-456?"), res3.uri);
     } finally {
       app.getPackageDescription = getPackageDescription;

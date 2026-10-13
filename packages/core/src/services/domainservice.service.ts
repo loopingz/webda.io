@@ -2,6 +2,7 @@ import { TransformCase, TransformCaseType } from "@webda/utils";
 import { Service } from "./service.js";
 import { Application } from "../application/application.js";
 import type { ModelAction } from "../models/types.js";
+import { LOGIN_MFA } from "../models/mfa.model.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { UuidModel, type Model, type ModelClass } from "@webda/models";
 import { runWithContext, useContext } from "../contexts/execution.js";
@@ -823,7 +824,8 @@ export class DomainService<
     const app = useApplication<Application>();
     (Metadata.Relations?.behaviors || []).forEach((behaviorRel: { attribute: string; behavior: string }) => {
       const behaviorMeta = app.getBehaviorMetadata(behaviorRel.behavior);
-      if (!behaviorMeta) {
+      // The MFA of a user is its login second factor: the authentication operations expose it, not its actions
+      if (!behaviorMeta || ((model as any)[LOGIN_MFA] && behaviorRel.behavior === "Webda/MFA")) {
         return;
       }
       const attributeCap = behaviorRel.attribute.substring(0, 1).toUpperCase() + behaviorRel.attribute.substring(1);

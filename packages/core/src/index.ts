@@ -41,6 +41,7 @@ export {
 } from "@webda/models";
 export type { ModelClass, Repository, TypeResolution, TypeResolutionStatus } from "@webda/models";
 export * from "./stores/store.js";
+export * from "./stores/migration.js";
 export * from "./utils/abstractdeployer.js";
 export * from "./models/simpleuser.model.js";
 export * from "./models/ident.model.js";

@@ -72,6 +72,7 @@ export default defineConfig({
       "src/session/session.spec.ts",
       "src/stores/store.spec.ts",
       "src/stores/memory-separator.spec.ts",
+      "src/stores/migration.spec.ts",
       //"src/stores/*.spec.ts",
       "src/templates/*.spec.ts",
       "src/test/*.spec.ts",

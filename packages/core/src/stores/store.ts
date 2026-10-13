@@ -18,6 +18,7 @@ import { useLog } from "../loggers/hooks.js";
 import { useCore, useModelMetadata } from "../core/hooks.js";
 import type { ModelMetadata } from "@webda/compiler";
 import { InstanceCache } from "../cache/cache.js";
+import { MigrationUnsupported, type RawPage, type RawPatch, type RawTable } from "./migration.js";
 
 /** Error thrown when an item is not found in a store */
 export class StoreNotFoundError extends WebdaError.CodeError {
@@ -582,6 +583,62 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    */
   getModels(): ModelClass[] {
     return this._models;
+  }
+
+  /**
+   * Tables of this store for raw access, each with the model owning its untyped rows
+   *
+   * Stores without raw access return undefined: `webda migrate` and the startup type check skip them.
+   * @returns the tables, or undefined when the store has no raw access
+   */
+  getRawTables(): RawTable[] | undefined {
+    return undefined;
+  }
+
+  /**
+   * Read a page of raw rows of a table: no type filter, no hydration
+   * @param _table - table name, from {@link getRawTables}
+   * @param _batchSize - rows per page
+   * @param _token - token of the previous page
+   * @returns the page
+   */
+  async rawPages(_table: string, _batchSize: number, _token?: string): Promise<RawPage> {
+    throw new MigrationUnsupported(this.getName());
+  }
+
+  /**
+   * Set top-level fields of a raw row: no type filter, no hydration, no event
+   * @param _table - table name, from {@link getRawTables}
+   * @param _key - storage key of the row
+   * @param _patch - fields to set
+   */
+  async rawPatch(_table: string, _key: string, _patch: RawPatch): Promise<void> {
+    throw new MigrationUnsupported(this.getName());
+  }
+
+  /**
+   * Model owning the untyped rows of a single-table store: the first model of `models`
+   * @returns the model, undefined when unknown
+   */
+  protected getTableRoot(): ModelClass | undefined {
+    if (this._models[0]) return this._models[0];
+    const identifier = this.parameters?.models?.[0];
+    if (!identifier) return undefined;
+    try {
+      return useModel(identifier);
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Refuse a table that is not the single table of this store
+   * @param table - the requested table
+   */
+  protected checkSingleTable(table: string): void {
+    if (table !== this.getName()) {
+      throw new Error(`Unknown table ${table} in store ${this.getName()}`);
+    }
   }
 
   /**

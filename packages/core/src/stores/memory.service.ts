@@ -8,6 +8,7 @@ import { Store, StoreParameters } from "./store.js";
 import { EventRepository, MemoryRepository, type ModelClass, type Repository } from "@webda/models";
 import { InstanceCache } from "../cache/cache.js";
 import { useModelMetadata } from "../core/hooks.js";
+import { mapRawPage, mapRawPatch, type RawPage, type RawPatch, type RawTable } from "./migration.js";
 
 export interface StorageMap {
   [key: string]: string;
@@ -347,6 +348,33 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
     const inner = new MemoryRepository<T>(model, pks, meta.PrimaryKeySeparator, this.storage);
     // Wrap in EventRepository so typed CRUD events (Created/Updated/...) fire;
     // consumers reach them via useRepository(model).on(...).
-    return new EventRepository<T>(model, pks, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
+    // Untyped rows of the shared storage belong to the first model of the store
+    return new EventRepository<T>(model, pks, inner, meta.PrimaryKeySeparator).setTableRoot(
+      this.getTableRoot()
+    ) as unknown as Repository<T>;
+  }
+
+  /**
+   * One table: the store storage, named after the store
+   * @override
+   */
+  getRawTables(): RawTable[] {
+    return [{ name: this.getName(), root: this.getTableRoot() }];
+  }
+
+  /**
+   * @override
+   */
+  async rawPages(table: string, batchSize: number, token?: string): Promise<RawPage> {
+    this.checkSingleTable(table);
+    return mapRawPage(this.storage, table, batchSize, token);
+  }
+
+  /**
+   * @override
+   */
+  async rawPatch(table: string, key: string, patch: RawPatch): Promise<void> {
+    this.checkSingleTable(table);
+    mapRawPatch(this.storage, key, patch);
   }
 }

@@ -79,14 +79,22 @@ export class MFA {
     }
     this.factors ??= {};
     for (const entry of Object.values(this.factors)) {
-      if (entry && !(entry.data instanceof EncryptedField)) {
-        const enc = new EncryptedField();
-        if (entry.data && typeof entry.data === "object") {
-          Object.assign(enc, entry.data);
-        }
-        entry.data = enc;
+      if (entry) {
+        MFA.encryptedData(entry);
       }
     }
+  }
+
+  /**
+   * Make a factor entry data an EncryptedField, keeping the stored ciphertext of a raw record
+   * @param entry - factor entry
+   * @returns the entry
+   */
+  private static encryptedData<T>(entry: FactorEntry<T>): FactorEntry<T> {
+    if (!(entry.data instanceof EncryptedField)) {
+      entry.data = Object.assign(new EncryptedField<T>(), entry.data);
+    }
+    return entry;
   }
 
   /**
@@ -103,20 +111,8 @@ export class MFA {
    * @returns factor entry
    */
   getFactor<T = any>(method: string): FactorEntry<T> {
-    this.factors ??= {};
-    let entry = this.factors[method];
-    if (!entry) {
-      entry = { data: new EncryptedField<T>() };
-      this.factors[method] = entry;
-    }
-    if (!(entry.data instanceof EncryptedField)) {
-      const enc = new EncryptedField<T>();
-      if (entry.data && typeof entry.data === "object") {
-        Object.assign(enc, entry.data);
-      }
-      entry.data = enc;
-    }
-    return entry;
+    this.factors[method] ??= { data: new EncryptedField<T>() };
+    return MFA.encryptedData(this.factors[method]);
   }
 
   /**
@@ -124,9 +120,7 @@ export class MFA {
    * @param method - factor method name
    */
   clearFactor(method: string): void {
-    if (this.factors) {
-      delete this.factors[method];
-    }
+    delete this.factors[method];
   }
 
   /**
@@ -142,7 +136,7 @@ export class MFA {
    * @returns enabled timestamp or undefined
    */
   get totpEnabledAt(): number | undefined {
-    return this.factors?.totp?.enabledAt;
+    return this.factors.totp?.enabledAt;
   }
 
   /**
@@ -158,7 +152,7 @@ export class MFA {
    * @returns last step number or undefined
    */
   get totpLastStep(): number | undefined {
-    return this.factors?.totp?.lastStep;
+    return this.factors.totp?.lastStep;
   }
 
   /**
@@ -176,7 +170,7 @@ export class MFA {
    */
   isEnabled(method?: string): boolean {
     if (method) {
-      return this.factors?.[method]?.enabledAt !== undefined;
+      return this.factors[method]?.enabledAt !== undefined;
     }
     return this.methods().length > 0;
   }
@@ -186,7 +180,6 @@ export class MFA {
    * @returns method names
    */
   methods(): string[] {
-    if (!this.factors) return [];
     return Object.keys(this.factors).filter(m => this.factors[m]?.enabledAt !== undefined);
   }
 

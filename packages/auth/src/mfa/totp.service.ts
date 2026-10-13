@@ -67,6 +67,6 @@ export class TotpService extends SecondFactorService<TotpParameters> {
    */
   protected async check(user: User, code: string): Promise<boolean> {
     if (!user.mfa) return false;
-    return user.mfa.verifyTotp(code, this.parameters.window ?? 1);
+    return user.mfa.verifyTotp(code, this.parameters.window);
   }
 }

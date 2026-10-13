@@ -145,7 +145,7 @@ All operations are exposed through the REST API with the path shown (relative to
 | (GET link)                     | `GET <url>?redirect=...`           | `redirect?`                               | OAuth providers: 302 to the provider, see [OAuth providers](#oauth-providers)                         |
 | (GET link)                     | `GET <url>/callback`               | `code`, `state`                           | OAuth providers: 302 to the login target or `redirects.failure?reason=`                               |
 | `Auth.Totp.Enroll`             | `POST auth/mfa/totp/enroll`        | -                                         | `{ secret, uri }`: start TOTP enrollment (URI formatted for authenticator QR code)                    |
-| `Auth.Totp.Confirm`            | `POST auth/mfa/totp/confirm`       | `code`                                    | `{ recoveryCodes }`: confirm factor, issue recovery codes, revoke other user sessions                 |
+| `Auth.Totp.Confirm`            | `POST auth/mfa/totp/confirm`       | `code`                                    | `{ recoveryCodes, ...tokens }`: confirm factor, issue recovery codes, re-issue the caller's tokens   |
 | `Auth.Totp.Verify`             | `POST auth/mfa/totp/verify`        | `code`                                    | verify TOTP code on pending session, issue access/refresh tokens                                      |
 | `Auth.Totp.Disable`            | `POST auth/mfa/totp/disable`       | `code`                                    | disable TOTP method (requires current TOTP code or recovery code)                                     |
 | `Auth.Mfa.Recover`             | `POST auth/mfa/recover`            | `code`                                    | login with a single-use recovery code on pending session                                              |
@@ -379,8 +379,8 @@ Add `Webda/TotpService` to your services:
    - Returns `{ secret, uri }` where `uri` is a standard `otpauth://totp/...` URI ready for QR code rendering.
 2. **Confirmation**:
    - `POST auth/mfa/totp/confirm` with `{ code: "123456" }`.
-   - On success, marks TOTP enabled, generates recovery codes, revokes all other refresh token families of the user, and upgrades the current session to `mfa: "verified"`.
-   - Returns `{ recoveryCodes: ["...", ...] }`.
+   - On success, marks TOTP enabled, generates recovery codes, revokes every refresh token family of the user, and upgrades the current session to `mfa: "verified"`.
+   - Returns `{ recoveryCodes: ["...", ...], accessToken, refreshToken, expiresIn }`: the tokens replace the caller's revoked ones.
 3. **Login Gate**:
    - When MFA is enabled, primary logins (e.g. `Auth.Email.Login`, `Auth.<Provider>.Token`, OAuth callbacks) answer:
      `{ status: "mfa_required", methods: ["totp"] }`

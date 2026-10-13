@@ -101,5 +101,18 @@ class ThrottleTest {
       lockout: 1000
     });
     assert.strictEqual(lockedLegacy, false);
+
+    // 5. Record never counted: the attribute is missing from the snapshot, default parameters apply
+    const fresh: any = {};
+    const freshRef = {
+      get: async () => undefined,
+      incrementAttribute: async (attr: string) => ({ [attr]: (fresh[attr] = (fresh[attr] ?? 0) + 1) }),
+      setAttribute: async (attr: string, val: any) => {
+        fresh[attr] = val;
+      }
+    };
+    assert.strictEqual(await countAttempt(freshRef, "_attempts", "_lastAttemptAt", undefined, {}), false);
+    assert.strictEqual(await countAttempt(freshRef, "_attempts", "_lastAttemptAt"), false);
+    assert.strictEqual(fresh._attempts, 2);
   }
 }

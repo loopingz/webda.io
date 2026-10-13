@@ -180,11 +180,22 @@ class MfaBehaviorTest extends WebdaApplicationTest {
       factors: {
         raw: { data: { foo: "bar" } },
         empty: null,
+        noData: { enabledAt: 1 },
         alreadyEnc: { data: new EncryptedField() }
       }
     });
     assert.ok(mfaWithData.factors.raw.data instanceof EncryptedField);
+    assert.strictEqual((mfaWithData.factors.raw.data as any).foo, "bar");
     assert.strictEqual(mfaWithData.factors.empty, null);
+    assert.ok(mfaWithData.factors.noData.data instanceof EncryptedField);
+    assert.deepStrictEqual(mfaWithData.methods(), ["noData"]);
+
+    // Stored `factors: null` and an entry set raw after construction
+    const nullFactors = new MFA({ factors: null });
+    assert.deepStrictEqual(nullFactors.methods(), []);
+    nullFactors.factors.sms = { enabledAt: 2 } as any;
+    assert.ok(nullFactors.getFactor("sms").data instanceof EncryptedField);
+    assert.strictEqual(nullFactors.getFactor("sms").enabledAt, 2);
 
     // Detached getUser()
     const detached = new MFA();

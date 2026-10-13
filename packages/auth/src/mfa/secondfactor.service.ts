@@ -2,13 +2,14 @@ import {
   type AuthResult,
   generateRecoveryCodes,
   hashRecoveryCode,
+  type IssuedTokens,
   registerOperation,
   listOperations,
   runAsSystem,
   Service,
   ServiceParameters,
   useContext,
-  useDynamicService,
+  useService,
   type User,
   WebdaError
 } from "@webda/core";
@@ -95,9 +96,9 @@ export abstract class SecondFactorService<
   /**
    * Confirm enrollment of this factor with a valid code
    * @param code - verification code from the factor
-   * @returns recovery codes
+   * @returns recovery codes and the tokens of the new MFA-verified session
    */
-  async confirm(code: string | { code: string }): Promise<{ recoveryCodes: string[] }> {
+  async confirm(code: string | { code: string }): Promise<{ recoveryCodes: string[] } & IssuedTokens> {
     const ctx = useContext<any>();
     const session = ctx.getSession();
     if (!session?.isLogged()) {
@@ -118,7 +119,7 @@ export abstract class SecondFactorService<
     factor.enabledAt = Date.now();
 
     let recoveryCodes: string[] = [];
-    const numCodes = this.parameters.recoveryCodes ?? 10;
+    const numCodes = this.parameters.recoveryCodes;
     if (numCodes > 0) {
       recoveryCodes = generateRecoveryCodes(numCodes);
       user.mfa!.__recoveryCodes = recoveryCodes.map(hashRecoveryCode);
@@ -132,18 +133,15 @@ export abstract class SecondFactorService<
       method: this.method
     } as any);
 
-    const tokenService = useDynamicService<any>("TokenService");
-    if (tokenService?.revokeUser) {
-      await runAsSystem(() => tokenService.revokeUser(userId));
-    }
+    // Every refresh family is revoked, the caller's too: it gets a new MFA-verified one below
+    const tokenService = useService("TokenService");
+    await runAsSystem(() => tokenService.revokeUser(userId));
 
     session.mfa = "verified";
     session.amr = [...(session.amr ?? []).filter((a: string) => a !== this.method), this.method];
-    if (tokenService?.issue) {
-      await runAsSystem(() => tokenService.issue(session));
-    }
+    const tokens = await runAsSystem(() => tokenService.issue(session));
 
-    return { recoveryCodes };
+    return { recoveryCodes, ...tokens };
   }
 
   /**
@@ -300,8 +298,7 @@ export abstract class SecondFactorService<
       throw new InvalidMfaCode();
     }
 
-    const numCodes = this.parameters.recoveryCodes ?? 10;
-    const recoveryCodes = generateRecoveryCodes(numCodes);
+    const recoveryCodes = generateRecoveryCodes(this.parameters.recoveryCodes);
     user.mfa!.__recoveryCodes = recoveryCodes.map(hashRecoveryCode);
     await runAsSystem(() => user.save());
     return { recoveryCodes };

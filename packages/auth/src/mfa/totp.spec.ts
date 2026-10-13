@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { hotp, Ident, runAsSystem, totpStep, type User, useService, WebdaError } from "@webda/core";
+import { hotp, Ident, runAsSystem, totpStep, type User, useApplication, useService, WebdaError } from "@webda/core";
 import type { TestApplication } from "@webda/core/lib/test/objects.js";
 import { AuthTest } from "../test/authtest.js";
 import { addStubProviders, stubProvidersConfig } from "../test/stubprovider.js";
@@ -355,7 +355,7 @@ class TotpTest extends AuthTest {
 
   @test
   async confirmRevokesOtherRefreshFamilies() {
-    const { ctx: browserA, email, password } = await this.registerUser();
+    const { ctx: browserA, email, password, res: registered } = await this.registerUser();
     const browserB = await this.ctx();
 
     // Login from browser B
@@ -366,7 +366,7 @@ class TotpTest extends AuthTest {
     // Browser A enrolls and confirms TOTP
     const enrolled: any = await this.op("Auth.Totp.Enroll", {}, browserA);
     const confirmCode = hotp(enrolled.secret, totpStep());
-    await this.op("Auth.Totp.Confirm", { code: confirmCode }, browserA);
+    const confirmed: any = await this.op("Auth.Totp.Confirm", { code: confirmCode }, browserA);
 
     // Browser B's refresh token was revoked by confirm()
     await assert.rejects(
@@ -374,9 +374,15 @@ class TotpTest extends AuthTest {
       { code: "TOKEN_INVALID" }
     );
 
-    // Browser A's refresh token works
-    const refreshA = browserA.getSession().refreshFamily;
-    assert.ok(refreshA);
+    // Browser A's own pre-MFA refresh token is revoked too: confirm() returns its replacement
+    await assert.rejects(
+      () => this.op("Auth.Refresh", { refreshToken: registered.refreshToken }, browserA),
+      { code: "TOKEN_INVALID" }
+    );
+    assert.ok(confirmed.accessToken);
+    const refreshed: any = await this.op("Auth.Refresh", { refreshToken: confirmed.refreshToken }, browserA);
+    assert.ok(refreshed.accessToken);
+    assert.strictEqual(browserA.getSession().mfa, "verified");
   }
 
   @test
@@ -520,8 +526,11 @@ class TotpTest extends AuthTest {
     try {
       const { ctx: zeroCtx } = await this.registerUser();
       const enZero: any = await this.op("Auth.Totp.Enroll", {}, zeroCtx);
+      // A session without amr (restored from an older token) still ends up with the factor
+      zeroCtx.getSession().amr = undefined;
       const confZero: any = await this.op("Auth.Totp.Confirm", { code: hotp(enZero.secret, totpStep()) }, zeroCtx);
       assert.deepStrictEqual(confZero.recoveryCodes, []);
+      assert.deepStrictEqual(zeroCtx.getSession().amr, ["totp"]);
     } finally {
       this.totp.parameters.recoveryCodes = prevRecovery;
     }
@@ -570,6 +579,20 @@ class TotpTest extends AuthTest {
     const { ctx: noMfaCtx } = await this.registerUser();
     noMfaCtx.getSession().mfa = "verified";
     await rejectsWith(() => this.op("Auth.Totp.Disable", { code: "123456" }, noMfaCtx), MfaNotEnabled);
+
+    // Disabling one of two factors keeps the other one and the recovery codes
+    const { ctx: bothCtx } = await this.registerUser();
+    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, bothCtx);
+    await this.op("Auth.Totp.Confirm", { code: hotp(enrolled.secret, totpStep()) }, bothCtx);
+    await this.op("Auth.Dummy.Enroll", {}, bothCtx);
+    await this.op("Auth.Dummy.Confirm", { code: "FIXED_CODE_42" }, bothCtx);
+    const loadUser = () => runAsSystem(() => this.auth.getUserModel().ref(bothCtx.getSession().userId).get());
+    const before = (await loadUser()).mfa!.__recoveryCodes;
+    assert.ok(before?.length);
+    await this.op("Auth.Totp.Disable", { code: hotp(enrolled.secret, totpStep() + 1) }, bothCtx);
+    const after = (await loadUser()).mfa!;
+    assert.deepStrictEqual(after.methods(), ["dummy"]);
+    assert.deepStrictEqual(after.__recoveryCodes, before);
   }
 
   @test
@@ -621,6 +644,17 @@ class TotpTest extends AuthTest {
     } as any;
     const res2 = await (this.totp as any).startEnrollment(uuidOnlyUser);
     assert.ok(res2.uri.includes("uuid-456"));
+
+    // Issuer falls back to "Webda" when the application package has no name
+    const app = useApplication();
+    const getPackageDescription = app.getPackageDescription;
+    app.getPackageDescription = () => ({}) as any;
+    try {
+      const res3 = await (this.totp as any).startEnrollment(uuidOnlyUser);
+      assert.ok(res3.uri.startsWith("otpauth://totp/Webda:uuid-456?"), res3.uri);
+    } finally {
+      app.getPackageDescription = getPackageDescription;
+    }
   }
 
   @test
@@ -639,5 +673,16 @@ class TotpTest extends AuthTest {
     const pendingCtx2 = await this.ctx();
     pendingCtx2.getSession().login(mfaUserCtx.getSession().userId, "ident", { provider: "email", amr: ["pwd"], mfa: "pending" });
     await rejectsWith(() => this.inContext(pendingCtx2, () => this.auth.completeSecondFactor(["sms"])), MfaNotEnabled);
+
+    // A pending session without amr completes with the second factor alone
+    const pendingCtx3 = await this.ctx();
+    pendingCtx3.getSession().login(mfaUserCtx.getSession().userId, mfaUserCtx.getSession().identUsed, {
+      provider: "email",
+      mfa: "pending"
+    });
+    pendingCtx3.getSession().amr = undefined;
+    const res: any = await this.inContext(pendingCtx3, () => this.auth.completeSecondFactor(["totp"]));
+    assert.strictEqual(res.status, "ok");
+    assert.deepStrictEqual(pendingCtx3.getSession().amr, ["totp"]);
   }
 }

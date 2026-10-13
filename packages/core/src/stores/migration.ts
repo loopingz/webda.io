@@ -369,13 +369,14 @@ export function migrationTotals(report: MigrationReport): {
 }
 
 /**
- * Compare strings by code unit
- * @param a - first
- * @param b - second
- * @returns the order
+ * Entries of a record sorted by key, by UTF-16 code unit (the default sort order)
+ * @param record - the record
+ * @returns the entries
  */
-function byCodeUnit(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0;
+function sortedEntries<V>(record: Record<string, V>): [string, V][] {
+  return Object.keys(record)
+    .sort()
+    .map(key => [key, record[key]]);
 }
 
 /**
@@ -394,10 +395,10 @@ export function formatMigrationReport(
     lines.push(
       `  ${table}: ${tableReport.scanned} scanned, ${tableReport.updated} ${report.dryRun ? "to update" : "updated"}`
     );
-    for (const [change, n] of Object.entries(tableReport.byChange).sort(([a], [b]) => byCodeUnit(a, b))) {
+    for (const [change, n] of sortedEntries(tableReport.byChange)) {
       lines.push(`    ${change}: ${n}`);
     }
-    for (const [type, n] of Object.entries(tableReport.unknown).sort(([a], [b]) => byCodeUnit(a, b))) {
+    for (const [type, n] of sortedEntries(tableReport.unknown)) {
       lines.push(`    ${resolver.resolve(type).status === "ambiguous" ? "ambiguous" : "unknown"} ${type}: ${n}`);
     }
   }
@@ -486,7 +487,7 @@ export function summarizeStoredTypes(
   const parts: string[] = [];
   for (const [table, types] of Object.entries(counts.tables)) {
     const entries: string[] = [];
-    for (const [type, n] of Object.entries(types).sort(([a], [b]) => byCodeUnit(a, b))) {
+    for (const [type, n] of sortedEntries(types)) {
       const kind = classifyStoredType(type === UNTYPED ? undefined : type, roots.get(table), resolver);
       if (kind.kind === "current" || (kind.kind === "untyped" && !kind.to)) continue;
       if (kind.kind === "legacy") {

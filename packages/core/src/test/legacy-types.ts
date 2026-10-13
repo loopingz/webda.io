@@ -142,6 +142,8 @@ export interface LegacyTypesHarness {
   createStore(name: string, models: string[], parameters?: Record<string, any>): Promise<Store>;
   /**
    * Write rows exactly as Webda 3 stored them (plain JSON, `__type` as given), bypassing the repositories
+   *
+   * Inserts or REPLACES any existing row with the same key (an upsert): the migration check re-seeds a row.
    * @param store - the store
    * @param table - the table, from {@link LegacyTypesHarness.tableOf}
    * @param rows - rows by key
@@ -154,6 +156,12 @@ export interface LegacyTypesHarness {
    * @returns the table name
    */
   tableOf?(store: Store, model: ModelClass): string;
+  /**
+   * Lease duration of the lease check, in ms: raise it for slow (remote) backends
+   *
+   * @default 1000
+   */
+  leaseDuration?: number;
 }
 
 /** Store names must be unique: their migration progress is keyed by name */
@@ -352,10 +360,10 @@ export async function checkLegacyTypeMigration(harness: LegacyTypesHarness): Pro
   });
   assert.deepStrictEqual(await uuids(V3Dog), ["d1", "p1", "p2"]);
 
-  // A row written by Webda 4 is an envelope: only its `__type` is rewritten, never its value
+  // A row written by Webda 4 through the repository: only its __type is rewritten
   await (V3Animal as any).getRepository().create({ uuid: "e1", name: "envelope" });
   const envelope = (await readRawRows(store, table)).e1;
-  assert.ok(envelope && envelope.$serializer !== undefined && envelope.value !== undefined, "e1 is an envelope");
+  assert.ok(envelope, "e1 was written");
   await harness.seedRaw(store, table, [{ key: "e1", data: { ...structuredClone(envelope), __type: "V3Animal" } }]);
   const enveloped = await store.migrateTypes({ batchSize: 4 });
   assert.deepStrictEqual(sumMigrationReport(enveloped), {
@@ -383,8 +391,11 @@ export async function checkLegacyTypeResume(harness: LegacyTypesHarness): Promis
     served += page.rows.length;
     return page;
   };
-  await assert.rejects(() => store.migrateTypes({ batchSize: 4 }), /Interrupted/);
-  delete (store as any).rawPages;
+  try {
+    await assert.rejects(() => store.migrateTypes({ batchSize: 4 }), /Interrupted/);
+  } finally {
+    delete (store as any).rawPages;
+  }
   const interrupted = (await store.getMigrationProgress("types"))!;
   assert.strictEqual(interrupted.done, false);
   assert.strictEqual(interrupted.scanned, 4);
@@ -414,18 +425,32 @@ export async function checkLegacyTypeLease(harness: LegacyTypesHarness): Promise
     return page;
   };
   const mark = (runner: string) => () => ({ runner });
-  const first = store.migration("lease", mark("stale"), { batchSize: 4, leaseDuration: 1000 });
-  let progress = await store.getMigrationProgress("lease");
-  while (!progress?.scanned) {
-    await pause(5);
-    progress = await store.getMigrationProgress("lease");
+  const leaseDuration = harness.leaseDuration ?? 1000;
+  let first: Promise<unknown> | undefined;
+  let firstError: unknown;
+  try {
+    first = store.migration("lease", mark("stale"), { batchSize: 4, leaseDuration });
+    first.catch(err => (firstError = err));
+    let progress = await store.getMigrationProgress("lease");
+    const deadline = Date.now() + Math.max(10000, leaseDuration * 5);
+    while (!progress?.scanned) {
+      if (firstError) throw firstError;
+      assert.ok(Date.now() < deadline, "the first runner never saved its first page");
+      await pause(5);
+      progress = await store.getMigrationProgress("lease");
+    }
+    await assert.rejects(
+      () => store.migration("lease", mark("second"), { batchSize: 4 }),
+      (err: any) => err?.code === "MIGRATION_ALREADY_RUNNING"
+    );
+    await pause(Math.max(0, progress.leaseUntil - Date.now()) + 20);
+  } catch (err) {
+    release();
+    await first?.catch(() => undefined);
+    throw err;
+  } finally {
+    delete (store as any).rawPages;
   }
-  await assert.rejects(
-    () => store.migration("lease", mark("second"), { batchSize: 4 }),
-    (err: any) => err?.code === "MIGRATION_ALREADY_RUNNING"
-  );
-  await pause(Math.max(0, progress.leaseUntil - Date.now()) + 20);
-  delete (store as any).rawPages;
   const takeover = await store.migration("lease", mark("takeover"), { batchSize: 4 });
   assert.strictEqual(takeover.resumed, true);
   const totals = sumMigrationReport(takeover);

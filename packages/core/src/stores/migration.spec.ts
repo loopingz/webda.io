@@ -5,6 +5,7 @@ import { useApplication, useModel } from "../application/hooks.js";
 import { MemoryStore } from "./memory.service.js";
 import { sleep } from "@webda/utils";
 import { useCore } from "../core/hooks.js";
+import { useRegistry } from "../models/registry.model.js";
 import { Store } from "./store.js";
 import { formatMigrationReport, type MigrationPatcher } from "./migration.js";
 import {
@@ -244,6 +245,87 @@ class StoreMigrationTest extends WebdaApplicationTest {
     assert.deepStrictEqual(new Map(store.storage), before);
   }
 
+  /**
+   * Run a callback while the Registry conditional patch fails for a reason other than a competing runner
+   * @param fail - returns the error to throw for a patch (by call index, release patches set `leaseUntil` to 0),
+   *   undefined to let the patch through
+   * @param callback - the callback
+   * @returns the callback result
+   */
+  async withRegistryPatch<R>(
+    fail: (call: number, patch: any) => Error | undefined,
+    callback: () => Promise<R>
+  ): Promise<R> {
+    const registry: any = useRegistry();
+    const original = registry.patch;
+    let call = 0;
+    registry.patch = async (uuid: string, patch: any, field: string, value: any) => {
+      const error = fail(call++, patch);
+      if (error) throw error;
+      return original.call(registry, uuid, patch, field, value);
+    };
+    try {
+      return await callback();
+    } finally {
+      registry.patch = original;
+    }
+  }
+
+  @test
+  async registryErrorsOnAcquireAreNotALeaseConflict() {
+    const store = await this.seededStore("engineAcquireError");
+    await assert.rejects(
+      () =>
+        this.withRegistryPatch(
+          () => new Error("Registry unavailable"),
+          () => store.migration("flag", flagEven)
+        ),
+      (err: any) => err.code !== "MIGRATION_ALREADY_RUNNING" && /Registry unavailable/.test(err.message)
+    );
+  }
+
+  @test
+  async registryErrorsOnProgressSaveAreNotALeaseConflict() {
+    const store = await this.seededStore("engineSaveError");
+    const errors: string[] = [];
+    (store as any).log = (level: string, ...args: any[]) => {
+      if (level === "ERROR" || level === "WARN") errors.push(args.join(" "));
+    };
+    await assert.rejects(
+      () =>
+        this.withRegistryPatch(
+          (call, patch) =>
+            call === 0 ? undefined : new Error(patch.leaseUntil === 0 ? "Release failed" : "Save failed"),
+          () => store.migration("flag", flagEven, { batchSize: 4 })
+        ),
+      (err: any) => err.code !== "MIGRATION_ALREADY_RUNNING" && /Save failed/.test(err.message)
+    );
+    // The release failure is reported, not taken for a lost lease, and does not hide the save failure
+    assert.ok(
+      errors.some(error => error.includes("Release failed")),
+      errors.join("\n")
+    );
+    assert.ok(!errors.some(error => error.includes("lease lost")), errors.join("\n"));
+  }
+
+  @test
+  async registryErrorsOnReleaseAreNotALostLease() {
+    const store = await this.seededStore("engineReleaseError");
+    const warnings: string[] = [];
+    (store as any).log = (level: string, ...args: any[]) => {
+      if (level === "WARN") warnings.push(args.join(" "));
+    };
+    await assert.rejects(
+      () =>
+        this.withRegistryPatch(
+          (_call, patch) => (patch.leaseUntil === 0 ? new Error("Release failed") : undefined),
+          () => store.migration("flag", flagEven, { batchSize: 4 })
+        ),
+      /Release failed/
+    );
+    assert.ok(!warnings.some(warning => warning.includes("lease lost")), warnings.join("\n"));
+  }
+
   @test
   async storesWithoutRawAccessAreRefused() {
     const store = new OpaqueStore("opaque", {} as any);
@@ -466,7 +548,11 @@ class MigrateCommandTest extends WebdaApplicationTest {
   @test
   async exitCodeFollowsUnknownTypes() {
     registerLegacyTypeFixtures();
-    const store: MemoryStore = await this.addService(MemoryStore, { models: LEGACY_TYPE_MODELS } as any, "commandMemory");
+    const store: MemoryStore = await this.addService(
+      MemoryStore,
+      { models: LEGACY_TYPE_MODELS } as any,
+      "commandMemory"
+    );
     for (const { key, data } of LEGACY_TYPE_ROWS) {
       store.storage.set(key, JSON.stringify(data));
     }

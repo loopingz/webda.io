@@ -733,18 +733,47 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     const leaseUntil = now + leaseDuration;
     try {
       await registry.patch(id, { leaseUntil, owner }, "leaseUntil", entry.leaseUntil);
-    } catch {
-      const latest: any = await registry.get(id);
-      throw new MigrationAlreadyRunning(id, latest.owner, Number(latest.leaseUntil ?? 0));
+    } catch (err) {
+      const competitor = await this.competingMigrationLease(id, entry.owner, Number(entry.leaseUntil ?? 0), owner);
+      if (competitor) throw new MigrationAlreadyRunning(id, competitor.owner, competitor.leaseUntil);
+      throw err;
     }
     return { id, owner, leaseUntil, leaseDuration, progress: toMigrationProgress(entry) };
+  }
+
+  /**
+   * After a failed conditional patch, tell a competing runner from any other Registry failure
+   * @param id - Registry entry of the migration
+   * @param owner - lease owner the patch expected
+   * @param leaseUntil - lease end the patch expected
+   * @param self - owner of this runner: a lease it holds is not a competitor's
+   * @returns the lease of another runner when the lease changed under the patch, undefined otherwise (the entry is
+   *   unchanged, held by this runner, or cannot be read)
+   */
+  protected async competingMigrationLease(
+    id: string,
+    owner: string | undefined,
+    leaseUntil: number,
+    self: string
+  ): Promise<{ owner?: string; leaseUntil: number } | undefined> {
+    let latest: any;
+    try {
+      latest = await useRegistry().get(id);
+    } catch {
+      return undefined;
+    }
+    const latestUntil = Number(latest?.leaseUntil ?? 0);
+    if (latest?.owner === self || (latest?.owner === owner && latestUntil === leaseUntil)) {
+      return undefined;
+    }
+    return { owner: latest?.owner, leaseUntil: latestUntil };
   }
 
   /**
    * Save the progress and renew the lease, conditionally on the lease this runner holds
    * @param lease - the lease
    * @param update - progress fields to set
-   * @throws MigrationAlreadyRunning when the lease was taken over
+   * @throws MigrationAlreadyRunning when the lease was taken over, the Registry error otherwise
    */
   protected async saveMigrationProgress(lease: MigrationLease, update: Partial<MigrationProgress>): Promise<void> {
     // Always a new value: a runner that lost its lease fails the condition
@@ -758,9 +787,10 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     };
     try {
       await useRegistry().patch(lease.id, progress, "leaseUntil", lease.leaseUntil);
-    } catch {
-      const latest: any = await useRegistry().get(lease.id);
-      throw new MigrationAlreadyRunning(lease.id, latest.owner, Number(latest.leaseUntil ?? 0));
+    } catch (err) {
+      const competitor = await this.competingMigrationLease(lease.id, lease.owner, lease.leaseUntil, lease.owner);
+      if (competitor) throw new MigrationAlreadyRunning(lease.id, competitor.owner, competitor.leaseUntil);
+      throw err;
     }
     lease.leaseUntil = leaseUntil;
     lease.progress = progress;
@@ -778,6 +808,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * Release the lease, saving the last progress; a lease lost meanwhile is left to its new owner
    * @param lease - the lease
    * @param update - progress fields to set
+   * @throws the Registry error when the release failed while the lease was still this runner's
    */
   protected async releaseMigrationLease(lease: MigrationLease, update: Partial<MigrationProgress> = {}): Promise<void> {
     const progress: MigrationProgress = {
@@ -791,7 +822,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       await useRegistry().patch(lease.id, progress, "leaseUntil", lease.leaseUntil);
       lease.progress = progress;
       lease.leaseUntil = 0;
-    } catch {
+    } catch (err) {
+      if (!(await this.competingMigrationLease(lease.id, lease.owner, lease.leaseUntil, lease.owner))) throw err;
       this.log("WARN", `Migration ${lease.id}: lease lost before release, the other runner owns the progress`);
     }
   }
@@ -875,7 +907,12 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         } while (token);
       }
     } catch (err) {
-      if (lease) await this.releaseMigrationLease(lease);
+      if (lease) {
+        // The failure of the run wins over a failure to release
+        await this.releaseMigrationLease(lease).catch(releaseError =>
+          this.log("ERROR", `Migration ${lease.id}: cannot release the lease`, releaseError)
+        );
+      }
       throw err;
     }
     if (lease) await this.releaseMigrationLease(lease, { done: true, ...migrationTotals(report) });

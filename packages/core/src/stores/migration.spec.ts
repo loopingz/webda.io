@@ -126,17 +126,27 @@ class RawHelpersTest {
 
   @test
   pagesPastTheLastKeyAndSkipsEmptyValues() {
+    // "c" holds no value: skipped, without shifting the pages
     const map = new Map<string, any>([
       ["a", "{}"],
-      ["b", "{}"]
+      ["b", "{}"],
+      ["c", undefined],
+      ["d", "{}"]
     ]);
     // A token past every key (its rows were deleted meanwhile): nothing left
     assert.deepStrictEqual(mapRawPage(map, "t", 2, "z"), { rows: [], continuationToken: undefined });
-    map.set("c", undefined);
+    const first = mapRawPage(map, "t", 2);
     assert.deepStrictEqual(
-      mapRawPage(map, "t", 10).rows.map(row => row.key),
+      first.rows.map(row => row.key),
       ["a", "b"]
     );
+    assert.strictEqual(first.continuationToken, "b");
+    const second = mapRawPage(map, "t", 2, first.continuationToken);
+    assert.deepStrictEqual(
+      second.rows.map(row => row.key),
+      ["d"]
+    );
+    assert.strictEqual(second.continuationToken, undefined);
   }
 
   @test

@@ -69,6 +69,15 @@ class ClassifyStoredTypeTest {
       to: "Zoo/Animal"
     });
   }
+
+  @test
+  tableRootUnknownToTheResolverUsesItsMetadata() {
+    // The resolver knows the ancestor but not the table root: the root's own Metadata names it
+    const r = new ModelTypeResolver({ "Zoo/Animal": Animal }, { namespace: "Zoo" });
+    assert.strictEqual(r.knows(Dog), false);
+    assert.deepStrictEqual(classifyStoredType(undefined, Dog, r), { kind: "untyped", from: UNTYPED, to: "Zoo/Dog" });
+    assert.deepStrictEqual(classifyStoredType("animal", Dog, r), { kind: "legacy", from: "animal", to: "Zoo/Dog" });
+  }
 }
 
 @suite

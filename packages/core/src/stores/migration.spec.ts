@@ -520,6 +520,22 @@ class StoreMigrationTest extends WebdaApplicationTest {
   }
 
   @test
+  async leaseWithoutOwnerIsReportedAsUnknown() {
+    // A live lease whose entry names no runner (e.g. written by hand) still refuses the run
+    const store = await this.seededStore("engineNoOwner");
+    const leaseUntil = Date.now() + 60000;
+    await (useRegistry() as any).create({ uuid: "storeMigration.engineNoOwner.flag", leaseUntil });
+    await assert.rejects(
+      () => store.migration("flag", flagEven),
+      (err: any) =>
+        err.code === "MIGRATION_ALREADY_RUNNING" &&
+        err.message.includes("runner unknown") &&
+        err.message.includes(`lease until ${new Date(leaseUntil).toISOString()}`)
+    );
+    assert.strictEqual(JSON.parse(store.storage.get("r0")!).flagged, undefined);
+  }
+
+  @test
   async losingTheAcquireRaceReportsTheWinner() {
     // Another runner takes the lease between the read and the conditional patch of this one
     const store = await this.seededStore("engineRace");

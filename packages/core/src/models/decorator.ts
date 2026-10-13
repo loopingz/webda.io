@@ -52,6 +52,25 @@ export interface ActionOptions {
 export const Action = createMethodDecorator((value: any, _context: any, _options?: ActionOptions) => value);
 
 /**
+ * Marker decorator for a model method shared with the frontend SDK (`@webda/sdk`)
+ *
+ * The runtime decorator is a no-op; the compiler copies the method's source into `ModelMetadata.Shared` and the SDK
+ * generator inlines it into the generated model class, so the method runs identically on both sides. The compiler
+ * enforces that the body is pure: it may only use its parameters, `this.<attribute>`, `this.<other @Shared method>`,
+ * `<Model>.<static @Shared method>`, the standard globals (`Date`, `Math`, `JSON`, `Array`...) and identifiers imported
+ * from the allowlisted modules (`sharedImports`, `@webda/utils` and `@webda/ql` by default). Anything else fails the
+ * build.
+ *
+ * ```ts
+ * @Shared()
+ * isOverdue(now: Date = new Date()): boolean {
+ *   return this.status === "open" && this.due < now;
+ * }
+ * ```
+ */
+export const Shared = createMethodDecorator((value: any, _context: any) => value);
+
+/**
  * Some simple annotations that can be used to add some behavior to attributes
  */
 export const Masked = createPropertyDecorator((value: any, context, mask: string) => {

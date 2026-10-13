@@ -570,6 +570,27 @@ class CompilerTest {
   }
 
   /**
+   * The `@Shared` allowlist comes from the application's configuration, and is
+   * left to the content mapper's default when there is no configuration file.
+   */
+  @test
+  async sharedImportsFromConfiguration() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webdac-shared-"));
+    try {
+      const project = { getAppPath: (p: string = "") => path.join(dir, p) } as unknown as WebdaProject;
+      const compiler = new Compiler(project);
+      assert.strictEqual(compiler.sharedImports(), undefined, "no webda.config file");
+      writeFileSync(
+        path.join(dir, "webda.config.json"),
+        JSON.stringify({ services: { sdk: { type: "Webda/SdkGenerator", sharedImports: ["@webda/utils", "dayjs"] } } })
+      );
+      assert.deepStrictEqual(compiler.sharedImports(), ["@webda/utils", "dayjs"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  /**
    * The recorded content-mapper is the one the build runs: the application's
    * copy wins over the compiler's, like `resolveWorker` in schema-backend.
    */

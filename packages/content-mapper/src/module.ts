@@ -18,7 +18,7 @@
  * so the committed file only changes when its content does.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import type { ClassDeclaration, MethodDeclaration, Node, SourceFile } from "typescript/unstable/ast";
 import { getJSDocTags, getTextOfJSDocComment, SyntaxKind } from "typescript/unstable/ast";
 import * as is from "typescript/unstable/ast/is";
@@ -100,12 +100,27 @@ export interface ModelEntry {
   Reflection: Record<string, ReflectedAttribute>;
   Schemas: Record<string, JSONSchema7>;
   Actions: Record<string, Record<string, unknown>>;
+  /** `@Shared()` methods, only when the model declares some. */
+  Shared?: Record<string, SharedMethodEntry>;
   Events: string[];
   PrimaryKey: string[];
   PrimaryKeySeparator?: string;
   Identifier: string;
   Aliases?: string[];
 }
+
+/** A model method shared with the frontend SDK. */
+export interface SharedMethodEntry {
+  /** Static method. */
+  static?: boolean;
+  /** The method declaration, decorators removed, type annotations kept. */
+  source: string;
+  /** Identifiers used from the allowlisted modules, by module specifier. */
+  imports?: Record<string, string[]>;
+}
+
+/** Modules a `@Shared` method may import from when the application sets no `sharedImports`. */
+export const DEFAULT_SHARED_IMPORTS = ["@webda/utils", "@webda/ql"];
 
 /** A behaviour entry. */
 export interface BehaviorEntry {
@@ -153,6 +168,11 @@ export interface ModuleOptions {
    * application's `package.json`.
    */
   capabilities?: Record<string, string>;
+  /**
+   * Modules a `@Shared` model method may import from; {@link DEFAULT_SHARED_IMPORTS}
+   * by default.
+   */
+  sharedImports?: string[];
 }
 
 /** What {@link generateWebdaModule} returns. */
@@ -539,6 +559,285 @@ export function buildModelActions(
   decoratedInstanceMethods(ctx, cls).forEach(processMethod);
   decoratedStaticMethods(ctx, cls).forEach(processMethod);
   return actions;
+}
+
+/** Options of {@link buildModelShared}. */
+export interface SharedOptions {
+  /** Namespaced model name, for the error messages. */
+  modelName: string;
+  /** Module specifiers a shared method may import from. */
+  sharedImports: string[];
+}
+
+/**
+ * Whether a method carries `@Shared`.
+ * @param ctx - analysis context
+ * @param method - the method
+ * @returns true when decorated
+ */
+function hasSharedDecorator(ctx: AnalysisContext, method: Node): boolean {
+  return decoratorsOf(method).some(decorator => decoratorName(ctx, decorator) === "Shared");
+}
+
+/**
+ * Whether a module specifier is covered by the allowlist (`@webda/utils` covers `@webda/utils/lib/x.js`).
+ * @param specifier - the imported module
+ * @param allowed - the allowlist
+ * @returns true when allowed
+ */
+function isAllowedImport(specifier: string, allowed: string[]): boolean {
+  return allowed.some(module => specifier === module || specifier.startsWith(`${module}/`));
+}
+
+/**
+ * The import declaration an alias symbol comes from.
+ * @param ctx - analysis context
+ * @param symbol - the alias symbol, unresolved
+ * @returns module specifier and the import binding text, undefined when it is not an `import` declaration
+ */
+function importOf(ctx: AnalysisContext, symbol: TsSymbol): { module: string; binding: string } | undefined {
+  for (const declaration of declarationsOf(ctx, symbol)) {
+    // The import clause, whose parent holds the module specifier
+    let clause: Node;
+    let binding: string;
+    switch (declaration.kind) {
+      case SyntaxKind.ImportClause:
+        clause = declaration;
+        binding = `default as ${text(ctx, (declaration as any).name)}`;
+        break;
+      case SyntaxKind.NamespaceImport:
+        clause = declaration.parent;
+        binding = `* as ${text(ctx, (declaration as any).name)}`;
+        break;
+      case SyntaxKind.ImportSpecifier: {
+        clause = declaration.parent.parent;
+        const name = text(ctx, (declaration as any).name);
+        const property = (declaration as any).propertyName;
+        binding = property ? `${text(ctx, property)} as ${name}` : name;
+        break;
+      }
+      default:
+        // `import x = Namespace.member`, `export { x }`...: no module to check
+        continue;
+    }
+    return { module: (clause.parent as any).moduleSpecifier.text, binding };
+  }
+  return undefined;
+}
+
+/**
+ * A model's `Shared` methods, with their purity checked.
+ *
+ * A shared method's source is copied into the frontend SDK, so its body may only
+ * use its parameters and locals, `this.<attribute>`, `this.<@Shared method>`,
+ * `<Model>.<static @Shared method>`, the standard globals and identifiers
+ * imported from the allowlisted modules. Anything else is reported as an error,
+ * which fails the build.
+ * @param ctx - analysis context
+ * @param cls - the model class
+ * @param options - model name and allowlist
+ * @returns method name to metadata, and the purity errors
+ */
+export function buildModelShared(
+  ctx: AnalysisContext,
+  cls: ClassDeclaration,
+  options: SharedOptions
+): { methods: Record<string, SharedMethodEntry>; errors: string[] } {
+  const methods: Record<string, SharedMethodEntry> = {};
+  const errors: string[] = [];
+  const declared = cls.members.filter(
+    (member): member is MethodDeclaration => is.isMethodDeclaration(member) && hasSharedDecorator(ctx, member)
+  );
+  if (!declared.length) return { methods, errors };
+  const classSymbol = cls.name ? resolveAlias(ctx, ctx.checker.getSymbolAtLocation(cls.name)) : undefined;
+  const sf = sourceFileOf(cls);
+  const appRoot = (() => {
+    let folder = dirname(sf.fileName);
+    while (folder.length > 1 && !existsSync(join(folder, "package.json"))) folder = dirname(folder);
+    return folder;
+  })();
+
+  for (const method of declared) {
+    const methodName = text(ctx, method.name);
+    const label = `${options.modelName}.${methodName}`;
+    const imports: Record<string, Set<string>> = {};
+    const problems: string[] = [];
+    const report = (problem: string) => {
+      if (!problems.includes(problem)) problems.push(problem);
+    };
+    /**
+     * @param node - a node
+     * @returns true when the node is declared inside the method (parameter, local, type parameter)
+     */
+    const isLocal = (node: Node): boolean =>
+      sourceFileOf(node)?.fileName === sf.fileName && node.pos >= method.pos && node.end <= method.end;
+    /**
+     * @param name - a member name node of `this.<name>` or `<Model>.<name>`
+     * @param isStatic - static access
+     */
+    const checkMember = (name: Node, isStatic: boolean) => {
+      const member = text(ctx, name);
+      const symbol = ctx.checker.getSymbolAtLocation(name);
+      const declaration = valueDeclarationOf(ctx, symbol) ?? declarationsOf(ctx, symbol)[0];
+      const prefix = isStatic ? `${text(ctx, cls.name!)}.` : "this.";
+      if (!declaration) {
+        report(`${label} is @Shared but references '${prefix}${member}' which is not declared on the model`);
+        return;
+      }
+      const kind = declaration.kind;
+      if (kind === SyntaxKind.MethodDeclaration || kind === SyntaxKind.MethodSignature) {
+        if (!hasSharedDecorator(ctx, declaration)) {
+          report(`${label} is @Shared but references '${prefix}${member}()' which is not @Shared`);
+        }
+        return;
+      }
+      if (
+        kind === SyntaxKind.PropertyDeclaration ||
+        kind === SyntaxKind.PropertySignature ||
+        kind === SyntaxKind.GetAccessor ||
+        kind === SyntaxKind.SetAccessor ||
+        // A parameter reached through `this.` is a parameter property: `constructor(public id: string)`
+        kind === SyntaxKind.Parameter
+      ) {
+        return;
+      }
+      report(
+        `${label} is @Shared but references '${prefix}${member}' which is neither an attribute nor a @Shared method`
+      );
+    };
+    /**
+     * @param node - an identifier used as a value or a type
+     */
+    const checkIdentifier = (node: Node) => {
+      const name = text(ctx, node);
+      const symbol = ctx.checker.getSymbolAtLocation(node);
+      if (!symbol) {
+        report(`${label} is @Shared but references '${name}' which cannot be resolved`);
+        return;
+      }
+      if (symbol.flags & SymbolFlags.Alias) {
+        const imported = importOf(ctx, symbol);
+        if (imported && isAllowedImport(imported.module, options.sharedImports)) {
+          (imports[imported.module] ??= new Set()).add(imported.binding);
+          return;
+        }
+        report(`${label} is @Shared but references '${name}' from "${imported?.module ?? "an unknown module"}"`);
+        return;
+      }
+      if (classSymbol && symbol === classSymbol) return;
+      const declarations = declarationsOf(ctx, symbol);
+      if (!declarations.length) {
+        // No declaration node: a global the checker synthesizes (`undefined`, `arguments`...)
+        return;
+      }
+      if (declarations.some(isLocal)) return;
+      const files = declarations.map(declaration => sourceFileOf(declaration)?.fileName).filter(Boolean) as string[];
+      // The standard library: `lib.es2022.d.ts`, `lib.dom.d.ts`... shipped by typescript or its native package
+      if (
+        files.every(
+          file => /\/lib\.[^/]+\.d\.ts$/.test(file) && /^(@typescript\/|typescript$)/.test(packageOf(file) ?? "")
+        )
+      ) {
+        return;
+      }
+      const file = files[0];
+      const pkg = file.includes("/node_modules/") ? packageOf(file) : undefined;
+      if (pkg) {
+        report(`${label} is @Shared but references '${name}' from "${pkg}"`);
+      } else {
+        report(
+          `${label} is @Shared but references '${name}' declared in ${relative(appRoot, file).replace(/\\/g, "/")}`
+        );
+      }
+    };
+    /**
+     * @param node - current node
+     */
+    const visit = (node: Node): void => {
+      const kind = node.kind;
+      if (kind === SyntaxKind.Decorator) return;
+      if (kind === SyntaxKind.SuperKeyword) {
+        report(`${label} is @Shared but references 'super'`);
+        return;
+      }
+      if (kind === SyntaxKind.PropertyAccessExpression) {
+        const expression = (node as any).expression as Node;
+        const name = (node as any).name as Node;
+        if (expression.kind === SyntaxKind.ThisKeyword) {
+          checkMember(name, false);
+          return;
+        }
+        if (is.isIdentifier(expression) && classSymbol) {
+          const symbol = resolveAlias(ctx, ctx.checker.getSymbolAtLocation(expression));
+          if (symbol === classSymbol) {
+            checkMember(name, true);
+            return;
+          }
+        }
+        visit(expression);
+        return;
+      }
+      if (kind === SyntaxKind.QualifiedName) {
+        visit((node as any).left);
+        return;
+      }
+      if (is.isIdentifier(node)) {
+        const parent = node.parent;
+        // Declaration names and property keys are not references
+        if ((parent as any).name === node && parent.kind !== SyntaxKind.ShorthandPropertyAssignment) {
+          const declaring = [
+            SyntaxKind.Parameter,
+            SyntaxKind.VariableDeclaration,
+            SyntaxKind.BindingElement,
+            SyntaxKind.FunctionDeclaration,
+            SyntaxKind.FunctionExpression,
+            SyntaxKind.ClassDeclaration,
+            SyntaxKind.ClassExpression,
+            SyntaxKind.TypeParameter,
+            SyntaxKind.PropertyAssignment,
+            SyntaxKind.PropertyDeclaration,
+            SyntaxKind.MethodDeclaration,
+            SyntaxKind.GetAccessor,
+            SyntaxKind.SetAccessor,
+            SyntaxKind.PropertySignature,
+            SyntaxKind.MethodSignature,
+            SyntaxKind.EnumMember
+          ];
+          if (declaring.includes(parent.kind)) return;
+        }
+        // Labels: `outer: for (...) { break outer; }`
+        if (
+          parent.kind === SyntaxKind.LabeledStatement ||
+          parent.kind === SyntaxKind.BreakStatement ||
+          parent.kind === SyntaxKind.ContinueStatement
+        )
+          return;
+        checkIdentifier(node);
+        return;
+      }
+      node.forEachChild(child => {
+        visit(child);
+        return undefined;
+      });
+    };
+    // Name, type parameters, parameters, return type and body: the decorators are skipped by `visit`
+    method.forEachChild(child => {
+      visit(child);
+      return undefined;
+    });
+
+    errors.push(...problems);
+    // Every method here carries `@Shared`: the source starts after the last decorator
+    const start = Math.max(...decoratorsOf(method).map(decorator => decorator.end));
+    const source = sf.text.slice(start, method.end).trim();
+    const entry: SharedMethodEntry = isStaticMember(method) ? { static: true, source } : { source };
+    const modules = Object.keys(imports).sort();
+    if (modules.length) {
+      entry.imports = Object.fromEntries(modules.map(module => [module, [...imports[module]].sort()]));
+    }
+    methods[methodName] = entry;
+  }
+  return { methods, errors };
 }
 
 /**
@@ -1350,7 +1649,14 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
   // Commands, Events, PrimaryKey, Plural.
   for (const { object, declaration } of models) {
     const entry = module.models[object.name];
-    if (entry) entry.Actions = buildModelActions(ctx, declaration);
+    if (!entry) continue;
+    entry.Actions = buildModelActions(ctx, declaration);
+    const shared = buildModelShared(ctx, declaration, {
+      modelName: object.name,
+      sharedImports: options.sharedImports ?? DEFAULT_SHARED_IMPORTS
+    });
+    if (Object.keys(shared.methods).length) entry.Shared = shared.methods;
+    errors.push(...shared.errors);
   }
   for (const { sf, declaration } of behaviorClasses(ctx)) {
     const identifier = behaviorIdentifier(declaration, namespace)!;

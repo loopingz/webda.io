@@ -92,6 +92,7 @@ export async function resolveOptions(
     dir: absolute,
     store,
     transports,
+    sdk: args.sdk,
     namespace: args.namespace ?? toNamespace(basename(absolute)),
     pm: args.pm ?? detectPackageManager(context.userAgent),
     install: args.install,

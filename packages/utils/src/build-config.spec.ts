@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { mkdirSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { listConfiguredServiceTypes } from "./build-config.js";
+import { listConfiguredServiceTypes, listSharedImports } from "./build-config.js";
 
 @suite
 class BuildConfigTest {
@@ -18,6 +18,30 @@ class BuildConfigTest {
   @afterEach
   after() {
     rmSync(this.tmp, { recursive: true, force: true });
+  }
+
+  @test
+  listsTheSharedImportsOfEveryService() {
+    const p = join(this.tmp, "webda.config.json");
+    assert.strictEqual(listSharedImports(p), undefined);
+    writeFileSync(p, JSON.stringify({ services: { sdk: { type: "Webda/SdkGenerator" } } }));
+    assert.strictEqual(listSharedImports(p), undefined);
+    writeFileSync(
+      p,
+      JSON.stringify({
+        services: {
+          sdk: { type: "Webda/SdkGenerator", sharedImports: ["@webda/utils", "date-fns"] },
+          other: { type: "Webda/Other", sharedImports: ["@webda/utils", 3] }
+        }
+      })
+    );
+    assert.deepStrictEqual(listSharedImports(p), ["@webda/utils", "date-fns"]);
+    writeFileSync(p, JSON.stringify({ services: { sdk: { type: "Webda/SdkGenerator", sharedImports: [] } } }));
+    assert.deepStrictEqual(listSharedImports(p), []);
+    writeFileSync(p, "{ not json");
+    assert.strictEqual(listSharedImports(p), undefined);
+    writeFileSync(p, JSON.stringify({ services: [] }));
+    assert.strictEqual(listSharedImports(p), undefined);
   }
 
   @test

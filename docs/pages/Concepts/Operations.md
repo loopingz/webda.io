@@ -156,7 +156,17 @@ subscription {
 }
 ```
 
+## Calling operations from a frontend
+
+[`@webda/sdk`](../Modules/sdk/README.md) generates a typed client from the operations of the application: every
+non-hidden operation is an entry of the generated `Operations` interface, callable with `api.call("Task.Get", { uuid })`,
+consumed with `api.stream("Audit.Tail", { since })` when it streams, and the operations of a model are wrapped by a
+model client (`api.Task.get(uuid)`, `api.Task.query("status = 'open'")`, `api.Task.archive(uuid, { reason })`) backed
+by a normalized cache. The REST routes of the operations are read from the router, so what the transport exposes is
+exactly what the SDK calls.
+
 ## See also
 
 - [Core Routing](../Modules/core/Routing.md)
 - [Model Actions](../Modules/models/Actions.md)
+- [Frontend SDK](../Modules/sdk/README.md)

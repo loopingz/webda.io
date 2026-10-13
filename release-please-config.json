@@ -39,6 +39,7 @@
     "packages/postgres": {},
     "packages/ql": {},
     "packages/runtime": {},
+    "packages/sdk": {},
     "packages/serialize": {},
     "packages/test": {},
     "packages/tsc-esm": {},

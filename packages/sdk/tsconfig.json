@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "nodenext",
+    "outDir": "./lib",
+    "rootDir": "./src",
+    "strict": true,
+    "declaration": true,
+    "sourceMap": true,
+    "isolatedModules": true,
+    "experimentalDecorators": false,
+    "esModuleInterop": true,
+    "moduleResolution": "nodenext",
+    "skipLibCheck": true,
+    "declarationMap": true,
+    "useDefineForClassFields": true,
+    "strictPropertyInitialization": false,
+    "lib": ["ES2022", "ESNext.Decorators", "DOM", "DOM.AsyncIterable"],
+    "types": ["node"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["**/node_modules", "src/**/*.spec.ts"]
+}

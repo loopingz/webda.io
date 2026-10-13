@@ -847,7 +847,10 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       Math.max(1, Math.floor(Number(options.batchSize ?? DEFAULT_MIGRATION_BATCH))) || DEFAULT_MIGRATION_BATCH;
     const dryRun = !!options.dryRun;
     const report: MigrationReport = { store: this.getName(), name, tables: {}, resumed: false, dryRun };
-    const lease = dryRun ? undefined : await this.acquireMigrationLease(name, options.leaseDuration);
+    let lease: MigrationLease | undefined;
+    if (!dryRun) {
+      lease = await this.acquireMigrationLease(name, options.leaseDuration);
+    }
     let resumeTable: string | undefined;
     let resumeToken: string | undefined;
     if (lease) {

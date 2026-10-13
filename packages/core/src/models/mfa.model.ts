@@ -78,7 +78,7 @@ export class MFA {
       Object.assign(this, data);
     }
     this.factors ??= {};
-    for (const [key, entry] of Object.entries(this.factors)) {
+    for (const entry of Object.values(this.factors)) {
       if (entry && !(entry.data instanceof EncryptedField)) {
         const enc = new EncryptedField();
         if (entry.data && typeof entry.data === "object") {

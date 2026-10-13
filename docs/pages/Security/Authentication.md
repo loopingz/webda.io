@@ -369,8 +369,9 @@ Add `Webda/TotpService` to your services:
   upon enrollment confirmation (or regeneration). They are stored hashed with SHA-256 in `user.mfa.__recoveryCodes`. Verification
   uses constant-time comparison (`crypto.timingSafeEqual`) and deletes the code immediately upon use.
 - **Brute-force protection**: Failed attempts are atomically counted in `_mfaAttempts` and `_lastMfaAttemptAt` on the User
-  model using `throttle.ts`. When failures reach `failedBeforeDelay`, all verification attempts are locked out (`THROTTLED`, 429)
-  for `lockout` ms. Successful verification clears the counter.
+  model using `throttle.ts`. Every operation that checks a code shares this counter: verify, recover, confirm, disable
+  and recovery-codes. When failures reach `failedBeforeDelay`, all of them are locked out (`THROTTLED`, 429) for `lockout`
+  ms. A successful check clears the counter.
 
 ### Authentication Flow
 
@@ -414,7 +415,9 @@ export class SmsSecondFactorService extends SecondFactorService<SmsParameters> {
 ```
 
 The base class automatically handles throttle lockout, recovery codes generation, event emission, session upgrade,
-and dynamic operation registration (`Auth.<Method>.Enroll`, `Auth.<Method>.Confirm`, etc.).
+and dynamic operation registration (`Auth.<Method>.Enroll`, `Auth.<Method>.Confirm`, `Auth.<Method>.Verify`,
+`Auth.<Method>.Disable`). `Auth.Mfa.Recover` and `Auth.Mfa.RecoveryCodes` are shared by every factor: recovery codes
+regenerate with the code of any enabled factor.
 
 ### Pending MFA sessions
 

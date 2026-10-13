@@ -9,6 +9,7 @@ import {
   Service,
   ServiceParameters,
   useContext,
+  useCore,
   useService,
   type User,
   WebdaError
@@ -103,11 +104,7 @@ export abstract class SecondFactorService<
     if (user.mfa?.isEnabled(this.method)) {
       throw new MfaAlreadyEnabled();
     }
-    const codeStr = extractCode(code);
-    const ok = await this.check(user, codeStr);
-    if (!ok) {
-      throw new InvalidMfaCode();
-    }
+    await this.attempt(user, this.method, () => this.check(user, extractCode(code)));
 
     const factor = user.mfa!.getFactor(this.method);
     factor.enabledAt = Date.now();
@@ -119,7 +116,7 @@ export abstract class SecondFactorService<
       user.mfa!.__recoveryCodes = recoveryCodes.map(hashRecoveryCode);
     }
 
-    await runAsSystem(() => user.save());
+    await this.saveAndReset(user);
     await useAuthentication().emit("Authentication.MfaEnabled", {
       context: ctx,
       user,
@@ -154,26 +151,8 @@ export abstract class SecondFactorService<
     if (!user.mfa?.isEnabled(this.method)) {
       throw new MfaNotEnabled();
     }
-
-    const locked = await countAttempt(user.ref(), "_mfaAttempts", "_lastMfaAttemptAt", this.parameters.throttle, user);
-    if (locked) {
-      throw new Throttled();
-    }
-
-    const codeStr = extractCode(code);
-    const ok = await this.check(user, codeStr);
-    if (!ok) {
-      await useAuthentication().emit("Authentication.MfaFailed", {
-        context: ctx,
-        user,
-        userId,
-        method: this.method
-      } as any);
-      throw new InvalidMfaCode();
-    }
-
-    await runAsSystem(() => user.save());
-    await runAsSystem(() => user.ref().setAttribute("_mfaAttempts", 0));
+    await this.attempt(user, this.method, () => this.check(user, extractCode(code)));
+    await this.saveAndReset(user);
     return useAuthentication().completeSecondFactor([this.method]);
   }
 
@@ -193,26 +172,8 @@ export abstract class SecondFactorService<
     if (!user.mfa?.isEnabled()) {
       throw new MfaNotEnabled();
     }
-
-    const locked = await countAttempt(user.ref(), "_mfaAttempts", "_lastMfaAttemptAt", this.parameters.throttle, user);
-    if (locked) {
-      throw new Throttled();
-    }
-
-    const codeStr = extractCode(code);
-    const ok = user.mfa?.consumeRecoveryCode(codeStr);
-    if (!ok) {
-      await useAuthentication().emit("Authentication.MfaFailed", {
-        context: ctx,
-        user,
-        userId,
-        method: "recovery"
-      } as any);
-      throw new InvalidMfaCode();
-    }
-
-    await runAsSystem(() => user.save());
-    await runAsSystem(() => user.ref().setAttribute("_mfaAttempts", 0));
+    await this.attempt(user, "recovery", async () => user.mfa!.consumeRecoveryCode(extractCode(code)));
+    await this.saveAndReset(user);
     return useAuthentication().completeSecondFactor(["recovery"]);
   }
 
@@ -231,27 +192,13 @@ export abstract class SecondFactorService<
     if (!user.mfa?.isEnabled(this.method)) {
       throw new MfaNotEnabled();
     }
-
-    const codeStr = extractCode(code);
-    let ok = await this.check(user, codeStr);
-    if (!ok && user.mfa?.hasRecoveryCodes()) {
-      ok = user.mfa.consumeRecoveryCode(codeStr);
-    }
-    if (!ok) {
-      await useAuthentication().emit("Authentication.MfaFailed", {
-        context: ctx,
-        user,
-        userId,
-        method: this.method
-      } as any);
-      throw new InvalidMfaCode();
-    }
+    await this.attempt(user, this.method, () => this.checkFactorOrRecovery(user, extractCode(code), [this]));
 
     user.mfa!.clearFactor(this.method);
     if (!user.mfa!.isEnabled()) {
       user.mfa!.__recoveryCodes = undefined;
     }
-    await runAsSystem(() => user.save());
+    await this.saveAndReset(user);
     await useAuthentication().emit("Authentication.MfaDisabled", {
       context: ctx,
       user,
@@ -262,7 +209,7 @@ export abstract class SecondFactorService<
 
   /**
    * Regenerate recovery codes
-   * @param code - verification code (factor code or existing recovery code)
+   * @param code - verification code (code of any enabled factor or an existing recovery code)
    * @returns new recovery codes
    */
   async recoveryCodes(code: string | { code: string }): Promise<{ recoveryCodes: string[] }> {
@@ -273,29 +220,65 @@ export abstract class SecondFactorService<
     }
     const userId = session.userId;
     const user = await runAsSystem(() => useAuthentication().getUserModel().ref(userId).get());
-    if (!user.mfa?.isEnabled(this.method)) {
+    if (!user.mfa?.isEnabled()) {
       throw new MfaNotEnabled();
     }
-
-    const codeStr = extractCode(code);
-    let ok = await this.check(user, codeStr);
-    if (!ok && user.mfa?.hasRecoveryCodes()) {
-      ok = user.mfa.consumeRecoveryCode(codeStr);
-    }
-    if (!ok) {
-      await useAuthentication().emit("Authentication.MfaFailed", {
-        context: ctx,
-        user,
-        userId,
-        method: this.method
-      } as any);
-      throw new InvalidMfaCode();
-    }
+    const factors = Object.values(useCore().getServices()).filter(
+      (s): s is SecondFactorService => s instanceof SecondFactorService && user.mfa!.isEnabled(s.method)
+    );
+    await this.attempt(user, "recovery", () => this.checkFactorOrRecovery(user, extractCode(code), factors));
 
     const recoveryCodes = generateRecoveryCodes(this.parameters.recoveryCodes);
     user.mfa!.__recoveryCodes = recoveryCodes.map(hashRecoveryCode);
-    await runAsSystem(() => user.save());
+    await this.saveAndReset(user);
     return { recoveryCodes };
+  }
+
+  /**
+   * Count an MFA attempt then run its check: a throttled attempt is refused, a failed one emits MfaFailed.
+   * Every MFA operation shares the user's `_mfaAttempts` counter, so codes cannot be brute-forced through any of them
+   * @param user - user
+   * @param method - method reported by the MfaFailed event
+   * @param check - the code check
+   */
+  protected async attempt(user: User, method: string, check: () => Promise<boolean>): Promise<void> {
+    if (await countAttempt(user.ref(), "_mfaAttempts", "_lastMfaAttemptAt", this.parameters.throttle, user)) {
+      throw new Throttled();
+    }
+    if (!(await check())) {
+      await useAuthentication().emit("Authentication.MfaFailed", {
+        context: useContext(),
+        user,
+        userId: user.getUUID(),
+        method
+      } as any);
+      throw new InvalidMfaCode();
+    }
+  }
+
+  /**
+   * Save the user after a successful attempt, then clear its MFA attempts
+   * @param user - user
+   */
+  protected async saveAndReset(user: User): Promise<void> {
+    await runAsSystem(() => user.save());
+    await runAsSystem(() => user.ref().setAttribute("_mfaAttempts", 0));
+  }
+
+  /**
+   * Check a code against the given factors, then consume it as a recovery code
+   * @param user - user
+   * @param code - submitted code
+   * @param factors - factor services to check the code with
+   * @returns true when a factor or a recovery code accepted it
+   */
+  protected async checkFactorOrRecovery(user: User, code: string, factors: SecondFactorService[]): Promise<boolean> {
+    for (const factor of factors) {
+      if (await factor.check(user, code)) {
+        return true;
+      }
+    }
+    return user.mfa!.consumeRecoveryCode(code);
   }
 
   /** @override */
@@ -309,8 +292,7 @@ export abstract class SecondFactorService<
       [`Auth.${methodCap}.Confirm`, "confirm", { method: "post", path: `auth/mfa/${this.method}/confirm` }],
       [`Auth.${methodCap}.Verify`, "verify", { method: "post", path: `auth/mfa/${this.method}/verify` }],
       [`Auth.${methodCap}.Disable`, "disable", { method: "post", path: `auth/mfa/${this.method}/disable` }],
-      [`Auth.${methodCap}.Recover`, "recover", { method: "post", path: "auth/mfa/recover" }],
-      [`Auth.${methodCap}.RecoveryCodes`, "recoveryCodes", { method: "post", path: "auth/mfa/recovery-codes" }],
+      // Shared by every factor: registered once, by the first second factor service
       [`Auth.Mfa.Recover`, "recover", { method: "post", path: "auth/mfa/recover" }],
       [`Auth.Mfa.RecoveryCodes`, "recoveryCodes", { method: "post", path: "auth/mfa/recovery-codes" }]
     ];

@@ -17,7 +17,6 @@ import { useApplication, useModel, useModelId } from "../application/hooks.js";
 import { useLog, useOutput } from "../loggers/hooks.js";
 import { useCore, useModelMetadata } from "../core/hooks.js";
 import type { ModelMetadata } from "@webda/compiler";
-import { InstanceCache } from "../cache/cache.js";
 import { randomUUID } from "node:crypto";
 import { classifyStoredType, UNREADABLE, UNTYPED } from "../application/model-types.js";
 import { useRegistry } from "../models/registry.model.js";

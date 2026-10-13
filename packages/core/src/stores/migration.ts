@@ -1,6 +1,6 @@
 import { getTypeResolver, type ModelClass, type ModelTypeResolver } from "@webda/models";
 import * as WebdaError from "../errors/errors.js";
-import { classifyStoredType, UNREADABLE, UNTYPED } from "../application/model-types.js";
+import { classifyStoredType, UNTYPED } from "../application/model-types.js";
 
 /**
  * A row as the backend stores it, read without type filter nor hydration
@@ -444,7 +444,7 @@ export const DEFAULT_TYPE_CHECK_ROWS = 10000;
  * Count of rows by stored type, by table
  */
 export interface StoredTypeCounts {
-  /** Count by stored `__type` ({@link UNTYPED}, {@link UNREADABLE} included), by table */
+  /** Count by stored `__type` (`UNTYPED`, `UNREADABLE` included), by table */
   tables: Record<string, Record<string, number>>;
   /** The scan stopped at its row limit: counts are "at least" */
   truncated: boolean;

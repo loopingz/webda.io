@@ -104,6 +104,7 @@ export interface ModelEntry {
   PrimaryKey: string[];
   PrimaryKeySeparator?: string;
   Identifier: string;
+  Aliases?: string[];
 }
 
 /** A behaviour entry. */
@@ -772,6 +773,33 @@ function behaviorIdentifier(cls: Node, namespace: string | undefined): string | 
 }
 
 /**
+ * The `@WebdaAlias` names of a model: one per tag (its first token), completed with the package namespace when
+ * they have no `/`, deduplicated in declaration order.
+ *
+ * `webdaTags` keeps one value per tag name, so the tags are read directly.
+ * @param cls - the model class
+ * @param namespace - project namespace
+ * @returns the aliases
+ */
+export function buildModelAliases(cls: Node, namespace: string | undefined): string[] {
+  let tags: readonly any[] = [];
+  try {
+    tags = getJSDocTags(cls);
+  } catch {
+    tags = [];
+  }
+  const aliases: string[] = [];
+  for (const tag of tags) {
+    if (tag.tagName.text !== "WebdaAlias") continue;
+    const name = (getTextOfJSDocComment(tag.comment) ?? "").trim().split(/\s+/).shift();
+    if (!name) continue;
+    const alias = completeNamespace(name, namespace);
+    if (!aliases.includes(alias)) aliases.push(alias);
+  }
+  return aliases;
+}
+
+/**
  * `WebdaProject.completeNamespace`.
  * @param name - a bare or qualified name
  * @param namespace - project namespace
@@ -1357,6 +1385,17 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
     const primaryKeySeparator = buildModelPrimaryKeySeparator(ctx, declaration);
     if (primaryKeySeparator) entry.PrimaryKeySeparator = primaryKeySeparator;
     entry.Plural = tags.WebdaPlural || getPlural(object.name.split("/").pop()!);
+      const aliases = buildModelAliases(declaration, namespace).filter(alias => alias !== object.name);
+    if (aliases.length) entry.Aliases = aliases;
+  }
+
+  // An alias naming another model would make its rows ambiguous: the build fails instead
+  for (const [name, entry] of Object.entries(module.models)) {
+    for (const alias of entry.Aliases ?? []) {
+      if (module.models[alias]) {
+        errors.push(`${name}: @WebdaAlias ${alias} is the identifier of another model`);
+      }
+    }
   }
 
   return { module, namingViolations, errors };

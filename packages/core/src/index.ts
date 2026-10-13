@@ -26,8 +26,20 @@ export * from "./core/hooks.js";
 export * from "./cache/cache.js";
 export * from "./stores/istore.js";
 export * from "./stores/memory.service.js";
-export { MemoryRepository, EventRepository, useRepository, registerRepository } from "@webda/models";
-export type { ModelClass, Repository } from "@webda/models";
+export {
+  MemoryRepository,
+  EventRepository,
+  useRepository,
+  registerRepository,
+  ModelTypeResolver,
+  getTypeResolver,
+  setTypeResolver,
+  useTypeResolver,
+  resolveStoredType,
+  acceptedTypes,
+  belongsToModel
+} from "@webda/models";
+export type { ModelClass, Repository, TypeResolution, TypeResolutionStatus } from "@webda/models";
 export * from "./stores/store.js";
 export * from "./utils/abstractdeployer.js";
 export * from "./models/simpleuser.model.js";
@@ -51,6 +63,7 @@ export * from "./application/application.js";
 export * from "./application/hooks.js";
 export * from "./application/runner.js";
 export * from "./application/deployment.js";
+export * from "./application/model-types.js";
 export * from "./deployers/deployer.js";
 export * from "./deployers/git.js";
 export * from "./deployers/packager.js";

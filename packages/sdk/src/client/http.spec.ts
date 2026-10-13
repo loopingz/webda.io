@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SdkError } from "./errors.js";
 import { chunked, FakeServer, OPERATIONS } from "./fixture.js";
 import { HttpTransport, parseNdjson, parseSse } from "./http.js";
@@ -292,5 +292,209 @@ describe("HttpTransport", () => {
     await stream.closed;
     expect(received).toEqual([{ frame: "echo" }, "raw"]);
     expect(() => stream.send({})).toThrow(/closed/);
+  });
+  it("skips unknown SSE fields, holds a split CRLF and ends cleanly without a trailing event", async () => {
+    const events: unknown[] = [];
+    // One byte per chunk: every \r arrives alone, before its \n
+    for await (const e of parseSse(chunked("id: 7\r\nretry: 10\r\ndata: a\r\n\r\ndata: b\r\n\r\n", 1))) events.push(e);
+    expect(events).toEqual([
+      { event: "message", data: "a" },
+      { event: "message", data: "b" }
+    ]);
+  });
+
+  it("reports failures with the body, the status text or the status", async () => {
+    const server = new FakeServer()
+      .on("GET", "/tasks/coded", () => new Response(JSON.stringify({ error: { code: 7 } }), { status: 409 }))
+      .on("GET", "/tasks/empty", () => new Response("", { status: 503, statusText: "Unavailable" }))
+      .on("GET", "/tasks/bare", () => new Response(null, { status: 502 }));
+    const transport = new HttpTransport({ baseUrl: "https://api.test", fetch: server.fetch() });
+    await expect(transport.call(OPERATIONS["Task.Get"], { uuid: "coded" }, {})).rejects.toMatchObject({
+      status: 409,
+      code: "7",
+      message: '{"error":{"code":7}}'
+    });
+    await expect(transport.call(OPERATIONS["Task.Get"], { uuid: "empty" }, {})).rejects.toMatchObject({
+      status: 503,
+      message: "Unavailable"
+    });
+    await expect(transport.call(OPERATIONS["Task.Get"], { uuid: "bare" }, {})).rejects.toMatchObject({
+      status: 502,
+      message: "HTTP 502"
+    });
+    // A rejection that is not an Error
+    const offline = new HttpTransport({
+      baseUrl: "https://api.test",
+      fetch: (async () => {
+        throw undefined;
+      }) as any
+    });
+    await expect(offline.call(OPERATIONS["Task.Get"], { uuid: "t1" }, {})).rejects.toMatchObject({
+      status: 0,
+      message: "Network error"
+    });
+  });
+
+  it("skips null query values and serializes non-string ones", () => {
+    const transport = new HttpTransport({ baseUrl: "https://api.test" });
+    expect(
+      transport.prepare(OPERATIONS["Tasks.Query"], { q: "a = 1", limit: 5, skip: null, none: undefined }, {}).url
+    ).toBe("https://api.test/tasks?q=a+%3D+1&limit=5");
+  });
+
+  describe("with the global fetch", () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("uses globalThis.fetch and reads empty or untyped answers", async () => {
+      const server = new FakeServer()
+        .on("GET", "/tasks/empty", () => new Response("", { headers: { "content-type": "application/json" } }))
+        .on("GET", "/tasks/raw", () => new Response(new TextEncoder().encode('{"uuid":"raw"}')))
+        .on("GET", "/tasks/text", () => new Response(new TextEncoder().encode("hello")));
+      vi.stubGlobal("fetch", server.fetch());
+      const transport = new HttpTransport({ baseUrl: "https://api.test" });
+      expect(await transport.call(OPERATIONS["Task.Get"], { uuid: "empty" }, {})).toBeUndefined();
+      expect(await transport.call(OPERATIONS["Task.Get"], { uuid: "raw" }, {})).toEqual({ uuid: "raw" });
+      expect(await transport.call(OPERATIONS["Task.Get"], { uuid: "text" }, {})).toBe("hello");
+      expect(server.requests[0].headers.Accept).toBe("application/json");
+    });
+  });
+
+  it("streams the edge cases: no body, empty data, untyped plain answers and errors without details", async () => {
+    let answer: () => Response = () => new Response(null);
+    const server = new FakeServer().on("PUT", "/audit/tail", () => answer());
+    const transport = new HttpTransport({ baseUrl: "https://api.test", fetch: server.fetch() });
+    const collect = async () => {
+      const chunks: unknown[] = [];
+      for await (const chunk of transport.stream(OPERATIONS["Audit.Tail"], {}, {})) chunks.push(chunk);
+      return chunks;
+    };
+    // No body at all
+    expect(await collect()).toEqual([]);
+    // SSE without an end event, with an empty data line
+    answer = () =>
+      new Response(chunked('data:\n\ndata: {"n":1}\n\n'), { headers: { "content-type": "text/event-stream" } });
+    expect(await collect()).toEqual([undefined, { n: 1 }]);
+    // SSE error event without a message nor a code
+    answer = () =>
+      new Response(chunked("event: error\ndata: {}\n\n"), { headers: { "content-type": "text/event-stream" } });
+    await expect(collect()).rejects.toMatchObject({ status: 500, message: "Stream error" });
+    // NDJSON error line without a message nor a code
+    answer = () => new Response(chunked('{"error":"boom"}\n'), { headers: { "content-type": "application/x-ndjson" } });
+    await expect(collect()).rejects.toMatchObject({ status: 500, message: "Stream error" });
+    // NDJSON error line with a message and a non-numeric code
+    answer = () =>
+      new Response(chunked('{"error":{"message":"Bad","code":"E_BAD"}}\n'), {
+        headers: { "content-type": "application/x-ndjson" }
+      });
+    await expect(collect()).rejects.toMatchObject({ status: 500, message: "Bad", code: "E_BAD" });
+    // Plain answers: untyped text, empty
+    answer = () => new Response(new TextEncoder().encode("hello"));
+    expect(await collect()).toEqual(["hello"]);
+    answer = () => new Response("", { headers: { "content-type": "application/json" } });
+    expect(await collect()).toEqual([]);
+  });
+
+  describe("WebSocket", () => {
+    /** A controllable WebSocket */
+    class FakeSocket {
+      static last: FakeSocket;
+      readyState = 0;
+      sent: string[] = [];
+      onopen?: () => void;
+      onmessage?: (event: { data: unknown }) => void;
+      onclose?: (event: { wasClean: boolean; code: number; reason: string }) => void;
+      onerror?: () => void;
+      constructor(readonly url: string) {
+        FakeSocket.last = this;
+      }
+      open() {
+        this.readyState = 1;
+        this.onopen?.();
+      }
+      send(data: string) {
+        this.sent.push(data);
+      }
+      close() {
+        this.end(true, 1000, "");
+      }
+      end(wasClean: boolean, code: number, reason: string) {
+        this.readyState = 3;
+        this.onclose?.({ wasClean, code, reason });
+      }
+    }
+
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("uses the global WebSocket and fails when there is none", () => {
+      vi.stubGlobal("WebSocket", FakeSocket);
+      const transport = new HttpTransport({ baseUrl: "http://api.test" });
+      transport.connect(OPERATIONS["Audit.Chat"], {});
+      expect(FakeSocket.last.url).toBe("ws://api.test/audit/chat");
+      vi.stubGlobal("WebSocket", undefined);
+      expect(() => transport.connect(OPERATIONS["Audit.Chat"], {})).toThrow(/WebSocket is not available/);
+    });
+
+    it("sends right away once open, ends pending readers on a clean close and stops on return", async () => {
+      const transport = new HttpTransport({ baseUrl: "https://api.test", webSocket: FakeSocket as any });
+      const stream = transport.connect(OPERATIONS["Audit.Chat"], {});
+      const socket = FakeSocket.last;
+      socket.open();
+      stream.send({ a: 1 });
+      expect(socket.sent).toEqual(['{"a":1}']);
+      const iterator = stream[Symbol.asyncIterator]();
+      const pending = iterator.next();
+      socket.close();
+      expect(await pending).toEqual({ value: undefined, done: true });
+      expect(await iterator.next()).toEqual({ value: undefined, done: true });
+      await stream.closed;
+
+      // Breaking out of the loop closes the socket
+      const second = transport.connect(OPERATIONS["Audit.Chat"], {});
+      const other = FakeSocket.last;
+      other.open();
+      other.onmessage?.({ data: "1" });
+      for await (const message of second) {
+        expect(message).toBe(1);
+        break;
+      }
+      expect(other.readyState).toBe(3);
+    });
+
+    it("closes on abort and rejects readers after an error or an unclean close", async () => {
+      const controller = new AbortController();
+      const transport = new HttpTransport({ baseUrl: "https://api.test", webSocket: FakeSocket as any });
+      const aborted = transport.connect(OPERATIONS["Audit.Chat"], { signal: controller.signal });
+      const abortedSocket = FakeSocket.last;
+      controller.abort();
+      expect(abortedSocket.readyState).toBe(3);
+      await aborted.closed;
+
+      // An error then a close: the pending reader and the next ones reject with the error
+      const failing = transport.connect(OPERATIONS["Audit.Chat"], {});
+      const socket = FakeSocket.last;
+      const iterator = failing[Symbol.asyncIterator]();
+      const pending = iterator.next();
+      socket.onerror?.();
+      socket.onerror?.();
+      socket.end(false, 1006, "");
+      await expect(pending).rejects.toThrow("WebSocket error on Audit.Chat");
+      await expect(iterator.next()).rejects.toThrow("WebSocket error on Audit.Chat");
+      await expect(failing.closed).rejects.toThrow("WebSocket error on Audit.Chat");
+
+      // An unclean close, with or without a reason
+      const dropped = transport.connect(OPERATIONS["Audit.Chat"], {});
+      FakeSocket.last.end(false, 1011, "Server restart");
+      await expect(dropped.closed).rejects.toThrow("Server restart");
+      const silent = transport.connect(OPERATIONS["Audit.Chat"], {});
+      FakeSocket.last.end(false, 1006, "");
+      await expect(silent.closed).rejects.toThrow("WebSocket closed (1006)");
+    });
+  });
+
+  it("FakeServer defaults to GET without headers and answers 404 to unknown routes", async () => {
+    const server = new FakeServer();
+    const response = await server.fetch()("https://api.test/nowhere");
+    expect(response.status).toBe(404);
+    expect(server.requests[0]).toMatchObject({ method: "GET", headers: {}, body: undefined });
   });
 });

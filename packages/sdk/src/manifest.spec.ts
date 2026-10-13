@@ -1,7 +1,7 @@
-import { useApplication } from "@webda/core";
+import { useApplication, useInstanceStorage } from "@webda/core";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { createIdFilter, globToRegExp, grpcNaming } from "./manifest.js";
+import { buildSdkManifest, createIdFilter, globToRegExp, grpcNaming, SdkManifestBuilder } from "./manifest.js";
 import { SampleAppTest } from "../test/sample-app.js";
 
 @suite
@@ -176,6 +176,226 @@ class SdkManifestTest extends SampleAppTest {
     } finally {
       this.generator.getParameters().transports = undefined;
     }
+  }
+}
+
+/* Stand-ins for the transport services: the builder finds them by class name */
+class GraphQLService {
+  /** No schema yet: the builder asks for it */
+  schema: unknown;
+  generated = 0;
+  getParameters() {
+    return { subscriptions: false };
+  }
+  generateSchema() {
+    this.generated++;
+  }
+}
+class GrpcService {
+  getParameters() {
+    return { protoFile: "app.proto" };
+  }
+}
+class SyncService {
+  getParameters() {
+    return {};
+  }
+}
+/** A REST transport at the `resolved` phase: its routes are not registered yet */
+class ResolvedRest {
+  initialized = 0;
+  getState() {
+    return "resolved";
+  }
+  initTransport() {
+    this.initialized++;
+  }
+  getParameters() {
+    return { url: "/resolved/" };
+  }
+}
+
+/** A builder seeing the stand-in services */
+class StandInBuilder extends SdkManifestBuilder {
+  rest = new ResolvedRest();
+  graphql = new GraphQLService();
+  protected services(): Record<string, any> {
+    return { ...super.services(), graphql: this.graphql, grpc: new GrpcService(), sync: new SyncService() };
+  }
+  protected restTransport(): any {
+    return this.rest;
+  }
+}
+
+@suite
+class SdkManifestSyntheticTest extends SampleAppTest {
+  /**
+   * Run with synthetic models, schemas and operations added to the application
+   * @param fn - the test
+   */
+  async withSynthetics(fn: () => void | Promise<void>): Promise<void> {
+    const app = useApplication();
+    const models = app.getModels() as Record<string, any>;
+    const schemas = app.getSchemas();
+    const operations = useInstanceStorage().operations as Record<string, any>;
+    class Thing {
+      static Metadata = {
+        Identifier: "WebdaDemo/SdkThing",
+        Plural: "SdkThings",
+        PrimaryKey: ["a", "b"],
+        PrimaryKeySeparator: "#",
+        // Output only: it is the input as well
+        Schemas: { Output: { type: "object", properties: { name: { type: "string" } } } },
+        Shared: { label: { source: "label() {}" } }
+      };
+      static ping() {}
+      static getDeserializers() {}
+      getPrimaryKey() {}
+      pong() {}
+    }
+    class InputOnly {
+      static Metadata = {
+        Identifier: "WebdaDemo/SdkInputOnly",
+        Plural: "SdkInputOnlys",
+        Schemas: { Output: { type: "object" }, Input: { type: "object", properties: { _owner: { type: "string" } } } }
+      };
+    }
+    class Other {
+      static Metadata = {
+        Identifier: "WebdaDemo/SdkOther",
+        Plural: "SdkOthers",
+        Schemas: { Output: { type: "object" }, Input: { type: "object" } },
+        Ancestors: ["WebdaDemo/SdkThing"],
+        Relations: {
+          queries: [
+            { attribute: "things", model: "WebdaDemo/SdkThing", targetAttribute: "name" },
+            { attribute: "owned", model: "WebdaDemo/SdkInputOnly", targetAttribute: "Owner" },
+            { attribute: "bare", model: "WebdaDemo/SdkNoSchema", targetAttribute: "Other" },
+            { attribute: "gone", model: "WebdaDemo/SdkGone", targetAttribute: "Other" }
+          ]
+        }
+      };
+    }
+    const added = {
+      "WebdaDemo/SdkThing": Thing,
+      "WebdaDemo/SdkInputOnly": InputOnly,
+      "WebdaDemo/SdkOther": Other,
+      "WebdaDemo/SdkNoSchema": class NoSchema {
+        static Metadata = { Identifier: "WebdaDemo/SdkNoSchema", Plural: "SdkNoSchemas" };
+      },
+      "WebdaDemo/SdkNoMetadata": class NoMetadata {}
+    };
+    const ops = {
+      "SdkThing.Ping": {
+        model: "SdkThing",
+        method: "ping",
+        static: true,
+        rest: false,
+        permission: "true",
+        summary: "Ping",
+        description: "Ping the things",
+        deprecated: true
+      },
+      "SdkThing.Pong": {
+        context: { model: "WebdaDemo/SdkThing" },
+        method: "pong",
+        input: "SdkThing.missing",
+        output: "SdkThing.pong.output"
+      },
+      "SdkTools.Nested.Op": { service: "CustomService", method: "testOperation", input: "void", output: "void" }
+    };
+    Object.assign(models, added);
+    Object.assign(operations, ops);
+    schemas["SdkThing.pong.output"] = {
+      type: "object",
+      definitions: { SdkPongDetail: { type: "string" }, SdkPongFlag: true }
+    } as any;
+    try {
+      await fn();
+    } finally {
+      for (const key of Object.keys(added)) delete models[key];
+      for (const key of Object.keys(ops)) delete operations[key];
+      delete schemas["SdkThing.pong.output"];
+    }
+  }
+
+  @test
+  async describesWhatTheMetadataLeavesOut() {
+    await this.withSynthetics(() => {
+      const builder = new StandInBuilder();
+      const manifest = builder.build();
+      // Operations: static method of a model found by name, no action context, documented
+      assert.deepStrictEqual(manifest.operations["SdkThing.Ping"], {
+        id: "SdkThing.Ping",
+        input: "void",
+        output: "void",
+        streaming: "none",
+        model: "WebdaDemo/SdkThing",
+        kind: "action",
+        action: { name: "ping", global: true },
+        grpc: { service: "SdkThingService", rpc: "Ping" },
+        permission: "true",
+        summary: "Ping",
+        description: "Ping the things",
+        deprecated: true
+      });
+      assert.deepStrictEqual(manifest.operations["SdkThing.Pong"].action, { name: "pong" });
+      assert.strictEqual(manifest.operations["SdkThing.Pong"].model, "WebdaDemo/SdkThing");
+      // Unknown schemas are left out, local definitions hoisted
+      assert.strictEqual(manifest.schemas["SdkThing.missing"], undefined);
+      assert.deepStrictEqual(manifest.schemas.SdkPongDetail, { type: "string" });
+      assert.strictEqual(manifest.schemas.SdkPongFlag, undefined);
+      // Models: no metadata or no schema is not described
+      assert.strictEqual(manifest.models["WebdaDemo/SdkNoMetadata"], undefined);
+      assert.strictEqual(manifest.models["WebdaDemo/SdkNoSchema"], undefined);
+      const thing = manifest.models["WebdaDemo/SdkThing"];
+      assert.strictEqual(thing.inputSchema, "WebdaDemo/SdkThing");
+      assert.strictEqual(thing.primaryKeySeparator, "#");
+      assert.deepStrictEqual(thing.primaryKey, ["a", "b"]);
+      assert.deepStrictEqual(thing.relations, {});
+      assert.deepStrictEqual(thing.ancestors, []);
+      assert.deepStrictEqual(thing.operations, ["SdkThing.Ping", "SdkThing.Pong"]);
+      const other = manifest.models["WebdaDemo/SdkOther"];
+      assert.strictEqual(other.inputSchema, "WebdaDemo/SdkOther.input");
+      // String ancestors are kept, their shared methods inherited
+      assert.deepStrictEqual(other.ancestors, ["WebdaDemo/SdkThing"]);
+      assert.deepStrictEqual(Object.keys(other.shared), ["label"]);
+      assert.deepStrictEqual(
+        other.relations.queries!.map(query => query.targetAttribute),
+        // Real attribute kept, matched on the input schema, nothing to match, unknown target
+        ["name", "_owner", "Other", "Other"]
+      );
+      // Transports: the REST routes are registered once, the GraphQL schema generated
+      assert.deepStrictEqual(manifest.transports, {
+        rest: { url: "/resolved/" },
+        graphql: { url: "/graphql", subscriptions: false },
+        grpc: { package: "webda", protoFile: "app.proto" }
+      });
+      assert.strictEqual(builder.rest.initialized, 1);
+      assert.strictEqual(builder.graphql.generated, 1);
+      builder.build();
+      assert.strictEqual(builder.rest.initialized, 1);
+      // gRPC: an id GrpcService cannot route back is not exposed
+      assert.deepStrictEqual(manifest.operations["Company.Get"].grpc, { service: "CompanyService", rpc: "Get" });
+      assert.strictEqual(manifest.operations["SdkTools.Nested.Op"].grpc, undefined);
+      // Sync: no models listed, no watch operation
+      assert.deepStrictEqual(manifest.offline, {
+        models: [],
+        operations: { pull: "Sync.Pull", push: "Sync.Push", snapshot: "Sync.Snapshot" }
+      });
+      // Only what is asked for
+      const restOnly = new StandInBuilder({ offline: false, transports: ["rest"] }).build();
+      assert.strictEqual(restOnly.offline, undefined);
+      assert.deepStrictEqual(restOnly.transports, { rest: { url: "/resolved/" } });
+      assert.strictEqual(restOnly.operations["Company.Get"].grpc, undefined);
+    });
+  }
+
+  @test
+  async buildsWithTheDefaults() {
+    const manifest = buildSdkManifest();
+    assert.deepStrictEqual(manifest.transports, { rest: { url: "/" } });
+    assert.ok(manifest.operations["Company.Get"]);
   }
 }
 

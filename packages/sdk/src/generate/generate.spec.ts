@@ -1,10 +1,20 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { rmSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { SampleAppTest } from "../../test/sample-app.js";
 import { typeCheck, writeSdk } from "../../test/compile.js";
 import type { SdkManifest } from "../manifest.js";
-import { assignNames, generateSdk, generatorNames, pascalCase, rewriteSchema, splitRef } from "./index.js";
+import {
+  assignNames,
+  generateSdk,
+  generateTypes,
+  generatorNames,
+  modelDescriptor,
+  pascalCase,
+  rewriteSchema,
+  splitRef
+} from "./index.js";
 
 /** What a frontend would write against the generated SDK: compiles only when the types are right */
 const TYPE_CHECKS = `
@@ -153,6 +163,8 @@ class GenerateSdkTest extends SampleAppTest {
       "StoredBinaryInfoWidthNumberHeightNumber"
     );
     assert.strictEqual(pascalCase("1abc"), "_1abc");
+    // Nothing usable: still an identifier
+    assert.strictEqual(pascalCase("..."), "_");
     assert.deepStrictEqual(splitRef("WebdaDemo/Task.queryResult"), {
       namespace: "WebdaDemo",
       name: "Task.queryResult"
@@ -219,5 +231,220 @@ class GenerateSdkTest extends SampleAppTest {
     const files = await generateSdk(manifest);
     assert.match(files["types.ts"], /export interface AppTask/);
     assert.match(files["types.ts"], /export interface OtherTask/);
+  }
+
+  @test
+  async generatesFromAHandWrittenManifest() {
+    const manifest: SdkManifest = {
+      version: 1,
+      namespace: "App",
+      operations: {
+        "Item.Get": {
+          id: "Item.Get",
+          input: "uuidRequest",
+          output: "App/Item",
+          streaming: "none",
+          model: "App/Item",
+          kind: "get"
+        },
+        "Item.Ping": {
+          id: "Item.Ping",
+          input: "uuidRequest",
+          output: "void",
+          streaming: "none",
+          model: "App/Item",
+          kind: "action",
+          action: { name: "ping" }
+        },
+        "Item.Broken": {
+          id: "Item.Broken",
+          input: "void",
+          output: "void",
+          streaming: "none",
+          model: "App/Item",
+          kind: "action"
+        },
+        "Item.Lost": {
+          id: "Item.Lost",
+          input: "void",
+          output: "void",
+          streaming: "none",
+          model: "App/Item",
+          kind: "behavior"
+        },
+        "Item.Keys.Rotate": {
+          id: "Item.Keys.Rotate",
+          input: "void",
+          output: "void",
+          streaming: "none",
+          model: "App/Item",
+          kind: "behavior",
+          behavior: { attribute: "keys", action: "rotate-now" },
+          summary: "Rotate the keys"
+        },
+        "Item.Keys.Set": {
+          id: "Item.Keys.Set",
+          input: "App/Item?",
+          output: "void",
+          streaming: "none",
+          model: "App/Item",
+          kind: "behavior",
+          behavior: { attribute: "keys", action: "set" }
+        },
+        "Tools.Patch": {
+          id: "Tools.Patch",
+          input: "App/Item?",
+          output: "App/Item",
+          streaming: "none",
+          kind: "service",
+          deprecated: true
+        },
+        // The model has no input schema to type the body with: the operation input is used
+        "Bare.Create": {
+          id: "Bare.Create",
+          input: "uuidRequest",
+          output: "void",
+          streaming: "none",
+          model: "App/Bare",
+          kind: "create"
+        },
+        "Tools.Unknown": { id: "Tools.Unknown", input: "Nope", output: "Nope", streaming: "none", kind: "service" }
+      },
+      models: {
+        "App/Item": {
+          id: "App/Item",
+          shortName: "Item",
+          plural: "Items",
+          primaryKey: ["a", "b"],
+          primaryKeySeparator: "#",
+          schema: "App/Item",
+          inputSchema: "App/Item",
+          relations: {
+            parent: { attribute: "owner", model: "App/Gone" },
+            links: [
+              { attribute: "main", model: "App/Bare", type: "LINK" },
+              { attribute: "tags", model: "App/Bare", type: "LINKS_ARRAY" },
+              { attribute: "byName", model: "App/Bare", type: "LINKS_MAP" },
+              { attribute: "aliases", model: "App/Bare", type: "LINKS_MAP" }
+            ]
+          },
+          ancestors: [],
+          operations: [
+            "Item.Get",
+            "Item.Ping",
+            "Item.Broken",
+            "Item.Lost",
+            "Item.Keys.Rotate",
+            "Item.Keys.Set",
+            "Missing.Op"
+          ],
+          shared: {
+            label: {
+              source: "label(): string {\n  return shout(String(this.name));\n}",
+              imports: { "@demo/util": ["shout"] }
+            }
+          }
+        },
+        "App/Bare": {
+          id: "App/Bare",
+          shortName: "Bare",
+          plural: "Bares",
+          primaryKey: ["uuid"],
+          // Not in the schemas
+          schema: "App/BareData",
+          inputSchema: "App/BareData",
+          relations: {},
+          ancestors: [],
+          operations: [],
+          shared: {
+            hello: {
+              source: 'hello(): string {\n  return whisper(shout("hi"));\n}',
+              imports: { "@demo/util": ["whisper", "shout"] }
+            }
+          }
+        }
+      },
+      schemas: {
+        "App/Item": {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            "created-at": { type: "string", format: "date-time" },
+            byName: {
+              type: "object",
+              additionalProperties: { type: "object", properties: { label: { type: "string" } } }
+            }
+          }
+        },
+        uuidRequest: { type: "object", properties: { uuid: { type: "string" } }, required: ["uuid"] }
+      },
+      transports: { rest: { url: "/" } }
+    };
+    const files = await generateSdk(manifest, { package: { name: "@demo/hand" } });
+    assert.strictEqual(JSON.parse(files["package.json"]).version, "0.0.0");
+    // Operations: partial and unknown refs, documented deprecation
+    assert.match(
+      files["operations.ts"],
+      /\/\*\* @deprecated \*\/\n  "Tools\.Patch": \{ input: Partial<T\.Item>; output: T\.Item \}/
+    );
+    assert.match(files["operations.ts"], /"Bare\.Create": \{ input: T\.UuidRequest; output: void \}/);
+    assert.match(files["operations.ts"], /"Tools\.Unknown": \{ input: unknown; output: unknown \}/);
+    // An action without a body schema takes the primary key only
+    assert.match(files["operations.ts"], /"Item\.Ping": \{ input: T\.UuidRequest; output: void \}/);
+    // Relations: a target without a client is a plain SdkModel, undeclared extras are `object`
+    assert.match(files["models.ts"], /declare owner: Link<SdkModel>;/);
+    assert.match(files["models.ts"], /declare tags: LinksArray<Bare, object>;/);
+    assert.match(
+      files["models.ts"],
+      /declare byName: LinksMap<Bare, Omit<NonNullable<T\.Item\["byName"\]>\[string\], "uuid">>;/
+    );
+    assert.match(files["models.ts"], /declare aliases: LinksMap<Bare, object>;/);
+    assert.match(files["models.ts"], /declare "created-at": Date;/);
+    // A model without a schema carries untyped data
+    assert.match(files["models.ts"], /export class Bare extends SdkModel<Record<string, unknown>> \{/);
+    // Actions and behaviors
+    assert.match(
+      files["models.ts"],
+      /\/\*\* Ping action \*\/\n  ping\(pk: PrimaryKeyInput, input: Record<string, unknown> = \{\}/
+    );
+    assert.match(files["models.ts"], /readonly keysBehavior = \{/);
+    assert.match(files["models.ts"], /"rotate-now": \(pk: PrimaryKeyInput, input: Record<string, unknown> = \{\}/);
+    assert.match(files["models.ts"], /set: \(pk: PrimaryKeyInput, input: T\.Item,/);
+    // Shared imports are merged by module
+    assert.match(files["models.ts"], /import \{ shout, whisper \} from "@demo\/util";/);
+    // Descriptors skip what they cannot place
+    const item = JSON.parse(files["manifest.json"]).models["App/Item"];
+    const descriptor = modelDescriptor(manifest, item);
+    assert.deepStrictEqual(descriptor.operations, {
+      actions: { ping: "Item.Ping" },
+      behaviors: {
+        "keys.rotate-now": "Item.Keys.Rotate",
+        "keys.set": "Item.Keys.Set"
+      },
+      get: "Item.Get"
+    });
+    assert.strictEqual(descriptor.primaryKeySeparator, "#");
+    assert.deepStrictEqual(descriptor.dates, ["created-at"]);
+    assert.deepStrictEqual(modelDescriptor(manifest, manifest.models["App/Bare"]).dates, []);
+    const dir = writeSdk(files);
+    writeFileSync(
+      join(dir, "util.ts"),
+      "export const shout = (text: string) => text.toUpperCase();\nexport const whisper = (text: string) => text.toLowerCase();\n"
+    );
+    try {
+      assert.strictEqual(typeCheck(dir, { "@demo/util": [join(dir, "util.ts")] }), "");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async generatesOnlyTheNamedSchemas() {
+    const types = await generateTypes(
+      { Kept: { type: "object", properties: { a: { type: "string" } } }, Skipped: { type: "object" } },
+      new Map([["Kept", "Kept"]])
+    );
+    assert.match(types, /export interface Kept \{/);
+    assert.ok(!types.includes("Skipped"));
   }
 }

@@ -174,6 +174,48 @@ describe("module metadata on a fixture", () => {
     ]);
   });
 
+  it("accepts default, renamed and namespace imports, accessors, parameter properties and labels", () => {
+    const { methods, errors } = buildModelShared(session.ctx, classOf(session, "shared-edge.ts", "Edges"), {
+      modelName: "Fixture/Edges",
+      sharedImports: ["./helpers.js", "./default.js"]
+    });
+    expect(Object.keys(methods)).toEqual(["imports", "members", "locals", "impure"]);
+    // A qualified type name (`helpers.Money`) is the namespace import
+    expect(methods.imports.imports).toEqual({
+      "./default.js": ["default as fixtureDefault"],
+      "./helpers.js": ["* as helpers", "formatDate as fmt"]
+    });
+    // No return type annotation, and a parameter decorator is not a reference
+    expect(methods.imports.source.startsWith("imports(money: helpers.Money) {")).toBe(true);
+    expect(methods.members.imports).toBeUndefined();
+    // Only `impure` fails: getter, setter, parameter property, a local type,
+    // `undefined` and labels are all allowed
+    expect(errors).toEqual([
+      "Fixture/Edges.impure is @Shared but references 'this.missing' which is not declared on the model",
+      `Fixture/Edges.impure is @Shared but references 'Day' from "an unknown module"`,
+      // Named like a standard library file, but not shipped by typescript
+      "Fixture/Edges.impure is @Shared but references 'FIXTURE_GLOBAL' declared in src/globals/lib.fixture.d.ts",
+      `Fixture/Edges.impure is @Shared but references 'process' from "@types/node"`
+    ]);
+  });
+
+  it("rejects index-signature members and reads anonymous classes", () => {
+    expect(
+      buildModelShared(session.ctx, classOf(session, "shared-edge.ts", "Indexed"), {
+        modelName: "Fixture/Indexed",
+        sharedImports: []
+      }).errors
+    ).toEqual([
+      "Fixture/Indexed.dynamic is @Shared but references 'this.anything' which is neither an attribute nor a @Shared method"
+    ]);
+    const sf = session.ctx.sourceFiles.find(f => f.fileName.endsWith("shared-edge.ts"))!;
+    const anonymous = sf.statements.find((s): s is ClassDeclaration => is.isClassDeclaration(s) && !s.name)!;
+    expect(buildModelShared(session.ctx, anonymous, { modelName: "Fixture/Default", sharedImports: [] })).toEqual({
+      methods: { anonymous: { source: "anonymous(): number {\n    return 1;\n  }" } },
+      errors: []
+    });
+  });
+
   it("keys model actions by the @Action name option and records the method as handler", () => {
     expect(buildModelActions(session.ctx, classOf(session, "actions.ts", "Jobs"))).toEqual({
       status: { description: "Report", handler: "statusAction" },

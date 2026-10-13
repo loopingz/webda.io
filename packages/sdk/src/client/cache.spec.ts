@@ -98,4 +98,20 @@ describe("EntityCache", () => {
     });
     expect(() => full.set("k", "v")).not.toThrow();
   });
+  it("reads a missing Web Storage key as undefined and merges into a missing entity", () => {
+    const storage = new WebStorageCacheStorage(webStorage());
+    expect(storage.get("nope")).toBeUndefined();
+    const cache = new EntityCache({ storage });
+    expect(cache.mergeEntity("App/Task", "t9", { title: "new" })).toEqual({ title: "new" });
+    expect(cache.getEntity("App/Task", "t9")?.data).toEqual({ title: "new" });
+  });
+
+  it("evicts entities without a timestamp first", () => {
+    const cache = new EntityCache({ maxEntries: 1 });
+    const storage = (cache as any).storage as MemoryCacheStorage;
+    cache.setEntity("App/Task", "t1", {});
+    storage.set("e|App/Task|old", JSON.stringify({ data: {} }));
+    cache.setEntity("App/Task", "t2", {});
+    expect(storage.keys()).toEqual(["e|App/Task|t2"]);
+  });
 });

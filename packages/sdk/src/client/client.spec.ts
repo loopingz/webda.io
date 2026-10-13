@@ -1,5 +1,6 @@
 import { escape as qlEscape } from "@webda/ql";
 import { describe, expect, it } from "vitest";
+import { EntityCache } from "./cache.js";
 import { WebdaClient } from "./client.js";
 import { SdkError } from "./errors.js";
 import { FakeServer, MODELS, OPERATIONS } from "./fixture.js";
@@ -362,5 +363,85 @@ describe("WebdaClient", () => {
     expect(api.cache.getEntity("App/Tag", "acme/news")).toBeDefined();
     expect((await api.Tag.get("acme/news")).slug).toBe("news");
     expect(server.requests.at(-1)!.url).toBe("https://api.test/tags/acme/news");
+  });
+
+  it("defaults its manifests and transport, shares a given cache and attaches the offline extension", () => {
+    const cache = new EntityCache();
+    const attached: unknown[] = [];
+    const backend = {} as any;
+    const offline = {
+      attach: (client: WebdaClient<any>) => void attached.push(client),
+      backend: (descriptor: any) => (descriptor.id === "App/Task" ? backend : undefined)
+    };
+    const client = new WebdaClient({ operations: OPERATIONS, cache, offline });
+    expect(client.cache).toBe(cache);
+    expect(client.models).toEqual({});
+    expect(client.server).toEqual({ transports: {} });
+    expect(client.transports[0]).toBeInstanceOf(HttpTransport);
+    expect(client.transports[0].supports(OPERATIONS["Task.Get"])).toBe(true);
+    expect(client.offline).toBe(offline);
+    expect(attached).toEqual([client]);
+    expect(client.backendFor(MODELS["App/Task"])).toBe(backend);
+    expect(new ModelClient(client, MODELS["App/Task"], Task).backend).toBe(backend);
+    expect(client.backendFor(MODELS["App/User"])).toBeUndefined();
+    expect(new WebdaClient({ operations: OPERATIONS }).backendFor(MODELS["App/Task"])).toBeUndefined();
+    // Changes of a shared cache reach the client
+    const events: unknown[] = [];
+    client.on("change", event => events.push(event));
+    cache.deleteEntity("App/Task", "t1");
+    expect(events).toEqual([{ model: "App/Task", uid: "t1", type: "delete" }]);
+  });
+
+  it("explains why no transport carries an operation", async () => {
+    const none = new WebdaClient({ transports: [], operations: OPERATIONS });
+    expect(() => none.stream("Audit.Chat")).toThrow(/\(none\): it is bidirectional, use connect\(\)$/);
+    expect(() => none.connect("Audit.Chat")).toThrow(
+      /Audit.Chat is not exposed on the configured transports \(none\)$/
+    );
+    await expect(none.call("Task.Get")).rejects.toThrow(/\(none\)$/);
+    // A transport carrying the operation, but without streams
+    const unary = new WebdaClient({
+      transports: [{ name: "unary", supports: () => true, call: async () => undefined }],
+      operations: OPERATIONS
+    });
+    expect(() => unary.stream("Audit.Tail")).toThrow(
+      /Audit.Tail is not exposed on the configured transports \(unary\)$/
+    );
+  });
+
+  it("invalidates mutated models missing from the manifest and ignores untagged services", async () => {
+    const cache = new EntityCache();
+    const client = new WebdaClient({
+      transports: [{ name: "stub", supports: () => true, call: async () => ({}) }],
+      operations: OPERATIONS,
+      cache
+    });
+    const events: unknown[] = [];
+    client.on("change", event => events.push(event));
+    await client.call("Task.Patch", { uuid: "t1" });
+    expect(events).toEqual([{ model: "App/Task", type: "invalidate" }]);
+    events.length = 0;
+    await client.call("Hidden.Op");
+    await client.call("Auth.Me");
+    await client.call("Task.Get", { uuid: "t1" });
+    expect(events).toEqual([]);
+  });
+
+  it("resolves the parents of a nested object from its data and stops on an unknown ancestor", () => {
+    const models = {
+      ...MODELS,
+      "App/Reply": {
+        ...MODELS["App/Comment"],
+        id: "App/Reply",
+        parent: { attribute: "comment", model: "App/Comment" }
+      }
+    };
+    const client = new WebdaClient({ baseUrl: "https://api.test", operations: OPERATIONS, models });
+    expect(client.resolveParents("App/Comment")).toBeUndefined();
+    expect(client.resolveParents("App/Comment", undefined, { task: "t1" })).toEqual(["t1"]);
+    // The comment is not cached: its task is unknown
+    expect(client.resolveParents("App/Reply", undefined, { comment: "c1" })).toBeUndefined();
+    client.cache.setEntity("App/Comment", "c1", { uuid: "c1", task: "t1" });
+    expect(client.resolveParents("App/Reply", undefined, { comment: "c1" })).toEqual(["t1", "c1"]);
   });
 });

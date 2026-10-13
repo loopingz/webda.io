@@ -4,13 +4,7 @@ import { WebdaApplicationTest } from "../test/application.js";
 import { JSONUtils } from "@webda/utils";
 import { EncryptedField } from "./encrypted.model.js";
 import { User } from "./user.model.js";
-import {
-  generateRecoveryCodes,
-  hashRecoveryCode,
-  MFA,
-  normalizeRecoveryCode,
-  type TotpSecret
-} from "./mfa.model.js";
+import { generateRecoveryCodes, hashRecoveryCode, MFA, normalizeRecoveryCode, type TotpSecret } from "./mfa.model.js";
 import { hotp, totpStep } from "../utils/totp.js";
 
 const TOTP_SECRET: TotpSecret = {

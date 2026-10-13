@@ -189,10 +189,7 @@ export function totpUri(opts: { secret: string; issuer: string; account: string 
   const issuer = opts.issuer.trim();
   const account = opts.account.trim();
   const label = `${encodeURIComponent(issuer)}:${encodeURIComponent(account)}`;
-  const query: string[] = [
-    `secret=${encodeURIComponent(opts.secret)}`,
-    `issuer=${encodeURIComponent(issuer)}`
-  ];
+  const query: string[] = [`secret=${encodeURIComponent(opts.secret)}`, `issuer=${encodeURIComponent(issuer)}`];
   if (opts.algorithm && opts.algorithm !== "sha1") {
     query.push(`algorithm=${opts.algorithm.toUpperCase()}`);
   }

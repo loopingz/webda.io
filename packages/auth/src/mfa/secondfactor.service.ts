@@ -14,13 +14,7 @@ import {
   WebdaError
 } from "@webda/core";
 import { useAuthentication } from "../provider.js";
-import {
-  InvalidMfaCode,
-  MfaAlreadyEnabled,
-  MfaNotEnabled,
-  MfaNotPending,
-  Throttled
-} from "../errors.js";
+import { InvalidMfaCode, MfaAlreadyEnabled, MfaNotEnabled, MfaNotPending, Throttled } from "../errors.js";
 import { countAttempt, type ThrottleParameters } from "../throttle.js";
 
 /**

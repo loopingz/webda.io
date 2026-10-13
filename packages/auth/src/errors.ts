@@ -112,4 +112,3 @@ export class MfaNotPending extends WebdaError.HttpError {
     super(message, 401);
   }
 }
-

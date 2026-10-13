@@ -1,14 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import {
-  base32Decode,
-  base32Encode,
-  generateTotpSecret,
-  hotp,
-  totpStep,
-  totpUri,
-  verifyTotp
-} from "./totp.js";
+import { base32Decode, base32Encode, generateTotpSecret, hotp, totpStep, totpUri, verifyTotp } from "./totp.js";
 
 @suite
 class TotpUtilTest {
@@ -120,10 +112,7 @@ class TotpUtilTest {
       assert.strictEqual(hotp(keySha512, step, { digits: 8, algorithm: "sha512" }), v.sha512);
 
       // verifyTotp at exact time
-      assert.strictEqual(
-        verifyTotp(keySha1, v.sha1, { digits: 8, algorithm: "sha1", now: v.t, window: 0 }),
-        step
-      );
+      assert.strictEqual(verifyTotp(keySha1, v.sha1, { digits: 8, algorithm: "sha1", now: v.t, window: 0 }), step);
       assert.strictEqual(
         verifyTotp(keySha256, v.sha256, { digits: 8, algorithm: "sha256", now: v.t, window: 0 }),
         step

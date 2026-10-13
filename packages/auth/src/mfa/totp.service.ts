@@ -1,11 +1,4 @@
-import {
-  generateTotpSecret,
-  MFA,
-  runAsSystem,
-  totpUri,
-  useApplication,
-  type User
-} from "@webda/core";
+import { generateTotpSecret, MFA, runAsSystem, totpUri, useApplication, type User } from "@webda/core";
 import { SecondFactorParameters, SecondFactorService } from "./secondfactor.service.js";
 
 /** Parameters for TOTP service */

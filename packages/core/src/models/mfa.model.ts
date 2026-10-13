@@ -33,7 +33,10 @@ export interface FactorEntry<T = any> {
  * @returns normalised string
  */
 export function normalizeRecoveryCode(code: string): string {
-  return (code ?? "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  return (code ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 }
 
 /**

@@ -19,16 +19,19 @@ import { useCore, useModelMetadata } from "../core/hooks.js";
 import type { ModelMetadata } from "@webda/compiler";
 import { InstanceCache } from "../cache/cache.js";
 import { randomUUID } from "node:crypto";
-import { classifyStoredType, UNREADABLE } from "../application/model-types.js";
+import { classifyStoredType, UNREADABLE, UNTYPED } from "../application/model-types.js";
 import { useRegistry } from "../models/registry.model.js";
 import {
   DEFAULT_MIGRATION_BATCH,
+  DEFAULT_TYPE_CHECK_ROWS,
   DEFAULT_MIGRATION_LEASE,
   emptyProgress,
   emptyTableReport,
   incrementCount,
   MigrationAlreadyRunning,
   migrationTotals,
+  scanRawRows,
+  summarizeStoredTypes,
   MigrationUnsupported,
   toMigrationProgress,
   type MigrationContext,
@@ -39,7 +42,9 @@ import {
   type MigrationReport,
   type RawPage,
   type RawPatch,
-  type RawTable
+  type RawTable,
+  type StoredTypeCounts,
+  type TypeCheckSummary
 } from "./migration.js";
 
 /** Error thrown when an item is not found in a store */
@@ -304,6 +309,21 @@ export class StoreParameters extends ServiceParameters {
    */
   maxGroups?: number;
   /**
+   * Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found
+   */
+  typeCheck?: {
+    /**
+     * @default true
+     */
+    enabled?: boolean;
+    /**
+     * Rows scanned at most by stores without a native count; beyond, the counts are "at least"
+     *
+     * @default 10000
+     */
+    maxRows?: number;
+  };
+  /**
    * Model Aliases to allow easier rename of Model
    */
   modelAliases?: { [key: string]: string };
@@ -362,6 +382,7 @@ export class StoreParameters extends ServiceParameters {
     this.forceModel ??= false;
     this.slowQueryThreshold ??= 30000;
     this.modelAliases ??= {};
+    this.typeCheck = { enabled: true, maxRows: 10000, ...(this.typeCheck ?? {}) };
     return this;
   }
 }
@@ -568,7 +589,14 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    */
   async init(): Promise<this> {
     Store.computeStores();
-    return super.init();
+    await super.init();
+    try {
+      await this.checkStoredTypes();
+    } catch (err) {
+      // The check informs, it never fails startup
+      this.log("WARN", `Cannot check the stored types of ${this.getName()}: ${err?.message ?? err}`);
+    }
+    return this;
   }
 
   /**
@@ -918,6 +946,57 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    */
   async migrateTypes(options: MigrationOptions = {}): Promise<MigrationReport> {
     return this.migration("types", this.typesPatcher(), options);
+  }
+
+  /**
+   * Count the rows by stored `__type`, scanning at most `maxRows` rows
+   *
+   * Stores able to `GROUP BY` override it with an exact count.
+   * @param maxRows - scan limit
+   * @returns the counts
+   */
+  async countStoredTypes(maxRows: number): Promise<StoredTypeCounts> {
+    const tables = this.getRawTables() ?? [];
+    const result: StoredTypeCounts = { tables: {}, truncated: false };
+    for (const table of tables) result.tables[table.name] = {};
+    result.truncated = await scanRawRows(
+      (table, size, token) => this.rawPages(table, size, token),
+      tables,
+      maxRows,
+      row => {
+        const key = row.unreadable
+          ? UNREADABLE
+          : typeof row.data.__type === "string" && row.data.__type !== ""
+            ? row.data.__type
+            : UNTYPED;
+        incrementCount(result.tables[row.table], key);
+      }
+    );
+    return result;
+  }
+
+  /**
+   * Startup type check: one WARN when rows hold legacy, untyped or unknown types
+   * @returns the summary, undefined when disabled or the store has no raw access
+   */
+  async checkStoredTypes(): Promise<TypeCheckSummary | undefined> {
+    const tables = this.getRawTables();
+    const options = this.parameters.typeCheck;
+    if (!tables || options?.enabled === false) {
+      return undefined;
+    }
+    const maxRows = options?.maxRows ?? DEFAULT_TYPE_CHECK_ROWS;
+    const counts = await this.countStoredTypes(maxRows);
+    const summary = summarizeStoredTypes(
+      this.getName(),
+      counts,
+      new Map(tables.map(table => [table.name, table.root])),
+      maxRows
+    );
+    if (summary.message) {
+      this.log("WARN", summary.message);
+    }
+    return summary;
   }
 
   /**

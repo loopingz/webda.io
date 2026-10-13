@@ -15,7 +15,6 @@ import {
   sumMigrationReport
 } from "../test/legacy-types.js";
 
-
 @suite
 class MemoryRawAccessTest extends WebdaApplicationTest {
   getTestConfiguration() {
@@ -290,7 +289,9 @@ class TypesMigrationTest extends WebdaApplicationTest {
     const store = await this.legacyStore("typesMemory");
     const report = await store.migrateTypes({ batchSize: 4 });
     assert.deepStrictEqual(sumMigrationReport(report), LEGACY_TYPE_REPORT);
-    const types = Object.fromEntries([...store.storage.entries()].map(([key, value]) => [key, JSON.parse(value).__type]));
+    const types = Object.fromEntries(
+      [...store.storage.entries()].map(([key, value]) => [key, JSON.parse(value).__type])
+    );
     assert.deepStrictEqual(types, {
       a1: "Webda/V3Animal",
       a2: "Webda/V3Animal",
@@ -344,5 +345,111 @@ class TypesMigrationTest extends WebdaApplicationTest {
     store.storage.set("x", JSON.stringify({ uuid: "x" }));
     const report = await store.migrateTypes();
     assert.deepStrictEqual(report.tables.typesNoRoot, { scanned: 1, updated: 0, byChange: {}, unknown: {} });
+  }
+}
+
+@suite
+class TypeCheckTest extends WebdaApplicationTest {
+  getTestConfiguration() {
+    return { parameters: { ignoreBeans: true }, services: {} };
+  }
+
+  /**
+   * A resolved store whose WARN logs are recorded, not yet initialized
+   * @param name - unique store name
+   * @param parameters - extra parameters
+   * @returns the store and its warnings
+   */
+  newStore(name: string, parameters: any = {}): { store: MemoryStore; warnings: string[] } {
+    registerLegacyTypeFixtures();
+    const store = new MemoryStore(name, { models: LEGACY_TYPE_MODELS, ...parameters } as any);
+    const warnings: string[] = [];
+    (store as any).log = (level: string, ...args: any[]) => {
+      if (level === "WARN") warnings.push(args.join(" "));
+    };
+    this.registerService(store, name);
+    store.resolve();
+    return { store, warnings };
+  }
+
+  /**
+   * @param store - the store
+   */
+  seed(store: MemoryStore) {
+    for (const { key, data } of LEGACY_TYPE_ROWS) {
+      store.storage.set(key, JSON.stringify(data));
+    }
+  }
+
+  @test
+  async warnsOnceAtStartup() {
+    const { store, warnings } = this.newStore("checkStartup");
+    this.seed(store);
+    await store.init();
+    const typeWarnings = warnings.filter(warning => warning.includes("legacy, untyped or unknown types"));
+    assert.strictEqual(typeWarnings.length, 1, warnings.join("\n"));
+    for (const part of [
+      "Store checkStartup",
+      "'V3Animal' → Webda/V3Animal: 1",
+      "untyped → Webda/V3Animal: 1",
+      "'Flora' → Webda/V3Plant: 1",
+      "unknown 'Gone/Model': 1",
+      "webda migrate"
+    ]) {
+      assert.ok(typeWarnings[0].includes(part), `${part} in ${typeWarnings[0]}`);
+    }
+    assert.ok(!typeWarnings[0].includes("at least"));
+    const summary = (await store.checkStoredTypes())!;
+    assert.deepStrictEqual(
+      { legacy: summary.legacy, untyped: summary.untyped, unknown: summary.unknown, truncated: summary.truncated },
+      { legacy: 6, untyped: 1, unknown: 1, truncated: false }
+    );
+  }
+
+  @test
+  async cappedScanSaysAtLeast() {
+    const { store, warnings } = this.newStore("checkCapped", { typeCheck: { maxRows: 3 } });
+    this.seed(store);
+    const summary = (await store.checkStoredTypes())!;
+    assert.strictEqual(summary.truncated, true);
+    assert.strictEqual(summary.legacy, 2);
+    assert.ok(warnings.at(-1)!.includes("at least"), warnings.at(-1));
+  }
+
+  @test
+  async cleanOrDisabledStoresStaySilent() {
+    const clean = this.newStore("checkClean");
+    clean.store.storage.set("a1", JSON.stringify(LEGACY_TYPE_ROWS[0].data));
+    await clean.store.init();
+    const typeWarning = (warning: string) => warning.includes("legacy, untyped or unknown types");
+    assert.deepStrictEqual(clean.warnings.filter(typeWarning), []);
+    const disabled = this.newStore("checkDisabled", { typeCheck: { enabled: false } });
+    this.seed(disabled.store);
+    await disabled.store.init();
+    assert.deepStrictEqual(disabled.warnings.filter(typeWarning), []);
+    assert.strictEqual(await disabled.store.checkStoredTypes(), undefined);
+  }
+
+  @test
+  async unreadableRowsAreCounted() {
+    // Review focus: a corrupted row is reported, the check goes on
+    const { store, warnings } = this.newStore("checkUnreadable");
+    store.storage.set("broken", "{not json");
+    const summary = (await store.checkStoredTypes())!;
+    assert.strictEqual(summary.unknown, 1);
+    assert.ok(warnings[0].includes("unknown '(unreadable)': 1"), warnings[0]);
+  }
+
+  @test
+  async aFailingCheckNeverFailsStartup() {
+    const { store, warnings } = this.newStore("checkFailing");
+    (store as any).countStoredTypes = async () => {
+      throw new Error("backend down");
+    };
+    await store.init();
+    assert.ok(
+      warnings.some(warning => warning.includes("backend down")),
+      warnings.join("\n")
+    );
   }
 }

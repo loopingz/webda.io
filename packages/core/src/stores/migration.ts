@@ -1,5 +1,6 @@
 import { getTypeResolver, type ModelClass, type ModelTypeResolver } from "@webda/models";
 import * as WebdaError from "../errors/errors.js";
+import { classifyStoredType, UNREADABLE, UNTYPED } from "../application/model-types.js";
 
 /**
  * A row as the backend stores it, read without type filter nor hydration
@@ -383,7 +384,10 @@ function byCodeUnit(a: string, b: string): number {
  * @param resolver - resolver telling unknown from ambiguous types
  * @returns the text
  */
-export function formatMigrationReport(report: MigrationReport, resolver: ModelTypeResolver = getTypeResolver()): string {
+export function formatMigrationReport(
+  report: MigrationReport,
+  resolver: ModelTypeResolver = getTypeResolver()
+): string {
   const flags = [report.dryRun ? "dry run" : undefined, report.resumed ? "resumed" : undefined].filter(Boolean);
   const lines = [`Store ${report.store}: migration ${report.name}${flags.length ? ` (${flags.join(", ")})` : ""}`];
   for (const [table, tableReport] of Object.entries(report.tables)) {
@@ -398,4 +402,111 @@ export function formatMigrationReport(report: MigrationReport, resolver: ModelTy
     }
   }
   return lines.join("\n");
+}
+
+/**
+ * Read the rows of raw tables page by page, in table order, stopping after `maxRows` rows
+ * @param pages - reads a page of a table (a store's `rawPages`)
+ * @param tables - the tables to read
+ * @param maxRows - the row limit
+ * @param onRow - called for each row
+ * @returns true when rows were left unread because of the limit
+ */
+export async function scanRawRows(
+  pages: (table: string, batchSize: number, token?: string) => Promise<RawPage>,
+  tables: RawTable[],
+  maxRows: number,
+  onRow: (row: RawRow) => void
+): Promise<boolean> {
+  let seen = 0;
+  for (const [index, table] of tables.entries()) {
+    let token: string | undefined;
+    do {
+      if (seen >= maxRows) return true;
+      const page = await pages(table.name, Math.min(1000, maxRows - seen), token);
+      for (const row of page.rows) {
+        onRow(row);
+        seen++;
+      }
+      token = page.continuationToken;
+    } while (token);
+    if (seen >= maxRows && index < tables.length - 1) return true;
+  }
+  return false;
+}
+
+/**
+ * Default rows scanned by the startup type check of stores without a native count
+ */
+export const DEFAULT_TYPE_CHECK_ROWS = 10000;
+
+/**
+ * Count of rows by stored type, by table
+ */
+export interface StoredTypeCounts {
+  /** Count by stored `__type` ({@link UNTYPED}, {@link UNREADABLE} included), by table */
+  tables: Record<string, Record<string, number>>;
+  /** The scan stopped at its row limit: counts are "at least" */
+  truncated: boolean;
+}
+
+/**
+ * Outcome of the startup type check
+ */
+export interface TypeCheckSummary {
+  /** Rows with a legacy type */
+  legacy: number;
+  /** Untyped rows that would be stamped */
+  untyped: number;
+  /** Rows with an unknown, ambiguous or unreadable type */
+  unknown: number;
+  /** Counts are "at least" */
+  truncated: boolean;
+  /** WARN message, undefined when every row is current */
+  message?: string;
+}
+
+/**
+ * Summarize stored type counts into the startup WARN
+ * @param store - store name
+ * @param counts - the counts
+ * @param roots - root model of each table
+ * @param maxRows - the scan limit, for the message
+ * @param resolver - the resolver
+ * @returns the summary
+ */
+export function summarizeStoredTypes(
+  store: string,
+  counts: StoredTypeCounts,
+  roots: Map<string, ModelClass | undefined>,
+  maxRows: number,
+  resolver: ModelTypeResolver = getTypeResolver()
+): TypeCheckSummary {
+  const summary: TypeCheckSummary = { legacy: 0, untyped: 0, unknown: 0, truncated: counts.truncated };
+  const parts: string[] = [];
+  for (const [table, types] of Object.entries(counts.tables)) {
+    const entries: string[] = [];
+    for (const [type, n] of Object.entries(types).sort(([a], [b]) => byCodeUnit(a, b))) {
+      const kind = classifyStoredType(type === UNTYPED ? undefined : type, roots.get(table), resolver);
+      if (kind.kind === "current" || (kind.kind === "untyped" && !kind.to)) continue;
+      if (kind.kind === "legacy") {
+        summary.legacy += n;
+        entries.push(`'${type}' → ${kind.to}: ${n}`);
+      } else if (kind.kind === "untyped") {
+        summary.untyped += n;
+        entries.push(`untyped → ${kind.to}: ${n}`);
+      } else {
+        summary.unknown += n;
+        entries.push(`${kind.kind} '${type}': ${n}`);
+      }
+    }
+    if (entries.length) parts.push(`${table} (${entries.join(", ")})`);
+  }
+  if (parts.length) {
+    summary.message =
+      `Store ${store} holds rows with legacy, untyped or unknown types: ${parts.join("; ")}` +
+      `${counts.truncated ? ` — at least: the check stopped after ${maxRows} rows` : ""}. ` +
+      "Run `webda migrate` to rewrite them.";
+  }
+  return summary;
 }

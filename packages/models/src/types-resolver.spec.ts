@@ -92,7 +92,7 @@ class ModelTypeResolverTest {
       ["Transaction", Transaction],
       ["Legacy/Payment", Transaction],
       ["legacy/payment", Transaction],
-      // Review focus: the short name of a renamed model
+      // The short name of a renamed model
       ["Payment", Transaction],
       ["fee", Fee],
       ["Legacy/Key", Keyed]

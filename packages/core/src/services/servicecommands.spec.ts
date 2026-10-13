@@ -658,7 +658,7 @@ class EnsureCommandServicesTest {
 
   @test
   skipsUnconfiguredStores() {
-    // Review focus: `webda migrate` must not add a store per provider type
+    // `webda migrate` must not add a store per provider type
     const config = { services: {} as any };
     const app = {
       getConfiguration: () => config,

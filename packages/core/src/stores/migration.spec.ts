@@ -70,7 +70,7 @@ class MemoryRawAccessTest extends WebdaApplicationTest {
 
   @test
   async unreadableAndObjectRows() {
-    // Review focus: a corrupted row, and a v3 persistence file loaded as objects
+    // A corrupted row, and a v3 persistence file loaded as objects
     const store = this.rawStore();
     store.storage.set("broken", "{not json");
     (store.storage as Map<string, any>).set("old", { uuid: "old", __type: "User" });
@@ -414,7 +414,7 @@ class TypesMigrationTest extends WebdaApplicationTest {
 
   @test
   async unreadableRowsAreReportedNotRewritten() {
-    // Review focus: a corrupted row must not stop the migration
+    // A corrupted row must not stop the migration
     const store = await this.legacyStore("typesUnreadable");
     store.storage.set("zz-broken", "{not json");
     const report = await store.migrateTypes({ batchSize: 4 });
@@ -517,7 +517,7 @@ class TypeCheckTest extends WebdaApplicationTest {
 
   @test
   async unreadableRowsAreCounted() {
-    // Review focus: a corrupted row is reported, the check goes on
+    // A corrupted row is reported, the check goes on
     const { store, warnings } = this.newStore("checkUnreadable");
     store.storage.set("broken", "{not json");
     const summary = (await store.checkStoredTypes())!;

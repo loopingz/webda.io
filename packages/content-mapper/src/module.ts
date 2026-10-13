@@ -1385,7 +1385,7 @@ export function generateWebdaModule(ctx: AnalysisContext, options: ModuleOptions
     const primaryKeySeparator = buildModelPrimaryKeySeparator(ctx, declaration);
     if (primaryKeySeparator) entry.PrimaryKeySeparator = primaryKeySeparator;
     entry.Plural = tags.WebdaPlural || getPlural(object.name.split("/").pop()!);
-      const aliases = buildModelAliases(declaration, namespace).filter(alias => alias !== object.name);
+    const aliases = buildModelAliases(declaration, namespace).filter(alias => alias !== object.name);
     if (aliases.length) entry.Aliases = aliases;
   }
 

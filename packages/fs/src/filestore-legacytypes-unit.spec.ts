@@ -79,7 +79,7 @@ class FileStoreLegacyTypesTest extends WebdaApplicationTest {
 
   @test
   async rawAccessReadsTheFolder() {
-    // Review focus: a half-written file is reported, not fatal
+    // A half-written file is reported, not fatal
     const store: any = await this.harness.createStore("fsRaw", ["Webda/RegistryEntry"]);
     const folder = store.getParameters().folder;
     fs.writeFileSync(path.join(folder, "b.json"), JSON.stringify({ uuid: "b", __type: "V3Animal" }));

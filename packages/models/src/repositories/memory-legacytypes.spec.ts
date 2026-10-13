@@ -105,7 +105,7 @@ class MemoryRepositoryLegacyTypesTest {
       d1: { __type: "zoo/dog", name: "lower" },
       p1: { __type: "PUPPY", name: "upper short" },
       g1: { __type: "Zoo/Flora", name: "alias" },
-      // Review focus: short name of a renamed model
+      // The short name of a renamed model
       g2: { __type: "flora", name: "short alias" },
       u1: { __type: "Gone/Thing", name: "unknown" }
     });
@@ -137,7 +137,7 @@ class MemoryRepositoryLegacyTypesTest {
 
   @test
   async unknownModelFallsBackToExactHierarchy() {
-    // Review focus: the installed resolver does not know these hand-stamped models
+    // The installed resolver does not know these hand-stamped models
     this.setup(false);
     setTypeResolver(new ModelTypeResolver({}, { namespace: "Other" }));
     this.seed({ a: { __type: "Zoo/Animal" }, p: { __type: "Zoo/Puppy" }, s: { __type: "Animal" } });

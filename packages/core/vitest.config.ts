@@ -73,6 +73,7 @@ export default defineConfig({
       "src/stores/store.spec.ts",
       "src/stores/memory-separator.spec.ts",
       "src/stores/migration.spec.ts",
+      "src/stores/memory-legacytypes.spec.ts",
       //"src/stores/*.spec.ts",
       "src/templates/*.spec.ts",
       "src/test/*.spec.ts",

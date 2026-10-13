@@ -26,6 +26,7 @@ import type { Service } from "../services/service.js";
 import { ModelMetadata } from "@webda/compiler";
 import { applyDeployment, getDeploymentFile, loadDeployment, type Deployment } from "./deployment.js";
 import type { BehaviorMetadata } from "@webda/compiler";
+import { installModelTypes } from "./model-types.js";
 
 /**
  * Define a static member that only belongs to `target`
@@ -631,6 +632,7 @@ export class Application {
 
   /**
    * Add a new model
+   * The stored type resolver is rebuilt.
    *
    * @param name - the name to use
    * @param model - the model to use
@@ -663,10 +665,10 @@ export class Application {
     }
     this.models[name] = model;
     if (metadata) {
-      // Get ancestor?
-      const superClass = Object.getPrototypeOf(model);
-      model.Metadata = Object.freeze(metadata);
+      model.Metadata = Object.freeze({ Aliases: [], ...metadata });
     }
+    // Stored types resolve against the new model map
+    installModelTypes(this);
     return this;
   }
 
@@ -919,12 +921,16 @@ export class Application {
       this.models[m].registerSerializer(true, m);
       this.models[m].Metadata = Object.freeze({
         ...info[m],
+        // Generated only when the model declares @WebdaAlias
+        Aliases: info[m].Aliases ?? [],
         // Runtime: resolve strings to model classes for backward compat
         // ModelMetadata types these as string[] but core resolves them to classes
         Ancestors: info[m].Ancestors.map(s => this.models[s]) as any,
         Subclasses: info[m].Subclasses.map(s => this.models[s]) as any
       });
     }
+    // Stored types (Webda 3 short, lower-case and aliased forms) resolve against the loaded models
+    installModelTypes(this);
   }
 
   /**

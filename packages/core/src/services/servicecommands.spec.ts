@@ -655,6 +655,24 @@ class EnsureCommandServicesTest {
     ]);
     assert.strictEqual(config.services["Webda/Router"].type, "Webda/Router");
   }
+
+  @test
+  skipsUnconfiguredStores() {
+    // `webda migrate` must not add a store per provider type
+    const config = { services: {} as any };
+    const app = {
+      getConfiguration: () => config,
+      getModules: () => ({
+        moddas: { "Webda/FileStore": { capabilities: ["store"] }, "MyApp/Tool": {} },
+        beans: {}
+      })
+    } as any;
+    ensureCommandServices(app, [
+      { name: "Webda/FileStore", method: "migrate", type: "Webda/FileStore" },
+      { name: "MyApp/Tool", method: "migrate", type: "MyApp/Tool" }
+    ]);
+    assert.deepStrictEqual(config.services, { "MyApp/Tool": { type: "MyApp/Tool" } });
+  }
 }
 
 @suite

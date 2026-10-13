@@ -160,6 +160,13 @@ export interface ModelMetadata {
    */
   Plural: string;
   /**
+   * Former identifiers of the model, from its `@WebdaAlias` tags (namespace-completed)
+   *
+   * Rows stored under one of them are read as this model. Absent when the model has none: the runtime defaults it
+   * to an empty list.
+   */
+  Aliases?: string[];
+  /**
    * Schemas defining the model
    */
   Schemas: {

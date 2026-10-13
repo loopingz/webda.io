@@ -7,6 +7,7 @@ import * as is from "typescript/unstable/ast/is";
 import { openSession, type Session } from "./context.ts";
 import {
   buildBehaviorActions,
+  buildModelAliases,
   buildCapabilities,
   buildModelActions,
   buildModelPrimaryKey,
@@ -203,6 +204,31 @@ describe("module with a duplicated name", () => {
       expect(errors[0]).toMatch(
         /^Dup\/Twice is declared twice: First in .*first\.model\.ts and Second in .*second\.model\.ts; rename one$/
       );
+    } finally {
+      session.dispose();
+    }
+  });
+});
+
+describe("module model aliases", () => {
+  it("collects every @WebdaAlias, completes the namespace and refuses an alias naming another model", () => {
+    const dir = join(here, "..", "test", "alias-fixture");
+    const session = openSession(join(dir, "tsconfig.json"), dir);
+    try {
+      const { module, errors } = generateWebdaModule(session.ctx, {
+        appPath: dir,
+        rootDir: join(dir, "src"),
+        outDir: join(dir, "lib"),
+        namespace: "Garden"
+      });
+      expect(module.models["Garden/Plant"].Aliases).toEqual(["Garden/Flora", "Legacy/Greenery"]);
+      // No tag, no key: committed modules stay byte-identical
+      expect(module.models["Garden/Tree"]).not.toHaveProperty("Aliases");
+      expect(module.models["Garden/Shrub"].Aliases).toEqual(["Garden/Tree"]);
+      expect(errors.filter(error => error.includes("@WebdaAlias"))).toEqual([
+        "Garden/Shrub: @WebdaAlias Garden/Tree is the identifier of another model"
+      ]);
+      expect(buildModelAliases(classOf(session, "garden.model.ts", "Tree"), "Garden")).toEqual([]);
     } finally {
       session.dispose();
     }

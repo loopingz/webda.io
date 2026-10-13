@@ -32,6 +32,17 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   }
 
   /**
+   * Set the table root on the wrapped repository too: it filters the untyped rows
+   * @param root - the model owning the untyped rows of the storage
+   * @returns this
+   */
+  setTableRoot(root?: ModelClass): this {
+    super.setTableRoot(root);
+    this.repository.setTableRoot(root);
+    return this;
+  }
+
+  /**
    * Increment numeric attributes with event emission
    * @override
    */

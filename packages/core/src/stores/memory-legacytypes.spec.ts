@@ -9,9 +9,33 @@ import {
   checkLegacyTypeResume,
   checkLegacyTypeStartup,
   checkLegacyTypeVisibility,
+  checkLegacyTypes,
   type LegacyTypesHarness
 } from "../test/legacy-types.js";
 import { MemoryStore } from "./memory.service.js";
+import type { Store } from "./store.js";
+import { V3Animal } from "../test/legacy-types.fixture.model.js";
+
+/**
+ * A backend whose reads fail
+ */
+class FailingReadsStore extends MemoryStore {
+  async rawPages(): Promise<any> {
+    throw new Error("backend down");
+  }
+}
+
+/**
+ * A store that warns about stored types even when they are clean, among unrelated logs
+ */
+class AlwaysWarnsStore extends MemoryStore {
+  async checkStoredTypes() {
+    const summary = await super.checkStoredTypes();
+    this.log("INFO", "Store checked: legacy, untyped or unknown types counted");
+    if (!summary?.message) this.log("WARN", `Store ${this.getName()} holds legacy, untyped or unknown types`);
+    return summary;
+  }
+}
 
 @suite
 class MemoryLegacyTypesTest extends WebdaApplicationTest {
@@ -19,19 +43,27 @@ class MemoryLegacyTypesTest extends WebdaApplicationTest {
     return { parameters: { ignoreBeans: true }, services: {} };
   }
 
-  harness: LegacyTypesHarness = {
-    createStore: async (name, models, parameters = {}) => {
-      const store = new MemoryStore(name, { models, ...parameters } as any);
-      this.registerService(store, name);
-      await store.resolve().init();
-      return store;
-    },
-    seedRaw: async (store, _table, rows) => {
-      for (const { key, data } of rows) {
-        (store as MemoryStore).storage.set(key, JSON.stringify(data));
+  harness: LegacyTypesHarness = this.harnessOf(MemoryStore);
+
+  /**
+   * @param clazz - the store class under test
+   * @returns the harness creating stores of the class
+   */
+  harnessOf(clazz: typeof MemoryStore): LegacyTypesHarness {
+    return {
+      createStore: async (name, models, parameters = {}) => {
+        const store = new clazz(name, { models, ...parameters } as any);
+        this.registerService(store, name);
+        await store.resolve().init();
+        return store;
+      },
+      seedRaw: async (store, _table, rows) => {
+        for (const { key, data } of rows) {
+          (store as MemoryStore).storage.set(key, JSON.stringify(data));
+        }
       }
-    }
-  };
+    };
+  }
 
   @test
   visibility() {
@@ -69,5 +101,55 @@ class MemoryLegacyTypesTest extends WebdaApplicationTest {
       LEGACY_TYPE_CHECKS.map(check => check.name),
       ["visibility", "normalization", "migration", "resume", "lease", "startup"]
     );
+  }
+
+  @test
+  async harnessTableIsUsed() {
+    const asked: [Store, any][] = [];
+    await checkLegacyTypeNormalization({
+      ...this.harness,
+      tableOf: (store, model) => {
+        asked.push([store, model]);
+        return store.getName();
+      }
+    });
+    assert.ok(asked.length > 0);
+    assert.ok(asked.every(([, model]) => model === V3Animal));
+  }
+
+  @test
+  async leaseCheckFailsWhenTheFirstRunnerFails() {
+    // Reported at once, not after waiting for a first page that never comes
+    const started = Date.now();
+    await assert.rejects(() => checkLegacyTypeLease(this.harnessOf(FailingReadsStore)), /backend down/);
+    assert.ok(Date.now() - started < 5000);
+  }
+
+  @test
+  async startupCheckFailsWhenACleanStoreWarns() {
+    await assert.rejects(
+      () => checkLegacyTypeStartup(this.harnessOf(AlwaysWarnsStore)),
+      (err: any) => err instanceof assert.AssertionError && err.message.includes("holds legacy")
+    );
+  }
+
+  @test
+  async checkLegacyTypesRunsTheChecksNotSkipped() {
+    const names = LEGACY_TYPE_CHECKS.map(check => check.name);
+    let created = 0;
+    const counting: LegacyTypesHarness = {
+      ...this.harnessOf(AlwaysWarnsStore),
+      createStore: (...args) => {
+        created++;
+        return this.harnessOf(AlwaysWarnsStore).createStore(...args);
+      }
+    };
+    await checkLegacyTypes(counting, { skip: names });
+    assert.strictEqual(created, 0);
+    await assert.rejects(
+      () => checkLegacyTypes(counting, { skip: names.filter(name => name !== "startup") }),
+      /holds legacy/
+    );
+    assert.strictEqual(created, 2);
   }
 }

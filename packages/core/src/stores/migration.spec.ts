@@ -7,7 +7,18 @@ import { sleep } from "@webda/utils";
 import { useCore } from "../core/hooks.js";
 import { useRegistry } from "../models/registry.model.js";
 import { Store } from "./store.js";
-import { formatMigrationReport, type MigrationPatcher } from "./migration.js";
+import {
+  DEFAULT_MIGRATION_BATCH,
+  DEFAULT_TYPE_CHECK_ROWS,
+  formatMigrationReport,
+  mapRawPage,
+  mapRawPatch,
+  parseRawValue,
+  scanRawRows,
+  type MigrationPatcher,
+  type RawPage,
+  type RawTable
+} from "./migration.js";
 import {
   LEGACY_TYPE_MODELS,
   LEGACY_TYPE_REPORT,
@@ -91,6 +102,86 @@ class MemoryRawAccessTest extends WebdaApplicationTest {
     assert.deepStrictEqual(store.getRawTables(), [{ name: "raw", root: RegistryEntry }]);
     assert.strictEqual((store.getRepository(RegistryEntry as any) as any).getTableRoot(), RegistryEntry);
   }
+
+  @test
+  unknownModelLeavesTheTableWithoutRoot() {
+    // A model removed from the application: its untyped rows have no owner to be typed with
+    const store = new MemoryStore("raw", { models: ["Gone/Model"] } as any);
+    assert.deepStrictEqual(store.getRawTables(), [{ name: "raw", root: undefined }]);
+  }
+}
+
+@suite
+class RawHelpersTest {
+  @test
+  nonObjectValuesAreUnreadable() {
+    for (const value of [42, null, true, [1], "[1]", "null", '"text"']) {
+      assert.deepStrictEqual(
+        parseRawValue("t", "k", value),
+        { table: "t", key: "k", data: {}, unreadable: true },
+        JSON.stringify(value)
+      );
+    }
+  }
+
+  @test
+  pagesPastTheLastKeyAndSkipsEmptyValues() {
+    const map = new Map<string, any>([
+      ["a", "{}"],
+      ["b", "{}"]
+    ]);
+    // A token past every key (its rows were deleted meanwhile): nothing left
+    assert.deepStrictEqual(mapRawPage(map, "t", 2, "z"), { rows: [], continuationToken: undefined });
+    map.set("c", undefined);
+    assert.deepStrictEqual(
+      mapRawPage(map, "t", 10).rows.map(row => row.key),
+      ["a", "b"]
+    );
+  }
+
+  @test
+  reportFlagsResumedRuns() {
+    const report = { store: "s", name: "types", tables: {}, resumed: true, dryRun: false };
+    assert.strictEqual(formatMigrationReport(report), "Store s: migration types (resumed)");
+    assert.strictEqual(
+      formatMigrationReport({ ...report, dryRun: true }),
+      "Store s: migration types (dry run, resumed)"
+    );
+  }
+
+  @test
+  async scanStopsAtTheLimitBetweenTables() {
+    const tables: RawTable[] = [
+      { name: "t1", root: undefined },
+      { name: "t2", root: undefined }
+    ];
+    const maps: Record<string, Map<string, any>> = {
+      t1: new Map([
+        ["a", "{}"],
+        ["b", "{}"]
+      ]),
+      t2: new Map([
+        ["c", "{}"],
+        ["d", "{}"]
+      ])
+    };
+    const read: string[] = [];
+    const pages = async (table: string, size: number, token?: string): Promise<RawPage> => {
+      read.push(table);
+      return mapRawPage(maps[table], table, size, token);
+    };
+    const keys: string[] = [];
+    // The limit is reached at the end of the first table: the second one is left unread
+    assert.strictEqual(await scanRawRows(pages, tables, 2, row => keys.push(row.key)), true);
+    assert.deepStrictEqual(read, ["t1"]);
+    assert.deepStrictEqual(keys, ["a", "b"]);
+    // Reached at the end of the last table: nothing was left unread
+    read.length = 0;
+    keys.length = 0;
+    assert.strictEqual(await scanRawRows(pages, tables, 4, row => keys.push(row.key)), false);
+    assert.deepStrictEqual(read, ["t1", "t2"]);
+    assert.deepStrictEqual(keys, ["a", "b", "c", "d"]);
+  }
 }
 
 /**
@@ -105,6 +196,28 @@ const flagEven: MigrationPatcher = (row, context) => {
   context.change("plain", "flagged");
   return { flagged: true };
 };
+
+/**
+ * A store with two raw tables, as a multi-table backend
+ */
+class TwoTableStore extends MemoryStore {
+  tables: Record<string, Map<string, any>> = { left: new Map(), right: new Map() };
+
+  getRawTables(): RawTable[] {
+    return [
+      { name: "left", root: undefined },
+      { name: "right", root: undefined }
+    ];
+  }
+
+  async rawPages(table: string, batchSize: number, token?: string): Promise<RawPage> {
+    return mapRawPage(this.tables[table], table, batchSize, token);
+  }
+
+  async rawPatch(table: string, key: string, patch: Record<string, any>): Promise<void> {
+    mapRawPatch(this.tables[table], key, patch);
+  }
+}
 
 /**
  * A store without raw access
@@ -174,6 +287,17 @@ class StoreMigrationTest extends WebdaApplicationTest {
     assert.strictEqual(report.dryRun, true);
     assert.strictEqual(report.tables.engineDry.updated, 5);
     assert.deepStrictEqual(new Map(store.storage), before);
+    assert.strictEqual(await store.getMigrationProgress("flag"), undefined);
+  }
+
+  @test
+  async failedDryRunLeavesNoProgress() {
+    // A dry run holds no lease: its failure has nothing to release
+    const store = await this.seededStore("engineDryFail");
+    (store as any).rawPages = async () => {
+      throw new Error("Interrupted");
+    };
+    await assert.rejects(() => store.migration("flag", flagEven, { dryRun: true }), /Interrupted/);
     assert.strictEqual(await store.getMigrationProgress("flag"), undefined);
   }
 
@@ -334,6 +458,155 @@ class StoreMigrationTest extends WebdaApplicationTest {
       () => store.migration("flag", flagEven),
       (err: any) => err.code === "MIGRATION_UNSUPPORTED"
     );
+  }
+
+  @test
+  async rawAccessIsUnsupportedByDefault() {
+    const store = new OpaqueStore("opaqueRaw", {} as any);
+    const unsupported = (err: any) => err.code === "MIGRATION_UNSUPPORTED";
+    await assert.rejects(() => store.rawPages("opaqueRaw", 10), unsupported);
+    await assert.rejects(() => store.rawPatch("opaqueRaw", "a", { __type: "x" }), unsupported);
+    // The types migration and the type count see no table
+    await assert.rejects(() => store.migrateTypes(), unsupported);
+    assert.deepStrictEqual(await store.countStoredTypes(10), { tables: {}, truncated: false });
+  }
+
+  @test
+  async deletingAMigrationThatNeverRanIsANoop() {
+    const store = await this.seededStore("engineNeverRan");
+    await store.deleteMigrationProgress("never");
+    assert.strictEqual(await store.getMigrationProgress("never"), undefined);
+  }
+
+  @test
+  async invalidBatchSizeUsesTheDefault() {
+    const store = await this.seededStore("engineBatch");
+    const sizes: number[] = [];
+    const original = store.rawPages.bind(store);
+    (store as any).rawPages = async (table: string, batchSize: number, token?: string) => {
+      sizes.push(batchSize);
+      return original(table, batchSize, token);
+    };
+    const report = await store.migration("flag", flagEven, { batchSize: Number("abc") });
+    assert.deepStrictEqual(sizes, [DEFAULT_MIGRATION_BATCH]);
+    assert.strictEqual(report.tables.engineBatch.scanned, 10);
+  }
+
+  @test
+  async entryWithoutLeaseFieldsIsFree() {
+    // A progress entry written without lease fields (e.g. by hand): free, and a failing patch is not a conflict
+    const store = await this.seededStore("engineNoLease");
+    await (useRegistry() as any).create({ uuid: "storeMigration.engineNoLease.flag" });
+    await assert.rejects(
+      () =>
+        this.withRegistryPatch(
+          () => new Error("Registry unavailable"),
+          () => store.migration("flag", flagEven)
+        ),
+      (err: any) => err.code !== "MIGRATION_ALREADY_RUNNING" && /Registry unavailable/.test(err.message)
+    );
+    const report = await store.migration("flag", flagEven);
+    assert.strictEqual(report.tables.engineNoLease.updated, 5);
+  }
+
+  @test
+  async losingTheAcquireRaceReportsTheWinner() {
+    // Another runner takes the lease between the read and the conditional patch of this one
+    const store = await this.seededStore("engineRace");
+    const before = new Map(store.storage);
+    const registry: any = useRegistry();
+    const original = registry.patch;
+    registry.patch = async (uuid: string, _patch: any, field: string, value: any) => {
+      registry.patch = original;
+      await original.call(registry, uuid, { leaseUntil: Date.now() + 60000, owner: "winner" }, field, value);
+      throw new Error("Condition failed");
+    };
+    try {
+      await assert.rejects(
+        () => store.migration("flag", flagEven),
+        (err: any) => err.code === "MIGRATION_ALREADY_RUNNING" && err.message.includes("runner winner")
+      );
+    } finally {
+      registry.patch = original;
+    }
+    assert.deepStrictEqual(new Map(store.storage), before);
+  }
+
+  @test
+  async unreadableLeaseAfterAFailedPatchKeepsThePatchError() {
+    // The entry cannot be read back to look for a competitor: the patch error is reported as is
+    const store = await this.seededStore("engineUnreadableLease");
+    const registry: any = useRegistry();
+    const get = registry.get;
+    let patched = false;
+    registry.get = async (...args: any[]) => {
+      if (patched) throw new Error("Registry read failed");
+      return get.apply(registry, args);
+    };
+    try {
+      await assert.rejects(
+        () =>
+          this.withRegistryPatch(
+            () => {
+              patched = true;
+              return new Error("Registry unavailable");
+            },
+            () => store.migration("flag", flagEven)
+          ),
+        (err: any) => err.code !== "MIGRATION_ALREADY_RUNNING" && /Registry unavailable/.test(err.message)
+      );
+    } finally {
+      registry.get = get;
+    }
+  }
+
+  @test
+  async resumesAMultiTableRunAtItsTable() {
+    const store: TwoTableStore = await this.addService(
+      TwoTableStore,
+      { models: ["Webda/RegistryEntry"] } as any,
+      "engineTables"
+    );
+    for (let n = 0; n < 6; n++) {
+      store.tables.left.set(`l${n}`, JSON.stringify({ n }));
+      store.tables.right.set(`r${n}`, JSON.stringify({ n }));
+    }
+    const original = store.rawPages.bind(store);
+    /**
+     * Fail the given page of the right table
+     * @param page - page index in the right table
+     */
+    const failRightPage = (page: number) => {
+      let served = 0;
+      store.rawPages = async (table: string, batchSize: number, token?: string) => {
+        if (table === "right" && served++ === page) throw new Error("Interrupted");
+        return original(table, batchSize, token);
+      };
+    };
+    // Interrupted once the left table is finished: it is not scanned again
+    failRightPage(0);
+    await assert.rejects(() => store.migration("flag", flagEven, { batchSize: 4 }), /Interrupted/);
+    let progress = (await store.getMigrationProgress("flag"))!;
+    assert.strictEqual(progress.table, "left");
+    assert.strictEqual(progress.continuationToken, undefined);
+    // Interrupted in the middle of the right table: the left one is skipped
+    failRightPage(1);
+    await assert.rejects(() => store.migration("flag", flagEven, { batchSize: 4 }), /Interrupted/);
+    progress = (await store.getMigrationProgress("flag"))!;
+    assert.strictEqual(progress.table, "right");
+    assert.strictEqual(progress.continuationToken, "r3");
+    store.rawPages = original;
+    const report = await store.migration("flag", flagEven, { batchSize: 4 });
+    assert.strictEqual(report.resumed, true);
+    assert.deepStrictEqual(report.tables, {
+      left: { scanned: 6, updated: 3, byChange: { "plain → flagged": 3 }, unknown: {} },
+      right: { scanned: 6, updated: 3, byChange: { "plain → flagged": 3 }, unknown: {} }
+    });
+    for (const map of Object.values(store.tables)) {
+      for (const [key, value] of map) {
+        assert.strictEqual(JSON.parse(value).flagged, JSON.parse(value).n % 2 === 0 ? true : undefined, key);
+      }
+    }
   }
 
   @test
@@ -526,6 +799,34 @@ class TypeCheckTest extends WebdaApplicationTest {
   }
 
   @test
+  async unsetRowLimitUsesTheDefault() {
+    const { store } = this.newStore("checkDefaultLimit", { typeCheck: { maxRows: undefined } });
+    const limits: number[] = [];
+    const original = store.countStoredTypes.bind(store);
+    store.countStoredTypes = async (maxRows: number) => {
+      limits.push(maxRows);
+      return original(maxRows);
+    };
+    this.seed(store);
+    const summary = (await store.checkStoredTypes())!;
+    assert.deepStrictEqual(limits, [DEFAULT_TYPE_CHECK_ROWS]);
+    assert.strictEqual(summary.truncated, false);
+  }
+
+  @test
+  async aCheckFailingWithANonErrorIsReported() {
+    const { store, warnings } = this.newStore("checkFailingString");
+    (store as any).countStoredTypes = async () => {
+      throw "backend string failure";
+    };
+    await store.init();
+    assert.ok(
+      warnings.some(warning => warning.includes("Cannot check the stored types of checkFailingString: backend string")),
+      warnings.join("\n")
+    );
+  }
+
+  @test
   async aFailingCheckNeverFailsStartup() {
     const { store, warnings } = this.newStore("checkFailing");
     (store as any).countStoredTypes = async () => {
@@ -560,6 +861,27 @@ class MigrateCommandTest extends WebdaApplicationTest {
     assert.strictEqual(JSON.parse(store.storage.get("a2")!).__type, "V3Animal", "a dry run writes nothing");
     assert.strictEqual(await store.migrate(false, 4, true), 0);
     assert.strictEqual(JSON.parse(store.storage.get("a2")!).__type, "Webda/V3Animal");
+  }
+
+  @test
+  async invalidBatchUsesTheDefault() {
+    registerLegacyTypeFixtures();
+    const store: MemoryStore = await this.addService(
+      MemoryStore,
+      { models: LEGACY_TYPE_MODELS } as any,
+      "commandBatch"
+    );
+    for (const { key, data } of LEGACY_TYPE_ROWS) {
+      store.storage.set(key, JSON.stringify(data));
+    }
+    const sizes: number[] = [];
+    const original = store.rawPages.bind(store);
+    (store as any).rawPages = async (table: string, batchSize: number, token?: string) => {
+      sizes.push(batchSize);
+      return original(table, batchSize, token);
+    };
+    assert.strictEqual(await store.migrate(true, Number("abc"), true), 0);
+    assert.deepStrictEqual(sizes, [DEFAULT_MIGRATION_BATCH]);
   }
 
   @test

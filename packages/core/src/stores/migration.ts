@@ -139,3 +139,230 @@ export function mapRawPatch(map: Map<string, any>, key: string, patch: RawPatch)
   }
   map.set(key, JSON.stringify({ ...row.data, ...patch }));
 }
+
+/**
+ * Counters a patcher fills for the report
+ */
+export interface MigrationContext {
+  /**
+   * Count a rewritten value under `"<from> → <to>"`
+   * @param from - the stored value
+   * @param to - the new value
+   */
+  change(from: string, to: string): void;
+  /**
+   * Count a row left untouched because its value is unknown or ambiguous
+   * @param type - the stored value
+   */
+  unknown(type: string): void;
+}
+
+/**
+ * Compute the patch of a raw row: undefined when the row is already migrated
+ */
+export type MigrationPatcher = (
+  row: RawRow,
+  context: MigrationContext
+) => Promise<RawPatch | undefined> | RawPatch | undefined;
+
+/**
+ * Options of a migration run
+ */
+export interface MigrationOptions {
+  /**
+   * Rows per page
+   *
+   * @default 500
+   */
+  batchSize?: number;
+  /**
+   * Run the patchers and count, write nothing: no row, no progress, no lease
+   */
+  dryRun?: boolean;
+  /**
+   * Lease duration in ms, renewed every page
+   *
+   * @default 300000
+   */
+  leaseDuration?: number;
+}
+
+/**
+ * Report of one table
+ */
+export interface MigrationTableReport {
+  /** Rows read */
+  scanned: number;
+  /** Rows patched (to patch, in a dry run) */
+  updated: number;
+  /** Count by `"<from> → <to>"` */
+  byChange: Record<string, number>;
+  /** Untouched rows by stored value */
+  unknown: Record<string, number>;
+}
+
+/**
+ * Report of a migration run
+ */
+export interface MigrationReport {
+  /** Store name */
+  store: string;
+  /** Migration name */
+  name: string;
+  /** Report by table */
+  tables: Record<string, MigrationTableReport>;
+  /** The run continued an interrupted one */
+  resumed: boolean;
+  /** Nothing was written */
+  dryRun: boolean;
+}
+
+/**
+ * Progress of a migration, stored in the Registry entry `storeMigration.<store>.<name>`
+ */
+export interface MigrationProgress {
+  /** Token of the next page of `table` */
+  continuationToken?: string;
+  /** Table of the last saved page */
+  table?: string;
+  /** Rows read */
+  scanned: number;
+  /** Rows patched */
+  updated: number;
+  /** Rows left untouched (unknown or ambiguous) */
+  unknown: number;
+  /** The last run finished */
+  done: boolean;
+  /** Start of the run, epoch ms */
+  startedAt: number;
+  /** Last save, epoch ms */
+  updatedAt: number;
+  /** End of the lease, epoch ms; 0 when free */
+  leaseUntil: number;
+  /** Runner holding the lease */
+  owner?: string;
+  /** Report so far by table, so a resumed run ends with the same totals */
+  tables: Record<string, MigrationTableReport>;
+}
+
+/**
+ * A lease held by a runner
+ */
+export interface MigrationLease {
+  /** Registry entry */
+  id: string;
+  /** Runner id */
+  owner: string;
+  /** End of the lease, epoch ms, as stored */
+  leaseUntil: number;
+  /** Lease duration, ms */
+  leaseDuration: number;
+  /** Progress as stored */
+  progress: MigrationProgress;
+}
+
+/**
+ * Default rows per page
+ */
+export const DEFAULT_MIGRATION_BATCH = 500;
+/**
+ * Default lease duration: 5 minutes
+ */
+export const DEFAULT_MIGRATION_LEASE = 5 * 60 * 1000;
+
+/**
+ * Another runner holds the lease of the migration
+ */
+export class MigrationAlreadyRunning extends WebdaError.CodeError {
+  /**
+   * @param id - registry entry
+   * @param owner - runner holding the lease
+   * @param until - end of its lease, epoch ms
+   */
+  constructor(id: string, owner: string | undefined, until: number) {
+    super(
+      "MIGRATION_ALREADY_RUNNING",
+      `Migration ${id} is already running (runner ${owner ?? "unknown"}, lease until ${new Date(until).toISOString()})`
+    );
+  }
+}
+
+/**
+ * Increment a counter
+ * @param counts - the counters
+ * @param key - the counter
+ * @param n - the increment
+ */
+export function incrementCount(counts: Record<string, number>, key: string, n: number = 1): void {
+  counts[key] = (counts[key] ?? 0) + n;
+}
+
+/**
+ * @returns an empty table report
+ */
+export function emptyTableReport(): MigrationTableReport {
+  return { scanned: 0, updated: 0, byChange: {}, unknown: {} };
+}
+
+/**
+ * @returns the progress of a fresh run (the keys set to undefined clear a previous run when saved)
+ */
+export function emptyProgress(): MigrationProgress {
+  const now = Date.now();
+  return {
+    table: undefined,
+    continuationToken: undefined,
+    scanned: 0,
+    updated: 0,
+    unknown: 0,
+    done: false,
+    startedAt: now,
+    updatedAt: now,
+    leaseUntil: 0,
+    owner: undefined,
+    tables: {}
+  };
+}
+
+/**
+ * Read a Registry entry as a progress
+ * @param entry - the entry
+ * @returns the progress
+ */
+export function toMigrationProgress(entry: any): MigrationProgress {
+  return {
+    continuationToken: entry?.continuationToken,
+    table: entry?.table,
+    scanned: entry?.scanned ?? 0,
+    updated: entry?.updated ?? 0,
+    unknown: entry?.unknown ?? 0,
+    done: !!entry?.done,
+    startedAt: entry?.startedAt ?? 0,
+    updatedAt: entry?.updatedAt ?? 0,
+    leaseUntil: Number(entry?.leaseUntil ?? 0),
+    owner: entry?.owner,
+    tables: entry?.tables ?? {}
+  };
+}
+
+/**
+ * Totals of a report, for the progress entry
+ * @param report - the report
+ * @returns the totals and the tables
+ */
+export function migrationTotals(report: MigrationReport): {
+  scanned: number;
+  updated: number;
+  unknown: number;
+  tables: Record<string, MigrationTableReport>;
+} {
+  let scanned = 0;
+  let updated = 0;
+  let unknown = 0;
+  for (const table of Object.values(report.tables)) {
+    scanned += table.scanned;
+    updated += table.updated;
+    unknown += Object.values(table.unknown).reduce((sum, n) => sum + n, 0);
+  }
+  return { scanned, updated, unknown, tables: report.tables };
+}

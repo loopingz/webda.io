@@ -18,7 +18,28 @@ import { useLog } from "../loggers/hooks.js";
 import { useCore, useModelMetadata } from "../core/hooks.js";
 import type { ModelMetadata } from "@webda/compiler";
 import { InstanceCache } from "../cache/cache.js";
-import { MigrationUnsupported, type RawPage, type RawPatch, type RawTable } from "./migration.js";
+import { randomUUID } from "node:crypto";
+import { useRegistry } from "../models/registry.model.js";
+import {
+  DEFAULT_MIGRATION_BATCH,
+  DEFAULT_MIGRATION_LEASE,
+  emptyProgress,
+  emptyTableReport,
+  incrementCount,
+  MigrationAlreadyRunning,
+  migrationTotals,
+  MigrationUnsupported,
+  toMigrationProgress,
+  type MigrationContext,
+  type MigrationLease,
+  type MigrationOptions,
+  type MigrationPatcher,
+  type MigrationProgress,
+  type MigrationReport,
+  type RawPage,
+  type RawPatch,
+  type RawTable
+} from "./migration.js";
 
 /** Error thrown when an item is not found in a store */
 export class StoreNotFoundError extends WebdaError.CodeError {
@@ -639,6 +660,223 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     if (table !== this.getName()) {
       throw new Error(`Unknown table ${table} in store ${this.getName()}`);
     }
+  }
+
+  /**
+   * @param name - migration name
+   * @returns the Registry entry of the migration
+   */
+  protected migrationId(name: string): string {
+    return `storeMigration.${this.getName()}.${name}`;
+  }
+
+  /**
+   * @param name - migration name
+   * @returns the stored progress, undefined when the migration never ran
+   */
+  async getMigrationProgress(name: string): Promise<MigrationProgress | undefined> {
+    const id = this.migrationId(name);
+    if (!(await useRegistry().exists(id))) {
+      return undefined;
+    }
+    return toMigrationProgress(await useRegistry().get(id));
+  }
+
+  /**
+   * Forget the progress of a migration: the next run starts over
+   * @param name - migration name
+   */
+  async deleteMigrationProgress(name: string): Promise<void> {
+    const id = this.migrationId(name);
+    if (await useRegistry().exists(id)) {
+      await useRegistry().delete(id);
+    }
+  }
+
+  /**
+   * Take the lease of a migration: free, or expired (a crashed runner)
+   * @param name - migration name
+   * @param leaseDuration - lease duration in ms
+   * @returns the lease
+   * @throws MigrationAlreadyRunning when another runner holds a live lease
+   */
+  protected async acquireMigrationLease(
+    name: string,
+    leaseDuration: number = DEFAULT_MIGRATION_LEASE
+  ): Promise<MigrationLease> {
+    const registry = useRegistry();
+    const id = this.migrationId(name);
+    const owner = randomUUID();
+    if (!(await registry.exists(id))) {
+      try {
+        await (registry as any).create({ uuid: id, ...emptyProgress() });
+      } catch {
+        // Another runner created it first: the conditional patch below decides
+      }
+    }
+    const entry: any = await registry.get(id);
+    const current = Number(entry.leaseUntil ?? 0);
+    const now = Date.now();
+    if (current > now) {
+      throw new MigrationAlreadyRunning(id, entry.owner, current);
+    }
+    const leaseUntil = now + leaseDuration;
+    try {
+      await registry.patch(id, { leaseUntil, owner }, "leaseUntil", entry.leaseUntil);
+    } catch {
+      const latest: any = await registry.get(id);
+      throw new MigrationAlreadyRunning(id, latest.owner, Number(latest.leaseUntil ?? 0));
+    }
+    return { id, owner, leaseUntil, leaseDuration, progress: toMigrationProgress(entry) };
+  }
+
+  /**
+   * Save the progress and renew the lease, conditionally on the lease this runner holds
+   * @param lease - the lease
+   * @param update - progress fields to set
+   * @throws MigrationAlreadyRunning when the lease was taken over
+   */
+  protected async saveMigrationProgress(lease: MigrationLease, update: Partial<MigrationProgress>): Promise<void> {
+    // Always a new value: a runner that lost its lease fails the condition
+    const leaseUntil = Math.max(Date.now() + lease.leaseDuration, lease.leaseUntil + 1);
+    const progress: MigrationProgress = {
+      ...lease.progress,
+      ...update,
+      updatedAt: Date.now(),
+      leaseUntil,
+      owner: lease.owner
+    };
+    try {
+      await useRegistry().patch(lease.id, progress, "leaseUntil", lease.leaseUntil);
+    } catch {
+      const latest: any = await useRegistry().get(lease.id);
+      throw new MigrationAlreadyRunning(lease.id, latest.owner, Number(latest.leaseUntil ?? 0));
+    }
+    lease.leaseUntil = leaseUntil;
+    lease.progress = progress;
+  }
+
+  /**
+   * Renew the lease before writing a page
+   * @param lease - the lease
+   */
+  protected async renewMigrationLease(lease: MigrationLease): Promise<void> {
+    await this.saveMigrationProgress(lease, {});
+  }
+
+  /**
+   * Release the lease, saving the last progress; a lease lost meanwhile is left to its new owner
+   * @param lease - the lease
+   * @param update - progress fields to set
+   */
+  protected async releaseMigrationLease(lease: MigrationLease, update: Partial<MigrationProgress> = {}): Promise<void> {
+    const progress: MigrationProgress = {
+      ...lease.progress,
+      ...update,
+      updatedAt: Date.now(),
+      leaseUntil: 0,
+      owner: lease.owner
+    };
+    try {
+      await useRegistry().patch(lease.id, progress, "leaseUntil", lease.leaseUntil);
+      lease.progress = progress;
+      lease.leaseUntil = 0;
+    } catch {
+      this.log("WARN", `Migration ${lease.id}: lease lost before release, the other runner owns the progress`);
+    }
+  }
+
+  /**
+   * Run a migration on every raw row of every table of the store, the rows the type filter excludes included
+   *
+   * Resumable: the progress is saved in the Registry after each page and an interrupted run continues from it.
+   * Exclusive: a lease (renewed every page) makes a second runner fail fast with {@link MigrationAlreadyRunning}.
+   * Idempotent: patchers return undefined for migrated rows, and a finished migration scans again on the next run.
+   * @param name - migration name
+   * @param patcher - computes the patch of a row
+   * @param options - batch size, dry run, lease duration
+   * @returns the report
+   */
+  async migration(name: string, patcher: MigrationPatcher, options: MigrationOptions = {}): Promise<MigrationReport> {
+    const tables = this.getRawTables();
+    if (!tables) {
+      throw new MigrationUnsupported(this.getName());
+    }
+    const batchSize =
+      Math.max(1, Math.floor(Number(options.batchSize ?? DEFAULT_MIGRATION_BATCH))) || DEFAULT_MIGRATION_BATCH;
+    const dryRun = !!options.dryRun;
+    const report: MigrationReport = { store: this.getName(), name, tables: {}, resumed: false, dryRun };
+    const lease = dryRun ? undefined : await this.acquireMigrationLease(name, options.leaseDuration);
+    let resumeTable: string | undefined;
+    let resumeToken: string | undefined;
+    if (lease) {
+      const previous = lease.progress;
+      if (!previous.done && previous.table !== undefined && tables.some(table => table.name === previous.table)) {
+        report.resumed = true;
+        report.tables = structuredClone(previous.tables);
+        resumeTable = previous.table;
+        resumeToken = previous.continuationToken;
+      } else {
+        lease.progress = emptyProgress();
+      }
+    }
+    try {
+      let reached = resumeTable === undefined;
+      for (const table of tables) {
+        let token: string | undefined;
+        if (!reached) {
+          if (table.name !== resumeTable) continue;
+          reached = true;
+          // Progress is saved after each page: no token means this table was finished
+          if (resumeToken === undefined) continue;
+          token = resumeToken;
+        }
+        const tableReport = (report.tables[table.name] ??= emptyTableReport());
+        const context: MigrationContext = {
+          change: (from, to) => incrementCount(tableReport.byChange, `${from} → ${to}`),
+          unknown: type => incrementCount(tableReport.unknown, type)
+        };
+        do {
+          const page = await this.rawPages(table.name, batchSize, token);
+          const patches: { key: string; patch: RawPatch }[] = [];
+          for (const row of page.rows) {
+            tableReport.scanned++;
+            const patch = await patcher(row, context);
+            if (patch !== undefined) {
+              tableReport.updated++;
+              patches.push({ key: row.key, patch });
+            }
+          }
+          if (lease && patches.length) {
+            // A runner that lost its lease stops here, before writing
+            await this.renewMigrationLease(lease);
+            for (const { key, patch } of patches) {
+              await this.rawPatch(table.name, key, patch);
+            }
+          }
+          token = page.continuationToken;
+          if (lease) {
+            await this.saveMigrationProgress(lease, {
+              table: table.name,
+              continuationToken: token,
+              ...migrationTotals(report)
+            });
+          }
+        } while (token);
+      }
+    } catch (err) {
+      if (lease) await this.releaseMigrationLease(lease);
+      throw err;
+    }
+    if (lease) await this.releaseMigrationLease(lease, { done: true, ...migrationTotals(report) });
+    const totals = migrationTotals(report);
+    this.log(
+      "INFO",
+      `Migration ${name}${dryRun ? " (dry run)" : ""}: ${totals.scanned} rows scanned, ${totals.updated} ${
+        dryRun ? "to update" : "updated"
+      }, ${totals.unknown} left untouched`
+    );
+    return report;
   }
 
   /**

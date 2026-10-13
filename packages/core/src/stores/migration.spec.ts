@@ -3,6 +3,10 @@ import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/application.js";
 import { useModel } from "../application/hooks.js";
 import { MemoryStore } from "./memory.service.js";
+import { sleep } from "@webda/utils";
+import { useCore } from "../core/hooks.js";
+import { Store } from "./store.js";
+import type { MigrationPatcher } from "./migration.js";
 
 @suite
 class MemoryRawAccessTest extends WebdaApplicationTest {
@@ -78,5 +82,178 @@ class MemoryRawAccessTest extends WebdaApplicationTest {
     const RegistryEntry = useModel("Webda/RegistryEntry");
     assert.deepStrictEqual(store.getRawTables(), [{ name: "raw", root: RegistryEntry }]);
     assert.strictEqual((store.getRepository(RegistryEntry as any) as any).getTableRoot(), RegistryEntry);
+  }
+}
+
+/**
+ * Generic patcher: flags the even rows, reports row 9 as unknown
+ */
+const flagEven: MigrationPatcher = (row, context) => {
+  if (row.data.n === 9) {
+    context.unknown("nine");
+    return undefined;
+  }
+  if (row.data.n % 2 !== 0 || row.data.flagged) return undefined;
+  context.change("plain", "flagged");
+  return { flagged: true };
+};
+
+/**
+ * A store without raw access
+ */
+class OpaqueStore extends Store {
+  getRepository(): any {
+    return undefined;
+  }
+}
+
+@suite
+class StoreMigrationTest extends WebdaApplicationTest {
+  getTestConfiguration() {
+    return { parameters: { ignoreBeans: true }, services: {} };
+  }
+
+  /**
+   * @param name - unique store name (its registry entries are keyed by it)
+   * @returns a store holding r0..r9
+   */
+  async seededStore(name: string): Promise<MemoryStore> {
+    const store: MemoryStore = await this.addService(MemoryStore, { models: ["Webda/RegistryEntry"] } as any, name);
+    for (let n = 0; n < 10; n++) {
+      store.storage.set(`r${n}`, JSON.stringify({ uuid: `r${n}`, n }));
+    }
+    return store;
+  }
+
+  @test
+  async migratesEveryRowAndRecordsProgress() {
+    const store = await this.seededStore("engineFull");
+    const report = await store.migration("flag", flagEven, { batchSize: 4 });
+    assert.deepStrictEqual(report, {
+      store: "engineFull",
+      name: "flag",
+      resumed: false,
+      dryRun: false,
+      tables: { engineFull: { scanned: 10, updated: 5, byChange: { "plain → flagged": 5 }, unknown: { nine: 1 } } }
+    });
+    for (let n = 0; n < 10; n++) {
+      assert.strictEqual(JSON.parse(store.storage.get(`r${n}`)!).flagged, n % 2 === 0 && n !== 9 ? true : undefined);
+    }
+    const progress = (await store.getMigrationProgress("flag"))!;
+    assert.strictEqual(progress.done, true);
+    assert.strictEqual(progress.leaseUntil, 0);
+    assert.strictEqual(progress.scanned, 10);
+    assert.strictEqual(progress.updated, 5);
+    assert.strictEqual(progress.unknown, 1);
+    await store.deleteMigrationProgress("flag");
+    assert.strictEqual(await store.getMigrationProgress("flag"), undefined);
+  }
+
+  @test
+  async rerunScansAgainAndUpdatesNothing() {
+    const store = await this.seededStore("engineRerun");
+    await store.migration("flag", flagEven, { batchSize: 4 });
+    const again = await store.migration("flag", flagEven, { batchSize: 4 });
+    assert.strictEqual(again.resumed, false);
+    assert.deepStrictEqual(again.tables.engineRerun, { scanned: 10, updated: 0, byChange: {}, unknown: { nine: 1 } });
+  }
+
+  @test
+  async dryRunWritesNothing() {
+    const store = await this.seededStore("engineDry");
+    const before = new Map(store.storage);
+    const report = await store.migration("flag", flagEven, { batchSize: 4, dryRun: true });
+    assert.strictEqual(report.dryRun, true);
+    assert.strictEqual(report.tables.engineDry.updated, 5);
+    assert.deepStrictEqual(new Map(store.storage), before);
+    assert.strictEqual(await store.getMigrationProgress("flag"), undefined);
+  }
+
+  @test
+  async resumesAfterAnInterruption() {
+    const store = await this.seededStore("engineResume");
+    const original = store.rawPages.bind(store);
+    let calls = 0;
+    (store as any).rawPages = async (table: string, batchSize: number, token?: string) => {
+      if (++calls === 2) throw new Error("Interrupted");
+      return original(table, batchSize, token);
+    };
+    await assert.rejects(() => store.migration("flag", flagEven, { batchSize: 4 }), /Interrupted/);
+    const interrupted = (await store.getMigrationProgress("flag"))!;
+    assert.strictEqual(interrupted.done, false);
+    assert.strictEqual(interrupted.scanned, 4);
+    assert.strictEqual(interrupted.table, "engineResume");
+    assert.strictEqual(interrupted.continuationToken, "r3");
+    assert.strictEqual(interrupted.leaseUntil, 0, "a failing runner releases its lease");
+    delete (store as any).rawPages;
+    const resumed = await store.migration("flag", flagEven, { batchSize: 4 });
+    assert.strictEqual(resumed.resumed, true);
+    assert.deepStrictEqual(resumed.tables.engineResume, {
+      scanned: 10,
+      updated: 5,
+      byChange: { "plain → flagged": 5 },
+      unknown: { nine: 1 }
+    });
+  }
+
+  @test
+  async leaseRefusesASecondRunnerAndStopsAStaleOne() {
+    // A runner hung past its lease must not write after a takeover
+    const store = await this.seededStore("engineLease");
+    // Always patches, with a value that differs on every call: a write by the stale runner would be visible
+    let sequence = 0;
+    const alwaysPatch: MigrationPatcher = () => ({ touched: ++sequence });
+    const original = store.rawPages.bind(store);
+    let release!: () => void;
+    const hung = new Promise<void>(resolve => (release = resolve));
+    let calls = 0;
+    (store as any).rawPages = async (table: string, batchSize: number, token?: string) => {
+      if (++calls === 2) await hung;
+      return original(table, batchSize, token);
+    };
+    const first = store.migration("flag", alwaysPatch, { batchSize: 4, leaseDuration: 1000 });
+    let progress = await store.getMigrationProgress("flag");
+    while (!progress?.scanned) {
+      await sleep(5);
+      progress = await store.getMigrationProgress("flag");
+    }
+    await assert.rejects(
+      () => store.migration("flag", alwaysPatch, { batchSize: 4 }),
+      (err: any) => err.code === "MIGRATION_ALREADY_RUNNING"
+    );
+    // The first runner hangs: once its lease expired, the next runner takes over and resumes
+    await sleep(Math.max(0, progress.leaseUntil - Date.now()) + 20);
+    delete (store as any).rawPages;
+    const takeover = await store.migration("flag", alwaysPatch, { batchSize: 4 });
+    assert.strictEqual(takeover.resumed, true);
+    assert.strictEqual(takeover.tables.engineLease.scanned, 10);
+    assert.strictEqual(takeover.tables.engineLease.updated, 10);
+    const before = new Map(store.storage);
+    const patchedBeforeRelease = sequence;
+    release();
+    await assert.rejects(first, (err: any) => err.code === "MIGRATION_ALREADY_RUNNING");
+    // The stale runner did reach its patcher (so it would have written without the guard)
+    assert.ok(sequence > patchedBeforeRelease);
+    assert.deepStrictEqual(new Map(store.storage), before);
+  }
+
+  @test
+  async storesWithoutRawAccessAreRefused() {
+    const store = new OpaqueStore("opaque", {} as any);
+    assert.strictEqual(store.getRawTables(), undefined);
+    await assert.rejects(
+      () => store.migration("flag", flagEven),
+      (err: any) => err.code === "MIGRATION_UNSUPPORTED"
+    );
+  }
+
+  @test
+  async registryStoreMigratesItself() {
+    // The progress entry lives in the store being scanned
+    const registry = useCore().getService<MemoryStore>("Registry");
+    const report = await registry.migration("noop", () => undefined, { batchSize: 2 });
+    assert.ok(report.tables.Registry.scanned >= 1);
+    assert.strictEqual(report.tables.Registry.updated, 0);
+    assert.strictEqual((await registry.getMigrationProgress("noop"))!.done, true);
   }
 }

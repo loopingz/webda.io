@@ -16,13 +16,15 @@ import { V3Animal, V3Dog, V3Plant, V3Puppy } from "./legacy-types.fixture.model.
 export const LEGACY_TYPE_MODELS = ["Webda/V3Animal", "Webda/V3Plant"];
 
 /**
- * Rows as Webda 3 stored them: short, lower-case, upper-case, aliased, untyped and unknown types
+ * Rows as Webda 3 stored them: short, lower-case, upper-case, aliased, untyped and unknown types, and a type of an
+ * ancestor of the table root (`UuidModel`), which belongs to the root like an untyped row
  */
 export const LEGACY_TYPE_ROWS: { key: string; data: Record<string, any> }[] = [
   { key: "a1", data: { uuid: "a1", __type: "Webda/V3Animal", name: "current animal" } },
   { key: "a2", data: { uuid: "a2", __type: "V3Animal", name: "short animal" } },
   { key: "a3", data: { uuid: "a3", __type: "webda/v3animal", name: "lower animal" } },
   { key: "a4", data: { uuid: "a4", name: "untyped animal" } },
+  { key: "a5", data: { uuid: "a5", __type: "UuidModel", name: "ancestor animal" } },
   { key: "d1", data: { uuid: "d1", __type: "v3dog", name: "lower short dog" } },
   { key: "p1", data: { uuid: "p1", __type: "WEBDA/V3PUPPY", name: "upper puppy" } },
   { key: "p2", data: { uuid: "p2", __type: "Webda/V3Puppy", name: "current puppy" } },
@@ -60,11 +62,12 @@ export interface LegacyTypeTotals {
  * Exact `types` migration totals over {@link LEGACY_TYPE_ROWS}
  */
 export const LEGACY_TYPE_REPORT: LegacyTypeTotals = {
-  scanned: 11,
-  updated: 7,
+  scanned: 12,
+  updated: 8,
   byChange: {
     "(untyped) → Webda/V3Animal": 1,
     "Flora → Webda/V3Plant": 1,
+    "UuidModel → Webda/V3Animal": 1,
     "V3Animal → Webda/V3Animal": 1,
     "WEBDA/V3PUPPY → Webda/V3Puppy": 1,
     "Webda/Flora → Webda/V3Plant": 1,
@@ -245,7 +248,7 @@ async function countOf(model: any): Promise<number> {
  */
 export async function checkLegacyTypeVisibility(harness: LegacyTypesHarness): Promise<void> {
   await seedLegacyStore(harness, "Visibility");
-  assert.deepStrictEqual(await uuids(V3Animal), ["a1", "a2", "a3", "a4", "d1", "p1", "p2"]);
+  assert.deepStrictEqual(await uuids(V3Animal), ["a1", "a2", "a3", "a4", "a5", "d1", "p1", "p2"]);
   assert.deepStrictEqual(await uuids(V3Dog), ["d1", "p1", "p2"]);
   assert.deepStrictEqual(await uuids(V3Puppy), ["p1", "p2"]);
   assert.deepStrictEqual(await uuids(V3Plant), ["g1", "g2", "g3"]);
@@ -256,7 +259,10 @@ export async function checkLegacyTypeVisibility(harness: LegacyTypesHarness): Pr
   assert.strictEqual(animals.a2.constructor, V3Animal);
   assert.strictEqual(animals.p1.__type, "Webda/V3Puppy");
   assert.strictEqual(animals.a3.__type, "Webda/V3Animal");
-  assert.strictEqual(await countOf(V3Animal), 7);
+  // A row typed as an ancestor of the table root loads as the root
+  assert.strictEqual(animals.a5.constructor, V3Animal);
+  assert.strictEqual(animals.a5.__type, "Webda/V3Animal");
+  assert.strictEqual(await countOf(V3Animal), 8);
   assert.strictEqual(await countOf(V3Dog), 3);
   assert.strictEqual(await countOf(V3Plant), 3);
   const iterated: string[] = [];
@@ -270,13 +276,18 @@ export async function checkLegacyTypeVisibility(harness: LegacyTypesHarness): Pr
   // Bulk statements only touch the rows of the model
   assert.strictEqual(await (V3Dog as any).getRepository().updateMany("UPDATE SET name = 'dog' WHERE name != ''"), 3);
   assert.deepStrictEqual(await uuids(V3Animal, "name = 'dog'"), ["d1", "p1", "p2"]);
+  assert.strictEqual(
+    await (V3Animal as any).getRepository().updateMany("UPDATE SET name = 'ancestor' WHERE name = 'ancestor animal'"),
+    1
+  );
+  assert.deepStrictEqual(await uuids(V3Animal, "name = 'ancestor'"), ["a5"]);
   assert.strictEqual(await (V3Plant as any).getRepository().deleteMany("DELETE WHERE name != ''"), 3);
   assert.deepStrictEqual(await uuids(V3Plant), []);
-  assert.deepStrictEqual(await uuids(V3Animal), ["a1", "a2", "a3", "a4", "d1", "p1", "p2"]);
+  assert.deepStrictEqual(await uuids(V3Animal), ["a1", "a2", "a3", "a4", "a5", "d1", "p1", "p2"]);
   // A single delete removes the row of a legacy type, whatever its stored type, and only that row
   await (V3Animal as any).ref("a2").delete();
   await (V3Animal as any).ref("p1").delete();
-  assert.deepStrictEqual(await uuids(V3Animal), ["a1", "a3", "a4", "d1", "p2"]);
+  assert.deepStrictEqual(await uuids(V3Animal), ["a1", "a3", "a4", "a5", "d1", "p2"]);
   assert.deepStrictEqual(await uuids(V3Dog), ["d1", "p2"]);
 }
 
@@ -291,11 +302,13 @@ export async function checkLegacyTypeNormalization(harness: LegacyTypesHarness):
   await (V3Animal as any).ref("p1").patch({ name: "patched puppy" });
   await (V3Plant as any).ref("g2").patch({ name: "patched plant" });
   await (V3Animal as any).getRepository().update({ uuid: "a3", name: "updated" });
+  await (V3Animal as any).ref("a5").patch({ name: "patched ancestor" });
   const types = typesOf(await readRawRows(store, table));
   assert.strictEqual(types.a2, "Webda/V3Animal");
   assert.strictEqual(types.p1, "Webda/V3Puppy");
   assert.strictEqual(types.g2, "Webda/V3Plant");
   assert.strictEqual(types.a3, "Webda/V3Animal");
+  assert.strictEqual(types.a5, "Webda/V3Animal");
   assert.strictEqual(types.u1, "Gone/Model");
   assert.strictEqual(types.a4, undefined);
   const puppy: any = await (V3Animal as any).ref("p1").get();
@@ -338,6 +351,7 @@ export async function checkLegacyTypeMigration(harness: LegacyTypesHarness): Pro
     a2: "Webda/V3Animal",
     a3: "Webda/V3Animal",
     a4: "Webda/V3Animal",
+    a5: "Webda/V3Animal",
     d1: "Webda/V3Dog",
     p1: "Webda/V3Puppy",
     p2: "Webda/V3Puppy",
@@ -480,13 +494,14 @@ export async function checkLegacyTypeStartup(harness: LegacyTypesHarness): Promi
     const summary = (await store.checkStoredTypes())!;
     assert.deepStrictEqual(
       { legacy: summary.legacy, untyped: summary.untyped, unknown: summary.unknown, truncated: summary.truncated },
-      { legacy: 6, untyped: 1, unknown: 1, truncated: false }
+      { legacy: 7, untyped: 1, unknown: 1, truncated: false }
     );
     assert.strictEqual(warnings.length, 1, warnings.join("\n"));
     for (const part of [
       "'V3Animal' → Webda/V3Animal: 1",
       "untyped → Webda/V3Animal: 1",
       "'Flora' → Webda/V3Plant: 1",
+      "'UuidModel' → Webda/V3Animal: 1",
       "unknown 'Gone/Model': 1",
       "webda migrate"
     ]) {

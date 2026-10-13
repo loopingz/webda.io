@@ -192,6 +192,23 @@ class ModelTypeResolverTest {
   }
 
   @test
+  ancestorTypedRowsBelongLikeUntypedRows() {
+    const r = this.resolver;
+    // A row typed as a strict ancestor of the table root belongs to the root and the root's ancestors
+    assert.strictEqual(r.belongsToModel(AppUser, "webda/user", AppUser), true);
+    assert.strictEqual(r.belongsToModel(AppUser, "Webda/User", AppUser), true);
+    assert.strictEqual(r.belongsToModel(FwUser, "Webda/User", AppUser), true);
+    assert.strictEqual(r.belongsToModel(FwIdent, "Webda/User", AppUser), false);
+    assert.strictEqual(r.belongsToModel(Card, "MyApp/Transaction", Card), true);
+    assert.strictEqual(r.belongsToModel(Transaction, "payment", Card), true);
+    // Not to a subclass of the root, nor to an unrelated model
+    assert.strictEqual(r.belongsToModel(Fee, "MyApp/Transaction", Card), false);
+    assert.strictEqual(r.belongsToModel(Extra, "MyApp/Transaction", Card), false);
+    // Without a known table root, the type alone decides
+    assert.strictEqual(r.belongsToModel(AppUser, "Webda/User"), false);
+  }
+
+  @test
   hierarchyResolverIsExactOnly() {
     const r = ModelTypeResolver.forHierarchy(Transaction);
     assert.strictEqual(r.exactOnly, true);

@@ -297,6 +297,7 @@ class TypesMigrationTest extends WebdaApplicationTest {
       a2: "Webda/V3Animal",
       a3: "Webda/V3Animal",
       a4: "Webda/V3Animal",
+      a5: "Webda/V3Animal",
       d1: "Webda/V3Dog",
       p1: "Webda/V3Puppy",
       p2: "Webda/V3Puppy",
@@ -315,9 +316,10 @@ class TypesMigrationTest extends WebdaApplicationTest {
       formatMigrationReport(report),
       [
         "Store typesFormat: migration types (dry run)",
-        "  typesFormat: 11 scanned, 7 to update",
+        "  typesFormat: 12 scanned, 8 to update",
         "    (untyped) → Webda/V3Animal: 1",
         "    Flora → Webda/V3Plant: 1",
+        "    UuidModel → Webda/V3Animal: 1",
         "    V3Animal → Webda/V3Animal: 1",
         "    WEBDA/V3PUPPY → Webda/V3Puppy: 1",
         "    Webda/Flora → Webda/V3Plant: 1",
@@ -335,7 +337,7 @@ class TypesMigrationTest extends WebdaApplicationTest {
     store.storage.set("zz-broken", "{not json");
     const report = await store.migrateTypes({ batchSize: 4 });
     assert.strictEqual(report.tables.typesUnreadable.unknown["(unreadable)"], 1);
-    assert.strictEqual(report.tables.typesUnreadable.updated, 7);
+    assert.strictEqual(report.tables.typesUnreadable.updated, 8);
     assert.strictEqual(store.storage.get("zz-broken"), "{not json");
   }
 
@@ -393,6 +395,7 @@ class TypeCheckTest extends WebdaApplicationTest {
       "'V3Animal' → Webda/V3Animal: 1",
       "untyped → Webda/V3Animal: 1",
       "'Flora' → Webda/V3Plant: 1",
+      "'UuidModel' → Webda/V3Animal: 1",
       "unknown 'Gone/Model': 1",
       "webda migrate"
     ]) {
@@ -402,7 +405,7 @@ class TypeCheckTest extends WebdaApplicationTest {
     const summary = (await store.checkStoredTypes())!;
     assert.deepStrictEqual(
       { legacy: summary.legacy, untyped: summary.untyped, unknown: summary.unknown, truncated: summary.truncated },
-      { legacy: 6, untyped: 1, unknown: 1, truncated: false }
+      { legacy: 7, untyped: 1, unknown: 1, truncated: false }
     );
   }
 

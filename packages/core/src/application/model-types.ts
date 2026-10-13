@@ -64,6 +64,9 @@ export interface StoredTypeClassification {
 
 /**
  * Classify a stored `__type`
+ *
+ * A type resolving to a strict ancestor of the table root is `legacy`, to be stamped with the root identifier: the
+ * row belongs to the root like an untyped row.
  * @param stored - the stored value (undefined, null or empty for an untyped row)
  * @param tableRoot - the model owning the untyped rows of the table
  * @param resolver - the resolver, the installed one by default
@@ -74,9 +77,11 @@ export function classifyStoredType(
   tableRoot?: ModelClass,
   resolver: ModelTypeResolver = getTypeResolver()
 ): StoredTypeClassification {
+  const rootIdentifier = tableRoot
+    ? (resolver.getIdentifier(tableRoot) ?? (tableRoot as any).Metadata?.Identifier)
+    : undefined;
   if (stored === undefined || stored === null || stored === "") {
-    const to = tableRoot ? (resolver.getIdentifier(tableRoot) ?? (tableRoot as any).Metadata?.Identifier) : undefined;
-    return to ? { kind: "untyped", from: UNTYPED, to } : { kind: "untyped", from: UNTYPED };
+    return rootIdentifier ? { kind: "untyped", from: UNTYPED, to: rootIdentifier } : { kind: "untyped", from: UNTYPED };
   }
   const from = String(stored);
   const resolution = resolver.resolve(from);
@@ -85,6 +90,10 @@ export function classifyStoredType(
   }
   if (resolution.status === "ambiguous") {
     return { kind: "ambiguous", from, candidates: resolution.candidates };
+  }
+  if (rootIdentifier && (tableRoot as any).prototype instanceof (resolution.model as any)) {
+    // A strict ancestor of the table root: the row belongs to the root, like an untyped row
+    return { kind: "legacy", from, to: rootIdentifier };
   }
   return { kind: resolution.status, from, to: resolution.identifier };
 }

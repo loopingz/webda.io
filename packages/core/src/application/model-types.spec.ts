@@ -46,6 +46,29 @@ class ClassifyStoredTypeTest {
       candidates: ["Zoo/ITEM", "Zoo/Item"]
     });
   }
+
+  @test
+  ancestorTypeIsLegacyOfTheTableRoot() {
+    const r = this.resolver;
+    // A type resolving to a strict ancestor of the table root is stamped like an untyped row: the root identifier
+    assert.deepStrictEqual(classifyStoredType("Zoo/Animal", Dog, r), {
+      kind: "legacy",
+      from: "Zoo/Animal",
+      to: "Zoo/Dog"
+    });
+    assert.deepStrictEqual(classifyStoredType("animal", Dog, r), { kind: "legacy", from: "animal", to: "Zoo/Dog" });
+    // A subclass of the root, or the root itself, keeps its own identifier
+    assert.deepStrictEqual(classifyStoredType("Zoo/Dog", Animal, r), {
+      kind: "current",
+      from: "Zoo/Dog",
+      to: "Zoo/Dog"
+    });
+    assert.deepStrictEqual(classifyStoredType("Zoo/Animal", undefined, r), {
+      kind: "current",
+      from: "Zoo/Animal",
+      to: "Zoo/Animal"
+    });
+  }
 }
 
 @suite

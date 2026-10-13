@@ -455,8 +455,9 @@ export class MemoryRepository<
    *
    * A storage shared by several models holds foreign entries whose key shape can be invalid for this
    * repository: they are skipped from the stored `__type` before any parsing. Entries are kept when their stored
-   * `__type` belongs to the model (legacy forms included). Untyped entries belong to the table root and its
-   * ancestors. Unreadable entries are kept so their error surfaces.
+   * `__type` belongs to the model (legacy forms included). Untyped entries, and entries typed as a strict ancestor
+   * of the table root, belong to the table root and its ancestors. Unreadable entries are kept so their error
+   * surfaces.
    * @param ids - class identifiers (model and subclasses), undefined to keep everything
    * @returns the keys to evaluate
    */
@@ -473,7 +474,7 @@ export class MemoryRepository<
         // Unreadable: kept so the error surfaces
         return true;
       }
-      // Legacy forms resolve to their model; untyped rows belong to the table root and its ancestors
+      // Legacy forms resolve to their model; untyped and ancestor-typed rows belong to the table root and ancestors
       return this.belongsToModel(typeof type === "string" ? type : undefined);
     });
   }

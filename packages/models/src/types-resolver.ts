@@ -345,14 +345,22 @@ export class ModelTypeResolver {
    * @param stored - the stored `__type`, undefined for an untyped row
    * @param tableRoot - the model owning the untyped rows of the table, when known
    * @returns true when the row resolves to the model or one of its transitive subclasses; an untyped row belongs to
-   *   the table root and its ancestors (to every model when the root is not known)
+   *   the table root and its ancestors (to every model when the root is not known), and so does a row typed as a
+   *   strict ancestor of the table root
    */
   belongsToModel(model: ModelClass, stored: string | undefined | null, tableRoot?: ModelClass): boolean {
+    const ownedByRoot = () =>
+      !tableRoot || tableRoot === model || (tableRoot as any).prototype instanceof (model as any);
     if (stored === undefined || stored === null || stored === "") {
-      return !tableRoot || tableRoot === model || (tableRoot as any).prototype instanceof (model as any);
+      return ownedByRoot();
     }
     const resolved = this.resolveStoredType(stored);
-    return resolved !== undefined && this.family(model).includes(resolved);
+    if (resolved === undefined) return false;
+    if (tableRoot && (tableRoot as any).prototype instanceof (resolved as any)) {
+      // Typed as an ancestor of the table root (e.g. written before the application subclassed the model)
+      return ownedByRoot();
+    }
+    return this.family(model).includes(resolved);
   }
 }
 

@@ -217,6 +217,72 @@ class ModelTypeResolverTest {
     assert.strictEqual(r.resolveStoredType("MyApp/User"), undefined);
     assert.deepStrictEqual(r.acceptedTypes(Transaction), ["MyApp/Transaction", "MyApp/Card", "MyApp/Fee"]);
   }
+
+  @test
+  hierarchyResolverOfNothingKnowsNothing() {
+    const none = ModelTypeResolver.forHierarchy(undefined as any);
+    assert.strictEqual(none.exactOnly, true);
+    assert.strictEqual(none.resolveStoredType("MyApp/Fee"), undefined);
+    // A model without Metadata has no identifier to accept
+    class Plain extends UuidModel {}
+    const plain = ModelTypeResolver.forHierarchy(Plain as any);
+    assert.strictEqual(plain.knows(Plain as any), false);
+    assert.deepStrictEqual(plain.identifiersOf(Plain as any), []);
+    assert.deepStrictEqual(plain.acceptedTypes(Plain as any), []);
+  }
+
+  @test
+  listOfClassesIndexesTheirOwnIdentifiers() {
+    // A subclass without its own Metadata does not inherit its parent's identifier: it is skipped
+    class Bare extends Card {}
+    const r = new ModelTypeResolver([Transaction, Card, Bare, undefined] as any[]);
+    assert.strictEqual(r.namespace, "Webda");
+    assert.strictEqual(r.resolveStoredType("MyApp/Card"), Card);
+    assert.strictEqual(r.getIdentifier(Transaction), "MyApp/Transaction");
+    assert.strictEqual(r.knows(Bare), false);
+    assert.strictEqual(r.knows(Fee), false);
+  }
+
+  @test
+  mapKeyNamesAClassWithoutMetadata() {
+    class Bare extends Base {}
+    const r = new ModelTypeResolver({ "Legacy/Bare": Bare, "Legacy/Missing": undefined });
+    assert.strictEqual(r.getIdentifier(Bare), "Legacy/Bare");
+    assert.strictEqual(r.resolveStoredType("Legacy/Bare"), Bare);
+    assert.strictEqual(r.resolveStoredType("legacy/bare"), Bare);
+    assert.strictEqual(r.resolveStoredType("Legacy/Missing"), undefined);
+  }
+
+  @test
+  subclassesNamedByIdentifier() {
+    // Subclasses may be listed by identifier; a name the resolver does not know is ignored
+    class Parent extends Base {}
+    class Child extends Parent {}
+    stamp(Parent, "MyApp/Parent", ["MyApp/Child", "MyApp/Missing"]);
+    stamp(Child, "MyApp/Child");
+    const r = new ModelTypeResolver({ "MyApp/Parent": Parent, "MyApp/Child": Child });
+    assert.deepStrictEqual(r.family(Parent), [Parent, Child]);
+    assert.deepStrictEqual(r.identifiersOf(Parent), ["MyApp/Parent", "MyApp/Child"]);
+  }
+
+  @test
+  subclassesOutsideTheResolver() {
+    // Listed subclasses the resolver does not index: their own identifier is a filter value, not an accepted type
+    class Root extends Base {}
+    class Outsider extends Root {}
+    class Inherits extends Root {}
+    class Loose {}
+    stamp(Root, "MyApp/Root", [Outsider, Inherits, Loose]);
+    stamp(Outsider, "Other/Outsider");
+    const r = new ModelTypeResolver({ "MyApp/Root": Root }, { namespace: "MyApp" });
+    assert.deepStrictEqual(r.family(Root), [Root, Outsider, Inherits, Loose]);
+    // Inherits shares the identifier of Root, Loose has none
+    assert.deepStrictEqual(r.identifiersOf(Root), ["MyApp/Root", "Other/Outsider"]);
+    const accepted = r.acceptedTypes(Root);
+    assert.deepStrictEqual(accepted, ["MyApp/Root", "Root", "myapp/root", "root"]);
+    // Cached
+    assert.strictEqual(r.acceptedTypes(Root), accepted);
+  }
 }
 
 @suite
@@ -248,5 +314,14 @@ class TypeResolverRegistryTest {
     assert.notStrictEqual(resolver, useTypeResolver());
     assert.strictEqual(resolver.resolveStoredType("Other/Loose"), Loose);
     assert.deepStrictEqual(acceptedTypes(Loose), ["Other/Loose"]);
+  }
+
+  @test
+  nothingInstalledNoModelResolvesNothing() {
+    setTypeResolver(undefined);
+    const resolver = getTypeResolver();
+    assert.strictEqual(resolver.exactOnly, true);
+    assert.strictEqual(getTypeResolver(), resolver);
+    assert.strictEqual(resolveStoredType("MyApp/User"), undefined);
   }
 }

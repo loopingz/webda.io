@@ -5,6 +5,7 @@ import { MemoryRepository } from "./memory.js";
 import { EventRepository } from "./event.js";
 import { registerRepository, Repositories } from "./hooks.js";
 import { ModelTypeResolver, setTypeResolver } from "../types-resolver.js";
+import { SerializerContext } from "@webda/serialize";
 
 class Animal extends UuidModel {
   name: string;
@@ -14,7 +15,12 @@ class Puppy extends Dog {}
 class Plant extends UuidModel {
   name: string;
 }
-for (const clazz of [Animal, Dog, Puppy, Plant]) {
+// A model the installed resolver does not know, and a class without Metadata
+class Stray extends Animal {}
+class Loose extends UuidModel {
+  name: string;
+}
+for (const clazz of [Animal, Dog, Puppy, Plant, Stray, Loose]) {
   (clazz as any).registerSerializer();
 }
 // Subclasses are direct only, as Application.setModelMetadata sets them
@@ -22,6 +28,7 @@ for (const clazz of [Animal, Dog, Puppy, Plant]) {
 (Dog as any).Metadata = { Identifier: "Zoo/Dog", Subclasses: [Puppy], PrimaryKey: ["uuid"] };
 (Puppy as any).Metadata = { Identifier: "Zoo/Puppy", Subclasses: [], PrimaryKey: ["uuid"] };
 (Plant as any).Metadata = { Identifier: "Zoo/Plant", Subclasses: [], Aliases: ["Zoo/Flora"], PrimaryKey: ["uuid"] };
+(Stray as any).Metadata = { Identifier: "Zoo/Stray", Subclasses: [], PrimaryKey: ["uuid"] };
 
 @suite
 class MemoryRepositoryLegacyTypesTest {
@@ -193,5 +200,61 @@ class MemoryRepositoryLegacyTypesTest {
     assert.strictEqual(stored.value.name, "patched");
     await this.repos.animal.patch("a1", { name: "patched" } as any);
     assert.strictEqual(JSON.parse(this.shared.get("a1")!).__type, "Zoo/Animal");
+  }
+
+  /**
+   * Store a Webda 4 envelope of a row, its serializer replaced by the one of another class
+   * @param key - the key of a row created through the repository
+   * @param clazz - the class whose serializer the envelope names
+   * @param __type - the stored type
+   */
+  rewriteEnvelope(key: string, clazz: any, __type: string) {
+    const envelope = JSON.parse(this.shared.get(key)!);
+    envelope.$serializer.type = SerializerContext.globalContext.getSerializer(clazz).type;
+    envelope.__type = __type;
+    this.shared.set(key, JSON.stringify(envelope));
+  }
+
+  @test
+  async modelWithoutMetadataIsNotFiltered() {
+    const repo = new MemoryRepository(Loose as any, ["uuid"], "_", new Map());
+    assert.deepStrictEqual(repo.acceptedTypes(), []);
+    assert.strictEqual(repo.belongsToModel("Any/Thing"), true);
+    assert.strictEqual(repo.belongsToModel(undefined), true);
+    // Its rows load as the model, the stored type kept as is
+    (repo as any).storage.set("x", JSON.stringify({ uuid: "x", __type: "Any/Thing", name: "loose" }));
+    const loaded: any = await repo.get("x" as any);
+    assert.strictEqual(loaded.constructor, Loose);
+    assert.strictEqual(loaded.name, "loose");
+    assert.strictEqual(loaded.__type, "Any/Thing");
+  }
+
+  @test
+  async renamedEnvelopeOfAnUnrelatedModelIsRefused() {
+    this.setup(true);
+    await (Plant as any).create({ uuid: "g", name: "plant" });
+    // The serializer named by the envelope no longer exists and its type resolves to a model outside the hierarchy
+    const envelope = JSON.parse(this.shared.get("g")!);
+    envelope.$serializer.type = "@webda/models/Gone";
+    envelope.__type = "Zoo/Dog";
+    this.shared.set("g", JSON.stringify(envelope));
+    await assert.rejects(() => this.repos.plant.get("g"), /Serializer for type '@webda\/models\/Gone' not found/);
+  }
+
+  @test
+  async loadedClassOutsideTheResolverKeepsItsIdentifier() {
+    // The envelope serializer decides the class; its __type resolves, but the class is not indexed
+    this.setup(true);
+    await (Animal as any).create({ uuid: "s", name: "stray" });
+    await (Animal as any).create({ uuid: "l", name: "loose" });
+    this.rewriteEnvelope("s", Stray, "Zoo/Animal");
+    this.rewriteEnvelope("l", Loose, "Zoo/Dog");
+    const stray: any = await this.repos.animal.get("s");
+    assert.ok(stray instanceof Stray);
+    assert.strictEqual(stray.__type, "Zoo/Stray");
+    // A class without Metadata: the stored type is kept
+    const loose: any = await this.repos.animal.get("l");
+    assert.ok(loose instanceof Loose);
+    assert.strictEqual(loose.__type, "Zoo/Dog");
   }
 }

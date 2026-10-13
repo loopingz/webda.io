@@ -41,13 +41,19 @@ export function searchQuery(search, fields) {
 
 // Posts
 export const posts = {
-  list: (search = "") => request("PUT", "/posts", { q: searchQuery(search, ["title", "slug"]) }),
+  list: (search = "", ql = "") => request("PUT", "/posts", { q: ql || searchQuery(search, ["title", "slug"]) }),
   get: (slug) => request("GET", `/posts/${slug}`),
   create: (data) => request("POST", "/posts", data),
   update: (slug, data) => request("PUT", `/posts/${slug}`, data),
   patch: (slug, data) => request("PATCH", `/posts/${slug}`, data),
   delete: (slug) => request("DELETE", `/posts/${slug}`),
   publish: (slug, destination) => request("PUT", `/posts/${slug}/publish`, { destination }),
+};
+
+// WebdaQL completions
+export const ql = {
+  complete: (query = "", caret, model = "WebdaSample/Post") =>
+    request("POST", "/ql/complete", { query, caret, model }),
 };
 
 // Users

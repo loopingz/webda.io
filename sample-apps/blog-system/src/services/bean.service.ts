@@ -1,6 +1,7 @@
-import { Bean, InstanceCache, Operation, RestParameters, Service, ServiceName, useApplication, useLog } from "@webda/core";
+import { Bean, InstanceCache, Operation, RestParameters, Service, ServiceName, useApplication, useLog, useRepository } from "@webda/core";
 import { User } from "../models/User.model.js";
 import { UserFollow } from "../models/UserFollow.model.js";
+import { getCompletions, fieldsFromSchema, type CompletionField, type CompletionResult } from "@webda/ql";
 
 export class TestBeanParameters extends Service.Parameters {
   service: ServiceName;
@@ -83,5 +84,38 @@ export class TestBean<T extends TestBeanParameters = TestBeanParameters> extends
 
     console.log("💡 All of this type safety happens at compile time with zero runtime overhead!");
     return { ok: true };
+  }
+
+  /**
+   * Get WebdaQL code completion suggestions for a given query and caret offset
+   */
+  @Operation<RestParameters>({
+    id: "QL.Complete",
+    rest: { method: "post", path: "/ql/complete" },
+    description: "Get WebdaQL code completion suggestions"
+  })
+  async completeQL(query: string = "", caret?: number, model: string = "WebdaSample/Post"): Promise<CompletionResult> {
+    const app = useApplication();
+    let fields: CompletionField[] = [];
+    const modelClass = app.getModel(model);
+    if (modelClass) {
+      try {
+        const repo: any = useRepository(modelClass as any);
+        if (repo && typeof repo.getCompletionFields === "function") {
+          fields = repo.getCompletionFields();
+        }
+      } catch {
+        // Fallback to schema reflection
+      }
+      if (fields.length === 0) {
+        const meta: any = (modelClass as any)?.Metadata;
+        const schema = meta?.Schemas?.Stored || meta?.Schemas?.Output || meta?.Schemas?.Input;
+        if (schema) {
+          fields = fieldsFromSchema(schema);
+        }
+      }
+    }
+    const offset = typeof caret === "number" ? caret : query.length;
+    return getCompletions(query, offset, { fields, filterOnly: true });
   }
 }

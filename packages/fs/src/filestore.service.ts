@@ -11,7 +11,15 @@ import {
   ModelClass,
   Repository,
   InstanceCache,
-  useModelMetadata
+  useModelMetadata,
+  Command,
+  getTypeResolver,
+  mapRawPage,
+  mapRawPatch,
+  type MigratableStore,
+  type RawPage,
+  type RawPatch,
+  type RawTable
 } from "@webda/core";
 import { JSONUtils } from "@webda/utils";
 import * as WebdaQL from "@webda/ql";
@@ -151,7 +159,7 @@ class FileBackedMap extends Map<string, string> {
  * @category CoreServices
  * @WebdaModda
  */
-export class FileStore<K extends FileStoreParameters = FileStoreParameters> extends Store<K> {
+export class FileStore<K extends FileStoreParameters = FileStoreParameters> extends Store<K> implements MigratableStore {
   static EXTENSION = ".json";
 
   /**
@@ -383,8 +391,15 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
     const res = await this._exists(uid);
     if (res) {
       const data = JSON.parse(fs.readFileSync(this.file(uid)).toString());
-      if (this.parameters.strict && this._modelsHierarchy[data.__type] !== 0) {
-        return undefined;
+      if (this.parameters.strict) {
+        // A legacy type (short, lower-case, alias) is compared as the model it resolves to
+        const identifier =
+          typeof data.__type === "string"
+            ? (getTypeResolver().resolve(data.__type).identifier ?? data.__type)
+            : data.__type;
+        if (this._modelsHierarchy[identifier] !== 0) {
+          return undefined;
+        }
       }
       return data;
     } else if (raiseIfNotFound) {
@@ -418,12 +433,68 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
   @InstanceCache()
   getRepository<T extends ModelClass>(model: T): Repository<T> {
     const meta = useModelMetadata(model);
-    const storage = new FileBackedMap(this.parameters.folder, FileStore.EXTENSION);
-    const inner = new MemoryRepository<T>(model, meta.PrimaryKey, meta.PrimaryKeySeparator, storage as any);
+    const inner = new MemoryRepository<T>(model, meta.PrimaryKey, meta.PrimaryKeySeparator, this.getStorage() as any);
     // Wrap in EventRepository so typed CRUD events fire; consumers reach them
     // via useRepository(model).on(...). simulateFind() only calls repo.get(),
     // which EventRepository proxies, so find() is unaffected.
-    return new EventRepository<T>(model, meta.PrimaryKey, inner, meta.PrimaryKeySeparator) as unknown as Repository<T>;
+    // Untyped files of the folder belong to the first model of the store
+    return new EventRepository<T>(model, meta.PrimaryKey, inner, meta.PrimaryKeySeparator).setTableRoot(
+      this.getTableRoot()
+    ) as unknown as Repository<T>;
+  }
+
+  /**
+   * The folder as a key/value map of JSON strings
+   * @returns the map
+   */
+  protected getStorage(): Map<string, string> {
+    return new FileBackedMap(this.parameters.folder, FileStore.EXTENSION);
+  }
+
+  /**
+   * One table: the folder, named after the store
+   * @override
+   */
+  getRawTables(): RawTable[] {
+    return [{ name: this.getName(), root: this.getTableRoot() }];
+  }
+
+  /**
+   * @override
+   */
+  async rawPages(table: string, batchSize: number, token?: string): Promise<RawPage> {
+    this.checkSingleTable(table);
+    return mapRawPage(this.getStorage(), table, batchSize, token);
+  }
+
+  /**
+   * @override
+   */
+  async rawPatch(table: string, key: string, patch: RawPatch): Promise<void> {
+    this.checkSingleTable(table);
+    mapRawPatch(this.getStorage(), key, patch);
+  }
+
+  /**
+   * Rewrite the Webda 3 types of the store to their Webda 4 identifiers
+   * @param dryRun - only count the rows to migrate, write nothing
+   * @param batch - rows per page
+   * @param allowUnknown - exit with 0 even when rows keep an unknown or ambiguous type
+   * @returns the exit code
+   */
+  @Command("migrate", {
+    description: "Rewrite the Webda 3 types of the stores to their Webda 4 identifiers",
+    phase: "initialized"
+  })
+  async migrate(
+    /** @description Only count the rows to migrate, write nothing */
+    dryRun: boolean = false,
+    /** @description Rows per page */
+    batch: number = 500,
+    /** @description Exit with 0 even when rows keep an unknown or ambiguous type */
+    allowUnknown: boolean = false
+  ): Promise<number> {
+    return this.migrateCommand(dryRun, batch, allowUnknown);
   }
 
   /**

@@ -1,4 +1,4 @@
-import type { ModelClass } from "@webda/models";
+import { getTypeResolver, type ModelClass, type ModelTypeResolver } from "@webda/models";
 import * as WebdaError from "../errors/errors.js";
 
 /**
@@ -365,4 +365,37 @@ export function migrationTotals(report: MigrationReport): {
     unknown += Object.values(table.unknown).reduce((sum, n) => sum + n, 0);
   }
   return { scanned, updated, unknown, tables: report.tables };
+}
+
+/**
+ * Compare strings by code unit
+ * @param a - first
+ * @param b - second
+ * @returns the order
+ */
+function byCodeUnit(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/**
+ * Human-readable report, one line per table and per change
+ * @param report - the report
+ * @param resolver - resolver telling unknown from ambiguous types
+ * @returns the text
+ */
+export function formatMigrationReport(report: MigrationReport, resolver: ModelTypeResolver = getTypeResolver()): string {
+  const flags = [report.dryRun ? "dry run" : undefined, report.resumed ? "resumed" : undefined].filter(Boolean);
+  const lines = [`Store ${report.store}: migration ${report.name}${flags.length ? ` (${flags.join(", ")})` : ""}`];
+  for (const [table, tableReport] of Object.entries(report.tables)) {
+    lines.push(
+      `  ${table}: ${tableReport.scanned} scanned, ${tableReport.updated} ${report.dryRun ? "to update" : "updated"}`
+    );
+    for (const [change, n] of Object.entries(tableReport.byChange).sort(([a], [b]) => byCodeUnit(a, b))) {
+      lines.push(`    ${change}: ${n}`);
+    }
+    for (const [type, n] of Object.entries(tableReport.unknown).sort(([a], [b]) => byCodeUnit(a, b))) {
+      lines.push(`    ${resolver.resolve(type).status === "ambiguous" ? "ambiguous" : "unknown"} ${type}: ${n}`);
+    }
+  }
+  return lines.join("\n");
 }

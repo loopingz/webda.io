@@ -5,3 +5,7 @@ export * from "./internal.js";
 export * from "./objects.js";
 // Shared repository conformance checks, reused by the store packages
 export * from "@webda/models/lib/repositories/conformance.js";
+
+// Shared legacy types conformance suite, reused by the store packages
+export * from "./legacy-types.js";
+export * from "./legacy-types.fixture.model.js";

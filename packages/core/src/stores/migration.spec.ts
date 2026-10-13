@@ -6,7 +6,15 @@ import { MemoryStore } from "./memory.service.js";
 import { sleep } from "@webda/utils";
 import { useCore } from "../core/hooks.js";
 import { Store } from "./store.js";
-import type { MigrationPatcher } from "./migration.js";
+import { formatMigrationReport, type MigrationPatcher } from "./migration.js";
+import {
+  LEGACY_TYPE_MODELS,
+  LEGACY_TYPE_REPORT,
+  LEGACY_TYPE_ROWS,
+  registerLegacyTypeFixtures,
+  sumMigrationReport
+} from "../test/legacy-types.js";
+
 
 @suite
 class MemoryRawAccessTest extends WebdaApplicationTest {
@@ -255,5 +263,86 @@ class StoreMigrationTest extends WebdaApplicationTest {
     assert.ok(report.tables.Registry.scanned >= 1);
     assert.strictEqual(report.tables.Registry.updated, 0);
     assert.strictEqual((await registry.getMigrationProgress("noop"))!.done, true);
+  }
+}
+
+@suite
+class TypesMigrationTest extends WebdaApplicationTest {
+  getTestConfiguration() {
+    return { parameters: { ignoreBeans: true }, services: {} };
+  }
+
+  /**
+   * @param name - unique store name
+   * @returns a MemoryStore holding the Webda 3 fixture rows
+   */
+  async legacyStore(name: string): Promise<MemoryStore> {
+    registerLegacyTypeFixtures();
+    const store: MemoryStore = await this.addService(MemoryStore, { models: LEGACY_TYPE_MODELS } as any, name);
+    for (const { key, data } of LEGACY_TYPE_ROWS) {
+      store.storage.set(key, JSON.stringify(data));
+    }
+    return store;
+  }
+
+  @test
+  async rewritesLegacyTypes() {
+    const store = await this.legacyStore("typesMemory");
+    const report = await store.migrateTypes({ batchSize: 4 });
+    assert.deepStrictEqual(sumMigrationReport(report), LEGACY_TYPE_REPORT);
+    const types = Object.fromEntries([...store.storage.entries()].map(([key, value]) => [key, JSON.parse(value).__type]));
+    assert.deepStrictEqual(types, {
+      a1: "Webda/V3Animal",
+      a2: "Webda/V3Animal",
+      a3: "Webda/V3Animal",
+      a4: "Webda/V3Animal",
+      d1: "Webda/V3Dog",
+      p1: "Webda/V3Puppy",
+      p2: "Webda/V3Puppy",
+      g1: "Webda/V3Plant",
+      g2: "Webda/V3Plant",
+      g3: "Webda/V3Plant",
+      u1: "Gone/Model"
+    });
+  }
+
+  @test
+  async reportsReadably() {
+    const store = await this.legacyStore("typesFormat");
+    const report = await store.migrateTypes({ batchSize: 4, dryRun: true });
+    assert.strictEqual(
+      formatMigrationReport(report),
+      [
+        "Store typesFormat: migration types (dry run)",
+        "  typesFormat: 11 scanned, 7 to update",
+        "    (untyped) → Webda/V3Animal: 1",
+        "    Flora → Webda/V3Plant: 1",
+        "    V3Animal → Webda/V3Animal: 1",
+        "    WEBDA/V3PUPPY → Webda/V3Puppy: 1",
+        "    Webda/Flora → Webda/V3Plant: 1",
+        "    v3dog → Webda/V3Dog: 1",
+        "    webda/v3animal → Webda/V3Animal: 1",
+        "    unknown Gone/Model: 1"
+      ].join("\n")
+    );
+  }
+
+  @test
+  async unreadableRowsAreReportedNotRewritten() {
+    // Review focus: a corrupted row must not stop the migration
+    const store = await this.legacyStore("typesUnreadable");
+    store.storage.set("zz-broken", "{not json");
+    const report = await store.migrateTypes({ batchSize: 4 });
+    assert.strictEqual(report.tables.typesUnreadable.unknown["(unreadable)"], 1);
+    assert.strictEqual(report.tables.typesUnreadable.updated, 7);
+    assert.strictEqual(store.storage.get("zz-broken"), "{not json");
+  }
+
+  @test
+  async untypedRowsWithoutARootAreLeftAlone() {
+    const store: MemoryStore = await this.addService(MemoryStore, { models: [] } as any, "typesNoRoot");
+    store.storage.set("x", JSON.stringify({ uuid: "x" }));
+    const report = await store.migrateTypes();
+    assert.deepStrictEqual(report.tables.typesNoRoot, { scanned: 1, updated: 0, byChange: {}, unknown: {} });
   }
 }

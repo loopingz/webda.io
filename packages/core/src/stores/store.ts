@@ -19,6 +19,7 @@ import { useCore, useModelMetadata } from "../core/hooks.js";
 import type { ModelMetadata } from "@webda/compiler";
 import { InstanceCache } from "../cache/cache.js";
 import { randomUUID } from "node:crypto";
+import { classifyStoredType, UNREADABLE } from "../application/model-types.js";
 import { useRegistry } from "../models/registry.model.js";
 import {
   DEFAULT_MIGRATION_BATCH,
@@ -877,6 +878,46 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       }, ${totals.unknown} left untouched`
     );
     return report;
+  }
+
+  /**
+   * Patcher of the built-in `types` migration: untyped rows get the table root identifier, legacy types their
+   * current identifier; unknown, ambiguous and unreadable rows are counted and left as they are
+   * @returns the patcher
+   */
+  protected typesPatcher(): MigrationPatcher {
+    const roots = new Map((this.getRawTables() ?? []).map(table => [table.name, table.root]));
+    return (row, context) => {
+      if (row.unreadable) {
+        context.unknown(UNREADABLE);
+        return undefined;
+      }
+      const type = classifyStoredType(row.data.__type, roots.get(row.table));
+      switch (type.kind) {
+        case "legacy":
+        case "untyped":
+          if (!type.to) return undefined;
+          context.change(type.from, type.to);
+          return { __type: type.to };
+        case "unknown":
+        case "ambiguous":
+          context.unknown(type.from);
+          return undefined;
+        default:
+          return undefined;
+      }
+    };
+  }
+
+  /**
+   * Rewrite the Webda 3 types of every row to the current identifiers (the built-in `types` migration)
+   *
+   * Stores with a native bulk update override this method and return the same report.
+   * @param options - batch size, dry run, lease duration
+   * @returns the report
+   */
+  async migrateTypes(options: MigrationOptions = {}): Promise<MigrationReport> {
+    return this.migration("types", this.typesPatcher(), options);
   }
 
   /**

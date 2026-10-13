@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { hotp, Ident, runAsSystem, totpStep, type User, useService } from "@webda/core";
+import { hotp, Ident, runAsSystem, totpStep, type User, useService, WebdaError } from "@webda/core";
 import type { TestApplication } from "@webda/core/lib/test/objects.js";
 import { AuthTest } from "../test/authtest.js";
 import { addStubProviders, stubProvidersConfig } from "../test/stubprovider.js";
@@ -14,7 +14,7 @@ import {
   Throttled
 } from "../errors.js";
 import { TotpService } from "./totp.service.js";
-import { SecondFactorService } from "./secondfactor.service.js";
+import { extractCode, SecondFactorService } from "./secondfactor.service.js";
 
 const code = (cls: { name: string }) =>
   cls.name.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase();
@@ -480,5 +480,164 @@ class TotpTest extends AuthTest {
     const newCode = regenerated.recoveryCodes[0];
     const recoverRes: any = await this.op("Auth.Totp.Recover", { code: newCode }, ctx);
     assert.strictEqual(recoverRes.status, "ok");
+  }
+
+  @test
+  extractCodeUtility() {
+    assert.strictEqual(extractCode(" 123456 "), "123456");
+    assert.strictEqual(extractCode({ code: " 123456 " }), "123456");
+    assert.strictEqual(extractCode({ code: 123 }), "");
+    assert.strictEqual(extractCode(null), "");
+    assert.strictEqual(extractCode(undefined), "");
+    assert.strictEqual(extractCode(123), "");
+  }
+
+  @test
+  async enrollmentUnauthorizedAndReauth() {
+    const unauthCtx = await this.ctx();
+    await assert.rejects(() => this.op("Auth.Totp.Enroll", {}, unauthCtx), WebdaError.Unauthorized);
+
+    const { ctx } = await this.registerUser();
+    ctx.getSession().authAt = Date.now() - 400000;
+    await assert.rejects(() => this.op("Auth.Totp.Enroll", {}, ctx), WebdaError.Unauthorized);
+  }
+
+  @test
+  async confirmEdgeCases() {
+    const unauthCtx = await this.ctx();
+    await assert.rejects(() => this.op("Auth.Totp.Confirm", { code: "123456" }, unauthCtx), WebdaError.Unauthorized);
+
+    const { ctx } = await this.registerUser();
+    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, ctx);
+    await rejectsWith(() => this.op("Auth.Totp.Confirm", { code: "000000" }, ctx), InvalidMfaCode);
+    const confirmCode = hotp(enrolled.secret, totpStep());
+    await this.op("Auth.Totp.Confirm", { code: confirmCode }, ctx);
+    await rejectsWith(() => this.op("Auth.Totp.Confirm", { code: confirmCode }, ctx), MfaAlreadyEnabled);
+
+    // recoveryCodes = 0 in service parameters
+    const prevRecovery = this.totp.parameters.recoveryCodes;
+    this.totp.parameters.recoveryCodes = 0;
+    try {
+      const { ctx: zeroCtx } = await this.registerUser();
+      const enZero: any = await this.op("Auth.Totp.Enroll", {}, zeroCtx);
+      const confZero: any = await this.op("Auth.Totp.Confirm", { code: hotp(enZero.secret, totpStep()) }, zeroCtx);
+      assert.deepStrictEqual(confZero.recoveryCodes, []);
+    } finally {
+      this.totp.parameters.recoveryCodes = prevRecovery;
+    }
+  }
+
+  @test
+  async verifyEdgeCases() {
+    const { ctx: userCtx } = await this.registerUser();
+    const pendingNoMfa = await this.ctx();
+    pendingNoMfa.getSession().login(userCtx.getSession().userId, "ident", { provider: "email", amr: ["pwd"], mfa: "pending" });
+    await rejectsWith(() => this.op("Auth.Totp.Verify", { code: "123456" }, pendingNoMfa), MfaNotEnabled);
+  }
+
+  @test
+  async recoverEdgeCases() {
+    const notPendingCtx = await this.ctx();
+    await rejectsWith(() => this.op("Auth.Totp.Recover", { code: "xxxx" }, notPendingCtx), MfaNotPending);
+
+    const { ctx: regCtx } = await this.registerUser();
+    const pendingNoMfa = await this.ctx();
+    pendingNoMfa.getSession().login(regCtx.getSession().userId, "ident", { provider: "email", amr: ["pwd"], mfa: "pending" });
+    await rejectsWith(() => this.op("Auth.Totp.Recover", { code: "xxxx" }, pendingNoMfa), MfaNotEnabled);
+
+    // Lockout during recovery
+    const { ctx: recCtx, email: recEmail, password: recPassword } = await this.registerUser();
+    const recEnrolled: any = await this.op("Auth.Totp.Enroll", {}, recCtx);
+    await this.op("Auth.Totp.Confirm", { code: hotp(recEnrolled.secret, totpStep()) }, recCtx);
+    await this.op("Auth.Logout", {}, recCtx);
+    await this.op("Auth.Email.Login", { email: recEmail, password: recPassword }, recCtx);
+
+    for (let i = 0; i < 3; i++) {
+      await rejectsWith(() => this.op("Auth.Totp.Recover", { code: "bad-code" }, recCtx), InvalidMfaCode);
+    }
+    await rejectsWith(() => this.op("Auth.Totp.Recover", { code: "bad-code" }, recCtx), Throttled);
+  }
+
+  @test
+  async disableEdgeCases() {
+    const unauthCtx = await this.ctx();
+    await assert.rejects(() => this.op("Auth.Totp.Disable", { code: "123456" }, unauthCtx), WebdaError.Unauthorized);
+
+    const { ctx: notVerCtx } = await this.registerUser();
+    notVerCtx.getSession().mfa = undefined;
+    await assert.rejects(() => this.op("Auth.Totp.Disable", { code: "123456" }, notVerCtx), WebdaError.Unauthorized);
+
+    const { ctx: noMfaCtx } = await this.registerUser();
+    noMfaCtx.getSession().mfa = "verified";
+    await rejectsWith(() => this.op("Auth.Totp.Disable", { code: "123456" }, noMfaCtx), MfaNotEnabled);
+  }
+
+  @test
+  async recoveryCodesEdgeCases() {
+    const unauthCtx = await this.ctx();
+    await assert.rejects(() => this.op("Auth.Totp.RecoveryCodes", { code: "123456" }, unauthCtx), WebdaError.Unauthorized);
+
+    const { ctx: noMfaCtx } = await this.registerUser();
+    noMfaCtx.getSession().mfa = "verified";
+    await rejectsWith(() => this.op("Auth.Totp.RecoveryCodes", { code: "123456" }, noMfaCtx), MfaNotEnabled);
+
+    const { ctx: userCtx } = await this.registerUser();
+    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, userCtx);
+    const confirmed: any = await this.op("Auth.Totp.Confirm", { code: hotp(enrolled.secret, totpStep()) }, userCtx);
+    await rejectsWith(() => this.op("Auth.Totp.RecoveryCodes", { code: "000000" }, userCtx), InvalidMfaCode);
+
+    // Use recovery code to regenerate
+    const regenerated: any = await this.op("Auth.Totp.RecoveryCodes", { code: confirmed.recoveryCodes[1] }, userCtx);
+    assert.ok(Array.isArray(regenerated.recoveryCodes));
+  }
+
+  @test
+  async challengeAndTotpServiceFallback() {
+    const { ctx: userCtx } = await this.registerUser();
+    const user = await runAsSystem(() => this.auth.getUserModel().ref(userCtx.getSession().userId).get());
+    await (this.totp as any).challenge(user);
+
+    // check without user.mfa
+    const userWithoutMfa = { mfa: undefined } as any;
+    assert.strictEqual(await (this.totp as any).check(userWithoutMfa, "123456"), false);
+
+    // startEnrollment with fallback to displayName and UUID
+    const nameOnlyUser = {
+      getEmail: () => undefined,
+      getDisplayName: () => "Display Only",
+      getUUID: () => "uuid-123",
+      mfa: undefined,
+      save: async () => {}
+    } as any;
+    const res1 = await (this.totp as any).startEnrollment(nameOnlyUser);
+    assert.ok(res1.uri.includes("Display%20Only"));
+
+    const uuidOnlyUser = {
+      getEmail: () => undefined,
+      getDisplayName: () => undefined,
+      getUUID: () => "uuid-456",
+      mfa: undefined,
+      save: async () => {}
+    } as any;
+    const res2 = await (this.totp as any).startEnrollment(uuidOnlyUser);
+    assert.ok(res2.uri.includes("uuid-456"));
+  }
+
+  @test
+  async completeSecondFactorDirectEdgeCases() {
+    const ctx = await this.ctx();
+    await rejectsWith(() => this.inContext(ctx, () => this.auth.completeSecondFactor(["totp"])), MfaNotPending);
+
+    const { ctx: userCtx } = await this.registerUser();
+    const pendingCtx = await this.ctx();
+    pendingCtx.getSession().login(userCtx.getSession().userId, "ident", { provider: "email", amr: ["pwd"], mfa: "pending" });
+    await rejectsWith(() => this.inContext(pendingCtx, () => this.auth.completeSecondFactor(["recovery"])), MfaNotEnabled);
+
+    const { ctx: mfaUserCtx } = await this.registerUser();
+    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, mfaUserCtx);
+    await this.op("Auth.Totp.Confirm", { code: hotp(enrolled.secret, totpStep()) }, mfaUserCtx);
+    const pendingCtx2 = await this.ctx();
+    pendingCtx2.getSession().login(mfaUserCtx.getSession().userId, "ident", { provider: "email", amr: ["pwd"], mfa: "pending" });
+    await rejectsWith(() => this.inContext(pendingCtx2, () => this.auth.completeSecondFactor(["sms"])), MfaNotEnabled);
   }
 }

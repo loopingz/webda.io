@@ -193,4 +193,27 @@ class TotpUtilTest {
       "otpauth://totp/Acme:bob?secret=JBSWY3DPEHPK3PXP&issuer=Acme&algorithm=SHA256&digits=8&period=60"
     );
   }
+
+  @test
+  totpEdgeCases() {
+    // base32Encode with padding
+    assert.strictEqual(base32Encode(Buffer.from("f"), true), "MY======");
+    assert.strictEqual(base32Encode(Buffer.from("fo"), true), "MZXQ====");
+    assert.strictEqual(base32Encode(Buffer.from("foo"), true), "MZXW6===");
+    assert.strictEqual(base32Encode(Buffer.from("foob"), true), "MZXW6YQ=");
+
+    // base32Decode non-string error
+    assert.throws(() => base32Decode(123 as any), /Invalid base32 input/);
+
+    // hotp fallback with non-base32 string
+    const fallbackCode = hotp("not-valid-base32!", 1);
+    assert.ok(/^\d{6}$/.test(fallbackCode));
+
+    // verifyTotp non-string code
+    assert.strictEqual(verifyTotp("JBSWY3DPEHPK3PXP", null as any), undefined);
+    assert.strictEqual(verifyTotp("JBSWY3DPEHPK3PXP", undefined as any), undefined);
+
+    // verifyTotp with timestamp close to 0 where step - window < 0
+    assert.strictEqual(verifyTotp("JBSWY3DPEHPK3PXP", "123456", { now: 10, window: 5 }), undefined);
+  }
 }

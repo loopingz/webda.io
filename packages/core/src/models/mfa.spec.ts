@@ -161,4 +161,61 @@ class MfaBehaviorTest extends WebdaApplicationTest {
     assert.strictEqual(reloaded.mfa.consumeRecoveryCode("code-1"), true);
     assert.strictEqual(reloaded.mfa.hasRecoveryCodes(), false);
   }
+
+  @test
+  async mfaModelEdgeCases() {
+    // normalizeRecoveryCode
+    assert.strictEqual(normalizeRecoveryCode(undefined as any), "");
+    assert.strictEqual(normalizeRecoveryCode(null as any), "");
+    assert.strictEqual(normalizeRecoveryCode("  ab-CD_12  "), "abcd12");
+
+    // generateRecoveryCodes
+    const defaultCodes = generateRecoveryCodes();
+    assert.strictEqual(defaultCodes.length, 10);
+    const customCodes = generateRecoveryCodes(3);
+    assert.strictEqual(customCodes.length, 3);
+
+    // Constructor with raw object data and null entry
+    const mfaWithData = new MFA({
+      factors: {
+        raw: { data: { foo: "bar" } },
+        empty: null,
+        alreadyEnc: { data: new EncryptedField() }
+      }
+    });
+    assert.ok(mfaWithData.factors.raw.data instanceof EncryptedField);
+    assert.strictEqual(mfaWithData.factors.empty, null);
+
+    // Detached getUser()
+    const detached = new MFA();
+    assert.strictEqual((detached as any).getUser(), undefined);
+
+    // verifyTotp without secret
+    const emptyMfa = new MFA();
+    assert.strictEqual(await emptyMfa.verifyTotp("123456"), false);
+
+    // consumeRecoveryCode with non-string or blank
+    assert.strictEqual(emptyMfa.consumeRecoveryCode(null as any), false);
+    assert.strictEqual(emptyMfa.consumeRecoveryCode(""), false);
+    assert.strictEqual(emptyMfa.consumeRecoveryCode("   "), false);
+
+    // clearFactor for non-existent factor
+    emptyMfa.clearFactor("nonexistent");
+    assert.strictEqual(emptyMfa.isEnabled("nonexistent"), false);
+
+    // Setters with undefined
+    emptyMfa.totpEnabledAt = undefined;
+    assert.strictEqual(emptyMfa.totpEnabledAt, undefined);
+    emptyMfa.totpLastStep = undefined;
+    assert.strictEqual(emptyMfa.totpLastStep, undefined);
+
+    // verifyTotp with set secret but wrong code (step === undefined)
+    await emptyMfa.totp.set(TOTP_SECRET);
+    assert.strictEqual(await emptyMfa.verifyTotp("000000", 1, 1700000000000), false);
+
+    // consumeRecoveryCode when codes exist but none matches
+    emptyMfa.__recoveryCodes = ["code-1"].map(hashRecoveryCode);
+    assert.strictEqual(emptyMfa.consumeRecoveryCode("code-different"), false);
+    assert.strictEqual(emptyMfa.__recoveryCodes.length, 1);
+  }
 }

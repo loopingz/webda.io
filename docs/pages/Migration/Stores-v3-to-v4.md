@@ -1,12 +1,13 @@
 # Stores: v3 to v4
 
-Webda 4 reads the data Webda 3 wrote, on the same database, without a manual step. You run `webda migrate` when
-you choose: it rewrites the Webda 3 types to the Webda 4 format, can be resumed, and is safe to run again.
+With the Memory and File stores, Webda 4 reads the data Webda 3 wrote, on the same database, without a manual step.
+You run `webda migrate` when you choose: it rewrites the Webda 3 types to the Webda 4 format, can be resumed, and is
+safe to run again.
 
 :::note
 The Memory and File stores implement this today. The Postgres, MongoDB, DynamoDB and Firestore stores, and the
-authentication changes, arrive in follow-up plans: until then those stores are skipped by `webda migrate` with a
-warning.
+authentication changes, arrive in follow-up releases: until then those stores are not read transparently or
+migrated yet.
 :::
 
 ## What is transparent
@@ -24,7 +25,12 @@ stamps the namespaced identifier (`MyApp/Transaction`). Webda 4 resolves a store
 A row loads as the class its type resolves to, so a subclass row loads as the subclass. Queries, counts,
 aggregations and bulk statements of a model see its rows and the rows of its subclasses, whatever form their type
 has. When such a row is saved, it gets the current identifier. A row without `__type` belongs to the first model of
-the store's `models`.
+the store's `models`, the table root, and is seen by the queries of that model and of its ancestors.
+
+A row whose type resolves to an ancestor of the table root is handled like a row without `__type`: in a store whose
+first model is `MyApp/User extends Webda/User`, a row stored as `webda/user` or `CoreModel` loads as `MyApp/User`,
+the queries of `MyApp/User` and its ancestors see it, and `webda migrate` rewrites it to `MyApp/User`
+(`webda/user → MyApp/User`). The startup check counts it as a legacy type.
 
 ## `webda migrate`
 
@@ -49,8 +55,11 @@ Store Users: migration types
   stops, the next one resumes and the report says `(resumed)`.
 - A second runner fails while the first one holds the migration lease (5 minutes, renewed every page). If a runner
   crashed, the next one takes over once the lease has expired.
+- Resuming in another process and the lease between processes need a persistent Registry shared by every runner: a
+  Registry kept in memory only protects the runners of one process, and its progress is lost when it stops.
 - Running it again scans every row again and reports 0 updates.
-- A store that cannot run migrations yet is skipped with a warning.
+- `webda migrate` runs on the stores that declare the `migrate` command: the Memory and File stores. A `Store`
+  subclass of your own only gets it if it declares the `migrate` command itself; other stores are not migrated yet.
 
 ## Renamed models: `@WebdaAlias`
 
@@ -79,7 +88,8 @@ The store parameter `modelAliases` is removed, and so are `defaultModel` and `fo
 - **ambiguous**: two models match at the same step, for example two aliases with the same name;
 - **(unreadable)**: the stored value is not a JSON object, for example a half-written file.
 
-They are listed under the table (`unknown Gone/Model: 1`), and the command exits with code `1`. Declare a
+They are listed under the table (`unknown Gone/Model: 1`, `ambiguous Webda/Creature: 1`, and
+`unknown (unreadable): 1` for unreadable rows), and the command exits with code `1`. Declare a
 `@WebdaAlias` on the model they belong to, delete the rows, or pass `--allow-unknown` to accept them. Queries never
 return these rows. Reading one by key loads it as the repository model and keeps its stored type.
 

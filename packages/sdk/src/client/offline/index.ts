@@ -114,17 +114,17 @@ export function splitQuery(query: string): {
   let offset: string | undefined;
   let limit: number | undefined;
   let orderBy: Array<{ field: string; direction: "ASC" | "DESC" }> = [];
-  const offsetMatch = /\s*\bOFFSET\s+("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')\s*$/i.exec(rest);
+  const offsetMatch = /\bOFFSET\s+("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')\s*$/i.exec(rest);
   if (offsetMatch) {
     offset = offsetMatch[1].slice(1, -1).replace(/\\(.)/g, "$1");
     rest = rest.slice(0, offsetMatch.index);
   }
-  const limitMatch = /\s*\bLIMIT\s+(\d+)\s*$/i.exec(rest);
+  const limitMatch = /\bLIMIT\s+(\d+)\s*$/i.exec(rest);
   if (limitMatch) {
     limit = Number(limitMatch[1]);
     rest = rest.slice(0, limitMatch.index);
   }
-  const orderMatch = /\s*\bORDER\s+BY\s+([\w.]+(?:\s+(?:ASC|DESC))?(?:\s*,\s*[\w.]+(?:\s+(?:ASC|DESC))?)*)\s*$/i.exec(
+  const orderMatch = /\bORDER\s+BY\s+([\w.]+(?:\s+(?:ASC|DESC))?(?:\s*,\s*[\w.]+(?:\s+(?:ASC|DESC))?)*)\s*$/i.exec(
     rest
   );
   if (orderMatch) {
@@ -221,17 +221,11 @@ export class OfflineBackend implements ModelBackend {
     if (orderBy.length) {
       results = [...results].sort((a, b) => {
         for (const { field, direction } of orderBy) {
-          const left = valueAt(a, field);
-          const right = valueAt(b, field);
+          // null and undefined are the same missing value, sorted first
+          const left = valueAt(a, field) ?? null;
+          const right = valueAt(b, field) ?? null;
           if (left === right) continue;
-          const order =
-            left === undefined || left === null
-              ? -1
-              : right === undefined || right === null
-                ? 1
-                : left < right
-                  ? -1
-                  : 1;
+          const order = left === null ? -1 : right === null ? 1 : left < right ? -1 : 1;
           return direction === "DESC" ? -order : order;
         }
         return 0;
@@ -401,7 +395,7 @@ export class OfflineSupport
       if (event.object === null) client.cache.deleteEntity(model, uid);
       else client.cache.setEntity(model, uid, event.object);
       // Lists of the ancestors (read through the transports) may hold the object
-      const ancestors = client.models[model]?.ancestors ?? [];
+      const { ancestors } = client.models[model];
       if (ancestors.length) client.cache.invalidate(...ancestors);
     }
     this.emit("change", event);

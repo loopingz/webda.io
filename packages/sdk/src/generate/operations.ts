@@ -39,7 +39,7 @@ export function inputType(manifest: SdkManifest, op: SdkManifestOperation, names
   const model = op.model ? manifest.models[op.model] : undefined;
   if (model && (op.kind === "create" || op.kind === "update" || op.kind === "patch")) {
     const name = names.types.get(model.inputSchema);
-    if (name) return op.kind === "create" ? `Partial<T.${name}>` : `Partial<T.${name}>`;
+    if (name) return `Partial<T.${name}>`;
   }
   if (model && (op.kind === "action" || op.kind === "behavior")) {
     const body = actionBodyType(manifest, op, names);
@@ -77,9 +77,8 @@ export function actionBodyType(
  */
 export function outputType(manifest: SdkManifest, op: SdkManifestOperation, names: GeneratorNames): string {
   const type = typeOfRef(op.output, names);
-  if (type === "void" && op.streaming !== "none") return "unknown";
-  if (type === "unknown" && op.output !== "void" && !manifest.schemas[op.output]) return "unknown";
-  return type;
+  // A streaming operation without an output schema still yields chunks
+  return type === "void" && op.streaming !== "none" ? "unknown" : type;
 }
 
 /**

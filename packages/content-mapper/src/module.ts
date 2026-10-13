@@ -596,29 +596,30 @@ function isAllowedImport(specifier: string, allowed: string[]): boolean {
  */
 function importOf(ctx: AnalysisContext, symbol: TsSymbol): { module: string; binding: string } | undefined {
   for (const declaration of declarationsOf(ctx, symbol)) {
-    const kind = declaration.kind;
-    if (
-      kind !== SyntaxKind.ImportSpecifier &&
-      kind !== SyntaxKind.ImportClause &&
-      kind !== SyntaxKind.NamespaceImport
-    ) {
-      continue;
+    // The import clause, whose parent holds the module specifier
+    let clause: Node;
+    let binding: string;
+    switch (declaration.kind) {
+      case SyntaxKind.ImportClause:
+        clause = declaration;
+        binding = `default as ${text(ctx, (declaration as any).name)}`;
+        break;
+      case SyntaxKind.NamespaceImport:
+        clause = declaration.parent;
+        binding = `* as ${text(ctx, (declaration as any).name)}`;
+        break;
+      case SyntaxKind.ImportSpecifier: {
+        clause = declaration.parent.parent;
+        const name = text(ctx, (declaration as any).name);
+        const property = (declaration as any).propertyName;
+        binding = property ? `${text(ctx, property)} as ${name}` : name;
+        break;
+      }
+      default:
+        // `import x = Namespace.member`, `export { x }`...: no module to check
+        continue;
     }
-    let current: Node | undefined = declaration;
-    while (current && current.kind !== SyntaxKind.ImportDeclaration) current = current.parent;
-    const specifier = (current as any)?.moduleSpecifier;
-    if (!specifier || !is.isStringLiteral(specifier)) continue;
-    const name = text(ctx, (declaration as any).name);
-    const property = (declaration as any).propertyName;
-    const binding =
-      kind === SyntaxKind.NamespaceImport
-        ? `* as ${name}`
-        : kind === SyntaxKind.ImportClause
-          ? `default as ${name}`
-          : property
-            ? `${text(ctx, property)} as ${name}`
-            : name;
-    return { module: (specifier as any).text, binding };
+    return { module: (clause.parent as any).moduleSpecifier.text, binding };
   }
   return undefined;
 }
@@ -643,7 +644,7 @@ export function buildModelShared(
 ): { methods: Record<string, SharedMethodEntry>; errors: string[] } {
   const methods: Record<string, SharedMethodEntry> = {};
   const errors: string[] = [];
-  const declared = (cls.members ?? []).filter(
+  const declared = cls.members.filter(
     (member): member is MethodDeclaration => is.isMethodDeclaration(member) && hasSharedDecorator(ctx, member)
   );
   if (!declared.length) return { methods, errors };
@@ -693,7 +694,9 @@ export function buildModelShared(
         kind === SyntaxKind.PropertyDeclaration ||
         kind === SyntaxKind.PropertySignature ||
         kind === SyntaxKind.GetAccessor ||
-        kind === SyntaxKind.SetAccessor
+        kind === SyntaxKind.SetAccessor ||
+        // A parameter reached through `this.` is a parameter property: `constructor(public id: string)`
+        kind === SyntaxKind.Parameter
       ) {
         return;
       }
@@ -737,11 +740,13 @@ export function buildModelShared(
         return;
       }
       const file = files[0];
-      const pkg = file?.includes("/node_modules/") ? packageOf(file) : undefined;
+      const pkg = file.includes("/node_modules/") ? packageOf(file) : undefined;
       if (pkg) {
         report(`${label} is @Shared but references '${name}' from "${pkg}"`);
       } else {
-        report(`${label} is @Shared but references '${name}' declared in ${relative(appRoot, file ?? "?")}`);
+        report(
+          `${label} is @Shared but references '${name}' declared in ${relative(appRoot, file).replace(/\\/g, "/")}`
+        );
       }
     };
     /**
@@ -778,7 +783,7 @@ export function buildModelShared(
       if (is.isIdentifier(node)) {
         const parent = node.parent;
         // Declaration names and property keys are not references
-        if (parent && (parent as any).name === node && parent.kind !== SyntaxKind.ShorthandPropertyAssignment) {
+        if ((parent as any).name === node && parent.kind !== SyntaxKind.ShorthandPropertyAssignment) {
           const declaring = [
             SyntaxKind.Parameter,
             SyntaxKind.VariableDeclaration,
@@ -795,12 +800,16 @@ export function buildModelShared(
             SyntaxKind.SetAccessor,
             SyntaxKind.PropertySignature,
             SyntaxKind.MethodSignature,
-            SyntaxKind.EnumMember,
-            SyntaxKind.LabeledStatement
+            SyntaxKind.EnumMember
           ];
           if (declaring.includes(parent.kind)) return;
         }
-        if (parent && (parent.kind === SyntaxKind.BreakStatement || parent.kind === SyntaxKind.ContinueStatement))
+        // Labels: `outer: for (...) { break outer; }`
+        if (
+          parent.kind === SyntaxKind.LabeledStatement ||
+          parent.kind === SyntaxKind.BreakStatement ||
+          parent.kind === SyntaxKind.ContinueStatement
+        )
           return;
         checkIdentifier(node);
         return;
@@ -810,14 +819,15 @@ export function buildModelShared(
         return undefined;
       });
     };
-    for (const parameter of method.parameters ?? []) visit(parameter);
-    for (const typeParameter of (method as any).typeParameters ?? []) visit(typeParameter);
-    if ((method as any).type) visit((method as any).type);
-    if ((method as any).body) visit((method as any).body);
+    // Name, type parameters, parameters, return type and body: the decorators are skipped by `visit`
+    method.forEachChild(child => {
+      visit(child);
+      return undefined;
+    });
 
     errors.push(...problems);
-    const decorators = decoratorsOf(method);
-    const start = decorators.length ? Math.max(...decorators.map(decorator => decorator.end)) : method.pos;
+    // Every method here carries `@Shared`: the source starts after the last decorator
+    const start = Math.max(...decoratorsOf(method).map(decorator => decorator.end));
     const source = sf.text.slice(start, method.end).trim();
     const entry: SharedMethodEntry = isStaticMember(method) ? { static: true, source } : { source };
     const modules = Object.keys(imports).sort();

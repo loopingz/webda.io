@@ -91,9 +91,9 @@ export function describeGraphQL(
   const schema = service.schema;
   if (!schema) return;
   const roots: Record<GraphQLExposure["kind"], Record<string, any>> = {
-    query: schema.getQueryType?.()?.getFields() ?? {},
-    mutation: schema.getMutationType?.()?.getFields() ?? {},
-    subscription: schema.getSubscriptionType?.()?.getFields() ?? {}
+    query: schema.getQueryType()?.getFields() ?? {},
+    mutation: schema.getMutationType()?.getFields() ?? {},
+    subscription: schema.getSubscriptionType()?.getFields() ?? {}
   };
   const modelFields: Record<string, ModelFields> = service.modelFields ?? {};
   const placements: Record<string, { kind: GraphQLExposure["kind"]; name: string }> = service.operationPlacements ?? {};
@@ -146,8 +146,9 @@ export function describeGraphQL(
       // Related queries (`ModelRelated`) take arguments and are read through their own query
       if (owner && field.args?.length) continue;
       if (depth >= MAX_DEPTH) continue;
-      const select = selectionOf(target, depth + 1);
-      if (!select || !Object.keys(select).length) continue;
+      // An object type always has a selection, empty when none of its fields can be selected
+      const select = selectionOf(target, depth + 1)!;
+      if (!Object.keys(select).length) continue;
       const entry: GraphQLSelectionField = { select };
       if (key) entry.key = key;
       selection[field.name] = entry;
@@ -191,7 +192,7 @@ export function describeGraphQL(
     const field = roots[placement.kind][placement.name];
     if (!field) continue;
     const exposure: GraphQLExposure = { kind: placement.kind, name: placement.name };
-    const args: any[] = field.args ?? [];
+    const args: any[] = field.args;
     if (args.length) exposure.args = Object.fromEntries(args.map(arg => [arg.name, String(arg.type)]));
     if (crud && (kind === "create" || kind === "update" || kind === "patch")) {
       const arg = args.find(a => a.name === crud.type);
@@ -207,7 +208,7 @@ export function describeGraphQL(
     }
     const selection = selectionOf(field.type);
     if (selection) exposure.selection = selection;
-    const resultModel = modelTypes.get(namedType(field.type)?.name ?? "");
+    const resultModel = modelTypes.get(namedType(field.type).name);
     const listed = modelTypes.get(namedType(namedType(field.type)?.getFields?.()?.results?.type)?.name ?? "");
     const keys = (resultModel ?? listed)?.pk;
     if (keys) exposure.keys = keys;

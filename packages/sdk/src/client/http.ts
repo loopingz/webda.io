@@ -242,7 +242,7 @@ export class HttpTransport implements Transport {
       // Not JSON
     }
     const { message, code } = errorOf(body);
-    return new SdkError(response.status, message ?? text ?? response.statusText ?? `HTTP ${response.status}`, {
+    return new SdkError(response.status, message ?? (text || response.statusText || `HTTP ${response.status}`), {
       code,
       body,
       transport: this.name

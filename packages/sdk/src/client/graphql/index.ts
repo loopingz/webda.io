@@ -303,7 +303,8 @@ export class GraphQLTransport implements Transport {
     try {
       body = text ? JSON.parse(text) : undefined;
     } catch {
-      throw new SdkError(response.ok ? 500 : response.status, text || response.statusText, {
+      // Only a non-empty text fails to parse
+      throw new SdkError(response.ok ? 500 : response.status, text, {
         body: text,
         transport: this.name
       });

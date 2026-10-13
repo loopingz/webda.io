@@ -146,7 +146,7 @@ export class SdkGenerator<T extends SdkGeneratorParameters = SdkGeneratorParamet
    */
   @Command("sdk generate", { description: "Generate the frontend SDK", requires: ["rest-domain"], phase: "resolved" })
   async generate(outDir?: string): Promise<void> {
-    await this.write(outDir ?? this.parameters.outDir);
+    await this.write(outDir);
   }
 
   /**

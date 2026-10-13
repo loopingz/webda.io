@@ -264,9 +264,10 @@ export class Related<T extends SdkModel = SdkModel> {
    * @returns the full query
    */
   toQuery(filter: string = ""): string {
-    const match = /^(.*?)(\s*(?:ORDER\s+BY|LIMIT|OFFSET)\b.*)?$/is.exec(filter.trim());
-    const condition = match?.[1]?.trim() ?? "";
-    const tail = match?.[2] ?? "";
+    const query = filter.trim();
+    const clause = /\b(?:ORDER\s+BY|LIMIT|OFFSET)\b/i.exec(query);
+    const condition = (clause ? query.slice(0, clause.index) : query).trim();
+    const tail = clause ? query.slice(clause.index) : "";
     const base = `${this.targetAttribute} = ${quoteValue(this.uid)}`;
     return `${condition ? `${base} AND (${condition})` : base}${tail ? ` ${tail.trim()}` : ""}`;
   }

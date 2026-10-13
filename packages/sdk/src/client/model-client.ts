@@ -29,7 +29,8 @@ export type SdkModelClass<T extends SdkModel> = new (client: ModelClient<T>, dat
  * @returns the query of the next page
  */
 export function withContinuation(query: string, token: string | undefined): string {
-  const base = query.replace(/\s+OFFSET\s+("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')\s*$/i, "").trim();
+  // No leading whitespace in the pattern: it would backtrack quadratically on long blank runs
+  const base = query.replace(/\bOFFSET\s+("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')\s*$/i, "").trim();
   return token === undefined ? base : `${base} OFFSET "${token.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 

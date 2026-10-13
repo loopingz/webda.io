@@ -1,7 +1,7 @@
 import type { Options as TypesOptions } from "json-schema-to-typescript";
 import type { SdkManifest } from "../manifest.js";
 import { generateModels } from "./models.js";
-import { assignNames, pascalCase, quote, splitRef } from "./naming.js";
+import { assignNames, quote } from "./naming.js";
 import { generateOperations, type GeneratorNames } from "./operations.js";
 import { generateTypes } from "./types.js";
 

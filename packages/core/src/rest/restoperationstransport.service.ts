@@ -1073,7 +1073,7 @@ export class RESTOperationsTransport<
    */
   protected clearParentParameters(context: WebContext): void {
     const parameters = context.getParameters();
-    for (const key of Object.keys(parameters ?? {})) {
+    for (const key of Object.keys(parameters)) {
       if (/^pid\.\d+$/.test(key)) delete parameters[key];
     }
   }

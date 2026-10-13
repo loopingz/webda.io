@@ -215,12 +215,11 @@ export class SdkManifestBuilder {
 
   /**
    * The REST route of every operation, from the router's `openapi.<method>.operationId`
+   * @param rest - the REST transport
    * @returns operation id to route
    */
-  protected restRoutes(): Map<string, SdkManifestOperation["rest"]> {
+  protected restRoutes(rest: RESTOperationsTransport): Map<string, SdkManifestOperation["rest"]> {
     const routes = new Map<string, SdkManifestOperation["rest"]>();
-    const rest = this.restTransport();
-    if (!rest) return routes;
     this.ensureRoutes(rest);
     for (const [url, infos] of Object.entries(useRouter().getRoutes())) {
       // `{?q?}` lists the query-string parameters of the template
@@ -285,7 +284,7 @@ export class SdkManifestBuilder {
       return typeof model === "string" ? model : app.getModelId(model);
     }
     if (op.model) {
-      return app.getModelId(app.getModel(op.model)) ?? op.model;
+      return app.getModelId(app.getModel(op.model));
     }
     return undefined;
   }
@@ -299,7 +298,7 @@ export class SdkManifestBuilder {
     const describe = (name: "rest" | "graphql" | "grpc") =>
       this.options.transports === undefined || this.options.transports.includes(name);
     const rest = this.restTransport();
-    const routes = describe("rest") && rest ? this.restRoutes() : new Map<string, SdkManifestOperation["rest"]>();
+    const routes = describe("rest") && rest ? this.restRoutes(rest) : new Map<string, SdkManifestOperation["rest"]>();
     const schemas: Record<string, JSONSchema7> = {};
     /**
      * @param ref - a schema ref, `void` or `<ref>?`
@@ -357,10 +356,11 @@ export class SdkManifestBuilder {
 
     const models: Record<string, SdkManifestModel> = {};
     const allModels = app.getModels();
-    for (const [key, modelClass] of Object.entries(allModels)) {
+    for (const modelClass of Object.values(allModels)) {
       const metadata: any = (modelClass as any)?.Metadata;
       if (!metadata || !app.isFinalModel(metadata.Identifier)) continue;
-      const id: string = metadata.Identifier ?? key;
+      // `isFinalModel` only accepts a registered identifier
+      const id: string = metadata.Identifier;
       const output = metadata.Schemas?.Output ?? metadata.Schemas?.Input;
       if (!output) continue;
       const input = metadata.Schemas?.Input ?? output;

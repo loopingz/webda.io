@@ -277,19 +277,6 @@ export class StoreParameters extends ServiceParameters {
    */
   strict?: boolean;
   /**
-   * When __type model not found, use the model
-   * If strict is setup this parameter is not used
-   *
-   * @default true
-   */
-  defaultModel?: boolean;
-  /**
-   * If set, Store will ignore the __type
-   *
-   * @default false
-   */
-  forceModel?: boolean;
-  /**
    * Slow query threshold
    *
    * @default 30000
@@ -325,16 +312,12 @@ export class StoreParameters extends ServiceParameters {
     maxRows?: number;
   };
   /**
-   * Model Aliases to allow easier rename of Model
-   */
-  modelAliases?: { [key: string]: string };
-  /**
    * Disable default memory cache
    */
   noCache?: boolean;
 
   /**
-   * Load store parameters with defaults for model type, strict mode, and aliases
+   * Load store parameters with defaults for models, strict mode and the startup type check
    * @param params - the service parameters
    * @returns the result
    */
@@ -379,10 +362,7 @@ export class StoreParameters extends ServiceParameters {
     // or `parameters.additionalModels` keeps working. In the legacy-input branch
     // `super.load(params)` already set both via Object.assign, so the `??=` is a no-op.
     this.strict ??= false;
-    this.defaultModel ??= true;
-    this.forceModel ??= false;
     this.slowQueryThreshold ??= 30000;
-    this.modelAliases ??= {};
     this.typeCheck = { enabled: true, maxRows: 10000, ...(this.typeCheck ?? {}) };
     return this;
   }

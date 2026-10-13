@@ -1283,13 +1283,6 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "definitions": {
-          "modelAliases": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "Model Aliases to allow easier rename of Model",
-            "type": "object"
-          },
           "persistence": {
             "additionalProperties": false,
             "description": "Persist the data in a file",
@@ -1353,25 +1346,11 @@
             ],
             "type": "string"
           },
-          "defaultModel": {
-            "default": true,
-            "description": "When __type model not found, use the model\nIf strict is setup this parameter is not used",
-            "type": "boolean"
-          },
-          "forceModel": {
-            "default": false,
-            "description": "If set, Store will ignore the __type",
-            "type": "boolean"
-          },
           "maxGroups": {
             "default": 10000,
             "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
             "minimum": 1,
             "type": "number"
-          },
-          "modelAliases": {
-            "$ref": "#/definitions/modelAliases",
-            "description": "Model Aliases to allow easier rename of Model"
           },
           "models": {
             "default": [

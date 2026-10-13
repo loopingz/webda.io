@@ -142,13 +142,6 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "definitions": {
-          "modelAliases#2": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "Model Aliases to allow easier rename of Model",
-            "type": "object"
-          },
           "typeCheck#2": {
             "additionalProperties": false,
             "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found",
@@ -185,29 +178,15 @@
               "number"
             ]
           },
-          "defaultModel": {
-            "default": true,
-            "description": "When __type model not found, use the model\nIf strict is setup this parameter is not used",
-            "type": "boolean"
-          },
           "folder": {
             "description": "Local path where to store all `json` files",
             "type": "string"
-          },
-          "forceModel": {
-            "default": false,
-            "description": "If set, Store will ignore the __type",
-            "type": "boolean"
           },
           "maxGroups": {
             "default": 10000,
             "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
             "minimum": 1,
             "type": "number"
-          },
-          "modelAliases": {
-            "$ref": "#/definitions/modelAliases%232",
-            "description": "Model Aliases to allow easier rename of Model"
           },
           "models": {
             "default": [

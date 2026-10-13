@@ -5,7 +5,7 @@ sidebar_label: "@webda/runtime"
 
 # @webda/runtime
 
-> Webda runtime service bundle — router, cluster coordination, proxy, invitation system, version endpoint, migration store, and core utility models bundled for use in any Webda deployment.
+> Webda runtime service bundle — router, cluster coordination, proxy, invitation system, version endpoint, and core utility models bundled for use in any Webda deployment.
 
 ## When to use it
 
@@ -29,10 +29,6 @@ pnpm add @webda/runtime
 - `InvitationService` — Token-based invitation/join-code system for model membership ([source](_media/invitationservice.ts))
 - `ProxyService` — HTTP reverse proxy that forwards requests matching a URL prefix to an upstream host ([source](_media/proxy.ts))
 - `VersionService` — Exposes a `/version` endpoint returning the application name and version ([source](_media/version.ts))
-
-### Stores
-
-- `MigrationStore` — Wraps another store and runs model migrations on read ([source](_media/migration.ts))
 
 ### Utility models
 

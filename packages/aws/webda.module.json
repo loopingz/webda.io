@@ -918,18 +918,27 @@
             ],
             "type": "object"
           },
-          "modelAliases": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "Model Aliases to allow easier rename of Model",
-            "type": "object"
-          },
           "tables": {
             "additionalProperties": {
               "type": "string"
             },
             "description": "Per-model table name overrides, keyed by model identifier\n\nModels not listed use `table`",
+            "type": "object"
+          },
+          "typeCheck": {
+            "additionalProperties": false,
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found",
+            "properties": {
+              "enabled": {
+                "default": true,
+                "type": "boolean"
+              },
+              "maxRows": {
+                "default": 10000,
+                "description": "Rows scanned at most by stores without a native count; beyond, the counts are \"at least\"",
+                "type": "number"
+              }
+            },
             "type": "object"
           }
         },
@@ -957,19 +966,9 @@
             "$ref": "#/definitions/credentials",
             "description": "Static credentials, default to the AWS environment variables\n\nCan be encrypted with `webda config encrypt`"
           },
-          "defaultModel": {
-            "default": true,
-            "description": "When __type model not found, use the model\nIf strict is setup this parameter is not used",
-            "type": "boolean"
-          },
           "endpoint": {
             "description": "Custom endpoint (localstack, minio, ...)",
             "type": "string"
-          },
-          "forceModel": {
-            "default": false,
-            "description": "If set, Store will ignore the __type",
-            "type": "boolean"
           },
           "globalIndexes": {
             "$ref": "#/definitions/DynamoGlobalIndexes",
@@ -980,10 +979,6 @@
             "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
             "minimum": 1,
             "type": "number"
-          },
-          "modelAliases": {
-            "$ref": "#/definitions/modelAliases",
-            "description": "Model Aliases to allow easier rename of Model"
           },
           "models": {
             "default": [
@@ -1030,6 +1025,10 @@
           "type": {
             "description": "Type of the service",
             "type": "string"
+          },
+          "typeCheck": {
+            "$ref": "#/definitions/typeCheck",
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found"
           },
           "openapi": {
             "type": "object",

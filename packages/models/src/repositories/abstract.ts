@@ -4,12 +4,14 @@ import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS, WEBDA_LEGACY_UID } from "../storable.j
 import { ModelRefWithCreate } from "../relations.js";
 import { Repository } from "./repository.js";
 import type { ArrayElement } from "@webda/tsc-esm";
-import type {
-  AggregationQuery,
-  AggregationResult,
-  Assignment,
-  Query as WebdaQLQuery,
-  QueryParameters
+import {
+  type AggregationQuery,
+  type AggregationResult,
+  type Assignment,
+  type CompletionField,
+  fieldsFromSchema,
+  type Query as WebdaQLQuery,
+  type QueryParameters
 } from "@webda/ql";
 import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
 import { ModelTypeResolver, useTypeResolver } from "../types-resolver.js";
@@ -351,13 +353,28 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
    */
   getAllowedFields(): string[] | undefined {
     const meta: any = (this.model as any)?.Metadata;
+    const completionFields = this.getCompletionFields();
     const fields = new Set<string>([
+      ...completionFields.map((f) => f.name),
       ...Object.keys(meta?.Reflection ?? {}),
       ...Object.keys(meta?.Schemas?.Stored?.properties ?? {}),
       ...Object.keys(meta?.Schemas?.Input?.properties ?? {}),
       ...Object.keys(meta?.Schemas?.Output?.properties ?? {})
     ]);
     return fields.size ? [...fields] : undefined;
+  }
+
+  /**
+   * Completion fields of the model, flattened from its schemas
+   * @returns array of completion fields
+   */
+  getCompletionFields(): CompletionField[] {
+    const meta: any = (this.model as any)?.Metadata;
+    const schema = meta?.Schemas?.Stored || meta?.Schemas?.Output || meta?.Schemas?.Input;
+    if (schema) {
+      return fieldsFromSchema(schema);
+    }
+    return [];
   }
 
   /**

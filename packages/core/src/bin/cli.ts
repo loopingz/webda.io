@@ -16,6 +16,7 @@ import { getDeploymentUnitServices, mergeDeploymentUnits } from "../application/
 import { DEPLOYER_CAPABILITY } from "../deployers/deployer.js";
 import * as WebdaError from "../errors/errors.js";
 import { Core } from "../core/core.js";
+import { STORE_CAPABILITY } from "../stores/capability.js";
 import { bootCoreForCommand, executeApplicationCommand, selectPhase } from "./cli-phase.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { CancelablePromise, parseImportDescriptor, toImportSpecifier } from "@webda/utils";
@@ -600,8 +601,8 @@ export function ensureCommandServices(app: Application, services: ServiceCommand
   const appConfig = app.getConfiguration();
   appConfig.services ??= {};
   for (const svc of services) {
-    // Deployers only come from the units of the selected deployment
-    if (isDeployerType(app, svc.type)) {
+    // Deployers only come from the units of the selected deployment, stores only from the configuration
+    if (isDeployerType(app, svc.type) || isStoreType(app, svc.type)) {
       continue;
     }
     const hasProvider =
@@ -612,6 +613,19 @@ export function ensureCommandServices(app: Application, services: ServiceCommand
       appConfig.services[svc.name] = { type: svc.type };
     }
   }
+}
+
+/**
+ * Whether a service type is a store, from its compiled capabilities
+ *
+ * @param app - the loaded Application
+ * @param type - the service type
+ * @returns true if the type declares the store capability
+ */
+export function isStoreType(app: Pick<Application, "getModules">, type: string): boolean {
+  const modules = app.getModules?.();
+  const entry = modules?.moddas?.[type] ?? modules?.beans?.[type];
+  return (entry?.capabilities ?? []).includes(STORE_CAPABILITY);
 }
 
 /**

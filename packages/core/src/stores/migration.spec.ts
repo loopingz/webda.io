@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/application.js";
-import { useModel } from "../application/hooks.js";
+import { useApplication, useModel } from "../application/hooks.js";
 import { MemoryStore } from "./memory.service.js";
 import { sleep } from "@webda/utils";
 import { useCore } from "../core/hooks.js";
@@ -451,5 +451,39 @@ class TypeCheckTest extends WebdaApplicationTest {
       warnings.some(warning => warning.includes("backend down")),
       warnings.join("\n")
     );
+  }
+}
+
+@suite
+class MigrateCommandTest extends WebdaApplicationTest {
+  getTestConfiguration() {
+    return { parameters: { ignoreBeans: true }, services: {} };
+  }
+
+  @test
+  async exitCodeFollowsUnknownTypes() {
+    registerLegacyTypeFixtures();
+    const store: MemoryStore = await this.addService(MemoryStore, { models: LEGACY_TYPE_MODELS } as any, "commandMemory");
+    for (const { key, data } of LEGACY_TYPE_ROWS) {
+      store.storage.set(key, JSON.stringify(data));
+    }
+    assert.strictEqual(await store.migrate(true, 4, false), 1);
+    assert.strictEqual(JSON.parse(store.storage.get("a2")!).__type, "V3Animal", "a dry run writes nothing");
+    assert.strictEqual(await store.migrate(false, 4, true), 0);
+    assert.strictEqual(JSON.parse(store.storage.get("a2")!).__type, "Webda/V3Animal");
+  }
+
+  @test
+  async storesWithoutRawAccessAreSkipped() {
+    assert.strictEqual(await new OpaqueStore("opaqueCommand", {} as any).migrateCommand(), 0);
+  }
+
+  @test
+  moduleDeclaresTheComposableCommand() {
+    const memory: any = useApplication().getModules().moddas["Webda/MemoryStore"];
+    assert.deepStrictEqual(Object.keys(memory.commands.migrate.args), ["dryRun", "batch", "allowUnknown"]);
+    assert.strictEqual(memory.commands.migrate.args.batch.default, 500);
+    assert.strictEqual(memory.commands.migrate.phase, "initialized");
+    assert.ok(memory.capabilities.includes("store"));
   }
 }

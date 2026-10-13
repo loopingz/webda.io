@@ -14,7 +14,7 @@ import { Service } from "../services/service.js";
 import * as WebdaQL from "@webda/ql";
 import type { WebdaQLString } from "@webda/ql";
 import { useApplication, useModel, useModelId } from "../application/hooks.js";
-import { useLog } from "../loggers/hooks.js";
+import { useLog, useOutput } from "../loggers/hooks.js";
 import { useCore, useModelMetadata } from "../core/hooks.js";
 import type { ModelMetadata } from "@webda/compiler";
 import { InstanceCache } from "../cache/cache.js";
@@ -27,6 +27,7 @@ import {
   DEFAULT_MIGRATION_LEASE,
   emptyProgress,
   emptyTableReport,
+  formatMigrationReport,
   incrementCount,
   MigrationAlreadyRunning,
   migrationTotals,
@@ -997,6 +998,39 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       this.log("WARN", summary.message);
     }
     return summary;
+  }
+
+  /**
+   * Body of the `migrate` command of the stores: run the `types` migration and print its report
+   *
+   * Stores declare `@Command("migrate", { phase: "initialized" }) migrate(dryRun = false, batch = 500,
+   * allowUnknown = false)` calling this method: composable commands pass their arguments by position.
+   * @param dryRun - count, write nothing
+   * @param batch - rows per page
+   * @param allowUnknown - exit with 0 even when rows keep an unknown or ambiguous type
+   * @returns the exit code
+   */
+  async migrateCommand(
+    dryRun: boolean = false,
+    batch: number = DEFAULT_MIGRATION_BATCH,
+    allowUnknown: boolean = false
+  ): Promise<number> {
+    if (!this.getRawTables()) {
+      this.log("WARN", `Store ${this.getName()} cannot run migrations yet: skipped`);
+      return 0;
+    }
+    const report = await this.migrateTypes({ dryRun: !!dryRun, batchSize: Number(batch) || DEFAULT_MIGRATION_BATCH });
+    useOutput(formatMigrationReport(report));
+    const unknown = migrationTotals(report).unknown;
+    if (unknown > 0 && !allowUnknown) {
+      this.log(
+        "ERROR",
+        `${unknown} rows of ${this.getName()} keep an unknown or ambiguous type: declare a @WebdaAlias on the ` +
+          "model they belong to, or pass --allow-unknown"
+      );
+      return 1;
+    }
+    return 0;
   }
 
   /**

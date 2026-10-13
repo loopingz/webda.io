@@ -1421,7 +1421,34 @@
         "type": "object",
         "title": "MemoryStore"
       },
-      "Configuration": "lib/stores/memory.service:MemoryStoreParameters"
+      "Configuration": "lib/stores/memory.service:MemoryStoreParameters",
+      "capabilities": [
+        "store"
+      ],
+      "commands": {
+        "migrate": {
+          "description": "Rewrite the Webda 3 types of the stores to their Webda 4 identifiers",
+          "method": "migrate",
+          "args": {
+            "dryRun": {
+              "type": "boolean",
+              "default": false,
+              "description": "Only count the rows to migrate, write nothing"
+            },
+            "batch": {
+              "type": "number",
+              "default": 500,
+              "description": "Rows per page"
+            },
+            "allowUnknown": {
+              "type": "boolean",
+              "default": false,
+              "description": "Exit with 0 even when rows keep an unknown or ambiguous type"
+            }
+          },
+          "phase": "initialized"
+        }
+      }
     },
     "Webda/MultiNotificationService": {
       "Import": "lib/services/notificationservice.service:default",

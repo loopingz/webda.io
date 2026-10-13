@@ -13,6 +13,8 @@ import {
   checkLegacyTypeStartup,
   checkLegacyTypeVisibility,
   registerLegacyTypeFixtures,
+  LEGACY_TYPE_MODELS,
+  LEGACY_TYPE_ROWS,
   type LegacyTypesHarness
 } from "@webda/core/lib/test";
 import { FileStore, FileStoreParameters } from "./filestore.service.js";
@@ -109,6 +111,24 @@ class FileStoreLegacyTypesTest extends WebdaApplicationTest {
     fs.writeFileSync(path.join(folder, "d.json"), JSON.stringify({ uuid: "d", __type: "v3dog" }));
     assert.strictEqual((await store._get("a")).uuid, "a");
     assert.strictEqual(await store._get("d"), undefined);
+    // An untyped row names no model: a strict store does not serve it
+    fs.writeFileSync(path.join(folder, "u.json"), JSON.stringify({ uuid: "u" }));
+    assert.strictEqual(await store._get("u"), undefined);
+  }
+
+  @test
+  async migrateCommandRewritesTheFolder() {
+    registerLegacyTypeFixtures();
+    const store: any = await this.harness.createStore("fsMigrate", LEGACY_TYPE_MODELS);
+    const folder = store.getParameters().folder;
+    await this.harness.seedRaw(store, "fsMigrate", LEGACY_TYPE_ROWS);
+    const typeOf = (key: string) => JSON.parse(fs.readFileSync(path.join(folder, `${key}.json`), "utf-8")).__type;
+    // The unknown row fails the command unless allowed; a dry run writes nothing
+    assert.strictEqual(await store.migrate(true, 4, false), 1);
+    assert.strictEqual(typeOf("a2"), "V3Animal");
+    assert.strictEqual(await store.migrate(false, 4, true), 0);
+    assert.strictEqual(typeOf("a2"), "Webda/V3Animal");
+    assert.strictEqual(typeOf("u1"), "Gone/Model");
   }
 
   @test

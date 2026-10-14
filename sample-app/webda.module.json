@@ -1027,12 +1027,12 @@
           {
             "attribute": "courses",
             "model": "WebdaDemo/Course",
-            "targetAttribute": "Classroom"
+            "targetAttribute": "classroom"
           },
           {
             "attribute": "hardwares",
             "model": "WebdaDemo/Hardware",
-            "targetAttribute": "Classroom"
+            "targetAttribute": "classroom"
           }
         ]
       },
@@ -1156,12 +1156,12 @@
           {
             "attribute": "_projects",
             "model": "WebdaDemo/Project",
-            "targetAttribute": "Company"
+            "targetAttribute": "company"
           },
           {
             "attribute": "users",
             "model": "WebdaDemo/User",
-            "targetAttribute": "Company"
+            "targetAttribute": "company"
           }
         ]
       },
@@ -1710,8 +1710,7 @@
         "queries": [
           {
             "attribute": "brands",
-            "model": "WebdaDemo/Brand",
-            "targetAttribute": "Hardware"
+            "model": "WebdaDemo/Brand"
           }
         ]
       },
@@ -2640,8 +2639,7 @@
         "queries": [
           {
             "attribute": "brands",
-            "model": "WebdaDemo/Brand",
-            "targetAttribute": "Hardware"
+            "model": "WebdaDemo/Brand"
           }
         ]
       },
@@ -3110,7 +3108,7 @@
           {
             "attribute": "courses",
             "model": "WebdaDemo/Course",
-            "targetAttribute": "Student"
+            "targetAttribute": "students"
           }
         ]
       },
@@ -4062,12 +4060,12 @@
           {
             "attribute": "courses",
             "model": "WebdaDemo/Course",
-            "targetAttribute": "Teacher"
+            "targetAttribute": "teacher"
           },
           {
             "attribute": "students",
             "model": "WebdaDemo/Student",
-            "targetAttribute": "Teacher"
+            "targetAttribute": "teachers"
           }
         ]
       },
@@ -4246,12 +4244,12 @@
           {
             "attribute": "computers",
             "model": "WebdaDemo/Computer",
-            "targetAttribute": "User"
+            "targetAttribute": "_user"
           },
           {
             "attribute": "contacts",
             "model": "WebdaDemo/Contact",
-            "targetAttribute": "User"
+            "targetAttribute": "owner"
           }
         ]
       },

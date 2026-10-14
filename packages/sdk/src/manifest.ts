@@ -262,6 +262,7 @@ export class SdkManifestBuilder {
         query.targetAttribute = parent.attribute;
         continue;
       }
+      if (!query.targetAttribute) continue;
       const properties = Object.keys(target.Schemas?.Output?.properties ?? target.Schemas?.Input?.properties ?? {});
       if (properties.includes(query.targetAttribute)) continue;
       const wanted = query.targetAttribute.toLowerCase();

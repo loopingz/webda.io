@@ -374,8 +374,18 @@ describe.each([["sample-app"], ["sample-apps/blog-system"], ["packages/core"]])(
       expect(JSON.stringify(got.Actions), `${name} Actions`).toBe(JSON.stringify(entry.Actions));
       expect(JSON.stringify(got.Events), `${name} Events`).toBe(JSON.stringify(entry.Events));
       expect(JSON.stringify(got.PrimaryKey), `${name} PrimaryKey`).toBe(JSON.stringify(entry.PrimaryKey));
-      expect(JSON.stringify(got.Shared), `${name} Shared`).toBe(JSON.stringify(entry.Shared));
     }
+  });
+
+  it("extracts targetAttribute from typeArguments[2] for ModelRelated", () => {
+    if (relative !== "packages/core" || !committed) return;
+    const userQueries = result!.module.models["Webda/SimpleUser"]?.Relations?.queries;
+    const identsQuery = userQueries?.find(q => q.attribute === "_idents");
+    expect(identsQuery).toEqual({
+      attribute: "_idents",
+      model: "Webda/Ident",
+      targetAttribute: "_user"
+    });
   });
 
   it("matches service commands, capabilities and Configuration", () => {

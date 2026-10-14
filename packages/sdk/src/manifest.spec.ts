@@ -106,7 +106,7 @@ class SdkManifestTest extends SampleAppTest {
     // The frozen metadata is left untouched
     assert.strictEqual(
       (useApplication().getModels()["WebdaDemo/Company"] as any).Metadata.Relations.queries[0].targetAttribute,
-      "Company"
+      "company"
     );
     assert.ok(user.operations.includes("User.Get") && user.operations.includes("Users.Query"));
     assert.ok(user.operations.includes("User.Images.GetUrl"));

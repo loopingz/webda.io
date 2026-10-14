@@ -20,7 +20,7 @@ import { Authentication } from "../authentication.service.js";
 import { EmailPasswordProvider } from "../email/emailpassword.service.js";
 import { InvalidMfaCode, MfaAlreadyEnabled, MfaNotEnabled, MfaNotPending, Throttled } from "../errors.js";
 import { TotpService } from "./totp.service.js";
-import { extractCode, SecondFactorService } from "./secondfactor.service.js";
+import { SecondFactorService } from "./secondfactor.service.js";
 
 const code = (cls: { name: string }) => cls.name.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase();
 
@@ -49,6 +49,7 @@ class TotpTest extends AuthTest {
     return {
       parameters: { ignoreBeans: true },
       services: {
+        DomainService: { type: "Webda/DomainService", models: ["Webda/User"] },
         AuthStore: {
           type: "Webda/MemoryStore",
           models: ["Webda/User", "Webda/Ident", "Webda/RefreshToken"]
@@ -81,6 +82,7 @@ class TotpTest extends AuthTest {
 
   async tweakApp(app: TestApplication) {
     await super.tweakApp(app);
+    app.getNamespace = () => "Webda";
     app.addModda("Webda/Authentication", Authentication as any);
     app.addModda("Webda/EmailPasswordProvider", EmailPasswordProvider as any);
     app.addModda("Webda/TotpService", TotpService as any);
@@ -130,7 +132,7 @@ class TotpTest extends AuthTest {
     const { ctx, email, password } = await this.registerUser();
 
     // 1. Enroll
-    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, ctx);
+    const enrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, ctx);
     assert.ok(enrolled.secret);
     assert.ok(enrolled.uri.startsWith("otpauth://totp/"));
     assert.ok(enrolled.uri.includes(encodeURIComponent(email)));
@@ -138,7 +140,7 @@ class TotpTest extends AuthTest {
     // 2. Confirm with valid code
     const step = totpStep();
     const confirmCode = hotp(enrolled.secret, step);
-    const confirmed: any = await this.op("Auth.Totp.Confirm", { code: confirmCode }, ctx);
+    const confirmed: any = await this.op("User.Mfa.Confirm", { method: "totp", code: confirmCode }, ctx);
     assert.ok(Array.isArray(confirmed.recoveryCodes));
     assert.strictEqual(confirmed.recoveryCodes.length, 10);
     assert.ok(this.events.includes("Authentication.MfaEnabled"));
@@ -151,6 +153,7 @@ class TotpTest extends AuthTest {
     await this.op("Auth.Logout", {}, ctx);
     assert.ok(!ctx.getSession().isLogged());
     assert.ok(!ctx.getSession().isPending());
+    assert.strictEqual(ctx.getSession().mfaVerifications, undefined);
 
     // 4. Login returns mfa_required
     const loginRes: any = await this.op("Auth.Email.Login", { email, password }, ctx);
@@ -163,21 +166,25 @@ class TotpTest extends AuthTest {
     // 5. Verify returns tokens and marks session verified
     const nextStep = totpStep() + 1;
     const verifyCode = hotp(enrolled.secret, nextStep);
-    const verifyRes: any = await this.op("Auth.Totp.Verify", { code: verifyCode }, ctx);
+    const verifyRes: any = await this.op("User.Mfa.Verify", { method: "totp", code: verifyCode }, ctx);
     assert.strictEqual(verifyRes.status, "ok");
     assert.ok(verifyRes.accessToken);
     assert.ok(verifyRes.refreshToken);
     assert.strictEqual(ctx.getSession().mfa, "verified");
     assert.deepStrictEqual(ctx.getSession().amr, ["pwd", "totp"]);
     assert.ok(this.events.includes("Authentication.MfaVerified"));
+    const verified = ctx.getSession().mfaVerifications["User.Mfa.Verify"];
+    assert.strictEqual(verified.method, "totp");
+    const claims = await useService("TokenService").verifyAccess(verifyRes.accessToken);
+    assert.deepStrictEqual(claims.mfaVerifications["User.Mfa.Verify"], verified);
   }
 
   @test
   async wrongCodeAndReplayRejected() {
     const { ctx, email, password } = await this.registerUser();
-    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, ctx);
+    const enrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, ctx);
     const confirmCode = hotp(enrolled.secret, totpStep());
-    await this.op("Auth.Totp.Confirm", { code: confirmCode }, ctx);
+    await this.op("User.Mfa.Confirm", { method: "totp", code: confirmCode }, ctx);
 
     // Logout and start login
     await this.op("Auth.Logout", {}, ctx);
@@ -185,13 +192,13 @@ class TotpTest extends AuthTest {
     assert.ok(ctx.getSession().isPending());
 
     // Wrong code fails with 401 InvalidMfaCode
-    await rejectsWith(() => this.op("Auth.Totp.Verify", { code: "000000" }, ctx), InvalidMfaCode);
+    await rejectsWith(() => this.op("User.Mfa.Verify", { method: "totp", code: "000000" }, ctx), InvalidMfaCode);
     assert.ok(this.events.includes("Authentication.MfaFailed"));
 
     // Valid code succeeds
     const nextStep = totpStep() + 1;
     const validCode = hotp(enrolled.secret, nextStep);
-    const res: any = await this.op("Auth.Totp.Verify", { code: validCode }, ctx);
+    const res: any = await this.op("User.Mfa.Verify", { method: "totp", code: validCode }, ctx);
     assert.strictEqual(res.status, "ok");
 
     // Login again to test replay
@@ -200,15 +207,15 @@ class TotpTest extends AuthTest {
     assert.ok(ctx.getSession().isPending());
 
     // Replay of same code is rejected with identical 401 InvalidMfaCode
-    await rejectsWith(() => this.op("Auth.Totp.Verify", { code: validCode }, ctx), InvalidMfaCode);
+    await rejectsWith(() => this.op("User.Mfa.Verify", { method: "totp", code: validCode }, ctx), InvalidMfaCode);
   }
 
   @test
   async lockoutAfterFailuresThenUnlock() {
     const { ctx, email, password } = await this.registerUser();
-    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, ctx);
+    const enrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, ctx);
     const confirmCode = hotp(enrolled.secret, totpStep());
-    await this.op("Auth.Totp.Confirm", { code: confirmCode }, ctx);
+    await this.op("User.Mfa.Confirm", { method: "totp", code: confirmCode }, ctx);
 
     // Logout and start login
     await this.op("Auth.Logout", {}, ctx);
@@ -216,31 +223,31 @@ class TotpTest extends AuthTest {
 
     // 3 failures cross the threshold (failedBeforeDelay = 3)
     for (let i = 0; i < 3; i++) {
-      await rejectsWith(() => this.op("Auth.Totp.Verify", { code: "999999" }, ctx), InvalidMfaCode);
+      await rejectsWith(() => this.op("User.Mfa.Verify", { method: "totp", code: "999999" }, ctx), InvalidMfaCode);
     }
 
     // 4th attempt is locked out (429 Throttled)
-    await rejectsWith(() => this.op("Auth.Totp.Verify", { code: "999999" }, ctx), Throttled);
+    await rejectsWith(() => this.op("User.Mfa.Verify", { method: "totp", code: "999999" }, ctx), Throttled);
 
     // Even with the correct code, lockout refuses
     const validCode = hotp(enrolled.secret, totpStep() + 1);
-    await rejectsWith(() => this.op("Auth.Totp.Verify", { code: validCode }, ctx), Throttled);
+    await rejectsWith(() => this.op("User.Mfa.Verify", { method: "totp", code: validCode }, ctx), Throttled);
 
     // Wait for lockout (1000 ms in test config)
     await new Promise(resolve => setTimeout(resolve, 1100));
 
     // After lockout expires, valid code succeeds
     const freshCode = hotp(enrolled.secret, totpStep() + 1);
-    const okRes: any = await this.op("Auth.Totp.Verify", { code: freshCode }, ctx);
+    const okRes: any = await this.op("User.Mfa.Verify", { method: "totp", code: freshCode }, ctx);
     assert.strictEqual(okRes.status, "ok");
   }
 
   @test
   async recoverWithRecoveryCodeAndReuseFails() {
     const { ctx, email, password } = await this.registerUser();
-    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, ctx);
+    const enrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, ctx);
     const confirmCode = hotp(enrolled.secret, totpStep());
-    const confirmed: any = await this.op("Auth.Totp.Confirm", { code: confirmCode }, ctx);
+    const confirmed: any = await this.op("User.Mfa.Confirm", { method: "totp", code: confirmCode }, ctx);
     const recoveryCode = confirmed.recoveryCodes[0];
 
     // Logout and start login
@@ -249,11 +256,12 @@ class TotpTest extends AuthTest {
     assert.ok(ctx.getSession().isPending());
 
     // Recover using recovery code
-    const res: any = await this.op("Auth.Mfa.Recover", { code: recoveryCode }, ctx);
+    const res: any = await this.op("User.Mfa.Recover", { code: recoveryCode }, ctx);
     assert.strictEqual(res.status, "ok");
     assert.ok(res.accessToken);
     assert.strictEqual(ctx.getSession().mfa, "verified");
     assert.deepStrictEqual(ctx.getSession().amr, ["pwd", "recovery"]);
+    assert.strictEqual(ctx.getSession().mfaVerifications["User.Mfa.Recover"].method, "recovery");
 
     // Logout and login again
     await this.op("Auth.Logout", {}, ctx);
@@ -261,49 +269,59 @@ class TotpTest extends AuthTest {
     assert.ok(ctx.getSession().isPending());
 
     // Reusing the same recovery code fails
-    await rejectsWith(() => this.op("Auth.Mfa.Recover", { code: recoveryCode }, ctx), InvalidMfaCode);
+    await rejectsWith(() => this.op("User.Mfa.Recover", { code: recoveryCode }, ctx), InvalidMfaCode);
 
     // Another recovery code still works
     const secondRecoveryCode = confirmed.recoveryCodes[1];
-    const secondRes: any = await this.op("Auth.Mfa.Recover", { code: secondRecoveryCode }, ctx);
+    const secondRes: any = await this.op("User.Mfa.Recover", { code: secondRecoveryCode }, ctx);
     assert.strictEqual(secondRes.status, "ok");
   }
 
   @test
-  async verifyWithoutPendingSessionRefused() {
-    const ctx = await this.ctx();
-    // Anonymous session (neither logged nor pending)
-    await rejectsWith(() => this.op("Auth.Totp.Verify", { code: "123456" }, ctx), MfaNotPending);
-
-    // Fully logged session (not pending)
-    await this.registerUser("bob@example.com", "password123");
-    await rejectsWith(() => this.op("Auth.Totp.Verify", { code: "123456" }, ctx), MfaNotPending);
+  async verifyRequiresIdentityAndSupportsStepUp() {
+    const anonymous = await this.ctx();
+    await rejectsWith(
+      () => this.op("User.Mfa.Verify", { method: "totp", code: "123456" }, anonymous),
+      WebdaError.Unauthorized
+    );
+    const { ctx } = await this.registerUser();
+    await this.op("User.Mfa.Enroll", { method: "dummy" }, ctx);
+    await this.op("User.Mfa.Confirm", { method: "dummy", code: "FIXED_CODE_42" }, ctx);
+    const result = await this.op("User.Mfa.Verify", { method: "dummy", code: "FIXED_CODE_42" }, ctx);
+    assert.ok(result.proof);
+    assert.strictEqual(result.accessToken, undefined);
+    const status = ctx.getSession().mfaVerifications["User.Mfa.Verify"];
+    assert.strictEqual(status.method, "dummy");
+    assert.strictEqual(status.owner, `Webda/User/${ctx.getSession().userId}`);
+    assert.ok(Date.now() - status.verifiedAt < 1000);
+    await rejectsWith(() => this.op("User.Mfa.Verify", { method: "dummy", code: "bad" }, ctx), InvalidMfaCode);
+    assert.deepStrictEqual(ctx.getSession().mfaVerifications["User.Mfa.Verify"], status);
   }
 
   @test
   async enrollWhileEnabledRefused() {
     const { ctx } = await this.registerUser();
-    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, ctx);
+    const enrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, ctx);
     const confirmCode = hotp(enrolled.secret, totpStep());
-    await this.op("Auth.Totp.Confirm", { code: confirmCode }, ctx);
+    await this.op("User.Mfa.Confirm", { method: "totp", code: confirmCode }, ctx);
 
     // Calling enroll while enabled throws 409 MfaAlreadyEnabled
-    await rejectsWith(() => this.op("Auth.Totp.Enroll", {}, ctx), MfaAlreadyEnabled);
+    await rejectsWith(() => this.op("User.Mfa.Enroll", { method: "totp" }, ctx), MfaAlreadyEnabled);
   }
 
   @test
   async disableRequiresValidCode() {
     const { ctx, email, password } = await this.registerUser();
-    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, ctx);
+    const enrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, ctx);
     const confirmCode = hotp(enrolled.secret, totpStep());
-    const confirmed: any = await this.op("Auth.Totp.Confirm", { code: confirmCode }, ctx);
+    const confirmed: any = await this.op("User.Mfa.Confirm", { method: "totp", code: confirmCode }, ctx);
 
     // Disable with wrong code fails
-    await rejectsWith(() => this.op("Auth.Totp.Disable", { code: "000000" }, ctx), InvalidMfaCode);
+    await rejectsWith(() => this.op("User.Mfa.Disable", { method: "totp", code: "000000" }, ctx), InvalidMfaCode);
 
     // Disable with valid TOTP code succeeds
     const disableCode = hotp(enrolled.secret, totpStep() + 1);
-    await this.op("Auth.Totp.Disable", { code: disableCode }, ctx);
+    await this.op("User.Mfa.Disable", { method: "totp", code: disableCode }, ctx);
     assert.ok(this.events.includes("Authentication.MfaDisabled"));
 
     // Login directly succeeds without MFA gate
@@ -313,13 +331,13 @@ class TotpTest extends AuthTest {
     assert.ok(directLogin.accessToken);
 
     // Re-enroll, confirm, then disable using a recovery code
-    const reEnrolled: any = await this.op("Auth.Totp.Enroll", {}, ctx);
+    const reEnrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, ctx);
     const reConfirmCode = hotp(reEnrolled.secret, totpStep());
-    const reConfirmed: any = await this.op("Auth.Totp.Confirm", { code: reConfirmCode }, ctx);
+    const reConfirmed: any = await this.op("User.Mfa.Confirm", { method: "totp", code: reConfirmCode }, ctx);
     assert.strictEqual(ctx.getSession().mfa, "verified");
 
     // Disable using recovery code
-    await this.op("Auth.Totp.Disable", { code: reConfirmed.recoveryCodes[0] }, ctx);
+    await this.op("User.Mfa.Disable", { method: "totp", code: reConfirmed.recoveryCodes[0] }, ctx);
 
     // Login again works directly
     await this.op("Auth.Logout", {}, ctx);
@@ -338,9 +356,9 @@ class TotpTest extends AuthTest {
     const refreshB = loginB.refreshToken;
 
     // Browser A enrolls and confirms TOTP
-    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, browserA);
+    const enrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, browserA);
     const confirmCode = hotp(enrolled.secret, totpStep());
-    const confirmed: any = await this.op("Auth.Totp.Confirm", { code: confirmCode }, browserA);
+    const confirmed: any = await this.op("User.Mfa.Confirm", { method: "totp", code: confirmCode }, browserA);
 
     // Browser B's refresh token was revoked by confirm()
     await assert.rejects(() => this.op("Auth.Refresh", { refreshToken: refreshB }, browserB), {
@@ -360,9 +378,9 @@ class TotpTest extends AuthTest {
   @test
   async oauthLoginAlsoGated() {
     const { ctx } = await this.registerUser("google-user@example.com", "password123");
-    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, ctx);
+    const enrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, ctx);
     const confirmCode = hotp(enrolled.secret, totpStep());
-    await this.op("Auth.Totp.Confirm", { code: confirmCode }, ctx);
+    await this.op("User.Mfa.Confirm", { method: "totp", code: confirmCode }, ctx);
 
     // Link google ident
     const ident = await Ident.ref(Ident.key("google-user@example.com", "email")).get();
@@ -396,7 +414,7 @@ class TotpTest extends AuthTest {
 
     // Verify TOTP on the OAuth pending session
     const validCode = hotp(enrolled.secret, totpStep() + 1);
-    const verifyRes: any = await this.op("Auth.Totp.Verify", { code: validCode }, oauthCtx);
+    const verifyRes: any = await this.op("User.Mfa.Verify", { method: "totp", code: validCode }, oauthCtx);
     assert.strictEqual(verifyRes.status, "ok");
     assert.ok(verifyRes.accessToken);
     assert.strictEqual(oauthCtx.getSession().mfa, "verified");
@@ -410,11 +428,11 @@ class TotpTest extends AuthTest {
     assert.strictEqual(dummy.method, "dummy");
 
     // Enroll in dummy factor
-    const enrollRes: any = await this.op("Auth.Dummy.Enroll", {}, ctx);
+    const enrollRes: any = await this.op("User.Mfa.Enroll", { method: "dummy" }, ctx);
     assert.strictEqual(enrollRes.ready, true);
 
     // Confirm with fixed code
-    const confirmRes: any = await this.op("Auth.Dummy.Confirm", { code: "FIXED_CODE_42" }, ctx);
+    const confirmRes: any = await this.op("User.Mfa.Confirm", { method: "dummy", code: "FIXED_CODE_42" }, ctx);
     assert.ok(Array.isArray(confirmRes.recoveryCodes));
 
     // Logout and login
@@ -424,7 +442,7 @@ class TotpTest extends AuthTest {
     assert.deepStrictEqual(loginRes.methods, ["dummy"]);
 
     // Verify with fixed code
-    const verifyRes: any = await this.op("Auth.Dummy.Verify", { code: "FIXED_CODE_42" }, ctx);
+    const verifyRes: any = await this.op("User.Mfa.Verify", { method: "dummy", code: "FIXED_CODE_42" }, ctx);
     assert.strictEqual(verifyRes.status, "ok");
     assert.deepStrictEqual(ctx.getSession().amr, ["pwd", "dummy"]);
   }
@@ -432,14 +450,14 @@ class TotpTest extends AuthTest {
   @test
   async recoveryCodesRegenerate() {
     const { ctx } = await this.registerUser("rec@example.com", "password123");
-    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, ctx);
+    const enrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, ctx);
     const confirmCode = hotp(enrolled.secret, totpStep());
-    const confirmed: any = await this.op("Auth.Totp.Confirm", { code: confirmCode }, ctx);
+    const confirmed: any = await this.op("User.Mfa.Confirm", { method: "totp", code: confirmCode }, ctx);
     const originalFirstCode = confirmed.recoveryCodes[0];
 
     // Regenerate recovery codes using valid TOTP code
     const regenCode = hotp(enrolled.secret, totpStep() + 1);
-    const regenerated: any = await this.op("Auth.Mfa.RecoveryCodes", { code: regenCode }, ctx);
+    const regenerated: any = await this.op("User.Mfa.RecoveryCodes", { code: regenCode }, ctx);
     assert.ok(Array.isArray(regenerated.recoveryCodes));
     assert.strictEqual(regenerated.recoveryCodes.length, 10);
     assert.notDeepStrictEqual(regenerated.recoveryCodes, confirmed.recoveryCodes);
@@ -449,55 +467,52 @@ class TotpTest extends AuthTest {
     await this.op("Auth.Email.Login", { email: "rec@example.com", password: "password123" }, ctx);
 
     // Old recovery code fails
-    await rejectsWith(() => this.op("Auth.Mfa.Recover", { code: originalFirstCode }, ctx), InvalidMfaCode);
+    await rejectsWith(() => this.op("User.Mfa.Recover", { code: originalFirstCode }, ctx), InvalidMfaCode);
 
     // New recovery code succeeds
     const newCode = regenerated.recoveryCodes[0];
-    const recoverRes: any = await this.op("Auth.Mfa.Recover", { code: newCode }, ctx);
+    const recoverRes: any = await this.op("User.Mfa.Recover", { code: newCode }, ctx);
     assert.strictEqual(recoverRes.status, "ok");
-  }
-
-  @test
-  extractCodeUtility() {
-    assert.strictEqual(extractCode(" 123456 "), "123456");
-    assert.strictEqual(extractCode({ code: " 123456 " }), "123456");
-    assert.strictEqual(extractCode({ code: 123 }), "");
-    assert.strictEqual(extractCode(null), "");
-    assert.strictEqual(extractCode(undefined), "");
-    assert.strictEqual(extractCode(123), "");
   }
 
   @test
   async enrollmentUnauthorizedAndReauth() {
     const unauthCtx = await this.ctx();
-    await assert.rejects(() => this.op("Auth.Totp.Enroll", {}, unauthCtx), WebdaError.Unauthorized);
+    await assert.rejects(() => this.op("User.Mfa.Enroll", { method: "totp" }, unauthCtx), WebdaError.Unauthorized);
 
     const { ctx } = await this.registerUser();
     ctx.getSession().authAt = Date.now() - 400000;
-    await assert.rejects(() => this.op("Auth.Totp.Enroll", {}, ctx), WebdaError.Unauthorized);
+    await assert.rejects(() => this.op("User.Mfa.Enroll", { method: "totp" }, ctx), WebdaError.Unauthorized);
   }
 
   @test
   async confirmEdgeCases() {
     const unauthCtx = await this.ctx();
-    await assert.rejects(() => this.op("Auth.Totp.Confirm", { code: "123456" }, unauthCtx), WebdaError.Unauthorized);
+    await assert.rejects(
+      () => this.op("User.Mfa.Confirm", { method: "totp", code: "123456" }, unauthCtx),
+      WebdaError.Unauthorized
+    );
 
     const { ctx } = await this.registerUser();
-    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, ctx);
-    await rejectsWith(() => this.op("Auth.Totp.Confirm", { code: "000000" }, ctx), InvalidMfaCode);
+    const enrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, ctx);
+    await rejectsWith(() => this.op("User.Mfa.Confirm", { method: "totp", code: "000000" }, ctx), InvalidMfaCode);
     const confirmCode = hotp(enrolled.secret, totpStep());
-    await this.op("Auth.Totp.Confirm", { code: confirmCode }, ctx);
-    await rejectsWith(() => this.op("Auth.Totp.Confirm", { code: confirmCode }, ctx), MfaAlreadyEnabled);
+    await this.op("User.Mfa.Confirm", { method: "totp", code: confirmCode }, ctx);
+    await rejectsWith(() => this.op("User.Mfa.Confirm", { method: "totp", code: confirmCode }, ctx), MfaAlreadyEnabled);
 
     // recoveryCodes = 0 in service parameters
     const prevRecovery = this.totp.parameters.recoveryCodes;
     this.totp.parameters.recoveryCodes = 0;
     try {
       const { ctx: zeroCtx } = await this.registerUser();
-      const enZero: any = await this.op("Auth.Totp.Enroll", {}, zeroCtx);
+      const enZero: any = await this.op("User.Mfa.Enroll", { method: "totp" }, zeroCtx);
       // A session without amr (restored from an older token) still ends up with the factor
       zeroCtx.getSession().amr = undefined;
-      const confZero: any = await this.op("Auth.Totp.Confirm", { code: hotp(enZero.secret, totpStep()) }, zeroCtx);
+      const confZero: any = await this.op(
+        "User.Mfa.Confirm",
+        { method: "totp", code: hotp(enZero.secret, totpStep()) },
+        zeroCtx
+      );
       assert.deepStrictEqual(confZero.recoveryCodes, []);
       assert.deepStrictEqual(zeroCtx.getSession().amr, ["totp"]);
     } finally {
@@ -512,57 +527,66 @@ class TotpTest extends AuthTest {
     pendingNoMfa
       .getSession()
       .login(userCtx.getSession().userId, "ident", { provider: "email", amr: ["pwd"], mfa: "pending" });
-    await rejectsWith(() => this.op("Auth.Totp.Verify", { code: "123456" }, pendingNoMfa), MfaNotEnabled);
+    await rejectsWith(
+      () => this.op("User.Mfa.Verify", { method: "totp", code: "123456" }, pendingNoMfa),
+      MfaNotEnabled
+    );
   }
 
   @test
   async recoverEdgeCases() {
     const notPendingCtx = await this.ctx();
-    await rejectsWith(() => this.op("Auth.Mfa.Recover", { code: "xxxx" }, notPendingCtx), MfaNotPending);
+    await rejectsWith(() => this.op("User.Mfa.Recover", { code: "xxxx" }, notPendingCtx), WebdaError.Unauthorized);
 
     const { ctx: regCtx } = await this.registerUser();
     const pendingNoMfa = await this.ctx();
     pendingNoMfa
       .getSession()
       .login(regCtx.getSession().userId, "ident", { provider: "email", amr: ["pwd"], mfa: "pending" });
-    await rejectsWith(() => this.op("Auth.Mfa.Recover", { code: "xxxx" }, pendingNoMfa), MfaNotEnabled);
+    await rejectsWith(() => this.op("User.Mfa.Recover", { code: "xxxx" }, pendingNoMfa), MfaNotEnabled);
 
     // Lockout during recovery
     const { ctx: recCtx, email: recEmail, password: recPassword } = await this.registerUser();
-    const recEnrolled: any = await this.op("Auth.Totp.Enroll", {}, recCtx);
-    await this.op("Auth.Totp.Confirm", { code: hotp(recEnrolled.secret, totpStep()) }, recCtx);
+    const recEnrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, recCtx);
+    await this.op("User.Mfa.Confirm", { method: "totp", code: hotp(recEnrolled.secret, totpStep()) }, recCtx);
     await this.op("Auth.Logout", {}, recCtx);
     await this.op("Auth.Email.Login", { email: recEmail, password: recPassword }, recCtx);
 
     for (let i = 0; i < 3; i++) {
-      await rejectsWith(() => this.op("Auth.Mfa.Recover", { code: "bad-code" }, recCtx), InvalidMfaCode);
+      await rejectsWith(() => this.op("User.Mfa.Recover", { code: "bad-code" }, recCtx), InvalidMfaCode);
     }
-    await rejectsWith(() => this.op("Auth.Mfa.Recover", { code: "bad-code" }, recCtx), Throttled);
+    await rejectsWith(() => this.op("User.Mfa.Recover", { code: "bad-code" }, recCtx), Throttled);
   }
 
   @test
   async disableEdgeCases() {
     const unauthCtx = await this.ctx();
-    await assert.rejects(() => this.op("Auth.Totp.Disable", { code: "123456" }, unauthCtx), WebdaError.Unauthorized);
+    await assert.rejects(
+      () => this.op("User.Mfa.Disable", { method: "totp", code: "123456" }, unauthCtx),
+      WebdaError.Unauthorized
+    );
 
     const { ctx: notVerCtx } = await this.registerUser();
     notVerCtx.getSession().mfa = undefined;
-    await assert.rejects(() => this.op("Auth.Totp.Disable", { code: "123456" }, notVerCtx), WebdaError.Unauthorized);
+    await assert.rejects(
+      () => this.op("User.Mfa.Disable", { method: "totp", code: "123456" }, notVerCtx),
+      WebdaError.Unauthorized
+    );
 
     const { ctx: noMfaCtx } = await this.registerUser();
     noMfaCtx.getSession().mfa = "verified";
-    await rejectsWith(() => this.op("Auth.Totp.Disable", { code: "123456" }, noMfaCtx), MfaNotEnabled);
+    await rejectsWith(() => this.op("User.Mfa.Disable", { method: "totp", code: "123456" }, noMfaCtx), MfaNotEnabled);
 
     // Disabling one of two factors keeps the other one and the recovery codes
     const { ctx: bothCtx } = await this.registerUser();
-    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, bothCtx);
-    await this.op("Auth.Totp.Confirm", { code: hotp(enrolled.secret, totpStep()) }, bothCtx);
-    await this.op("Auth.Dummy.Enroll", {}, bothCtx);
-    await this.op("Auth.Dummy.Confirm", { code: "FIXED_CODE_42" }, bothCtx);
+    const enrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, bothCtx);
+    await this.op("User.Mfa.Confirm", { method: "totp", code: hotp(enrolled.secret, totpStep()) }, bothCtx);
+    await this.op("User.Mfa.Enroll", { method: "dummy" }, bothCtx);
+    await this.op("User.Mfa.Confirm", { method: "dummy", code: "FIXED_CODE_42" }, bothCtx);
     const loadUser = () => runAsSystem(() => this.auth.getUserModel().ref(bothCtx.getSession().userId).get());
     const before = (await loadUser()).mfa!.__recoveryCodes;
     assert.ok(before?.length);
-    await this.op("Auth.Totp.Disable", { code: hotp(enrolled.secret, totpStep() + 1) }, bothCtx);
+    await this.op("User.Mfa.Disable", { method: "totp", code: hotp(enrolled.secret, totpStep() + 1) }, bothCtx);
     const after = (await loadUser()).mfa!;
     assert.deepStrictEqual(after.methods(), ["dummy"]);
     assert.deepStrictEqual(after.__recoveryCodes, before);
@@ -572,21 +596,25 @@ class TotpTest extends AuthTest {
   async recoveryCodesEdgeCases() {
     const unauthCtx = await this.ctx();
     await assert.rejects(
-      () => this.op("Auth.Mfa.RecoveryCodes", { code: "123456" }, unauthCtx),
+      () => this.op("User.Mfa.RecoveryCodes", { code: "123456" }, unauthCtx),
       WebdaError.Unauthorized
     );
 
     const { ctx: noMfaCtx } = await this.registerUser();
     noMfaCtx.getSession().mfa = "verified";
-    await rejectsWith(() => this.op("Auth.Mfa.RecoveryCodes", { code: "123456" }, noMfaCtx), MfaNotEnabled);
+    await rejectsWith(() => this.op("User.Mfa.RecoveryCodes", { code: "123456" }, noMfaCtx), MfaNotEnabled);
 
     const { ctx: userCtx } = await this.registerUser();
-    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, userCtx);
-    const confirmed: any = await this.op("Auth.Totp.Confirm", { code: hotp(enrolled.secret, totpStep()) }, userCtx);
-    await rejectsWith(() => this.op("Auth.Mfa.RecoveryCodes", { code: "000000" }, userCtx), InvalidMfaCode);
+    const enrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, userCtx);
+    const confirmed: any = await this.op(
+      "User.Mfa.Confirm",
+      { method: "totp", code: hotp(enrolled.secret, totpStep()) },
+      userCtx
+    );
+    await rejectsWith(() => this.op("User.Mfa.RecoveryCodes", { code: "000000" }, userCtx), InvalidMfaCode);
 
     // Use recovery code to regenerate
-    const regenerated: any = await this.op("Auth.Mfa.RecoveryCodes", { code: confirmed.recoveryCodes[1] }, userCtx);
+    const regenerated: any = await this.op("User.Mfa.RecoveryCodes", { code: confirmed.recoveryCodes[1] }, userCtx);
     assert.ok(Array.isArray(regenerated.recoveryCodes));
   }
 
@@ -635,8 +663,8 @@ class TotpTest extends AuthTest {
     );
 
     const { ctx: mfaUserCtx } = await this.registerUser();
-    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, mfaUserCtx);
-    await this.op("Auth.Totp.Confirm", { code: hotp(enrolled.secret, totpStep()) }, mfaUserCtx);
+    const enrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, mfaUserCtx);
+    await this.op("User.Mfa.Confirm", { method: "totp", code: hotp(enrolled.secret, totpStep()) }, mfaUserCtx);
     const pendingCtx2 = await this.ctx();
     pendingCtx2
       .getSession()
@@ -659,28 +687,31 @@ class TotpTest extends AuthTest {
   async confirmDisableAndRecoveryCodesThrottled() {
     // Confirm: wrong codes are counted, a valid code is refused once locked
     const { ctx } = await this.registerUser();
-    const enrolled: any = await this.op("Auth.Totp.Enroll", {}, ctx);
+    const enrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, ctx);
     for (let i = 0; i < 3; i++) {
-      await rejectsWith(() => this.op("Auth.Totp.Confirm", { code: "000000" }, ctx), InvalidMfaCode);
+      await rejectsWith(() => this.op("User.Mfa.Confirm", { method: "totp", code: "000000" }, ctx), InvalidMfaCode);
     }
     assert.ok(this.events.includes("Authentication.MfaFailed"));
-    await rejectsWith(() => this.op("Auth.Totp.Confirm", { code: hotp(enrolled.secret, totpStep()) }, ctx), Throttled);
+    await rejectsWith(
+      () => this.op("User.Mfa.Confirm", { method: "totp", code: hotp(enrolled.secret, totpStep()) }, ctx),
+      Throttled
+    );
 
     // A success clears the counter: a fresh user confirms after two failures, then disable and recovery codes count
     const { ctx: other } = await this.registerUser();
-    const otherEnrolled: any = await this.op("Auth.Totp.Enroll", {}, other);
+    const otherEnrolled: any = await this.op("User.Mfa.Enroll", { method: "totp" }, other);
     for (let i = 0; i < 2; i++) {
-      await rejectsWith(() => this.op("Auth.Totp.Confirm", { code: "000000" }, other), InvalidMfaCode);
+      await rejectsWith(() => this.op("User.Mfa.Confirm", { method: "totp", code: "000000" }, other), InvalidMfaCode);
     }
-    await this.op("Auth.Totp.Confirm", { code: hotp(otherEnrolled.secret, totpStep()) }, other);
+    await this.op("User.Mfa.Confirm", { method: "totp", code: hotp(otherEnrolled.secret, totpStep()) }, other);
     const user = await runAsSystem(() => this.auth.getUserModel().ref(other.getSession().userId).get());
     assert.strictEqual(user._mfaAttempts, 0);
 
-    await rejectsWith(() => this.op("Auth.Totp.Disable", { code: "000000" }, other), InvalidMfaCode);
-    await rejectsWith(() => this.op("Auth.Mfa.RecoveryCodes", { code: "000000" }, other), InvalidMfaCode);
-    await rejectsWith(() => this.op("Auth.Totp.Disable", { code: "000000" }, other), InvalidMfaCode);
+    await rejectsWith(() => this.op("User.Mfa.Disable", { method: "totp", code: "000000" }, other), InvalidMfaCode);
+    await rejectsWith(() => this.op("User.Mfa.RecoveryCodes", { code: "000000" }, other), InvalidMfaCode);
+    await rejectsWith(() => this.op("User.Mfa.Disable", { method: "totp", code: "000000" }, other), InvalidMfaCode);
     await rejectsWith(
-      () => this.op("Auth.Totp.Disable", { code: hotp(otherEnrolled.secret, totpStep() + 1) }, other),
+      () => this.op("User.Mfa.Disable", { method: "totp", code: hotp(otherEnrolled.secret, totpStep() + 1) }, other),
       Throttled
     );
   }
@@ -697,14 +728,14 @@ class TotpTest extends AuthTest {
     ]) {
       assert.strictEqual(ops[id], undefined, id);
     }
-    assert.ok(ops["Auth.Mfa.Recover"]);
-    assert.ok(ops["Auth.Mfa.RecoveryCodes"]);
+    assert.ok(ops["User.Mfa.Recover"]);
+    assert.ok(ops["User.Mfa.RecoveryCodes"]);
 
     // A user with only the dummy factor regenerates its recovery codes with a dummy code
     const { ctx } = await this.registerUser();
-    await this.op("Auth.Dummy.Enroll", {}, ctx);
-    await this.op("Auth.Dummy.Confirm", { code: "FIXED_CODE_42" }, ctx);
-    const regenerated: any = await this.op("Auth.Mfa.RecoveryCodes", { code: "FIXED_CODE_42" }, ctx);
+    await this.op("User.Mfa.Enroll", { method: "dummy" }, ctx);
+    await this.op("User.Mfa.Confirm", { method: "dummy", code: "FIXED_CODE_42" }, ctx);
+    const regenerated: any = await this.op("User.Mfa.RecoveryCodes", { code: "FIXED_CODE_42" }, ctx);
     assert.strictEqual(regenerated.recoveryCodes.length, 10);
   }
 }

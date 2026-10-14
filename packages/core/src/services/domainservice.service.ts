@@ -2,10 +2,10 @@ import { TransformCase, TransformCaseType } from "@webda/utils";
 import { Service } from "./service.js";
 import { Application } from "../application/application.js";
 import type { ModelAction } from "../models/types.js";
-import { LOGIN_MFA } from "../models/mfa.model.js";
+import { useLoginMfa } from "../models/mfa.model.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { UuidModel, type Model, type ModelClass } from "@webda/models";
-import { runWithContext, useContext } from "../contexts/execution.js";
+import { runAsSystem, runWithContext, useContext } from "../contexts/execution.js";
 
 import * as WebdaError from "../errors/errors.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
@@ -824,8 +824,7 @@ export class DomainService<
     const app = useApplication<Application>();
     (Metadata.Relations?.behaviors || []).forEach((behaviorRel: { attribute: string; behavior: string }) => {
       const behaviorMeta = app.getBehaviorMetadata(behaviorRel.behavior);
-      // The MFA of a user is its login second factor: the authentication operations expose it, not its actions
-      if (!behaviorMeta || ((model as any)[LOGIN_MFA] && behaviorRel.behavior === "Webda/MFA")) {
+      if (!behaviorMeta) {
         return;
       }
       const attributeCap = behaviorRel.attribute.substring(0, 1).toUpperCase() + behaviorRel.attribute.substring(1);
@@ -926,9 +925,19 @@ export class DomainService<
       uuid = propNames[0] === "uuid" ? args[0] : (await context.getInput().catch(() => undefined))?.uuid;
     }
     // A missing parent and a parent the caller cannot read answer the same NotFound
-    const instance: any = await this.loadModel(model, uuid);
-
-    await this.checkPermission(instance, context, `${attribute}.${action}`, model);
+    const loginMfa = useLoginMfa(useModelMetadata(model).Identifier, attribute);
+    let instance: any;
+    if (loginMfa) {
+      // Pending sessions may access only their own configured login attribute. Its lifecycle checks the action.
+      const session = context.getSession();
+      if (!session.userId || (uuid !== undefined && uuid !== session.userId)) {
+        throw new WebdaError.Unauthorized("Own login MFA required");
+      }
+      instance = await runAsSystem(() => model.ref(session.userId).get());
+    } else {
+      instance = await this.loadModel(model, uuid);
+      await this.checkPermission(instance, context, `${attribute}.${action}`, model);
+    }
 
     const behaviorInstance = instance[attribute];
     if (!behaviorInstance || typeof behaviorInstance[action] !== "function") {

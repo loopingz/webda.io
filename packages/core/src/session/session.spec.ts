@@ -38,6 +38,19 @@ class SessionTest {
   }
 
   @test
+  scopedVerificationsDoNotSurviveLoginOrLogout() {
+    const session = new Session().getProxy();
+    const verified = { "User.PaymentMfa.Verify": { method: "totp", verifiedAt: 123, owner: "Webda/User/u1" } };
+    session.login("u1", "ident", { mfaVerifications: verified });
+    assert.deepStrictEqual(session.mfaVerifications, verified);
+    session.login("u2", "other");
+    assert.deepStrictEqual(session.mfaVerifications, {});
+    session.mfaVerifications = verified;
+    session.logout();
+    assert.strictEqual(session.mfaVerifications, undefined);
+  }
+
+  @test
   statelessNotSerialized() {
     const session = new Session();
     session.stateless = true;
@@ -74,6 +87,24 @@ class BearerSessionTest extends WebdaApplicationTest {
     assert.ok(loaded.stateless);
     assert.ok(loaded.isLogged());
     assert.deepStrictEqual(loaded.amr, ["pwd"]);
+  }
+
+  @test
+  async scopedVerificationRoundTripsThroughCookiesAndBearer() {
+    const session = new Session();
+    session.login("u1", "a@b.c:email");
+    session.mfaVerifications = {
+      "User.Mfa.Verify": { owner: "Webda/User/u1", method: "totp", verifiedAt: 123 },
+      "User.PaymentMfa.Verify": { owner: "Webda/User/u1", method: "totp", verifiedAt: 456 }
+    };
+    const manager = useService("SessionManager");
+    const ctx = await this.newContext();
+    await manager.save(ctx, session);
+    const cookieSession = await manager.load(await this.withCookies(ctx));
+    assert.deepStrictEqual(cookieSession.mfaVerifications, session.mfaVerifications);
+    const token = (await useService("TokenService").issue(session)).accessToken;
+    const bearer = await manager.load(await this.contextWith({ authorization: `Bearer ${token}` }));
+    assert.deepStrictEqual(bearer.mfaVerifications, session.mfaVerifications);
   }
 
   @test

@@ -1,7 +1,7 @@
 import { IOperationContext } from "../contexts/icontext.js";
 import { bind } from "@webda/ql";
 import { Password, V3_PASSWORD_MAPPED } from "./password.model.js";
-import { LOGIN_MFA, MFA } from "./mfa.model.js";
+import { MFA } from "./mfa.model.js";
 import { type ModelClass, type ModelEvents, type Settable, UuidModel, WEBDA_EVENTS } from "@webda/models";
 
 export type UserEvents<T> = ModelEvents<T> & {
@@ -14,8 +14,6 @@ export type UserEvents<T> = ModelEvents<T> & {
  * @WebdaModel
  */
 export class User extends UuidModel {
-  /** The MFA of a user is its login second factor, driven by the authentication operations */
-  static readonly [LOGIN_MFA] = true;
   [WEBDA_EVENTS]: UserEvents<this>;
   /** Create a new User
    * @param data - initial data

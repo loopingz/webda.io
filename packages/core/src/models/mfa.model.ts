@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import type { Session } from "../session/session.js";
 import { EncryptedField } from "./encrypted.model.js";
 import { Action } from "./decorator.js";
 import { verifyTotp } from "../utils/totp.js";
@@ -77,12 +78,33 @@ export const MFA_PROOF_AUDIENCE = "webda:mfa";
 /** Lifetime (s) of a step-up proof */
 export const MFA_PROOF_TTL = 300;
 
+/** Public actions of an MFA attribute. */
+export type MfaAction = "enroll" | "confirm" | "verify" | "recover" | "disable" | "recoveryCodes";
+
+/** Authentication lifecycle applied only to the configured login MFA attribute. */
+export interface LoginMfaPolicy {
+  model: string;
+  attribute: string;
+  run(mfa: MFA, action: MfaAction, method: string | undefined, next: () => Promise<any>): Promise<any>;
+}
+
 /**
- * Static flag of the owner classes whose MFA is the login second factor (User). Their MFA actions are refused: the
- * authentication operations (`Auth.<Method>.*`) add what a login factor needs, reauthentication, session upgrade and
- * token revocation
+ * Select the attribute that completes login in this application instance.
+ * @param policy - authentication lifecycle
  */
-export const LOGIN_MFA = Symbol.for("webda.mfa.login");
+export function registerLoginMfa(policy: LoginMfaPolicy): void {
+  useInstanceStorage().loginMfa = policy;
+}
+
+/**
+ * @param model - model identifier
+ * @param attribute - behavior attribute
+ * @returns the login policy when this exact attribute is configured
+ */
+export function useLoginMfa(model: string, attribute: string): LoginMfaPolicy | undefined {
+  const policy = useInstanceStorage().loginMfa;
+  return policy?.model === model && policy.attribute === attribute ? policy : undefined;
+}
 
 /** A second factor method implemented by a service (TOTP, SMS...), available once registered */
 export interface SecondFactorProvider {
@@ -158,17 +180,27 @@ function objectKey(owner: any): string {
  * the current caller
  * @param proof - the proof
  * @param owner - the object holding the MFA behavior
+ * @param attribute - MFA attribute that must have verified
  * @param maxAge - maximum age in seconds, when stricter than the proof lifetime
  * @returns the method that verified, undefined when the proof is not valid for this object and caller
  */
-export async function verifyMfaProof(proof: string, owner: any, maxAge?: number): Promise<string | undefined> {
+export async function verifyMfaProof(
+  proof: string,
+  owner: any,
+  attribute: string,
+  maxAge?: number
+): Promise<string | undefined> {
   let claims: any;
   try {
     claims = await useDynamicService<any>("CryptoService").jwtVerify(proof, { audience: MFA_PROOF_AUDIENCE });
   } catch {
     return undefined;
   }
-  if (claims.obj !== objectKey(owner) || claims.sub !== useContext().getCurrentUserId()) {
+  if (
+    claims.obj !== objectKey(owner) ||
+    claims.attribute !== attribute ||
+    claims.sub !== useContext().getCurrentUserId()
+  ) {
     return undefined;
   }
   if (maxAge !== undefined && Date.now() / 1000 - claims.iat > maxAge) {
@@ -180,9 +212,9 @@ export async function verifyMfaProof(proof: string, owner: any, maxAge?: number)
 /**
  * Multi-Factor Authentication behavior: second factors and recovery codes of the model holding it.
  *
- * On a user it is the login second factor, driven by the authentication operations. On any other model its actions
- * (`<Model>.Mfa.Enroll`, `Confirm`, `Verify`, `Disable`, `RecoveryCodes`) protect the object itself, allowed by the
- * model `canAct(context, "mfa.<action>")`: `Verify` answers a step-up proof for {@link verifyMfaProof}.
+ * Actions are exposed as `<Model>.<Attribute>.<Action>`. The configured login attribute also completes
+ * authentication. Other attributes use the model `canAct(context, "<attribute>.<action>")` policy.
+ * Verification records the operation in the session and returns a proof bound to the owner and attribute.
  *
  * Attempts are counted atomically on the owner: a model holding the behavior declares them, as User does,
  * `_mfaAttempts: number = 0` and `_lastMfaAttemptAt?: number`.
@@ -555,73 +587,134 @@ export class MFA {
   }
 
   /**
-   * Refuse the actions on a login second factor: the authentication operations drive it
+   * Identity of this attached behavior, derived from model metadata rather than client input.
+   * @returns the owner, attribute and operation prefix
    */
-  private assertObjectFactor(): void {
-    if (this.getOwner()?.constructor[LOGIN_MFA]) {
-      throw new WebdaError.Forbidden("A login second factor is managed by the authentication operations");
-    }
+  getScope(): { owner: any; attribute: string; prefix: string } {
+    const owner = this.requireOwner();
+    const attribute = (this as any).parent.attribute;
+    const model = owner.constructor.Metadata.Identifier.split("/").pop();
+    return { owner, attribute, prefix: `${model}.${attribute[0].toUpperCase()}${attribute.slice(1)}` };
   }
 
   /**
-   * Start the enrollment of a factor on this object
-   * @param method - method name, e.g. "totp"
-   * @returns the enrollment data (e.g. TOTP secret and URI)
+   * Apply the login lifecycle only to the configured attribute.
+   * @param action - invoked action
+   * @param method - factor method, when specified
+   * @param next - behavior implementation
+   * @returns the action result
    */
-  @Action({ rest: { method: "POST" } })
-  async enroll(method: string): Promise<any> {
-    this.assertObjectFactor();
-    return this.startEnrollment(method);
+  private async act(action: MfaAction, method: string | undefined, next: () => Promise<any>): Promise<any> {
+    const { owner, attribute } = this.getScope();
+    const policy = useLoginMfa(owner.constructor.Metadata.Identifier, attribute);
+    return policy ? policy.run(this, action, method, next) : next();
   }
 
   /**
-   * Enable a pending factor of this object
-   * @param method - method name
-   * @param code - code of the pending factor
-   * @returns the recovery codes issued with the first factor
+   * Record successful verification under its server-derived operation name.
+   * @param action - action that checked the code
+   * @param method - method that accepted the code
    */
-  @Action({ rest: { method: "POST" } })
-  async confirm(method: string, code: string): Promise<{ recoveryCodes: string[] }> {
-    this.assertObjectFactor();
-    return this.confirmFactor(method, code);
+  private recordVerification(action: string, method: string): void {
+    const { owner, prefix } = this.getScope();
+    const session: Session = useContext().getSession();
+    session.mfaVerifications = {
+      ...session.mfaVerifications,
+      [`${prefix}.${action}`]: { method, verifiedAt: Date.now(), owner: objectKey(owner) }
+    };
   }
 
   /**
-   * Step-up verification on this object
-   * @param code - code of an enabled factor, or a recovery code
-   * @param method - restrict the check to one method ("recovery" for a recovery code)
-   * @returns a proof bound to this object and the caller
+   * Start enrollment on this attribute.
+   * @param method - provider method, e.g. "totp"
+   * @param input - provider-specific enrollment input
+   * @returns enrollment data
    */
   @Action({ rest: { method: "POST" } })
-  async verify(code: string, method?: string): Promise<MfaProof> {
-    this.assertObjectFactor();
+  async enroll(method: string, input?: any): Promise<any> {
+    return this.act("enroll", method, () => this.startEnrollment(method, input));
+  }
+
+  /**
+   * Confirm a pending factor.
+   * @param method - provider method
+   * @param code - factor code
+   * @returns recovery codes and, for the login attribute, new tokens
+   */
+  @Action({ rest: { method: "POST" } })
+  async confirm(method: string, code: string): Promise<any> {
+    return this.act("confirm", method, async () => {
+      const result = await this.confirmFactor(method, code);
+      this.recordVerification("Confirm", method);
+      return result;
+    });
+  }
+
+  /**
+   * Verify a factor and record its exact scope.
+   * @param code - factor or recovery code
+   * @param method - restrict verification to this method
+   * @param action - operation that accepted the code
+   * @returns signed proof
+   */
+  private async verifyProof(code: string, method: string | undefined, action: string): Promise<MfaProof> {
     const matched = await this.verifyCode(code, method);
+    const { owner, attribute } = this.getScope();
     const proof = await useDynamicService<any>("CryptoService").jwtSign(
-      { sub: useContext().getCurrentUserId(), obj: objectKey(this.requireOwner()), amr: [matched] },
+      { sub: useContext().getSession().userId, obj: objectKey(owner), attribute, amr: [matched] },
       { audience: MFA_PROOF_AUDIENCE, expiresIn: MFA_PROOF_TTL }
     );
+    this.recordVerification(action, matched);
     return { method: matched, proof, expiresIn: MFA_PROOF_TTL };
   }
 
   /**
-   * Disable a factor of this object
-   * @param method - method name
-   * @param code - code of this factor or a recovery code
+   * Verify this attribute, completing login only when it is the configured login factor.
+   * @param code - factor or recovery code
+   * @param method - optional method restriction
+   * @returns a proof and, when completing login, tokens
    */
   @Action({ rest: { method: "POST" } })
-  async disable(method: string, code: string): Promise<void> {
-    this.assertObjectFactor();
-    await this.disableFactor(method, code);
+  async verify(code: string, method?: string): Promise<any> {
+    return this.act("verify", method, () => this.verifyProof(code, method, "Verify"));
   }
 
   /**
-   * Replace the recovery codes of this object
-   * @param code - code of an enabled factor, or a recovery code
-   * @returns the new recovery codes
+   * Verify a recovery code for this attribute.
+   * @param code - recovery code
+   * @returns a proof and, when completing login, tokens
+   */
+  @Action({ rest: { method: "POST" } })
+  async recover(code: string): Promise<any> {
+    return this.act("recover", "recovery", () => this.verifyProof(code, "recovery", "Recover"));
+  }
+
+  /**
+   * Disable a factor and remove session verification of this attribute.
+   * @param method - provider method
+   * @param code - factor or recovery code
+   */
+  @Action({ rest: { method: "POST" } })
+  async disable(method: string, code: string): Promise<void> {
+    await this.act("disable", method, async () => {
+      await this.disableFactor(method, code);
+      const { owner, prefix } = this.getScope();
+      const session: Session = useContext().getSession();
+      session.mfaVerifications = Object.fromEntries(
+        Object.entries(session.mfaVerifications ?? {}).filter(
+          ([operation, verified]) => !operation.startsWith(`${prefix}.`) || verified.owner !== objectKey(owner)
+        )
+      );
+    });
+  }
+
+  /**
+   * Replace recovery codes for this attribute.
+   * @param code - factor or recovery code
+   * @returns new recovery codes
    */
   @Action({ rest: { method: "POST" } })
   async recoveryCodes(code: string): Promise<{ recoveryCodes: string[] }> {
-    this.assertObjectFactor();
-    return this.regenerateRecoveryCodes(code);
+    return this.act("recoveryCodes", undefined, () => this.regenerateRecoveryCodes(code));
   }
 }

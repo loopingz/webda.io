@@ -4,6 +4,10 @@ import {
   Command,
   Counter,
   Ident,
+  InvalidMfaCode,
+  type MFA,
+  type MfaAction,
+  registerLoginMfa,
   type IAuthenticationService,
   type IssuedTokens,
   Operation,
@@ -16,6 +20,7 @@ import {
   useContext,
   useCore,
   useModel,
+  useModelMetadata,
   useService,
   type User,
   V3_PASSWORD_MAPPED,
@@ -91,6 +96,10 @@ export class AuthenticationParameters extends ServiceParameters {
    * @default "Webda/User"
    */
   userModel: string;
+  /** User attribute used as the login second factor. Other MFA attributes remain independent. */
+  mfaAttribute: string = "mfa";
+  /** Maximum primary authentication age in seconds for enrolling a login factor (0 disables the limit). */
+  mfaReauthMaxAge: number = 300;
   /**
    * Ident model
    * @default "Webda/Ident"
@@ -163,6 +172,11 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   resolve(): this {
     super.resolve();
     this.discoverProviders();
+    registerLoginMfa({
+      model: useModelMetadata(this.getUserModel()).Identifier,
+      attribute: this.parameters.mfaAttribute,
+      run: (mfa, action, method, next) => this.runLoginMfa(mfa, action, method, next)
+    });
     registerUserResolver({
       resolve: async (id: string) => {
         const ref = (this.getUserModel() as any).ref(id);
@@ -331,7 +345,7 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
    * @returns enabled methods, empty when MFA is off
    */
   protected mfaMethods(user: User): string[] {
-    const mfa = user?.mfa;
+    const mfa: MFA | undefined = (user as any)?.[this.parameters.mfaAttribute];
     return mfa?.isEnabled?.() ? mfa.methods() : [];
   }
 
@@ -604,6 +618,63 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
   }
 
   /**
+   * Preserve login safeguards around the configured model attribute's actions.
+   * @param mfa - attached login MFA
+   * @param action - model behavior action
+   * @param method - requested factor method
+   * @param next - factor operation
+   * @returns model result, including tokens when authentication changes
+   */
+  protected async runLoginMfa(
+    mfa: MFA,
+    action: MfaAction,
+    method: string | undefined,
+    next: () => Promise<any>
+  ): Promise<any> {
+    const ctx = useContext();
+    const session = ctx.getSession();
+    const user: User = mfa.getScope().owner;
+    const verification = action === "verify" || action === "recover";
+    if ((!session.isLogged() && !(verification && session.isPending())) || session.userId !== user.getUUID()) {
+      throw new WebdaError.Unauthorized("Own login MFA required");
+    }
+    if ((action === "disable" || action === "recoveryCodes") && session.mfa !== "verified") {
+      throw new WebdaError.Unauthorized("Verified login required");
+    }
+    if (
+      action === "enroll" &&
+      this.parameters.mfaReauthMaxAge &&
+      (!session.authAt || Date.now() - session.authAt > this.parameters.mfaReauthMaxAge * 1000)
+    ) {
+      throw new WebdaError.Unauthorized("Reauthentication required");
+    }
+    let result: any;
+    try {
+      result = await next();
+    } catch (err) {
+      if (err instanceof InvalidMfaCode) {
+        await this.emit("Authentication.MfaFailed", { context: ctx, user, userId: user.getUUID(), method });
+      }
+      throw err;
+    }
+    if (action === "confirm") {
+      await this.emit("Authentication.MfaEnabled", { context: ctx, user, userId: user.getUUID(), method });
+      const tokens = useService("TokenService");
+      await runAsSystem(() => tokens.revokeUser(user.getUUID()));
+      session.mfa = "verified";
+      session.amr = [...(session.amr ?? []).filter((value: string) => value !== method), method!];
+      return { ...result, ...(await runAsSystem(() => tokens.issue(session))) };
+    }
+    if (verification && session.isPending()) {
+      return { ...result, ...(await this.completeSecondFactor([result.method])) };
+    }
+    if (action === "disable") {
+      await this.emit("Authentication.MfaDisabled", { context: ctx, user, userId: user.getUUID(), method });
+    }
+    return result;
+  }
+
+  /**
    * Complete second-factor authentication for a pending session
    * @param amr - second factor method(s) used (e.g. ["totp"], ["recovery"])
    * @returns auth result with issued tokens
@@ -631,7 +702,8 @@ export class Authentication<T extends AuthenticationParameters = AuthenticationP
     session.login(userId, session.identUsed, {
       provider,
       amr: [...(session.amr ?? []), ...amr],
-      mfa: "verified"
+      mfa: "verified",
+      mfaVerifications: session.mfaVerifications
     });
     session.authAt = authAt;
     return this.finish(user, ident, session, ctx, provider);

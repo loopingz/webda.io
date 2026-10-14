@@ -4,14 +4,19 @@ import { WebdaApplicationTest } from "../test/application.js";
 import { JSONUtils } from "@webda/utils";
 import { EncryptedField } from "./encrypted.model.js";
 import { User } from "./user.model.js";
+import { Password } from "./password.model.js";
+import { DomainService } from "../services/domainservice.service.js";
+import { useService } from "../core/hooks.js";
+import { useInstanceStorage } from "../core/instancestorage.js";
 import {
   generateRecoveryCodes,
   hashRecoveryCode,
-  LOGIN_MFA,
   MFA,
   MFA_PROOF_AUDIENCE,
   normalizeRecoveryCode,
   registerSecondFactor,
+  registerLoginMfa,
+  useLoginMfa,
   type SecondFactorProvider,
   type TotpSecret,
   verifyMfaProof
@@ -36,8 +41,46 @@ class MfaBehaviorTest extends WebdaApplicationTest {
   getTestConfiguration() {
     return {
       parameters: { ignoreBeans: true },
-      services: { UserStore: { type: "Webda/MemoryStore", models: ["Webda/User", "Webda/Ident"] } }
+      services: {
+        DomainService: { type: "Webda/DomainService" },
+        UserStore: { type: "Webda/MemoryStore", models: ["Webda/User", "Webda/Ident"] }
+      }
     };
+  }
+
+  afterEach() {
+    delete useInstanceStorage().loginMfa;
+  }
+
+  @test
+  userWithHydratedPasswordInitializesMfa() {
+    const user = new User({ uuid: "hydrated-password", password: new Password() } as any);
+    assert.ok(user.mfa instanceof MFA);
+    assert.strictEqual(user.mfa.getScope().attribute, "mfa");
+    const stored = new User({ password: new Password(), mfa: { factors: {} } } as any);
+    assert.ok(stored.mfa instanceof MFA);
+  }
+
+  @test
+  async pendingSessionDispatchesOnlyOwnLoginAttribute() {
+    this.registerFactors();
+    const { mfa } = await this.vault("pending-owner");
+    await mfa.startEnrollment("good");
+    await mfa.confirmFactor("good", "good-code");
+    registerLoginMfa({ model: "Webda/User", attribute: "mfa", run: (_mfa, _action, _method, next) => next() });
+    const service = useService("DomainService" as any) as DomainService;
+    const invoke = async (userId?: string, uuid?: string) => {
+      const ctx = await this.newContext();
+      await ctx.init();
+      if (userId) ctx.getSession().login(userId, "ident", { mfa: "pending" });
+      ctx.setParameters(uuid === undefined ? {} : { uuid });
+      ctx.setExtension("operationContext", { model: User, attribute: "mfa", action: "verify", behavior: "Webda/MFA" });
+      return runWithContext(ctx, () => service.modelBehaviorAction("good-code", "good"));
+    };
+    await assert.rejects(() => invoke(undefined, "pending-owner"), WebdaError.Unauthorized);
+    await assert.rejects(() => invoke("pending-owner", "other-owner"), WebdaError.Unauthorized);
+    assert.strictEqual((await invoke("pending-owner", "pending-owner")).method, "good");
+    assert.strictEqual((await invoke("pending-owner")).method, "good");
   }
 
   @test
@@ -275,14 +318,9 @@ class MfaBehaviorTest extends WebdaApplicationTest {
    * @returns the object and its MFA
    */
   async vault(uuid: string): Promise<{ vault: User; mfa: MFA }> {
-    Object.defineProperty(User, LOGIN_MFA, { value: false, configurable: true });
     await User.create({ uuid, displayName: uuid } as any);
     const vault = await User.ref(uuid).get();
     return { vault, mfa: vault.mfa! };
-  }
-
-  afterEach() {
-    Object.defineProperty(User, LOGIN_MFA, { value: true, configurable: true });
   }
 
   /**
@@ -324,31 +362,37 @@ class MfaBehaviorTest extends WebdaApplicationTest {
       const proof = await mfa.verify("other-code");
       assert.strictEqual(proof.method, "other");
       assert.strictEqual(proof.expiresIn, 300);
-      assert.strictEqual(await verifyMfaProof(proof.proof, vault), "other");
-      assert.strictEqual(await verifyMfaProof(proof.proof, vault, 3600), "other");
-      assert.strictEqual(await verifyMfaProof(proof.proof, vault, -1), undefined);
+      assert.strictEqual(await verifyMfaProof(proof.proof, vault, "mfa"), "other");
+      assert.strictEqual(await verifyMfaProof(proof.proof, vault, "paymentMfa"), undefined);
+      assert.strictEqual(alice.getSession().mfaVerifications["User.Mfa.Verify"].method, "other");
+      assert.strictEqual(alice.getSession().mfaVerifications["User.Mfa.Verify"].owner, "Webda/User/vault-1");
+      assert.strictEqual(await verifyMfaProof(proof.proof, vault, "mfa", 3600), "other");
+      assert.strictEqual(await verifyMfaProof(proof.proof, vault, "mfa", -1), undefined);
       assert.strictEqual((await mfa.verify("good-code", "good")).method, "good");
       await assert.rejects(() => mfa.verify("other-code", "good"), InvalidMfaCode);
-      assert.strictEqual((await mfa.verify(recoveryCodes[0], "recovery")).method, "recovery");
+      assert.strictEqual((await mfa.recover(recoveryCodes[0])).method, "recovery");
+      assert.strictEqual(alice.getSession().mfaVerifications["User.Mfa.Recover"].method, "recovery");
       assert.strictEqual((await mfa.verify(recoveryCodes[1])).method, "recovery");
       await assert.rejects(() => mfa.verify("good-code", "sms"), MfaNotEnabled);
 
       const { vault: otherVault } = await this.vault("vault-2");
-      assert.strictEqual(await verifyMfaProof(proof.proof, otherVault), undefined);
-      assert.strictEqual(await verifyMfaProof("garbage", vault), undefined);
+      assert.strictEqual(await verifyMfaProof(proof.proof, otherVault, "mfa"), undefined);
+      assert.strictEqual(await verifyMfaProof("garbage", vault, "mfa"), undefined);
       // A model without metadata is keyed by its class name
       class Plain {
         getUUID() {
           return vault.getUUID();
         }
       }
-      assert.strictEqual(await verifyMfaProof(proof.proof, new Plain()), undefined);
+      assert.strictEqual(await verifyMfaProof(proof.proof, new Plain(), "mfa"), undefined);
       // Another caller cannot reuse the proof
-      await runWithContext(bob, async () => assert.strictEqual(await verifyMfaProof(proof.proof, vault), undefined));
+      await runWithContext(bob, async () =>
+        assert.strictEqual(await verifyMfaProof(proof.proof, vault, "mfa"), undefined)
+      );
       // A signed token of another audience is not a proof
       const token = await useCrypto().jwtSign({ obj: "x", amr: ["good"] }, { audience: "other" });
       assert.notStrictEqual(MFA_PROOF_AUDIENCE, "other");
-      assert.strictEqual(await verifyMfaProof(token, vault), undefined);
+      assert.strictEqual(await verifyMfaProof(token, vault, "mfa"), undefined);
 
       // Regenerate with any factor code, sized by the largest provider count (other defaults to 10)
       assert.strictEqual((await mfa.recoveryCodes("good-code")).recoveryCodes.length, 10);
@@ -357,7 +401,13 @@ class MfaBehaviorTest extends WebdaApplicationTest {
       await mfa.disable("other", regenerated.recoveryCodes[0]);
       assert.deepStrictEqual(mfa.methods(), ["good"]);
       assert.strictEqual(mfa.__recoveryCodes!.length, 9);
+      alice.getSession().mfaVerifications = {
+        "User.Mfa.Verify": { method: "good", verifiedAt: 123, owner: "Webda/User/another-owner" },
+        "User.OtherMfa.Verify": { method: "good", verifiedAt: 456, owner: "Webda/User/vault-1" }
+      };
       await mfa.disable("good", "good-code");
+      assert.strictEqual(alice.getSession().mfaVerifications["User.Mfa.Verify"].owner, "Webda/User/another-owner");
+      assert.ok(alice.getSession().mfaVerifications["User.OtherMfa.Verify"]);
       assert.strictEqual(mfa.isEnabled(), false);
       assert.strictEqual(mfa.__recoveryCodes, undefined);
       await assert.rejects(() => mfa.disable("good", "good-code"), MfaNotEnabled);
@@ -385,25 +435,41 @@ class MfaBehaviorTest extends WebdaApplicationTest {
   }
 
   @test
-  async loginFactorActionsRefused() {
+  async disableFromLegacySessionWithoutVerificationMap() {
     this.registerFactors();
-    const user = await User.create({ uuid: "mfa-login-user", displayName: "Login" } as any);
-    const loaded = await User.ref("mfa-login-user").get();
-    // The core operations drive the login second factor
-    await loaded.mfa!.startEnrollment("good");
-    assert.deepStrictEqual((await loaded.mfa!.confirmFactor("good", "good-code")).recoveryCodes.length, 3);
-    assert.strictEqual(await loaded.mfa!.verifyCode("good-code", "good"), "good");
-    // Its actions are refused: Auth.<Method>.* add reauthentication, session upgrade and token revocation
-    for (const action of [
-      () => loaded.mfa!.enroll("other"),
-      () => loaded.mfa!.confirm("other", "other-code"),
-      () => loaded.mfa!.verify("good-code"),
-      () => loaded.mfa!.disable("good", "good-code"),
-      () => loaded.mfa!.recoveryCodes("good-code")
-    ]) {
-      await assert.rejects(action, WebdaError.Forbidden);
-    }
-    void user;
+    const { mfa } = await this.vault("legacy-session-owner");
+    await mfa.startEnrollment("good");
+    await mfa.confirmFactor("good", "good-code");
+    const ctx = await this.userContext("legacy-session-owner");
+    ctx.getSession().mfaVerifications = undefined;
+    await runWithContext(ctx, () => mfa.disable("good", "good-code"));
+    assert.deepStrictEqual(ctx.getSession().mfaVerifications, {});
+    assert.strictEqual(mfa.isEnabled(), false);
+  }
+
+  @test
+  async configuredLoginPolicyIsScoped() {
+    this.registerFactors();
+    const { mfa } = await this.vault("policy-owner");
+    const actions: string[] = [];
+    const policy = {
+      model: "Webda/User",
+      attribute: "mfa",
+      run: async (_mfa: MFA, action: any, _method: any, next: () => Promise<any>) => {
+        actions.push(action);
+        return next();
+      }
+    };
+    registerLoginMfa(policy);
+    assert.strictEqual(useLoginMfa("Webda/User", "mfa"), policy);
+    assert.strictEqual(useLoginMfa("Webda/User", "paymentMfa"), undefined);
+    assert.strictEqual(useLoginMfa("Other/User", "mfa"), undefined);
+    await runWithContext(await this.userContext("policy-owner"), async () => {
+      await mfa.enroll("good");
+      await mfa.confirm("good", "good-code");
+      await mfa.verify("good-code");
+      assert.deepStrictEqual(actions, ["enroll", "confirm", "verify"]);
+    });
   }
 
   @test

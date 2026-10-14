@@ -2703,6 +2703,13 @@
         "mfa": {
           "type": "MfaState"
         },
+        "mfaVerifications": {
+          "type": "Record",
+          "typeParameters": [
+            "string",
+            "MfaVerification"
+          ]
+        },
         "family": {
           "type": "string"
         },
@@ -2721,6 +2728,36 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
+          "definitions": {
+            "MfaVerification": {
+              "additionalProperties": false,
+              "description": "Verification of one MFA operation on one owner, with its original timestamp.",
+              "properties": {
+                "method": {
+                  "type": "string"
+                },
+                "owner": {
+                  "type": "string"
+                },
+                "verifiedAt": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "method",
+                "owner",
+                "verifiedAt"
+              ],
+              "type": "object"
+            },
+            "Record<string, MfaVerification>": {
+              "additionalProperties": {
+                "$ref": "#/definitions/MfaVerification"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            }
+          },
           "description": "Stored refresh token (only its SHA-256 hash)",
           "properties": {
             "amr": {
@@ -2755,6 +2792,10 @@
                 "verified"
               ],
               "type": "string"
+            },
+            "mfaVerifications": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
+              "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
             },
             "provider": {
               "description": "Provider used",
@@ -2787,6 +2828,36 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
+          "definitions": {
+            "MfaVerification": {
+              "additionalProperties": false,
+              "description": "Verification of one MFA operation on one owner, with its original timestamp.",
+              "properties": {
+                "method": {
+                  "type": "string"
+                },
+                "owner": {
+                  "type": "string"
+                },
+                "verifiedAt": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "method",
+                "owner",
+                "verifiedAt"
+              ],
+              "type": "object"
+            },
+            "Record<string, MfaVerification>": {
+              "additionalProperties": {
+                "$ref": "#/definitions/MfaVerification"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            }
+          },
           "description": "Stored refresh token (only its SHA-256 hash)",
           "properties": {
             "amr": {
@@ -2821,6 +2892,10 @@
                 "verified"
               ],
               "type": "string"
+            },
+            "mfaVerifications": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
+              "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
             },
             "provider": {
               "description": "Provider used",
@@ -2853,6 +2928,36 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
+          "definitions": {
+            "MfaVerification": {
+              "additionalProperties": false,
+              "description": "Verification of one MFA operation on one owner, with its original timestamp.",
+              "properties": {
+                "method": {
+                  "type": "string"
+                },
+                "owner": {
+                  "type": "string"
+                },
+                "verifiedAt": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "method",
+                "owner",
+                "verifiedAt"
+              ],
+              "type": "object"
+            },
+            "Record<string, MfaVerification>": {
+              "additionalProperties": {
+                "$ref": "#/definitions/MfaVerification"
+              },
+              "description": "Construct a type with a set of properties K of type T",
+              "type": "object"
+            }
+          },
           "description": "Stored refresh token (only its SHA-256 hash)",
           "properties": {
             "amr": {
@@ -2887,6 +2992,10 @@
                 "verified"
               ],
               "type": "string"
+            },
+            "mfaVerifications": {
+              "$ref": "#/definitions/Record%3Cstring%2C%20MfaVerification%3E",
+              "description": "Scoped MFA verifications; refreshing does not advance their timestamps."
             },
             "provider": {
               "description": "Provider used",
@@ -3317,7 +3426,7 @@
             "MFA": {
               "WebdaBehavior": "Webda/MFA",
               "additionalProperties": false,
-              "description": "Multi-Factor Authentication credential behavior of a user",
+              "description": "Multi-Factor Authentication behavior: second factors and recovery codes of the model holding it.\n\nActions are exposed as `<Model>.<Attribute>.<Action>`. The configured login attribute also completes\nauthentication. Other attributes use the model `canAct(context, \"<attribute>.<action>\")` policy.\nVerification records the operation in the session and returns a proof bound to the owner and attribute.\n\nAttempts are counted atomically on the owner: a model holding the behavior declares them, as User does,\n`_mfaAttempts: number = 0` and `_lastMfaAttemptAt?: number`.",
               "properties": {
                 "__recoveryCodes": {
                   "description": "SHA-256 hashes of unused recovery codes, never output in clear text",
@@ -3332,14 +3441,17 @@
                 },
                 "totp": {
                   "$ref": "#/definitions/EncryptedField%3CTotpSecret%3E",
-                  "description": "Encrypted TOTP secret field"
+                  "description": "Encrypted TOTP secret field",
+                  "returns": "the encrypted TOTP field"
                 },
                 "totpEnabledAt": {
-                  "description": "Timestamp when TOTP was enabled",
+                  "description": "Timestamp when TOTP was enabled\nSet timestamp when TOTP was enabled",
+                  "returns": "enabled timestamp or undefined",
                   "type": "number"
                 },
                 "totpLastStep": {
-                  "description": "Last accepted time step for TOTP",
+                  "description": "Last accepted time step for TOTP\nSet last accepted time step for TOTP",
+                  "returns": "last step number or undefined",
                   "type": "number"
                 }
               },
@@ -3480,7 +3592,7 @@
             "MFA": {
               "WebdaBehavior": "Webda/MFA",
               "additionalProperties": false,
-              "description": "Multi-Factor Authentication credential behavior of a user",
+              "description": "Multi-Factor Authentication behavior: second factors and recovery codes of the model holding it.\n\nActions are exposed as `<Model>.<Attribute>.<Action>`. The configured login attribute also completes\nauthentication. Other attributes use the model `canAct(context, \"<attribute>.<action>\")` policy.\nVerification records the operation in the session and returns a proof bound to the owner and attribute.\n\nAttempts are counted atomically on the owner: a model holding the behavior declares them, as User does,\n`_mfaAttempts: number = 0` and `_lastMfaAttemptAt?: number`.",
               "properties": {
                 "__recoveryCodes": {
                   "description": "SHA-256 hashes of unused recovery codes, never output in clear text",
@@ -3494,11 +3606,13 @@
                   "description": "State of each configured second-factor method"
                 },
                 "totpEnabledAt": {
-                  "description": "Timestamp when TOTP was enabled",
+                  "description": "Timestamp when TOTP was enabled\nSet timestamp when TOTP was enabled",
+                  "returns": "enabled timestamp or undefined",
                   "type": "number"
                 },
                 "totpLastStep": {
-                  "description": "Last accepted time step for TOTP",
+                  "description": "Last accepted time step for TOTP\nSet last accepted time step for TOTP",
+                  "returns": "last step number or undefined",
                   "type": "number"
                 }
               },
@@ -3648,7 +3762,7 @@
             "MFA": {
               "WebdaBehavior": "Webda/MFA",
               "additionalProperties": false,
-              "description": "Multi-Factor Authentication credential behavior of a user",
+              "description": "Multi-Factor Authentication behavior: second factors and recovery codes of the model holding it.\n\nActions are exposed as `<Model>.<Attribute>.<Action>`. The configured login attribute also completes\nauthentication. Other attributes use the model `canAct(context, \"<attribute>.<action>\")` policy.\nVerification records the operation in the session and returns a proof bound to the owner and attribute.\n\nAttempts are counted atomically on the owner: a model holding the behavior declares them, as User does,\n`_mfaAttempts: number = 0` and `_lastMfaAttemptAt?: number`.",
               "properties": {
                 "__recoveryCodes": {
                   "description": "SHA-256 hashes of unused recovery codes, never output in clear text",
@@ -3663,14 +3777,17 @@
                 },
                 "totp": {
                   "$ref": "#/definitions/EncryptedField%3CTotpSecret%3E",
-                  "description": "Encrypted TOTP secret field"
+                  "description": "Encrypted TOTP secret field",
+                  "returns": "the encrypted TOTP field"
                 },
                 "totpEnabledAt": {
-                  "description": "Timestamp when TOTP was enabled",
+                  "description": "Timestamp when TOTP was enabled\nSet timestamp when TOTP was enabled",
+                  "returns": "enabled timestamp or undefined",
                   "type": "number"
                 },
                 "totpLastStep": {
-                  "description": "Last accepted time step for TOTP",
+                  "description": "Last accepted time step for TOTP\nSet last accepted time step for TOTP",
+                  "returns": "last step number or undefined",
                   "type": "number"
                 }
               },
@@ -3899,7 +4016,7 @@
             "MFA": {
               "WebdaBehavior": "Webda/MFA",
               "additionalProperties": false,
-              "description": "Multi-Factor Authentication credential behavior of a user",
+              "description": "Multi-Factor Authentication behavior: second factors and recovery codes of the model holding it.\n\nActions are exposed as `<Model>.<Attribute>.<Action>`. The configured login attribute also completes\nauthentication. Other attributes use the model `canAct(context, \"<attribute>.<action>\")` policy.\nVerification records the operation in the session and returns a proof bound to the owner and attribute.\n\nAttempts are counted atomically on the owner: a model holding the behavior declares them, as User does,\n`_mfaAttempts: number = 0` and `_lastMfaAttemptAt?: number`.",
               "properties": {
                 "__recoveryCodes": {
                   "description": "SHA-256 hashes of unused recovery codes, never output in clear text",
@@ -3914,14 +4031,17 @@
                 },
                 "totp": {
                   "$ref": "#/definitions/EncryptedField%3CTotpSecret%3E",
-                  "description": "Encrypted TOTP secret field"
+                  "description": "Encrypted TOTP secret field",
+                  "returns": "the encrypted TOTP field"
                 },
                 "totpEnabledAt": {
-                  "description": "Timestamp when TOTP was enabled",
+                  "description": "Timestamp when TOTP was enabled\nSet timestamp when TOTP was enabled",
+                  "returns": "enabled timestamp or undefined",
                   "type": "number"
                 },
                 "totpLastStep": {
-                  "description": "Last accepted time step for TOTP",
+                  "description": "Last accepted time step for TOTP\nSet last accepted time step for TOTP",
+                  "returns": "last step number or undefined",
                   "type": "number"
                 }
               },
@@ -4050,7 +4170,7 @@
             "MFA": {
               "WebdaBehavior": "Webda/MFA",
               "additionalProperties": false,
-              "description": "Multi-Factor Authentication credential behavior of a user",
+              "description": "Multi-Factor Authentication behavior: second factors and recovery codes of the model holding it.\n\nActions are exposed as `<Model>.<Attribute>.<Action>`. The configured login attribute also completes\nauthentication. Other attributes use the model `canAct(context, \"<attribute>.<action>\")` policy.\nVerification records the operation in the session and returns a proof bound to the owner and attribute.\n\nAttempts are counted atomically on the owner: a model holding the behavior declares them, as User does,\n`_mfaAttempts: number = 0` and `_lastMfaAttemptAt?: number`.",
               "properties": {
                 "__recoveryCodes": {
                   "description": "SHA-256 hashes of unused recovery codes, never output in clear text",
@@ -4064,11 +4184,13 @@
                   "description": "State of each configured second-factor method"
                 },
                 "totpEnabledAt": {
-                  "description": "Timestamp when TOTP was enabled",
+                  "description": "Timestamp when TOTP was enabled\nSet timestamp when TOTP was enabled",
+                  "returns": "enabled timestamp or undefined",
                   "type": "number"
                 },
                 "totpLastStep": {
-                  "description": "Last accepted time step for TOTP",
+                  "description": "Last accepted time step for TOTP\nSet last accepted time step for TOTP",
+                  "returns": "last step number or undefined",
                   "type": "number"
                 }
               },
@@ -4206,7 +4328,7 @@
             "MFA": {
               "WebdaBehavior": "Webda/MFA",
               "additionalProperties": false,
-              "description": "Multi-Factor Authentication credential behavior of a user",
+              "description": "Multi-Factor Authentication behavior: second factors and recovery codes of the model holding it.\n\nActions are exposed as `<Model>.<Attribute>.<Action>`. The configured login attribute also completes\nauthentication. Other attributes use the model `canAct(context, \"<attribute>.<action>\")` policy.\nVerification records the operation in the session and returns a proof bound to the owner and attribute.\n\nAttempts are counted atomically on the owner: a model holding the behavior declares them, as User does,\n`_mfaAttempts: number = 0` and `_lastMfaAttemptAt?: number`.",
               "properties": {
                 "__recoveryCodes": {
                   "description": "SHA-256 hashes of unused recovery codes, never output in clear text",
@@ -4221,14 +4343,17 @@
                 },
                 "totp": {
                   "$ref": "#/definitions/EncryptedField%3CTotpSecret%3E",
-                  "description": "Encrypted TOTP secret field"
+                  "description": "Encrypted TOTP secret field",
+                  "returns": "the encrypted TOTP field"
                 },
                 "totpEnabledAt": {
-                  "description": "Timestamp when TOTP was enabled",
+                  "description": "Timestamp when TOTP was enabled\nSet timestamp when TOTP was enabled",
+                  "returns": "enabled timestamp or undefined",
                   "type": "number"
                 },
                 "totpLastStep": {
-                  "description": "Last accepted time step for TOTP",
+                  "description": "Last accepted time step for TOTP\nSet last accepted time step for TOTP",
+                  "returns": "last step number or undefined",
                   "type": "number"
                 }
               },
@@ -4374,6 +4499,116 @@
       ],
       "type": "object",
       "title": "BinaryFile"
+    },
+    "Webda/MFA.enroll.input": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "input": {}
+      },
+      "required": [
+        "method"
+      ]
+    },
+    "Webda/MFA.enroll.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "Webda/MFA.confirm.input": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "method",
+        "code"
+      ]
+    },
+    "Webda/MFA.confirm.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "Webda/MFA.verify.input": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ]
+    },
+    "Webda/MFA.verify.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "Webda/MFA.recover.input": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ]
+    },
+    "Webda/MFA.recover.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "Webda/MFA.disable.input": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "method",
+        "code"
+      ]
+    },
+    "Webda/MFA.disable.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "not": {}
+    },
+    "Webda/MFA.recoveryCodes.input": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ]
+    },
+    "Webda/MFA.recoveryCodes.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "recoveryCodes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "recoveryCodes"
+      ],
+      "type": "object"
     },
     "Webda/Password.change.input": {
       "type": "object",
@@ -4815,6 +5050,47 @@
         }
       }
     },
+    "Webda/Encrypted": {
+      "Identifier": "Webda/Encrypted",
+      "Import": "lib/models/encrypted.model:EncryptedField",
+      "Actions": {}
+    },
+    "Webda/MFA": {
+      "Identifier": "Webda/MFA",
+      "Import": "lib/models/mfa.model:MFA",
+      "Actions": {
+        "enroll": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "confirm": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "verify": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "recover": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "disable": {
+          "rest": {
+            "method": "POST"
+          }
+        },
+        "recoveryCodes": {
+          "rest": {
+            "method": "POST"
+          }
+        }
+      }
+    },
     "Webda/Password": {
       "Identifier": "Webda/Password",
       "Import": "lib/models/password.model:Password",
@@ -4825,16 +5101,6 @@
           }
         }
       }
-    },
-    "Webda/Encrypted": {
-      "Identifier": "Webda/Encrypted",
-      "Import": "lib/models/encrypted.model:EncryptedField",
-      "Actions": {}
-    },
-    "Webda/MFA": {
-      "Identifier": "Webda/MFA",
-      "Import": "lib/models/mfa.model:MFA",
-      "Actions": {}
     }
   },
   "capabilities": {

@@ -607,11 +607,34 @@ export function ensureCommandServices(app: Application, services: ServiceCommand
     }
     const hasProvider =
       Object.values(appConfig.services).some(
-        (cfg: any) => cfg.type === svc.type || cfg.type === svc.type.split("/").pop()
+        (cfg: any) =>
+          cfg.type === svc.type || cfg.type === svc.type.split("/").pop() || isSubclassType(app, cfg.type, svc.type)
       ) || appConfig.services[svc.name];
     if (!hasProvider) {
       appConfig.services[svc.name] = { type: svc.type };
     }
+  }
+}
+
+/**
+ * Whether a configured service type is a subclass of the type declaring a command: it inherits the command, so no
+ * instance of the declaring type is added (e.g. `Loopingz/AuthorizerService extends Webda/Authentication`)
+ *
+ * @param app - the loaded Application
+ * @param type - the configured service type
+ * @param parent - the type declaring the command
+ * @returns true when both classes are known and `type` extends `parent`
+ */
+export function isSubclassType(app: Pick<Application, "getModda">, type: string, parent: string): boolean {
+  if (!type || typeof app.getModda !== "function") {
+    return false;
+  }
+  try {
+    const clazz: any = app.getModda(type);
+    const parentClass: any = app.getModda(parent);
+    return typeof clazz === "function" && typeof parentClass === "function" && clazz.prototype instanceof parentClass;
+  } catch {
+    return false;
   }
 }
 

@@ -12,6 +12,55 @@ import { runAsSystem } from "../contexts/execution.js";
 import { type ModelClass, type Repository, UuidModel } from "@webda/models";
 
 /**
+ * Resolve a Bearer token that is not a {@link TokenService} access token (OIDC workload identity, ...)
+ */
+export interface BearerTokenResolver {
+  /**
+   * @param token - the Bearer token
+   * @param context - the context
+   * @returns a logged stateless session, or undefined when the token is not for this resolver
+   */
+  resolveBearer(token: string, context: Context): Promise<Session | undefined>;
+}
+
+/**
+ * Registered Bearer resolvers, tried in order
+ */
+const bearerResolvers: BearerTokenResolver[] = [];
+
+/**
+ * Register a Bearer resolver, tried after the TokenService access tokens
+ *
+ * Registering the same resolver twice is a no-op
+ * @param resolver - the resolver
+ * @returns a function that unregisters the resolver
+ */
+export function registerBearerResolver(resolver: BearerTokenResolver): () => void {
+  if (!bearerResolvers.includes(resolver)) {
+    bearerResolvers.push(resolver);
+  }
+  return () => unregisterBearerResolver(resolver);
+}
+
+/**
+ * Unregister a Bearer resolver
+ * @param resolver - the resolver
+ */
+export function unregisterBearerResolver(resolver: BearerTokenResolver): void {
+  const index = bearerResolvers.indexOf(resolver);
+  if (index >= 0) {
+    bearerResolvers.splice(index, 1);
+  }
+}
+
+/**
+ * @returns the registered Bearer resolvers
+ */
+export function useBearerResolvers(): readonly BearerTokenResolver[] {
+  return bearerResolvers;
+}
+
+/**
  * Manage load and save of sessions
  */
 export abstract class SessionManager<T extends ServiceParameters = ServiceParameters> extends Service<T> {
@@ -29,6 +78,8 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
 
   /**
    * Build a stateless session from an access token (any transport)
+   *
+   * TokenService access tokens first, then each registered {@link BearerTokenResolver}: the first session wins
    * @param context - the context
    * @param token - access token
    * @returns the session, anonymous when the token is invalid
@@ -37,6 +88,20 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
     const session = new Session();
     session.stateless = true;
     const claims = await useService("TokenService").verifyAccess(token);
+    if (!claims && token) {
+      for (const resolver of bearerResolvers) {
+        let resolved: Session | undefined;
+        try {
+          resolved = await resolver.resolveBearer(token, context);
+        } catch (err) {
+          this.log("DEBUG", "Bearer resolver failed", err?.message);
+        }
+        if (resolved) {
+          resolved.stateless = true;
+          return resolved;
+        }
+      }
+    }
     if (claims) {
       session.login(claims.sub, claims.ident, {
         provider: claims.provider,

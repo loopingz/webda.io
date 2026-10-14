@@ -38,3 +38,35 @@ export function listConfiguredServiceTypes(configPath: string, namespace: string
   }
   return [...types];
 }
+
+/**
+ * The `sharedImports` allowlist declared in a webda.config.jsonc file: the modules a `@Shared` model method may
+ * import from.
+ *
+ * Read from every service that declares a `sharedImports` array (the `Webda/SdkGenerator` parameters), merged and
+ * deduplicated, so `webdac build` can enforce the allowlist without instantiating the runtime.
+ * @param configPath - Absolute path to webda.config.json or .jsonc.
+ * @returns The allowlist, or undefined when no service declares one (the compiler default applies).
+ */
+export function listSharedImports(configPath: string): string[] | undefined {
+  if (!existsSync(configPath)) return undefined;
+  let config: any;
+  try {
+    config = FileUtils.load(configPath);
+  } catch {
+    return undefined;
+  }
+  const services = config?.services;
+  if (!services || typeof services !== "object" || Array.isArray(services)) return undefined;
+  const modules = new Set<string>();
+  let declared = false;
+  for (const svc of Object.values(services)) {
+    const imports = (svc as any)?.sharedImports;
+    if (!Array.isArray(imports)) continue;
+    declared = true;
+    for (const module of imports) {
+      if (typeof module === "string") modules.add(module);
+    }
+  }
+  return declared ? [...modules] : undefined;
+}

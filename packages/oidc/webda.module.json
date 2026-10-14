@@ -1,0 +1,304 @@
+{
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/OIDCClient": {
+      "Import": "lib/client.service:OIDCClient",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Parameters of the OIDC client",
+        "properties": {
+          "issuerService": {
+            "default": "OIDCIssuer",
+            "description": "For \"self\": name of the OIDCIssuer service",
+            "type": "string"
+          },
+          "refreshMargin": {
+            "default": 60,
+            "description": "Refresh margin in seconds before the token expiration",
+            "type": "number"
+          },
+          "requestTimeout": {
+            "default": 5000,
+            "description": "Timeout of the token requests in milliseconds",
+            "type": "number"
+          },
+          "source": {
+            "default": "self",
+            "description": "Token source\n\n- `self`: minted by this application OIDCIssuer\n- `file`: read from `tokenFile`, like a Kubernetes projected service account token\n- `gcp-metadata`: identity token of the GCP default service account\n- `github-actions`: GitHub Actions OIDC token",
+            "enum": [
+              "self",
+              "file",
+              "gcp-metadata",
+              "github-actions"
+            ],
+            "type": "string"
+          },
+          "tokenFile": {
+            "description": "For \"file\": path of the projected token",
+            "example": "/var/run/secrets/tokens/webda",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "title": "OIDCClient"
+      },
+      "Configuration": "lib/client.service:OIDCClientParameters"
+    },
+    "Webda/OIDCIssuer": {
+      "Import": "lib/issuer.service:OIDCIssuer",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Parameters of the OIDC issuer",
+        "properties": {
+          "algorithm": {
+            "default": "RS256",
+            "description": "Signing algorithm, asymmetric only\n\nES256 requires the CryptoService to generate EC P-256 keys (`asymetricType: \"ec\"`)",
+            "enum": [
+              "RS256",
+              "RS384",
+              "RS512",
+              "PS256",
+              "ES256"
+            ],
+            "type": "string"
+          },
+          "audiences": {
+            "default": [
+              "*"
+            ],
+            "description": "Allowed audiences patterns (glob), minting for another audience is refused\n\nA lone `*` allows any audience, otherwise `*` does not cross `/`: `https://*.example.com`",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "issuer": {
+            "description": "Public issuer URL, MUST be https in production, no trailing slash",
+            "example": "https://orders.example.com",
+            "type": "string"
+          },
+          "name": {
+            "default": "application package name",
+            "description": "Application name, put in `sub` as `app:<name>` and in claim `webda_app`",
+            "type": "string"
+          },
+          "tokenTtl": {
+            "default": 300,
+            "description": "Token lifetime in seconds",
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "issuer",
+          "type"
+        ],
+        "type": "object",
+        "title": "OIDCIssuer"
+      },
+      "Configuration": "lib/issuer.service:OIDCIssuerParameters"
+    },
+    "Webda/OIDCVerifier": {
+      "Import": "lib/verifier.service:OIDCVerifier",
+      "Schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Record<string, string | string[]>": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ]
+            },
+            "description": "Construct a type with a set of properties K of type T",
+            "type": "object"
+          },
+          "TrustedIssuer": {
+            "additionalProperties": false,
+            "description": "An external issuer whose tokens this application accepts",
+            "properties": {
+              "algorithms": {
+                "default": [
+                  "RS256",
+                  "ES256"
+                ],
+                "description": "Allowed algorithms, never \"none\" nor HS*",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "audiences": {
+                "default": "[OIDCVerifier.audience]",
+                "description": "Accepted audiences",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "claims": {
+                "$ref": "#/definitions/Record%3Cstring%2C%20string%20%7C%20string%5B%5D%3E",
+                "description": "Claim conditions, all must match: values are globs (`*` does not cross `/`)",
+                "example": {
+                  "sub": "repo:loopingz/*:ref:refs/heads/main"
+                }
+              },
+              "groups": {
+                "description": "Extra static groups, IAM sees them as `app-group:<group>`",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "issuer": {
+                "description": "Exact issuer string compared to `iss` (no glob)",
+                "type": "string"
+              },
+              "jwksUri": {
+                "default": "`${issuer}/.well-known/openid-configuration` → jwks_uri",
+                "description": "Override discovery",
+                "type": "string"
+              },
+              "maxTokenAge": {
+                "default": "OIDCVerifier.maxTokenAge",
+                "description": "Max token lifetime accepted (exp - iat) in seconds",
+                "type": "number"
+              },
+              "principal": {
+                "default": "${sub}",
+                "description": "How to build the application principal name, template over claims\n\nA leading `app:` is removed: a Webda issuer `sub` of `app:orders` gives the IAM principal `app:orders`",
+                "type": "string"
+              }
+            },
+            "required": [
+              "issuer"
+            ],
+            "type": "object"
+          }
+        },
+        "description": "Parameters of the OIDC verifier",
+        "properties": {
+          "audience": {
+            "description": "Default expected audience, usually this application public URL",
+            "type": "string"
+          },
+          "clockTolerance": {
+            "default": 30,
+            "description": "Clock skew in seconds",
+            "type": "number"
+          },
+          "jwksCacheTtl": {
+            "default": 600,
+            "description": "Discovery and JWKS cache in seconds",
+            "type": "number"
+          },
+          "maxTokenAge": {
+            "default": 3600,
+            "description": "Max token lifetime accepted (exp - iat) in seconds",
+            "type": "number"
+          },
+          "requestTimeout": {
+            "default": 5000,
+            "description": "Timeout of the discovery and JWKS requests in milliseconds",
+            "type": "number"
+          },
+          "trustedIssuers": {
+            "default": [],
+            "description": "Issuers whose tokens are accepted",
+            "items": {
+              "$ref": "#/definitions/TrustedIssuer"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "audience",
+          "type"
+        ],
+        "type": "object",
+        "title": "OIDCVerifier"
+      },
+      "Configuration": "lib/verifier.service:OIDCVerifierParameters"
+    }
+  },
+  "models": {},
+  "schemas": {
+    "Webda/BinaryFile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
+      "title": "BinaryFile"
+    }
+  },
+  "behaviors": {}
+}

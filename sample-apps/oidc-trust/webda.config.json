@@ -1,0 +1,12 @@
+{
+  "$schema": ".webda/config.schema.json",
+  "version": 3,
+  "services": {
+    "HttpServer": {
+      "type": "Webda/HttpServer"
+    },
+    "RESTService": {
+      "type": "Webda/RESTOperationsTransport"
+    }
+  }
+}

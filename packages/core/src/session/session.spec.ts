@@ -5,6 +5,8 @@ import { WebdaApplicationTest } from "../test/application.js";
 import { registerUserResolver, useService } from "../core/hooks.js";
 import { useModel } from "../application/hooks.js";
 import { useCrypto } from "../services/cryptoservice.service.js";
+import { OwnerModel } from "../models/ownermodel.model.js";
+import { type BearerTokenResolver, registerBearerResolver, useBearerResolvers } from "./manager.model.js";
 
 @suite
 class SessionTest {
@@ -48,6 +50,31 @@ class SessionTest {
     session.mfaVerifications = verified;
     session.logout();
     assert.strictEqual(session.mfaVerifications, undefined);
+  }
+
+  @test
+  application() {
+    const session = new Session();
+    session.login("u1", "ident", {
+      mfaVerifications: { "User.Mfa.Verify": { method: "totp", verifiedAt: 123, owner: "Webda/User/u1" } }
+    });
+    session.loginApplication({ principal: "orders", issuer: "https://orders.example.com", subject: "app:orders" });
+    assert.strictEqual(session.mfaVerifications, undefined);
+    assert.ok(session.isApplication());
+    assert.ok(session.stateless);
+    assert.ok(!session.isLogged());
+    assert.strictEqual(session.userId, undefined);
+    assert.strictEqual(session.provider, "https://orders.example.com");
+    assert.deepStrictEqual(session.amr, ["oidc"]);
+    session.logout();
+    assert.ok(!session.isApplication());
+    assert.strictEqual(session.application, undefined);
+    // A user login replaces the application
+    session.loginApplication({ principal: "orders", issuer: "x", subject: "y" }, { amr: ["k8s"] });
+    assert.deepStrictEqual(session.amr, ["k8s"]);
+    session.login("u1", "ident");
+    assert.ok(!session.isApplication());
+    assert.strictEqual(session.application, undefined);
   }
 
   @test
@@ -251,5 +278,116 @@ class BearerSessionTest extends WebdaApplicationTest {
     const loaded = await useService("SessionManager").load(ctx);
     assert.ok(!loaded.isLogged());
     assert.ok(loaded.isPending());
+  }
+}
+
+@suite
+class BearerResolverTest extends WebdaApplicationTest {
+  unregister: (() => void)[] = [];
+
+  getTestConfiguration() {
+    return {
+      parameters: { ignoreBeans: true },
+      services: { AuthStore: { type: "Webda/MemoryStore", models: ["Webda/RefreshToken", "Webda/User"] } }
+    };
+  }
+
+  async afterEach() {
+    this.unregister.forEach(fn => fn());
+    this.unregister = [];
+    await super.afterEach();
+  }
+
+  /**
+   * Register a resolver accepting the "app-token" token
+   * @param calls - receives the tokens seen
+   * @returns the resolver
+   */
+  register(calls: string[] = []): BearerTokenResolver {
+    const resolver: BearerTokenResolver = {
+      resolveBearer: async token => {
+        calls.push(token);
+        if (token !== "app-token") return undefined;
+        const s = new Session();
+        s.loginApplication({ principal: "orders", issuer: "https://orders.example.com", subject: "app:orders" });
+        return s;
+      }
+    };
+    this.unregister.push(registerBearerResolver(resolver));
+    return resolver;
+  }
+
+  async load(token: string) {
+    const ctx = await this.newContext();
+    ctx.getHttpContext().headers["authorization"] = `Bearer ${token}`;
+    return useService("SessionManager").load(ctx);
+  }
+
+  @test
+  async resolverAuthenticatesApplication() {
+    this.register();
+    const loaded = await this.load("app-token");
+    assert.ok(loaded.isApplication());
+    assert.ok(loaded.stateless);
+    assert.strictEqual(loaded.application.principal, "orders");
+    const ctx = await this.newContext();
+    ctx.getHttpContext().headers["authorization"] = "Bearer app-token";
+    ctx.setSession(loaded);
+    assert.strictEqual(ctx.getCurrentUserId(), undefined);
+    assert.strictEqual(await ctx.getCurrentUser(), undefined);
+    // Owned objects refuse an application, even one whose principal equals the owner id
+    const owned = { public: false, getOwner: () => "orders" };
+    for (const action of ["create", "get", "update", "delete"]) {
+      assert.strictEqual(
+        await OwnerModel.prototype.canAct.call(owned, ctx, action),
+        "You need to be logged in to access this object"
+      );
+    }
+  }
+
+  @test
+  async accessTokenWinsOverResolvers() {
+    const calls: string[] = [];
+    this.register(calls);
+    const s = new Session();
+    s.login("u1", "a@b.c:email");
+    const token = (await useService("TokenService").issue(s)).accessToken;
+    const loaded = await this.load(token);
+    assert.strictEqual(loaded.userId, "u1");
+    assert.deepStrictEqual(calls, []);
+  }
+
+  @test
+  async unknownTokenStaysAnonymous() {
+    const calls: string[] = [];
+    this.register(calls);
+    const loaded = await this.load("nope");
+    assert.ok(!loaded.isLogged());
+    assert.ok(!loaded.isApplication());
+    assert.deepStrictEqual(calls, ["nope"]);
+  }
+
+  @test
+  async failingResolverIsSkipped() {
+    this.unregister.push(
+      registerBearerResolver({
+        resolveBearer: async () => {
+          throw new Error("boom");
+        }
+      })
+    );
+    this.register();
+    assert.ok((await this.load("app-token")).isApplication());
+  }
+
+  @test
+  async registerOnceAndUnregister() {
+    const before = useBearerResolvers().length;
+    const resolver = this.register();
+    registerBearerResolver(resolver);
+    assert.strictEqual(useBearerResolvers().length, before + 1);
+    this.unregister.pop()();
+    assert.strictEqual(useBearerResolvers().length, before);
+    assert.ok(!(await this.load("app-token")).isApplication());
   }
 }

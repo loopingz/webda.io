@@ -1,6 +1,13 @@
-import { createCipheriv, createDecipheriv, createHash, createHmac, generateKeyPairSync, randomBytes } from "crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  createPublicKey,
+  generateKeyPairSync,
+  randomBytes
+} from "crypto";
 import jwt from "jsonwebtoken";
-import { pem2jwk } from "pem-jwk";
 import * as util from "util";
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
@@ -305,6 +312,17 @@ function formatPath(path: (string | number)[]): string {
   return path.length ? path.join(".") : "<root>";
 }
 
+/**
+ * Public JSON Web Key (RFC 7517) published in the JWKS
+ */
+export interface JsonWebKey {
+  kty?: string;
+  kid?: string;
+  use?: string;
+  alg?: string;
+  [key: string]: unknown;
+}
+
 export type KeysRegistry = {
   /**
    * Contains the instanceId of the last
@@ -449,13 +467,10 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     [key: string]: KeysDefinition;
   };
   /**
-   * JWKS cache
+   * JWKS cache: public JWK of each key id, `null` when the key cannot be exported as a JWK
    */
   jwks: {
-    [key: string]: {
-      n: string;
-      e: string;
-    };
+    [key: string]: JsonWebKey | null;
   } = {};
 
   /**
@@ -472,6 +487,64 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
   }
 
   /**
+   * Url of the JWKS route, relative to the application root
+   * @returns the url or undefined when the JWKS is not exposed (no `url` parameter)
+   */
+  getJWKSUrl(): string | undefined {
+    return this.getUrl(".", ["GET"]);
+  }
+
+  /**
+   * Public signing keys as a JSON Web Key Set (RFC 7517)
+   *
+   * Only the asymmetric public keys are published, the symmetric keys never leave the service. The `kid` matches the
+   * one {@link jwtSign} writes for asymmetric tokens (`A<keyId>`), so any JOSE library can verify them. Keys of an
+   * old rotation stay published while they are in the registry: tokens they signed remain verifiable.
+   * @returns the key set
+   */
+  getJWKS(): { keys: JsonWebKey[] } {
+    const algorithm = this.parameters.jwt?.algorithm;
+    return {
+      keys: Object.keys(this.keys || {})
+        .map(k => {
+          if (this.jwks[k] === undefined) {
+            try {
+              this.jwks[k] = createPublicKey(this.keys[k].publicKey).export({ format: "jwk" }) as JsonWebKey;
+            } catch {
+              // dh, x25519, ... keys have no JWK representation
+              this.jwks[k] = null;
+            }
+          }
+          if (!this.jwks[k]) {
+            return undefined;
+          }
+          const jwk: JsonWebKey = { ...this.jwks[k], kid: "A" + k, use: "sig" };
+          // Advertise the algorithm only when the default one is asymmetric: the same key can sign RS* and PS*
+          if (algorithm && !algorithm.startsWith("HS")) {
+            jwk.alg = algorithm;
+          }
+          return jwk;
+        })
+        .filter(k => k !== undefined)
+    };
+  }
+
+  /**
+   * Cache duration of the JWKS in seconds
+   *
+   * A tenth of the key active lifespan, between one minute and one hour: verifiers see a new key well before the
+   * previous one stops signing, and unknown `kid` refetches remain rare.
+   * @returns the max-age
+   */
+  getJWKSMaxAge(): number {
+    const lifespan = this.parameters.keyActiveLifespan;
+    if (!lifespan) {
+      return 600;
+    }
+    return Math.max(60, Math.min(3600, Math.floor(lifespan * 360)));
+  }
+
+  /**
    *
    * @param context - the execution context
    */
@@ -482,24 +555,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     }
   })
   async serveJWKS(context: OperationContext) {
-    context.write({
-      keys: Object.keys(this.keys).map(k => {
-        if (!this.jwks[k]) {
-          /*
-            when Node >= 16
-            this.jwks[k] = createPublicKey(this.keys[k].publicKey).export({ format: "jwk" });
-            and remove pem-jwk
-            */
-          this.jwks[k] = pem2jwk(this.keys[k].publicKey);
-        }
-        return {
-          kty: "RSA",
-          kid: k,
-          n: this.jwks[k].n,
-          e: this.jwks[k].e
-        };
-      })
-    });
+    context.setHeader("Cache-Control", `public, max-age=${this.getJWKSMaxAge()}`);
+    context.write(this.getJWKS());
   }
 
   /**

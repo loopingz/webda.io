@@ -62,7 +62,7 @@ export async function generate(input: {
   const { options, templatesDir, agentDir } = input;
   const base = await loadTemplate(join(templatesDir, "base"), "base");
   const overlays = await Promise.all(
-    overlayNames(options.store, options.transports).map(name =>
+    overlayNames(options.store, options.transports, options.sdk).map(name =>
       loadTemplate(join(templatesDir, "features", name), name)
     )
   );

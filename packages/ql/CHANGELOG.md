@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.0.0-beta.8](https://github.com/loopingz/webda.io/compare/ql-v4.0.0-beta.7...ql-v4.0.0-beta.8) (2026-10-14)
+
+
+### Features
+
+* **ql:** add NOW() time function with duration offset ([#856](https://github.com/loopingz/webda.io/issues/856)) ([#886](https://github.com/loopingz/webda.io/issues/886)) ([653ecd0](https://github.com/loopingz/webda.io/commit/653ecd05327a02c828cae9c7cac02b34af251f67))
+* **ql:** implement WebdaQL code completion and blog-system search ([#685](https://github.com/loopingz/webda.io/issues/685)) ([#894](https://github.com/loopingz/webda.io/issues/894)) ([b89a8ea](https://github.com/loopingz/webda.io/commit/b89a8ea30a5b436f3152b557e8e51b89340c7623))
+
 ## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/ql-v4.0.0-beta.6...ql-v4.0.0-beta.7) (2026-10-12)
 
 

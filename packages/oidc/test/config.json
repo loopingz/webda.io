@@ -1,0 +1,22 @@
+{
+  "version": 3,
+  "parameters": {
+    "ignoreBeans": true
+  },
+  "services": {
+    "CryptoService": {
+      "type": "Webda/CryptoService",
+      "autoCreate": true,
+      "url": "/jwks"
+    },
+    "OIDCIssuer": {
+      "type": "Webda/OIDCIssuer",
+      "issuer": "https://orders.example.com",
+      "name": "orders",
+      "audiences": ["https://billing.example.com", "https://*.internal.example.com"]
+    },
+    "OIDCClient": {
+      "type": "Webda/OIDCClient"
+    }
+  }
+}

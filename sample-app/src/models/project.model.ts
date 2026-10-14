@@ -1,4 +1,4 @@
-import { ResourceAcl, Operation as Action, OperationContext, Store } from "@webda/core";
+import { ResourceAcl, Operation as Action, OperationContext, Shared, Store } from "@webda/core";
 import type { Company } from "./company.model.js";
 import { Model, ModelParent, WEBDA_PRIMARY_KEY } from "@webda/models";
 
@@ -115,6 +115,27 @@ export class Project extends AbstractProject<TestDoc2> implements Test, TestDoc2
    */
   union(): string | CoreModel | number {
     return 1;
+  }
+
+  /**
+   * Shared with the frontend SDK: runs in Node and in the browser
+   *
+   * @returns the name with its type
+   */
+  @Shared()
+  displayName(): string {
+    return this.type ? `${this.name} (${this.type})` : this.name;
+  }
+
+  /**
+   * Shared with the frontend SDK, static
+   *
+   * @param projects - projects to sort
+   * @returns the projects sorted by name
+   */
+  @Shared()
+  static sortByName<T extends { name: string }>(projects: T[]): T[] {
+    return [...projects].sort((a, b) => a.name.localeCompare(b.name));
   }
 }
 

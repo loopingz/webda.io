@@ -1824,6 +1824,91 @@
       },
       "type": "object"
     },
+    "TestBean.completeQL.input": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "caret": {
+          "type": "number"
+        },
+        "model": {
+          "type": "string"
+        }
+      }
+    },
+    "TestBean.completeQL.output": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "description": "Result of querying completions at a caret position",
+      "properties": {
+        "items": {
+          "description": "List of completion candidates",
+          "items": {
+            "$ref": "#/definitions/CompletionItem"
+          },
+          "type": "array"
+        },
+        "prefix": {
+          "description": "Partial word before the caret used for filtering",
+          "type": "string"
+        }
+      },
+      "required": [
+        "items",
+        "prefix"
+      ],
+      "type": "object",
+      "definitions": {
+        "CompletionItem": {
+          "additionalProperties": false,
+          "description": "A single code completion suggestion",
+          "properties": {
+            "detail": {
+              "description": "Detail information (e.g. field type or description)",
+              "type": "string"
+            },
+            "insertText": {
+              "description": "Text to insert, e.g. \"ORDER BY \", \"'open'\"",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Category of the completion",
+              "enum": [
+                "keyword",
+                "operator",
+                "field",
+                "value",
+                "parameter",
+                "punctuation"
+              ],
+              "type": "string"
+            },
+            "label": {
+              "description": "Shown text, e.g. \"ORDER BY\", \"priority\", \"TRUE\"",
+              "type": "string"
+            },
+            "range": {
+              "description": "Range of the query replaced by insertText, [start, end) char offsets",
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            }
+          },
+          "required": [
+            "insertText",
+            "kind",
+            "label",
+            "range"
+          ],
+          "type": "object"
+        }
+      }
+    },
     "Publisher.publish.input": {
       "type": "object",
       "properties": {

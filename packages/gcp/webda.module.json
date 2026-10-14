@@ -27,11 +27,20 @@
             "description": "Per-model collection overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a collection name.\nWhen not specified, the first model uses `collection` and others use their identifier\nlowercased with \"/\" replaced by \"_\".",
             "type": "object"
           },
-          "modelAliases": {
-            "additionalProperties": {
-              "type": "string"
+          "typeCheck": {
+            "additionalProperties": false,
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found",
+            "properties": {
+              "enabled": {
+                "default": true,
+                "type": "boolean"
+              },
+              "maxRows": {
+                "default": 10000,
+                "description": "Rows scanned at most by stores without a native count; beyond, the counts are \"at least\"",
+                "type": "number"
+              }
             },
-            "description": "Model Aliases to allow easier rename of Model",
             "type": "object"
           }
         },
@@ -63,25 +72,11 @@
             "see": "https://firebase.google.com/docs/firestore/query-data/queries",
             "type": "array"
           },
-          "defaultModel": {
-            "default": true,
-            "description": "When __type model not found, use the model\nIf strict is setup this parameter is not used",
-            "type": "boolean"
-          },
-          "forceModel": {
-            "default": false,
-            "description": "If set, Store will ignore the __type",
-            "type": "boolean"
-          },
           "maxGroups": {
             "default": 10000,
             "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
             "minimum": 1,
             "type": "number"
-          },
-          "modelAliases": {
-            "$ref": "#/definitions/modelAliases",
-            "description": "Model Aliases to allow easier rename of Model"
           },
           "models": {
             "default": [
@@ -111,6 +106,10 @@
           "type": {
             "description": "Type of the service",
             "type": "string"
+          },
+          "typeCheck": {
+            "$ref": "#/definitions/typeCheck",
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found"
           },
           "openapi": {
             "type": "object",

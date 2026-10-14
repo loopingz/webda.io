@@ -1,0 +1,124 @@
+{
+  "name": "@webda/sdk",
+  "version": "4.0.0-beta.2",
+  "description": "Typed frontend SDK generated from a Webda application: client runtime, manifest builder and code generator",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "node": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/client/index.d.ts",
+      "import": "./lib/client/index.js"
+    },
+    "./client/graphql": {
+      "types": "./lib/client/graphql/index.d.ts",
+      "import": "./lib/client/graphql/index.js"
+    },
+    "./client/grpc": {
+      "types": "./lib/client/grpc/index.d.ts",
+      "node": "./lib/client/grpc/index.js",
+      "import": "./lib/client/grpc/index.js"
+    },
+    "./client/offline": {
+      "types": "./lib/client/offline/index.d.ts",
+      "import": "./lib/client/offline/index.js"
+    }
+  },
+  "scripts": {
+    "build": "webdac build",
+    "build:watch": "webdac build --watch",
+    "pretest": "npm run build",
+    "test": "vitest run",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix"
+  },
+  "keywords": [
+    "webda-module",
+    "sdk",
+    "client",
+    "codegen"
+  ],
+  "files": [
+    "lib",
+    "webda.module.json",
+    "package.json"
+  ],
+  "dependencies": {
+    "@webda/core": "workspace:*",
+    "@webda/utils": "workspace:*",
+    "@webda/workout": "workspace:*",
+    "json-schema-to-typescript": "^16.0.0"
+  },
+  "devDependencies": {
+    "@grpc/grpc-js": "^1.12.0",
+    "@grpc/proto-loader": "^0.7.0",
+    "@types/json-schema": "^7.0.15",
+    "@types/node": "25.5.0",
+    "@vitest/coverage-v8": "^4.1.2",
+    "@webda/compiler": "workspace:^",
+    "@webda/graphql": "workspace:*",
+    "@webda/grpc": "workspace:*",
+    "@webda/models": "workspace:*",
+    "@webda/offline": "workspace:*",
+    "@webda/ql": "workspace:*",
+    "@webda/test": "workspace:*",
+    "graphql": "^16.13.2",
+    "graphql-ws": "^6.0.8",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.2"
+  },
+  "peerDependencies": {
+    "@grpc/grpc-js": "^1.12.0",
+    "@grpc/proto-loader": "^0.7.0",
+    "@webda/graphql": "workspace:^",
+    "@webda/grpc": "workspace:^",
+    "@webda/offline": "workspace:^",
+    "graphql-ws": "^6.0.8"
+  },
+  "peerDependenciesMeta": {
+    "@grpc/grpc-js": {
+      "optional": true
+    },
+    "@grpc/proto-loader": {
+      "optional": true
+    },
+    "@webda/graphql": {
+      "optional": true
+    },
+    "@webda/grpc": {
+      "optional": true
+    },
+    "@webda/offline": {
+      "optional": true
+    },
+    "graphql-ws": {
+      "optional": true
+    }
+  },
+  "bugs": {
+    "url": "https://github.com/loopingz/webda.io/issues"
+  },
+  "homepage": "https://github.com/loopingz/webda.io#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git",
+    "directory": "packages/sdk"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "webda": {
+    "namespace": "Webda"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "license": "LGPL-3.0-only"
+}

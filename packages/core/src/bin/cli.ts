@@ -16,6 +16,7 @@ import { getDeploymentUnitServices, mergeDeploymentUnits } from "../application/
 import { DEPLOYER_CAPABILITY } from "../deployers/deployer.js";
 import * as WebdaError from "../errors/errors.js";
 import { Core } from "../core/core.js";
+import { STORE_CAPABILITY } from "../stores/capability.js";
 import { bootCoreForCommand, executeApplicationCommand, selectPhase } from "./cli-phase.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { CancelablePromise, parseImportDescriptor, toImportSpecifier } from "@webda/utils";
@@ -600,18 +601,54 @@ export function ensureCommandServices(app: Application, services: ServiceCommand
   const appConfig = app.getConfiguration();
   appConfig.services ??= {};
   for (const svc of services) {
-    // Deployers only come from the units of the selected deployment
-    if (isDeployerType(app, svc.type)) {
+    // Deployers only come from the units of the selected deployment, stores only from the configuration
+    if (isDeployerType(app, svc.type) || isStoreType(app, svc.type)) {
       continue;
     }
     const hasProvider =
       Object.values(appConfig.services).some(
-        (cfg: any) => cfg.type === svc.type || cfg.type === svc.type.split("/").pop()
+        (cfg: any) =>
+          cfg.type === svc.type || cfg.type === svc.type.split("/").pop() || isSubclassType(app, cfg.type, svc.type)
       ) || appConfig.services[svc.name];
     if (!hasProvider) {
       appConfig.services[svc.name] = { type: svc.type };
     }
   }
+}
+
+/**
+ * Whether a configured service type is a subclass of the type declaring a command: it inherits the command, so no
+ * instance of the declaring type is added (e.g. `Loopingz/AuthorizerService extends Webda/Authentication`)
+ *
+ * @param app - the loaded Application
+ * @param type - the configured service type
+ * @param parent - the type declaring the command
+ * @returns true when both classes are known and `type` extends `parent`
+ */
+export function isSubclassType(app: Pick<Application, "getModda">, type: string, parent: string): boolean {
+  if (!type || typeof app.getModda !== "function") {
+    return false;
+  }
+  try {
+    const clazz: any = app.getModda(type);
+    const parentClass: any = app.getModda(parent);
+    return typeof clazz === "function" && typeof parentClass === "function" && clazz.prototype instanceof parentClass;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether a service type is a store, from its compiled capabilities
+ *
+ * @param app - the loaded Application
+ * @param type - the service type
+ * @returns true if the type declares the store capability
+ */
+export function isStoreType(app: Pick<Application, "getModules">, type: string): boolean {
+  const modules = app.getModules?.();
+  const entry = modules?.moddas?.[type] ?? modules?.beans?.[type];
+  return (entry?.capabilities ?? []).includes(STORE_CAPABILITY);
 }
 
 /**

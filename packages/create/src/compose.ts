@@ -10,14 +10,15 @@ export class ComposeError extends Error {}
 const TRANSPORT_OVERLAYS: Transport[] = ["graphql", "grpc", "mcp"];
 
 /**
- * Overlay folders to apply, in order: store first, then transports
+ * Overlay folders to apply, in order: store first, then transports, then the frontend SDK
  * @param store - selected store; `memory` needs no overlay
  * @param transports - selected transports; `rest` is part of the base
+ * @param sdk - generate the frontend SDK (`@webda/sdk`)
  * @returns overlay folder names under `templates/features/`
  */
-export function overlayNames(store: Store, transports: Transport[]): string[] {
+export function overlayNames(store: Store, transports: Transport[], sdk: boolean = false): string[] {
   const names = store === "memory" ? [] : [`store-${store}`];
-  return [...names, ...TRANSPORT_OVERLAYS.filter(name => transports.includes(name))];
+  return [...names, ...TRANSPORT_OVERLAYS.filter(name => transports.includes(name)), ...(sdk ? ["sdk"] : [])];
 }
 
 export interface Composed {

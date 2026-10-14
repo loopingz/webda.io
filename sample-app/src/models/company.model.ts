@@ -1,4 +1,4 @@
-import { CoreModel, OperationContext } from "@webda/core";
+import { CoreModel, OperationContext, Shared } from "@webda/core";
 import { ModelRelated } from "@webda/models";
 import { NotEnumerable } from "@webda/tsc-esm";
 import type { Project } from "./project.model.js";
@@ -33,6 +33,17 @@ export class Company extends CoreModel {
    * @SchemaOptional
    */
   permissions: Permission[];
+
+  /**
+   * Shared with the frontend SDK
+   *
+   * @param permission - the permission
+   * @returns true when the company has it
+   */
+  @Shared()
+  hasPermission(permission: string): boolean {
+    return ((this.permissions ?? []) as string[]).includes(permission);
+  }
 
   /**
    * Check whether the given action is allowed (always returns true).

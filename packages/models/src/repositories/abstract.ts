@@ -4,14 +4,17 @@ import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS, WEBDA_LEGACY_UID } from "../storable.j
 import { ModelRefWithCreate } from "../relations.js";
 import { Repository } from "./repository.js";
 import type { ArrayElement } from "@webda/tsc-esm";
-import type {
-  AggregationQuery,
-  AggregationResult,
-  Assignment,
-  Query as WebdaQLQuery,
-  QueryParameters
+import {
+  type AggregationQuery,
+  type AggregationResult,
+  type Assignment,
+  type CompletionField,
+  fieldsFromSchema,
+  type Query as WebdaQLQuery,
+  type QueryParameters
 } from "@webda/ql";
 import type { AggregatedRow, AggregationOptions, AggregationSpec, MetricSpec } from "../aggregation.js";
+import { ModelTypeResolver, useTypeResolver } from "../types-resolver.js";
 
 /**
  * Base repository implementation providing shared logic for key management,
@@ -30,6 +33,14 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   protected aggregationOptions: AggregationOptions = { fallback: "warn", maxGroups: 10000 };
   /** Fallback shapes already warned about */
   protected warnedAggregations: Set<string> = new Set();
+  /**
+   * Model owning the untyped rows of the storage (the first model of the store), undefined when not known
+   */
+  protected tableRoot?: ModelClass;
+  /**
+   * Resolver of the stored types, rebuilt when the installed one changes
+   */
+  private resolverCache?: { installed: ModelTypeResolver | undefined; resolver: ModelTypeResolver };
 
   /**
    * @param model - The model class constructor
@@ -44,6 +55,63 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   /** @override */
   getRootModel(): T {
     return this.model;
+  }
+
+  /**
+   * Set the model owning the untyped rows of the storage
+   * @param root - the first model of the store, undefined when not known
+   * @returns this
+   */
+  setTableRoot(root?: ModelClass): this {
+    this.tableRoot = root;
+    return this;
+  }
+
+  /**
+   * @returns the model owning the untyped rows of the storage
+   */
+  getTableRoot(): ModelClass | undefined {
+    return this.tableRoot;
+  }
+
+  /**
+   * Resolver of the stored `__type`: the installed application one when it knows the model, else the model's own
+   * hierarchy with exact identifiers only
+   * @returns the resolver
+   */
+  protected typeResolver(): ModelTypeResolver {
+    const installed = useTypeResolver();
+    if (!this.resolverCache || this.resolverCache.installed !== installed) {
+      this.resolverCache = {
+        installed,
+        resolver: installed?.knows(this.model) ? installed : ModelTypeResolver.forHierarchy(this.model)
+      };
+    }
+    return this.resolverCache.resolver;
+  }
+
+  /**
+   * Every stored `__type` value of this model and its transitive subclasses, for stores filtering in their query
+   * language
+   * @returns the values, empty when the model carries no Metadata
+   */
+  acceptedTypes(): string[] {
+    if (!(this.model as any)?.Metadata?.Identifier) {
+      return [];
+    }
+    return this.typeResolver().acceptedTypes(this.model);
+  }
+
+  /**
+   * Whether a stored row belongs to this model, for stores filtering in memory
+   * @param stored - the stored `__type`, undefined for an untyped row
+   * @returns true when the row belongs to this model (always without Metadata)
+   */
+  belongsToModel(stored?: string): boolean {
+    if (!(this.model as any)?.Metadata?.Identifier) {
+      return true;
+    }
+    return this.typeResolver().belongsToModel(this.model, stored, this.tableRoot);
   }
 
   /**
@@ -285,13 +353,28 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
    */
   getAllowedFields(): string[] | undefined {
     const meta: any = (this.model as any)?.Metadata;
+    const completionFields = this.getCompletionFields();
     const fields = new Set<string>([
+      ...completionFields.map((f) => f.name),
       ...Object.keys(meta?.Reflection ?? {}),
       ...Object.keys(meta?.Schemas?.Stored?.properties ?? {}),
       ...Object.keys(meta?.Schemas?.Input?.properties ?? {}),
       ...Object.keys(meta?.Schemas?.Output?.properties ?? {})
     ]);
     return fields.size ? [...fields] : undefined;
+  }
+
+  /**
+   * Completion fields of the model, flattened from its schemas
+   * @returns array of completion fields
+   */
+  getCompletionFields(): CompletionField[] {
+    const meta: any = (this.model as any)?.Metadata;
+    const schema = meta?.Schemas?.Stored || meta?.Schemas?.Output || meta?.Schemas?.Input;
+    if (schema) {
+      return fieldsFromSchema(schema);
+    }
+    return [];
   }
 
   /**

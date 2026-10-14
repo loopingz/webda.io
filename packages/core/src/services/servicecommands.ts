@@ -105,6 +105,18 @@ export function collectServiceCommands(app: Application): { [name: string]: Serv
 }
 
 /**
+ * @param service - a service instance
+ * @returns the names of its class and of every ancestor class
+ */
+function classChainNames(service: any): string[] {
+  const names: string[] = [];
+  for (let clazz = service?.constructor; clazz && clazz !== Function.prototype; clazz = Object.getPrototypeOf(clazz)) {
+    if (clazz.name) names.push(clazz.name);
+  }
+  return names;
+}
+
+/**
  * Execute a CLI command by dispatching to all services that declared it.
  *
  * Services are executed in the order they were initialized (which follows the
@@ -176,7 +188,8 @@ export async function executeServiceCommand(
     const shortName = svc.type.split("/").pop();
     for (const [, instanceService] of Object.entries(services)) {
       if (!instanceService || matches.includes(instanceService)) continue;
-      if (instanceService.constructor?.name === shortName) {
+      // A subclass inherits the command (e.g. an application `Authentication` running `auth migrate`)
+      if (classChainNames(instanceService).includes(shortName)) {
         matches.push(instanceService);
       }
     }

@@ -94,6 +94,7 @@
                   }
                 ]
               },
+              "stream": {},
               "types": {
                 "$ref": "#/definitions/CustomTypesConfig"
               },
@@ -106,6 +107,9 @@
           "ConnectionOptions": {
             "additionalProperties": false,
             "properties": {
+              "ALPNCallback": {
+                "description": "If set, this will be called when a client opens a connection using the ALPN extension.\nOne argument will be passed to the callback: an object containing `servername` and `protocols` fields,\nrespectively containing the server name from the SNI extension (if any) and an array of\nALPN protocol name strings. The callback must return either one of the strings listed in `protocols`,\nwhich will be returned to the client as the selected ALPN protocol, or `undefined`,\nto reject the connection with a fatal alert. If a string is returned that does not match one of\nthe client's ALPN protocols, an error will be thrown.\nThis option cannot be used with the `ALPNProtocols` option, and setting both options will throw an error."
+              },
               "ALPNProtocols": {
                 "anyOf": [
                   {
@@ -137,6 +141,9 @@
                   }
                 ],
                 "description": "An array of strings, or a single `Buffer`, `TypedArray`, or `DataView` containing the supported\nALPN protocols. Buffers should have the format `[len][name][len][name]...`\ne.g. `'\\x08http/1.1\\x08http/1.0'`, where the `len` byte is the length of the\nnext protocol name. Passing an array is usually much simpler, e.g.\n`['http/1.1', 'http/1.0']`. Protocols earlier in the list have higher\npreference than those later."
+              },
+              "SNICallback": {
+                "description": "SNICallback(servername, cb) <Function> A function that will be\ncalled if the client supports SNI TLS extension. Two arguments\nwill be passed when called: servername and cb. SNICallback should\ninvoke cb(null, ctx), where ctx is a SecureContext instance.\n(tls.createSecureContext(...) can be used to get a proper\nSecureContext.) If SNICallback wasn't provided the default callback\nwith high-level API will be used (see below)."
               },
               "allowPartialTrustChain": {
                 "default": false,
@@ -200,6 +207,7 @@
                 ],
                 "description": "Cert chains in PEM format. One cert chain should be provided per\nprivate key. Each cert chain should consist of the PEM formatted\ncertificate for a provided private key, followed by the PEM\nformatted intermediate certificates (if any), in order, and not\nincluding the root CA (the root CA must be pre-known to the peer,\nsee ca). When providing multiple cert chains, they do not have to\nbe in the same order as their private keys in key. If the\nintermediate certificates are not provided, the peer will not be\nable to validate the certificate, and the handshake will fail."
               },
+              "checkServerIdentity": {},
               "ciphers": {
                 "description": "Cipher suite specification, replacing the default. For more\ninformation, see modifying the default cipher suite. Permitted\nciphers can be obtained via tls.getCiphers(). Cipher names must be\nuppercased in order for OpenSSL to accept them.",
                 "type": "string"
@@ -298,6 +306,7 @@
                 ],
                 "description": "Private keys in PEM format. PEM allows the option of private keys\nbeing encrypted. Encrypted keys will be decrypted with\noptions.passphrase. Multiple keys using different algorithms can be\nprovided either as an array of unencrypted key strings or buffers,\nor an array of objects in the form {pem: <string|buffer>[,\npassphrase: <string>]}. The object form can only occur in an array.\nobject.passphrase is optional. Encrypted keys will be decrypted with\nobject.passphrase if provided, or options.passphrase if it is not."
               },
+              "lookup": {},
               "maxVersion": {
                 "description": "Optionally set the maximum TLS version to allow. One\nof `'TLSv1.3'`, `'TLSv1.2'`, `'TLSv1.1'`, or `'TLSv1'`. Cannot be specified along with the\n`secureProtocol` option, use one or the other.\n**Default:** `'TLSv1.3'`, unless changed using CLI options. Using\n`--tls-max-v1.2` sets the default to `'TLSv1.2'`. Using `--tls-max-v1.3` sets the default to\n`'TLSv1.3'`. If multiple of the options are provided, the highest maximum is used.",
                 "enum": [
@@ -371,6 +380,10 @@
                 "deprecated": true,
                 "description": "Identifier of a private key managed by an OpenSSL engine. Should be\nused together with privateKeyEngine. Should not be set together with\nkey, because both options define a private key in different ways.",
                 "type": "string"
+              },
+              "pskCallback": {
+                "description": "When negotiating TLS-PSK (pre-shared keys), this function is called\nwith optional identity `hint` provided by the server or `null`\nin case of TLS 1.3 where `hint` was removed.\nIt will be necessary to provide a custom `tls.checkServerIdentity()`\nfor the connection as the default one will try to check hostname/IP\nof the server against the certificate but that's not applicable for PSK\nbecause there won't be a certificate present.\nMore information can be found in the RFC 4279.",
+                "returns": "Return `null` to stop the negotiation process. `psk` must be\ncompatible with the selected cipher's digest.\n`identity` must use UTF-8 encoding."
               },
               "rejectUnauthorized": {
                 "default": true,
@@ -460,10 +473,17 @@
                 "type": "boolean"
               },
               "readableFlowing": {
-                "default": false,
                 "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v25.x/api/stream.html#three-states) section.",
+                "enum": [
+                  null,
+                  false,
+                  true
+                ],
                 "since": "v9.4.0",
-                "type": "boolean"
+                "type": [
+                  "null",
+                  "boolean"
+                ]
               },
               "writable": {
                 "default": false,
@@ -472,6 +492,9 @@
                 "type": "boolean"
               }
             },
+            "required": [
+              "readableFlowing"
+            ],
             "since": "v0.9.4",
             "type": "object"
           },
@@ -695,6 +718,7 @@
                   }
                 ]
               },
+              "stream": {},
               "types": {
                 "$ref": "#/definitions/CustomTypesConfig"
               },
@@ -707,6 +731,9 @@
           "ConnectionOptions": {
             "additionalProperties": false,
             "properties": {
+              "ALPNCallback": {
+                "description": "If set, this will be called when a client opens a connection using the ALPN extension.\nOne argument will be passed to the callback: an object containing `servername` and `protocols` fields,\nrespectively containing the server name from the SNI extension (if any) and an array of\nALPN protocol name strings. The callback must return either one of the strings listed in `protocols`,\nwhich will be returned to the client as the selected ALPN protocol, or `undefined`,\nto reject the connection with a fatal alert. If a string is returned that does not match one of\nthe client's ALPN protocols, an error will be thrown.\nThis option cannot be used with the `ALPNProtocols` option, and setting both options will throw an error."
+              },
               "ALPNProtocols": {
                 "anyOf": [
                   {
@@ -738,6 +765,9 @@
                   }
                 ],
                 "description": "An array of strings, or a single `Buffer`, `TypedArray`, or `DataView` containing the supported\nALPN protocols. Buffers should have the format `[len][name][len][name]...`\ne.g. `'\\x08http/1.1\\x08http/1.0'`, where the `len` byte is the length of the\nnext protocol name. Passing an array is usually much simpler, e.g.\n`['http/1.1', 'http/1.0']`. Protocols earlier in the list have higher\npreference than those later."
+              },
+              "SNICallback": {
+                "description": "SNICallback(servername, cb) <Function> A function that will be\ncalled if the client supports SNI TLS extension. Two arguments\nwill be passed when called: servername and cb. SNICallback should\ninvoke cb(null, ctx), where ctx is a SecureContext instance.\n(tls.createSecureContext(...) can be used to get a proper\nSecureContext.) If SNICallback wasn't provided the default callback\nwith high-level API will be used (see below)."
               },
               "allowPartialTrustChain": {
                 "default": false,
@@ -801,6 +831,7 @@
                 ],
                 "description": "Cert chains in PEM format. One cert chain should be provided per\nprivate key. Each cert chain should consist of the PEM formatted\ncertificate for a provided private key, followed by the PEM\nformatted intermediate certificates (if any), in order, and not\nincluding the root CA (the root CA must be pre-known to the peer,\nsee ca). When providing multiple cert chains, they do not have to\nbe in the same order as their private keys in key. If the\nintermediate certificates are not provided, the peer will not be\nable to validate the certificate, and the handshake will fail."
               },
+              "checkServerIdentity": {},
               "ciphers": {
                 "description": "Cipher suite specification, replacing the default. For more\ninformation, see modifying the default cipher suite. Permitted\nciphers can be obtained via tls.getCiphers(). Cipher names must be\nuppercased in order for OpenSSL to accept them.",
                 "type": "string"
@@ -899,6 +930,7 @@
                 ],
                 "description": "Private keys in PEM format. PEM allows the option of private keys\nbeing encrypted. Encrypted keys will be decrypted with\noptions.passphrase. Multiple keys using different algorithms can be\nprovided either as an array of unencrypted key strings or buffers,\nor an array of objects in the form {pem: <string|buffer>[,\npassphrase: <string>]}. The object form can only occur in an array.\nobject.passphrase is optional. Encrypted keys will be decrypted with\nobject.passphrase if provided, or options.passphrase if it is not."
               },
+              "lookup": {},
               "maxVersion": {
                 "description": "Optionally set the maximum TLS version to allow. One\nof `'TLSv1.3'`, `'TLSv1.2'`, `'TLSv1.1'`, or `'TLSv1'`. Cannot be specified along with the\n`secureProtocol` option, use one or the other.\n**Default:** `'TLSv1.3'`, unless changed using CLI options. Using\n`--tls-max-v1.2` sets the default to `'TLSv1.2'`. Using `--tls-max-v1.3` sets the default to\n`'TLSv1.3'`. If multiple of the options are provided, the highest maximum is used.",
                 "enum": [
@@ -972,6 +1004,10 @@
                 "deprecated": true,
                 "description": "Identifier of a private key managed by an OpenSSL engine. Should be\nused together with privateKeyEngine. Should not be set together with\nkey, because both options define a private key in different ways.",
                 "type": "string"
+              },
+              "pskCallback": {
+                "description": "When negotiating TLS-PSK (pre-shared keys), this function is called\nwith optional identity `hint` provided by the server or `null`\nin case of TLS 1.3 where `hint` was removed.\nIt will be necessary to provide a custom `tls.checkServerIdentity()`\nfor the connection as the default one will try to check hostname/IP\nof the server against the certificate but that's not applicable for PSK\nbecause there won't be a certificate present.\nMore information can be found in the RFC 4279.",
+                "returns": "Return `null` to stop the negotiation process. `psk` must be\ncompatible with the selected cipher's digest.\n`identity` must use UTF-8 encoding."
               },
               "rejectUnauthorized": {
                 "default": true,
@@ -1061,10 +1097,17 @@
                 "type": "boolean"
               },
               "readableFlowing": {
-                "default": false,
                 "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v25.x/api/stream.html#three-states) section.",
+                "enum": [
+                  null,
+                  false,
+                  true
+                ],
                 "since": "v9.4.0",
-                "type": "boolean"
+                "type": [
+                  "null",
+                  "boolean"
+                ]
               },
               "writable": {
                 "default": false,
@@ -1073,6 +1116,9 @@
                 "type": "boolean"
               }
             },
+            "required": [
+              "readableFlowing"
+            ],
             "since": "v0.9.4",
             "type": "object"
           },
@@ -1160,7 +1206,15 @@
                 "type": "string"
               },
               "idleTimeoutMillis": {
-                "type": "number"
+                "anyOf": [
+                  {
+                    "const": null,
+                    "type": "null"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
               },
               "idle_in_transaction_session_timeout": {
                 "type": "number"
@@ -1175,6 +1229,7 @@
               "lock_timeout": {
                 "type": "number"
               },
+              "log": {},
               "max": {
                 "type": "number"
               },
@@ -1187,6 +1242,7 @@
               "min": {
                 "type": "number"
               },
+              "onConnect": {},
               "options": {
                 "type": "string"
               },
@@ -1231,12 +1287,14 @@
                   }
                 ]
               },
+              "stream": {},
               "types": {
                 "$ref": "#/definitions/CustomTypesConfig"
               },
               "user": {
                 "type": "string"
-              }
+              },
+              "verify": {}
             },
             "type": "object"
           },
@@ -1479,6 +1537,7 @@
                   }
                 ]
               },
+              "stream": {},
               "types": {
                 "$ref": "#/definitions/CustomTypesConfig"
               },
@@ -1491,6 +1550,9 @@
           "ConnectionOptions": {
             "additionalProperties": false,
             "properties": {
+              "ALPNCallback": {
+                "description": "If set, this will be called when a client opens a connection using the ALPN extension.\nOne argument will be passed to the callback: an object containing `servername` and `protocols` fields,\nrespectively containing the server name from the SNI extension (if any) and an array of\nALPN protocol name strings. The callback must return either one of the strings listed in `protocols`,\nwhich will be returned to the client as the selected ALPN protocol, or `undefined`,\nto reject the connection with a fatal alert. If a string is returned that does not match one of\nthe client's ALPN protocols, an error will be thrown.\nThis option cannot be used with the `ALPNProtocols` option, and setting both options will throw an error."
+              },
               "ALPNProtocols": {
                 "anyOf": [
                   {
@@ -1522,6 +1584,9 @@
                   }
                 ],
                 "description": "An array of strings, or a single `Buffer`, `TypedArray`, or `DataView` containing the supported\nALPN protocols. Buffers should have the format `[len][name][len][name]...`\ne.g. `'\\x08http/1.1\\x08http/1.0'`, where the `len` byte is the length of the\nnext protocol name. Passing an array is usually much simpler, e.g.\n`['http/1.1', 'http/1.0']`. Protocols earlier in the list have higher\npreference than those later."
+              },
+              "SNICallback": {
+                "description": "SNICallback(servername, cb) <Function> A function that will be\ncalled if the client supports SNI TLS extension. Two arguments\nwill be passed when called: servername and cb. SNICallback should\ninvoke cb(null, ctx), where ctx is a SecureContext instance.\n(tls.createSecureContext(...) can be used to get a proper\nSecureContext.) If SNICallback wasn't provided the default callback\nwith high-level API will be used (see below)."
               },
               "allowPartialTrustChain": {
                 "default": false,
@@ -1585,6 +1650,7 @@
                 ],
                 "description": "Cert chains in PEM format. One cert chain should be provided per\nprivate key. Each cert chain should consist of the PEM formatted\ncertificate for a provided private key, followed by the PEM\nformatted intermediate certificates (if any), in order, and not\nincluding the root CA (the root CA must be pre-known to the peer,\nsee ca). When providing multiple cert chains, they do not have to\nbe in the same order as their private keys in key. If the\nintermediate certificates are not provided, the peer will not be\nable to validate the certificate, and the handshake will fail."
               },
+              "checkServerIdentity": {},
               "ciphers": {
                 "description": "Cipher suite specification, replacing the default. For more\ninformation, see modifying the default cipher suite. Permitted\nciphers can be obtained via tls.getCiphers(). Cipher names must be\nuppercased in order for OpenSSL to accept them.",
                 "type": "string"
@@ -1683,6 +1749,7 @@
                 ],
                 "description": "Private keys in PEM format. PEM allows the option of private keys\nbeing encrypted. Encrypted keys will be decrypted with\noptions.passphrase. Multiple keys using different algorithms can be\nprovided either as an array of unencrypted key strings or buffers,\nor an array of objects in the form {pem: <string|buffer>[,\npassphrase: <string>]}. The object form can only occur in an array.\nobject.passphrase is optional. Encrypted keys will be decrypted with\nobject.passphrase if provided, or options.passphrase if it is not."
               },
+              "lookup": {},
               "maxVersion": {
                 "description": "Optionally set the maximum TLS version to allow. One\nof `'TLSv1.3'`, `'TLSv1.2'`, `'TLSv1.1'`, or `'TLSv1'`. Cannot be specified along with the\n`secureProtocol` option, use one or the other.\n**Default:** `'TLSv1.3'`, unless changed using CLI options. Using\n`--tls-max-v1.2` sets the default to `'TLSv1.2'`. Using `--tls-max-v1.3` sets the default to\n`'TLSv1.3'`. If multiple of the options are provided, the highest maximum is used.",
                 "enum": [
@@ -1756,6 +1823,10 @@
                 "deprecated": true,
                 "description": "Identifier of a private key managed by an OpenSSL engine. Should be\nused together with privateKeyEngine. Should not be set together with\nkey, because both options define a private key in different ways.",
                 "type": "string"
+              },
+              "pskCallback": {
+                "description": "When negotiating TLS-PSK (pre-shared keys), this function is called\nwith optional identity `hint` provided by the server or `null`\nin case of TLS 1.3 where `hint` was removed.\nIt will be necessary to provide a custom `tls.checkServerIdentity()`\nfor the connection as the default one will try to check hostname/IP\nof the server against the certificate but that's not applicable for PSK\nbecause there won't be a certificate present.\nMore information can be found in the RFC 4279.",
+                "returns": "Return `null` to stop the negotiation process. `psk` must be\ncompatible with the selected cipher's digest.\n`identity` must use UTF-8 encoding."
               },
               "rejectUnauthorized": {
                 "default": true,
@@ -1845,10 +1916,17 @@
                 "type": "boolean"
               },
               "readableFlowing": {
-                "default": false,
                 "description": "This property reflects the current state of a `Readable` stream as described\nin the [Three states](https://nodejs.org/docs/latest-v25.x/api/stream.html#three-states) section.",
+                "enum": [
+                  null,
+                  false,
+                  true
+                ],
                 "since": "v9.4.0",
-                "type": "boolean"
+                "type": [
+                  "null",
+                  "boolean"
+                ]
               },
               "writable": {
                 "default": false,
@@ -1857,6 +1935,9 @@
                 "type": "boolean"
               }
             },
+            "required": [
+              "readableFlowing"
+            ],
             "since": "v0.9.4",
             "type": "object"
           },
@@ -1944,7 +2025,15 @@
                 "type": "string"
               },
               "idleTimeoutMillis": {
-                "type": "number"
+                "anyOf": [
+                  {
+                    "const": null,
+                    "type": "null"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
               },
               "idle_in_transaction_session_timeout": {
                 "type": "number"
@@ -1959,6 +2048,7 @@
               "lock_timeout": {
                 "type": "number"
               },
+              "log": {},
               "max": {
                 "type": "number"
               },
@@ -1971,6 +2061,7 @@
               "min": {
                 "type": "number"
               },
+              "onConnect": {},
               "options": {
                 "type": "string"
               },
@@ -2015,12 +2106,14 @@
                   }
                 ]
               },
+              "stream": {},
               "types": {
                 "$ref": "#/definitions/CustomTypesConfig"
               },
               "user": {
                 "type": "string"
-              }
+              },
+              "verify": {}
             },
             "type": "object"
           },
@@ -2081,22 +2174,31 @@
             "additionalProperties": false,
             "type": "object"
           },
-          "modelAliases": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "Model Aliases to allow easier rename of Model",
-            "type": "object"
-          },
           "new () => ClientBase": {
             "additionalProperties": false,
             "type": "object"
           },
-          "tables": {
+          "tables#2": {
             "additionalProperties": {
               "type": "string"
             },
-            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.\nWhen not specified, defaults are: primary model → `table`, others → identifier lowercased with \"/\" → \"_\".",
+            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.\nWhen not specified, every model of the store uses `table` (as Webda 3 did), or without `table` its identifier\nlowercased with \"/\" → \"_\".",
+            "type": "object"
+          },
+          "typeCheck#2": {
+            "additionalProperties": false,
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found",
+            "properties": {
+              "enabled": {
+                "default": true,
+                "type": "boolean"
+              },
+              "maxRows": {
+                "default": 10000,
+                "description": "Rows scanned at most by stores without a native count; beyond, the counts are \"at least\"",
+                "type": "number"
+              }
+            },
             "type": "object"
           }
         },
@@ -2119,25 +2221,11 @@
           "database": {
             "$ref": "#/definitions/SQLDatabase"
           },
-          "defaultModel": {
-            "default": true,
-            "description": "When __type model not found, use the model\nIf strict is setup this parameter is not used",
-            "type": "boolean"
-          },
-          "forceModel": {
-            "default": false,
-            "description": "If set, Store will ignore the __type",
-            "type": "boolean"
-          },
           "maxGroups": {
             "default": 10000,
             "description": "Maximum number of groups an aggregation may produce without LIMIT (or in memory)",
             "minimum": 1,
             "type": "number"
-          },
-          "modelAliases": {
-            "$ref": "#/definitions/modelAliases",
-            "description": "Model Aliases to allow easier rename of Model"
           },
           "models": {
             "default": [
@@ -2183,12 +2271,16 @@
             "type": "string"
           },
           "tables": {
-            "$ref": "#/definitions/tables",
-            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.\nWhen not specified, defaults are: primary model → `table`, others → identifier lowercased with \"/\" → \"_\"."
+            "$ref": "#/definitions/tables%232",
+            "description": "Per-model table name overrides.\nMaps a model identifier (e.g. \"Webda/User\") to a custom table name.\nWhen not specified, every model of the store uses `table` (as Webda 3 did), or without `table` its identifier\nlowercased with \"/\" → \"_\"."
           },
           "type": {
             "description": "Type of the service",
             "type": "string"
+          },
+          "typeCheck": {
+            "$ref": "#/definitions/typeCheck%232",
+            "description": "Startup check of the stored types: one WARN listing the legacy, untyped and unknown types found"
           },
           "usePool": {
             "default": false,
@@ -2228,7 +2320,34 @@
         "type": "object",
         "title": "PostgresStore"
       },
-      "Configuration": "lib/postgresstore.service:PostgresParameters"
+      "Configuration": "lib/postgresstore.service:PostgresParameters",
+      "capabilities": [
+        "store"
+      ],
+      "commands": {
+        "migrate": {
+          "description": "Rewrite the Webda 3 types of the stores to their Webda 4 identifiers",
+          "method": "migrate",
+          "args": {
+            "dryRun": {
+              "type": "boolean",
+              "default": false,
+              "description": "Only count the rows to migrate, write nothing"
+            },
+            "batch": {
+              "type": "number",
+              "default": 500,
+              "description": "Rows per page"
+            },
+            "allowUnknown": {
+              "type": "boolean",
+              "default": false,
+              "description": "Exit with 0 even when rows keep an unknown or ambiguous type"
+            }
+          },
+          "phase": "initialized"
+        }
+      }
     }
   },
   "models": {},

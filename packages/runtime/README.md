@@ -13,7 +13,7 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-> Webda runtime service bundle — router, cluster coordination, proxy, invitation system, version endpoint, migration store, and core utility models bundled for use in any Webda deployment.
+> Webda runtime service bundle — router, cluster coordination, proxy, invitation system, version endpoint, and core utility models bundled for use in any Webda deployment.
 
 ## When to use it
 
@@ -37,10 +37,6 @@ pnpm add @webda/runtime
 - `InvitationService` — Token-based invitation/join-code system for model membership ([source](./src/services/invitationservice.ts))
 - `ProxyService` — HTTP reverse proxy that forwards requests matching a URL prefix to an upstream host ([source](./src/services/proxy.ts))
 - `VersionService` — Exposes a `/version` endpoint returning the application name and version ([source](./src/services/version.ts))
-
-### Stores
-
-- `MigrationStore` — Wraps another store and runs model migrations on read ([source](./src/stores/migration.ts))
 
 ### Utility models
 

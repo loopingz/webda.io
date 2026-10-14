@@ -24,6 +24,7 @@ const HELP = `Usage: npm create @webda <directory> [-- options]
 
   --store memory|file|mongodb|postgres   default memory
   --transports rest,graphql,grpc,mcp     default rest
+  --sdk                                  generate a typed frontend SDK (@webda/sdk)
   --namespace <PascalCase>               default from the directory name
   --pm pnpm|npm|yarn                     default: the package manager running this command
   --no-install                           skip dependency installation

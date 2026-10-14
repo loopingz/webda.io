@@ -14,6 +14,8 @@ export interface CreateOptions {
   dir: string;
   store: Store;
   transports: Transport[];
+  /** Generate the frontend SDK (`@webda/sdk`) */
+  sdk?: boolean;
   namespace: string;
   pm: PackageManager;
   install: boolean;
@@ -28,6 +30,8 @@ export interface ParsedArgs {
   dir?: string;
   store?: Store;
   transports?: Transport[];
+  /** `--sdk`: generate the frontend SDK */
+  sdk: boolean;
   namespace?: string;
   pm?: PackageManager;
   install: boolean;
@@ -91,6 +95,7 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
       options: {
         store: { type: "string" },
         transports: { type: "string" },
+        sdk: { type: "boolean" },
         namespace: { type: "string" },
         pm: { type: "string" },
         "no-install": { type: "boolean" },
@@ -115,6 +120,7 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
     dir: parsed.positionals[0],
     store: values.store === undefined ? undefined : oneOf("store", values.store as string, STORES),
     transports: values.transports === undefined ? undefined : parseTransports(values.transports as string),
+    sdk: Boolean(values.sdk),
     namespace,
     pm: values.pm === undefined ? undefined : oneOf("pm", values.pm as string, PACKAGE_MANAGERS),
     install: !values["no-install"],

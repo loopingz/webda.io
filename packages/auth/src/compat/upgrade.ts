@@ -67,7 +67,22 @@ export function isLegacyIdent(row: any, IdentModel: ModelClass<Ident> = Ident as
     return false;
   }
   const type = row.__type;
-  return type === undefined || identIdentifiers(IdentModel).has(type);
+  return type === undefined || identIdentifiers(IdentModel).has(type) || rowClassIdentifiers(row).has(type);
+}
+
+/**
+ * Identifiers of the class a row loaded as and of its ancestors: a subclass of the ident model defined by another
+ * package (e.g. an application `MyApp/Ident`) is not listed in the ident model `Metadata.Subclasses`, yet a row
+ * typed as it loads as it
+ * @param row - the loaded row, an instance of the ident model
+ * @returns the identifiers
+ */
+function rowClassIdentifiers(row: any): Set<string> {
+  const ids = new Set<string>();
+  for (let clazz = row?.constructor; clazz && clazz !== Function.prototype; clazz = Object.getPrototypeOf(clazz)) {
+    if (clazz.Metadata?.Identifier) ids.add(clazz.Metadata.Identifier);
+  }
+  return ids;
 }
 
 /**

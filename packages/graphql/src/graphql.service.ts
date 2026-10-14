@@ -63,10 +63,31 @@ import { createFromInput, isInputAttribute, loadForAction, operationError, updat
 import {
   GRAPHQL_NAME,
   GraphQLOperationContext,
+  type GraphQLPlacement,
   graphqlPlacement,
   operationTypeName,
   publicCopy
 } from "./operations.js";
+
+/**
+ * The fields the schema gives to the CRUD of a model, as `generateSchema()` named them
+ */
+export interface GraphQLModelFields {
+  /** GraphQL type of the model (its input type is `<type>Input`) */
+  type: string;
+  /** Query field reading one object */
+  get: string;
+  /** Argument of `get` holding the primary key */
+  key: string;
+  /** Query field querying the objects */
+  query: string;
+  /** Mutation creating an object, absent when the model defines its own `create` action */
+  create?: string;
+  /** Mutation updating an object (merge), absent when the model defines its own `update` action */
+  update?: string;
+  /** Mutation deleting an object, absent when the model defines its own `delete` action */
+  delete?: string;
+}
 
 const GraphIQL = `
 <!doctype html>
@@ -232,6 +253,14 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   wss: WebSocketServer;
   wsHandler: GraphQLWSServer;
   modelListeners: any;
+  /**
+   * Where `generateSchema()` exposed each operation, by operation id (the model CRUD excepted, see `modelFields`)
+   */
+  operationPlacements: Record<string, GraphQLPlacement> = {};
+  /**
+   * The CRUD fields `generateSchema()` gave to each exposed model, by model id
+   */
+  modelFields: Record<string, GraphQLModelFields> = {};
   /**
    * Load and initialize GraphQL service parameters
    * @param params - raw partial configuration
@@ -675,7 +704,18 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     info?: FieldNode,
     filter?: WebdaQL.PartialValidator
   ): Promise<any> {
-    const res = typeof knownFieldsOrId === "string" ? { uuid: knownFieldsOrId } : knownFieldsOrId;
+    // A parent or link attribute holds a relation object (`ModelLink`), not the uuid: read its key
+    const relation =
+      typeof knownFieldsOrId === "object" &&
+      knownFieldsOrId !== null &&
+      knownFieldsOrId.uuid === undefined &&
+      typeof (knownFieldsOrId as any).getPrimaryKey === "function";
+    const res =
+      typeof knownFieldsOrId === "string"
+        ? { uuid: knownFieldsOrId }
+        : relation
+          ? { uuid: String(knownFieldsOrId.toString()) }
+          : knownFieldsOrId;
     if (filter && !filter.eval(res)) {
       return null;
     }
@@ -785,6 +825,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     const models = this.app.getModels();
     this.modelsMap = {};
     this.namedTypes = new Map();
+    this.operationPlacements = {};
+    this.modelFields = {};
     // First pass: reserve every exposed model name (and its Input) before any type is built, so a nested
     // titled type of the same name fails whatever the model order
     const exposed: { i: string; model: any; metadata: any; schema: any; name: string }[] = [];
@@ -890,6 +932,15 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         }
       };
       const uuidField = (metadata.PrimaryKey && metadata.PrimaryKey[0]) || "uuid";
+      this.modelFields[i] = {
+        type: name,
+        get: this.transformName(i.split("/").pop()),
+        key: uuidField,
+        query: plural,
+        ...(mutations[`create${name}`] ? { create: `create${name}` } : {}),
+        ...(mutations[`update${name}`] ? { update: `update${name}` } : {}),
+        ...(mutations[`delete${name}`] ? { delete: `delete${name}` } : {})
+      };
       /**
        * Subscription for a specific object
        */
@@ -1115,6 +1166,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       };
     }
     this.schema = this.getGraphQLSchema(rootFields, mutations, subscriptions);
+    // Regenerated after init (operations registered later): serve the new schema
+    if (this.handler) this.createHandlers();
   }
 
   /**
@@ -1152,6 +1205,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         );
       }
       owners.set(key, `operation ${id}`);
+      this.operationPlacements[id] = placement;
       const base = operationTypeName(id);
       const { args, toInput } = this.operationArgs(op, base);
       const type = this.operationOutputType(op, base);
@@ -1605,23 +1659,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     // If not define then fallback to debug mode
     this.parameters.exposeGraphiQL ??= useCore().isDebug();
     this.app = useApplication();
+    // Generate GraphQL schema and its HTTP and WebSocket handlers
     this.generateSchema();
-    // Generate GraphQL schema
-    this.handler = createHandler({
-      schema: this.schema,
-      context: (req: any, _) => {
-        return <OperationContext>req.context;
-      }
-    });
-
-    // Define the mechanism to handle the websocket
-    this.wsHandler = makeServer({
-      schema: this.schema,
-      context: async req => {
-        // @ts-ignore
-        return req.extra?.context || {};
-      }
-    });
+    this.createHandlers();
     const storage = useInstanceStorage();
     this.wss.on("connection", async (socket, request) => {
       // a new socket opened, let graphql-ws take over
@@ -1647,6 +1687,27 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       });
     });
     return this;
+  }
+
+  /**
+   * Create the HTTP and WebSocket handlers serving the current schema
+   */
+  protected createHandlers(): void {
+    this.handler = createHandler({
+      schema: this.schema,
+      context: (req: any, _) => {
+        return <OperationContext>req.context;
+      }
+    });
+
+    // Define the mechanism to handle the websocket
+    this.wsHandler = makeServer({
+      schema: this.schema,
+      context: async req => {
+        // @ts-ignore
+        return req.extra?.context || {};
+      }
+    });
   }
 
   /**

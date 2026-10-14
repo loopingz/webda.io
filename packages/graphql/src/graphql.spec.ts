@@ -905,6 +905,89 @@ class GraphQLServiceTest extends WebdaApplicationTest {
     // Schemas that need a default type
     assert.ok(this.service.getGraphQLSchemaFromSchema({ type: "array", items: { type: "null" } }, "plop"));
   }
+
+  @test
+  async modelFieldsLeaveOutTheCrudAModelDefines() {
+    const fields = this.service.modelFields["WebdaDemo/Course"];
+    assert.deepStrictEqual(fields, {
+      type: "Course",
+      get: "Course",
+      key: "uuid",
+      query: "Courses",
+      create: "createCourse",
+      update: "updateCourse",
+      delete: "deleteCourse"
+    });
+    // A model with its own create, update and delete actions: no CRUD mutation for them
+    const app = useApplication();
+    const id = "WebdaDemo/Ledger";
+    const schema = { type: "object", properties: { uuid: { type: "string" } } };
+    app.getSchemas()[id] = <any>schema;
+    app.addModel(id, class Ledger extends CoreModel {}, {
+      Identifier: id,
+      Ancestors: [],
+      Subclasses: [],
+      Relations: {},
+      PrimaryKey: ["uuid"],
+      Events: [],
+      Schemas: { Input: <any>schema },
+      Actions: <any>{ create: {}, update: {}, delete: {} },
+      Import: "",
+      Plural: "Ledgers",
+      Reflection: {}
+    });
+    const handler = this.service.handler;
+    try {
+      this.service.generateSchema();
+      assert.deepStrictEqual(this.service.modelFields[id], {
+        type: "Ledger",
+        get: "Ledger",
+        key: "uuid",
+        query: "Ledgers"
+      });
+      const mutations = this.service.schema.getMutationType().getFields();
+      assert.ok(!("createLedger" in mutations) && !("updateLedger" in mutations) && !("deleteLedger" in mutations));
+      // Regenerated after init: the handlers serve the new schema
+      assert.notStrictEqual(this.service.handler, handler);
+    } finally {
+      delete app.getSchemas()[id];
+      this.service.generateSchema();
+    }
+    assert.strictEqual(this.service.modelFields[id], undefined);
+  }
+
+  @test
+  async socketWithoutWebdaContext() {
+    // A socket whose upgrade request carries no Webda context runs its operations with an empty context
+    const sent: any[] = [];
+    let receive: (data: string) => Promise<void>;
+    let answered: () => void;
+    const done = new Promise<void>(resolve => (answered = resolve));
+    const closed = this.service.wsHandler.opened(
+      {
+        protocol: "graphql-transport-ws",
+        send: async data => {
+          const message = JSON.parse(data);
+          sent.push(message);
+          if (message.type === "complete") answered();
+        },
+        close: () => {},
+        onMessage: cb => {
+          receive = cb;
+        }
+      },
+      <any>{}
+    );
+    await receive(JSON.stringify({ type: "connection_init" }));
+    await receive(JSON.stringify({ type: "subscribe", id: "1", payload: { query: "{ __typename }" } }));
+    await done;
+    closed(1000, "done");
+    assert.deepStrictEqual(
+      sent.map(m => m.type),
+      ["connection_ack", "next", "complete"]
+    );
+    assert.deepStrictEqual(sent[1].payload, { data: { __typename: "Query" } });
+  }
 }
 
 describe("GraphQL scalars", () => {

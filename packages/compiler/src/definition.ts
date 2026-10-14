@@ -164,6 +164,13 @@ export interface ModelMetadata {
    */
   Plural: string;
   /**
+   * Former identifiers of the model, from its `@WebdaAlias` tags (namespace-completed)
+   *
+   * Rows stored under one of them are read as this model. Absent when the model has none: the runtime defaults it
+   * to an empty list.
+   */
+  Aliases?: string[];
+  /**
    * Schemas defining the model
    */
   Schemas: {
@@ -267,6 +274,34 @@ export interface ModelMetadata {
         method?: string;
       };
     };
+  };
+  /**
+   * Methods marked `@Shared()`: copied into the frontend SDK by `@webda/sdk`
+   *
+   * Only present when the model declares some.
+   */
+  Shared?: {
+    [method: string]: SharedMethodMetadata;
+  };
+}
+
+/**
+ * A model method shared with the frontend SDK (`@Shared()`)
+ */
+export interface SharedMethodMetadata {
+  /**
+   * Static method
+   */
+  static?: boolean;
+  /**
+   * The method declaration, decorators removed, type annotations kept
+   */
+  source: string;
+  /**
+   * Identifiers the body uses from the allowlisted modules (`sharedImports`), by module specifier
+   */
+  imports?: {
+    [module: string]: string[];
   };
 }
 
